@@ -18,6 +18,7 @@ use std::{time::Duration, hash};
 use tokio::time::sleep;
 use reqwest::Client;
 use num::{BigInt, Num};
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 
 
 
@@ -689,6 +690,15 @@ async fn send_request() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn ssl_acceptor_builder(cert_path: &str, key_path: &str) -> SslAcceptor {
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    builder
+        .set_private_key_file(key_path, SslFiletype::PEM)
+        .unwrap();
+    builder.set_certificate_chain_file(cert_path).unwrap();
+    builder.build()
+}
+
 #[actix_web::main] //3ddb5d016d6ea15984fbae4659f7e672d8723f1da00356b56ca64b6da1959c4d
 async fn main() -> std::io::Result<()> {
 
@@ -697,6 +707,10 @@ async fn main() -> std::io::Result<()> {
             my_async_function().await;
         }
     });
+
+    let cert_path = "/etc/letsencrypt/live/alcesp.network/fullchaim.pem";
+    let key_path = "/etc/letsencrypt/live/alcesp.network/privkey.pem";
+    let ssl_acceptor = ssl_acceptor_builder(cert_path, key_path);
 
     HttpServer::new(|| {
         let cors = Cors::default()
@@ -715,7 +729,7 @@ async fn main() -> std::io::Result<()> {
             .service(initialize_merkle_tree)
             .service(validate_proof)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await 
 }

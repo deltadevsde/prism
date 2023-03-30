@@ -1400,6 +1400,7 @@ dependencies = [
  "ff",
  "hex 0.4.3",
  "num",
+ "openssl",
  "pairing",
  "rand 0.7.3",
  "redis 0.22.3",
