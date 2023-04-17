@@ -9,6 +9,7 @@ use crate::indexed_merkle_tree::sha256;
 pub type MerkleProof = (Option<String>, Option<Vec<Node>>);
 pub type UpdateProof = (MerkleProof, MerkleProof);
 pub type InsertProof = (MerkleProof, UpdateProof, UpdateProof);
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ProofVariant {
     Update(UpdateProof),
@@ -32,7 +33,7 @@ pub struct InnerNode {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Leaf {
+pub struct LeafNode {
     pub hash: String,
     pub is_left_sibling: bool,
     pub active: bool,
@@ -44,7 +45,7 @@ pub struct Leaf {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Node {
     Inner(InnerNode),
-    Leaf(Leaf),
+    Leaf(LeafNode),
 }
 
 impl Clone for Node {
@@ -103,7 +104,7 @@ impl Node {
 
     pub fn initialize_leaf(active: bool, is_left: bool, label: String, value: String, next: String) -> Self {
         let hash = format!("H({}, {}, {}, {})", active, label, value, next);
-        let leaf = Leaf {
+        let leaf = LeafNode {
             hash: sha256(&hash),
             is_left_sibling: is_left,
             active,
