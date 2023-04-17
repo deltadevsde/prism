@@ -1,10 +1,12 @@
-use crate::transparency_dict::{DerivedEntry};
+//TODO: REFACTORING!
 use serde::{Serialize, Deserialize};
 use crypto_hash::{hex_digest, Algorithm};
 use num::{BigInt, Num};
+use redis::{Commands};
 
 pub type MerkleProof = (Option<String>, Option<Vec<Node>>);
 pub type UpdateProof = (MerkleProof, MerkleProof);
+pub type InsertProof = (MerkleProof, MerkleProof, MerkleProof);
 
 pub struct Proof {
     pub old_root: String,
@@ -127,8 +129,8 @@ impl Clone for IndexedMerkleTree {
 
 impl IndexedMerkleTree {
 
-    pub fn new(nodes: Vec<Node>) -> IndexedMerkleTree {
-        let mut tree = IndexedMerkleTree {
+    pub fn new(nodes: Vec<Node>) -> Self {
+        let mut tree = Self {
             nodes,
         };
         tree.nodes.iter_mut().enumerate().for_each(|(i, node)| {
@@ -136,6 +138,69 @@ impl IndexedMerkleTree {
         });
         tree.calculate_root()
     }
+
+    /// Create an Indexed Merkle Tree from Redis data.
+    ///
+    /// This function retrieves keys and values from Redis, sorts the keys based on the input order, and initializes the nodes
+    /// of an Indexed Merkle Tree based on the data. It also calculates the node hashes and ensures
+    /// that the tree has the correct structure (e.g. is a power of two).
+    ///
+    /// # Returns
+    ///
+    /// * An `IndexedMerkleTree` containing the nodes and structure derived from Redis data.
+    pub fn create_tree_from_redis(derived_dict: &mut redis::Connection, input_order: &mut redis::Connection) -> Self {
+        // Retrieve the keys from input order and sort them.
+        let ordered_derived_dict_keys: Vec<String> = input_order.lrange("input_order", 0, -1).unwrap();
+        let mut sorted_keys = ordered_derived_dict_keys.clone();
+        sorted_keys.sort();
+    
+        // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
+        let mut nodes: Vec<Node> = sorted_keys.iter().map(|key| {
+            let value: String = derived_dict.get(key).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+            Node::initialize_leaf(true, true, key.clone(), value, Node::create_tail())
+        }).collect();
+        
+        // calculate the next power of two, tree size is at least 8 for now
+        let mut next_power_of_two: usize = 8;
+        while next_power_of_two < ordered_derived_dict_keys.len() {
+            next_power_of_two *= 2;
+        }
+        
+        // Calculate the node hashes and sort the keys (right now they are sorted, so the next node is always the one bigger than the current one)
+        for i in 0..nodes.len() - 1 {
+            let is_next_node_active = nodes[i + 1].active.as_deref().unwrap();
+            if is_next_node_active == &true {
+                nodes[i].next = nodes[i + 1].label.clone();
+                nodes[i] = nodes[i].clone().calculate_node_hash();
+            }
+        }
+        
+        // resort the nodes based on the input order
+        nodes.sort_by_cached_key(|node| {
+            let label = node.label.as_deref().unwrap(); // get the label of the node
+
+            ordered_derived_dict_keys
+                .iter()
+                .enumerate() // use index 
+                .find(|(_, k)| {
+                    *k == label // ohne dereferenzierung wird ein &&String mit &String verglichen
+                })
+                .unwrap()
+                .0 // enumerate gibt tupel zurück, also index zurückgeben
+        });
+    
+        // Add empty nodes to ensure the total number of nodes is a power of two.
+        while nodes.len() < next_power_of_two {
+            let empty_hash = Node::create_empty_hash();
+            nodes.push(Node::initialize_leaf(false, true, empty_hash.clone(), empty_hash, Node::create_tail()));
+        }
+    
+        // baum erstellen und dabei alle nodes überprüfen, ob sie linkes oder rechtes kind sind
+        let tree = IndexedMerkleTree::new(nodes);
+        tree
+    }
+    
+    
 
     pub fn initialize(size: usize) -> IndexedMerkleTree {
         // ist zweierpotenz, wenn bitweise und mit n und n-1 nicht nlul ist ...
@@ -398,7 +463,7 @@ impl IndexedMerkleTree {
         
         match proof {
             (Some(root), Some(path)) => {
-                println!("Commitment: {}", &root);
+                /* println!("Commitment: {}", &root); */
                 let mut current_hash = path[0].hash.clone();
     
                 for (_, node) in path.iter().skip(1).enumerate() {
@@ -408,10 +473,10 @@ impl IndexedMerkleTree {
                         format!("H({} || {})", current_hash, node.hash)
                     };
                     current_hash = sha256(&hash);
-                    println!("{} = {}", hash, current_hash);
+                    /* println!("{} = {}", hash, current_hash); */
                 }
             
-                println!();
+                /* println!(); */
 
                 return current_hash == root;
             },
