@@ -1068,7 +1068,7 @@ async fn intialize_or_increment_epoch_state() {
     };
 
     // 60 Sek warten for the next epoch to start, ten hours for now (testing purposes)
-    let wait_duration = Duration::from_secs(60);
+    let wait_duration = Duration::from_secs(60000);
     //let wait_duration = Duration::from_secs(300);
     sleep(wait_duration).await; 
 }

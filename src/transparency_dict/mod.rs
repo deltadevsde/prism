@@ -42,30 +42,15 @@ pub struct LeafNode {
     pub next: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Node {
     Inner(InnerNode),
     Leaf(LeafNode),
 }
 
-impl Clone for Node {
-    fn clone(&self) -> Self {
-        match self {
-            Node::Inner(inner_node) => Node::Inner(inner_node.clone()),
-            Node::Leaf(leaf) => Node::Leaf(leaf.clone()),
-        }
-    }
-}
-
 impl Node {
     pub const EMPTY_HASH: &'static str = "0000000000000000000000000000000000000000000000000000000000000000";
     pub const TAIL: &'static str = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
-
-    pub fn create_first_node() -> Self {
-        let empty_hash = Self::EMPTY_HASH.to_string();
-        let tail = Self::TAIL.to_string();
-        Self::initialize_leaf(true, true, empty_hash.clone(), empty_hash, tail)
-    }
 
     pub fn get_hash(&self) -> String {
         match self {
@@ -81,13 +66,6 @@ impl Node {
         }
     }
 
-    pub fn set_left_sibling(&mut self, is_left: bool) {
-        match self {
-            Node::Inner(inner_node) => inner_node.is_left_sibling = is_left,
-            Node::Leaf(leaf) => leaf.is_left_sibling = is_left,
-        }
-    }
-
     pub fn is_active(&self) -> bool {
         match self {
             Node::Inner(_) => true,
@@ -95,7 +73,14 @@ impl Node {
         }
     }
 
-    pub fn activate(&mut self) {
+    pub fn set_left_sibling_value(&mut self, is_left: bool) {
+        match self {
+            Node::Inner(inner_node) => inner_node.is_left_sibling = is_left,
+            Node::Leaf(leaf) => leaf.is_left_sibling = is_left,
+        }
+    }
+
+    pub fn set_node_active(&mut self) {
         match self {
             Node::Inner(_) => (),
             Node::Leaf(ref mut leaf) => leaf.active = true,
@@ -128,16 +113,10 @@ impl Node {
     }
 
     pub fn update_next_pointer(new_old_node: &mut Self, new_node: &Self) {
-        match new_old_node {
-            Node::Leaf(ref mut leaf) => {
-                match new_node {
-                    Node::Leaf(new_leaf) => {
-                        leaf.next = new_leaf.label.clone();
-                    },
-                    _ => (),
-                }
-            },
-            _ => (),
+        if let Self::Leaf(ref mut leaf) = new_old_node {
+            if let Self::Leaf(new_leaf) = new_node {
+                leaf.next = new_leaf.label.clone();
+            }
         }
     }
     
@@ -145,15 +124,7 @@ impl Node {
     pub fn generate_hash(&mut self) {
         match self {
             Node::Inner(inner_node) => {
-                let left_hash = match &*inner_node.left {
-                    Node::Inner(left_inner) => &left_inner.hash,
-                    Node::Leaf(left_leaf) => &left_leaf.hash,
-                };
-                let right_hash = match &*inner_node.right {
-                    Node::Inner(right_inner) => &right_inner.hash,
-                    Node::Leaf(right_leaf) => &right_leaf.hash,
-                };
-                let hash = format!("H({} || {})", left_hash, right_hash);
+                let hash = format!("H({} || {})", inner_node.left.get_hash(), inner_node.right.get_hash());
                 inner_node.hash = sha256(&hash);
             }
             Node::Leaf(leaf) => {
@@ -164,17 +135,9 @@ impl Node {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct IndexedMerkleTree {
     nodes: Vec<Node>,
-}
-
-impl Clone for IndexedMerkleTree {
-    fn clone(&self) -> Self {
-        IndexedMerkleTree {
-            nodes: self.nodes.clone(),
-        }
-    }
 }
 
 impl IndexedMerkleTree {
@@ -355,7 +318,7 @@ impl IndexedMerkleTree {
 
         // set root not as left sibling
         let root = self.nodes.last_mut().unwrap();
-        root.set_left_sibling(false);
+        root.set_left_sibling_value(false);
 
         self
     }
@@ -522,7 +485,7 @@ impl IndexedMerkleTree {
 
         // ersten update beweis generieren, wobei nur vom alten Knoten an der stelle der next pointer geändert wird
         let mut new_old_node = self.nodes[index].clone();
-        new_old_node.activate();
+        new_old_node.set_node_active();
         Node::update_next_pointer(&mut new_old_node, new_node);
         new_old_node.generate_hash();
         let first_update_proof = self.clone().generate_proof_of_update(index, new_old_node.clone());
