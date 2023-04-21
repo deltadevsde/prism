@@ -838,7 +838,10 @@ async fn validate_epoch(req_body: String) -> impl Responder {
     
     let (epoch_number , previous_commitment, current_commitment, proofs) = match get_epochs_and_proofs(&epoch.as_str()) {
         Ok(value) => value,
-        Err(_) => return HttpResponse::BadRequest().body("Something went wrong while getting the proofs"),
+        Err(err) => { 
+            println!("{}", format!("Error getting proofs for epoch {}: {}", epoch, err).red());
+            return HttpResponse::BadRequest().body("Something went wrong while getting the proofs");
+        },
     };
 
     println!("found {:?} proofs in epoch {}", proofs.len(), epoch);
@@ -1095,11 +1098,11 @@ async fn set_epoch_commitment_and_proof(app_state: &mut redis::Connection, commi
     let res = client.get("http://127.0.0.1:8080/get-commitment").send().await?;
     let res = res.text().await?;
 
-    let epoch_number = "3";
+    commitments.set::<&String, &String, String>(&format!("epoch_{}", epoch), &res).unwrap();
 
     let proof = client
         .post("http://127.0.0.1:8080/validate-epoch")
-        .json(&epoch_number) // Verwenden Sie die 'json()' Methode, um den String als JSON zu senden
+        .json(&epoch.as_str()) 
         .send()
         .await?;
 
@@ -1108,9 +1111,9 @@ async fn set_epoch_commitment_and_proof(app_state: &mut redis::Connection, commi
         println!("Response JSON: {:?}", proof_json["proof"]);
     } else {
         println!("Error: {}", proof.status());
+        println!("Error: {}", proof.text().await?);
     }
 
-    commitments.set::<&String, &String, String>(&format!("epoch_{}", epoch), &res).unwrap();
 
     Ok(())
 }

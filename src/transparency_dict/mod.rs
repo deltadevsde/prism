@@ -140,30 +140,34 @@ pub struct IndexedMerkleTree {
     nodes: Vec<Node>,
 }
 
+pub fn update_node_positions(nodes: Vec<Node>) -> Vec<Node> {
+    nodes.into_iter()
+        .enumerate()
+        .map(|(i, node)| {
+            let is_left_sibling = i % 2 == 0;
+            match node {
+                Node::Inner(mut inner_node) => {
+                    inner_node.is_left_sibling = is_left_sibling;
+                    Node::Inner(inner_node)
+                }
+                Node::Leaf(mut leaf) => {
+                    leaf.is_left_sibling = is_left_sibling;
+                    Node::Leaf(leaf)
+                }
+            }
+        })
+        .collect()
+}
+
 impl IndexedMerkleTree {
 
     pub fn new(nodes: Vec<Node>) -> Self {
-        let parsed_nodes = nodes
-            .into_iter()
-            .enumerate()
-            .map(|(i, node)| {
-                let is_left_sibling = i % 2 == 0;
-                match node {
-                    Node::Inner(mut inner_node) => {
-                        inner_node.is_left_sibling = is_left_sibling;
-                        Node::Inner(inner_node)
-                    }
-                    Node::Leaf(mut leaf) => {
-                        leaf.is_left_sibling = is_left_sibling;
-                        Node::Leaf(leaf)
-                    }
-                }
-            })
-            .collect();
+        let parsed_nodes = update_node_positions(nodes);
 
         let tree = Self { nodes: parsed_nodes };
         tree.calculate_root()
     }
+
 
     /// Create an Indexed Merkle Tree from Redis data.
     ///
