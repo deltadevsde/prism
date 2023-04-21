@@ -143,19 +143,25 @@ pub struct IndexedMerkleTree {
 impl IndexedMerkleTree {
 
     pub fn new(nodes: Vec<Node>) -> Self {
-        let mut tree = Self {
-            nodes,
-        };
-        tree.nodes.iter_mut().enumerate().for_each(|(i, node)| {
-            match node {
-                Node::Inner(inner_node) => {
-                    inner_node.is_left_sibling = i % 2 == 0;
+        let parsed_nodes = nodes
+            .into_iter()
+            .enumerate()
+            .map(|(i, node)| {
+                let is_left_sibling = i % 2 == 0;
+                match node {
+                    Node::Inner(mut inner_node) => {
+                        inner_node.is_left_sibling = is_left_sibling;
+                        Node::Inner(inner_node)
+                    }
+                    Node::Leaf(mut leaf) => {
+                        leaf.is_left_sibling = is_left_sibling;
+                        Node::Leaf(leaf)
+                    }
                 }
-                Node::Leaf(leaf) => {
-                    leaf.is_left_sibling = i % 2 == 0;
-                }
-            }
-        });
+            })
+            .collect();
+
+        let tree = Self { nodes: parsed_nodes };
         tree.calculate_root()
     }
 
