@@ -143,24 +143,25 @@ pub struct IndexedMerkleTree {
 pub fn update_node_positions(nodes: Vec<Node>) -> Vec<Node> {
     nodes.into_iter()
         .enumerate()
-        .map(|(i, node)| {
+        .map(|(i, mut node)| {
             let is_left_sibling = i % 2 == 0;
-            match node {
-                Node::Inner(mut inner_node) => {
-                    inner_node.is_left_sibling = is_left_sibling;
-                    Node::Inner(inner_node)
-                }
-                Node::Leaf(mut leaf) => {
-                    leaf.is_left_sibling = is_left_sibling;
-                    Node::Leaf(leaf)
-                }
-            }
+            node.set_left_sibling_value(is_left_sibling);
+            node
         })
         .collect()
 }
 
 impl IndexedMerkleTree {
 
+    /// Creates a new `IndexedMerkleTree` from a given `nodes` vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `nodes` - A vector of nodes from which the Merkle tree will be built.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - A new IndexedMerkleTree
     pub fn new(nodes: Vec<Node>) -> Self {
         let parsed_nodes = update_node_positions(nodes);
 
@@ -168,6 +169,36 @@ impl IndexedMerkleTree {
         tree.calculate_root()
     }
 
+    /// Initializes an `IndexedMerkleTree` of the given size.
+    ///
+    /// # Arguments
+    ///
+    /// * `size` - The number of leaves in the Merkle tree (must be a power of two)
+    ///
+    /// # Returns
+    ///
+    /// * Indexed Merkle Tree - A new IndexedMerkleTree (or panics for now if the size is not a power of two)
+    pub fn initialize(size: usize) -> IndexedMerkleTree {
+        // ist zweierpotenz, wenn bitweise und mit n und n-1 nicht nlul ist ...
+        if size & (size - 1) != 0 {
+            // per code fixen (   evtl: initialize(size + 1)   )
+            panic!("size must be a power of 2"); //TODO: verbessern!
+        }
+
+        let mut tree = IndexedMerkleTree {
+            nodes: Vec::new(),
+        };
+        for i in 0..size {
+            let is_active_leaf = i == 0;
+            let is_left_sibling = i % 2 == 0;
+            let value = Node::EMPTY_HASH.to_string();
+            let label = Node::EMPTY_HASH.to_string();
+            let node = Node::initialize_leaf(is_active_leaf, is_left_sibling, value, label, Node::TAIL.to_string());
+            tree.nodes.push(node);
+        }
+
+        tree.calculate_root()
+    }
 
     /// Create an Indexed Merkle Tree from Redis data.
     ///
@@ -247,31 +278,32 @@ impl IndexedMerkleTree {
         let tree = IndexedMerkleTree::new(nodes);
         tree
     }
-    
-    
 
-    pub fn initialize(size: usize) -> IndexedMerkleTree {
-        // ist zweierpotenz, wenn bitweise und mit n und n-1 nicht nlul ist ...
-        if size & (size - 1) != 0 {
-            // per code fixen (   evtl: initialize(size + 2)   )
-            panic!("size must be a power of 2");
-        }
-
-        let mut tree = IndexedMerkleTree {
-            nodes: Vec::new(),
-        };
-        for i in 0..size {
-            let is_active_leaf = i == 0;
-            let is_left_sibling = i % 2 == 0;
-            let value = Node::EMPTY_HASH.to_string();
-            let label = Node::EMPTY_HASH.to_string();
-            let node = Node::initialize_leaf(is_active_leaf, is_left_sibling, value, label, Node::TAIL.to_string());
-            tree.nodes.push(node);
-        }
-
-        tree.calculate_root()
+    pub fn create_inner_node(left: Node, right: Node, index: usize) -> Node {
+        let mut new_node = Node::Inner(InnerNode {
+            hash: String::from("H()"),
+            is_left_sibling: index % 2 == 0,
+            left: Rc::new(left),
+            right: Rc::new(right),
+        });
+        new_node.generate_hash();
+        new_node
     }
 
+    /// Calculates the root of an IndexedMerkleTree by aggregating the tree's nodes.
+    ///
+    /// The function performs the followig (main) steps:
+    /// 1. Extracts all the leaf nodes from the tree.
+    /// 2. Resets the tree's nodes to the extracted leaves.
+    /// 3. Iteratively constructs parent nodes from pairs of child nodes until there is only one node left (the root).
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The mutable reference to the IndexedMerkleTree instance.
+    ///
+    /// # Returns
+    ///
+    /// * `IndexedMerkleTree` - The updated IndexedMerkleTree instance with the calculated root.
     fn calculate_root(mut self) -> IndexedMerkleTree {
         // first get all leaves (= nodes with no children)
         let leaves: Vec<Node> = self.nodes.clone().into_iter().filter(|node| matches!(node, Node::Leaf(_))).collect();
@@ -283,13 +315,7 @@ impl IndexedMerkleTree {
             let left = node[0].clone();
             let right = node.get(1).cloned().unwrap_or_else(|| left.clone());
             
-            let mut new_node = Node::Inner(InnerNode {
-                hash: String::from("H()"),
-                is_left_sibling: index % 2 == 0,
-                left: Rc::new(left),
-                right: Rc::new(right),
-            });
-            new_node.generate_hash();
+            let new_node = IndexedMerkleTree::create_inner_node(left, right, index);
             parents.push(new_node.clone());
             self.nodes.push(new_node);
         }
@@ -309,15 +335,7 @@ impl IndexedMerkleTree {
                 let right = node.get(1).cloned().unwrap_or_else(|| left.clone());
                 
                 // Erstellen eines neuen inneren Knotens mit den gegebenen Eltern als Kinder
-                let mut new_node = Node::Inner(InnerNode {
-                    hash: String::from("H()"),
-                    is_left_sibling: index % 2 == 0,
-                    left: Rc::new(left),
-                    right: Rc::new(right),
-                });
-                
-                // Berechnen des Hashs für den neuen Knoten
-                new_node.generate_hash();
+                let new_node = IndexedMerkleTree::create_inner_node(left, right, index);
                 
                 // Hinzufügen des neuen Knotens zur verarbeiteten Elternliste und zur Knotenliste des Baums
                 self.nodes.push(new_node.clone());
