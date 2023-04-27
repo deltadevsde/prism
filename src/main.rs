@@ -1,6 +1,5 @@
 pub mod indexed_merkle_tree;
 pub mod zk_snark;
-pub mod transparency_dict;
 
 use redis::{Commands, RedisError, Connection};
 use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier, SecretKey};
@@ -12,7 +11,7 @@ use actix_web::{get, rt::{spawn}, post, App, HttpResponse, HttpServer, Responder
 use crypto_hash::{Algorithm, hex_digest};
 use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
-use transparency_dict::{IndexedMerkleTree, MerkleProof, UpdateProof, InsertProof, Node, ProofVariant};
+use indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, UpdateProof, InsertProof, Node, ProofVariant};
 use indexed_merkle_tree::{sha256};
 use zk_snark::{InsertMerkleProofCircuit, BatchMerkleProofCircuit, hex_to_scalar}; 
 use std::{time::Duration};
@@ -303,6 +302,7 @@ async fn update(req_body: String) -> impl Responder {
     let signature = sign_incoming_entry(&entry_with_key.incoming_entry, &entry_with_key.private_key);
     let update_successful = update_entry(entry_with_key.operation, &entry_with_key.incoming_entry, signature, &mut redis_connections);
     
+
     if update_successful {
         let new_tree = IndexedMerkleTree::create_tree_from_redis(&mut redis_connections.derived_dict, &mut redis_connections.input_order);
         let hashed_id = sha256(&entry_with_key.incoming_entry.id);
@@ -310,7 +310,8 @@ async fn update(req_body: String) -> impl Responder {
 
         let proofs = if update_proof {
             let new_index = tree.clone().find_node_index(&node).unwrap();
-            let pre_processed_string = serde_json::to_string(&tree.clone().generate_proof_of_update(new_index, node)).unwrap();
+            let (proof_of_update, _) = &tree.clone().generate_proof_of_update(new_index, node);
+            let pre_processed_string = serde_json::to_string(proof_of_update).unwrap();
             format!(r#"{{"Update":{}}}"#, pre_processed_string)
 
         } else {
@@ -1100,18 +1101,20 @@ async fn set_epoch_commitment_and_proof(app_state: &mut redis::Connection, commi
 
     commitments.set::<&String, &String, String>(&format!("epoch_{}", epoch), &res).unwrap();
 
-    let proof = client
-        .post("http://127.0.0.1:8080/validate-epoch")
-        .json(&epoch.as_str()) 
-        .send()
-        .await?;
-
-    if proof.status().is_success() {
-        let proof_json: serde_json::Value = proof.json().await?;
-        println!("Response JSON: {:?}", proof_json["proof"]);
-    } else {
-        println!("Error: {}", proof.status());
-        println!("Error: {}", proof.text().await?);
+    if epoch != "0" {
+        let proof = client
+            .post("http://127.0.0.1:8080/validate-epoch")
+            .json(&epoch.as_str()) 
+            .send()
+            .await?;
+    
+        if proof.status().is_success() {
+            let proof_json: serde_json::Value = proof.json().await?;
+            println!("Response JSON: {:?}", proof_json["proof"]);
+        } else {
+            println!("Error: {}", proof.status());
+            println!("Error: {}", proof.text().await?);
+        }
     }
 
 

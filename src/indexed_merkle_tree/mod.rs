@@ -1,4 +1,4 @@
-//TODO: REFACTORING!
+use std::rc::Rc;
 use serde::{Serialize, Deserialize};
 use crypto_hash::{hex_digest, Algorithm};
 use num::{BigInt, Num};
@@ -6,7 +6,17 @@ use redis::{Commands};
 
 pub type MerkleProof = (Option<String>, Option<Vec<Node>>);
 pub type UpdateProof = (MerkleProof, MerkleProof);
-pub type InsertProof = (MerkleProof, MerkleProof, MerkleProof);
+pub type InsertProof = (MerkleProof, UpdateProof, UpdateProof);
+
+pub fn sha256(input: &String) -> String {
+    hex_digest(Algorithm::SHA256, input.as_bytes())
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ProofVariant {
+    Update(UpdateProof),
+    Insert(MerkleProof, UpdateProof, UpdateProof),
+}
 
 pub struct Proof {
     pub old_root: String,
@@ -15,127 +25,180 @@ pub struct Proof {
     pub new_path: Vec<Node>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Node {
-    pub hash: String, // for nodes and leafes
-    pub is_left_sibling: Option<bool>, // for nodes and leafes
-    pub left: Option<Box<Node>>, // for nodes only 
-    pub right: Option<Box<Node>>, // for nodes only
-    pub active: Option<Box<bool>>, // for leafes only
-    pub value: Option<Box<String>>, // for leafes only
-    pub label: Option<Box<String>>, // for leafes labels, for nodes hashes of left and right child
-    pub next: Option<Box<String>>, // for leafes only
+// Separate structures for InnerNode and Leaf
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct InnerNode {
+    pub hash: String,
+    pub is_left_sibling: bool,
+    pub left: Rc<Node>,
+    pub right: Rc<Node>,
 }
 
-impl Clone for Node {
-    fn clone(&self) -> Self {
-        Node {
-            hash: self.hash.clone(),
-            is_left_sibling: self.is_left_sibling.clone(),
-            left: self.left.clone(),
-            right: self.right.clone(),
-            active: self.active.clone(),
-            value: self.value.clone(),
-            label: self.label.clone(),
-            next: self.next.clone(),
-        }
-    }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LeafNode {
+    pub hash: String,
+    pub is_left_sibling: bool,
+    pub active: bool,
+    pub value: String,
+    pub label: String,
+    pub next: String,
 }
 
-pub fn sha256(input: &String) -> String {
-    hex_digest(Algorithm::SHA256, input.as_bytes())
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum Node {
+    Inner(InnerNode),
+    Leaf(LeafNode),
 }
 
 impl Node {
-    pub fn new(hash: String) -> Node {
-        Node {
-            hash,
-            is_left_sibling: Some(true),
-            left: None,
-            right: None,
-            active: None,
-            value: None,
-            label: None,
-            next: None,
+    pub const EMPTY_HASH: &'static str = "0000000000000000000000000000000000000000000000000000000000000000";
+    pub const TAIL: &'static str = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+
+    pub fn get_hash(&self) -> String {
+        match self {
+            Node::Inner(inner_node) => inner_node.hash.clone(),
+            Node::Leaf(leaf) => leaf.hash.clone(),
         }
     }
 
-    pub fn create_first_node() -> Node {
-        let empty_hash = Node::create_empty_hash();
-        let tail = Node::create_tail();
-        Node::initialize_leaf(true, true, empty_hash.clone(), empty_hash, tail)
+    pub fn is_left_sibling(&self) -> bool {
+        match self {
+            Node::Inner(inner_node) => inner_node.is_left_sibling,
+            Node::Leaf(leaf) => leaf.is_left_sibling,
+        }
     }
 
-    pub fn create_empty_hash() -> String {
-        "0".repeat(64).to_string()
+    pub fn is_active(&self) -> bool {
+        match self {
+            Node::Inner(_) => true,
+            Node::Leaf(leaf) => leaf.active,
+        }
     }
 
-    pub fn create_tail() -> String {
-        "F".repeat(64).to_string()
+    pub fn set_left_sibling_value(&mut self, is_left: bool) {
+        match self {
+            Node::Inner(inner_node) => inner_node.is_left_sibling = is_left,
+            Node::Leaf(leaf) => leaf.is_left_sibling = is_left,
+        }
+    }
+
+    pub fn set_node_active(&mut self) {
+        match self {
+            Node::Inner(_) => (),
+            Node::Leaf(ref mut leaf) => leaf.active = true,
+        }
     }
 
     pub fn initialize_leaf(active: bool, is_left: bool, label: String, value: String, next: String) -> Self {
         let hash = format!("H({}, {}, {}, {})", active, label, value, next);
-        let mut node = Node::new(sha256(&hash));
-        node.is_left_sibling = Some(is_left);
-        node.active = Some(Box::new(active));
-        node.value = Some(Box::new(value));
-        node.label = Some(Box::new(label));
-        node.next = Some(Box::new(next));
-        node
+        let leaf = LeafNode {
+            hash: sha256(&hash),
+            is_left_sibling: is_left,
+            active,
+            value,
+            label,
+            next
+        };
+        Node::Leaf(leaf)
     }
 
-    pub fn add_left(&mut self, left: Node) -> &mut Self {
-        self.left = Some(Box::new(left));
-        self
-    }
-
-    pub fn add_right(&mut self, right: Node) -> &mut Self {
-        self.right = Some(Box::new(right));
-        self
-    }
-
-    pub fn calculate_node_hash(mut self) -> Self {
-        let hash = format!("H({:?}, {:?}, {:?}, {:?})", self.active, self.label, self.value, self.next);
-        self.hash = sha256(&hash);
-        self
-    }
-
-    pub fn generate_hash(&mut self) -> &mut Node {
-        if let Some(left) = &self.left {
-            let left_hash = &left.hash;
-            // wenn rechter knoten existiert, dann hash von rechtem knoten, sonst hash von linkem knoten
-            let right_hash = &self.right.as_ref().map_or(left_hash, |r| &r.hash); 
-            let hash = format!("H({} || {})", left_hash, right_hash);
-            self.label = Some(Box::new(hash.clone()));
-            self.hash = sha256(&hash);
+    pub fn add_left(&mut self, left: Rc<Self>) {
+        if let Node::Inner(inner) = self {
+            inner.left = left;
         }
-        self
+    }
+
+    pub fn add_right(&mut self, right: Rc<Self>) {
+        if let Node::Inner(inner) = self {
+            inner.right = right;
+        }
+    }
+
+    pub fn update_next_pointer(new_old_node: &mut Self, new_node: &Self) {
+        if let Self::Leaf(ref mut leaf) = new_old_node {
+            if let Self::Leaf(new_leaf) = new_node {
+                leaf.next = new_leaf.label.clone();
+            }
+        }
+    }
+    
+
+    pub fn generate_hash(&mut self) {
+        match self {
+            Node::Inner(inner_node) => {
+                let hash = format!("H({} || {})", inner_node.left.get_hash(), inner_node.right.get_hash());
+                inner_node.hash = sha256(&hash);
+            }
+            Node::Leaf(leaf) => {
+                let hash = format!("H({}, {}, {}, {})", leaf.active, leaf.label, leaf.value, leaf.next);
+                leaf.hash = sha256(&hash);
+            }
+        }
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct IndexedMerkleTree {
     nodes: Vec<Node>,
 }
 
-impl Clone for IndexedMerkleTree {
-    fn clone(&self) -> Self {
-        IndexedMerkleTree {
-            nodes: self.nodes.clone(),
-        }
-    }
+pub fn update_node_positions(nodes: Vec<Node>) -> Vec<Node> {
+    nodes.into_iter()
+        .enumerate()
+        .map(|(i, mut node)| {
+            let is_left_sibling = i % 2 == 0;
+            node.set_left_sibling_value(is_left_sibling);
+            node
+        })
+        .collect()
 }
 
 impl IndexedMerkleTree {
 
+    /// Creates a new `IndexedMerkleTree` from a given `nodes` vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `nodes` - A vector of nodes from which the Merkle tree will be built.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - A new IndexedMerkleTree
     pub fn new(nodes: Vec<Node>) -> Self {
-        let mut tree = Self {
-            nodes,
+        let parsed_nodes = update_node_positions(nodes);
+
+        let tree = Self { nodes: parsed_nodes };
+        tree.calculate_root()
+    }
+
+    /// Initializes an `IndexedMerkleTree` of the given size.
+    ///
+    /// # Arguments
+    ///
+    /// * `size` - The number of leaves in the Merkle tree (must be a power of two)
+    ///
+    /// # Returns
+    ///
+    /// * Indexed Merkle Tree - A new IndexedMerkleTree (or panics for now if the size is not a power of two)
+    pub fn initialize(size: usize) -> IndexedMerkleTree {
+        // ist zweierpotenz, wenn bitweise und mit n und n-1 nicht nlul ist ...
+        if size & (size - 1) != 0 {
+            // per code fixen (   evtl: initialize(size + 1)   )
+            panic!("size must be a power of 2"); //TODO: verbessern!
+        }
+
+        let mut tree = IndexedMerkleTree {
+            nodes: Vec::new(),
         };
-        tree.nodes.iter_mut().enumerate().for_each(|(i, node)| {
-            node.is_left_sibling = Some(i % 2 == 0);
-        });
+        for i in 0..size {
+            let is_active_leaf = i == 0;
+            let is_left_sibling = i % 2 == 0;
+            let value = Node::EMPTY_HASH.to_string();
+            let label = Node::EMPTY_HASH.to_string();
+            let node = Node::initialize_leaf(is_active_leaf, is_left_sibling, value, label, Node::TAIL.to_string());
+            tree.nodes.push(node);
+        }
+
         tree.calculate_root()
     }
 
@@ -157,33 +220,52 @@ impl IndexedMerkleTree {
         // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
         let mut nodes: Vec<Node> = sorted_keys.iter().map(|key| {
             let value: String = derived_dict.get(key).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-            Node::initialize_leaf(true, true, key.clone(), value, Node::create_tail())
+            Node::initialize_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
         }).collect();
         
         // calculate the next power of two, tree size is at least 8 for now
         let mut next_power_of_two: usize = 8;
-        while next_power_of_two < ordered_derived_dict_keys.len() {
+        while next_power_of_two < ordered_derived_dict_keys.len() + 1 {
             next_power_of_two *= 2;
         }
         
         // Calculate the node hashes and sort the keys (right now they are sorted, so the next node is always the one bigger than the current one)
         for i in 0..nodes.len() - 1 {
-            let is_next_node_active = nodes[i + 1].active.as_deref().unwrap();
-            if is_next_node_active == &true {
-                nodes[i].next = nodes[i + 1].label.clone();
-                nodes[i] = nodes[i].clone().calculate_node_hash();
+            let is_next_node_active = nodes[i + 1].is_active();
+            if is_next_node_active {
+                let next_label = match &nodes[i + 1] {
+                    Node::Leaf(next_leaf) => next_leaf.label.clone(),
+                    _ => unreachable!(),
+                };
+            
+                match &mut nodes[i] {
+                    Node::Leaf(leaf) => {
+                        leaf.next = next_label;
+                    }
+                    _ => (),
+                }
+            
+                nodes[i].generate_hash();
             }
+            
         }
         
         // resort the nodes based on the input order
         nodes.sort_by_cached_key(|node| {
-            let label = node.label.as_deref().unwrap(); // get the label of the node
-
+            let label = match node {
+                Node::Inner(_) => {
+                    None
+                }
+                Node::Leaf(leaf) => {
+                    let label = leaf.label.clone(); // get the label of the node
+                    Some(label)
+                }
+            };
             ordered_derived_dict_keys
                 .iter()
                 .enumerate() // use index 
                 .find(|(_, k)| {
-                    *k == label // ohne dereferenzierung wird ein &&String mit &String verglichen
+                    *k == &label.clone().unwrap() // ohne dereferenzierung wird ein &&String mit &String verglichen
                 })
                 .unwrap()
                 .0 // enumerate gibt tupel zurück, also index zurückgeben
@@ -191,176 +273,185 @@ impl IndexedMerkleTree {
     
         // Add empty nodes to ensure the total number of nodes is a power of two.
         while nodes.len() < next_power_of_two {
-            let empty_hash = Node::create_empty_hash();
-            nodes.push(Node::initialize_leaf(false, true, empty_hash.clone(), empty_hash, Node::create_tail()));
+            nodes.push(Node::initialize_leaf(false, true, Node::EMPTY_HASH.to_string(), Node::EMPTY_HASH.to_string(), Node::TAIL.to_string()));
         }
     
         // baum erstellen und dabei alle nodes überprüfen, ob sie linkes oder rechtes kind sind
         let tree = IndexedMerkleTree::new(nodes);
         tree
     }
-    
-    
 
-    pub fn initialize(size: usize) -> IndexedMerkleTree {
-        // ist zweierpotenz, wenn bitweise und mit n und n-1 nicht nlul ist ...
-        if size & (size - 1) != 0 {
-            // per code fixen (   evtl: initialize(size + 2)   )
-            panic!("size must be a power of 2");
-        }
-
-        let mut tree = IndexedMerkleTree {
-            nodes: Vec::new(),
-        };
-        for i in 0..size {
-            let is_active_leaf = i == 0;
-            let is_left_sibling = i % 2 == 0;
-            let value = Node::create_empty_hash();
-            let label = Node::create_empty_hash();
-            let node = Node::initialize_leaf(is_active_leaf, is_left_sibling, value, label, Node::create_tail());
-            tree.nodes.push(node);
-        }
-
-        tree.calculate_root()
+    pub fn create_inner_node(left: Node, right: Node, index: usize) -> Node {
+        let mut new_node = Node::Inner(InnerNode {
+            hash: String::from("H()"),
+            is_left_sibling: index % 2 == 0,
+            left: Rc::new(left),
+            right: Rc::new(right),
+        });
+        new_node.generate_hash();
+        new_node
     }
 
+    /// Calculates the next level of the Merkle tree by aggregating the hash values of the
+    /// current level nodes in pairs, creating new inner nodes and adding them to the indexed merkle tree nodes.
+    ///
+    /// # Arguments
+    ///
+    /// * `current_nodes` - A vector of nodes representing the current level of the tree.
+    ///
+    /// # Returns
+    ///
+    /// A vector of nodes representing the next level of the Merkle tree.
+    pub fn calculate_next_level(&mut self, current_nodes: Vec<Node>) -> Vec<Node> {
+        let mut next_level_nodes: Vec<Node> = Vec::new();
+
+        for (index, node) in current_nodes.chunks(2).enumerate() {
+            /* let left = node[0].clone();
+            let right = node.get(1).cloned().unwrap_or_else(|| left.clone()); */
+            // da wir derzeit nur zweierpotenzen betrachten muss auch auf jeder ebene immer ein linker und rechter knoten vorhanden sein
+            
+            let new_node = IndexedMerkleTree::create_inner_node(node[0].clone(), node[1].clone(), index);
+            next_level_nodes.push(new_node.clone());
+            self.nodes.push(new_node);
+        }
+
+        next_level_nodes
+    }
+
+    /// Calculates the root of an IndexedMerkleTree by aggregating the tree's nodes.
+    ///
+    /// The function performs the followig (main) steps:
+    /// 1. Extracts all the leaf nodes from the tree.
+    /// 2. Resets the tree's nodes to the extracted leaves.
+    /// 3. Iteratively constructs parent nodes from pairs of child nodes until there is only one node left (the root).
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The mutable reference to the IndexedMerkleTree instance.
+    ///
+    /// # Returns
+    ///
+    /// * `IndexedMerkleTree` - The updated IndexedMerkleTree instance with the calculated root.
     fn calculate_root(mut self) -> IndexedMerkleTree {
         // first get all leaves (= nodes with no children)
-        let leaves: Vec<Node> = self.nodes.clone().into_iter().filter(|node| node.left.is_none()).collect();
+        let leaves: Vec<Node> = self.nodes.clone().into_iter().filter(|node| matches!(node, Node::Leaf(_))).collect();
         // eigene nodes "resetten"
         self.nodes = leaves.clone();
 
-        let mut parents: Vec<Node> = Vec::new();
-        for (index, node) in leaves.chunks(2).enumerate() {
-            let mut new_node = Node::new(format!("H()"));
-            new_node.is_left_sibling = Some(index % 2 == 0);
-            new_node.add_left(node[0].clone());
-            new_node.add_right(node[1].clone());
-            
-            new_node.generate_hash();
-
-            parents.push(new_node.clone());
-            self.nodes.push(new_node);
-        }
-        
+        let mut parents: Vec<Node> = self.calculate_next_level(leaves);
+   
         while parents.len() > 1 {
-            let mut processed_parents: Vec<Node> = Vec::new();
-            let len = parents.len();
-            if len % 2 != 0 {
-                let last_elem = parents.last().unwrap(); // füge letztes element nochmal hinzu, wenn anzahl ungerade
-                let last_as_leaf = Node::new(last_elem.hash.clone());
-                parents.push(last_as_leaf);
-            }
-
-            for (index, node) in parents.chunks(2).enumerate() {
-                let mut new_node = Node::new(format!("H()"));
-                new_node.is_left_sibling = Some(index % 2 == 0);
-                new_node.add_left(node[0].clone());
-                new_node.add_right(node[1].clone());
-                
-                new_node.generate_hash();
-            
-               
-            
-                self.nodes.push(new_node.clone());
-                processed_parents.push(new_node);
-            }
+            let processed_parents: Vec<Node> = self.calculate_next_level(parents);
             parents = processed_parents;
         }
 
         // set root not as left sibling
         let root = self.nodes.last_mut().unwrap();
-        root.is_left_sibling = None;
+        root.set_left_sibling_value(false);
 
         self
     }
 
+    /// # Returns
+    ///
+    /// The current root node of the Indexed Merkle tree.
     pub fn get_root(&self) -> &Node {
         self.nodes.last().unwrap()
     } 
 
+    /// # Returns
+    ///
+    /// The current commitment (hash of the root node) of the Indexed Merkle tree.
     pub fn get_commitment(&self) -> String {
-        self.get_root().hash.clone()
+        self.get_root().get_hash()
     }
-
-    pub fn print_tree(&self) {
-        // rekursiv baum printen, erst links
-        fn print_node(node: &Node, indent: usize) {
-            println!("{}{}", " ".repeat(indent), node.hash);
-            if let Some(ref left) = node.left {
-                print_node(left, indent + 2);
-            }
-            if let Some(ref right) = node.right {
-                print_node(right, indent + 2);
-            }
-        }
-        let root = self.get_root();
-        print_node(root, 0);
-    }
-
-    pub fn find_node_index(&self, node: Node) -> Option<usize> {
+    
+    pub fn find_node_index(&self, node: &Node) -> Option<usize> {
         self.nodes.iter().enumerate().find_map(|(index, current_node)| {
-            if current_node.label == node.label {
-                Some(index)
-            } else {
-                None
+            match (current_node, node) {
+                (Node::Leaf(current_leaf), Node::Leaf(leaf)) => {
+                    if current_leaf.label == leaf.label {
+                        Some(index)
+                    } else {
+                        None
+                    }
+                },
+                (Node::Inner(current_inner), Node::Inner(inner)) => {
+                    if current_inner.hash == inner.hash {
+                        Some(index)
+                    } else {
+                        None
+                    }
+                },
+                _ => None
             }
         })
     }
 
     pub fn find_leaf_by_label(&self, label: &String) -> Option<Node> {
         self.nodes.iter().find_map(|node| {
-            if node.label == Some(Box::new(label.clone())) {
-                Some(node.clone())
-            } else {
-                None
+            match node {
+                Node::Leaf(leaf) => {
+                    if &leaf.label == label {
+                        Some(node.clone())
+                    } else {
+                        None
+                    }
+                },
+                _ => None
             }
         })
     }
 
 
     pub fn generate_proof_of_membership(&self, index: usize) -> MerkleProof {
-        // Wenn der Index außerhalb des gültigen Bereichs des Baums liegt, gibt es keinen Beweis.
+        // if the index is outside of the valid range of the tree, there is no proof
         if index >= self.nodes.len() {
             return (None, None);
         }
         
-        // Eine Liste mit Hashes auf dem Weg zur Wurzel als Beweis (od. Beweisliste bessergesagt)
-        let mut proof: Vec<Node> = vec![];
+        // create a vec with hashes on the way to the root as proof (proof-list so to say)
+        let mut proof_path: Vec<Node> = vec![];
         let mut current_index = index;
         
-        // Blattknoten zur Beweisliste hinzufügen
+        // add the leaf node itself to the proof list
         let leaf_node = self.nodes[current_index].clone();
-        proof.push(leaf_node);
+        proof_path.push(leaf_node);
         
-        // Baum hochgehen, bis zur Wurzel, und jedes Elternelement des aktuellen Knotens zur Beweisliste hinzufügen.
+        // climb the tree until we reach the root and add each parent node sibling of the current node to the proof list
         while current_index < self.nodes.len() - 1 {
-            // wenn der aktuelle Knoten durch 2 teilbar ist, ist es ein linker knoten, dann ist der sibling rechts (also index+1)
+            // if the current node is divisible by 2, it is a left node, then the sibling is right (index + 1) and vice versa
             let sibling_index = if current_index % 2 == 0 { current_index + 1 } else { current_index - 1 };
             let sibling_node = self.nodes[sibling_index].clone();
-            proof.push(sibling_node);
-            // wir müssen aufrunden, da bei 15 Elementen (8 Blättern) der Vater von index 0 mit der Berechnung 7 (bzw. 7,5) ergibt
-            // der tatsächliche Vater hat aber den index 8.
+            proof_path.push(sibling_node);
+            // we have to round up, because if there are e.g. 15 elements (8 leaves) the parent of index 0 would be 7 (or 7.5)
+            // but the actual parent of index 0 is 8
             current_index = ((current_index as f64 + self.nodes.len() as f64) / 2.0).ceil() as usize;
         }
         let root = self.get_commitment();
         
-        (Some(root), Some(proof))
+        (Some(root.clone()), Some(proof_path))
     }
 
-    pub fn generate_proof_of_non_membership(&self, node: Node) -> (MerkleProof, i32) {
-
-        // TODO: unten in der Schleife wird nicht überprüft, ob es sich um ein aktives Blatt handelt. Ich glaube aber das sollte passieren, da sonst immer ein inaktives Blatt gewählt werden könnte
-        // erst nochmal überlegen, wann genau der Proof of non membership in welcher Form gebraucht wird, dann kann ich das lösen.
-
+    pub fn generate_proof_of_non_membership(&self, node: &Node) -> (MerkleProof, Option<usize>) {
+        let given_node_as_leaf = match node {
+            Node::Leaf(leaf) => leaf,
+            _ => unreachable!(),
+        };
         // akutelle Blätter durchgehen um zu suchen, wo das neue Blatt einsortiert werden müsste
         // enumerate benutzen, um index zu bekommen
-        let leaves: Vec<Node> = self.nodes.clone().into_iter().filter(|node| node.left.is_none()).collect();
+        let leaves: Vec<Node> = self.nodes.clone().into_iter().filter(|node| matches!(node, Node::Leaf(_))).collect();
         let index = leaves.iter().enumerate().find_map(|(index, current_node)| {
+
+            let current_leaf = match current_node {
+                Node::Leaf(leaf) => leaf,
+                _ => unreachable!(),
+            };
+
             // label und next in bigints umwandeln
-            let current_label = BigInt::from_str_radix(&current_node.clone().label.unwrap(), 16).unwrap();   
-            let current_next = BigInt::from_str_radix(&current_node.clone().next.unwrap(), 16).unwrap();
-            let new_label = BigInt::from_str_radix(&node.clone().label.unwrap(), 16).unwrap();
+            let current_label = BigInt::from_str_radix(&current_leaf.label, 16).unwrap();   
+            let current_next = BigInt::from_str_radix(&current_leaf.next, 16).unwrap();
+            let new_label = BigInt::from_str_radix(&given_node_as_leaf.label, 16).unwrap();
 
             if current_label < new_label && new_label < current_next { // funktioniert so noch nicht für ersten Hash, da müsste ich über kleiner gleich nachdenken 
                 // wenn das neue label zwischen dem aktuellen label und next liegt, dann ist das der gesuchte knoten
@@ -372,9 +463,9 @@ impl IndexedMerkleTree {
 
         if let Some(index) = index {
             // beweis mit gefundenem Index generieren
-            (self.generate_proof_of_membership(index), index as i32)
+            (self.generate_proof_of_membership(index), Some(index))
         } else {
-            ((None, None), -1)
+            ((None, None), None)
         }
 
     }
@@ -382,7 +473,7 @@ impl IndexedMerkleTree {
     // um den proof of update durchzuführen genügt ein proof of membership mit dem alten Knoten und der alten Wurzel
     // um diesen dann zu verifizieren wird ein proof of membership mit dem neuen Knoten und der neuen Wurzel benötigt
     // zurück gegeben wird die alte wurzel, der alte beweis und die neue Wurzel und der neue Beweis
-    pub fn generate_proof_of_update(mut self, index:usize, new_node: Node) -> UpdateProof {
+    pub fn generate_proof_of_update(mut self, index:usize, new_node: Node) -> (UpdateProof, Self) {
         // alten beweis generieren
         let old_proof = self.generate_proof_of_membership(index);
 
@@ -394,7 +485,7 @@ impl IndexedMerkleTree {
         let new_proof = self.clone().generate_proof_of_membership(index);
 
         // alten und neuen beweis zurückgeben
-        ((old_proof), (new_proof))
+        ((old_proof, new_proof), self)
     }
 
     // um den Proof of insert zu machen muss ich noch Gedanken machen, wie ich die Verdopplung einbauen. Vielleicht irgendwie einen bool, ob verdoppelt werden muss, da sich dann
@@ -402,43 +493,37 @@ impl IndexedMerkleTree {
     // Ansonsten: Proof of Non Membership des neuen Blattes um Eindeutigkeit zu gewährleisten...
     // dann Proof of Update mit dem Blatt, an welcher Stelle das neue Blatt eingefügt werden soll (update des next-Pointers auf neues Label)
     // zuvor leeres, ausgewähltes Blatt durch neues Blatt ersetzen, next Pointer des zuvor aktualisierten Blattes wird jetzt next Pointer des neuen Blattes und Proof of Update
-    pub fn generate_proof_of_insert(&mut self, new_node: Node) -> (MerkleProof, UpdateProof, UpdateProof) {
+    pub fn generate_proof_of_insert(&mut self, new_node: &Node) -> (MerkleProof, UpdateProof, UpdateProof) {
         // unabhängig vom ersten Schritt Proof of Non Membership, dabei index des "alten" Knotens finden
-        let (proof_of_non_membership, old_index) = self.clone().generate_proof_of_non_membership(new_node.clone());
-        let index = old_index as usize;
+        let (proof_of_non_membership, old_index) = self.clone().generate_proof_of_non_membership(new_node);
 
+        
         // ersten update beweis generieren, wobei nur vom alten Knoten an der stelle der next pointer geändert wird
-        let mut new_old_node = self.nodes[index].clone();
-        new_old_node.active = Some(Box::new(true));
-        new_old_node.next = Some(new_node.clone().label.unwrap());
-        let new_old_node = new_old_node.calculate_node_hash();
-        let first_update_proof = self.clone().generate_proof_of_update(index, new_old_node.clone());
+        let mut new_old_node = self.nodes[old_index.unwrap()].clone();
+        Node::update_next_pointer(&mut new_old_node, new_node);
+        new_old_node.generate_hash();
+        let (first_update_proof, updated_self) = self.clone().generate_proof_of_update(old_index.unwrap(), new_old_node.clone());
 
-        self.nodes[index] = new_old_node.clone();
-        // neue wurzel berechnen
-        let mut tree = self.clone().calculate_root();
+        *self = updated_self;
 
-        // also hier muss ich weiter machen. Der erste Beweis wird jetzt richtig erstellt, aber irgendwie wird das ursrprünglich gewählte Leaf überschrieben
-        // ich glaube self wird nicht überschrieben... ich muss mir nochmal überlegen, wie ich das machen kann
-
+        // we checked if the found index in the non-membership is from an incative node, if not we have to search for another inactive node to update and if we cant find one, we have to double the tree
         let mut new_index = None;
-        for (i, node) in tree.nodes.iter_mut().enumerate() {
-            if node.active == Some(Box::new(false)) {
+        for (i, node) in self.nodes.iter_mut().enumerate() {
+            if !node.is_active() {
                 new_index = Some(i);
                 break;
             }
         }
-        let new_index = new_index.expect("Unable to find a node with a None label.");
+        let new_index = new_index.expect("Unable to find an inactive node.");
 
         // zweiten update beweis generieren
-        let second_update_proof = tree.generate_proof_of_update(new_index, new_node.clone());
+        let (second_update_proof, _) = self.clone().generate_proof_of_update(new_index, new_node.clone());
         
-
         (proof_of_non_membership, first_update_proof, second_update_proof)
     }
 
     
-    /* fn verify_merkle_proof(proof: MerkleProof, commitment: String) -> bool {
+    /* fn verify_merkle_proof_with_commitment(proof: MerkleProof, commitment: String) -> bool {
         println!("Commitment: {}", commitment);
         let path = proof.unwrap().clone();
         let mut current_hash = path[0].clone().hash;
@@ -459,41 +544,34 @@ impl IndexedMerkleTree {
         current_hash == commitment
     } */
 
-    fn verify_merkle_proof(proof: MerkleProof) -> bool {
-        
+    fn verify_merkle_proof(proof: &MerkleProof) -> bool {
         match proof {
             (Some(root), Some(path)) => {
-                /* println!("Commitment: {}", &root); */
-                let mut current_hash = path[0].hash.clone();
-    
-                for (_, node) in path.iter().skip(1).enumerate() {
-                    let hash = if node.is_left_sibling.unwrap() {
-                        format!("H({} || {})", node.hash, current_hash)
+                // save the first now as current hash and skip it in the loop to start with the second
+                let mut current_hash = path[0].get_hash();
+        
+                for node in path.iter().skip(1) {
+                    let hash = if node.is_left_sibling() {
+                        format!("H({} || {})", node.get_hash(), current_hash)
                     } else {
-                        format!("H({} || {})", current_hash, node.hash)
+                        format!("H({} || {})", current_hash, node.get_hash())
                     };
                     current_hash = sha256(&hash);
-                    /* println!("{} = {}", hash, current_hash); */
                 }
-            
-                /* println!(); */
-
-                return current_hash == root;
+                return &current_hash == root;
             },
-            _ => {
-                return false;
-            }
+            _ => false
         }
     }
+    
+    pub fn verify_update_proof((old_proof, new_proof): &UpdateProof) -> bool {
+        IndexedMerkleTree::verify_merkle_proof(old_proof) && IndexedMerkleTree::verify_merkle_proof(new_proof)
+    }
 
-    pub fn verify_insert_proof(non_membership_proof: MerkleProof, first_proof: UpdateProof, second_proof: UpdateProof) -> bool {
+    pub fn verify_insert_proof(non_membership_proof: &MerkleProof, first_proof: &UpdateProof, second_proof: &UpdateProof) -> bool {
         IndexedMerkleTree::verify_merkle_proof(non_membership_proof) && IndexedMerkleTree::verify_update_proof(first_proof) && IndexedMerkleTree::verify_update_proof(second_proof)
     }
     
-    pub fn verify_update_proof(proof: UpdateProof) -> bool {
-        let (old_proof, new_proof) = proof;
-        IndexedMerkleTree::verify_merkle_proof(old_proof) && IndexedMerkleTree::verify_merkle_proof(new_proof)
-    }
 
 
     // so kann ich gucken, ob bestellungen verändert wurden
@@ -503,3 +581,89 @@ impl IndexedMerkleTree {
         root_node.hash == root
     }  */
 }
+
+/* #[derive(Clone)]
+pub struct Dictionary {
+    entries: Vec<Entry>,
+} 
+
+impl Dictionary {
+    pub fn new() -> Dictionary {
+        Dictionary {
+            entries: Vec::new(),
+        }
+    }
+
+    fn set_entry(&mut self, value: Entry) {
+        self.entries.push(value);
+    }
+
+    pub fn add_entry(&mut self, key: &str, value: &str) {
+        let mut chain_entry = ChainEntry {
+            hash: hex_digest(Algorithm::SHA256, value.as_bytes()),
+            previous_hash: "0w".to_string(),
+            value: value.to_string(),
+        };
+
+        if let Some(entry) = self.entries.iter_mut().find(|e| e.key == key) {
+            chain_entry.previous_hash = entry.value.last().unwrap().hash.clone();
+            entry.value.push(chain_entry);
+        } else {
+            self.entries.push(Entry {
+                key: key.to_string(),
+                value: vec![chain_entry],
+            });
+        }
+    }
+
+    pub fn get_entry(&self, key: String) -> Option<&Vec<ChainEntry>> {
+        for entry in &self.entries {
+            if entry.key == key {
+                return Some(&entry.value);
+            }
+        }
+
+        None
+    }
+
+    pub fn print_chain(&self, key: String) {
+        if let Some(chain) = self.get_entry(key.clone()) {
+            for entry in chain {
+                println!("{}: {}", entry.hash, entry.value);
+            }
+        } else {
+            println!("No entry found for key {}", key);
+        }
+    }
+
+    pub fn print_all(&self) {
+        println!("");
+        for entry in &self.entries {
+            println!("{}:", entry.key);
+            for chain_entry in &entry.value {
+                println!("{}: {}, ({})", chain_entry.hash, chain_entry.value, chain_entry.previous_hash);
+            }
+            println!("");
+        }
+    }
+
+    // derive a dictionary from the current dictionary
+    // the key is the hashed key
+    // the value is the last entry in the chain
+    pub fn derive_dictionary(&self) -> Self {
+        let mut dictionary = Dictionary::new();
+
+        for entry in &self.entries {
+            let hash = format!("{}", hex_digest(Algorithm::SHA256, entry.key.as_bytes()));
+            dictionary.set_entry(Entry {
+                key: hash,
+                value: vec![entry.value.last().unwrap().clone()],
+            });
+        }
+
+        dictionary
+    }
+
+}
+
+  */

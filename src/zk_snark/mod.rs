@@ -1,9 +1,9 @@
-use bellman::{Circuit, ConstraintSystem, SynthesisError, Variable};
-use bls12_381::{Scalar as Fr, Bls12};
-use bellman::groth16::{Proof, verify_proof, PreparedVerifyingKey};
+use bellman::{Circuit, ConstraintSystem, SynthesisError};
+use bls12_381::{Scalar, Bls12};
+use bellman::groth16::{Proof};
 use serde::{Serialize, Deserialize};
-use crate::transparency_dict::{MerkleProof, UpdateProof, ProofVariant};
-use crate::transparency_dict::{Node};
+use crate::indexed_merkle_tree::{MerkleProof, UpdateProof, ProofVariant};
+use crate::indexed_merkle_tree::{Node};
 use crate::indexed_merkle_tree::{sha256};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -31,15 +31,15 @@ pub fn convert_proof_to_custom(proof: &Proof<Bls12>) -> CustomProof {
 // theoretically we could refactor this to only one merkleproof circuit, and repeat it twice for updates and five (one merkle proof (non-membership), two update proofs) times for inserts
 #[derive(Clone)]
 pub struct UpdateMerkleProofCircuit {
-    pub old_root: Fr,
+    pub old_root: Scalar,
     pub old_path: Vec<Node>,
-    pub updated_root: Fr,
+    pub updated_root: Scalar,
     pub updated_path: Vec<Node>,
 }
 
 #[derive(Clone)]
 pub struct InsertMerkleProofCircuit {
-    pub non_membership_root: Fr,
+    pub non_membership_root: Scalar,
     pub non_membership_path: Vec<Node>,
     pub first_merkle_proof: UpdateMerkleProofCircuit,
     pub second_merkle_proof: UpdateMerkleProofCircuit,
@@ -54,21 +54,21 @@ pub enum ProofVariantCircuit {
 
 #[derive(Clone)]
 pub struct BatchMerkleProofCircuit {
-    pub old_commitment: Fr,
-    pub new_commitment: Fr,
+    pub old_commitment: Scalar,
+    pub new_commitment: Scalar,
     pub proofs: Vec<ProofVariantCircuit>,
 }
 
 
 // funktioniert nicht ohne from_bytes_wide, da ansonsten die Modulo Operation fehlschlägt (Wert scheint dann ggf. zu groß)
-pub fn hex_to_scalar(hex_string: &str) -> Fr {
+pub fn hex_to_scalar(hex_string: &str) -> Scalar {
     let byte_array: [u8; 32]  = hex::decode(hex_string).unwrap().try_into().unwrap();
     let mut wide = [0u8; 64];
     wide[..32].copy_from_slice(&byte_array); // 0en davor füllen, dann bleibt der Wert gleich
-    Fr::from_bytes_wide(&wide)
+    Scalar::from_bytes_wide(&wide)
 }
 
-pub fn recalculate_hash_as_scalar(path: &[Node]) -> Fr {
+pub fn recalculate_hash_as_scalar(path: &[Node]) -> Scalar {
     let mut current_hash = path[0].get_hash();
     for i in 1..(path.len()) {
         let sibling = &path[i];
@@ -81,13 +81,13 @@ pub fn recalculate_hash_as_scalar(path: &[Node]) -> Fr {
     hex_to_scalar(&current_hash.as_str())
 }
 
-fn proof_of_update<CS: ConstraintSystem<Fr>>(
+fn proof_of_update<CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
-    old_root: Fr,
+    old_root: Scalar,
     old_path: &[Node],
-    new_root: Fr,
+    new_root: Scalar,
     new_path: &[Node],
-) -> Result<Fr, SynthesisError> {
+) -> Result<Scalar, SynthesisError> {
     // Proof of Update für den alten und neuen Knoten
         // Proof of Update für den Knoten, für den zuvor ein Proof of Non-Membership durchgeführt wurde mit der Next-Pointer Aktualisierung
         let root_with_old_pointer = cs.alloc(|| "first update root with old pointer", || Ok(old_root))?;
@@ -103,6 +103,7 @@ fn proof_of_update<CS: ConstraintSystem<Fr>>(
         
         // Überprüfe, ob der resultierende Hash der Wurzel-Hash des alten Baums entspricht
         cs.enforce(|| "first update old root equality", |lc| lc + allocated_recalculated_root_with_old_pointer, |lc| lc + CS::one(), |lc| lc + root_with_old_pointer);
+        // Zum Thema |lc| lc + ... : In der Lambda-Funktion steht lc für die aktuelle lineare Kombination und wir fügen Variablen zu dieser Linearkombination hinzu, um insgesamt eine neue lineare Kombination zu erstellen, die dann als Argument für die enforce-Methode verwendet wird.
         // Überprüfe, ob der resultierende Hash der Wurzel-Hash des neuen Baums entspricht
         cs.enforce(|| "first update new root equality", |lc| lc + allocated_recalculated_root_with_new_pointer, |lc| lc + CS::one(), |lc| lc + root_with_new_pointer);
 
@@ -118,8 +119,8 @@ fn proof_of_update<CS: ConstraintSystem<Fr>>(
 // ... 3 den Proof of Update für den neuen Knoten, welcher aus folgenden Teilen besteht:
 // ... 3.1. den Proof of Membership für den unaktualisierten neuen Knoten an der zu erwartenden Stelle erstellen (mit aktualisiertem Pointer).
 // ... 3.2. den Proof of Membership für den aktualisierten neuen Knoten an der zu erwartenden Stelle erstellen (mit aktualisiertem Pointer).
-impl Circuit<Fr> for InsertMerkleProofCircuit {
-    fn synthesize<CS: ConstraintSystem<Fr>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+impl Circuit<Scalar> for InsertMerkleProofCircuit {
+    fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
 
         // Proof of Non-Membership
         let non_membership_root = cs.alloc(|| "non_membership_root", || Ok(self.non_membership_root))?;
@@ -142,16 +143,16 @@ impl Circuit<Fr> for InsertMerkleProofCircuit {
 }
 
 
-impl Circuit<Fr> for UpdateMerkleProofCircuit {
-    fn synthesize<CS: ConstraintSystem<Fr>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+impl Circuit<Scalar> for UpdateMerkleProofCircuit {
+    fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
         // Proof of Update für den alten und neuen Knoten
         proof_of_update(cs, self.old_root, &self.old_path, self.updated_root, &self.updated_path);
         Ok(())
     }
 }
 
-impl Circuit<Fr> for BatchMerkleProofCircuit {
-    fn synthesize<CS: ConstraintSystem<Fr>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+impl Circuit<Scalar> for BatchMerkleProofCircuit {
+    fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
         // vor den Berechnungen sicherstellen, dass die alte Wurzel die des ersten Beweises ist
         let old_root = match &self.proofs[0] {
             ProofVariantCircuit::Update(update_proof_circuit) => update_proof_circuit.old_root,
@@ -171,7 +172,7 @@ impl Circuit<Fr> for BatchMerkleProofCircuit {
             |lc| lc + old_commitment_from_proofs,
         );
 
-        let mut new_commitment: Option<Fr> = None;
+        let mut new_commitment: Option<Scalar> = None;
         for proof_variant in self.proofs {
             match proof_variant {
                 ProofVariantCircuit::Update(update_proof_circuit) => {
@@ -225,7 +226,7 @@ impl Circuit<Fr> for BatchMerkleProofCircuit {
 
 
 impl BatchMerkleProofCircuit {
-    pub fn create(old_commitment: Fr, new_commitment: Fr, proofs: Vec<ProofVariant>) -> Result<BatchMerkleProofCircuit, &'static str> {
+    pub fn create(old_commitment: Scalar, new_commitment: Scalar, proofs: Vec<ProofVariant>) -> Result<BatchMerkleProofCircuit, &'static str> {
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
