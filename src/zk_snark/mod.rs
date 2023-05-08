@@ -22,9 +22,8 @@ pub fn convert_proof_to_custom(proof: &Proof<Bls12>) -> CustomProof {
 }
 
 
-
 // TODO: WICHTIG!
-// Wir konvertieren im Code zum SNARK Strings häufig hin und her und berechnen wie auch in der Anwendung die Hashwerte angelehnt ans Paper in der folgenden Form: H({} || {}).
+// Ich konvertiere im Code zum SNARK Strings häufig hin und her und berechnen wie auch in der Anwendung die Hashwerte angelehnt ans Paper in der folgenden Form: H({} || {}).
 // In der Praxis ist es ziemlich sicher besser, die Datenstrukturen und Algorithmen in der Anwendung und im Schaltkreis so zu gestalten, dass sie direkt mit skalaren Werten oder 
 // Byte-Repräsentationen arbeiten, anstatt mit formatierten Strings. Dann würde das ganze nicht mehr auf der Konvertierung zwischen verschiedenen Darstellung basieren.
 
@@ -111,6 +110,25 @@ fn proof_of_update<CS: ConstraintSystem<Scalar>>(
         Ok(recalculated_root_with_new_pointer)
 }
 
+fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
+    cs: &mut CS,
+    non_membership_root: Scalar,
+    non_membership_path: &[Node],
+) -> Result<(), SynthesisError> {
+    let allocated_root = cs.alloc(|| "non_membership_root", || Ok(non_membership_root))?;
+    let recalculated_root = recalculate_hash_as_scalar(non_membership_path);
+    let allocated_recalculated_root = cs.alloc(|| "recalculated non-membership root", || Ok(recalculated_root))?;
+
+    cs.enforce(
+        || "non-membership root check",
+        |lc| lc + allocated_root,
+        |lc| lc + CS::one(),
+        |lc| lc + allocated_recalculated_root,
+    );
+
+    Ok(())
+}
+
 // TODO: zkSNARK muss für den Insert-Beweis...
 // ... 1. den Proof of Non-Membership für den Knoten an der zu erwartenden Stelle erstellen.
 // ... 2 den Proof of Update für den Knoten an der zu erwartenden Stelle erstellen, welcher aus folgenden Teilen besteht:
@@ -123,22 +141,20 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
 
         // Proof of Non-Membership
-        let non_membership_root = cs.alloc(|| "non_membership_root", || Ok(self.non_membership_root))?;
-        let recalculated_non_membership_root = recalculate_hash_as_scalar(&self.non_membership_path);
-        let allocated_recalculated_non_membership_root = cs.alloc(|| "recalculated non-membership root", || Ok(recalculated_non_membership_root))?;
+        match proof_of_non_membership(cs, self.non_membership_root, &self.non_membership_path) {
+            Ok(_) => (),
+            Err(_) => return Err(SynthesisError::AssignmentMissing),
+        }
 
-        cs.enforce(
-            || "non-membership root check",
-            |lc| lc + non_membership_root,
-            |lc| lc + CS::one(),
-            |lc| lc + allocated_recalculated_non_membership_root,
-        );
 
         // Proof of Update für den alten und neuen Knoten
-        let _ = proof_of_update(cs, self.first_merkle_proof.old_root, &self.first_merkle_proof.old_path, self.first_merkle_proof.updated_root, &self.first_merkle_proof.updated_path);
-        let second_update = proof_of_update(cs, self.second_merkle_proof.old_root, &self.second_merkle_proof.old_path, self.second_merkle_proof.updated_root, &self.second_merkle_proof.updated_path);
+        let first_proof = proof_of_update(cs, self.first_merkle_proof.old_root, &self.first_merkle_proof.old_path, self.first_merkle_proof.updated_root, &self.first_merkle_proof.updated_path);
+        let second_update = proof_of_update(cs, first_proof.unwrap(), &self.second_merkle_proof.old_path, self.second_merkle_proof.updated_root, &self.second_merkle_proof.updated_path);
         
-        Ok(()) 
+        match second_update {
+            Ok(_) => Ok(()),
+            Err(_) => return Err(SynthesisError::Unsatisfiable),
+        }
     }
 }
 
@@ -146,8 +162,10 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
 impl Circuit<Scalar> for UpdateMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
         // Proof of Update für den alten und neuen Knoten
-        proof_of_update(cs, self.old_root, &self.old_path, self.updated_root, &self.updated_path);
-        Ok(())
+        match proof_of_update(cs, self.old_root, &self.old_path, self.updated_root, &self.updated_path) {
+            Ok(_) => Ok(()),
+            Err(_) => return Err(SynthesisError::Unsatisfiable),
+        }
     }
 }
 
@@ -167,9 +185,9 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
 
         cs.enforce(
             || "old commitment check",
-            |lc| lc + provided_old_commitment,
-            |lc| lc + CS::one(),
             |lc| lc + old_commitment_from_proofs,
+            |lc| lc + CS::one(),
+            |lc| lc + provided_old_commitment,
         );
 
         let mut new_commitment: Option<Scalar> = None;
@@ -188,20 +206,14 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                     // Hier müssen Sie eine proof_of_insert Funktion erstellen, die ähnlich wie proof_of_update funktioniert,
                     // aber auch den Non-Membership-Beweis berücksichtigt.
                      // Proof of Non-Membership
-                    let non_membership_root = cs.alloc(|| "non_membership_root", || Ok(insert_proof_circuit.non_membership_root))?;
-                    let recalculated_non_membership_root = recalculate_hash_as_scalar(&insert_proof_circuit.non_membership_path);
-                    let allocated_recalculated_non_membership_root = cs.alloc(|| "recalculated non-membership root", || Ok(recalculated_non_membership_root))?;
-
-                    cs.enforce(
-                        || "non-membership root check",
-                        |lc| lc + non_membership_root,
-                        |lc| lc + CS::one(),
-                        |lc| lc + allocated_recalculated_non_membership_root,
-                    );
+                    match proof_of_non_membership(cs, insert_proof_circuit.non_membership_root, &insert_proof_circuit.non_membership_path) {
+                        Ok(_) => (),
+                        Err(_) => return Err(SynthesisError::AssignmentMissing),
+                    }
 
                     // Proof of Update für den alten und neuen Knoten
-                    proof_of_update(cs, insert_proof_circuit.first_merkle_proof.old_root, &insert_proof_circuit.first_merkle_proof.old_path, insert_proof_circuit.first_merkle_proof.updated_root, &insert_proof_circuit.first_merkle_proof.updated_path).expect("first proof of update in insert proof failed");
-                    new_commitment =  Some(proof_of_update(cs, insert_proof_circuit.second_merkle_proof.old_root, &insert_proof_circuit.second_merkle_proof.old_path, insert_proof_circuit.second_merkle_proof.updated_root, &insert_proof_circuit.second_merkle_proof.updated_path).expect("second proof of update in insert proof failed"));
+                    let calculated_root_from_first_proof = proof_of_update(cs, insert_proof_circuit.first_merkle_proof.old_root, &insert_proof_circuit.first_merkle_proof.old_path, insert_proof_circuit.first_merkle_proof.updated_root, &insert_proof_circuit.first_merkle_proof.updated_path).expect("first proof of update in insert proof failed");
+                    new_commitment =  Some(proof_of_update(cs, calculated_root_from_first_proof, &insert_proof_circuit.second_merkle_proof.old_path, insert_proof_circuit.second_merkle_proof.updated_root, &insert_proof_circuit.second_merkle_proof.updated_path).expect("second proof of update in insert proof failed"));
                 }
             }
         }
@@ -214,9 +226,9 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
 
         cs.enforce(
             || "new commitment check",
-            |lc| lc + provided_new_commitment,
-            |lc| lc + CS::one(),
             |lc| lc + recalculated_new_commitment,
+            |lc| lc + CS::one(),
+            |lc| lc + provided_new_commitment,
         );
 
 
@@ -226,7 +238,9 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
 
 
 impl BatchMerkleProofCircuit {
-    pub fn create(old_commitment: Scalar, new_commitment: Scalar, proofs: Vec<ProofVariant>) -> Result<BatchMerkleProofCircuit, &'static str> {
+    pub fn create(old_commitment: &String, new_commitment: &String, proofs: Vec<ProofVariant>) -> Result<BatchMerkleProofCircuit, &'static str> {
+        let parsed_old_commitment = hex_to_scalar(&old_commitment.as_str());
+        let parsed_new_commitment = hex_to_scalar(&new_commitment.as_str());
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
@@ -239,8 +253,8 @@ impl BatchMerkleProofCircuit {
             }
         }
         Ok(BatchMerkleProofCircuit {
-            old_commitment,
-            new_commitment,
+            old_commitment: parsed_old_commitment,
+            new_commitment: parsed_new_commitment,
             proofs: proof_circuit_array,
         })
     }
@@ -318,8 +332,6 @@ impl BatchMerkleProofCircuit {
 
 // Die Funktion, um den Schaltkreis basierend auf dem gegebenen Merkle-Beweis zu erstellen
 impl InsertMerkleProofCircuit {
-
-
     pub fn create_from_update_proof(proof: &(MerkleProof, UpdateProof, UpdateProof)) -> Result<InsertMerkleProofCircuit, &'static str> {
         // Unwrap proof values and handle possible errors
         let (non_membership_root, non_membership_path) = match &proof.0 {

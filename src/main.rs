@@ -854,7 +854,7 @@ async fn validate_epoch(req_body: String) -> impl Responder {
 
 
      // Create zkSNARK circuit, eventuell auch in eine eigene Funktion auslagern
-     let circuit = match BatchMerkleProofCircuit::create(hex_to_scalar(&previous_commitment.as_str()), hex_to_scalar(&current_commitment.as_str()), proofs.clone()) {
+     let circuit = match BatchMerkleProofCircuit::create(&previous_commitment, &current_commitment, proofs.clone()) {
         Ok(circuit) => circuit,
         Err(e) => {
             println!("{}", format!("Error creating circuit for {} operations in epoch {}: {}", proofs.len(), epoch, e).red());
@@ -1072,7 +1072,7 @@ async fn intialize_or_increment_epoch_state() {
     };
 
     // warten for the next epoch to start, two minutes for now
-    let wait_duration = Duration::from_secs(120);
+    let wait_duration = Duration::from_secs(600);
     //let wait_duration = Duration::from_secs(300);
     sleep(wait_duration).await; 
 }
