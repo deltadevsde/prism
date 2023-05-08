@@ -1254,11 +1254,9 @@ async fn main() -> std::io::Result<()> {
 
     let config = load_config();
 
-    /* 
-        let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        builder.set_private_key_file(config.key_path, SslFiletype::PEM).unwrap();
-        builder.set_certificate_chain_file(config.cert_path).unwrap();
-    */
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    builder.set_private_key_file(config.key_path, SslFiletype::PEM).unwrap();
+    builder.set_certificate_chain_file(config.cert_path).unwrap();
 
     HttpServer::new(|| {
         let cors = Cors::default()
@@ -1282,8 +1280,8 @@ async fn main() -> std::io::Result<()> {
             .service(get_epochs)
             .service(get_epoch_operations)
     })
-    /* .bind_openssl((config.ip, config.port), builder)? */
-    .bind((config.ip, config.port))?
+    .bind_openssl((config.ip, config.port), builder)? 
+    /* .bind((config.ip, config.port))? */
     .run()
     .await 
 }
