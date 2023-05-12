@@ -202,6 +202,23 @@ impl IndexedMerkleTree {
         tree.calculate_root()
     }
 
+    pub fn calculate_empty_tree_commitment_from_site(size: usize) -> String {
+        let mut nodes: Vec<Node> = Vec::new();
+
+        for i in 0..size {
+            let is_active_leaf = i == 0;
+            let is_left_sibling = i % 2 == 0;
+            let value = Node::EMPTY_HASH.to_string();
+            let label = Node::EMPTY_HASH.to_string();
+            let node = Node::initialize_leaf(is_active_leaf, is_left_sibling, value, label, Node::TAIL.to_string());
+            nodes.push(node);
+        }
+
+        let tree = IndexedMerkleTree::new(nodes);
+        tree.get_commitment()
+    }
+
+
     /// Create an Indexed Merkle Tree from Redis data.
     ///
     /// This function retrieves keys and values from Redis, sorts the keys based on the input order, and initializes the nodes

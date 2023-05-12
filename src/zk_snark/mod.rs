@@ -171,6 +171,19 @@ impl Circuit<Scalar> for UpdateMerkleProofCircuit {
 
 impl Circuit<Scalar> for BatchMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+        if &self.proofs.len() == &0 {
+            let provided_old_commitment = cs.alloc_input(|| "provided old commitment", || Ok(self.old_commitment))?;
+            let provided_new_commitment = cs.alloc_input(|| "provided new commitment", || Ok(self.new_commitment))?;
+            cs.enforce(
+                || "old commitment check",
+                |lc| lc + provided_old_commitment,
+                |lc| lc + CS::one(),
+                |lc| lc + provided_new_commitment,
+            );
+
+            return Ok(())
+        }
+
         // vor den Berechnungen sicherstellen, dass die alte Wurzel die des ersten Beweises ist
         let old_root = match &self.proofs[0] {
             ProofVariantCircuit::Update(update_proof_circuit) => update_proof_circuit.old_root,
