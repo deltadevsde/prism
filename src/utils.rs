@@ -68,7 +68,7 @@ pub fn validate_snark(non_membership_proof: MerkleProof, first_proof: UpdateProo
         ],
     ).unwrap();
 
-    // info!("zkSNARK with groth16 random parameters was successfully verified!");
+    // debug!("zkSNARK with groth16 random parameters was successfully verified!");
     Ok(())
 }
 
@@ -101,22 +101,21 @@ pub fn validate_epoch(previous_commitment: &String, current_commitment: &String,
 
     let rng = &mut OsRng;
 
-    // println!("{}", "Creating parameters with BLS12-381 pairing-friendly elliptic curve construction....".red().on_blue());
+    debug!("validate_epoch: creating parameters with BLS12-381 pairing-friendly elliptic curve construction");
     let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).unwrap();
 
-    // println!("{}", "Creating proof for zkSNARK...".yellow());
+    debug!("validate_epoch: creating proof for zkSNARK");
     let proof = groth16::create_random_proof(circuit.clone(), &params, rng).unwrap();
 
     // println!("{}: {:?}", "PROOF".red(), proof);
 
-    // println!("{}", "Prepare verifying key for zkSNARK...".yellow());
+    debug!("validate_epoch: preparing verifying key for zkSNARK");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
     // println!("{}", "Extracting public parameters for zkSNARK...".yellow());
-
     // let public_parameters = extract_public_parameters(&parsed_proofs);
 
-    // println!("{}", "Verifying zkSNARK proof...".yellow());
+    debug!("validate_epoch: verifying zkSNARK proof...");
     groth16::verify_proof(
         &pvk,
         &proof,
@@ -126,7 +125,7 @@ pub fn validate_epoch(previous_commitment: &String, current_commitment: &String,
         ],
     ).unwrap();
 
-    // println!("{}", "zkSNARK with groth16 random parameters was successfully verified!".green());
+    debug!("{}", "validate_epoch: zkSNARK with groth16 random parameters was successfully verified!");
     Ok(proof)
 }
 

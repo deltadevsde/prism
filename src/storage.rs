@@ -99,8 +99,7 @@ impl RedisConnections {
         };
         match serde_json::from_str(&value) {
             Ok(value) => Ok(value),
-            Err(_) => {
-                println!("INTERNAL ERROR: get_hashchain failed to retrieve value for existing key {}", key);
+            Err(e) => {
                 Err("Internal error parsing value")
             }
         }
@@ -230,7 +229,6 @@ impl RedisConnections {
     }
 
     pub fn get_epochs(&mut self) -> Result<Vec<u64>, &str> {
-        println!("Getting epochs");
         let epochs: Vec<u64> = match self.commitments.keys::<&str, Vec<String>>("*") {
             Ok(value) => value.iter().map(|epoch| epoch.replace("epoch_", "").parse::<u64>().unwrap()).collect(),
             Err(_) => return Err("Epochs could not be fetched"),
@@ -331,8 +329,6 @@ impl RedisConnections {
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self.create_tree().get_commitment();
         self.add_commitment(&epoch, &current_commitment);
-
-        println!("Epoch {} finalized", epoch);
 
         let proofs = if epoch > 0 {
             let prev_epoch = epoch - 1;

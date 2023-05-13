@@ -29,5 +29,6 @@ openssl = "0.10.36"
 dotenv = "0.15"
 lazy_static = "1.4"
 colored = "2.0.0"
-env_logger = "0.10.0"
+log = "0.4"
+pretty_env_logger = "0.4.0"
 da-client-rs = { git = "https://github.com/celestiaorg/da-client-rs" }

@@ -31,6 +31,8 @@ use crate::zk_snark::convert_proof_to_custom;
 use crate::storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, IncomingEntry};
 use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 
+#[macro_use] extern crate log;
+
 /// This function takes no arguments, creates and returns a new Ed25519 key pair with cryptographically secure randomness from the operating system.
 /// 
 /// ## Returns a new `Keypair` with the generated `SecretKey` and `PublicKey` struct of the following form
@@ -350,7 +352,7 @@ async fn handle_validate_proof(con: web::Data<Arc<Mutex<RedisConnections>>>, req
 // validation or an error.
 #[post("/validate-epoch")]
 async fn handle_validate_epoch(con: web::Data<Arc<Mutex<RedisConnections>>>, req_body: String) -> impl Responder {
-    println!("Validating epoch {}", req_body);
+    debug!("Validating epoch {}", req_body);
     let epoch: String = match serde_json::from_str(&req_body) {
         Ok(epoch) => epoch,
         Err(_) => return HttpResponse::BadRequest().body("Invalid epoch"),
@@ -359,16 +361,12 @@ async fn handle_validate_epoch(con: web::Data<Arc<Mutex<RedisConnections>>>, req
     let (epoch_number , previous_commitment, current_commitment, proofs) = match get_epochs_and_proofs(con, &epoch.as_str()) {
         Ok(value) => value,
         Err(err) => {
-            println!("{}", format!("Error getting proofs for epoch {}: {}", epoch, err).red());
+            error!("validate-epoch: getting proofs for epoch {}: {}", epoch, err);
             return HttpResponse::BadRequest().body("Something went wrong while getting the proofs");
         },
     };
 
-    println!("found {:?} proofs in epoch {}", proofs.len(), epoch);
-
-    if proofs.len() == 0 {
-        println!("{}", format!("No proofs found for epoch {}", epoch).red());
-    }
+    debug!("validate-epoch: found {:?} proofs in epoch {}", proofs.len(), epoch);
 
     let proof = match validate_epoch(&previous_commitment, &current_commitment, &proofs) {
         Ok(proof) => proof,
@@ -598,8 +596,8 @@ async fn sequencer_loop(session: &Arc<Mutex<RedisConnections>>) {
     loop {
         let mut guard = session.lock().unwrap();
         match guard.finalize_epoch() {
-            Ok(_) => println!("Successfully finalized epoch"),
-            Err(e) => println!("Error while finalizing epoch: {}", e)
+            Ok(_) => info!("sequencer_loop: finalized epoch {}", guard.get_epoch().unwrap()),
+            Err(e) => error!("sequencer_loop: finalizing epoch: {}", e)
         }
         drop(guard);
         sleep(Duration::from_secs(60)).await;
@@ -617,8 +615,7 @@ async fn sequencer_loop(session: &Arc<Mutex<RedisConnections>>) {
 /// 6. Runs the server and awaits its completion.
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "debug");
-    env_logger::init();
+    pretty_env_logger::init();
     dotenv().ok();
 
     let config = load_config();
