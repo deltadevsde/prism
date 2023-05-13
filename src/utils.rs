@@ -92,7 +92,7 @@ pub fn validate_proof(proof_value: String) -> Result<(), &'static str> {
 
 
 pub fn validate_epoch(previous_commitment: &String, current_commitment: &String, proofs: &Vec<ProofVariant>) -> Result <groth16::Proof<Bls12>, String> {
-    let circuit = match BatchMerkleProofCircuit::create(hex_to_scalar(previous_commitment.as_str()), hex_to_scalar(current_commitment.as_str()), proofs.clone()) {
+    let circuit = match BatchMerkleProofCircuit::create(previous_commitment, current_commitment, proofs.clone()) {
         Ok(circuit) => circuit,
         Err(e) => {
             return Err(format!("Could not create circuit: {}", e));
