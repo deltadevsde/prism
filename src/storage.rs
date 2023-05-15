@@ -51,6 +51,7 @@ pub struct DerivedEntry {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IncomingEntry {
     pub id: String,
+    pub operation: Operation,
     pub public_key: String,
 }
 

@@ -3,69 +3,27 @@ pub mod zk_snark;
 pub mod storage;
 mod utils;
 
-use redis::{Commands, RedisError, Connection};
 use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier, SecretKey};
-use base64::{Engine as _, engine::general_purpose};
-use rand::rngs::OsRng;
+use base64::{Engine as _, alphabet, engine::{self, general_purpose}};
 use rand07::rngs::OsRng as OsRng07;
 use actix_cors::Cors;
 use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App, HttpResponse, HttpServer, Responder};
-use crypto_hash::{Algorithm, hex_digest};
 use serde::{Serialize, Deserialize};
-use serde_json::{json, Value};
-use indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, UpdateProof, InsertProof, Node, ProofVariant};
-use indexed_merkle_tree::{sha256};
-use zk_snark::{InsertMerkleProofCircuit, BatchMerkleProofCircuit, hex_to_scalar}; 
+use serde_json::{self, json};
+use indexed_merkle_tree::{ProofVariant};
+use indexed_merkle_tree::{sha256}; 
 use std::{time::Duration};
 use tokio::{time::sleep};
 use num::{BigInt, Num};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use std::env;
 use dotenv::dotenv;
-use bellman::{groth16};
-use bls12_381::{Bls12, Scalar};
-use colored::*;
 use std::sync::{Arc, Mutex};
 
-use crate::zk_snark::convert_proof_to_custom;
-use crate::storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, IncomingEntry};
+use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, IncomingEntry}, zk_snark::convert_proof_to_custom};
 use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 
 #[macro_use] extern crate log;
-
-/// This function takes no arguments, creates and returns a new Ed25519 key pair with cryptographically secure randomness from the operating system.
-/// 
-/// ## Returns a new `Keypair` with the generated `SecretKey` and `PublicKey` struct of the following form
-/// pub struct Keypair {
-///     pub secret: SecretKey,
-///     pub public: PublicKey,
-/// }
-/// 
-fn create_keypair() -> Keypair {
-    // A random number generator that retrieves randomness from from the operating system. (no pseudo random numbers)
-    let mut csprng = OsRng07::default();
-    Keypair::generate(&mut csprng)
-}
-
-
-
-/// The function takes an IncomingEntry and a private key as arguments and returns a Signature.
-/// 
-/// The function creates a secret key from the private key string sent by the frontend, then it creates a keypair from the secret key,
-/// and finally it signs a message (the new public key of the incoming entry) with the keypair and returns the signature.
-/// 
-fn sign_incoming_entry(incoming_entry: &IncomingEntry, private_key: &str) -> Signature {
-    // create secret key from string
-    let secret_key_bytes = general_purpose::STANDARD_NO_PAD.decode(private_key.as_bytes()).unwrap();
-    let secret_key = SecretKey::from_bytes(&secret_key_bytes).unwrap();
-
-    // create keypair from secret key
-    let public_key: PublicKey = (&secret_key).into();
-    let keypair = Keypair { secret: secret_key, public: public_key };
-
-    // sign message and return signature
-    keypair.sign(incoming_entry.public_key.as_bytes())
-}
 
 
 /// Updates or inserts an entry in the dictionary and generates a Merkle proof.
@@ -92,26 +50,50 @@ async fn update(con: web::Data<Arc<Mutex<RedisConnections>>>, req_body: String) 
     // incoming entry with private key object
     #[derive(Deserialize)]
     struct EntryWithKey {
-        operation: Operation,
-        incoming_entry: IncomingEntry,
-        private_key: String,
+        signed_message: String,
+        public_key: String,
     }
-    
-    let tree = con.create_tree();
     let entry_with_key: EntryWithKey = serde_json::from_str(&req_body).unwrap();
-    let result: Result<Vec<ChainEntry>, &str> = con.get_hashchain(&entry_with_key.incoming_entry.id);
+
+
+    let received_public_key = entry_with_key.public_key;
+    let received_signed_message =  entry_with_key.signed_message; 
+
+    // TODO: better error handling
+    let public_key_bytes = general_purpose::STANDARD.decode(&received_public_key).expect("Error while decoding public key");
+    let signed_message_bytes = general_purpose::STANDARD.decode(&received_signed_message).expect("Error while decoding signed message");
+
+    // Split the signed message into the signature and the message.
+    let (signature_bytes, message_bytes) = signed_message_bytes.split_at(64);
+
+    // Create PublicKey and Signature objects.
+    let public_key = PublicKey::from_bytes(&public_key_bytes).expect("Error while creating PublicKey object");
+    let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
+
+
+    if public_key.verify(message_bytes, &signature).is_ok() {
+        println!("The signature is valid");
+    } else {
+        println!("The signature is invalid");
+    }
+
+    let message = String::from_utf8(message_bytes.to_vec()).expect("Error while converting message to string");
+    let message_obj: IncomingEntry = serde_json::from_str(&message).expect("Error while deserializing message"); 
+
+    let tree = con.create_tree();
+    let result: Result<Vec<ChainEntry>, &str> = con.get_hashchain(&message_obj.id);
     // wenn der eintrag bereits vorliegt, muss ein update durchgeführt werden, sonst insert
     let update_proof = match result {
         // add a new key to an existing id 
         Ok(_) => true,
         Err(_) => false,
     };
-    let signature = sign_incoming_entry(&entry_with_key.incoming_entry, &entry_with_key.private_key);
-    let update_successful = con.update_entry(entry_with_key.operation, &entry_with_key.incoming_entry, &signature);
+
+    let update_successful = con.update_entry(message_obj.operation.clone(), &message_obj, &signature);
 
     if update_successful {
         let new_tree = con.create_tree();
-        let hashed_id = sha256(&entry_with_key.incoming_entry.id);
+        let hashed_id = sha256(&message_obj.id);
         let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
         let proofs = if update_proof {
@@ -125,35 +107,11 @@ async fn update(con: web::Data<Arc<Mutex<RedisConnections>>>, req_body: String) 
             format!(r#"{{"Insert":{}}}"#, pre_processed_string)
         };
         con.add_merkle_proof(&epoch, &epoch_operation, &tree.get_commitment(), &proofs);
-        con.increment_epoch_operation();
+        con.increment_epoch_operation(); 
         HttpResponse::Ok().body("Updated entry successfully")
     } else {
         HttpResponse::BadRequest().body("Could not update entry")
-    }
-}
-
-
-/// The generate-key endpoint returns a public and private key pair.
-/// 
-/// The function creates an ed25519 keypair, encodes the public and private key with base64 and returns them as a json object like the following:
-/// {
-///    "publicKey": base64encodedpublickey,
-///    "privateKey": base64encodedprivatekey
-/// }
-/// 
-#[get("/generate-key")]
-async fn generate_key() -> impl Responder {
-    let keypair = create_keypair();
-    let public_key_string = general_purpose::STANDARD_NO_PAD.encode(keypair.public.as_bytes());
-    let private_key_string = general_purpose::STANDARD_NO_PAD.encode(keypair.secret.as_bytes());
-
-    let json_response = serde_json::to_string(&json!({
-        "publicKey": public_key_string,
-        "privateKey": private_key_string
-    }))
-    .unwrap();
-
-    HttpResponse::Ok().body(json_response)
+    } 
 }
 
 
@@ -646,7 +604,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(server_session))
             .wrap(cors)
             .service(update)
-            .service(generate_key)
             .service(get_dictionaries)
             .service(calculate_values)
             .service(handle_get_commitment)
