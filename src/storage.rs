@@ -65,38 +65,38 @@ pub struct UpdateEntryJson {
 }
 
 pub struct Session {
-    pub db: Arc<Mutex<dyn Database>>,
+    pub db: Arc<dyn Database>,
 }
 
 pub struct RedisConnections {
-    pub main_dict: Connection, // clear text key with hashchain
-    pub derived_dict: Connection, // hashed key with last hashchain entry hash
-    pub input_order: Connection, // input order of the hashchain keys
-    pub app_state: Connection, // app state (just epoch counter for now)
-    pub merkle_proofs: Connection, // merkle proofs (in the form: epoch_{epochnumber}_{commitment})
-    pub commitments: Connection, // epoch commitments
+    pub main_dict: Mutex<Connection>, // clear text key with hashchain
+    pub derived_dict: Mutex<Connection>, // hashed key with last hashchain entry hash
+    pub input_order: Mutex<Connection>, // input order of the hashchain keys
+    pub app_state: Mutex<Connection>, // app state (just epoch counter for now)
+    pub merkle_proofs: Mutex<Connection>, // merkle proofs (in the form: epoch_{epochnumber}_{commitment})
+    pub commitments: Mutex<Connection>, // epoch commitments
 }
 
 pub trait Database: Send + Sync {
-    fn get_keys(&mut self) -> Vec<String>;
-    fn get_derived_keys(&mut self) -> Vec<String>;
-    fn get_hashchain(&mut self, key: &String) -> Result<Vec<ChainEntry>, &str>;
-    fn get_derived_value(&mut self, key: &String) -> Result<String, &str>;
-    fn get_commitment(&mut self, epoch: &u64) -> Result<String, &str>;
-    fn get_proof(&mut self, id: &String) -> Result<String, &str>;
-    fn get_proofs_in_epoch(&mut self, epoch: &u64) -> Result<Vec<ProofVariant>, &str>;
-    fn get_epoch(&mut self) -> Result<u64, &str>;
-    fn get_epoch_operation(&mut self) -> Result<u64, &str>;
-    fn set_epoch(&mut self, epoch: &u64) -> Result<(), String>;
-    fn reset_epoch_operation_counter(&mut self) -> Result<(), String>;
-    fn update_hashchain(&mut self, incoming_entry: &IncomingEntry, value: &Vec<ChainEntry>) -> Result<(), String>;
-    fn set_derived_entry(&mut self, incoming_entry: &IncomingEntry, value: &ChainEntry, new: bool) -> Result<(), String>;
-    fn get_derived_dict_keys_in_order(&mut self) -> Result<Vec<String>, String>;
-    fn get_epochs(&mut self) -> Result<Vec<u64>, String>;
-    fn increment_epoch_operation(&mut self) -> Result<u64, String>;
-    fn add_merkle_proof(&mut self, epoch: &u64, epoch_operation: &u64, commitment: &String, proofs: &String);
-    fn add_commitment(&mut self, epoch: &u64, commitment: &String);
-    fn initialize_derived_dict(&mut self);
+    fn get_keys(&self) -> Vec<String>;
+    fn get_derived_keys(&self) -> Vec<String>;
+    fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, &str>;
+    fn get_derived_value(&self, key: &String) -> Result<String, &str>;
+    fn get_commitment(&self, epoch: &u64) -> Result<String, &str>;
+    fn get_proof(&self, id: &String) -> Result<String, &str>;
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, &str>;
+    fn get_epoch(&self) -> Result<u64, &str>;
+    fn get_epoch_operation(&self) -> Result<u64, &str>;
+    fn set_epoch(&self, epoch: &u64) -> Result<(), String>;
+    fn reset_epoch_operation_counter(&self) -> Result<(), String>;
+    fn update_hashchain(&self, incoming_entry: &IncomingEntry, value: &Vec<ChainEntry>) -> Result<(), String>;
+    fn set_derived_entry(&self, incoming_entry: &IncomingEntry, value: &ChainEntry, new: bool) -> Result<(), String>;
+    fn get_derived_dict_keys_in_order(&self) -> Result<Vec<String>, String>;
+    fn get_epochs(&self) -> Result<Vec<u64>, String>;
+    fn increment_epoch_operation(&self) -> Result<u64, String>;
+    fn add_merkle_proof(&self, epoch: &u64, epoch_operation: &u64, commitment: &String, proofs: &String);
+    fn add_commitment(&self, epoch: &u64, commitment: &String);
+    fn initialize_derived_dict(&self);
 }
 
 impl RedisConnections {
@@ -109,29 +109,32 @@ impl RedisConnections {
         let commitments = redis::Client::open("redis://127.0.0.1/5").unwrap();
 
         RedisConnections {
-            main_dict: client.get_connection().unwrap(),
-            derived_dict: derived_client.get_connection().unwrap(),
-            input_order: input_order.get_connection().unwrap(),
-            app_state: app_state.get_connection().unwrap(),
-            merkle_proofs: merkle_proofs.get_connection().unwrap(),
-            commitments: commitments.get_connection().unwrap(),
+            main_dict: Mutex::new(client.get_connection().unwrap()),
+            derived_dict: Mutex::new(derived_client.get_connection().unwrap()),
+            input_order: Mutex::new(input_order.get_connection().unwrap()),
+            app_state: Mutex::new(app_state.get_connection().unwrap()),
+            merkle_proofs: Mutex::new(merkle_proofs.get_connection().unwrap()),
+            commitments: Mutex::new(commitments.get_connection().unwrap()),
         }
     }
 }
 
 impl Database for RedisConnections {
-    fn get_keys(&mut self) -> Vec<String> {
-        let keys: Vec<String> = self.main_dict.keys("*").unwrap();
+    fn get_keys(&self) -> Vec<String> {
+        let mut con = self.main_dict.lock().unwrap();
+        let keys: Vec<String> = con.keys("*").unwrap();
         keys
     }
 
-    fn get_derived_keys(&mut self) -> Vec<String> {
-        let keys: Vec<String> = self.derived_dict.keys("*").unwrap();
+    fn get_derived_keys(&self) -> Vec<String> {
+        let mut con = self.derived_dict.lock().unwrap();
+        let keys: Vec<String> = con.keys("*").unwrap();
         keys
     }
 
-    fn get_hashchain(&mut self, key: &String) -> Result<Vec<ChainEntry>, &str> {
-        let value: String = match self.main_dict.get(key) {
+    fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, &str> {
+        let mut con = self.main_dict.lock().unwrap();
+        let value: String = match con.get(key) {
             Ok(value) => value,
             Err(_) => return Err("Key not found"),
         };
@@ -143,15 +146,17 @@ impl Database for RedisConnections {
         }
     }
 
-    fn get_derived_value(&mut self, key: &String) -> Result<String, &str> {
-        match self.derived_dict.get(key) {
+    fn get_derived_value(&self, key: &String) -> Result<String, &str> {
+        let mut con = self.derived_dict.lock().unwrap();
+        match con.get(key) {
             Ok(value) => Ok(value),
             Err(_) => Err("Key not found"),
         }
     }
 
-    fn get_commitment(&mut self, epoch: &u64) -> Result<String, &str> {
-        match self.commitments.get::<&str, String>(&format!("epoch_{}", epoch)) {
+    fn get_commitment(&self, epoch: &u64) -> Result<String, &str> {
+        let mut con = self.commitments.lock().unwrap();
+        match con.get::<&str, String>(&format!("epoch_{}", epoch)) {
             Ok(value) => {
                 let trimmed_value = value.trim_matches('"').to_string();
                 Ok(trimmed_value)
@@ -160,15 +165,17 @@ impl Database for RedisConnections {
         }
     }
 
-    fn get_proof(&mut self, id: &String) -> Result<String, &str> {
-        match self.merkle_proofs.get(id) {
+    fn get_proof(&self, id: &String) -> Result<String, &str> {
+        let mut con = self.merkle_proofs.lock().unwrap();
+        match con.get(id) {
             Ok(value) => Ok(value),
             Err(_) => Err("Proof ID not found"),
         }
     }
 
-    fn get_proofs_in_epoch(&mut self, epoch: &u64) -> Result<Vec<ProofVariant>, &str> {
-        let mut epoch_proofs: Vec<String> = match self.merkle_proofs.keys::<&String, Vec<String>>(&format!("epoch_{}*", epoch)) {
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, &str> {
+        let mut con = self.merkle_proofs.lock().unwrap();
+        let mut epoch_proofs: Vec<String> = match con.keys::<&String, Vec<String>>(&format!("epoch_{}*", epoch)) {
             Ok(value) => value,
             Err(_) => return Err("Epoch not found"),
         };
@@ -191,7 +198,7 @@ impl Database for RedisConnections {
        Ok(epoch_proofs
             .iter()
             .filter_map(|proof| {
-                self.merkle_proofs.get::<&str, String>(proof)
+                con.get::<&str, String>(proof)
                     .ok()
                     .and_then(|proof_str| parse_json_to_proof(&proof_str).ok())
             })
@@ -199,49 +206,57 @@ impl Database for RedisConnections {
        )
     }
 
-    fn get_epoch(&mut self) -> Result<u64, &str> {
-        let epoch: u64 = match self.app_state.get("epoch") {
+    fn get_epoch(&self) -> Result<u64, &str> {
+        let mut con = self.app_state.lock().unwrap();
+        let epoch: u64 = match con.get("epoch") {
             Ok(value) => value,
             Err(_) => return Err("Epoch could not be fetched"),
         };
         Ok(epoch)
     }
 
-    fn get_epoch_operation(&mut self) -> Result<u64, &str> {
-        let epoch_operation: u64 = match self.app_state.get("epoch_operation") {
+    fn get_epoch_operation(&self) -> Result<u64, &str> {
+        let mut con = self.app_state.lock().unwrap();
+        let epoch_operation: u64 = match con.get("epoch_operation") {
             Ok(value) => value,
             Err(_) => return Err("Epoch operation could not be fetched"),
         };
         Ok(epoch_operation)
     }
 
-    fn set_epoch(&mut self, epoch: &u64) -> Result<(), String> {
-        match self.app_state.set::<&str, &u64, String>("epoch", epoch) {
+    fn set_epoch(&self, epoch: &u64) -> Result<(), String> {
+        let mut con = self.app_state.lock().unwrap();
+        match con.set::<&str, &u64, String>("epoch", epoch) {
             Ok(_) => Ok(()),
             Err(_) => Err("Epoch could not be set".to_string()),
         }
     }
 
-    fn reset_epoch_operation_counter(&mut self) -> Result<(), String> {
-        match self.app_state.set::<&str, &u64, String>("epoch_operation", &0) {
+    fn reset_epoch_operation_counter(&self) -> Result<(), String> {
+        let mut con = self.app_state.lock().unwrap();
+        match con.set::<&str, &u64, String>("epoch_operation", &0) {
             Ok(_) => Ok(()),
             Err(_) => Err("Epoch operation could not be reset".to_string()),
         }
     }
 
-    fn update_hashchain(&mut self, incoming_entry: &IncomingEntry, value: &Vec<ChainEntry>) -> Result<(), String> {
+    fn update_hashchain(&self, incoming_entry: &IncomingEntry, value: &Vec<ChainEntry>) -> Result<(), String> {
+        let mut con = self.main_dict.lock().unwrap();
         let value = serde_json::to_string(&value).unwrap();
-        match self.main_dict.set::<&String, String, String>(&incoming_entry.id, value) {
+
+        match con.set::<&String, String, String>(&incoming_entry.id, value) {
             Ok(_) => Ok(()),
             Err(_) => Err(format!("Could not update hashchain for key {}", incoming_entry.id)),
         }
     }
 
-    fn set_derived_entry(&mut self, incoming_entry: &IncomingEntry, value: &ChainEntry, new: bool) -> Result<(), String> {
+    fn set_derived_entry(&self, incoming_entry: &IncomingEntry, value: &ChainEntry, new: bool) -> Result<(), String> {
+        let mut con = self.derived_dict.lock().unwrap();
+        let mut input_con = self.input_order.lock().unwrap();
         let hashed_key = sha256(&incoming_entry.id);
-        self.derived_dict.set::<&String, &String, String>(&hashed_key, &value.hash).unwrap();
+        con.set::<&String, &String, String>(&hashed_key, &value.hash).unwrap();
         if new {
-            match self.input_order.rpush::<&'static str, &String, u32>("input_order", &hashed_key) {
+            match input_con.rpush::<&'static str, &String, u32>("input_order", &hashed_key) {
                 Ok(_) => Ok(()),
                 Err(_) => Err(format!("Could not push {} to input order", &hashed_key)),
             }
@@ -250,50 +265,59 @@ impl Database for RedisConnections {
         }
     }
 
-    fn get_derived_dict_keys_in_order(&mut self) -> Result<Vec<String>, String> {
-        match self.input_order.lrange("input_order", 0, -1) {
+    fn get_derived_dict_keys_in_order(&self) -> Result<Vec<String>, String> {
+        let mut con = self.input_order.lock().unwrap();
+        match con.lrange("input_order", 0, -1) {
             Ok(value) => Ok(value),
             Err(_) => Err(format!("Could not fetch input order")),
         }
     }
 
-    fn get_epochs(&mut self) -> Result<Vec<u64>, String> {
-        let epochs: Vec<u64> = match self.commitments.keys::<&str, Vec<String>>("*") {
+    fn get_epochs(&self) -> Result<Vec<u64>, String> {
+        let mut con = self.commitments.lock().unwrap();
+
+        let epochs: Vec<u64> = match con.keys::<&str, Vec<String>>("*") {
             Ok(value) => value.iter().map(|epoch| epoch.replace("epoch_", "").parse::<u64>().unwrap()).collect(),
             Err(_) => return Err(format!("Epochs could not be fetched")),
         };
         Ok(epochs)
     }
 
-    fn increment_epoch_operation(&mut self) -> Result<u64, String> {
-         match self.app_state.incr::<&'static str, u64, u64>("epoch_operation", 1) {
+    fn increment_epoch_operation(&self) -> Result<u64, String> {
+        let mut con = self.app_state.lock().unwrap();
+        match con.incr::<&'static str, u64, u64>("epoch_operation", 1) {
             Ok(value) => Ok(value),
             Err(_) => Err(format!("Epoch operation could not be incremented")),
         }
     }
 
-    fn add_merkle_proof(&mut self, epoch: &u64, epoch_operation: &u64, commitment: &String, proofs: &String) {
+    fn add_merkle_proof(&self, epoch: &u64, epoch_operation: &u64, commitment: &String, proofs: &String) {
+        let mut con = self.merkle_proofs.lock().unwrap();
         let key = format!("epoch_{}_{}_{}", epoch, epoch_operation, commitment);
-        match self.merkle_proofs.set::<&String, &String, String>(&key, &proofs) {
+        match con.set::<&String, &String, String>(&key, &proofs) {
             Ok(_) => debug!("Added merkle proof for key {}", key),
             Err(_) => debug!("Could not add merkle proof for key {}", key),
         };
     }
 
-    fn add_commitment(&mut self, epoch: &u64, commitment: &String) {
-        match self.commitments.set::<&String, &String, String>(&format!("epoch_{}", epoch), commitment) {
+    fn add_commitment(&self, epoch: &u64, commitment: &String) {
+        let mut con = self.commitments.lock().unwrap();
+        match con.set::<&String, &String, String>(&format!("epoch_{}", epoch), commitment) {
             Ok(_) => debug!("Added commitment for epoch {}", epoch),
             Err(_) => debug!("Could not add commitment for epoch {}", epoch),
         };
     }
 
-    fn initialize_derived_dict(&mut self) {
+    fn initialize_derived_dict(&self) {
+        let mut con = self.derived_dict.lock().unwrap();
+        let mut input_con = self.input_order.lock().unwrap();
+
         let empty_hash = Node::EMPTY_HASH.to_string(); // empty hash is always the first node (H(active=true, label=0^w, value=0^w, next=1^w))
-        match self.derived_dict.set::<&String, &String, String>(&empty_hash, &empty_hash) {
+        match con.set::<&String, &String, String>(&empty_hash, &empty_hash) {
             Ok(_) => debug!("Added empty hash to derived dict"),
             Err(_) => debug!("Could not add empty hash to derived dict"),
         }; // set the empty hash as the first node in the derived dict
-        match self.input_order.rpush::<&str, String, u32>("input_order", empty_hash.clone()) {
+        match input_con.rpush::<&str, String, u32>("input_order", empty_hash.clone()) {
             Ok(_) => debug!("Added empty hash to input order"),
             Err(_) => debug!("Could not add empty hash to input order"),
         }; // add the empty hash to the input order as first node
@@ -311,37 +335,32 @@ impl Session {
     /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
     /// 5. Repeats steps 2-4 periodically.
     pub fn finalize_epoch(&self) -> Result<Proof<Bls12>, String> {
-        let mut guard = self.db.lock().unwrap();
-        let epoch = match guard.get_epoch() {
+        let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
         };
 
         // TODO(@distractedm1nd): dont call app_state set directly, abstract so we can swap out data layer
         // set the new epoch and reset the epoch operation counter
-        guard.set_epoch(&epoch);
-        guard.reset_epoch_operation_counter();
-
-        drop(guard);
+        self.db.set_epoch(&epoch);
+        self.db.reset_epoch_operation_counter();
 
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self.create_tree().get_commitment();
 
-        let mut guard = self.db.lock().unwrap();
-        guard.add_commitment(&epoch, &current_commitment);
+        self.db.add_commitment(&epoch, &current_commitment);
 
         let proofs = if epoch > 0 {
             let prev_epoch = epoch - 1;
-            guard.get_proofs_in_epoch(&prev_epoch).unwrap()
+            self.db.get_proofs_in_epoch(&prev_epoch).unwrap()
         } else {
             vec![]
         };
         
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
-            guard.get_commitment(&prev_epoch).unwrap()
+            self.db.get_commitment(&prev_epoch).unwrap()
         } else {
-            drop(guard);
             let empty_commitment = self.create_tree();
             empty_commitment.get_commitment()
         };
@@ -351,16 +370,15 @@ impl Session {
     }
 
     pub fn create_tree(&self) -> IndexedMerkleTree {
-        let mut guard = self.db.lock().unwrap();
         // TODO: better error handling
         // Retrieve the keys from input order and sort them. 
-        let ordered_derived_dict_keys: Vec<String> = guard.get_derived_dict_keys_in_order().unwrap_or(vec![]);
+        let ordered_derived_dict_keys: Vec<String> = self.db.get_derived_dict_keys_in_order().unwrap_or(vec![]);
         let mut sorted_keys = ordered_derived_dict_keys.clone();
         sorted_keys.sort();
     
         // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
         let mut nodes: Vec<Node> = sorted_keys.iter().map(|key| {
-            let value: String = guard.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+            let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
             Node::initialize_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
         }).collect();
 
@@ -437,13 +455,12 @@ impl Session {
     ///
     pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
         println!("Updating entry...");
-        let mut guard = self.db.lock().unwrap();
         // add a new key to an existing id  ( type for the value retrieved from the Redis database explicitly set to string)
-        match guard.get_hashchain(&signature.id) {
+        match self.db.get_hashchain(&signature.id) {
             Ok(value) => {
                 // hashchain already exists
                 let mut current_chain = value.clone();
-                drop(guard);
+
                 let incoming_entry = match self.verify_signature(&signature) {
                     Ok(public_key) => public_key,
                     Err(_) => {
@@ -458,12 +475,10 @@ impl Session {
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.public_key.clone(),
                 };
-        
-                let mut guard = self.db.lock().unwrap();
 
                 current_chain.push(new_chain_entry.clone());
-                guard.update_hashchain(&incoming_entry, &current_chain).unwrap();
-                guard.set_derived_entry(&incoming_entry, &new_chain_entry, false).unwrap();
+                self.db.update_hashchain(&incoming_entry, &current_chain).unwrap();
+                self.db.set_derived_entry(&incoming_entry, &new_chain_entry, false).unwrap();
 
                 true
             },
@@ -482,8 +497,8 @@ impl Session {
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.public_key.clone(),
                 }];
-                guard.update_hashchain(&incoming_entry, &new_chain).unwrap();
-                guard.set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true).unwrap();
+                self.db.update_hashchain(&incoming_entry, &new_chain).unwrap();
+                self.db.set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true).unwrap();
 
                 true
             }
@@ -500,7 +515,6 @@ impl Session {
     /// Returns true if there is a public key for the id which can verify the signature
     /// Returns false if there is no public key for the id or if no public key can verify the signature
     fn verify_signature(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
-        let mut guard = self.db.lock().unwrap();
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
         let received_signed_message = &signature_with_key.signed_message; 
@@ -512,7 +526,7 @@ impl Session {
         // Create PublicKey and Signature objects.
         let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
 
-        let mut current_chain: Vec<ChainEntry> = guard
+        let mut current_chain: Vec<ChainEntry> = self.db
             .get_hashchain(&signature_with_key.id)
             .map_err(|_| "Error while getting hashchain")?;
 

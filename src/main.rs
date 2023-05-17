@@ -3,9 +3,6 @@ pub mod zk_snark;
 pub mod storage;
 mod utils;
 
-use ed25519_dalek::{PublicKey, Signature, Verifier};
-use base64::{Engine as _, alphabet, engine::{self, general_purpose}};
-use rand07::rngs::OsRng as OsRng07;
 use actix_cors::Cors;
 use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App, HttpResponse, HttpServer, Responder};
 use serde::{Serialize, Deserialize};
@@ -19,9 +16,9 @@ use num::{BigInt, Num};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use std::env;
 use dotenv::dotenv;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 
-use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, IncomingEntry, UpdateEntryJson}, zk_snark::convert_proof_to_custom, indexed_merkle_tree::IndexedMerkleTree};
+use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, UpdateEntryJson}, zk_snark::convert_proof_to_custom};
 use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 
 #[macro_use] extern crate log;
@@ -50,24 +47,18 @@ async fn update(session: web::Data<Arc<Session>>, signature_with_key: web::Json<
         Err(_) => return HttpResponse::BadRequest().json("Could not parse JSON data. Wrong format."),
     };
 
-    let mut con = session.db.lock().unwrap();
-    let epoch: u64 = con.get_epoch().unwrap();
-    let epoch_operation: u64 = con.get_epoch_operation().unwrap();
+    let epoch: u64 = session.db.get_epoch().unwrap();
+    let epoch_operation: u64 = session.db.get_epoch_operation().unwrap();
 
-    
-    drop(con);
     let tree = session.create_tree();
 
-    let mut con = session.db.lock().unwrap();
-    let result: Result<Vec<ChainEntry>, &str> = con.get_hashchain(&signature_with_key.id);
+    let result: Result<Vec<ChainEntry>, &str> = session.db.get_hashchain(&signature_with_key.id);
     // wenn der eintrag bereits vorliegt, muss ein update durchgeführt werden, sonst insert
     let update_proof = match result {
         // add a new key to an existing id 
         Ok(_) => true,
         Err(_) => false,
     };
-
-    drop(con);
 
     let update_successful = session.update_entry(&signature_with_key);
 
@@ -86,9 +77,9 @@ async fn update(session: web::Data<Arc<Session>>, signature_with_key: web::Json<
             let pre_processed_string = serde_json::to_string(&tree.clone().generate_proof_of_insert(&node)).unwrap();
             format!(r#"{{"Insert":{}}}"#, pre_processed_string)
         };
-        let mut con = session.db.lock().unwrap();
-        con.add_merkle_proof(&epoch, &epoch_operation, &tree.get_commitment(), &proofs);
-        con.increment_epoch_operation(); 
+
+        session.db.add_merkle_proof(&epoch, &epoch_operation, &tree.get_commitment(), &proofs);
+        session.db.increment_epoch_operation(); 
         HttpResponse::Ok().body("Updated entry successfully")
     } else {
         HttpResponse::BadRequest().body("Could not update entry")
@@ -112,10 +103,9 @@ async fn update(session: web::Data<Arc<Session>>, signature_with_key: web::Json<
 ///
 #[post("/calculate-values")] // all active values for a given id
 async fn calculate_values(con: web::Data<Arc<Session>>, req_body: String) -> impl Responder {
-    let mut db_con = con.db.lock().unwrap();
     let incoming_id: String = serde_json::from_str(&req_body).unwrap();
 
-    match db_con.get_hashchain(&incoming_id) {
+    match con.db.get_hashchain(&incoming_id) {
         // id exists, calculate values
         Ok(value) => {
             let chain_copy = value.clone();
@@ -147,10 +137,8 @@ async fn calculate_values(con: web::Data<Arc<Session>>, req_body: String) -> imp
 ///
 #[get("/get-dictionaries")]
 async fn get_dictionaries(con: web::Data<Arc<Session>>) -> impl Responder {
-    let mut db_con = con.db.lock().unwrap();
-
-    let keys: Vec<String> = db_con.get_keys();
-    let derived_keys: Vec<String> = db_con.get_derived_keys();
+    let keys: Vec<String> = con.db.get_keys();
+    let derived_keys: Vec<String> = con.db.get_derived_keys();
 
     #[derive(Serialize, Deserialize)]
     struct Response {
@@ -163,7 +151,7 @@ async fn get_dictionaries(con: web::Data<Arc<Session>>) -> impl Responder {
         derived_dict: Vec::new(),
     };
     for id in keys {
-        let chain: Vec<ChainEntry> = db_con.get_hashchain(&id).unwrap();
+        let chain: Vec<ChainEntry> = con.db.get_hashchain(&id).unwrap();
         resp.dict.push(Entry {
             id: id,
             value: chain
@@ -171,7 +159,7 @@ async fn get_dictionaries(con: web::Data<Arc<Session>>) -> impl Responder {
     }
 
     for id in derived_keys {
-        let value: String = db_con.get_derived_value(&id).unwrap();
+        let value: String = con.db.get_derived_value(&id).unwrap();
         resp.derived_dict.push(DerivedEntry {
             id,
             value: value
@@ -184,8 +172,6 @@ async fn get_dictionaries(con: web::Data<Arc<Session>>) -> impl Responder {
 // get prev commitment, current commitments and proofs in between
 // TODO: is this the right error return type?
 pub fn get_epochs_and_proofs(con: web::Data<Arc<Session>>, epoch: &str) -> Result<(u64, String, String, Vec<ProofVariant>), Box<dyn std::error::Error>> {
-    let mut db_con = con.db.lock().unwrap();
-
     if epoch == "0" {
         // TODO: eventually recalcualte the empty tree root and compare it to the one in the database
         return Err(Box::new(std::io::Error::new(
@@ -207,7 +193,7 @@ pub fn get_epochs_and_proofs(con: web::Data<Arc<Session>>, epoch: &str) -> Resul
     let previous_epoch = epoch_number - 1;
     
     // Get current commitment from database
-    let current_commitment: String = match db_con.get_commitment(&epoch_number) {
+    let current_commitment: String = match con.db.get_commitment(&epoch_number) {
        Ok(value) => value,
         Err(_) => return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -216,7 +202,7 @@ pub fn get_epochs_and_proofs(con: web::Data<Arc<Session>>, epoch: &str) -> Resul
     };
 
     // Get previous commitment from database
-    let previous_commitment: String = match db_con.get_commitment(&previous_epoch) {
+    let previous_commitment: String = match con.db.get_commitment(&previous_epoch) {
         Ok(value) => value,
         Err(_) => return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -224,7 +210,7 @@ pub fn get_epochs_and_proofs(con: web::Data<Arc<Session>>, epoch: &str) -> Resul
         )))
     };
 
-    let proofs = match db_con.get_proofs_in_epoch(&previous_epoch) {
+    let proofs = match con.db.get_proofs_in_epoch(&previous_epoch) {
         Ok(value) => value,
         Err(_) => return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -264,13 +250,12 @@ pub fn get_epochs_and_proofs(con: web::Data<Arc<Session>>, epoch: &str) -> Resul
 /// or if the zkSNARK circuit creation or proof verification fails.
 #[post("/validate-proof")]
 async fn handle_validate_proof(con: web::Data<Arc<Session>>, req_body: String) -> impl Responder {
-    let mut db_con = con.db.lock().unwrap();
     // proof id aus redis holen
     let proof_id: String = match serde_json::from_str(&req_body) {
         Ok(proof_id) => proof_id,
         Err(_) => return HttpResponse::BadRequest().body("Invalid proof ID"),
     };
-    let value: String = match db_con.get_proof(&proof_id) {
+    let value: String = match con.db.get_proof(&proof_id) {
         Ok(value) => value,
         Err(_) => return HttpResponse::BadRequest().body("Could not find proof"),
     };
@@ -373,8 +358,7 @@ async fn handle_get_epoch_operations(con: web::Data<Arc<Session>>, req_body: Str
 
 #[get("/get-epochs")]
 async fn handle_get_epochs(con: web::Data<Arc<Session>>) -> impl Responder {
-    let mut db_con = con.db.lock().unwrap();
-    let epochs = db_con.get_epochs().unwrap();
+    let epochs = con.db.get_epochs().unwrap();
 
     #[derive(Serialize, Deserialize)]
     struct Epoch {
@@ -392,7 +376,7 @@ async fn handle_get_epochs(con: web::Data<Arc<Session>>) -> impl Responder {
     };
 
     for epoch in epochs {
-        let value: String = db_con.get_commitment(&epoch).unwrap();
+        let value: String = con.db.get_commitment(&epoch).unwrap();
         resp.epochs.push(Epoch {
             id: epoch,
             commitment: value,
@@ -524,12 +508,10 @@ async fn get_merkle_tree(req_body: String) -> impl Responder {
 
 async fn sequencer_loop(session: &Arc<Session>) {
     println!("sequencer_loop: started");
-    let mut db_guard = session.db.lock().unwrap();
-    let derived_keys = db_guard.get_derived_keys();
+    let derived_keys = session.db.get_derived_keys();
     if derived_keys.len() == 0 { // if the dict is empty, we need to initialize the dict and the input order
-        db_guard.initialize_derived_dict();
+        session.db.initialize_derived_dict();
     }
-    drop(db_guard);
 
 
     loop {
@@ -562,7 +544,7 @@ async fn main() -> std::io::Result<()> {
     let config = load_config();
 
     let session = Arc::new(Session { 
-        db: Arc::new(Mutex::new(RedisConnections::new()))
+        db: Arc::new(RedisConnections::new())
     });
     let sequencer_session = Arc::clone(&session); 
 
