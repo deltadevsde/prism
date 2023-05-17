@@ -9,7 +9,7 @@ use rand07::rngs::OsRng as OsRng07;
 use actix_cors::Cors;
 use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App, HttpResponse, HttpServer, Responder};
 use serde::{Serialize, Deserialize};
-use serde_json::{self, json};
+use serde_json::{self, json, Value};
 use indexed_merkle_tree::{ProofVariant};
 use indexed_merkle_tree::{sha256};
 use storage::Session; 
@@ -43,49 +43,23 @@ use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 /// * `HttpResponse::BadRequest` with an error message if the update or insertion fails.
 ///
 #[post("/update-entry")]
-async fn update(session: web::Data<Arc<Session>>, req_body: String) -> impl Responder {
+async fn update(session: web::Data<Arc<Session>>, signature_with_key: web::Json<Value>,) -> impl Responder {
+    // Prüfen, ob JSON-Daten als UpdateEntryJson strukturiert werden können
+    let signature_with_key: UpdateEntryJson = match serde_json::from_value(signature_with_key.into_inner()) {
+        Ok(value) => value,
+        Err(_) => return HttpResponse::BadRequest().json("Could not parse JSON data. Wrong format."),
+    };
+
     let mut con = session.db.lock().unwrap();
     let epoch: u64 = con.get_epoch().unwrap();
     let epoch_operation: u64 = con.get_epoch_operation().unwrap();
+
     
-    // incoming entry with private key object
-    #[derive(Deserialize)]
-    struct EntryWithKey {
-        signed_message: String,
-        public_key: String,
-    }
-    let entry_with_key: EntryWithKey = serde_json::from_str(&req_body).unwrap();
-
-
-    let received_public_key = entry_with_key.public_key;
-    let received_signed_message =  entry_with_key.signed_message; 
-
-    // TODO: better error handling
-    let public_key_bytes = general_purpose::STANDARD.decode(&received_public_key).expect("Error while decoding public key");
-    let signed_message_bytes = general_purpose::STANDARD.decode(&received_signed_message).expect("Error while decoding signed message");
-
-    // Split the signed message into the signature and the message.
-    let (signature_bytes, message_bytes) = signed_message_bytes.split_at(64);
-
-    // Create PublicKey and Signature objects.
-    let public_key = PublicKey::from_bytes(&public_key_bytes).expect("Error while creating PublicKey object");
-    let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
-
-
-    if public_key.verify(message_bytes, &signature).is_ok() {
-        println!("The signature is valid");
-    } else {
-        println!("The signature is invalid");
-    }
-
-    let message = String::from_utf8(message_bytes.to_vec()).expect("Error while converting message to string");
-    let message_obj: IncomingEntry = serde_json::from_str(&message).expect("Error while deserializing message"); 
-
     drop(con);
     let tree = session.create_tree();
 
     let mut con = session.db.lock().unwrap();
-    let result: Result<Vec<ChainEntry>, &str> = con.get_hashchain(&message_obj.id);
+    let result: Result<Vec<ChainEntry>, &str> = con.get_hashchain(&signature_with_key.id);
     // wenn der eintrag bereits vorliegt, muss ein update durchgeführt werden, sonst insert
     let update_proof = match result {
         // add a new key to an existing id 
@@ -94,12 +68,12 @@ async fn update(session: web::Data<Arc<Session>>, req_body: String) -> impl Resp
     };
 
     drop(con);
-    let update_successful = session.update_entry(message_obj.operation.clone(), &message_obj, &signature);
-    println!("Update successful: {}", update_successful);
+
+    let update_successful = session.update_entry(&signature_with_key);
 
     if update_successful {
         let new_tree = session.create_tree();
-        let hashed_id = sha256(&message_obj.id);
+        let hashed_id = sha256(&signature_with_key.id);
         let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
         let proofs = if update_proof {
@@ -595,6 +569,8 @@ async fn main() -> std::io::Result<()> {
     spawn(async move {
         sequencer_loop(&sequencer_session).await;
     });
+
+    let ctx = Data::new(session);
     
     /*
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
@@ -611,9 +587,8 @@ async fn main() -> std::io::Result<()> {
             .allow_any_header();
         println!("Starting server at http://");    
 
-        let app_session = Arc::clone(&session);
         App::new()
-            .app_data(Data::new(app_session))
+            .app_data(ctx.clone())
             .wrap(cors)
             .service(update)
             .service(get_dictionaries)

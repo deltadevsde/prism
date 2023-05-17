@@ -8,6 +8,7 @@ use base64::{Engine as _, engine::general_purpose};
 use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use std::sync::{Arc, Mutex};
+use base64::encode;
 
 use crate::indexed_merkle_tree::{IndexedMerkleTree, Node, ProofVariant, sha256};
 use crate::utils::{is_not_revoked, parse_json_to_proof, validate_epoch};
@@ -58,6 +59,7 @@ pub struct IncomingEntry {
 
 #[derive(Deserialize)]
 pub struct UpdateEntryJson {
+    pub id: String,
     pub signed_message: String,
     pub public_key: String,
 }
@@ -433,25 +435,27 @@ impl Session {
     /// * `true` if the operation was successful and the entry was updated.
     /// * `false` if the operation was unsuccessful, e.g., due to an invalid signature or other errors.
     ///
-    pub fn update_entry(&self, operation: Operation, incoming_entry: &IncomingEntry, signature: &Signature) -> bool {
+    pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
         println!("Updating entry...");
         let mut guard = self.db.lock().unwrap();
         // add a new key to an existing id  ( type for the value retrieved from the Redis database explicitly set to string)
-        match guard.get_hashchain(&incoming_entry.id) {
+        match guard.get_hashchain(&signature.id) {
             Ok(value) => {
                 // hashchain already exists
                 let mut current_chain = value.clone();
-
                 drop(guard);
-                if !self.signature_is_valid(&incoming_entry, signature) {
-                    return false;
-                }
-                println!("Signature is walid");
+                let incoming_entry = match self.verify_signature(&signature) {
+                    Ok(public_key) => public_key,
+                    Err(_) => {
+                        println!("Signature is invalid");
+                        return false;
+                    }
+                };
                 
                 let new_chain_entry = ChainEntry {
-                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", operation, &incoming_entry.public_key, &current_chain.last().unwrap().hash).as_bytes()),
+                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", &incoming_entry.operation, &incoming_entry.public_key, &current_chain.last().unwrap().hash).as_bytes()),
                     previous_hash: current_chain.last().unwrap().hash.clone(),
-                    operation,
+                    operation: incoming_entry.operation.clone(),
                     value: incoming_entry.public_key.clone(),
                 };
         
@@ -465,10 +469,17 @@ impl Session {
             },
             Err(_) => {
                 println!("Hashchain does not exist, creating new one...");
+                let incoming_entry = match self.verify_signature_with_given_key(&signature) {
+                    Ok(public_key) => public_key,
+                    Err(_) => {
+                        println!("Signature is invalid");
+                        return false;
+                    }
+                };
                 let new_chain = vec![ChainEntry {
                     hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", Operation::Add, &incoming_entry.public_key, Node::EMPTY_HASH.to_string()).as_bytes()),
                     previous_hash: Node::EMPTY_HASH.to_string(),
-                    operation,
+                    operation: incoming_entry.operation.clone(),
                     value: incoming_entry.public_key.clone(),
                 }];
                 guard.update_hashchain(&incoming_entry, &new_chain).unwrap();
@@ -488,26 +499,88 @@ impl Session {
     /// 
     /// Returns true if there is a public key for the id which can verify the signature
     /// Returns false if there is no public key for the id or if no public key can verify the signature
-    fn signature_is_valid(&self, incoming_entry: &IncomingEntry, signature: &Signature) -> bool {
+    fn verify_signature(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
         let mut guard = self.db.lock().unwrap();
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
-        let current_chain: Vec<ChainEntry> = match guard.get_hashchain(&incoming_entry.id) {
-            Ok(value) => value,
-            Err(_) => return false, // if the id does not exist, return false
-        };
-        
-        // iterate over the parsed hashchain and check if any non-revoked public key can verify the signature
-        current_chain.iter().any(|entry| {
-            if !is_not_revoked(&current_chain, entry.value.clone()) {
-                return false;
-            }
+        let received_signed_message = &signature_with_key.signed_message; 
+        let signed_message_bytes = general_purpose::STANDARD.decode(&received_signed_message).expect("Error while decoding signed message");
 
-            // decode the base64 encoded public key
-            let public_key = PublicKey::from_bytes(&general_purpose::STANDARD_NO_PAD.decode(&entry.value.as_bytes()).unwrap()).unwrap();
-            
-            // try to verify verify the signature
-            public_key.verify(incoming_entry.public_key.as_bytes(), &signature).is_ok()
-        })
+        // Split the signed message into the signature and the message.
+        let (signature_bytes, message_bytes) = signed_message_bytes.split_at(64);
+
+        // Create PublicKey and Signature objects.
+        let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
+
+        let mut current_chain: Vec<ChainEntry> = guard
+            .get_hashchain(&signature_with_key.id)
+            .map_err(|_| "Error while getting hashchain")?;
+
+        current_chain.reverse(); //check latest added keys first
+
+        for entry in current_chain.iter() {
+            if !is_not_revoked(&current_chain, entry.value.clone()) {
+                continue;
+            }
+    
+            let public_key = PublicKey::from_bytes(
+                &general_purpose::STANDARD
+                    .decode(&entry.value)
+                    .map_err(|_| "Error while decoding public key bytes")?,
+            )
+            .map_err(|_| "Error while creating PublicKey object")?;
+    
+            if public_key.verify(message_bytes, &signature).is_ok() {
+                // Deserialize the message
+                let message = String::from_utf8(message_bytes.to_vec())
+                    .map_err(|_| "Invalid message")?;
+                let message_obj: IncomingEntry = serde_json::from_str(&message)
+                    .map_err(|_| "Invalid message")?;
+
+                return Ok(IncomingEntry { 
+                    id: signature_with_key.id.clone(), 
+                    operation: message_obj.operation, 
+                    public_key: message_obj.public_key 
+                });
+            }
+        }
+    
+        Err("No valid signature found")
     }
+
+    fn verify_signature_with_given_key(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
+        // try to extract the value of the id from the incoming entry from the redis database
+        // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
+        let received_public_key = &signature_with_key.public_key; // new public key
+        let received_signed_message =  &signature_with_key.signed_message; 
+
+        // TODO: better error handling
+        let received_public_key_bytes = general_purpose::STANDARD.decode(&received_public_key).expect("Error while decoding public key");
+        let signed_message_bytes = general_purpose::STANDARD.decode(&received_signed_message).expect("Error while decoding signed message");
+
+        // Split the signed message into the signature and the message.
+        let (signature_bytes, message_bytes) = signed_message_bytes.split_at(64);
+
+        // Create PublicKey and Signature objects.
+        let received_public_key = PublicKey::from_bytes(&received_public_key_bytes).expect("Error while creating PublicKey object");
+        let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
+
+
+        if received_public_key.verify(message_bytes, &signature).is_ok() {
+            // Deserialize the message
+            let message = String::from_utf8(message_bytes.to_vec())
+                .map_err(|_| "Invalid message")?;
+            let message_obj: IncomingEntry = serde_json::from_str(&message)
+                .map_err(|_| "Invalid message")?;
+
+            return Ok(IncomingEntry { 
+                id: signature_with_key.id.clone(), 
+                operation: message_obj.operation, 
+                public_key: message_obj.public_key 
+            });
+        } else {
+            Err("No valid signature found")
+        }
+    }
+    
 }
