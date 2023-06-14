@@ -8,7 +8,6 @@ use base64::{Engine as _, engine::general_purpose};
 use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use std::sync::{Arc, Mutex};
-use base64::encode;
 
 use crate::indexed_merkle_tree::{IndexedMerkleTree, Node, ProofVariant, sha256};
 use crate::utils::{is_not_revoked, parse_json_to_proof, validate_epoch};
