@@ -3,11 +3,11 @@ pub mod zk_snark;
 pub mod storage;
 mod utils;
 
-use actix_cors::Cors;
-use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App, HttpResponse, HttpServer, Responder};
 use celestia_rpc::client::new_websocket;
 use celestia_types::nmt::Namespace;
 use clap::{Parser, Subcommand};
+use actix_cors::Cors;
+use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App as ActixApp, HttpResponse, HttpServer, Responder};
 use config::{ConfigBuilder, builder::DefaultState, FileFormat, File};
 use serde::{Serialize, Deserialize};
 use serde_json::{self, json, Value};
@@ -492,8 +492,8 @@ async fn lightclient_loop(session: &Arc<Session>) {
     panic!("lightclient_loop: not implemented yet");
 }
 
-async fn sequencer_loop(session: &Arc<Session>, epoch_duration: u64) {
-    println!("sequencer_loop: started");
+async fn sequencer_loop(session: &Arc<Session>, duration: u64) {
+    debug!("sequencer_loop: started");
     let derived_keys = session.db.get_derived_keys();
     if derived_keys.len() == 0 { // if the dict is empty, we need to initialize the dict and the input order
         session.db.initialize_derived_dict();
@@ -509,15 +509,8 @@ async fn sequencer_loop(session: &Arc<Session>, epoch_duration: u64) {
             Err(e) => error!("sequencer_loop: finalizing epoch: {}", e)
         }
         //drop(db_guard);
-        sleep(Duration::from_secs(epoch_duration)).await;
+        sleep(Duration::from_secs(duration)).await;
     }
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-enum NodeType {
-    Sequencer,
-    #[default]
-    LightNode
 }
 
 #[derive(Parser, Clone, Debug, Deserialize)]
@@ -627,6 +620,8 @@ async fn main() -> std::io::Result<()> {
     });
     let sequencer_session = Arc::clone(&session); 
 
+   
+
     spawn(async move {
         match args.command {
             Commands::LightClient { } => {
@@ -653,9 +648,7 @@ async fn main() -> std::io::Result<()> {
             .allowed_origin("https://visualizer.sebastianpusch.de")
             .allow_any_method()
             .allow_any_header();
-        println!("Starting server at http://");    
-
-        App::new()
+        ActixApp::new()
             .app_data(ctx.clone())
             .wrap(cors)
             .service(update)
