@@ -23,6 +23,7 @@ use std::env;
 use dotenv::dotenv;
 use std::sync::{Arc};
 
+
 use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, UpdateEntryJson}, zk_snark::convert_proof_to_custom};
 use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 
@@ -550,7 +551,6 @@ enum Commands {
     Sequencer,
 }
 
-
 #[derive(Debug, Deserialize)]
 struct Config {
     ip: String,
@@ -637,8 +637,8 @@ async fn main() -> std::io::Result<()> {
     
     /*
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        builder.set_private_key_file(config.key_path, SslFiletype::PEM).unwrap();
-        builder.set_certificate_chain_file(config.cert_path).unwrap();
+        builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
+        builder.set_certificate_chain_file(env.cert_path).unwrap();
     */
 
     HttpServer::new(move || {
