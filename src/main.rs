@@ -9,6 +9,9 @@ use clap::{Parser, Subcommand};
 use actix_cors::Cors;
 use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App as ActixApp, HttpResponse, HttpServer, Responder};
 use config::{ConfigBuilder, builder::DefaultState, FileFormat, File};
+use bellman::groth16;
+use bls12_381::Bls12;
+use rand::rngs::OsRng;
 use serde::{Serialize, Deserialize};
 use serde_json::{self, json, Value};
 use indexed_merkle_tree::{ProofVariant};
@@ -18,13 +21,13 @@ use core::panic;
 use std::{time::Duration, sync::Mutex, process::Command};
 use tokio::{time::sleep};
 use num::{BigInt, Num};
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use openssl::{ssl::{SslAcceptor, SslFiletype, SslMethod}, sign};
 use std::env;
 use dotenv::dotenv;
 use std::sync::{Arc};
 
 
-use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, UpdateEntryJson}, zk_snark::convert_proof_to_custom};
+use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, UpdateEntryJson, EpochJson}, zk_snark::{convert_proof_to_custom, HashChainEntryCircuit}};
 use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 
 #[macro_use] extern crate log;
@@ -46,10 +49,10 @@ use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 /// * `HttpResponse::BadRequest` with an error message if the update or insertion fails.
 ///
 #[post("/update-entry")]
-async fn update(session: web::Data<Arc<Session>>, signature_with_key: web::Json<Value>,) -> impl Responder {
+async fn update_entry(session: web::Data<Arc<Session>>, signature_with_key: web::Json<Value>,) -> impl Responder {
     // Prüfen, ob JSON-Daten als UpdateEntryJson strukturiert werden können
     let signature_with_key: UpdateEntryJson = match serde_json::from_value(signature_with_key.into_inner()) {
-        Ok(value) => value,
+        Ok(entry_json) => entry_json,
         Err(_) => return HttpResponse::BadRequest().json("Could not parse JSON data. Wrong format."),
     };
 
@@ -65,6 +68,8 @@ async fn update(session: web::Data<Arc<Session>>, signature_with_key: web::Json<
         Ok(_) => true,
         Err(_) => false,
     };
+
+    println!("update_proof: {:?}", &signature_with_key);
 
     let update_successful = session.update_entry(&signature_with_key);
 
@@ -142,7 +147,7 @@ async fn calculate_values(con: web::Data<Arc<Session>>, req_body: String) -> imp
 /// The function returns a JSON object containing two fields: `dict` and `derived_dict`. Each field contains a list of dictionary entries.
 ///
 #[get("/get-dictionaries")]
-async fn get_dictionaries(con: web::Data<Arc<Session>>) -> impl Responder {
+async fn get_hashchains(con: web::Data<Arc<Session>>) -> impl Responder {
     let keys: Vec<String> = con.db.get_keys();
     let derived_keys: Vec<String> = con.db.get_derived_keys();
 
@@ -174,6 +179,27 @@ async fn get_dictionaries(con: web::Data<Arc<Session>>) -> impl Responder {
     HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
 }
 
+#[get("/get-dictionary/{id}")]
+async fn get_hashchain(con: web::Data<Arc<Session>>, id: web::Path<String>) -> impl Responder {
+    let id_str = id.into_inner();
+    let chain: Vec<ChainEntry> = match con.db.get_hashchain(&id_str) {
+        Ok(chain) => chain,
+        Err(_) => return HttpResponse::NotFound().body("No dictionary found for the given id"),
+    };
+
+    #[derive(Serialize, Deserialize)]
+    struct Response {
+        id: String,
+        dict: Vec<ChainEntry>,
+    }
+
+    let resp = Response {
+        id: id_str,
+        dict: chain,
+    };
+
+    HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
+}
 
 // get prev commitment, current commitments and proofs in between
 // TODO: is this the right error return type?
@@ -313,11 +339,68 @@ async fn handle_validate_epoch(con: web::Data<Arc<Session>>, req_body: String) -
     HttpResponse::Ok().json(response)
 }
 
+#[post("/validate-hashchain-proof")]
+async fn handle_validate_hashchain_proof(session: web::Data<Arc<Session>>, incoming_value: web::Json<Value>,) -> impl Responder {
+    #[derive(Deserialize)]
+    struct ValidateHashchainBody {
+        pub_key: String, // public key des anderen unternehmens
+        value: String, // Klartext
+    }  
+
+    // Prüfen, ob JSON-Daten als UpdateEntryJson strukturiert werden können
+    let incoming_value: ValidateHashchainBody = match serde_json::from_value(incoming_value.into_inner()) {
+        Ok(incoming_value_json) => incoming_value_json,
+        Err(_) => return HttpResponse::BadRequest().json("Could not parse JSON data. Wrong format."),
+    };
+
+    let hashchain = session.db.get_hashchain(&incoming_value.pub_key).unwrap();
+
+    let circuit = match HashChainEntryCircuit::create(&incoming_value.value, hashchain) {
+        Ok(circuit) => circuit,
+        Err(e) => {
+            error!("Error creating circuit: {}", e);
+            return HttpResponse::BadRequest().json("Could not create circuit");
+        }
+    };
+
+    let rng = &mut OsRng;
+
+    // debug!("Creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
+    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).unwrap();
+
+    // debug!("Creating proof for zkSNARK...");
+    let proof = groth16::create_random_proof(circuit.clone(), &params, rng).unwrap();
+
+    // debug!("Prepare verifying key for zkSNARK...");
+    let pvk = groth16::prepare_verifying_key(&params.vk);
+
+    let public_param = HashChainEntryCircuit::create_public_parameter(&incoming_value.value);
+
+    // debug!("Verifying zkSNARK proof...");
+    match groth16::verify_proof(
+        &pvk,
+        &proof,
+        &[public_param],
+    ) {
+        Ok(_) => {
+            println!("Proof is valid");
+            println!("Verified with: {:?}", public_param);
+            return HttpResponse::Ok().json({
+                json!({
+                    "proof": convert_proof_to_custom(&proof),
+                    "public_param": sha256(&incoming_value.value),
+                })
+            })
+        },
+        Err(_) => HttpResponse::BadRequest().body("Proof is invalid"),
+    }
+}
+
 /// Returns the commitment (tree root) of the IndexedMerkleTree initialized from Redis data.
 /// This function is exposed as an HTTP GET request under the "/get-commitment" endpoint.
 ///
 #[get("/get-commitment")]
-async fn handle_get_commitment(con: web::Data<Arc<Session>>) -> impl Responder {
+async fn get_commitment(con: web::Data<Arc<Session>>) -> impl Responder {
     println!("get-commitment");
     HttpResponse::Ok().body(serde_json::to_string(&con.create_tree().get_commitment()).expect("Failed to serialize commitment"))
 }
@@ -327,13 +410,13 @@ async fn handle_get_commitment(con: web::Data<Arc<Session>>) -> impl Responder {
 /// This function is exposed as an HTTP GET request under the "/get-current-tree" endpoint.
 ///
 #[get("/get-current-tree")]
-async fn handle_get_current_tree(con: web::Data<Arc<Session>>) -> impl Responder {
+async fn get_current_tree(con: web::Data<Arc<Session>>) -> impl Responder {
     HttpResponse::Ok().body(serde_json::to_string(&con.create_tree().get_root()).expect("Failed to serialize tree root"))
 }
 
 
 #[post("/get-epoch-operations")]
-async fn handle_get_epoch_operations(con: web::Data<Arc<Session>>, req_body: String) -> impl Responder {
+async fn get_epoch_operations(con: web::Data<Arc<Session>>, req_body: String) -> impl Responder {
     // versuchen proof id aus request body zu parsen
     let epoch: String = match serde_json::from_str(&req_body) {
         Ok(epoch) => epoch,
@@ -363,8 +446,10 @@ async fn handle_get_epoch_operations(con: web::Data<Arc<Session>>, req_body: Str
 
 
 #[get("/get-epochs")]
-async fn handle_get_epochs(con: web::Data<Arc<Session>>) -> impl Responder {
-    let epochs = con.db.get_epochs().unwrap();
+async fn get_epochs(con: web::Data<Arc<Session>>) -> impl Responder {
+    let mut epochs = con.db.get_epochs().unwrap();
+
+    println!("get-epochs: {:?}", epochs);
 
     #[derive(Serialize, Deserialize)]
     struct Epoch {
@@ -381,6 +466,8 @@ async fn handle_get_epochs(con: web::Data<Arc<Session>>) -> impl Responder {
         epochs: Vec::new(),
     };
 
+    epochs.sort();
+
     for epoch in epochs {
         let value: String = con.db.get_commitment(&epoch).unwrap();
         resp.epochs.push(Epoch {
@@ -392,7 +479,6 @@ async fn handle_get_epochs(con: web::Data<Arc<Session>>) -> impl Responder {
 
     HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
 }
-
 
 #[get("/finalize-epoch")]
 async fn handle_finalize_epoch(con: web::Data<Arc<Session>>) -> impl Responder {
@@ -618,6 +704,10 @@ async fn main() -> std::io::Result<()> {
             sync_target: Arc::new(Mutex::new(0)),
         })
     });
+    /* da: Arc::new(CelestiaConnection{
+        client: CelestiaClient::new_client(&config.celestia_client, None).await,
+        namespace_id: NamespaceId::new_v0(&config.namespace_id).unwrap(),
+    }), */
     let sequencer_session = Arc::clone(&session); 
 
    
@@ -625,7 +715,7 @@ async fn main() -> std::io::Result<()> {
     spawn(async move {
         match args.command {
             Commands::LightClient { } => {
-                lightclient_loop(&sequencer_session).await;
+                /* lightclient_loop(&sequencer_session).await; */
             },
             Commands::Sequencer { } => {
                 sequencer_loop(&sequencer_session, config.epoch_time).await;
@@ -635,32 +725,34 @@ async fn main() -> std::io::Result<()> {
 
     let ctx = Data::new(session);
     
-    /*
-        let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
-        builder.set_certificate_chain_file(env.cert_path).unwrap();
-    */
-
+    
+    /* let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
+    builder.set_certificate_chain_file(env.cert_path).unwrap(); */
+    
     HttpServer::new(move || {
         let cors = Cors::default()
             .allowed_origin("http://localhost:3000")
             .allowed_origin("http://localhost:3001")
             .allowed_origin("https://visualizer.sebastianpusch.de")
+            .allow_any_origin()
             .allow_any_method()
             .allow_any_header();
         ActixApp::new()
             .app_data(ctx.clone())
             .wrap(cors)
-            .service(update)
-            .service(get_dictionaries)
+            .service(get_hashchains)
+            .service(get_hashchain)
+            .service(get_commitment)
+            .service(get_current_tree)
+            .service(get_epochs)
+            .service(get_epoch_operations)
+            .service(update_entry)
             .service(calculate_values)
-            .service(handle_get_commitment)
-            .service(handle_get_current_tree)
             .service(handle_validate_proof)
             .service(handle_validate_epoch)
+            .service(handle_validate_hashchain_proof)
             .service(handle_finalize_epoch)
-            .service(handle_get_epochs)
-            .service(handle_get_epoch_operations)
     })
     /* .bind_openssl((config.ip, config.port), builder)? */
     .bind((config.ip.clone(), config.port))?

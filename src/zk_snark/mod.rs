@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 use crate::indexed_merkle_tree::{MerkleProof, UpdateProof, ProofVariant};
 use crate::indexed_merkle_tree::{Node};
 use crate::indexed_merkle_tree::{sha256};
+use crate::storage::ChainEntry;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Bls12Proof {
@@ -23,11 +24,18 @@ pub fn convert_proof_to_custom(proof: &Proof<Bls12>) -> Bls12Proof {
 
 
 // TODO: WICHTIG!
-// Ich konvertiere im Code zum SNARK Strings häufig hin und her und berechnen wie auch in der Anwendung die Hashwerte angelehnt ans Paper in der folgenden Form: H({} || {}).
+// Ich konvertiere im Code zum SNARK Strin###gs häufig hin und her und berechnen wie auch in der Anwendung die Hashwerte angelehnt ans Paper in der folgenden Form: H({} || {}).
 // In der Praxis ist es ziemlich sicher besser, die Datenstrukturen und Algorithmen in der Anwendung und im Schaltkreis so zu gestalten, dass sie direkt mit skalaren Werten oder 
 // Byte-Repräsentationen arbeiten, anstatt mit formatierten Strings. Dann würde das ganze nicht mehr auf der Konvertierung zwischen verschiedenen Darstellung basieren.
 
 // theoretically we could refactor this to only one merkleproof circuit, and repeat it twice for updates and five (one merkle proof (non-membership), two update proofs) times for inserts
+
+#[derive(Clone)]
+pub struct HashChainEntryCircuit {
+    pub value: Scalar,
+    pub chain: Vec<Scalar>,
+}
+
 #[derive(Clone)]
 pub struct UpdateMerkleProofCircuit {
     pub old_root: Scalar,
@@ -249,6 +257,82 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
     }
 }
 
+impl Circuit<Scalar> for HashChainEntryCircuit {
+    fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+        if &self.chain.len() == &0 {
+            return Err(SynthesisError::AssignmentMissing);
+        }
+        
+        let provided_value = cs.alloc_input(|| "provided hashed value", || Ok(self.value))?;
+
+        for entry in self.chain {
+            if entry == self.value {
+                let found_value = cs.alloc(|| "found hashed value", || Ok(entry))?;
+                cs.enforce(
+                    || "found value check",
+                    |lc| lc + found_value,
+                    |lc| lc + CS::one(),
+                    |lc| lc + provided_value,
+                );
+                return Ok(())
+            }
+        }
+        return Err(SynthesisError::Unsatisfiable);
+    }
+}
+
+// Die Funktion, um den Schaltkreis basierend auf dem gegebenen Merkle-Beweis zu erstellen
+impl InsertMerkleProofCircuit {
+    pub fn create(proof: &(MerkleProof, UpdateProof, UpdateProof)) -> Result<InsertMerkleProofCircuit, &'static str> {
+        // Unwrap proof values and handle possible errors
+        let (non_membership_root, non_membership_path) = match &proof.0 {
+            (Some(non_membership_root), Some(non_membership_path)) => (hex_to_scalar(non_membership_root), non_membership_path),
+            _ => return Err("Failed to unwrap the old root and old path"),
+        };
+
+        let (first_update_old_root, first_update_old_path) = match &proof.1.0 {
+            (Some(first_update_old_root), Some(first_update_old_path)) => (hex_to_scalar(first_update_old_root), first_update_old_path),
+            _ => return Err("Failed to unwrap the first update oldroot and the old path"),
+        };
+        
+        let (first_update_new_root, first_update_new_path) = match &proof.1.1 {
+            (Some(first_update_new_root), Some(first_update_new_path)) => (hex_to_scalar(first_update_new_root), first_update_new_path),
+            _ => return Err("Failed to unwrap the first update newroot and the new path"),
+        };
+        
+        let (second_update_old_root, second_update_old_path) = match &proof.2.0 {
+            (Some(second_update_old_root), Some(second_update_old_path)) => (hex_to_scalar(second_update_old_root), second_update_old_path),
+            _ => return Err("Failed to unwrap the second update oldroot and the old path"),
+        };
+
+        let (second_update_new_root, second_update_new_path) = match &proof.2.1 {
+            (Some(second_update_new_root), Some(second_update_new_path)) => (hex_to_scalar(second_update_new_root), second_update_new_path),
+            _ => return Err("Failed to unwrap the second update newroot and the new path"),
+        };
+
+        let first_merkle_proof_circuit = UpdateMerkleProofCircuit {
+            old_root: first_update_old_root,
+            old_path: first_update_old_path.clone(),
+            updated_root: first_update_new_root,
+            updated_path: first_update_new_path.clone()
+        };
+  
+        let second_merkle_proof_circuit = UpdateMerkleProofCircuit {
+            old_root: second_update_old_root,
+            old_path: second_update_old_path.clone(),
+            updated_root: second_update_new_root,
+            updated_path: second_update_new_path.clone()
+        };
+
+        // Erstelle die MerkleProofCircuit-Instanz
+        Ok(InsertMerkleProofCircuit {
+            non_membership_root,
+            non_membership_path: non_membership_path.clone(),
+            first_merkle_proof: first_merkle_proof_circuit,
+            second_merkle_proof: second_merkle_proof_circuit,
+        })
+    }
+}
 
 impl BatchMerkleProofCircuit {
     pub fn create(old_commitment: &String, new_commitment: &String, proofs: Vec<ProofVariant>) -> Result<BatchMerkleProofCircuit, &'static str> {
@@ -343,55 +427,23 @@ impl BatchMerkleProofCircuit {
   }
 }
 
-// Die Funktion, um den Schaltkreis basierend auf dem gegebenen Merkle-Beweis zu erstellen
-impl InsertMerkleProofCircuit {
-    pub fn create_from_update_proof(proof: &(MerkleProof, UpdateProof, UpdateProof)) -> Result<InsertMerkleProofCircuit, &'static str> {
-        // Unwrap proof values and handle possible errors
-        let (non_membership_root, non_membership_path) = match &proof.0 {
-            (Some(non_membership_root), Some(non_membership_path)) => (hex_to_scalar(non_membership_root), non_membership_path),
-            _ => return Err("Failed to unwrap the old root and old path"),
-        };
-
-        let (first_update_old_root, first_update_old_path) = match &proof.1.0 {
-            (Some(first_update_old_root), Some(first_update_old_path)) => (hex_to_scalar(first_update_old_root), first_update_old_path),
-            _ => return Err("Failed to unwrap the first update oldroot and the old path"),
-        };
-        
-        let (first_update_new_root, first_update_new_path) = match &proof.1.1 {
-            (Some(first_update_new_root), Some(first_update_new_path)) => (hex_to_scalar(first_update_new_root), first_update_new_path),
-            _ => return Err("Failed to unwrap the first update newroot and the new path"),
-        };
-        
-        let (second_update_old_root, second_update_old_path) = match &proof.2.0 {
-            (Some(second_update_old_root), Some(second_update_old_path)) => (hex_to_scalar(second_update_old_root), second_update_old_path),
-            _ => return Err("Failed to unwrap the second update oldroot and the old path"),
-        };
-
-        let (second_update_new_root, second_update_new_path) = match &proof.2.1 {
-            (Some(second_update_new_root), Some(second_update_new_path)) => (hex_to_scalar(second_update_new_root), second_update_new_path),
-            _ => return Err("Failed to unwrap the second update newroot and the new path"),
-        };
-
-        let first_merkle_proof_circuit = UpdateMerkleProofCircuit {
-            old_root: first_update_old_root,
-            old_path: first_update_old_path.clone(),
-            updated_root: first_update_new_root,
-            updated_path: first_update_new_path.clone()
-        };
-  
-        let second_merkle_proof_circuit = UpdateMerkleProofCircuit {
-            old_root: second_update_old_root,
-            old_path: second_update_old_path.clone(),
-            updated_root: second_update_new_root,
-            updated_path: second_update_new_path.clone()
-        };
-
-        // Erstelle die MerkleProofCircuit-Instanz
-        Ok(InsertMerkleProofCircuit {
-            non_membership_root,
-            non_membership_path: non_membership_path.clone(),
-            first_merkle_proof: first_merkle_proof_circuit,
-            second_merkle_proof: second_merkle_proof_circuit,
+impl HashChainEntryCircuit {
+    pub fn create(value: &String, hashchain: Vec<ChainEntry>) -> Result<HashChainEntryCircuit, &'static str> {
+        // hash the klartext and parse it to a scalar
+        let hashed_value = sha256(&value);
+        let parsed_value = hex_to_scalar(&hashed_value);
+        let mut parsed_hashchain: Vec<Scalar> = vec![];
+        for entry in hashchain {
+            parsed_hashchain.push(hex_to_scalar(entry.value.as_str()))
+        }
+        Ok(HashChainEntryCircuit {
+            value: parsed_value,
+            chain: parsed_hashchain,
         })
     }
-}
+
+    pub fn create_public_parameter(value: &String) -> Scalar {
+        let hashed_value = sha256(&value);
+        hex_to_scalar(&hashed_value)
+    }
+} 

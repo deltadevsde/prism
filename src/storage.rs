@@ -81,19 +81,20 @@ pub struct DerivedEntry {
 pub struct IncomingEntry {
     pub id: String,
     pub operation: Operation,
-    pub public_key: String,
+    pub value: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct UpdateEntryJson {
     pub id: String,
     pub signed_message: String,
     pub public_key: String,
+    //pub value: String, // values instead of public_key field, value will be public key in case of key transparency but not necessarily in every other case
 }
 
 pub struct Session {
     pub db: Arc<dyn Database>,
-    pub da: Arc<dyn DataAvailabilityLayer>,
+    pub da: Arc<dyn DataAvailabilityLayer>
 }
 
 pub struct RedisConnections {
@@ -577,8 +578,9 @@ impl Session {
                 // hashchain already exists
                 let mut current_chain = value.clone();
 
-                let incoming_entry = match self.verify_signature(&signature) {
-                    Ok(public_key) => public_key,
+                // im deforest-ansatz muss immer mit "given key" überprüft werden, ob die signatur gültig ist, nicht wie bei key transparency einem zuvor hinzugefügten, gültigen public key
+                let incoming_entry = match self.verify_signature_with_given_key(&signature) {
+                    Ok(entry) => entry,
                     Err(_) => {
                         println!("Signature is invalid");
                         return false;
@@ -586,10 +588,10 @@ impl Session {
                 };
                 
                 let new_chain_entry = ChainEntry {
-                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", &incoming_entry.operation, &incoming_entry.public_key, &current_chain.last().unwrap().hash).as_bytes()),
+                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", &incoming_entry.operation, &incoming_entry.value, &current_chain.last().unwrap().hash).as_bytes()),
                     previous_hash: current_chain.last().unwrap().hash.clone(),
                     operation: incoming_entry.operation.clone(),
-                    value: incoming_entry.public_key.clone(),
+                    value: incoming_entry.value.clone(),
                 };
 
                 current_chain.push(new_chain_entry.clone());
@@ -600,18 +602,19 @@ impl Session {
             },
             Err(_) => {
                 println!("Hashchain does not exist, creating new one...");
+                println!("Signature: {:?}", &signature);
                 let incoming_entry = match self.verify_signature_with_given_key(&signature) {
-                    Ok(public_key) => public_key,
+                    Ok(entry) => entry,
                     Err(_) => {
                         println!("Signature is invalid");
                         return false;
                     }
                 };
                 let new_chain = vec![ChainEntry {
-                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", Operation::Add, &incoming_entry.public_key, Node::EMPTY_HASH.to_string()).as_bytes()),
+                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", Operation::Add, &incoming_entry.value, Node::EMPTY_HASH.to_string()).as_bytes()),
                     previous_hash: Node::EMPTY_HASH.to_string(),
                     operation: incoming_entry.operation.clone(),
-                    value: incoming_entry.public_key.clone(),
+                    value: incoming_entry.value.clone(),
                 }];
                 self.db.update_hashchain(&incoming_entry, &new_chain).unwrap();
                 self.db.set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true).unwrap();
@@ -670,7 +673,7 @@ impl Session {
                 return Ok(IncomingEntry { 
                     id: signature_with_key.id.clone(), 
                     operation: message_obj.operation, 
-                    public_key: message_obj.public_key 
+                    value: message_obj.value 
                 });
             }
         }
@@ -695,7 +698,6 @@ impl Session {
         let received_public_key = PublicKey::from_bytes(&received_public_key_bytes).expect("Error while creating PublicKey object");
         let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
 
-
         if received_public_key.verify(message_bytes, &signature).is_ok() {
             // Deserialize the message
             let message = String::from_utf8(message_bytes.to_vec())
@@ -706,7 +708,7 @@ impl Session {
             return Ok(IncomingEntry { 
                 id: signature_with_key.id.clone(), 
                 operation: message_obj.operation, 
-                public_key: message_obj.public_key 
+                value: message_obj.value 
             });
         } else {
             Err("No valid signature found")
