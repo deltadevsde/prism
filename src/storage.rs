@@ -88,8 +88,7 @@ pub struct IncomingEntry {
 pub struct UpdateEntryJson {
     pub id: String,
     pub signed_message: String,
-    pub public_key: String,
-    //pub value: String, // values instead of public_key field, value will be public key in case of key transparency but not necessarily in every other case
+    pub value: String,
 }
 
 pub struct Session {
@@ -294,7 +293,7 @@ impl Database for RedisConnections {
             let a_parts: Vec<&str> = a.split('_').collect();
             let b_parts: Vec<&str> = b.split('_').collect();
 
-            // zweite Zahl nutzen, da: epoch_1_1, epoch_1_2, epoch_1_3 usw. dann ist die zweite Zahl die Nummer innerhalb der Epoche
+            // use second number, for the format: epoch_1_1, epoch_1_2, epoch_1_3 etc. the second number is the number within the epoch
             let a_number: u64 = a_parts[2].parse().unwrap_or(0);
             let b_number: u64 = b_parts[2].parse().unwrap_or(0);
 
@@ -541,10 +540,10 @@ impl Session {
                 .iter()
                 .enumerate() // use index 
                 .find(|(_, k)| {
-                    *k == &label.clone().unwrap() // ohne dereferenzierung wird ein &&String mit &String verglichen
+                    *k == &label.clone().unwrap() // without dereferencing we compare  &&string with &string
                 })
                 .unwrap()
-                .0 // enumerate gibt tupel zurück, also index zurückgeben
+                .0 
         });
     
         // Add empty nodes to ensure the total number of nodes is a power of two.
@@ -552,7 +551,7 @@ impl Session {
             nodes.push(Node::initialize_leaf(false, true, Node::EMPTY_HASH.to_string(), Node::EMPTY_HASH.to_string(), Node::TAIL.to_string()));
         }
     
-        // baum erstellen und dabei alle nodes überprüfen, ob sie linkes oder rechtes kind sind
+        // create tree, setting left / right child property for each node
         let tree = IndexedMerkleTree::new(nodes);
         tree
     }
@@ -578,8 +577,8 @@ impl Session {
                 // hashchain already exists
                 let mut current_chain = value.clone();
 
-                // im deforest-ansatz muss immer mit "given key" überprüft werden, ob die signatur gültig ist, nicht wie bei key transparency einem zuvor hinzugefügten, gültigen public key
-                let incoming_entry = match self.verify_signature_with_given_key(&signature) {
+                // check with given key if the signature is valid
+                let incoming_entry = match self.verify_signature_wrapper(&signature) {
                     Ok(entry) => entry,
                     Err(_) => {
                         println!("Signature is invalid");
@@ -601,12 +600,11 @@ impl Session {
                 true
             },
             Err(_) => {
-                println!("Hashchain does not exist, creating new one...");
-                println!("Signature: {:?}", &signature);
-                let incoming_entry = match self.verify_signature_with_given_key(&signature) {
+                debug!("Hashchain does not exist, creating new one...");
+                let incoming_entry = match self.verify_signature_wrapper(&signature) {
                     Ok(entry) => entry,
                     Err(_) => {
-                        println!("Signature is invalid");
+                        error!("Signature is invalid");
                         return false;
                     }
                 };
@@ -624,6 +622,17 @@ impl Session {
         }
     }
 
+    fn verify_signature_wrapper(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str> {
+        // to use this we have to build the project with cargo build --features "key_transparency"
+        #[cfg(feature = "key_transparency")]
+        {
+            self.verify_signature(signature_with_key)
+        }
+        #[cfg(not(feature = "key_transparency"))]
+        {
+            self.verify_signature_with_given_key(signature_with_key)
+        }
+    }
 
     /// Checks if a signature is valid for a given incoming entry.
     /// 
@@ -633,6 +642,8 @@ impl Session {
     /// 
     /// Returns true if there is a public key for the id which can verify the signature
     /// Returns false if there is no public key for the id or if no public key can verify the signature
+    /// 
+    /// ONLY FOR KEY TRANSPARENCY APPLICATION
     fn verify_signature(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
@@ -684,7 +695,7 @@ impl Session {
     fn verify_signature_with_given_key(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
-        let received_public_key = &signature_with_key.public_key; // new public key
+        let received_public_key = &signature_with_key.value;
         let received_signed_message =  &signature_with_key.signed_message; 
 
         // TODO: better error handling (#11)

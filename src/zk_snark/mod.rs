@@ -23,13 +23,6 @@ pub fn convert_proof_to_custom(proof: &Proof<Bls12>) -> Bls12Proof {
 }
 
 
-// TODO: WICHTIG!
-// Ich konvertiere im Code zum SNARK Strin###gs häufig hin und her und berechnen wie auch in der Anwendung die Hashwerte angelehnt ans Paper in der folgenden Form: H({} || {}).
-// In der Praxis ist es ziemlich sicher besser, die Datenstrukturen und Algorithmen in der Anwendung und im Schaltkreis so zu gestalten, dass sie direkt mit skalaren Werten oder 
-// Byte-Repräsentationen arbeiten, anstatt mit formatierten Strings. Dann würde das ganze nicht mehr auf der Konvertierung zwischen verschiedenen Darstellung basieren.
-
-// theoretically we could refactor this to only one merkleproof circuit, and repeat it twice for updates and five (one merkle proof (non-membership), two update proofs) times for inserts
-
 #[derive(Clone)]
 pub struct HashChainEntryCircuit {
     pub value: Scalar,
@@ -67,11 +60,10 @@ pub struct BatchMerkleProofCircuit {
 }
 
 
-// funktioniert nicht ohne from_bytes_wide, da ansonsten die Modulo Operation fehlschlägt (Wert scheint dann ggf. zu groß)
 pub fn hex_to_scalar(hex_string: &str) -> Scalar {
     let byte_array: [u8; 32]  = hex::decode(hex_string).unwrap().try_into().unwrap();
     let mut wide = [0u8; 64];
-    wide[..32].copy_from_slice(&byte_array); // 0en davor füllen, dann bleibt der Wert gleich
+    wide[..32].copy_from_slice(&byte_array); // Fill 0s in front of it, then the value remains the same
     Scalar::from_bytes_wide(&wide)
 }
 
@@ -95,26 +87,23 @@ fn proof_of_update<CS: ConstraintSystem<Scalar>>(
     new_root: Scalar,
     new_path: &[Node],
 ) -> Result<Scalar, SynthesisError> {
-    // Proof of Update für den alten und neuen Knoten
-        // Proof of Update für den Knoten, für den zuvor ein Proof of Non-Membership durchgeführt wurde mit der Next-Pointer Aktualisierung
         let root_with_old_pointer = cs.alloc(|| "first update root with old pointer", || Ok(old_root))?;
         let root_with_new_pointer = cs.alloc(|| "first update root with new pointer", || Ok(new_root))?;
 
-        // Aktueller Hash für den alten und neuen Pfad
+        // update the root hash for old and new path
         let recalculated_root_with_old_pointer = recalculate_hash_as_scalar(&old_path);
         let recalculated_root_with_new_pointer = recalculate_hash_as_scalar(&new_path);
 
-        // Alloziere Variablen für die berechneten Wurzeln der alten und neuen Knoten
+        // Allocate variables for the calculated roots of the old and new nodes
         let allocated_recalculated_root_with_old_pointer = cs.alloc(|| "recalculated first update proof old root", || Ok(recalculated_root_with_old_pointer))?;
         let allocated_recalculated_root_with_new_pointer = cs.alloc(|| "recalculated first update proof new root", || Ok(recalculated_root_with_new_pointer))?;
         
         // Überprüfe, ob der resultierende Hash der Wurzel-Hash des alten Baums entspricht
         cs.enforce(|| "first update old root equality", |lc| lc + allocated_recalculated_root_with_old_pointer, |lc| lc + CS::one(), |lc| lc + root_with_old_pointer);
-        // Zum Thema |lc| lc + ... : In der Lambda-Funktion steht lc für die aktuelle lineare Kombination und wir fügen Variablen zu dieser Linearkombination hinzu, um insgesamt eine neue lineare Kombination zu erstellen, die dann als Argument für die enforce-Methode verwendet wird.
-        // Überprüfe, ob der resultierende Hash der Wurzel-Hash des neuen Baums entspricht
+        // lc stands for the current linear combination and we add variables to this linear combination to create a new linear combination altogether, which is then used as argument for the enforce method.
+        // Check that the resulting hash is the root hash of the new tree.
         cs.enforce(|| "first update new root equality", |lc| lc + allocated_recalculated_root_with_new_pointer, |lc| lc + CS::one(), |lc| lc + root_with_new_pointer);
 
-        // Schließe die Funktion erfolgreich ab
         Ok(recalculated_root_with_new_pointer)
 }
 
@@ -137,14 +126,6 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
     Ok(())
 }
 
-// TODO: zkSNARK muss für den Insert-Beweis...
-// ... 1. den Proof of Non-Membership für den Knoten an der zu erwartenden Stelle erstellen.
-// ... 2 den Proof of Update für den Knoten an der zu erwartenden Stelle erstellen, welcher aus folgenden Teilen besteht:
-// ... 2.1. den Proof of Membership für den unaktualisierten Next-Pointer des Knotens an der zu erwartenden Stelle erstellen.
-// ... 2.2. den Proof of Membership für den unaktualisierten Next-Pointer des Knotens an der zu erwartenden Stelle erstellen.
-// ... 3 den Proof of Update für den neuen Knoten, welcher aus folgenden Teilen besteht:
-// ... 3.1. den Proof of Membership für den unaktualisierten neuen Knoten an der zu erwartenden Stelle erstellen (mit aktualisiertem Pointer).
-// ... 3.2. den Proof of Membership für den aktualisierten neuen Knoten an der zu erwartenden Stelle erstellen (mit aktualisiertem Pointer).
 impl Circuit<Scalar> for InsertMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
 
@@ -155,7 +136,7 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
         }
 
 
-        // Proof of Update für den alten und neuen Knoten
+        // Proof of Update for old and new node
         let first_proof = proof_of_update(cs, self.first_merkle_proof.old_root, &self.first_merkle_proof.old_path, self.first_merkle_proof.updated_root, &self.first_merkle_proof.updated_path);
         let second_update = proof_of_update(cs, first_proof.unwrap(), &self.second_merkle_proof.old_path, self.second_merkle_proof.updated_root, &self.second_merkle_proof.updated_path);
         
@@ -169,7 +150,7 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
 
 impl Circuit<Scalar> for UpdateMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        // Proof of Update für den alten und neuen Knoten
+        // Proof of Update for the old and new node
         match proof_of_update(cs, self.old_root, &self.old_path, self.updated_root, &self.updated_path) {
             Ok(_) => Ok(()),
             Err(_) => return Err(SynthesisError::Unsatisfiable),
@@ -192,7 +173,7 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
             return Ok(())
         }
 
-        // vor den Berechnungen sicherstellen, dass die alte Wurzel die des ersten Beweises ist
+        // before the calculations make sure that the old root is that of the first proof
         let old_root = match &self.proofs[0] {
             ProofVariantCircuit::Update(update_proof_circuit) => update_proof_circuit.old_root,
             ProofVariantCircuit::Insert(insert_proof_circuit) => insert_proof_circuit.non_membership_root,
@@ -224,15 +205,13 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                     )?);
                 }
                 ProofVariantCircuit::Insert(insert_proof_circuit) => {
-                    // Hier müssen Sie eine proof_of_insert Funktion erstellen, die ähnlich wie proof_of_update funktioniert,
-                    // aber auch den Non-Membership-Beweis berücksichtigt.
-                     // Proof of Non-Membership
+                    // Proof of Non-Membership
                     match proof_of_non_membership(cs, insert_proof_circuit.non_membership_root, &insert_proof_circuit.non_membership_path) {
                         Ok(_) => (),
                         Err(_) => return Err(SynthesisError::AssignmentMissing),
                     }
 
-                    // Proof of Update für den alten und neuen Knoten
+                    // Proof of Update for the old and new node
                     let calculated_root_from_first_proof = proof_of_update(cs, insert_proof_circuit.first_merkle_proof.old_root, &insert_proof_circuit.first_merkle_proof.old_path, insert_proof_circuit.first_merkle_proof.updated_root, &insert_proof_circuit.first_merkle_proof.updated_path).expect("first proof of update in insert proof failed");
                     new_commitment =  Some(proof_of_update(cs, calculated_root_from_first_proof, &insert_proof_circuit.second_merkle_proof.old_path, insert_proof_circuit.second_merkle_proof.updated_root, &insert_proof_circuit.second_merkle_proof.updated_path).expect("second proof of update in insert proof failed"));
                 }
@@ -281,7 +260,7 @@ impl Circuit<Scalar> for HashChainEntryCircuit {
     }
 }
 
-// Die Funktion, um den Schaltkreis basierend auf dem gegebenen Merkle-Beweis zu erstellen
+// create the circuit based on the given Merkle proof
 impl InsertMerkleProofCircuit {
     pub fn create(proof: &(MerkleProof, UpdateProof, UpdateProof)) -> Result<InsertMerkleProofCircuit, &'static str> {
         // Unwrap proof values and handle possible errors
@@ -368,7 +347,7 @@ impl BatchMerkleProofCircuit {
            updated_path: updated_path.clone().unwrap().clone()
        };
 
-       // Erstelle die MerkleProofCircuit-Instanz
+       // Create the MerkleProofCircuit-Instance
        Ok(ProofVariantCircuit::Update(merkle_proof_circuit))
    }
 
@@ -422,14 +401,14 @@ impl BatchMerkleProofCircuit {
             second_merkle_proof: second_merkle_proof_circuit
       };
 
-      // Erstelle die MerkleProofCircuit-Instanz
+      // Create the MerkleProofCircuit-Instance
       Ok(ProofVariantCircuit::Insert(insert_proof_circuit))
   }
 }
 
 impl HashChainEntryCircuit {
     pub fn create(value: &String, hashchain: Vec<ChainEntry>) -> Result<HashChainEntryCircuit, &'static str> {
-        // hash the klartext and parse it to a scalar
+        // hash the clear text and parse it to scalar
         let hashed_value = sha256(&value);
         let parsed_value = hex_to_scalar(&hashed_value);
         let mut parsed_hashchain: Vec<Scalar> = vec![];

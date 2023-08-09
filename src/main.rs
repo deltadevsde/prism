@@ -27,7 +27,7 @@ use dotenv::dotenv;
 use std::sync::{Arc};
 
 
-use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, UpdateEntryJson, EpochJson}, zk_snark::{convert_proof_to_custom, HashChainEntryCircuit}};
+use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, UpdateEntryJson}, zk_snark::{convert_proof_to_custom, HashChainEntryCircuit}};
 use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 
 #[macro_use] extern crate log;
@@ -50,7 +50,7 @@ use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 ///
 #[post("/update-entry")]
 async fn update_entry(session: web::Data<Arc<Session>>, signature_with_key: web::Json<Value>,) -> impl Responder {
-    // Prüfen, ob JSON-Daten als UpdateEntryJson strukturiert werden können
+    // Check if JSON data can be structured as UpdateEntryJson
     let signature_with_key: UpdateEntryJson = match serde_json::from_value(signature_with_key.into_inner()) {
         Ok(entry_json) => entry_json,
         Err(_) => return HttpResponse::BadRequest().json("Could not parse JSON data. Wrong format."),
@@ -62,7 +62,7 @@ async fn update_entry(session: web::Data<Arc<Session>>, signature_with_key: web:
     let tree = session.create_tree();
 
     let result: Result<Vec<ChainEntry>, &str> = session.db.get_hashchain(&signature_with_key.id);
-    // wenn der eintrag bereits vorliegt, muss ein update durchgeführt werden, sonst insert
+    // if the entry already exists, an update must be performed, otherwise insert
     let update_proof = match result {
         // add a new key to an existing id 
         Ok(_) => true,
@@ -80,7 +80,7 @@ async fn update_entry(session: web::Data<Arc<Session>>, signature_with_key: web:
 
         let proofs = if update_proof {
             let new_index = tree.clone().find_node_index(&node).unwrap();
-            let (proof_of_update, _) = &tree.clone().generate_proof_of_update(new_index, node);
+            let (proof_of_update, _) = &tree.clone().generate_update_proof(new_index, node);
             let pre_processed_string = serde_json::to_string(proof_of_update).unwrap();
             format!(r#"{{"Update":{}}}"#, pre_processed_string)
 
@@ -282,7 +282,7 @@ pub fn get_epochs_and_proofs(con: web::Data<Arc<Session>>, epoch: &str) -> Resul
 /// or if the zkSNARK circuit creation or proof verification fails.
 #[post("/validate-proof")]
 async fn handle_validate_proof(con: web::Data<Arc<Session>>, req_body: String) -> impl Responder {
-    // proof id aus redis holen
+    // get proof id from redis
     let proof_id: String = match serde_json::from_str(&req_body) {
         Ok(proof_id) => proof_id,
         Err(_) => return HttpResponse::BadRequest().body("Invalid proof ID"),
@@ -299,13 +299,10 @@ async fn handle_validate_proof(con: web::Data<Arc<Session>>, req_body: String) -
 }
 
 // TODO: better documentation needed
-// This function validates an epoch by creating and verifying zkSNARK evidence for all
-// transactions in the epoch and verifying them.
-//
+// This function validates an epoch by creating and verifying zkSNARK evidence for all transactions in the epoch and verifying them.
 // req_body: A string containing the epoch number to be validated.
 //
-// Returns an HTTP response containing either a confirmation of successful
-// validation or an error.
+// Returns an HTTP response containing either a confirmation of successful validation or an error.
 #[post("/validate-epoch")]
 async fn handle_validate_epoch(con: web::Data<Arc<Session>>, req_body: String) -> impl Responder {
     debug!("Validating epoch {}", req_body);
@@ -330,7 +327,8 @@ async fn handle_validate_epoch(con: web::Data<Arc<Session>>, req_body: String) -
             return HttpResponse::BadRequest().body(err);
         },
     };
-    // Erstellen Sie das JSON-Objekt für die Antwort
+
+    // Create the JSON object for the response
     let response = json!({
         "epoch": epoch_number,
         "proof": convert_proof_to_custom(&proof)
@@ -343,11 +341,11 @@ async fn handle_validate_epoch(con: web::Data<Arc<Session>>, req_body: String) -
 async fn handle_validate_hashchain_proof(session: web::Data<Arc<Session>>, incoming_value: web::Json<Value>,) -> impl Responder {
     #[derive(Deserialize)]
     struct ValidateHashchainBody {
-        pub_key: String, // public key des anderen unternehmens
-        value: String, // Klartext
+        pub_key: String, // public key from other company
+        value: String, // clear text
     }  
 
-    // Prüfen, ob JSON-Daten als UpdateEntryJson strukturiert werden können
+    // Check if JSON data can be structured as UpdateEntryJson
     let incoming_value: ValidateHashchainBody = match serde_json::from_value(incoming_value.into_inner()) {
         Ok(incoming_value_json) => incoming_value_json,
         Err(_) => return HttpResponse::BadRequest().json("Could not parse JSON data. Wrong format."),
@@ -397,7 +395,6 @@ async fn handle_validate_hashchain_proof(session: web::Data<Arc<Session>>, incom
 }
 
 /// Returns the commitment (tree root) of the IndexedMerkleTree initialized from Redis data.
-/// This function is exposed as an HTTP GET request under the "/get-commitment" endpoint.
 ///
 #[get("/get-commitment")]
 async fn get_commitment(con: web::Data<Arc<Session>>) -> impl Responder {
@@ -407,7 +404,6 @@ async fn get_commitment(con: web::Data<Arc<Session>>) -> impl Responder {
 
 
 /// Returns the current state of the IndexedMerkleTree initialized from Redis data as a JSON object.
-/// This function is exposed as an HTTP GET request under the "/get-current-tree" endpoint.
 ///
 #[get("/get-current-tree")]
 async fn get_current_tree(con: web::Data<Arc<Session>>) -> impl Responder {
@@ -417,7 +413,7 @@ async fn get_current_tree(con: web::Data<Arc<Session>>) -> impl Responder {
 
 #[post("/get-epoch-operations")]
 async fn get_epoch_operations(con: web::Data<Arc<Session>>, req_body: String) -> impl Responder {
-    // versuchen proof id aus request body zu parsen
+    //  try to parse proof id from request body
     let epoch: String = match serde_json::from_str(&req_body) {
         Ok(epoch) => epoch,
         Err(_) => return HttpResponse::BadRequest().body("Invalid epoch"),
@@ -586,7 +582,6 @@ async fn sequencer_loop(session: &Arc<Session>, duration: u64) {
         session.db.initialize_derived_dict();
     }
 
-
     loop {
         // let mut db_guard = session.db.lock().unwrap();
         match session.finalize_epoch().await {
@@ -709,8 +704,6 @@ async fn main() -> std::io::Result<()> {
         namespace_id: NamespaceId::new_v0(&config.namespace_id).unwrap(),
     }), */
     let sequencer_session = Arc::clone(&session); 
-
-   
 
     spawn(async move {
         match args.command {
