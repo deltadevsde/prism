@@ -4,7 +4,7 @@ use rand::rngs::OsRng;
 use serde_json::Value;
 use crate::indexed_merkle_tree::{IndexedMerkleTree, InsertProof, MerkleProof, ProofVariant, UpdateProof};
 use crate::storage::ChainEntry;
-use crate::zk_snark::{hex_to_scalar, InsertMerkleProofCircuit, BatchMerkleProofCircuit};
+use crate::zk_snark::{hex_to_scalar, InsertMerkleProofCircuit, BatchMerkleProofCircuit, convert_proof_to_custom};
 use crate::Operation;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.

@@ -1,4 +1,10 @@
 use std;
+use actix_web::rt::spawn;
+use async_trait::async_trait;
+use celestia_rpc::{HeaderClient, BlobClient};
+use celestia_types::Blob;
+use celestia_types::nmt::Namespace;
+use jsonrpsee::ws_client::WsClient;
 use redis::{Commands, Connection};
 use serde::{Serialize, Deserialize};
 use crypto_hash::{Algorithm, hex_digest};
@@ -11,6 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::indexed_merkle_tree::{IndexedMerkleTree, Node, ProofVariant, sha256};
 use crate::utils::{is_not_revoked, parse_json_to_proof, validate_epoch};
+use crate::zk_snark::{Bls12Proof, convert_proof_to_custom};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum Operation {
@@ -27,6 +34,27 @@ impl Display for Operation {
         }
     }
 }
+
+// TODO: Add signature from sequencer for lc to verify
+#[derive(Serialize, Deserialize)]
+pub struct EpochJson {
+    pub height: u64,
+    pub prev_commitment: String,
+    pub current_commitment: String,
+    pub proof: Bls12Proof,
+}
+
+impl TryFrom<&Blob> for EpochJson {
+    type Error = ();
+
+    fn try_from(value: &Blob) -> Result<Self, Self::Error> {
+        match serde_json::from_str::<EpochJson>(String::from_utf8(value.data.clone()).unwrap().as_str()) {
+            Ok(epoch_json) => Ok(epoch_json),
+            Err(e) => Err(()),
+        }
+    }
+}
+
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ChainEntry {
@@ -65,6 +93,7 @@ pub struct UpdateEntryJson {
 
 pub struct Session {
     pub db: Arc<dyn Database>,
+    pub da: Arc<dyn DataAvailabilityLayer>,
 }
 
 pub struct RedisConnections {
@@ -74,6 +103,85 @@ pub struct RedisConnections {
     pub app_state: Mutex<Connection>, // app state (just epoch counter for now)
     pub merkle_proofs: Mutex<Connection>, // merkle proofs (in the form: epoch_{epochnumber}_{commitment})
     pub commitments: Mutex<Connection>, // epoch commitments
+}
+
+enum Message {
+    UpdateTarget(u64)
+}
+
+pub struct CelestiaConnection {
+    pub client: WsClient,
+    pub namespace_id: Namespace,
+    pub sync_target: Arc<Mutex<u64>>,
+}
+
+#[async_trait]
+pub trait DataAvailabilityLayer: Send + Sync {
+    async fn initialize_sync_target(&self) -> Result<u64, String>;
+    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String>;
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String>;
+    async fn start(&self) -> Result<(), String>;
+    // async fn register_newheight_callback(&self, callback: fn(u64));
+}
+
+#[async_trait]
+impl DataAvailabilityLayer for CelestiaConnection {
+    async fn initialize_sync_target(&self) -> Result<u64, String> {
+        match HeaderClient::header_network_head(&self.client).await {
+            Ok(extended_header) => Ok(extended_header.header.height.value()),
+            Err(err) => Err(format!("Could not get network head from DA layer: {}", err)), 
+        }
+    }
+
+    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String> {
+        debug!{"Getting epoch {} from DA layer", height};
+        match BlobClient::blob_get_all(&self.client, height, &[self.namespace_id]).await {
+            Ok(blobs) => {
+                let mut epochs = Vec::new();
+                for blob in blobs.iter() {
+                    match EpochJson::try_from(blob) {
+                        Ok(epoch_json) => epochs.push(epoch_json),
+                        Err(_) => debug!("Could not parse epoch json for blob at height {}", height),
+                    }
+                }
+                Ok(epochs)
+            },
+            Err(err) => Err(format!("Could not get height {} from DA layer: {}", height, err))
+        }
+    }
+
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String> {
+        debug!{"Posting epoch {} to DA layer", epoch.height};
+        // todo: unwraps
+        let data = serde_json::to_string(&epoch).unwrap();
+        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).unwrap();
+        debug!("blob: {}", serde_json::to_string(&blob).unwrap());
+        match BlobClient::blob_submit(&self.client, &[blob]).await {
+            Ok(height) => {
+                debug!("Submitted epoch {} to DA layer at height {}", epoch.height, height);
+                Ok(height)
+            },
+            // TODO implement retries
+            Err(err) => {
+                Err(format!("Could not submit epoch to DA layer: {}", err))
+            }
+        }
+    }
+
+    async fn start(&self) -> Result<(), String> {
+        let mut header_sub = HeaderClient::header_subscribe(&self.client).await.unwrap();
+        let sync_target = Arc::clone(&self.sync_target);
+        spawn(async move {
+            while let Some(extended_header) = header_sub.next().await {
+                let height = extended_header.unwrap().header.height.value();
+                let mut sync_target = sync_target.lock().unwrap();
+                if height > *sync_target {
+                    *sync_target = height;
+                }
+            }
+        });
+        Ok(())
+    }
 }
 
 pub trait Database: Send + Sync {
@@ -333,14 +441,12 @@ impl Session {
     /// 3. Waits for a specified duration before starting the next epoch.
     /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
     /// 5. Repeats steps 2-4 periodically.
-    pub fn finalize_epoch(&self) -> Result<Proof<Bls12>, String> {
+    pub async fn finalize_epoch(&self) -> Result<Proof<Bls12>, String> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
         };
 
-        // TODO(@distractedm1nd): dont call app_state set directly, abstract so we can swap out data layer
-        // set the new epoch and reset the epoch operation counter
         self.db.set_epoch(&epoch);
         self.db.reset_epoch_operation_counter();
 
@@ -363,9 +469,17 @@ impl Session {
             let empty_commitment = self.create_tree();
             empty_commitment.get_commitment()
         };
-        
-        validate_epoch(&prev_commitment, &current_commitment, &proofs)
-    
+
+        let proof = validate_epoch(&prev_commitment, &current_commitment, &proofs);
+        let epoch_json = EpochJson {
+            height: epoch,
+            prev_commitment: prev_commitment.clone(),
+            current_commitment: current_commitment.clone(),
+            // TODO: is this &thing.as_ref().unwrap() bad rust?
+            proof: convert_proof_to_custom(&proof.as_ref().unwrap()),
+        };
+        self.da.submit(&epoch_json).await;
+        proof
     }
 
     pub fn create_tree(&self) -> IndexedMerkleTree {

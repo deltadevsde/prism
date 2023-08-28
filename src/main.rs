@@ -5,12 +5,14 @@ mod utils;
 
 use actix_cors::Cors;
 use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App, HttpResponse, HttpServer, Responder};
+use celestia_rpc::client::new_websocket;
+use celestia_types::nmt::Namespace;
 use serde::{Serialize, Deserialize};
 use serde_json::{self, json, Value};
 use indexed_merkle_tree::{ProofVariant};
 use indexed_merkle_tree::{sha256};
-use storage::Session; 
-use std::{time::Duration};
+use storage::{Session, CelestiaConnection}; 
+use std::{time::Duration, sync::Mutex};
 use tokio::{time::sleep};
 use num::{BigInt, Num};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -390,14 +392,22 @@ async fn handle_get_epochs(con: web::Data<Arc<Session>>) -> impl Responder {
 
 #[get("/finalize-epoch")]
 async fn handle_finalize_epoch(con: web::Data<Arc<Session>>) -> impl Responder {
-    match con.finalize_epoch() {
+    match con.finalize_epoch().await {
         Ok(proof) => HttpResponse::Ok().body(json!(convert_proof_to_custom(&proof)).to_string()),
         Err(err) => HttpResponse::BadRequest().body(err)
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Default)]
+enum NodeType {
+    Sequencer,
+    #[default]
+    LightNode
+}
+
 #[derive(Debug, Default)]
 struct EnvConfig {
+    node_type: NodeType,
     key_path: String,
     cert_path: String,
     ip: String,
@@ -406,12 +416,17 @@ struct EnvConfig {
 
 
 fn load_config() -> EnvConfig {
+    let node_type: NodeType = match env::var("NODE_TYPE").unwrap_or("LightNode".to_string()).as_str() {
+        "Sequencer" => NodeType::Sequencer,
+        _ => NodeType::LightNode
+    };
     let key_path = env::var("KEY_PATH").unwrap_or("key.pem".to_string());
     let cert_path = env::var("CERT_PATH").unwrap_or("cert.pem".to_string());
     let ip = env::var("IP").unwrap_or("127.0.0.1".to_string());
     let port = env::var("PORT").unwrap_or("8080".to_string()).parse().unwrap_or(8080);
 
     EnvConfig {
+        node_type,
         key_path,
         cert_path,
         ip,
@@ -516,7 +531,7 @@ async fn sequencer_loop(session: &Arc<Session>) {
 
     loop {
         // let mut db_guard = session.db.lock().unwrap();
-        match session.finalize_epoch() {
+        match session.finalize_epoch().await {
             Ok(_) => {
                 //info!("sequencer_loop: finalized epoch {}", db_guard.get_epoch().unwrap());
             },
@@ -544,7 +559,12 @@ async fn main() -> std::io::Result<()> {
     let config = load_config();
 
     let session = Arc::new(Session { 
-        db: Arc::new(RedisConnections::new())
+        db: Arc::new(RedisConnections::new()),
+        da: Arc::new(CelestiaConnection{
+            client: new_websocket("ws://localhost:26658", None).await.unwrap(),
+            namespace_id: Namespace::new_v0("test".as_bytes()).unwrap(),
+            sync_target: Arc::new(Mutex::new(0)),
+        })
     });
     let sequencer_session = Arc::clone(&session); 
 

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 crypto-hash = "0.3.4"
+async-trait = "0.1.68"
 serde = { version = "1.0.151", features = ["derive"] }
 serde_json = "1.0.79"
 redis = "0.22.1"
@@ -20,6 +21,7 @@ ctrlc = "3.1.5"
 num = "0.4.0"
 bellman = "0.14.0"
 pairing = "0.23.0"
+jsonrpsee = { version = "0.18.2", features = ["ws-client"] }
 bls12_381 = "0.8.0"
 rand = "0.8.5"
 rand07 = { package = "rand", version = "0.7.0" }
@@ -31,4 +33,5 @@ lazy_static = "1.4"
 colored = "2.0.0"
 log = "0.4"
 pretty_env_logger = "0.4.0"
-da-client-rs = { git = "https://github.com/celestiaorg/da-client-rs" }
+celestia-rpc = { git = "https://github.com/eigerco/celestia-node-rs" }
+celestia-types = { git = "https://github.com/eigerco/celestia-node-rs" }
