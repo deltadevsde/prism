@@ -7,12 +7,15 @@ use actix_cors::Cors;
 use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App, HttpResponse, HttpServer, Responder};
 use celestia_rpc::client::new_websocket;
 use celestia_types::nmt::Namespace;
+use clap::{Parser, Subcommand};
+use config::{ConfigBuilder, builder::DefaultState, FileFormat, File};
 use serde::{Serialize, Deserialize};
 use serde_json::{self, json, Value};
 use indexed_merkle_tree::{ProofVariant};
 use indexed_merkle_tree::{sha256};
 use storage::{Session, CelestiaConnection}; 
-use std::{time::Duration, sync::Mutex};
+use core::panic;
+use std::{time::Duration, sync::Mutex, process::Command};
 use tokio::{time::sleep};
 use num::{BigInt, Num};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -398,42 +401,6 @@ async fn handle_finalize_epoch(con: web::Data<Arc<Session>>) -> impl Responder {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
-enum NodeType {
-    Sequencer,
-    #[default]
-    LightNode
-}
-
-#[derive(Debug, Default)]
-struct EnvConfig {
-    node_type: NodeType,
-    key_path: String,
-    cert_path: String,
-    ip: String,
-    port: u16,
-}
-
-
-fn load_config() -> EnvConfig {
-    let node_type: NodeType = match env::var("NODE_TYPE").unwrap_or("LightNode".to_string()).as_str() {
-        "Sequencer" => NodeType::Sequencer,
-        _ => NodeType::LightNode
-    };
-    let key_path = env::var("KEY_PATH").unwrap_or("key.pem".to_string());
-    let cert_path = env::var("CERT_PATH").unwrap_or("cert.pem".to_string());
-    let ip = env::var("IP").unwrap_or("127.0.0.1".to_string());
-    let port = env::var("PORT").unwrap_or("8080".to_string()).parse().unwrap_or(8080);
-
-    EnvConfig {
-        node_type,
-        key_path,
-        cert_path,
-        ip,
-        port,
-    }
-}
-
 
 /// Returns the merkle tree root of the given leaves
 /// 
@@ -521,7 +488,11 @@ async fn get_merkle_tree(req_body: String) -> impl Responder {
 }
  */
 
-async fn sequencer_loop(session: &Arc<Session>) {
+async fn lightclient_loop(session: &Arc<Session>) {
+    panic!("lightclient_loop: not implemented yet");
+}
+
+async fn sequencer_loop(session: &Arc<Session>, epoch_duration: u64) {
     println!("sequencer_loop: started");
     let derived_keys = session.db.get_derived_keys();
     if derived_keys.len() == 0 { // if the dict is empty, we need to initialize the dict and the input order
@@ -538,8 +509,93 @@ async fn sequencer_loop(session: &Arc<Session>) {
             Err(e) => error!("sequencer_loop: finalizing epoch: {}", e)
         }
         //drop(db_guard);
-        sleep(Duration::from_secs(60)).await;
+        sleep(Duration::from_secs(epoch_duration)).await;
     }
+}
+
+#[derive(Debug, Deserialize, Serialize, Default)]
+enum NodeType {
+    Sequencer,
+    #[default]
+    LightNode
+}
+
+#[derive(Parser, Clone, Debug, Deserialize)]
+#[command(author, version, about, long_about = None)]
+struct CommandLineArgs {
+    /// Log level
+    #[arg(short, long)]
+    log_level: Option<String>,
+
+    /// Celestia Client websocket URL
+    #[arg(short, long)]
+    celestia_client: Option<String>,
+
+    /// Celestia Namespace ID
+    #[arg(short, long)]
+    namespace_id: Option<String>,
+
+    /// Duration between epochs in seconds
+    #[arg(short, long)]
+    epoch_time: Option<u64>,
+
+    /// IP address
+    #[arg(short, long)]
+    ip: Option<String>,
+
+    /// Port number
+    #[arg(short, long)]
+    port: Option<u16>,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Clone, Debug, Subcommand, Deserialize)]
+enum Commands {
+    LightClient,
+    Sequencer,
+}
+
+
+#[derive(Debug, Deserialize)]
+struct Config {
+    ip: String,
+    port: u16,
+    log_level: String,
+    celestia_connection_string: String,
+    namespace_id: String,
+    epoch_time: u64,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            ip: "127.0.0.1".to_string(),
+            port: 8080,
+            log_level: "DEBUG".to_string(),
+            celestia_connection_string: "ws://localhost:26658".to_string(),
+            namespace_id: "0000000000de1005".to_string(),
+            epoch_time: 60,
+        }
+    }
+}
+
+fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
+    let settings = ConfigBuilder::<DefaultState>::default()
+        .add_source(File::from_str(include_str!("config.toml"), FileFormat::Toml))
+        .build()?;
+
+    println!("{}", settings.get_string("log_level").unwrap_or_default());
+
+    Ok(Config {
+        ip: args.ip.unwrap_or_default(),
+        port: args.port.unwrap_or_default(),
+        log_level: args.log_level.unwrap_or_default(),
+        celestia_connection_string: args.celestia_client.unwrap_or_default(),
+        namespace_id: args.namespace_id.unwrap_or_default(),
+        epoch_time: args.epoch_time.unwrap_or_default() as u64,
+    })
 }
 
 /// The main function that initializes and runs the Actix web server.
@@ -553,23 +609,33 @@ async fn sequencer_loop(session: &Arc<Session>) {
 /// 6. Runs the server and awaits its completion.
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let args = CommandLineArgs::parse();
+    let config = load_config(args.clone()).unwrap();
+
+    std::env::set_var("RUST_LOG", &config.log_level);
+
     pretty_env_logger::init();
     dotenv().ok();
-
-    let config = load_config();
 
     let session = Arc::new(Session { 
         db: Arc::new(RedisConnections::new()),
         da: Arc::new(CelestiaConnection{
-            client: new_websocket("ws://localhost:26658", None).await.unwrap(),
-            namespace_id: Namespace::new_v0("test".as_bytes()).unwrap(),
+            client: new_websocket(&config.celestia_connection_string, None).await.unwrap(),
+            namespace_id: Namespace::new_v0(&config.namespace_id.as_bytes()).unwrap(),
             sync_target: Arc::new(Mutex::new(0)),
         })
     });
     let sequencer_session = Arc::clone(&session); 
 
     spawn(async move {
-        sequencer_loop(&sequencer_session).await;
+        match args.command {
+            Commands::LightClient { } => {
+                lightclient_loop(&sequencer_session).await;
+            },
+            Commands::Sequencer { } => {
+                sequencer_loop(&sequencer_session, config.epoch_time).await;
+            },
+        }
     });
 
     let ctx = Data::new(session);
@@ -604,7 +670,7 @@ async fn main() -> std::io::Result<()> {
             .service(handle_get_epoch_operations)
     })
     /* .bind_openssl((config.ip, config.port), builder)? */
-    .bind((config.ip, config.port))?
+    .bind((config.ip.clone(), config.port))?
     .run()
     .await
 }
