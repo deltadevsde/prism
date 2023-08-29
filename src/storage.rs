@@ -117,15 +117,19 @@ pub struct CelestiaConnection {
 
 #[async_trait]
 pub trait DataAvailabilityLayer: Send + Sync {
+    fn sync_target(&self) -> Arc<Mutex<u64>>;
     async fn initialize_sync_target(&self) -> Result<u64, String>;
     async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String>;
     async fn submit(&self, epoch: &EpochJson) -> Result<u64, String>;
     async fn start(&self) -> Result<(), String>;
-    // async fn register_newheight_callback(&self, callback: fn(u64));
 }
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
+    fn sync_target(&self) -> Arc<Mutex<u64>> {
+        Arc::clone(&self.sync_target)
+    }   
+
     async fn initialize_sync_target(&self) -> Result<u64, String> {
         match HeaderClient::header_network_head(&self.client).await {
             Ok(extended_header) => Ok(extended_header.header.height.value()),
@@ -176,7 +180,9 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 let height = extended_header.unwrap().header.height.value();
                 let mut sync_target = sync_target.lock().unwrap();
                 if height > *sync_target {
-                    *sync_target = height;
+                    debug!("Updating sync target to {}", height);
+                    // todo: I'm assuming this is not a very rustic way of doing things. Maybe we should be sharing this value via mpsc or something?
+                    *sync_target= height;
                 }
             }
         });

@@ -16,7 +16,7 @@ use serde::{Serialize, Deserialize};
 use serde_json::{self, json, Value};
 use indexed_merkle_tree::{ProofVariant};
 use indexed_merkle_tree::{sha256};
-use storage::{Session, CelestiaConnection}; 
+use storage::{Session, CelestiaConnection, DataAvailabilityLayer}; 
 use core::panic;
 use std::{time::Duration, sync::Mutex, process::Command};
 use tokio::{time::sleep};
@@ -572,7 +572,29 @@ async fn get_merkle_tree(req_body: String) -> impl Responder {
  */
 
 async fn lightclient_loop(session: &Arc<Session>) {
-    panic!("lightclient_loop: not implemented yet");
+    info!("lightclient_loop: started");
+    // todo: persist current_position in datastore
+    // also: have initial starting position be configurable
+    let mut current_position  = 0;
+
+    loop {
+        // target is updated when a new header is received
+        let target = session.da.sync_target().lock().unwrap().clone();
+
+        for i in current_position..target {
+            trace!("processing height: {}", i);
+            match session.da.get(i).await {
+                Ok(epoch_json) => {
+                    // TODO: Verify sequencer signatures,
+                    // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
+                    // Verify zk proofs,
+                    info!("light client: got epochs at height {}", i);
+                },
+                Err(e) => debug!("light client: getting epoch: {}", e)
+            };
+        }
+        current_position = target; // Update the current position to the latest target
+    }
 }
 
 async fn sequencer_loop(session: &Arc<Session>, duration: u64) {
@@ -691,18 +713,19 @@ async fn main() -> std::io::Result<()> {
     pretty_env_logger::init();
     dotenv().ok();
 
+    let da = Arc::new(CelestiaConnection{
+        client: new_websocket(&config.celestia_connection_string, None).await.unwrap(),
+        namespace_id: Namespace::new_v0(&config.namespace_id.as_bytes()).unwrap(),
+        sync_target: Arc::new(Mutex::new(0)),
+    });
+
+    // start listening for new headers to update sync target
+    da.start().await.unwrap();
+
     let session = Arc::new(Session { 
         db: Arc::new(RedisConnections::new()),
-        da: Arc::new(CelestiaConnection{
-            client: new_websocket(&config.celestia_connection_string, None).await.unwrap(),
-            namespace_id: Namespace::new_v0(&config.namespace_id.as_bytes()).unwrap(),
-            sync_target: Arc::new(Mutex::new(0)),
-        })
+        da
     });
-    /* da: Arc::new(CelestiaConnection{
-        client: CelestiaClient::new_client(&config.celestia_client, None).await,
-        namespace_id: NamespaceId::new_v0(&config.namespace_id).unwrap(),
-    }), */
     let sequencer_session = Arc::clone(&session); 
 
     spawn(async move {
