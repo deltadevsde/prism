@@ -7,14 +7,14 @@ use crate::indexed_merkle_tree::{Node};
 use crate::indexed_merkle_tree::{sha256};
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct CustomProof {
+pub struct Bls12Proof {
     a: String,
     b: String,
     c: String,
 }
 
-pub fn convert_proof_to_custom(proof: &Proof<Bls12>) -> CustomProof {
-    CustomProof {
+pub fn convert_proof_to_custom(proof: &Proof<Bls12>) -> Bls12Proof {
+    Bls12Proof {
         a: proof.a.to_string(),
         b: proof.b.to_string(),
         c: proof.c.to_string(),
