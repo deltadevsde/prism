@@ -35,7 +35,7 @@ impl Display for Operation {
     }
 }
 
-// TODO: Add signature from sequencer for lc to verify
+// TODO: Add signature from sequencer for lc to verify (#2)
 #[derive(Serialize, Deserialize)]
 pub struct EpochJson {
     pub height: u64,
@@ -152,7 +152,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
 
     async fn submit(&self, epoch: &EpochJson) -> Result<u64, String> {
         debug!{"Posting epoch {} to DA layer", epoch.height};
-        // todo: unwraps
+        // todo: unwraps (#11)
         let data = serde_json::to_string(&epoch).unwrap();
         let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).unwrap();
         debug!("blob: {}", serde_json::to_string(&blob).unwrap());
@@ -161,7 +161,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 debug!("Submitted epoch {} to DA layer at height {}", epoch.height, height);
                 Ok(height)
             },
-            // TODO implement retries
+            // TODO implement retries (#10)
             Err(err) => {
                 Err(format!("Could not submit epoch to DA layer: {}", err))
             }
@@ -470,20 +470,23 @@ impl Session {
             empty_commitment.get_commitment()
         };
 
-        let proof = validate_epoch(&prev_commitment, &current_commitment, &proofs);
+        let proof = match validate_epoch(&prev_commitment, &current_commitment, &proofs) {
+            Ok(proof) => proof,
+            Err(_) => return Err("Epoch validation failed".to_string()),
+        };
         let epoch_json = EpochJson {
             height: epoch,
             prev_commitment: prev_commitment.clone(),
             current_commitment: current_commitment.clone(),
-            // TODO: is this &thing.as_ref().unwrap() bad rust?
-            proof: convert_proof_to_custom(&proof.as_ref().unwrap()),
+            proof: convert_proof_to_custom(&proof),
         };
+        // TODO: retries (#10)
         self.da.submit(&epoch_json).await;
-        proof
+        Ok(proof)
     }
 
     pub fn create_tree(&self) -> IndexedMerkleTree {
-        // TODO: better error handling
+        // TODO: better error handling (#11)
         // Retrieve the keys from input order and sort them. 
         let ordered_derived_dict_keys: Vec<String> = self.db.get_derived_dict_keys_in_order().unwrap_or(vec![]);
         let mut sorted_keys = ordered_derived_dict_keys.clone();
@@ -681,7 +684,7 @@ impl Session {
         let received_public_key = &signature_with_key.public_key; // new public key
         let received_signed_message =  &signature_with_key.signed_message; 
 
-        // TODO: better error handling
+        // TODO: better error handling (#11)
         let received_public_key_bytes = general_purpose::STANDARD.decode(&received_public_key).expect("Error while decoding public key");
         let signed_message_bytes = general_purpose::STANDARD.decode(&received_signed_message).expect("Error while decoding signed message");
 
