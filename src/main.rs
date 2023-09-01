@@ -3,14 +3,14 @@ pub mod zk_snark;
 pub mod storage;
 mod utils;
 
+use actix_cors::Cors;
+use bellman::groth16;
+use bls12_381::Bls12;
 use celestia_rpc::client::new_websocket;
 use celestia_types::nmt::Namespace;
 use clap::{Parser, Subcommand};
-use actix_cors::Cors;
 use actix_web::{web::{self, Data}, get, rt::{spawn}, post, App as ActixApp, HttpResponse, HttpServer, Responder};
 use config::{ConfigBuilder, builder::DefaultState, FileFormat, File};
-use bellman::groth16;
-use bls12_381::Bls12;
 use rand::rngs::OsRng;
 use serde::{Serialize, Deserialize};
 use serde_json::{self, json, Value};
@@ -21,13 +21,12 @@ use core::panic;
 use std::{time::Duration, sync::Mutex, process::Command};
 use tokio::{time::sleep};
 use num::{BigInt, Num};
-use openssl::{ssl::{SslAcceptor, SslFiletype, SslMethod}, sign};
+use openssl::{ssl::{SslAcceptor, SslFiletype, SslMethod}, conf};
 use std::env;
 use dotenv::dotenv;
 use std::sync::{Arc};
 
-
-use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, UpdateEntryJson}, zk_snark::{convert_proof_to_custom, HashChainEntryCircuit}};
+use crate::{storage::{RedisConnections, Operation, ChainEntry, Entry, DerivedEntry, UpdateEntryJson}, zk_snark::{serialize_proof, deserialize_custom_to_verifying_key, deserialize_proof, HashChainEntryCircuit}, utils::validate_epoch_from_proof_variants};
 use crate::utils::{is_not_revoked, validate_epoch, validate_proof};
 
 #[macro_use] extern crate log;
@@ -321,7 +320,7 @@ async fn handle_validate_epoch(con: web::Data<Arc<Session>>, req_body: String) -
 
     debug!("validate-epoch: found {:?} proofs in epoch {}", proofs.len(), epoch);
 
-    let proof = match validate_epoch(&previous_commitment, &current_commitment, &proofs) {
+    let (proof, verifying_key) = match validate_epoch_from_proof_variants(&previous_commitment, &current_commitment, &proofs) {
         Ok(proof) => proof,
         Err(err) => {
             return HttpResponse::BadRequest().body(err);
@@ -331,7 +330,7 @@ async fn handle_validate_epoch(con: web::Data<Arc<Session>>, req_body: String) -
     // Create the JSON object for the response
     let response = json!({
         "epoch": epoch_number,
-        "proof": convert_proof_to_custom(&proof)
+        "proof": serialize_proof(&proof)
     });
 
     HttpResponse::Ok().json(response)
@@ -385,7 +384,7 @@ async fn handle_validate_hashchain_proof(session: web::Data<Arc<Session>>, incom
             println!("Verified with: {:?}", public_param);
             return HttpResponse::Ok().json({
                 json!({
-                    "proof": convert_proof_to_custom(&proof),
+                    "proof": serialize_proof(&proof),
                     "public_param": sha256(&incoming_value.value),
                 })
             })
@@ -479,7 +478,7 @@ async fn get_epochs(con: web::Data<Arc<Session>>) -> impl Responder {
 #[get("/finalize-epoch")]
 async fn handle_finalize_epoch(con: web::Data<Arc<Session>>) -> impl Responder {
     match con.finalize_epoch().await {
-        Ok(proof) => HttpResponse::Ok().body(json!(convert_proof_to_custom(&proof)).to_string()),
+        Ok(proof) => HttpResponse::Ok().body(json!(serialize_proof(&proof)).to_string()),
         Err(err) => HttpResponse::BadRequest().body(err)
     }
 }
@@ -579,16 +578,27 @@ async fn lightclient_loop(session: &Arc<Session>) {
 
     loop {
         // target is updated when a new header is received
-        let target = session.da.sync_target().lock().unwrap().clone();
-
+        let target = session.da.get_message().await.unwrap();
         for i in current_position..target {
             trace!("processing height: {}", i);
-            match session.da.get(i).await {
-                Ok(epoch_json) => {
+            match session.da.get(i + 1).await {
+                Ok(epoch_json_vec) => {
                     // TODO: Verify sequencer signatures,
                     // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
                     // Verify zk proofs,
-                    info!("light client: got epochs at height {}", i);
+                    for epoch_json in epoch_json_vec {
+                        let prev_commitment = epoch_json.prev_commitment;
+                        let current_commitment = epoch_json.current_commitment;
+                        let proof = deserialize_proof(&epoch_json.proof).unwrap();
+                        let verifying_key = deserialize_custom_to_verifying_key(&epoch_json.verifying_key).unwrap();
+
+                        match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
+                            Ok(_) => info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2),
+                            Err(err) => panic!("Failed to validate epoch: {:?}", err),
+                        }
+                    }
+
+                    info!("light client: got epochs at height {}", i + 1);
                 },
                 Err(e) => debug!("light client: getting epoch: {}", e)
             };
@@ -671,7 +681,7 @@ impl Default for Config {
             port: 8080,
             log_level: "DEBUG".to_string(),
             celestia_connection_string: "ws://localhost:26658".to_string(),
-            namespace_id: "0000000000de1005".to_string(),
+            namespace_id: "00000000000000de1008".to_string(),
             epoch_time: 60,
         }
     }
@@ -684,13 +694,16 @@ fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
 
     println!("{}", settings.get_string("log_level").unwrap_or_default());
 
+    let default_config = Config::default();
+    
+
     Ok(Config {
-        ip: args.ip.unwrap_or_default(),
-        port: args.port.unwrap_or_default(),
-        log_level: args.log_level.unwrap_or_default(),
-        celestia_connection_string: args.celestia_client.unwrap_or_default(),
-        namespace_id: args.namespace_id.unwrap_or_default(),
-        epoch_time: args.epoch_time.unwrap_or_default() as u64,
+        ip: args.ip.unwrap_or(default_config.ip),
+        port: args.port.unwrap_or(default_config.port),
+        log_level: args.log_level.unwrap_or(default_config.log_level),
+        celestia_connection_string: args.celestia_client.unwrap_or(default_config.celestia_connection_string),
+        namespace_id: args.namespace_id.unwrap_or(default_config.namespace_id),
+        epoch_time: args.epoch_time.map(|e| e as u64).unwrap_or(default_config.epoch_time),
     })
 }
 
@@ -708,16 +721,16 @@ async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
     let config = load_config(args.clone()).unwrap();
 
+    println!("{:?}", config);    
+
     std::env::set_var("RUST_LOG", &config.log_level);
 
     pretty_env_logger::init();
     dotenv().ok();
 
-    let da = Arc::new(CelestiaConnection{
-        client: new_websocket(&config.celestia_connection_string, None).await.unwrap(),
-        namespace_id: Namespace::new_v0(&config.namespace_id.as_bytes()).unwrap(),
-        sync_target: Arc::new(Mutex::new(0)),
-    });
+    println!("Starting server at {}", &config.celestia_connection_string);
+
+    let da = Arc::new(CelestiaConnection::new(&config.celestia_connection_string, Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.zr_k6Vy0RXYmBK38dToPrgZn7lk8MXE-ywR2nu9dtpI"), &config.namespace_id).await);
 
     // start listening for new headers to update sync target
     da.start().await.unwrap();

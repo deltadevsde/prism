@@ -1,6 +1,7 @@
 use std;
 use actix_web::rt::spawn;
 use async_trait::async_trait;
+use celestia_rpc::client::new_websocket;
 use celestia_rpc::{HeaderClient, BlobClient};
 use celestia_types::Blob;
 use celestia_types::nmt::Namespace;
@@ -11,13 +12,16 @@ use crypto_hash::{Algorithm, hex_digest};
 use std::fmt::Display;
 use ed25519_dalek::{PublicKey, Signature, Verifier};
 use base64::{Engine as _, engine::general_purpose};
-use bellman::groth16::Proof;
+use bellman::groth16::{Proof, PreparedVerifyingKey};
 use bls12_381::Bls12;
 use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc;
+use std::thread;
+
 
 use crate::indexed_merkle_tree::{IndexedMerkleTree, Node, ProofVariant, sha256};
-use crate::utils::{is_not_revoked, parse_json_to_proof, validate_epoch};
-use crate::zk_snark::{Bls12Proof, convert_proof_to_custom};
+use crate::utils::{is_not_revoked, parse_json_to_proof, validate_epoch, validate_epoch_from_proof_variants};
+use crate::zk_snark::{Bls12Proof, serialize_proof, deserialize_proof, VerifyingKey, serialize_verifying_key_to_custom, deserialize_custom_to_verifying_key};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum Operation {
@@ -42,6 +46,7 @@ pub struct EpochJson {
     pub prev_commitment: String,
     pub current_commitment: String,
     pub proof: Bls12Proof,
+    pub verifying_key: VerifyingKey,
 }
 
 impl TryFrom<&Blob> for EpochJson {
@@ -112,12 +117,27 @@ enum Message {
 pub struct CelestiaConnection {
     pub client: WsClient,
     pub namespace_id: Namespace,
-    pub sync_target: Arc<Mutex<u64>>,
+    tx: Arc<mpsc::Sender<Message>>,
+    rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
+}
+
+impl CelestiaConnection {
+    pub async fn new(connection_string: &String, auth_token: Option<&str>, namespace_hex: &String) -> CelestiaConnection {
+        let (tx, rx) = mpsc::channel(5);
+
+        CelestiaConnection {
+            client: new_websocket(&connection_string, auth_token).await.unwrap(),
+            namespace_id: Namespace::new_v0(&hex::decode(namespace_hex).unwrap()).unwrap(),
+            tx: Arc::new(tx),
+            rx: Arc::new(tokio::sync::Mutex::new(rx)),
+        }
+    }
+    
 }
 
 #[async_trait]
 pub trait DataAvailabilityLayer: Send + Sync {
-    fn sync_target(&self) -> Arc<Mutex<u64>>;
+    async fn get_message(&self) -> Result<u64, String>;
     async fn initialize_sync_target(&self) -> Result<u64, String>;
     async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String>;
     async fn submit(&self, epoch: &EpochJson) -> Result<u64, String>;
@@ -126,9 +146,12 @@ pub trait DataAvailabilityLayer: Send + Sync {
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
-    fn sync_target(&self) -> Arc<Mutex<u64>> {
-        Arc::clone(&self.sync_target)
-    }   
+    async fn get_message(&self) -> Result<u64, String> {
+        match self.rx.lock().await.recv().await {
+            Some(Message::UpdateTarget(height)) => Ok(height),
+            None => Err(format!("Could not get message from channel: FUCK")),
+        }
+    }
 
     async fn initialize_sync_target(&self) -> Result<u64, String> {
         match HeaderClient::header_network_head(&self.client).await {
@@ -174,15 +197,18 @@ impl DataAvailabilityLayer for CelestiaConnection {
 
     async fn start(&self) -> Result<(), String> {
         let mut header_sub = HeaderClient::header_subscribe(&self.client).await.unwrap();
-        let sync_target = Arc::clone(&self.sync_target);
+
+        let tx1 = self.tx.clone();
         spawn(async move {
             while let Some(extended_header) = header_sub.next().await {
                 let height = extended_header.unwrap().header.height.value();
-                let mut sync_target = sync_target.lock().unwrap();
-                if height > *sync_target {
-                    debug!("Updating sync target to {}", height);
-                    // todo: I'm assuming this is not a very rustic way of doing things. Maybe we should be sharing this value via mpsc or something?
-                    *sync_target= height;
+                match tx1.send(Message::UpdateTarget(height)).await {
+                    Ok(_) => {
+                        debug!("Sent message to channel. Height: {}", height);
+                    },
+                    Err(_) => {
+                        debug!("Could not send message to channel");
+                    }
                 }
             }
         });
@@ -476,7 +502,7 @@ impl Session {
             empty_commitment.get_commitment()
         };
 
-        let proof = match validate_epoch(&prev_commitment, &current_commitment, &proofs) {
+        let (proof, verifying_key) = match validate_epoch_from_proof_variants(&prev_commitment, &current_commitment, &proofs) {
             Ok(proof) => proof,
             Err(_) => return Err("Epoch validation failed".to_string()),
         };
@@ -484,7 +510,8 @@ impl Session {
             height: epoch,
             prev_commitment: prev_commitment.clone(),
             current_commitment: current_commitment.clone(),
-            proof: convert_proof_to_custom(&proof),
+            proof: serialize_proof(&proof),
+            verifying_key: serialize_verifying_key_to_custom(&verifying_key),
         };
         // TODO: retries (#10)
         self.da.submit(&epoch_json).await;

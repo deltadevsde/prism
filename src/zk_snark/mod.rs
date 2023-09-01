@@ -1,26 +1,110 @@
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
-use bls12_381::{Scalar, Bls12};
+use bls12_381::{Scalar, Bls12, G1Affine, G2Affine};
 use bellman::groth16::{Proof};
 use serde::{Serialize, Deserialize};
 use crate::indexed_merkle_tree::{MerkleProof, UpdateProof, ProofVariant};
 use crate::indexed_merkle_tree::{Node};
 use crate::indexed_merkle_tree::{sha256};
 use crate::storage::ChainEntry;
+use base64;
+
+fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], &'static str> {
+    let mut array = [0u8; 96];
+    if vec.len() != 96 {
+        return Err("Length mismatch");
+    }
+    array.copy_from_slice(&vec);
+    Ok(array)
+}
+
+fn vec_to_192_array(vec: Vec<u8>) -> Result<[u8; 192], &'static str> {
+    let mut array = [0u8; 192];
+    if vec.len() != 192 {
+        return Err("Length mismatch");
+    }
+    array.copy_from_slice(&vec);
+    Ok(array)
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Bls12Proof {
-    a: String,
-    b: String,
-    c: String,
+    pub a: String,
+    pub b: String,
+    pub c: String,
 }
 
-pub fn convert_proof_to_custom(proof: &Proof<Bls12>) -> Bls12Proof {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct VerifyingKey {
+    pub alpha_g1: String,
+    pub beta_g1: String,
+    pub beta_g2: String,
+    pub delta_g1: String,
+    pub delta_g2: String,
+    pub gamma_g2: String,
+    pub ic: String
+}
+
+pub fn serialize_proof(proof: &Proof<Bls12>) -> Bls12Proof {
     Bls12Proof {
-        a: proof.a.to_string(),
-        b: proof.b.to_string(),
-        c: proof.c.to_string(),
+        a: base64::encode(&proof.a.to_uncompressed().as_ref()),
+        b: base64::encode(&proof.b.to_uncompressed().as_ref()),
+        c: base64::encode(&proof.c.to_uncompressed().as_ref()),
     }
 }
+
+pub fn deserialize_proof(proof: &Bls12Proof) -> Result<Proof<Bls12>, &'static str> {
+    let a = G1Affine::from_uncompressed(&vec_to_96_array(base64::decode(&proof.a).unwrap())?).unwrap();
+    let b = G2Affine::from_uncompressed(&vec_to_192_array(base64::decode(&proof.b).unwrap())?).unwrap();
+    let c = G1Affine::from_uncompressed(&vec_to_96_array(base64::decode(&proof.c).unwrap())?).unwrap();
+
+    Ok(Proof {
+        a,
+        b,
+        c,
+    })
+}
+
+pub fn serialize_verifying_key_to_custom(verifying_key: &bellman::groth16::VerifyingKey<Bls12>) -> VerifyingKey {
+    VerifyingKey {
+        alpha_g1: base64::encode(&verifying_key.alpha_g1.to_uncompressed().as_ref()),
+        beta_g1: base64::encode(&verifying_key.beta_g1.to_uncompressed().as_ref()),
+        beta_g2: base64::encode(&verifying_key.beta_g2.to_uncompressed().as_ref()),
+        delta_g1: base64::encode(&verifying_key.delta_g1.to_uncompressed().as_ref()),
+        delta_g2: base64::encode(&verifying_key.delta_g2.to_uncompressed().as_ref()),
+        gamma_g2: base64::encode(&verifying_key.gamma_g2.to_uncompressed().as_ref()),
+        ic: verifying_key.ic.iter().map(|x| base64::encode(&x.to_uncompressed().as_ref())).collect::<Vec<String>>().join(","),
+    }
+}
+
+pub fn deserialize_custom_to_verifying_key(custom_vk: &VerifyingKey) -> Result<bellman::groth16::VerifyingKey<Bls12>, &'static str> {
+    let alpha_g1 = G1Affine::from_uncompressed(&vec_to_96_array(base64::decode(&custom_vk.alpha_g1).unwrap())?).unwrap();
+    let beta_g1 = G1Affine::from_uncompressed(&vec_to_96_array(base64::decode(&custom_vk.beta_g1).unwrap())?).unwrap();
+    let beta_g2 = G2Affine::from_uncompressed(&vec_to_192_array(base64::decode(&custom_vk.beta_g2).unwrap())?).unwrap();
+    let delta_g1 = G1Affine::from_uncompressed(&vec_to_96_array(base64::decode(&custom_vk.delta_g1).unwrap())?).unwrap();
+    let delta_g2 = G2Affine::from_uncompressed(&vec_to_192_array(base64::decode(&custom_vk.delta_g2).unwrap())?).unwrap();
+    let gamma_g2 = G2Affine::from_uncompressed(&vec_to_192_array(base64::decode(&custom_vk.gamma_g2).unwrap())?).unwrap();
+    let ic = custom_vk.ic.split(",")
+    .map(|s| {
+        let decoded = base64::decode(s).unwrap();
+        let array = vec_to_96_array(decoded).unwrap();
+        let ct_option = G1Affine::from_uncompressed(&array).unwrap();
+        ct_option
+    })
+    .collect();
+
+
+
+    Ok(bellman::groth16::VerifyingKey {
+        alpha_g1,
+        beta_g1, 
+        beta_g2,
+        gamma_g2,
+        delta_g1,
+        delta_g2,
+        ic,
+    })
+}
+
 
 
 #[derive(Clone)]

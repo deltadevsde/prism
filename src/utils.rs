@@ -1,10 +1,10 @@
-use bellman::groth16;
+use bellman::groth16::{self, PreparedVerifyingKey, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use rand::rngs::OsRng;
 use serde_json::Value;
 use crate::indexed_merkle_tree::{IndexedMerkleTree, InsertProof, MerkleProof, ProofVariant, UpdateProof};
 use crate::storage::ChainEntry;
-use crate::zk_snark::{hex_to_scalar, InsertMerkleProofCircuit, BatchMerkleProofCircuit, convert_proof_to_custom};
+use crate::zk_snark::{hex_to_scalar, InsertMerkleProofCircuit, BatchMerkleProofCircuit, VerifyingKey as zkVerifyingKey};
 use crate::Operation;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -90,8 +90,8 @@ pub fn validate_proof(proof_value: String) -> Result<(), &'static str> {
     }
 }
 
-
-pub fn validate_epoch(previous_commitment: &String, current_commitment: &String, proofs: &Vec<ProofVariant>) -> Result <groth16::Proof<Bls12>, String> {
+//TODO: better naming
+pub fn validate_epoch_from_proof_variants(previous_commitment: &String, current_commitment: &String, proofs: &Vec<ProofVariant>) -> Result <(groth16::Proof<Bls12>, VerifyingKey<Bls12>), String> {
     let circuit = match BatchMerkleProofCircuit::create(previous_commitment, current_commitment, proofs.clone()) {
         Ok(circuit) => circuit,
         Err(e) => {
@@ -126,6 +126,27 @@ pub fn validate_epoch(previous_commitment: &String, current_commitment: &String,
     ).unwrap();
 
     debug!("{}", "validate_epoch: zkSNARK with groth16 random parameters was successfully verified!");
-    Ok(proof)
+    Ok((proof, params.vk))
 }
 
+
+pub fn validate_epoch(previous_commitment: &String, current_commitment: &String, proof: groth16::Proof<Bls12>, verifying_key: VerifyingKey<Bls12>) -> Result <groth16::Proof<Bls12>, String> {
+    debug!("validate_epoch: preparing verifying key for zkSNARK");
+    let pvk = groth16::prepare_verifying_key(&verifying_key);
+
+    // println!("{}", "Extracting public parameters for zkSNARK...".yellow());
+    // let public_parameters = extract_public_parameters(&parsed_proofs);
+
+    debug!("validate_epoch: verifying zkSNARK proof...");
+    groth16::verify_proof(
+        &pvk,
+        &proof,
+        &[
+            hex_to_scalar(&previous_commitment.as_str()),
+            hex_to_scalar(&current_commitment.as_str())
+        ],
+    ).unwrap();
+
+    debug!("{}", "validate_epoch: zkSNARK with groth16 random parameters was successfully verified!");
+    Ok(proof)
+}
