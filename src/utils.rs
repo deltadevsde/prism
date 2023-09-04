@@ -36,7 +36,7 @@ pub fn parse_json_to_proof(json_str: &str) -> Result<ProofVariant, Box<dyn std::
 
 
 pub fn validate_snark(non_membership_proof: MerkleProof, first_proof: UpdateProof, second_proof: UpdateProof) -> Result<(), &'static str> {
-    let circuit = match InsertMerkleProofCircuit::create_from_update_proof(&(non_membership_proof.clone(), first_proof.clone(), second_proof.clone())) {
+    let circuit = match InsertMerkleProofCircuit::create(&(non_membership_proof.clone(), first_proof.clone(), second_proof.clone())) {
         Ok(circuit) => circuit,
         Err(e) => {
             // error!("Error creating circuit: {}", e);

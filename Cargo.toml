@@ -3,6 +3,10 @@ name = "indexed_merkle_tree"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+key_transparency = []
+
 [dependencies]
 crypto-hash = "0.3.4"
 async-trait = "0.1.68"

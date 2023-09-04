@@ -81,19 +81,19 @@ pub struct DerivedEntry {
 pub struct IncomingEntry {
     pub id: String,
     pub operation: Operation,
-    pub public_key: String,
+    pub value: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct UpdateEntryJson {
     pub id: String,
     pub signed_message: String,
-    pub public_key: String,
+    pub value: String,
 }
 
 pub struct Session {
     pub db: Arc<dyn Database>,
-    pub da: Arc<dyn DataAvailabilityLayer>,
+    pub da: Arc<dyn DataAvailabilityLayer>
 }
 
 pub struct RedisConnections {
@@ -293,7 +293,7 @@ impl Database for RedisConnections {
             let a_parts: Vec<&str> = a.split('_').collect();
             let b_parts: Vec<&str> = b.split('_').collect();
 
-            // zweite Zahl nutzen, da: epoch_1_1, epoch_1_2, epoch_1_3 usw. dann ist die zweite Zahl die Nummer innerhalb der Epoche
+            // use second number, for the format: epoch_1_1, epoch_1_2, epoch_1_3 etc. the second number is the number within the epoch
             let a_number: u64 = a_parts[2].parse().unwrap_or(0);
             let b_number: u64 = b_parts[2].parse().unwrap_or(0);
 
@@ -540,10 +540,10 @@ impl Session {
                 .iter()
                 .enumerate() // use index 
                 .find(|(_, k)| {
-                    *k == &label.clone().unwrap() // ohne dereferenzierung wird ein &&String mit &String verglichen
+                    *k == &label.clone().unwrap() // without dereferencing we compare  &&string with &string
                 })
                 .unwrap()
-                .0 // enumerate gibt tupel zurück, also index zurückgeben
+                .0 
         });
     
         // Add empty nodes to ensure the total number of nodes is a power of two.
@@ -551,7 +551,7 @@ impl Session {
             nodes.push(Node::initialize_leaf(false, true, Node::EMPTY_HASH.to_string(), Node::EMPTY_HASH.to_string(), Node::TAIL.to_string()));
         }
     
-        // baum erstellen und dabei alle nodes überprüfen, ob sie linkes oder rechtes kind sind
+        // create tree, setting left / right child property for each node
         let tree = IndexedMerkleTree::new(nodes);
         tree
     }
@@ -577,8 +577,9 @@ impl Session {
                 // hashchain already exists
                 let mut current_chain = value.clone();
 
-                let incoming_entry = match self.verify_signature(&signature) {
-                    Ok(public_key) => public_key,
+                // check with given key if the signature is valid
+                let incoming_entry = match self.verify_signature_wrapper(&signature) {
+                    Ok(entry) => entry,
                     Err(_) => {
                         println!("Signature is invalid");
                         return false;
@@ -586,10 +587,10 @@ impl Session {
                 };
                 
                 let new_chain_entry = ChainEntry {
-                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", &incoming_entry.operation, &incoming_entry.public_key, &current_chain.last().unwrap().hash).as_bytes()),
+                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", &incoming_entry.operation, &incoming_entry.value, &current_chain.last().unwrap().hash).as_bytes()),
                     previous_hash: current_chain.last().unwrap().hash.clone(),
                     operation: incoming_entry.operation.clone(),
-                    value: incoming_entry.public_key.clone(),
+                    value: incoming_entry.value.clone(),
                 };
 
                 current_chain.push(new_chain_entry.clone());
@@ -599,19 +600,19 @@ impl Session {
                 true
             },
             Err(_) => {
-                println!("Hashchain does not exist, creating new one...");
-                let incoming_entry = match self.verify_signature_with_given_key(&signature) {
-                    Ok(public_key) => public_key,
+                debug!("Hashchain does not exist, creating new one...");
+                let incoming_entry = match self.verify_signature_wrapper(&signature) {
+                    Ok(entry) => entry,
                     Err(_) => {
-                        println!("Signature is invalid");
+                        error!("Signature is invalid");
                         return false;
                     }
                 };
                 let new_chain = vec![ChainEntry {
-                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", Operation::Add, &incoming_entry.public_key, Node::EMPTY_HASH.to_string()).as_bytes()),
+                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", Operation::Add, &incoming_entry.value, Node::EMPTY_HASH.to_string()).as_bytes()),
                     previous_hash: Node::EMPTY_HASH.to_string(),
                     operation: incoming_entry.operation.clone(),
-                    value: incoming_entry.public_key.clone(),
+                    value: incoming_entry.value.clone(),
                 }];
                 self.db.update_hashchain(&incoming_entry, &new_chain).unwrap();
                 self.db.set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true).unwrap();
@@ -621,6 +622,17 @@ impl Session {
         }
     }
 
+    fn verify_signature_wrapper(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str> {
+        // to use this we have to build the project with cargo build --features "key_transparency"
+        #[cfg(feature = "key_transparency")]
+        {
+            self.verify_signature(signature_with_key)
+        }
+        #[cfg(not(feature = "key_transparency"))]
+        {
+            self.verify_signature_with_given_key(signature_with_key)
+        }
+    }
 
     /// Checks if a signature is valid for a given incoming entry.
     /// 
@@ -630,6 +642,8 @@ impl Session {
     /// 
     /// Returns true if there is a public key for the id which can verify the signature
     /// Returns false if there is no public key for the id or if no public key can verify the signature
+    /// 
+    /// ONLY FOR KEY TRANSPARENCY APPLICATION
     fn verify_signature(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
@@ -670,7 +684,7 @@ impl Session {
                 return Ok(IncomingEntry { 
                     id: signature_with_key.id.clone(), 
                     operation: message_obj.operation, 
-                    public_key: message_obj.public_key 
+                    value: message_obj.value 
                 });
             }
         }
@@ -681,7 +695,7 @@ impl Session {
     fn verify_signature_with_given_key(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
-        let received_public_key = &signature_with_key.public_key; // new public key
+        let received_public_key = &signature_with_key.value;
         let received_signed_message =  &signature_with_key.signed_message; 
 
         // TODO: better error handling (#11)
@@ -695,7 +709,6 @@ impl Session {
         let received_public_key = PublicKey::from_bytes(&received_public_key_bytes).expect("Error while creating PublicKey object");
         let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
 
-
         if received_public_key.verify(message_bytes, &signature).is_ok() {
             // Deserialize the message
             let message = String::from_utf8(message_bytes.to_vec())
@@ -706,7 +719,7 @@ impl Session {
             return Ok(IncomingEntry { 
                 id: signature_with_key.id.clone(), 
                 operation: message_obj.operation, 
-                public_key: message_obj.public_key 
+                value: message_obj.value 
             });
         } else {
             Err("No valid signature found")

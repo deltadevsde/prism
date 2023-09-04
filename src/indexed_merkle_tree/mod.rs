@@ -171,37 +171,6 @@ impl IndexedMerkleTree {
         tree.calculate_root()
     }
 
-    /// Initializes an `IndexedMerkleTree` of the given size.
-    ///
-    /// # Arguments
-    ///
-    /// * `size` - The number of leaves in the Merkle tree (must be a power of two)
-    ///
-    /// # Returns
-    ///
-    /// * Indexed Merkle Tree - A new IndexedMerkleTree (or panics for now if the size is not a power of two)
-    pub fn initialize(size: usize) -> IndexedMerkleTree {
-        // ist zweierpotenz, wenn bitweise und mit n und n-1 nicht nlul ist ...
-        if size & (size - 1) != 0 {
-            // per code fixen (   evtl: initialize(size + 1)   )
-            panic!("size must be a power of 2"); //TODO: verbessern!
-        }
-
-        let mut tree = IndexedMerkleTree {
-            nodes: Vec::new(),
-        };
-        for i in 0..size {
-            let is_active_leaf = i == 0;
-            let is_left_sibling = i % 2 == 0;
-            let value = Node::EMPTY_HASH.to_string();
-            let label = Node::EMPTY_HASH.to_string();
-            let node = Node::initialize_leaf(is_active_leaf, is_left_sibling, value, label, Node::TAIL.to_string());
-            tree.nodes.push(node);
-        }
-
-        tree.calculate_root()
-    }
-
     pub fn calculate_empty_tree_commitment_from_site(size: usize) -> String {
         let mut nodes: Vec<Node> = Vec::new();
 
@@ -218,56 +187,10 @@ impl IndexedMerkleTree {
         tree.get_commitment()
     }
 
-
-    /// Create an Indexed Merkle Tree from Redis data.
-    ///
-    /// This function retrieves keys and values from Redis, sorts the keys based on the input order, and initializes the nodes
-    /// of an Indexed Merkle Tree based on the data. It also calculates the node hashes and ensures
-    /// that the tree has the correct structure (e.g. is a power of two).
-    ///
-    /// # Returns
-    ///
-    /// * An `IndexedMerkleTree` containing the nodes and structure derived from Redis data.
-    pub fn create_tree_from_redis(derived_dict: &mut redis::Connection, input_order: &mut redis::Connection) -> Self {
-        // Retrieve the keys from input order and sort them.
+    pub fn resort_nodes_by_input_order(mut nodes: Vec<Node>, input_order: &mut redis::Connection) -> Vec<Node> {
         let ordered_derived_dict_keys: Vec<String> = input_order.lrange("input_order", 0, -1).unwrap();
-        let mut sorted_keys = ordered_derived_dict_keys.clone();
-        sorted_keys.sort();
-    
-        // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
-        let mut nodes: Vec<Node> = sorted_keys.iter().map(|key| {
-            let value: String = derived_dict.get(key).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-            Node::initialize_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
-        }).collect();
-        
-        // calculate the next power of two, tree size is at least 8 for now
-        let mut next_power_of_two: usize = 8;
-        while next_power_of_two < ordered_derived_dict_keys.len() + 1 {
-            next_power_of_two *= 2;
-        }
-        
-        // Calculate the node hashes and sort the keys (right now they are sorted, so the next node is always the one bigger than the current one)
-        for i in 0..nodes.len() - 1 {
-            let is_next_node_active = nodes[i + 1].is_active();
-            if is_next_node_active {
-                let next_label = match &nodes[i + 1] {
-                    Node::Leaf(next_leaf) => next_leaf.label.clone(),
-                    _ => unreachable!(),
-                };
-            
-                match &mut nodes[i] {
-                    Node::Leaf(leaf) => {
-                        leaf.next = next_label;
-                    }
-                    _ => (),
-                }
-            
-                nodes[i].generate_hash();
-            }
-            
-        }
-        
-        // resort the nodes based on the input order
+
+         // resort the nodes based on the input order
         nodes.sort_by_cached_key(|node| {
             let label = match node {
                 Node::Inner(_) => {
@@ -282,21 +205,14 @@ impl IndexedMerkleTree {
                 .iter()
                 .enumerate() // use index 
                 .find(|(_, k)| {
-                    *k == &label.clone().unwrap() // ohne dereferenzierung wird ein &&String mit &String verglichen
+                    *k == &label.clone().unwrap() // without dereferencing a &&String is compared with &String
                 })
                 .unwrap()
-                .0 // enumerate gibt tupel zurück, also index zurückgeben
+                .0 // enumerate returns tuple, so we have to return index
         });
-    
-        // Add empty nodes to ensure the total number of nodes is a power of two.
-        while nodes.len() < next_power_of_two {
-            nodes.push(Node::initialize_leaf(false, true, Node::EMPTY_HASH.to_string(), Node::EMPTY_HASH.to_string(), Node::TAIL.to_string()));
-        }
-    
-        // baum erstellen und dabei alle nodes überprüfen, ob sie linkes oder rechtes kind sind
-        let tree = IndexedMerkleTree::new(nodes);
-        tree
+        nodes
     }
+
 
     pub fn create_inner_node(left: Node, right: Node, index: usize) -> Node {
         let mut new_node = Node::Inner(InnerNode {
@@ -323,10 +239,6 @@ impl IndexedMerkleTree {
         let mut next_level_nodes: Vec<Node> = Vec::new();
 
         for (index, node) in current_nodes.chunks(2).enumerate() {
-            /* let left = node[0].clone();
-            let right = node.get(1).cloned().unwrap_or_else(|| left.clone()); */
-            // da wir derzeit nur zweierpotenzen betrachten muss auch auf jeder ebene immer ein linker und rechter knoten vorhanden sein
-            
             let new_node = IndexedMerkleTree::create_inner_node(node[0].clone(), node[1].clone(), index);
             next_level_nodes.push(new_node.clone());
             self.nodes.push(new_node);
@@ -352,7 +264,7 @@ impl IndexedMerkleTree {
     fn calculate_root(mut self) -> IndexedMerkleTree {
         // first get all leaves (= nodes with no children)
         let leaves: Vec<Node> = self.nodes.clone().into_iter().filter(|node| matches!(node, Node::Leaf(_))).collect();
-        // eigene nodes "resetten"
+        // "reset" own nodes
         self.nodes = leaves.clone();
 
         let mut parents: Vec<Node> = self.calculate_next_level(leaves);
@@ -450,13 +362,13 @@ impl IndexedMerkleTree {
         (Some(root.clone()), Some(proof_path))
     }
 
-    pub fn generate_proof_of_non_membership(&self, node: &Node) -> (MerkleProof, Option<usize>) {
+    pub fn generate_non_membership_proof(&self, node: &Node) -> (MerkleProof, Option<usize>) {
         let given_node_as_leaf = match node {
             Node::Leaf(leaf) => leaf,
             _ => unreachable!(),
         };
-        // akutelle Blätter durchgehen um zu suchen, wo das neue Blatt einsortiert werden müsste
-        // enumerate benutzen, um index zu bekommen
+        // go through current leaves to find where the new leaf should be placed
+        // use enumerate to get index
         let leaves: Vec<Node> = self.nodes.clone().into_iter().filter(|node| matches!(node, Node::Leaf(_))).collect();
         let index = leaves.iter().enumerate().find_map(|(index, current_node)| {
 
@@ -465,21 +377,21 @@ impl IndexedMerkleTree {
                 _ => unreachable!(),
             };
 
-            // label und next in bigints umwandeln
+            // convert label and next to bigints
             let current_label = BigInt::from_str_radix(&current_leaf.label, 16).unwrap();   
             let current_next = BigInt::from_str_radix(&current_leaf.next, 16).unwrap();
             let new_label = BigInt::from_str_radix(&given_node_as_leaf.label, 16).unwrap();
 
-            if current_label < new_label && new_label < current_next { // funktioniert so noch nicht für ersten Hash, da müsste ich über kleiner gleich nachdenken 
-                // wenn das neue label zwischen dem aktuellen label und next liegt, dann ist das der gesuchte knoten
+            if current_label < new_label && new_label < current_next {
+                // if the new label is between the current label and next, then this is the node we are looking for
                 Some(index)
             } else {
-                None // dann muss der baum verdoppelt werden, glaube ich
+                None 
             }
         });
 
         if let Some(index) = index {
-            // beweis mit gefundenem Index generieren
+            // generate proof of membership for the found index
             (self.generate_proof_of_membership(index), Some(index))
         } else {
             ((None, None), None)
@@ -487,39 +399,34 @@ impl IndexedMerkleTree {
 
     }
 
-    // um den proof of update durchzuführen genügt ein proof of membership mit dem alten Knoten und der alten Wurzel
-    // um diesen dann zu verifizieren wird ein proof of membership mit dem neuen Knoten und der neuen Wurzel benötigt
-    // zurück gegeben wird die alte wurzel, der alte beweis und die neue Wurzel und der neue Beweis
-    pub fn generate_proof_of_update(mut self, index:usize, new_node: Node) -> (UpdateProof, Self) {
-        // alten beweis generieren
+    // to perform the proof of update a proof of membership with the old node and the old root is sufficient
+    // to verify this a membership proof of the new node and new root is needed
+    // the old root, the old proof, the new root and the new proof are returned
+    pub fn generate_update_proof(mut self, index:usize, new_node: Node) -> (UpdateProof, Self) {
+        // generate old proof
         let old_proof = self.generate_proof_of_membership(index);
 
-        // Node updaten und neue wurzel berechnen
+        // update node and calculate new root
         self.nodes[index] = new_node;
         self = self.clone().calculate_root();
 
-        // neuen beweis generieren
+        // generate new proof
         let new_proof = self.clone().generate_proof_of_membership(index);
 
-        // alten und neuen beweis zurückgeben
+        // return old and new proof
         ((old_proof, new_proof), self)
     }
 
-    // um den Proof of insert zu machen muss ich noch Gedanken machen, wie ich die Verdopplung einbauen. Vielleicht irgendwie einen bool, ob verdoppelt werden muss, da sich dann
-    // ja eine ganz neue Wurzel ergibt...
-    // Ansonsten: Proof of Non Membership des neuen Blattes um Eindeutigkeit zu gewährleisten...
-    // dann Proof of Update mit dem Blatt, an welcher Stelle das neue Blatt eingefügt werden soll (update des next-Pointers auf neues Label)
-    // zuvor leeres, ausgewähltes Blatt durch neues Blatt ersetzen, next Pointer des zuvor aktualisierten Blattes wird jetzt next Pointer des neuen Blattes und Proof of Update
     pub fn generate_proof_of_insert(&mut self, new_node: &Node) -> (MerkleProof, UpdateProof, UpdateProof) {
-        // unabhängig vom ersten Schritt Proof of Non Membership, dabei index des "alten" Knotens finden
-        let (proof_of_non_membership, old_index) = self.clone().generate_proof_of_non_membership(new_node);
+        // perform non-membership check in order to return the index of the node to be changed
+        let (proof_of_non_membership, old_index) = self.clone().generate_non_membership_proof(new_node);
 
         
-        // ersten update beweis generieren, wobei nur vom alten Knoten an der stelle der next pointer geändert wird
+        // generate first update proof, changing only the next pointer from the old node
         let mut new_old_node = self.nodes[old_index.unwrap()].clone();
         Node::update_next_pointer(&mut new_old_node, new_node);
         new_old_node.generate_hash();
-        let (first_update_proof, updated_self) = self.clone().generate_proof_of_update(old_index.unwrap(), new_old_node.clone());
+        let (first_update_proof, updated_self) = self.clone().generate_update_proof(old_index.unwrap(), new_old_node.clone());
 
         *self = updated_self;
 
@@ -533,33 +440,11 @@ impl IndexedMerkleTree {
         }
         let new_index = new_index.expect("Unable to find an inactive node.");
 
-        // zweiten update beweis generieren
-        let (second_update_proof, _) = self.clone().generate_proof_of_update(new_index, new_node.clone());
+        // generate second update proof
+        let (second_update_proof, _) = self.clone().generate_update_proof(new_index, new_node.clone());
         
         (proof_of_non_membership, first_update_proof, second_update_proof)
     }
-
-    
-    /* fn verify_merkle_proof_with_commitment(proof: MerkleProof, commitment: String) -> bool {
-        println!("Commitment: {}", commitment);
-        let path = proof.unwrap().clone();
-        let mut current_hash = path[0].clone().hash;
-        for i in 1..path.len() {
-            let node = path[i].clone();
-            let mut for_printing = String::new();
-            if node.is_left_sibling.unwrap() {
-                for_printing = format!("H({} || {})", &node.hash, current_hash);
-                current_hash = sha256(&for_printing);
-            } else {
-                for_printing = format!("H({} || {})", current_hash, &node.hash);
-                current_hash = sha256(&for_printing);
-            }
-
-            println!("{} = {}", for_printing, current_hash);
-        }
-        println!();
-        current_hash == commitment
-    } */
 
     fn verify_merkle_proof(proof: &MerkleProof) -> bool {
         match proof {
@@ -590,8 +475,6 @@ impl IndexedMerkleTree {
     }
     
 
-
-    // so kann ich gucken, ob bestellungen verändert wurden
     /* pub fn verify_tree(data: Vec<String>, root: String) -> bool {
         let tree = IndexedMerkleTree::create(data);
         let root_node = tree.get_root();
