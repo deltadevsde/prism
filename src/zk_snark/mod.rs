@@ -26,14 +26,14 @@ fn vec_to_192_array(vec: Vec<u8>) -> Result<[u8; 192], &'static str> {
     Ok(array)
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Bls12Proof {
     pub a: String,
     pub b: String,
     pub c: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct VerifyingKey {
     pub alpha_g1: String,
     pub beta_g1: String,
@@ -103,6 +103,85 @@ pub fn deserialize_custom_to_verifying_key(custom_vk: &VerifyingKey) -> Result<b
         delta_g2,
         ic,
     })
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::zk_snark::{Bls12Proof, deserialize_proof};
+    use crate::indexed_merkle_tree::{Node, sha256, IndexedMerkleTree};
+
+    use super::*;
+    use bellman::groth16;
+    use bls12_381::Bls12;
+    use rand::rngs::OsRng;
+
+    #[test]
+    fn test_serialize_and_deserialize_proof() {
+        // Initial setup
+        let empty_hash = Node::EMPTY_HASH.to_string();
+        let tail = Node::TAIL.to_string();
+        let active_node = Node::initialize_leaf(true, true, empty_hash.clone(), empty_hash.clone(), tail.clone());
+        let inactive_node = Node::initialize_leaf(false, true, empty_hash.clone(), empty_hash.clone(), tail.clone());
+
+        // build a tree with 4 nodes
+        let mut tree = IndexedMerkleTree::new(vec![active_node, inactive_node.clone(), inactive_node.clone(), inactive_node]);
+        let prev_commitment = tree.get_commitment();
+
+        // create two nodes to insert
+        let ryan = sha256(&"Ryan".to_string());
+        let ford = sha256(&"Ford".to_string());
+        let sebastian = sha256(&"Sebastian".to_string());
+        let pusch = sha256(&"Pusch".to_string());
+        let ryans_node = Node::initialize_leaf(true, true, ryan, ford, tail.clone());
+        let sebastians_node = Node::initialize_leaf(true, true, sebastian, pusch, tail.clone());
+
+        // generate proofs for the two nodes
+        let first_insert_proof = tree.generate_proof_of_insert(&ryans_node);
+        let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node);
+        
+        // create zkSNARKs for the two proofs
+        let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof.0, first_insert_proof.1, first_insert_proof.2);
+        let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof.0, second_insert_proof.1, second_insert_proof.2);
+
+        let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
+        let current_commitment = tree.get_commitment();
+
+        let batched_proof = BatchMerkleProofCircuit::create(
+            &prev_commitment, 
+            &current_commitment, 
+            proofs
+        ).unwrap();
+
+        let rng = &mut OsRng;
+        let params = groth16::generate_random_parameters::<Bls12, _, _>(batched_proof.clone(), rng).unwrap();
+        let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
+
+        let serialized_proof = serialize_proof(&proof);
+        let deserialized_proof_result = deserialize_proof(&serialized_proof);
+        assert!(deserialized_proof_result.is_ok(), "Deserialization failed");
+
+        let deserialized_proof = deserialized_proof_result.unwrap();
+        assert_eq!(proof.a, deserialized_proof.a);
+        assert_eq!(proof.b, deserialized_proof.b);
+        assert_eq!(proof.c, deserialized_proof.c);
+    }
+
+    /* #[test]
+    fn test_deserialize_invalid_proof() {
+        // Erstellen Sie ein ungültiges Bls12Proof-Objekt
+        let invalid_proof = Bls12Proof {
+            a: "blubbubs".to_string(),
+            b: "FTV0oqNyecdbzY9QFPe5gfiQbSn1E0t+QHn+l+Ey6G2Dk0UZFm1wMsnRbIp5HCneDC+jf6rHCADL1NQ9FIF9o5Td8jObATCRm/YoIoeXY1yFY1rCEoJWFZU0zPeOR7XfBEmccqdMATwb8yznOj6Hn9XqZIr7E3C0XBtzk9GiahLopjP+SN9v/KLEpnLm3dn5FeAp7TcJ0gibi4nNT3u2vziKRNiDIKl71bp6tNC6grCdGOazpkrFSxiYi3QHJOYI".to_string(),
+            c: "BEKZboEyoJ3l+DLIF8IMjUR2kJQ9aq2kuXTZR8YizcQMg7zTH0xLO9JtTueneS3JFx1KlK6e2NkFZamiQERujx6bhmwIDgY8ZPCJ8iG//4E3eS0CZ25CJfnOucLeotyr".to_string(),
+        };
+
+        // Versuchen Sie, das ungültige Objekt zu deserialisieren
+        let deserialized_proof_result = deserialize_proof(&invalid_proof);
+
+        // Überprüfen Sie, ob die Deserialisierung fehlgeschlagen ist
+        assert!(deserialized_proof_result.is_err());
+    } */
 }
 
 

@@ -93,7 +93,7 @@ pub struct IncomingEntry {
 pub struct UpdateEntryJson {
     pub id: String,
     pub signed_message: String,
-    pub value: String,
+    pub public_key: String,
 }
 
 pub struct Session {
@@ -728,7 +728,7 @@ impl Session {
     fn verify_signature_with_given_key(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
-        let received_public_key = &signature_with_key.value;
+        let received_public_key = &signature_with_key.public_key;
         let received_signed_message =  &signature_with_key.signed_message; 
 
         // TODO: better error handling (#11)

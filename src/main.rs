@@ -730,7 +730,7 @@ async fn main() -> std::io::Result<()> {
 
     println!("Starting server at {}", &config.celestia_connection_string);
 
-    let da = Arc::new(CelestiaConnection::new(&config.celestia_connection_string, Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.zr_k6Vy0RXYmBK38dToPrgZn7lk8MXE-ywR2nu9dtpI"), &config.namespace_id).await);
+    let da = Arc::new(CelestiaConnection::new(&config.celestia_connection_string, Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.CrIOHI6EuUDnAOkmzGB58jvCt-Ja3Z7kXXB-HXUN87A"), &config.namespace_id).await);
 
     // start listening for new headers to update sync target
     da.start().await.unwrap();
@@ -744,7 +744,7 @@ async fn main() -> std::io::Result<()> {
     spawn(async move {
         match args.command {
             Commands::LightClient { } => {
-                /* lightclient_loop(&sequencer_session).await; */
+                lightclient_loop(&sequencer_session).await; 
             },
             Commands::Sequencer { } => {
                 sequencer_loop(&sequencer_session, config.epoch_time).await;
