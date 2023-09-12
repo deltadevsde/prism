@@ -1,16 +1,14 @@
 use crate::{
-    indexed_merkle_tree::{IndexedMerkleTree, InsertProof, MerkleProof, ProofVariant, UpdateProof},
+    indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, ProofVariant, UpdateProof},
     storage::ChainEntry,
     zk_snark::{
         hex_to_scalar, BatchMerkleProofCircuit, InsertMerkleProofCircuit,
-        VerifyingKey as zkVerifyingKey,
     },
     Operation,
 };
-use bellman::groth16::{self, PreparedVerifyingKey, VerifyingKey};
-use bls12_381::{Bls12, Scalar};
+use bellman::groth16::{self, VerifyingKey};
+use bls12_381::Bls12;
 use rand::rngs::OsRng;
-use serde_json::Value;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
 ///

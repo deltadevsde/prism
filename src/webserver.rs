@@ -1,7 +1,6 @@
 use crate::{
-    da::CelestiaConnection,
     indexed_merkle_tree::{sha256, ProofVariant},
-    storage::Sequencer,
+    node_types::Sequencer, WebServerConfig,
 };
 use actix_cors::Cors;
 use actix_web::{
@@ -12,42 +11,28 @@ use actix_web::{
 };
 use bellman::groth16;
 use bls12_381::Bls12;
-use clap::{Parser, Subcommand};
-use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Value};
 
-use core::panic;
-use num::{BigInt, Num};
-use openssl::{
-    conf,
-    ssl::{SslAcceptor, SslFiletype, SslMethod},
-};
-use std::{
-    process::Command,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
-use tokio::time::sleep;
+use std::sync::Arc;
 
 use crate::{
-    storage::{ChainEntry, DerivedEntry, Entry, Operation, RedisConnections, UpdateEntryJson},
-    utils::{is_not_revoked, validate_epoch, validate_epoch_from_proof_variants, validate_proof},
+    storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
+    utils::{is_not_revoked, validate_epoch_from_proof_variants, validate_proof},
     zk_snark::{
-        deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
+        serialize_proof,
         HashChainEntryCircuit,
     },
 };
 
 pub struct WebServer {
-    pub ip: String,
-    pub port: u16,
+    pub cfg: WebServerConfig,
 }
 
 impl WebServer {
-    pub fn new(ip: String, port: u16) -> Self {
-        WebServer { ip, port }
+    pub fn new(cfg: WebServerConfig) -> Self {
+        WebServer { cfg }
     }
 
     pub async fn start(&self, session: Arc<Sequencer>) -> Result<(), String> {
@@ -55,7 +40,7 @@ impl WebServer {
         builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
         builder.set_certificate_chain_file(env.cert_path).unwrap(); */
         let ctx = Data::new(session.clone());
-        let (ip, port) = (self.ip.clone(), self.port);
+        let (ip, port) = (self.cfg.ip.clone(), self.cfg.port);
 
         spawn(async move {
             HttpServer::new(move || {
