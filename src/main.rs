@@ -3,51 +3,19 @@ pub mod indexed_merkle_tree;
 pub mod storage;
 mod utils;
 mod webserver;
+mod node_types;
 pub mod zk_snark;
 
-use actix_cors::Cors;
-use actix_web::{
-    get, post,
-    rt::spawn,
-    web::{self, Data},
-    App as ActixApp, HttpResponse, HttpServer, Responder,
-};
-use bellman::groth16;
-use bls12_381::Bls12;
-use celestia_rpc::client::new_websocket;
-use celestia_types::nmt::Namespace;
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
-use da::CelestiaConnection;
-use indexed_merkle_tree::{sha256, ProofVariant};
-use rand::rngs::OsRng;
-use serde::{Deserialize, Serialize};
-use serde_json::{self, json, Value};
-use storage::Sequencer;
+use da::{CelestiaConnection, DataAvailabilityLayer};
+use serde::Deserialize;
 
-use core::panic;
 use dotenv::dotenv;
-use num::{BigInt, Num};
-use openssl::{
-    conf,
-    ssl::{SslAcceptor, SslFiletype, SslMethod},
-};
-use std::{
-    env,
-    process::Command,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
-use tokio::time::sleep;
+use std::sync::Arc;
 
-use crate::{
-    storage::{ChainEntry, DerivedEntry, Entry, Operation, RedisConnections, UpdateEntryJson},
-    utils::{is_not_revoked, validate_epoch, validate_epoch_from_proof_variants, validate_proof},
-    zk_snark::{
-        deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-        HashChainEntryCircuit,
-    },
-};
+use crate::storage::{Operation, RedisConnections};
+use crate::node_types::{NodeType, Sequencer, LightClient};
 
 #[macro_use]
 extern crate log;
@@ -65,7 +33,7 @@ struct CommandLineArgs {
 
     /// Celestia Namespace ID
     #[arg(short, long)]
-    namespace_id: Option<String>,
+    celestia_namespace_id: Option<String>,
 
     /// Duration between epochs in seconds
     #[arg(short, long)]
@@ -83,30 +51,69 @@ struct CommandLineArgs {
     command: Commands,
 }
 
+#[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize)]
+#[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
+enum DALayerOption {
+    #[default]
+    Celestia,
+    None,
+}
+
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 enum Commands {
     LightClient,
     Sequencer,
 }
 
-#[derive(Debug, Deserialize)]
-struct Config {
-    ip: String,
-    port: u16,
+#[derive(Debug, Deserialize, Clone)]
+pub struct Config {
     log_level: String,
-    celestia_connection_string: String,
-    namespace_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    webserver: Option<WebServerConfig>,
+    da_layer: DALayerOption, 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    celestia_config: Option<CelestiaConfig>,
     epoch_time: u64,
+}
+
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct WebServerConfig {
+    pub ip: String,
+    pub port: u16,
+}
+
+impl Default for WebServerConfig {
+    fn default() -> Self {
+        WebServerConfig {
+            ip: "127.0.0.1".to_string(),
+            port: 8080,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CelestiaConfig {
+    connection_string: String,
+    namespace_id: String,
+}
+
+impl Default for CelestiaConfig {
+    fn default() -> Self {
+        CelestiaConfig {
+            connection_string: "ws://localhost:26658".to_string(),
+            namespace_id: "00000000000000de1008".to_string(),
+        }
+    }
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
-            ip: "127.0.0.1".to_string(),
-            port: 8080,
+            webserver: Some(WebServerConfig::default()),
             log_level: "DEBUG".to_string(),
-            celestia_connection_string: "ws://localhost:26658".to_string(),
-            namespace_id: "00000000000000de1008".to_string(),
+            da_layer: DALayerOption::default(),
+            celestia_config: Some(CelestiaConfig::default()),
             epoch_time: 60,
         }
     }
@@ -125,13 +132,20 @@ fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
     let default_config = Config::default();
 
     Ok(Config {
-        ip: args.ip.unwrap_or(default_config.ip),
-        port: args.port.unwrap_or(default_config.port),
         log_level: args.log_level.unwrap_or(default_config.log_level),
-        celestia_connection_string: args
-            .celestia_client
-            .unwrap_or(default_config.celestia_connection_string),
-        namespace_id: args.namespace_id.unwrap_or(default_config.namespace_id),
+        webserver: Some(WebServerConfig {
+            ip: args.ip.unwrap_or(default_config.webserver.as_ref().unwrap().ip.clone()),
+            port: args.port.unwrap_or(default_config.webserver.as_ref().unwrap().port),
+        }),
+        da_layer: DALayerOption::default(),
+        celestia_config: Some(CelestiaConfig {
+            connection_string: args
+                .celestia_client
+                .unwrap_or(default_config.celestia_config.as_ref().unwrap().connection_string.clone()),
+            namespace_id: args
+                .celestia_namespace_id
+                .unwrap_or(default_config.celestia_config.as_ref().unwrap().namespace_id.clone()),
+        }),
         epoch_time: args
             .epoch_time
             .map(|e| e as u64)
@@ -148,7 +162,7 @@ fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
 /// 4. Registers routes for various services.
 /// 5. Binds the server to the configured IP and port.
 /// 6. Runs the server and awaits its completion.
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
     let config = load_config(args.clone()).unwrap();
@@ -158,33 +172,31 @@ async fn main() -> std::io::Result<()> {
     pretty_env_logger::init();
     dotenv().ok();
 
-    info!("Starting server at {}", &config.celestia_connection_string);
+    let da = match &config.da_layer {
+        DALayerOption::Celestia => {
+            let celestia_conf = config.clone().celestia_config.unwrap();
+            Some(
+                Arc::new(
+                    CelestiaConnection::new(
+                        &celestia_conf.connection_string,
+                        None,
+                        &celestia_conf.namespace_id,
+                    )
+                    .await,
+                ) as Arc<dyn DataAvailabilityLayer + 'static>
+            )
+        },
+        DALayerOption::None => None,
+    };
 
-    let da = Arc::new(
-        CelestiaConnection::new(
-            &config.celestia_connection_string,
-            None,
-            &config.namespace_id,
-        )
-        .await,
-    );
 
-    let session = Arc::new(Sequencer {
-        db: Arc::new(RedisConnections::new()),
-        da,
-    });
-    let sequencer_session = Arc::clone(&session);
-
-    spawn(async move {
-        match args.command {
-            Commands::LightClient {} => {
-                lightclient_loop(&sequencer_session).await;
-            }
-            Commands::Sequencer {} => {
-                sequencer_loop(&sequencer_session, config.epoch_time).await;
-            }
-        }
-    });
-
-    let ctx = Data::new(session);
+    let node: Arc<dyn NodeType> = match args.command {
+        // LightClients need a DA layer, so we can unwrap here
+        Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap())),
+        Commands::Sequencer {} => Arc::new(Sequencer::new(Arc::new(RedisConnections::new()), da, config)),
+    };
+    node.start().await.map_err(|e| {
+        error!("Error starting node: {:?}", e);
+        std::io::Error::new(std::io::ErrorKind::Other, "Error starting node")
+    })
 }

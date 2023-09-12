@@ -1,7 +1,4 @@
-use crate::zk_snark::{
-    deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-    serialize_verifying_key_to_custom, Bls12Proof, VerifyingKey,
-};
+use crate::zk_snark::{Bls12Proof, VerifyingKey};
 use actix_web::rt::spawn;
 use async_trait::async_trait;
 use celestia_rpc::{client::new_websocket, BlobClient, HeaderClient};
@@ -55,6 +52,7 @@ pub struct CelestiaConnection {
 }
 
 impl CelestiaConnection {
+    // TODO: Should take config
     pub async fn new(
         connection_string: &String,
         auth_token: Option<&str>,

@@ -2,7 +2,7 @@ use crypto_hash::{hex_digest, Algorithm};
 use num::{BigInt, Num};
 use redis::Commands;
 use serde::{Deserialize, Serialize};
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 pub type MerkleProof = (Option<String>, Option<Vec<Node>>);
 pub type UpdateProof = (MerkleProof, MerkleProof);
@@ -110,13 +110,13 @@ impl Node {
         Node::Leaf(leaf)
     }
 
-    pub fn add_left(&mut self, left: Rc<Self>) {
+    pub fn add_left(&mut self, left: Arc<Self>) {
         if let Node::Inner(inner) = self {
             inner.left = left;
         }
     }
 
-    pub fn add_right(&mut self, right: Rc<Self>) {
+    pub fn add_right(&mut self, right: Arc<Self>) {
         if let Node::Inner(inner) = self {
             inner.right = right;
         }
@@ -242,8 +242,8 @@ impl IndexedMerkleTree {
         let mut new_node = Node::Inner(InnerNode {
             hash: String::from("H()"),
             is_left_sibling: index % 2 == 0,
-            left: Rc::new(left),
-            right: Rc::new(right),
+            left: Arc::new(left),
+            right: Arc::new(right),
         });
         new_node.generate_hash();
         new_node
