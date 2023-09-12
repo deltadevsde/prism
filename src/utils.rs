@@ -45,7 +45,7 @@ pub fn validate_snark(
         second_proof.clone(),
     )) {
         Ok(circuit) => circuit,
-        Err(e) => {
+        Err(_e) => {
             // error!("Error creating circuit: {}", e);
             return Err("Could not create circuit");
         }
@@ -189,12 +189,11 @@ pub fn validate_epoch(
 mod tests {
     use crate::{
         indexed_merkle_tree::{sha256, Node},
-        zk_snark::{deserialize_custom_to_verifying_key, deserialize_proof, Bls12Proof},
     };
 
     use super::*;
-    use bellman::{groth16, Index};
-    use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
+    use bellman::{groth16};
+    use bls12_381::{Bls12};
 
     #[test]
     fn test_validate_epoch_valid_proof() {

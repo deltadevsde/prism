@@ -143,7 +143,7 @@ impl Database for RedisConnections {
         };
         match serde_json::from_str(&value) {
             Ok(value) => Ok(value),
-            Err(e) => Err("Internal error parsing value"),
+            Err(_e) => Err("Internal error parsing value"),
         }
     }
 

@@ -26,7 +26,7 @@ impl TryFrom<&Blob> for EpochJson {
             String::from_utf8(value.data.clone()).unwrap().as_str(),
         ) {
             Ok(epoch_json) => Ok(epoch_json),
-            Err(e) => Err(()),
+            Err(_e) => Err(()),
         }
     }
 }

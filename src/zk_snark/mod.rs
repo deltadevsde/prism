@@ -134,7 +134,7 @@ pub fn deserialize_custom_to_verifying_key(
 mod tests {
     use crate::{
         indexed_merkle_tree::{sha256, IndexedMerkleTree, Node},
-        zk_snark::{deserialize_proof, Bls12Proof},
+        zk_snark::{deserialize_proof},
     };
 
     use super::*;
