@@ -390,7 +390,7 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
         epoch
     );
 
-    let (proof, verifying_key) = match validate_epoch_from_proof_variants(
+    let (proof, _verifying_key) = match validate_epoch_from_proof_variants(
         &previous_commitment,
         &current_commitment,
         &proofs,
