@@ -5,24 +5,20 @@ use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{PublicKey, Signature, Verifier};
-use std::{
-    self,
-    sync::Arc,
-    time::Duration,
-};
+use std::{self, sync::Arc, time::Duration};
 use tokio::time::sleep;
 
 use crate::{
     da::{DataAvailabilityLayer, EpochJson},
     indexed_merkle_tree::{IndexedMerkleTree, Node},
-    utils::{
-        is_not_revoked, validate_epoch, validate_epoch_from_proof_variants,
-    },
+    storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
+    utils::{is_not_revoked, validate_epoch, validate_epoch_from_proof_variants},
     webserver::WebServer,
     zk_snark::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
         serialize_verifying_key_to_custom,
-    }, Config, storage::{Database, Operation, ChainEntry, IncomingEntry, UpdateEntryJson},
+    },
+    Config,
 };
 
 #[async_trait]
@@ -41,7 +37,6 @@ pub struct Sequencer {
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
 }
-
 
 #[async_trait]
 impl NodeType for Sequencer {

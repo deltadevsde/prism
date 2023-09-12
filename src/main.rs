@@ -1,9 +1,9 @@
 pub mod da;
 pub mod indexed_merkle_tree;
+mod node_types;
 pub mod storage;
 mod utils;
 mod webserver;
-mod node_types;
 pub mod zk_snark;
 
 use clap::{Parser, Subcommand};
@@ -14,8 +14,10 @@ use serde::Deserialize;
 use dotenv::dotenv;
 use std::sync::Arc;
 
-use crate::storage::{Operation, RedisConnections};
-use crate::node_types::{NodeType, Sequencer, LightClient};
+use crate::{
+    node_types::{LightClient, NodeType, Sequencer},
+    storage::{Operation, RedisConnections},
+};
 
 #[macro_use]
 extern crate log;
@@ -70,12 +72,11 @@ pub struct Config {
     log_level: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     webserver: Option<WebServerConfig>,
-    da_layer: DALayerOption, 
+    da_layer: DALayerOption,
     #[serde(skip_serializing_if = "Option::is_none")]
     celestia_config: Option<CelestiaConfig>,
     epoch_time: u64,
 }
-
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct WebServerConfig {
@@ -134,17 +135,31 @@ fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
     Ok(Config {
         log_level: args.log_level.unwrap_or(default_config.log_level),
         webserver: Some(WebServerConfig {
-            ip: args.ip.unwrap_or(default_config.webserver.as_ref().unwrap().ip.clone()),
-            port: args.port.unwrap_or(default_config.webserver.as_ref().unwrap().port),
+            ip: args
+                .ip
+                .unwrap_or(default_config.webserver.as_ref().unwrap().ip.clone()),
+            port: args
+                .port
+                .unwrap_or(default_config.webserver.as_ref().unwrap().port),
         }),
         da_layer: DALayerOption::default(),
         celestia_config: Some(CelestiaConfig {
-            connection_string: args
-                .celestia_client
-                .unwrap_or(default_config.celestia_config.as_ref().unwrap().connection_string.clone()),
-            namespace_id: args
-                .celestia_namespace_id
-                .unwrap_or(default_config.celestia_config.as_ref().unwrap().namespace_id.clone()),
+            connection_string: args.celestia_client.unwrap_or(
+                default_config
+                    .celestia_config
+                    .as_ref()
+                    .unwrap()
+                    .connection_string
+                    .clone(),
+            ),
+            namespace_id: args.celestia_namespace_id.unwrap_or(
+                default_config
+                    .celestia_config
+                    .as_ref()
+                    .unwrap()
+                    .namespace_id
+                    .clone(),
+            ),
         }),
         epoch_time: args
             .epoch_time
@@ -175,25 +190,26 @@ async fn main() -> std::io::Result<()> {
     let da = match &config.da_layer {
         DALayerOption::Celestia => {
             let celestia_conf = config.clone().celestia_config.unwrap();
-            Some(
-                Arc::new(
-                    CelestiaConnection::new(
-                        &celestia_conf.connection_string,
-                        None,
-                        &celestia_conf.namespace_id,
-                    )
-                    .await,
-                ) as Arc<dyn DataAvailabilityLayer + 'static>
-            )
-        },
+            Some(Arc::new(
+                CelestiaConnection::new(
+                    &celestia_conf.connection_string,
+                    None,
+                    &celestia_conf.namespace_id,
+                )
+                .await,
+            ) as Arc<dyn DataAvailabilityLayer + 'static>)
+        }
         DALayerOption::None => None,
     };
-
 
     let node: Arc<dyn NodeType> = match args.command {
         // LightClients need a DA layer, so we can unwrap here
         Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap())),
-        Commands::Sequencer {} => Arc::new(Sequencer::new(Arc::new(RedisConnections::new()), da, config)),
+        Commands::Sequencer {} => Arc::new(Sequencer::new(
+            Arc::new(RedisConnections::new()),
+            da,
+            config,
+        )),
     };
     node.start().await.map_err(|e| {
         error!("Error starting node: {:?}", e);
