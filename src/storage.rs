@@ -1,34 +1,42 @@
-use std;
 use actix_web::rt::spawn;
 use async_trait::async_trait;
-use celestia_rpc::client::new_websocket;
-use celestia_rpc::{HeaderClient, BlobClient};
-use celestia_types::Blob;
-use celestia_types::nmt::Namespace;
+use base64::{engine::general_purpose, Engine as _};
+use bellman::groth16::{PreparedVerifyingKey, Proof};
+use bls12_381::Bls12;
+use celestia_rpc::{client::new_websocket, BlobClient, HeaderClient};
+use celestia_types::{nmt::Namespace, Blob};
+use crypto_hash::{hex_digest, Algorithm};
+use ed25519_dalek::{PublicKey, Signature, Verifier};
 use jsonrpsee::ws_client::WsClient;
 use redis::{Commands, Connection};
-use serde::{Serialize, Deserialize};
-use crypto_hash::{Algorithm, hex_digest};
-use std::fmt::Display;
-use ed25519_dalek::{PublicKey, Signature, Verifier};
-use base64::{Engine as _, engine::general_purpose};
-use bellman::groth16::{Proof, PreparedVerifyingKey};
-use bls12_381::Bls12;
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc;
-use std::thread;
+use serde::{Deserialize, Serialize};
+use std::{
+    self,
+    fmt::Display,
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
+use tokio::{sync::mpsc, time::sleep};
 
-
-use crate::indexed_merkle_tree::{IndexedMerkleTree, Node, ProofVariant, sha256};
-use crate::utils::{is_not_revoked, parse_json_to_proof, validate_epoch, validate_epoch_from_proof_variants};
-use crate::zk_snark::{Bls12Proof, serialize_proof, deserialize_proof, VerifyingKey, serialize_verifying_key_to_custom, deserialize_custom_to_verifying_key};
+use crate::{
+    da::{DataAvailabilityLayer, EpochJson},
+    indexed_merkle_tree::{sha256, IndexedMerkleTree, Node, ProofVariant},
+    utils::{
+        is_not_revoked, parse_json_to_proof, validate_epoch, validate_epoch_from_proof_variants,
+    },
+    webserver::WebServer,
+    zk_snark::{
+        deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
+        serialize_verifying_key_to_custom, Bls12Proof, VerifyingKey,
+    },
+};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum Operation {
     Add,
     Revoke,
 }
-
 
 impl Display for Operation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -38,28 +46,6 @@ impl Display for Operation {
         }
     }
 }
-
-// TODO: Add signature from sequencer for lc to verify (#2)
-#[derive(Serialize, Deserialize)]
-pub struct EpochJson {
-    pub height: u64,
-    pub prev_commitment: String,
-    pub current_commitment: String,
-    pub proof: Bls12Proof,
-    pub verifying_key: VerifyingKey,
-}
-
-impl TryFrom<&Blob> for EpochJson {
-    type Error = ();
-
-    fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        match serde_json::from_str::<EpochJson>(String::from_utf8(value.data.clone()).unwrap().as_str()) {
-            Ok(epoch_json) => Ok(epoch_json),
-            Err(e) => Err(()),
-        }
-    }
-}
-
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ChainEntry {
@@ -81,7 +67,6 @@ pub struct DerivedEntry {
     pub value: String,
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IncomingEntry {
     pub id: String,
@@ -96,124 +81,30 @@ pub struct UpdateEntryJson {
     pub public_key: String,
 }
 
-pub struct Session {
+#[async_trait]
+pub trait NodeType {
+    async fn start(self: Arc<Self>) -> Result<(), String>;
+    // async fn stop(&self) -> Result<(), String>;
+}
+
+pub struct Sequencer {
     pub db: Arc<dyn Database>,
-    pub da: Arc<dyn DataAvailabilityLayer>
+    pub da: Arc<dyn DataAvailabilityLayer>,
+    pub epoch_duration: u64,
+    pub ws: WebServer,
+}
+
+struct LightClient {
+    pub da: Arc<dyn DataAvailabilityLayer>,
 }
 
 pub struct RedisConnections {
-    pub main_dict: Mutex<Connection>, // clear text key with hashchain
+    pub main_dict: Mutex<Connection>,    // clear text key with hashchain
     pub derived_dict: Mutex<Connection>, // hashed key with last hashchain entry hash
-    pub input_order: Mutex<Connection>, // input order of the hashchain keys
-    pub app_state: Mutex<Connection>, // app state (just epoch counter for now)
+    pub input_order: Mutex<Connection>,  // input order of the hashchain keys
+    pub app_state: Mutex<Connection>,    // app state (just epoch counter for now)
     pub merkle_proofs: Mutex<Connection>, // merkle proofs (in the form: epoch_{epochnumber}_{commitment})
-    pub commitments: Mutex<Connection>, // epoch commitments
-}
-
-enum Message {
-    UpdateTarget(u64)
-}
-
-pub struct CelestiaConnection {
-    pub client: WsClient,
-    pub namespace_id: Namespace,
-    tx: Arc<mpsc::Sender<Message>>,
-    rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
-}
-
-impl CelestiaConnection {
-    pub async fn new(connection_string: &String, auth_token: Option<&str>, namespace_hex: &String) -> CelestiaConnection {
-        let (tx, rx) = mpsc::channel(5);
-
-        CelestiaConnection {
-            client: new_websocket(&connection_string, auth_token).await.unwrap(),
-            namespace_id: Namespace::new_v0(&hex::decode(namespace_hex).unwrap()).unwrap(),
-            tx: Arc::new(tx),
-            rx: Arc::new(tokio::sync::Mutex::new(rx)),
-        }
-    }
-    
-}
-
-#[async_trait]
-pub trait DataAvailabilityLayer: Send + Sync {
-    async fn get_message(&self) -> Result<u64, String>;
-    async fn initialize_sync_target(&self) -> Result<u64, String>;
-    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String>;
-    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String>;
-    async fn start(&self) -> Result<(), String>;
-}
-
-#[async_trait]
-impl DataAvailabilityLayer for CelestiaConnection {
-    async fn get_message(&self) -> Result<u64, String> {
-        match self.rx.lock().await.recv().await {
-            Some(Message::UpdateTarget(height)) => Ok(height),
-            None => Err(format!("Could not get message from channel: FUCK")),
-        }
-    }
-
-    async fn initialize_sync_target(&self) -> Result<u64, String> {
-        match HeaderClient::header_network_head(&self.client).await {
-            Ok(extended_header) => Ok(extended_header.header.height.value()),
-            Err(err) => Err(format!("Could not get network head from DA layer: {}", err)), 
-        }
-    }
-
-    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String> {
-        debug!{"Getting epoch {} from DA layer", height};
-        match BlobClient::blob_get_all(&self.client, height, &[self.namespace_id]).await {
-            Ok(blobs) => {
-                let mut epochs = Vec::new();
-                for blob in blobs.iter() {
-                    match EpochJson::try_from(blob) {
-                        Ok(epoch_json) => epochs.push(epoch_json),
-                        Err(_) => debug!("Could not parse epoch json for blob at height {}", height),
-                    }
-                }
-                Ok(epochs)
-            },
-            Err(err) => Err(format!("Could not get height {} from DA layer: {}", height, err))
-        }
-    }
-
-    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String> {
-        debug!{"Posting epoch {} to DA layer", epoch.height};
-        // todo: unwraps (#11)
-        let data = serde_json::to_string(&epoch).unwrap();
-        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).unwrap();
-        debug!("blob: {}", serde_json::to_string(&blob).unwrap());
-        match BlobClient::blob_submit(&self.client, &[blob]).await {
-            Ok(height) => {
-                debug!("Submitted epoch {} to DA layer at height {}", epoch.height, height);
-                Ok(height)
-            },
-            // TODO implement retries (#10)
-            Err(err) => {
-                Err(format!("Could not submit epoch to DA layer: {}", err))
-            }
-        }
-    }
-
-    async fn start(&self) -> Result<(), String> {
-        let mut header_sub = HeaderClient::header_subscribe(&self.client).await.unwrap();
-
-        let tx1 = self.tx.clone();
-        spawn(async move {
-            while let Some(extended_header) = header_sub.next().await {
-                let height = extended_header.unwrap().header.height.value();
-                match tx1.send(Message::UpdateTarget(height)).await {
-                    Ok(_) => {
-                        debug!("Sent message to channel. Height: {}", height);
-                    },
-                    Err(_) => {
-                        debug!("Could not send message to channel");
-                    }
-                }
-            }
-        });
-        Ok(())
-    }
+    pub commitments: Mutex<Connection>,   // epoch commitments
 }
 
 pub trait Database: Send + Sync {
@@ -228,12 +119,27 @@ pub trait Database: Send + Sync {
     fn get_epoch_operation(&self) -> Result<u64, &str>;
     fn set_epoch(&self, epoch: &u64) -> Result<(), String>;
     fn reset_epoch_operation_counter(&self) -> Result<(), String>;
-    fn update_hashchain(&self, incoming_entry: &IncomingEntry, value: &Vec<ChainEntry>) -> Result<(), String>;
-    fn set_derived_entry(&self, incoming_entry: &IncomingEntry, value: &ChainEntry, new: bool) -> Result<(), String>;
+    fn update_hashchain(
+        &self,
+        incoming_entry: &IncomingEntry,
+        value: &Vec<ChainEntry>,
+    ) -> Result<(), String>;
+    fn set_derived_entry(
+        &self,
+        incoming_entry: &IncomingEntry,
+        value: &ChainEntry,
+        new: bool,
+    ) -> Result<(), String>;
     fn get_derived_dict_keys_in_order(&self) -> Result<Vec<String>, String>;
     fn get_epochs(&self) -> Result<Vec<u64>, String>;
     fn increment_epoch_operation(&self) -> Result<u64, String>;
-    fn add_merkle_proof(&self, epoch: &u64, epoch_operation: &u64, commitment: &String, proofs: &String);
+    fn add_merkle_proof(
+        &self,
+        epoch: &u64,
+        epoch_operation: &u64,
+        commitment: &String,
+        proofs: &String,
+    );
     fn add_commitment(&self, epoch: &u64, commitment: &String);
     fn initialize_derived_dict(&self);
 }
@@ -279,9 +185,7 @@ impl Database for RedisConnections {
         };
         match serde_json::from_str(&value) {
             Ok(value) => Ok(value),
-            Err(e) => {
-                Err("Internal error parsing value")
-            }
+            Err(e) => Err("Internal error parsing value"),
         }
     }
 
@@ -299,7 +203,7 @@ impl Database for RedisConnections {
             Ok(value) => {
                 let trimmed_value = value.trim_matches('"').to_string();
                 Ok(trimmed_value)
-            },
+            }
             Err(_) => Err("Commitment not found"),
         }
     }
@@ -314,11 +218,11 @@ impl Database for RedisConnections {
 
     fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, &str> {
         let mut con = self.merkle_proofs.lock().unwrap();
-        let mut epoch_proofs: Vec<String> = match con.keys::<&String, Vec<String>>(&format!("epoch_{}*", epoch)) {
-            Ok(value) => value,
-            Err(_) => return Err("Epoch not found"),
-        };
-
+        let mut epoch_proofs: Vec<String> =
+            match con.keys::<&String, Vec<String>>(&format!("epoch_{}*", epoch)) {
+                Ok(value) => value,
+                Err(_) => return Err("Epoch not found"),
+            };
 
         // Sort epoch_proofs by extracting epoch number and number within the epoch
         epoch_proofs.sort_by(|a, b| {
@@ -334,15 +238,14 @@ impl Database for RedisConnections {
         });
 
         // Parse the proofs from JSON to ProofVariant
-       Ok(epoch_proofs
+        Ok(epoch_proofs
             .iter()
             .filter_map(|proof| {
                 con.get::<&str, String>(proof)
                     .ok()
                     .and_then(|proof_str| parse_json_to_proof(&proof_str).ok())
             })
-            .collect()
-       )
+            .collect())
     }
 
     fn get_epoch(&self) -> Result<u64, &str> {
@@ -379,21 +282,34 @@ impl Database for RedisConnections {
         }
     }
 
-    fn update_hashchain(&self, incoming_entry: &IncomingEntry, value: &Vec<ChainEntry>) -> Result<(), String> {
+    fn update_hashchain(
+        &self,
+        incoming_entry: &IncomingEntry,
+        value: &Vec<ChainEntry>,
+    ) -> Result<(), String> {
         let mut con = self.main_dict.lock().unwrap();
         let value = serde_json::to_string(&value).unwrap();
 
         match con.set::<&String, String, String>(&incoming_entry.id, value) {
             Ok(_) => Ok(()),
-            Err(_) => Err(format!("Could not update hashchain for key {}", incoming_entry.id)),
+            Err(_) => Err(format!(
+                "Could not update hashchain for key {}",
+                incoming_entry.id
+            )),
         }
     }
 
-    fn set_derived_entry(&self, incoming_entry: &IncomingEntry, value: &ChainEntry, new: bool) -> Result<(), String> {
+    fn set_derived_entry(
+        &self,
+        incoming_entry: &IncomingEntry,
+        value: &ChainEntry,
+        new: bool,
+    ) -> Result<(), String> {
         let mut con = self.derived_dict.lock().unwrap();
         let mut input_con = self.input_order.lock().unwrap();
         let hashed_key = sha256(&incoming_entry.id);
-        con.set::<&String, &String, String>(&hashed_key, &value.hash).unwrap();
+        con.set::<&String, &String, String>(&hashed_key, &value.hash)
+            .unwrap();
         if new {
             match input_con.rpush::<&'static str, &String, u32>("input_order", &hashed_key) {
                 Ok(_) => Ok(()),
@@ -416,7 +332,10 @@ impl Database for RedisConnections {
         let mut con = self.commitments.lock().unwrap();
 
         let epochs: Vec<u64> = match con.keys::<&str, Vec<String>>("*") {
-            Ok(value) => value.iter().map(|epoch| epoch.replace("epoch_", "").parse::<u64>().unwrap()).collect(),
+            Ok(value) => value
+                .iter()
+                .map(|epoch| epoch.replace("epoch_", "").parse::<u64>().unwrap())
+                .collect(),
             Err(_) => return Err(format!("Epochs could not be fetched")),
         };
         Ok(epochs)
@@ -430,7 +349,13 @@ impl Database for RedisConnections {
         }
     }
 
-    fn add_merkle_proof(&self, epoch: &u64, epoch_operation: &u64, commitment: &String, proofs: &String) {
+    fn add_merkle_proof(
+        &self,
+        epoch: &u64,
+        epoch_operation: &u64,
+        commitment: &String,
+        proofs: &String,
+    ) {
         let mut con = self.merkle_proofs.lock().unwrap();
         let key = format!("epoch_{}_{}_{}", epoch, epoch_operation, commitment);
         match con.set::<&String, &String, String>(&key, &proofs) {
@@ -463,7 +388,104 @@ impl Database for RedisConnections {
     }
 }
 
-impl Session {
+#[async_trait]
+impl NodeType for Sequencer {
+    async fn start(self: Arc<Self>) -> Result<(), String> {
+        self.ws.start(self).await?;
+
+        // start listening for new headers to update sync target
+        self.da.start().await?;
+
+        let derived_keys = self.db.get_derived_keys();
+        if derived_keys.len() == 0 {
+            // if the dict is empty, we need to initialize the dict and the input order
+            self.db.initialize_derived_dict();
+        }
+
+        debug!("starting main sequencer loop");
+        spawn(async move {
+            loop {
+                match self.finalize_epoch().await {
+                    Ok(_) => {
+                        info!(
+                            "sequencer_loop: finalized epoch {}",
+                            self.db.get_epoch().unwrap()
+                        );
+                    }
+                    Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
+                }
+                sleep(Duration::from_secs(self.epoch_duration)).await;
+            }
+        });
+
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl NodeType for LightClient {
+    async fn start(self: Arc<Self>) -> Result<(), String> {
+        // start listening for new headers to update sync target
+        self.da.start().await?;
+
+        info!("starting main light client loop");
+        // todo: persist current_position in datastore
+        // also: have initial starting position be configurable
+
+        spawn(async move {
+            let mut current_position = 0;
+            loop {
+                // target is updated when a new header is received
+                let target = self.da.get_message().await.unwrap();
+                for i in current_position..target {
+                    trace!("processing height: {}", i);
+                    match self.da.get(i + 1).await {
+                        Ok(epoch_json_vec) => {
+                            // TODO: Verify sequencer signatures,
+                            // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
+                            // Verify zk proofs,
+                            for epoch_json in epoch_json_vec {
+                                let prev_commitment = epoch_json.prev_commitment;
+                                let current_commitment = epoch_json.current_commitment;
+                                let proof = deserialize_proof(&epoch_json.proof).unwrap();
+                                let verifying_key =
+                                    deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
+                                        .unwrap();
+
+                                match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
+                                    Ok(_) => info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2),
+                                    Err(err) => panic!("Failed to validate epoch: {:?}", err),
+                                }
+                            }
+
+                            info!("light client: got epochs at height {}", i + 1);
+                        }
+                        Err(e) => debug!("light client: getting epoch: {}", e),
+                    };
+                }
+                current_position = target; // Update the current position to the latest target
+            }
+        });
+
+        Ok(())
+    }
+}
+
+impl Sequencer {
+    pub fn new(
+        db: Arc<dyn Database>,
+        da: Arc<dyn DataAvailabilityLayer>,
+        epoch_duration: u64,
+        ip: String,
+        port: u16,
+    ) -> Sequencer {
+        Sequencer {
+            db,
+            da,
+            epoch_duration,
+            ws: WebServer::new(ip, port),
+        }
+    }
     /// Initializes the epoch state by setting up the input table and incrementing the epoch number.
     /// Periodically calls the `set_epoch_commitment` function to update the commitment for the current epoch.
     ///
@@ -493,7 +515,7 @@ impl Session {
         } else {
             vec![]
         };
-        
+
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
             self.db.get_commitment(&prev_epoch).unwrap()
@@ -502,7 +524,11 @@ impl Session {
             empty_commitment.get_commitment()
         };
 
-        let (proof, verifying_key) = match validate_epoch_from_proof_variants(&prev_commitment, &current_commitment, &proofs) {
+        let (proof, verifying_key) = match validate_epoch_from_proof_variants(
+            &prev_commitment,
+            &current_commitment,
+            &proofs,
+        ) {
             Ok(proof) => proof,
             Err(_) => return Err("Epoch validation failed".to_string()),
         };
@@ -520,16 +546,20 @@ impl Session {
 
     pub fn create_tree(&self) -> IndexedMerkleTree {
         // TODO: better error handling (#11)
-        // Retrieve the keys from input order and sort them. 
-        let ordered_derived_dict_keys: Vec<String> = self.db.get_derived_dict_keys_in_order().unwrap_or(vec![]);
+        // Retrieve the keys from input order and sort them.
+        let ordered_derived_dict_keys: Vec<String> =
+            self.db.get_derived_dict_keys_in_order().unwrap_or(vec![]);
         let mut sorted_keys = ordered_derived_dict_keys.clone();
         sorted_keys.sort();
-    
+
         // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
-        let mut nodes: Vec<Node> = sorted_keys.iter().map(|key| {
-            let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-            Node::initialize_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
-        }).collect();
+        let mut nodes: Vec<Node> = sorted_keys
+            .iter()
+            .map(|key| {
+                let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+                Node::initialize_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
+            })
+            .collect();
 
         // calculate the next power of two, tree size is at least 8 for now
         let mut next_power_of_two: usize = 8;
@@ -545,25 +575,22 @@ impl Session {
                     Node::Leaf(next_leaf) => next_leaf.label.clone(),
                     _ => unreachable!(),
                 };
-            
+
                 match &mut nodes[i] {
                     Node::Leaf(leaf) => {
                         leaf.next = next_label;
                     }
                     _ => (),
                 }
-            
+
                 nodes[i].generate_hash();
             }
-            
         }
-        
+
         // resort the nodes based on the input order
         nodes.sort_by_cached_key(|node| {
             let label = match node {
-                Node::Inner(_) => {
-                    None
-                }
+                Node::Inner(_) => None,
                 Node::Leaf(leaf) => {
                     let label = leaf.label.clone(); // get the label of the node
                     Some(label)
@@ -571,19 +598,25 @@ impl Session {
             };
             ordered_derived_dict_keys
                 .iter()
-                .enumerate() // use index 
+                .enumerate() // use index
                 .find(|(_, k)| {
                     *k == &label.clone().unwrap() // without dereferencing we compare  &&string with &string
                 })
                 .unwrap()
-                .0 
+                .0
         });
-    
+
         // Add empty nodes to ensure the total number of nodes is a power of two.
         while nodes.len() < next_power_of_two {
-            nodes.push(Node::initialize_leaf(false, true, Node::EMPTY_HASH.to_string(), Node::EMPTY_HASH.to_string(), Node::TAIL.to_string()));
+            nodes.push(Node::initialize_leaf(
+                false,
+                true,
+                Node::EMPTY_HASH.to_string(),
+                Node::EMPTY_HASH.to_string(),
+                Node::TAIL.to_string(),
+            ));
         }
-    
+
         // create tree, setting left / right child property for each node
         let tree = IndexedMerkleTree::new(nodes);
         tree
@@ -618,20 +651,33 @@ impl Session {
                         return false;
                     }
                 };
-                
+
                 let new_chain_entry = ChainEntry {
-                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", &incoming_entry.operation, &incoming_entry.value, &current_chain.last().unwrap().hash).as_bytes()),
+                    hash: hex_digest(
+                        Algorithm::SHA256,
+                        format!(
+                            "{}, {}, {}",
+                            &incoming_entry.operation,
+                            &incoming_entry.value,
+                            &current_chain.last().unwrap().hash
+                        )
+                        .as_bytes(),
+                    ),
                     previous_hash: current_chain.last().unwrap().hash.clone(),
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.value.clone(),
                 };
 
                 current_chain.push(new_chain_entry.clone());
-                self.db.update_hashchain(&incoming_entry, &current_chain).unwrap();
-                self.db.set_derived_entry(&incoming_entry, &new_chain_entry, false).unwrap();
+                self.db
+                    .update_hashchain(&incoming_entry, &current_chain)
+                    .unwrap();
+                self.db
+                    .set_derived_entry(&incoming_entry, &new_chain_entry, false)
+                    .unwrap();
 
                 true
-            },
+            }
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
                 let incoming_entry = match self.verify_signature_wrapper(&signature) {
@@ -642,20 +688,36 @@ impl Session {
                     }
                 };
                 let new_chain = vec![ChainEntry {
-                    hash: hex_digest(Algorithm::SHA256, format!("{}, {}, {}", Operation::Add, &incoming_entry.value, Node::EMPTY_HASH.to_string()).as_bytes()),
+                    hash: hex_digest(
+                        Algorithm::SHA256,
+                        format!(
+                            "{}, {}, {}",
+                            Operation::Add,
+                            &incoming_entry.value,
+                            Node::EMPTY_HASH.to_string()
+                        )
+                        .as_bytes(),
+                    ),
                     previous_hash: Node::EMPTY_HASH.to_string(),
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.value.clone(),
                 }];
-                self.db.update_hashchain(&incoming_entry, &new_chain).unwrap();
-                self.db.set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true).unwrap();
+                self.db
+                    .update_hashchain(&incoming_entry, &new_chain)
+                    .unwrap();
+                self.db
+                    .set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true)
+                    .unwrap();
 
                 true
             }
         }
     }
 
-    fn verify_signature_wrapper(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str> {
+    fn verify_signature_wrapper(
+        &self,
+        signature_with_key: &UpdateEntryJson,
+    ) -> Result<IncomingEntry, &'static str> {
         // to use this we have to build the project with cargo build --features "key_transparency"
         #[cfg(feature = "key_transparency")]
         {
@@ -668,28 +730,35 @@ impl Session {
     }
 
     /// Checks if a signature is valid for a given incoming entry.
-    /// 
+    ///
     /// This function takes two arguments, an IncomingEntry and a Signature, and returns a boolean.
-    /// It checks if there is an entry for the id of the incoming entry in the redis database and 
+    /// It checks if there is an entry for the id of the incoming entry in the redis database and
     /// if there is, it checks if any public key in the hashchain can verify the signature.
-    /// 
+    ///
     /// Returns true if there is a public key for the id which can verify the signature
     /// Returns false if there is no public key for the id or if no public key can verify the signature
-    /// 
+    ///
     /// ONLY FOR KEY TRANSPARENCY APPLICATION
-    fn verify_signature(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
+    fn verify_signature(
+        &self,
+        signature_with_key: &UpdateEntryJson,
+    ) -> Result<IncomingEntry, &'static str> {
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
-        let received_signed_message = &signature_with_key.signed_message; 
-        let signed_message_bytes = general_purpose::STANDARD.decode(&received_signed_message).expect("Error while decoding signed message");
+        let received_signed_message = &signature_with_key.signed_message;
+        let signed_message_bytes = general_purpose::STANDARD
+            .decode(&received_signed_message)
+            .expect("Error while decoding signed message");
 
         // Split the signed message into the signature and the message.
         let (signature_bytes, message_bytes) = signed_message_bytes.split_at(64);
 
         // Create PublicKey and Signature objects.
-        let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
+        let signature =
+            Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
 
-        let mut current_chain: Vec<ChainEntry> = self.db
+        let mut current_chain: Vec<ChainEntry> = self
+            .db
             .get_hashchain(&signature_with_key.id)
             .map_err(|_| "Error while getting hashchain")?;
 
@@ -699,64 +768,75 @@ impl Session {
             if !is_not_revoked(&current_chain, entry.value.clone()) {
                 continue;
             }
-    
+
             let public_key = PublicKey::from_bytes(
                 &general_purpose::STANDARD
                     .decode(&entry.value)
                     .map_err(|_| "Error while decoding public key bytes")?,
             )
             .map_err(|_| "Error while creating PublicKey object")?;
-    
+
             if public_key.verify(message_bytes, &signature).is_ok() {
                 // Deserialize the message
-                let message = String::from_utf8(message_bytes.to_vec())
-                    .map_err(|_| "Invalid message")?;
-                let message_obj: IncomingEntry = serde_json::from_str(&message)
-                    .map_err(|_| "Invalid message")?;
+                let message =
+                    String::from_utf8(message_bytes.to_vec()).map_err(|_| "Invalid message")?;
+                let message_obj: IncomingEntry =
+                    serde_json::from_str(&message).map_err(|_| "Invalid message")?;
 
-                return Ok(IncomingEntry { 
-                    id: signature_with_key.id.clone(), 
-                    operation: message_obj.operation, 
-                    value: message_obj.value 
+                return Ok(IncomingEntry {
+                    id: signature_with_key.id.clone(),
+                    operation: message_obj.operation,
+                    value: message_obj.value,
                 });
             }
         }
-    
+
         Err("No valid signature found")
     }
 
-    fn verify_signature_with_given_key(&self, signature_with_key: &UpdateEntryJson) -> Result<IncomingEntry, &'static str>  {
+    fn verify_signature_with_given_key(
+        &self,
+        signature_with_key: &UpdateEntryJson,
+    ) -> Result<IncomingEntry, &'static str> {
         // try to extract the value of the id from the incoming entry from the redis database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
         let received_public_key = &signature_with_key.public_key;
-        let received_signed_message =  &signature_with_key.signed_message; 
+        let received_signed_message = &signature_with_key.signed_message;
 
         // TODO: better error handling (#11)
-        let received_public_key_bytes = general_purpose::STANDARD.decode(&received_public_key).expect("Error while decoding public key");
-        let signed_message_bytes = general_purpose::STANDARD.decode(&received_signed_message).expect("Error while decoding signed message");
+        let received_public_key_bytes = general_purpose::STANDARD
+            .decode(&received_public_key)
+            .expect("Error while decoding public key");
+        let signed_message_bytes = general_purpose::STANDARD
+            .decode(&received_signed_message)
+            .expect("Error while decoding signed message");
 
         // Split the signed message into the signature and the message.
         let (signature_bytes, message_bytes) = signed_message_bytes.split_at(64);
 
         // Create PublicKey and Signature objects.
-        let received_public_key = PublicKey::from_bytes(&received_public_key_bytes).expect("Error while creating PublicKey object");
-        let signature = Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
+        let received_public_key = PublicKey::from_bytes(&received_public_key_bytes)
+            .expect("Error while creating PublicKey object");
+        let signature =
+            Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
 
-        if received_public_key.verify(message_bytes, &signature).is_ok() {
+        if received_public_key
+            .verify(message_bytes, &signature)
+            .is_ok()
+        {
             // Deserialize the message
-            let message = String::from_utf8(message_bytes.to_vec())
-                .map_err(|_| "Invalid message")?;
-            let message_obj: IncomingEntry = serde_json::from_str(&message)
-                .map_err(|_| "Invalid message")?;
+            let message =
+                String::from_utf8(message_bytes.to_vec()).map_err(|_| "Invalid message")?;
+            let message_obj: IncomingEntry =
+                serde_json::from_str(&message).map_err(|_| "Invalid message")?;
 
-            return Ok(IncomingEntry { 
-                id: signature_with_key.id.clone(), 
-                operation: message_obj.operation, 
-                value: message_obj.value 
+            return Ok(IncomingEntry {
+                id: signature_with_key.id.clone(),
+                operation: message_obj.operation,
+                value: message_obj.value,
             });
         } else {
             Err("No valid signature found")
         }
     }
-    
 }
