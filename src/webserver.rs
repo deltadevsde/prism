@@ -1,6 +1,7 @@
 use crate::{
     indexed_merkle_tree::{sha256, ProofVariant},
-    node_types::Sequencer, WebServerConfig,
+    node_types::Sequencer,
+    WebServerConfig,
 };
 use actix_cors::Cors;
 use actix_web::{
@@ -20,10 +21,7 @@ use std::sync::Arc;
 use crate::{
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
     utils::{is_not_revoked, validate_epoch_from_proof_variants, validate_proof},
-    zk_snark::{
-        serialize_proof,
-        HashChainEntryCircuit,
-    },
+    zk_snark::{serialize_proof, HashChainEntryCircuit},
 };
 
 pub struct WebServer {

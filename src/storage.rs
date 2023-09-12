@@ -1,10 +1,6 @@
 use redis::{Commands, Connection};
 use serde::{Deserialize, Serialize};
-use std::{
-    self,
-    fmt::Display,
-    sync::Mutex,
-};
+use std::{self, fmt::Display, sync::Mutex};
 
 use crate::{
     indexed_merkle_tree::{sha256, Node, ProofVariant},

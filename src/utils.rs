@@ -1,9 +1,7 @@
 use crate::{
     indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, ProofVariant, UpdateProof},
     storage::ChainEntry,
-    zk_snark::{
-        hex_to_scalar, BatchMerkleProofCircuit, InsertMerkleProofCircuit,
-    },
+    zk_snark::{hex_to_scalar, BatchMerkleProofCircuit, InsertMerkleProofCircuit},
     Operation,
 };
 use bellman::groth16::{self, VerifyingKey};
