@@ -1,5 +1,5 @@
 use crate::zk_snark::{Bls12Proof, VerifyingKey};
-use actix_web::rt::spawn;
+use tokio::task::spawn;
 use async_trait::async_trait;
 use celestia_rpc::{client::new_websocket, BlobClient, HeaderClient};
 use celestia_types::{nmt::Namespace, Blob};
