@@ -1,4 +1,3 @@
-use actix_web::rt::spawn;
 use async_trait::async_trait;
 use base64::{engine::general_purpose, Engine as _};
 use bellman::groth16::Proof;
@@ -6,7 +5,7 @@ use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{PublicKey, Signature, Verifier};
 use std::{self, sync::Arc, time::Duration};
-use tokio::time::sleep;
+use tokio::{time::sleep, task::{spawn}};
 
 use crate::{
     da::{DataAvailabilityLayer, EpochJson},
@@ -45,7 +44,7 @@ impl NodeType for Sequencer {
 
         // start listening for new headers to update sync target
         if let Some(da) = &self.da {
-            da.start().await?;
+            da.start().await.unwrap();
         }
 
         let derived_keys = self.db.get_derived_keys();
@@ -78,7 +77,7 @@ impl NodeType for Sequencer {
 impl NodeType for LightClient {
     async fn start(self: Arc<Self>) -> Result<(), String> {
         // start listening for new headers to update sync target
-        self.da.start().await?;
+        self.da.start().await.unwrap();
 
         info!("starting main light client loop");
         // todo: persist current_position in datastore

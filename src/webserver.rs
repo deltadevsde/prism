@@ -6,10 +6,10 @@ use crate::{
 use actix_cors::Cors;
 use actix_web::{
     get, post,
-    rt::spawn,
     web::{self, Data},
     App as ActixApp, HttpResponse, HttpServer, Responder,
 };
+use tokio::task::{LocalSet};
 use bellman::groth16;
 use bls12_381::Bls12;
 use rand::rngs::OsRng;
@@ -40,7 +40,9 @@ impl WebServer {
         let ctx = Data::new(session.clone());
         let (ip, port) = (self.cfg.ip.clone(), self.cfg.port);
 
-        spawn(async move {
+        let local = LocalSet::new();
+
+        local.spawn_local(async move {
             HttpServer::new(move || {
                 let cors = Cors::default()
                     .allowed_origin("http://localhost:3000")

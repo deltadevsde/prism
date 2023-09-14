@@ -30,11 +30,11 @@ struct CommandLineArgs {
     log_level: Option<String>,
 
     /// Celestia Client websocket URL
-    #[arg(short, long)]
+    #[arg(short = 'c', long)]
     celestia_client: Option<String>,
 
     /// Celestia Namespace ID
-    #[arg(short, long)]
+    #[arg(short = 'n', long)]
     celestia_namespace_id: Option<String>,
 
     /// Duration between epochs in seconds
@@ -214,5 +214,10 @@ async fn main() -> std::io::Result<()> {
     node.start().await.map_err(|e| {
         error!("Error starting node: {:?}", e);
         std::io::Error::new(std::io::ErrorKind::Other, "Error starting node")
-    })
+    });
+
+    let ctrl_c = tokio::signal::ctrl_c();
+    ctrl_c.await.unwrap();
+    println!(" => Ctrl+C received, shutting down");
+    Ok(())
 }
