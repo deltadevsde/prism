@@ -150,7 +150,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
     async fn get_message(&self) -> Result<u64, String> {
         match self.rx.lock().await.recv().await {
             Some(Message::UpdateTarget(height)) => Ok(height),
-            None => Err(format!("Failed to get message from new header chennel")),
+            None => Err(format!("Failed to get message from header channel")),
         }
     }
 
