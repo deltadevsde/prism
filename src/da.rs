@@ -1,5 +1,5 @@
 use crate::zk_snark::{Bls12Proof, VerifyingKey};
-use tokio::task::spawn;
+use tokio::{task::spawn, sync::Mutex};
 use async_trait::async_trait;
 use celestia_rpc::{client::new_websocket, BlobClient, HeaderClient};
 use celestia_types::{nmt::Namespace, Blob};
@@ -9,7 +9,7 @@ use std::{self, sync::Arc};
 use tokio::sync::mpsc;
 
 // TODO: Add signature from sequencer for lc to verify (#2)
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EpochJson {
     pub height: u64,
     pub prev_commitment: String,
@@ -44,6 +44,89 @@ pub trait DataAvailabilityLayer: Send + Sync {
     async fn start(&self) -> Result<(), String>;
 }
 
+pub struct InMemoryDAL {
+    current_height: Arc<Mutex<u64>>,
+    epochs: Mutex<std::collections::HashMap<u64, Vec<EpochJson>>>,
+    tx: Arc<mpsc::Sender<Message>>,
+    rx: Arc<Mutex<mpsc::Receiver<Message>>>,
+}
+
+impl InMemoryDAL {
+    pub fn new() -> Self {
+        let (tx, rx) = mpsc::channel(5);
+
+        InMemoryDAL {
+            current_height: Arc::new(Mutex::new(0)),
+            epochs: Mutex::new(std::collections::HashMap::new()),
+            tx: Arc::new(tx),
+            rx: Arc::new(tokio::sync::Mutex::new(rx)),
+        }
+    }
+}
+
+#[async_trait]
+impl DataAvailabilityLayer for InMemoryDAL {
+    async fn get_message(&self) -> Result<u64, String> {
+        match self.rx.lock().await.recv().await {
+            Some(Message::UpdateTarget(height)) =>{
+                *self.current_height.lock().await = height;
+                Ok(height)
+            },
+            None => Err(format!("Failed to get message from header channel")),
+        }
+    }
+
+    async fn initialize_sync_target(&self) -> Result<u64, String> {
+        let epochs = self.epochs.lock().await;
+        match epochs.keys().max() {
+            Some(&max_height) => Ok(max_height),
+            None => Err(format!("No epochs in memory")),
+        }
+    }
+
+    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String> {
+        let epochs = self.epochs.lock().await;
+        match epochs.get(&height) {
+            Some(epoch) => Ok(epoch.clone()),
+            None => Err(format!("No epoch at height {}", height)),
+        }
+    }
+
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String> {
+        let mut epochs = self.epochs.lock().await;
+        let current_height = *self.current_height.lock().await;
+        match epochs.get_mut(&current_height) {
+            Some(epoch_vec) => epoch_vec.push(epoch.clone()),
+            None => {
+                epochs.insert(current_height, vec![epoch.clone()]);
+            }
+        }
+        Ok(current_height)
+    }
+
+    async fn start(&self) -> Result<(), String> {
+        let tx1 = self.tx.clone();
+        let mut current_height = *self.current_height.lock().await;
+        spawn(async move {
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                current_height += 1;
+                match tx1.send(Message::UpdateTarget(current_height)).await {
+                    Ok(_) => {
+                        debug!("Sent message to channel. Height: {}", current_height);
+                    }
+                    Err(_) => {
+                        debug!("Could not send message to channel");
+                    }
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+}
+
 pub struct CelestiaConnection {
     pub client: WsClient,
     pub namespace_id: Namespace,
@@ -75,7 +158,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
     async fn get_message(&self) -> Result<u64, String> {
         match self.rx.lock().await.recv().await {
             Some(Message::UpdateTarget(height)) => Ok(height),
-            None => Err(format!("Could not get message from channel: FUCK")),
+            None => Err(format!("Failed to get message from header channel")),
         }
     }
 
