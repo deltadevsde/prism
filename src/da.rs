@@ -57,7 +57,8 @@ impl CelestiaConnection {
         connection_string: &String,
         auth_token: Option<&str>,
         namespace_hex: &String,
-    ) -> CelestiaConnection {
+    ) -> Self {
+        // TODO: Should buffer size be configurable? Is 5 a reasonable default?
         let (tx, rx) = mpsc::channel(5);
 
         CelestiaConnection {
