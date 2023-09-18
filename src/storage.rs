@@ -122,7 +122,8 @@ pub struct CelestiaConnection {
 }
 
 impl CelestiaConnection {
-    pub async fn new(connection_string: &String, auth_token: Option<&str>, namespace_hex: &String) -> CelestiaConnection {
+    pub async fn new(connection_string: &String, auth_token: Option<&str>, namespace_hex: &String) -> Self {
+        // TODO: Is 5 a reasonable buffer size for this?
         let (tx, rx) = mpsc::channel(5);
 
         CelestiaConnection {

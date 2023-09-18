@@ -721,14 +721,12 @@ async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
     let config = load_config(args.clone()).unwrap();
 
-    println!("{:?}", config);    
-
     std::env::set_var("RUST_LOG", &config.log_level);
 
     pretty_env_logger::init();
     dotenv().ok();
 
-    println!("Starting server at {}", &config.celestia_connection_string);
+    info!("Starting server at {}", &config.celestia_connection_string);
 
     let da = Arc::new(CelestiaConnection::new(&config.celestia_connection_string, Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.CrIOHI6EuUDnAOkmzGB58jvCt-Ja3Z7kXXB-HXUN87A"), &config.namespace_id).await);
 
