@@ -8,7 +8,7 @@ pub mod zk_snark;
 
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
-use da::{CelestiaConnection, DataAvailabilityLayer};
+use da::{InMemoryDataAvailabilityLayer, DataAvailabilityLayer};
 use serde::Deserialize;
 
 use dotenv::dotenv;
@@ -191,12 +191,7 @@ async fn main() -> std::io::Result<()> {
         DALayerOption::Celestia => {
             let celestia_conf = config.clone().celestia_config.unwrap();
             Some(Arc::new(
-                CelestiaConnection::new(
-                    &celestia_conf.connection_string,
-                    None,
-                    &celestia_conf.namespace_id,
-                )
-                .await,
+                InMemoryDataAvailabilityLayer::new(),
             ) as Arc<dyn DataAvailabilityLayer + 'static>)
         }
         DALayerOption::None => None,

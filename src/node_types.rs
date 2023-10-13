@@ -115,6 +115,7 @@ impl NodeType for LightClient {
                         Err(e) => debug!("light client: getting epoch: {}", e),
                     };
                 }
+                sleep(Duration::from_secs(1)).await; // only for testing purposes
                 current_position = target; // Update the current position to the latest target
             }
         });
