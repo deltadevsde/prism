@@ -1,12 +1,18 @@
 use crate::zk_snark::{Bls12Proof, VerifyingKey};
-use tokio::task::spawn;
+use fs2::FileExt;
+use tokio::{task::spawn, sync::Mutex};
 use async_trait::async_trait;
 use celestia_rpc::{client::new_websocket, BlobClient, HeaderClient};
 use celestia_types::{nmt::Namespace, Blob};
 use jsonrpsee::ws_client::WsClient;
 use serde::{Deserialize, Serialize};
-use std::{self, sync::Arc};
+use std::{self, sync::Arc, collections::HashMap};
 use tokio::sync::mpsc;
+use serde_json::json;
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write, Seek};
+use serde_json::Value;
+
 
 // TODO: Add signature from sequencer for lc to verify (#2)
 #[derive(Serialize, Deserialize)]
@@ -47,6 +53,12 @@ pub trait DataAvailabilityLayer: Send + Sync {
 pub struct CelestiaConnection {
     pub client: WsClient,
     pub namespace_id: Namespace,
+    tx: Arc<mpsc::Sender<Message>>,
+    rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
+}
+
+pub struct InMemoryDataAvailabilityLayer {
+    store: Arc<Mutex<HashMap<u64, Vec<EpochJson>>>>,
     tx: Arc<mpsc::Sender<Message>>,
     rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
 }
@@ -144,6 +156,93 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 }
             }
         });
+        Ok(())
+    }
+}
+
+
+impl InMemoryDataAvailabilityLayer {
+    pub fn new() -> Self {
+        let (tx, rx) = mpsc::channel(5);
+
+        InMemoryDataAvailabilityLayer {
+            store: Arc::new(Mutex::new(HashMap::new())),
+            tx: Arc::new(tx),
+            rx: Arc::new(tokio::sync::Mutex::new(rx)),
+        }
+    }
+}
+
+#[async_trait]
+impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+    async fn get_message(&self) -> Result<u64, String> {
+        Ok(100)
+    }
+
+    async fn initialize_sync_target(&self) -> Result<u64, String> {
+        Ok(0)  // header starts always at zero in test cases
+    }
+
+    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String> {
+        let mut file = File::open("data.json").expect("Unable to open file");
+        let mut contents = String::new();
+        file.lock_exclusive().expect("Unable to lock file");
+        file.read_to_string(&mut contents).expect("Unable to read file");
+
+        let data: Value = serde_json::from_str(&contents).expect("Invalid JSON format");
+
+        if let Some(epoch) = data.get(height.to_string()) {
+            // convert arbit. json value to EpochJson
+            let result_epoch: Result<EpochJson,_> = serde_json::from_value(epoch.clone());
+            file.unlock().expect("Unable to unlock file");
+            Ok(vec![result_epoch.expect("WRON FORMT")])
+        } else {
+            file.unlock().expect("Unable to unlock file");
+            Err(format!("Could not get height {} from DA layer", height))
+        }
+    }
+
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String> {
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open("data.json")
+            .expect("Unable to open file");
+
+        let mut contents = String::new();
+
+        file.lock_exclusive().expect("Unable to lock file");
+        info!("File locked");
+
+        file.read_to_string(&mut contents).expect("Unable to read file");
+
+
+        let mut data: Value = if contents.is_empty() {
+            json!({})
+        } else {
+            serde_json::from_str(&contents).expect("Invalid JSON format")
+        };
+
+        // add new epoch to existing json-file data
+        data[epoch.height.to_string()] = json!(epoch);
+
+        // Reset the file pointer to the beginning of the file
+        file.seek(std::io::SeekFrom::Start(0)).expect("Unable to seek to start");
+
+        // Write the updated data into the file
+        file.write_all(data.to_string().as_bytes()).expect("Unable to write file");
+
+        // Truncate the file to the current pointer to remove any extra data
+        file.set_len(data.to_string().as_bytes().len() as u64).expect("Unable to set file length");
+
+        file.unlock().expect("Unable to unlock file");
+        info!("File unlocked");
+
+        Ok(epoch.height)
+    }
+
+    async fn start(&self) -> Result<(), String> {
         Ok(())
     }
 }
