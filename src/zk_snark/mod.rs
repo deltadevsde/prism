@@ -142,33 +142,39 @@ mod tests {
     use bls12_381::Bls12;
     use rand::rngs::OsRng;
 
-    #[test]
-    fn test_serialize_and_deserialize_proof() {
+    const EMPTY_HASH: &str = Node::EMPTY_HASH;
+    const TAIL: &str = Node::TAIL;
+
+    fn build_empty_tree() -> IndexedMerkleTree {
         // Initial setup
-        let empty_hash = Node::EMPTY_HASH.to_string();
-        let tail = Node::TAIL.to_string();
         let active_node = Node::initialize_leaf(
             true,
             true,
-            empty_hash.clone(),
-            empty_hash.clone(),
-            tail.clone(),
+            EMPTY_HASH.to_string(),
+            EMPTY_HASH.to_string(),
+            TAIL.to_string(),
         );
         let inactive_node = Node::initialize_leaf(
             false,
             true,
-            empty_hash.clone(),
-            empty_hash.clone(),
-            tail.clone(),
+            EMPTY_HASH.to_string(),
+            EMPTY_HASH.to_string(),
+            TAIL.to_string(),
         );
 
         // build a tree with 4 nodes
-        let mut tree = IndexedMerkleTree::new(vec![
+        IndexedMerkleTree::new(vec![
             active_node,
             inactive_node.clone(),
             inactive_node.clone(),
             inactive_node,
-        ]);
+        ])
+    }
+
+    #[test]
+    fn test_serialize_and_deserialize_proof() {
+        // Initial setup
+        let mut tree = build_empty_tree();
         let prev_commitment = tree.get_commitment();
 
         // create two nodes to insert
@@ -176,24 +182,16 @@ mod tests {
         let ford = sha256(&"Ford".to_string());
         let sebastian = sha256(&"Sebastian".to_string());
         let pusch = sha256(&"Pusch".to_string());
-        let ryans_node = Node::initialize_leaf(true, true, ryan, ford, tail.clone());
-        let sebastians_node = Node::initialize_leaf(true, true, sebastian, pusch, tail.clone());
+        let ryans_node = Node::initialize_leaf(true, true, ryan, ford, TAIL.to_string());
+        let sebastians_node = Node::initialize_leaf(true, true, sebastian, pusch, TAIL.to_string());
 
         // generate proofs for the two nodes
         let first_insert_proof = tree.generate_proof_of_insert(&ryans_node);
         let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node);
 
         // create zkSNARKs for the two proofs
-        let first_insert_zk_snark = ProofVariant::Insert(
-            first_insert_proof.0,
-            first_insert_proof.1,
-            first_insert_proof.2,
-        );
-        let second_insert_zk_snark = ProofVariant::Insert(
-            second_insert_proof.0,
-            second_insert_proof.1,
-            second_insert_proof.2,
-        );
+        let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
+        let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
 
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
         let current_commitment = tree.get_commitment();
@@ -613,7 +611,7 @@ impl BatchMerkleProofCircuit {
                     proof_circuit_array
                         .push(BatchMerkleProofCircuit::create_from_update(&update_proof).unwrap());
                 }
-                ProofVariant::Insert(merkle_proof, first_update, second_update) => {
+                ProofVariant::Insert((merkle_proof, first_update, second_update)) => {
                     proof_circuit_array.push(
                         BatchMerkleProofCircuit::create_from_insert(&(
                             merkle_proof,

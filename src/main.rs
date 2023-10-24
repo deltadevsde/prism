@@ -201,7 +201,8 @@ async fn main() -> std::io::Result<()> {
         // LightClients need a DA layer, so we can unwrap here
         Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap())),
         Commands::Sequencer {} => Arc::new(Sequencer::new(
-            Arc::new(RedisConnections::new()),
+            // convert error to std::io::Error...is there a better solution?
+            Arc::new(RedisConnections::new().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?),
             da,
             config,
         )),

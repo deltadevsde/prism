@@ -15,7 +15,7 @@ pub fn sha256(input: &String) -> String {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ProofVariant {
     Update(UpdateProof),
-    Insert(MerkleProof, UpdateProof, UpdateProof),
+    Insert(InsertProof),
 }
 
 pub struct Proof {

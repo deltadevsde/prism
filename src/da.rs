@@ -246,3 +246,95 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         Ok(())
     }
 }
+
+
+/* 
+    pub struct EpochJson {
+        pub height: u64,
+        pub prev_commitment: String,
+        pub current_commitment: String,
+        pub proof: Bls12Proof,
+        pub verifying_key: VerifyingKey,
+    }
+*/
+
+mod da_tests {
+    use crate::{
+        indexed_merkle_tree::{sha256, IndexedMerkleTree, Node},
+        zk_snark::{deserialize_proof},
+    };
+
+    use super::*;
+    use bellman::groth16;
+    use bls12_381::Bls12;
+    use rand::rngs::OsRng;
+
+    const EMPTY_HASH: &str = Node::EMPTY_HASH;
+    const TAIL: &str = Node::TAIL;
+
+    fn build_empty_tree() -> IndexedMerkleTree {
+        // Initial setup
+        let active_node = Node::initialize_leaf(
+            true,
+            true,
+            EMPTY_HASH.to_string(),
+            EMPTY_HASH.to_string(),
+            TAIL.to_string(),
+        );
+        let inactive_node = Node::initialize_leaf(
+            false,
+            true,
+            EMPTY_HASH.to_string(),
+            EMPTY_HASH.to_string(),
+            TAIL.to_string(),
+        );
+
+        // build a tree with 4 nodes
+        IndexedMerkleTree::new(vec![
+            active_node,
+            inactive_node.clone(),
+            inactive_node.clone(),
+            inactive_node,
+        ])
+    }
+
+    fn create_node(label: String, value: String) -> Node {
+        let label = sha256(&label.to_string());
+        let value = sha256(&value.to_string());
+        Node::initialize_leaf(true, true, label, value, TAIL.to_string())
+    }
+
+    #[tokio::test]
+    async fn test_sequencer_and_light_client() {
+        // simulate sequencer start
+        let sequencer = tokio::spawn(async {
+            let sequencer_layer = InMemoryDataAvailabilityLayer::new();
+            // write all 60 seconds proofs and commitments
+            loop {
+                sequencer_layer.submit(/* Ihr Beweis und Commitment */).await.unwrap();
+                tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
+            }
+        });
+    
+        let light_client = tokio::spawn(async {
+            let light_client_layer = InMemoryDataAvailabilityLayer::new();
+            loop {
+                // Der Light Client liest Beweise und Commitments
+                let proof = light_client_layer.get(/* Höhe */).await.unwrap();
+                // verify proof
+    
+                // light_client checks every 30 secs, tbd with distractedm1nd
+                tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+            }
+       
+        });
+    
+        // run the test for example 3 minutes
+        tokio::time::sleep(tokio::time::Duration::from_secs(180)).await;
+    
+        sequencer.abort();
+        light_client.abort();
+    }
+}
+
+
