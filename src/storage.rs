@@ -1,6 +1,9 @@
-use redis::{Commands, Connection};
+use redis::{Client, Commands, Connection};
+use std::process::Command;
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display, sync::Mutex};
+use std::thread::sleep;
+use std::time::Duration;
 
 use crate::{
     indexed_merkle_tree::{sha256, Node, ProofVariant},
@@ -70,6 +73,7 @@ pub trait Database: Send + Sync {
     fn get_derived_keys(&self) -> Vec<String>;
     fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, &str>;
     fn get_derived_value(&self, key: &String) -> Result<String, &str>;
+    fn get_derived_keys_in_order(&self) -> Vec<String>;
     fn get_commitment(&self, epoch: &u64) -> Result<String, &str>;
     fn get_proof(&self, id: &String) -> Result<String, &str>;
     fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, &str>;
@@ -100,27 +104,44 @@ pub trait Database: Send + Sync {
     );
     fn add_commitment(&self, epoch: &u64, commitment: &String);
     fn initialize_derived_dict(&self);
+    fn flush_database(&self) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 impl RedisConnections {
-    pub fn new() -> RedisConnections {
-        let client = redis::Client::open("redis://127.0.0.1/").unwrap();
-        let derived_client = redis::Client::open("redis://127.0.0.1/1").unwrap();
-        let input_order = redis::Client::open("redis://127.0.0.1/2").unwrap();
-        let app_state = redis::Client::open("redis://127.0.0.1/3").unwrap();
-        let merkle_proofs = redis::Client::open("redis://127.0.0.1/4").unwrap();
-        let commitments = redis::Client::open("redis://127.0.0.1/5").unwrap();
+    pub fn new() -> Result<RedisConnections, Box<dyn std::error::Error>> {
+        let try_client = Client::open("redis://127.0.0.1/")?;
+        let try_connection = try_client.get_connection();
 
-        RedisConnections {
-            main_dict: Mutex::new(client.get_connection().unwrap()),
-            derived_dict: Mutex::new(derived_client.get_connection().unwrap()),
-            input_order: Mutex::new(input_order.get_connection().unwrap()),
-            app_state: Mutex::new(app_state.get_connection().unwrap()),
-            merkle_proofs: Mutex::new(merkle_proofs.get_connection().unwrap()),
-            commitments: Mutex::new(commitments.get_connection().unwrap()),
+        if try_connection.is_err() {
+            // Redis-Server starten, wenn er noch nicht läuft
+            println!("Starting redis-server...");
+        
+            let _child = Command::new("redis-server")
+                .spawn()?;
+            
+            sleep(Duration::from_secs(5));
+            println!("Redis-server started.");
         }
+
+        let client = Client::open("redis://127.0.0.1/")?;
+        let derived_client = Client::open("redis://127.0.0.1/1")?;
+        let input_order = Client::open("redis://127.0.0.1/2")?;
+        let app_state = Client::open("redis://127.0.0.1/3")?;
+        let merkle_proofs = Client::open("redis://127.0.0.1/4")?;
+        let commitments = Client::open("redis://127.0.0.1/5")?;
+
+        Ok(RedisConnections {
+            main_dict: Mutex::new(client.get_connection()?),
+            derived_dict: Mutex::new(derived_client.get_connection()?),
+            input_order: Mutex::new(input_order.get_connection()?),
+            app_state: Mutex::new(app_state.get_connection()?),
+            merkle_proofs: Mutex::new(merkle_proofs.get_connection()?),
+            commitments: Mutex::new(commitments.get_connection()?),
+        })
     }
+
 }
+
 
 impl Database for RedisConnections {
     fn get_keys(&self) -> Vec<String> {
@@ -153,6 +174,18 @@ impl Database for RedisConnections {
             Ok(value) => Ok(value),
             Err(_) => Err("Key not found"),
         }
+    }
+
+    // TODO: bei der get_derived_value() Funktion ist ein komisches Verhalten aufgefallen, sie gibt die Werte in scheinbar zufälliger Reihenfolge zurück. Fraglich ob es nicht einfach ausreicht,
+    // die Werte mit Hilfe der input_order Tabelle zurückzugeben. Das muss nochmal mit @distractedm1nd diskutiert werden :) Dann wäre die obige Funktion auch nicht mehr nötig.
+    fn get_derived_keys_in_order(&self) -> Vec<String> {
+        let mut input_con = self.input_order.lock().unwrap();
+        
+        // Die Methode lrange gibt eine Liste der Elemente zwischen zwei Indizes zurück.
+        // 0 und -1 bedeuten das erste und das letzte Element, also die gesamte Liste.
+        let order: Vec<String> = input_con.lrange("input_order", 0, -1).unwrap();
+        
+        order
     }
 
     fn get_commitment(&self, epoch: &u64) -> Result<String, &str> {
@@ -344,4 +377,160 @@ impl Database for RedisConnections {
             Err(_) => debug!("Could not add empty hash to input order"),
         }; // add the empty hash to the input order as first node
     }
+
+    fn flush_database(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut main_conn = self.main_dict.lock().map_err(|e| format!("Failed to lock main_dict: {}", e))?;
+        let mut derived_conn = self.derived_dict.lock().map_err(|e| format!("Failed to lock derived_dict: {}", e))?;
+        let mut input_order_conn = self.input_order.lock().map_err(|e| format!("Failed to lock input_order: {}", e))?;
+        let mut app_state_conn = self.app_state.lock().map_err(|e| format!("Failed to lock app_state: {}", e))?;
+        let mut merkle_proof_conn = self.merkle_proofs.lock().map_err(|e| format!("Failed to lock merkle_proofs: {}", e))?;
+        let mut commitments_conn = self.commitments.lock().map_err(|e| format!("Failed to lock commitments: {}", e))?;
+
+        redis::cmd("FLUSHALL").query(&mut main_conn)?;
+        redis::cmd("FLUSHALL").query(&mut derived_conn)?;
+        redis::cmd("FLUSHALL").query(&mut input_order_conn)?;
+        redis::cmd("FLUSHALL").query(&mut app_state_conn)?;
+        redis::cmd("FLUSHALL").query(&mut merkle_proof_conn)?;
+        redis::cmd("FLUSHALL").query(&mut commitments_conn)?;
+        Ok(())
+    }
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*; 
+
+    // set up redis connection and flush database before each test
+    fn setup() -> RedisConnections {
+        let redis_connections = RedisConnections::new().unwrap();
+        redis_connections.flush_database().unwrap();
+        redis_connections
+    }
+    
+    // flush database after each test
+    fn teardown(redis_connections: &RedisConnections) {
+        redis_connections.flush_database().unwrap();
+    }
+
+    // TODO: In dem Zusammnehang fällt mir jetzt auf, dass wir möglicherweise die get_keys() Funktion umbenennen sollten
+    // in get_hashchain_keys() oder so, weil es ja eigentlich nur die Schlüssel der Hashchain zurückgibt. Besser gesagt
+    // gibt es auch noch die get_derived_keys() Funktion, die die Schlüssel der derived_dict zurückgibt. Das sind einfach
+    // die gehashten Keys. Also möglicherweise: get_keys() und get_hashed_keys() ?!
+    // TODO: get_keys() gibt die Schlüssel in umgekehrter Reihenfolge zurück
+    #[test]
+    fn test_get_keys() {
+        // set up redis connection and flush database
+        let redis_connections = setup();
+
+        let incoming_entry1: IncomingEntry = IncomingEntry { id: "test_key1".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+        let incoming_entry2: IncomingEntry = IncomingEntry { id: "test_key2".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+        let incoming_entry3: IncomingEntry = IncomingEntry { id: "test_key3".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+
+        let mock_chain_entry: ChainEntry = ChainEntry {
+            hash: "test_hash".to_string(),
+            previous_hash: "test_previous_hash".to_string(),
+            operation: Operation::Add,
+            value: "test_value".to_string(),
+        };
+
+        redis_connections.update_hashchain(&incoming_entry1, &vec![mock_chain_entry.clone()]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry2, &vec![mock_chain_entry.clone()]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry3, &vec![mock_chain_entry]).unwrap();
+
+        let mut keys = redis_connections.get_keys();
+        
+        // Überprüfe, ob die zurückgegebenen Schlüssel korrekt sind
+        let expected_keys: Vec<String> = vec!["test_key1".to_string(), "test_key2".to_string(), "test_key3".to_string()];
+        keys.reverse();
+        let returned_keys: Vec<String> = keys;
+
+        assert_eq!(expected_keys, returned_keys);
+
+        teardown(&redis_connections);
+    }
+
+    /* fn get_derived_keys(&self) -> Vec<String> {
+        let mut con = self.derived_dict.lock().unwrap();
+        let keys: Vec<String> = con.keys("*").unwrap();
+        keys
+    } */
+
+    // siehe obiges TODO
+    // TODO: sollte es nicht so sein, dass die update funktion automatisch auch das derived dict weiterführt?
+    // TODO: hier ist die Unterscheidung dann auch wieder etwas komisch, weil ich separat die set_derived_dict Funktion nutzen
+    // muss, aber selbst wenn das so gewollt ist, ist es kein gutes Design, dass Sie andere Parameter erwartet oder?!
+    // Außerdem sollte es ja gar nicht möglich sein, Schlüssel ausschließlich direkt in das derived dict zu schreiben, oder?!
+    #[test]
+    fn test_get_hashed_keys() {
+        let redis_connections = setup();
+
+        let incoming_entry1: IncomingEntry = IncomingEntry { id: "test_key1".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+        let incoming_entry2: IncomingEntry = IncomingEntry { id: "test_key2".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+        let incoming_entry3: IncomingEntry = IncomingEntry { id: "test_key3".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+
+        let mock_chain_entry: ChainEntry = ChainEntry {
+            hash: "test_hash".to_string(),
+            previous_hash: "test_previous_hash".to_string(),
+            operation: Operation::Add,
+            value: "test_value".to_string(),
+        };
+
+        println!("{}", sha256(&"test_key1".to_string()));
+        println!("{}", sha256(&"test_key2".to_string()));
+        println!("{}", sha256(&"test_key3".to_string()));
+
+        redis_connections.set_derived_entry(&incoming_entry1, &mock_chain_entry.clone(), true).unwrap();
+        redis_connections.set_derived_entry(&incoming_entry2, &mock_chain_entry.clone(), true).unwrap();
+        redis_connections.set_derived_entry(&incoming_entry3, &mock_chain_entry, true).unwrap();
+
+        let keys = redis_connections.get_derived_keys_in_order();
+        
+        // Überprüfe, ob die zurückgegebenen Schlüssel korrekt sind
+        let expected_keys: Vec<String> = vec![sha256(&"test_key1".to_string()), sha256(&"test_key2".to_string()), sha256(&"test_key3".to_string())];
+        // keys.reverse(); HIER MUSS SCHEINBAR NICHT REVERSED WERDEN?!
+        let returned_keys: Vec<String> = keys;
+        
+        assert_eq!(expected_keys, returned_keys);
+        
+        teardown(&redis_connections); 
+    }
+
+
+    #[test]
+    /* 
+        TODO: Beim Testschreiben fällt auf, dass hier möglicherweise entweder Dinge nicht richtig benannt wurden, oder nochmal überdacht werden müssen. Die Funktion update_hashchain
+        erhält als Parameter einen IncomingEntry und ein Vec<ChainEntry>. Das Vec<ChainEntry> ist der aktuelle Stand der Hashchain, der IncomingEntry ist der neue Eintrag, der hinzugefügt
+        werden soll. Ich hätte jetzt im Nachhinein von mir selbst sozusagen erwartet, dass innerhalb der Funktion die neue Hashchain erstellt wird oder aber einfach nur ein Wert zu einem
+        Schlüssel-Werte-Paar erstellt wird. Beides ist aber nicht der Fall, es gibt stattdessen noch eine update_entry() Funktion außerhalb der RedisConnections, die dann die neue Hashchain
+        erstellt. Das muss nochmal mit @distractedm1nd diskutiert werden :)
+     */
+    fn test_update_hashchain() {
+        let redis_connections = setup();
+
+        let incoming_entry: IncomingEntry = IncomingEntry { id: "test_key".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+
+        let mock_chain_entry: ChainEntry = ChainEntry {
+            hash: "test_hash".to_string(),
+            previous_hash: "test_previous_hash".to_string(),
+            operation: Operation::Add,
+            value: "test_value".to_string(),
+        };
+
+        let chain_entries: Vec<ChainEntry> = vec![mock_chain_entry];
+
+        match redis_connections.update_hashchain(&incoming_entry, &chain_entries) {
+            Ok(_) => (),
+            Err(e) => panic!("Failed to update hashchain: {}", e),
+        }
+
+        let hashchain = redis_connections.get_hashchain(&incoming_entry.id).unwrap();
+        assert_eq!(hashchain[0].hash, "test_hash");
+        assert_eq!(hashchain.len(), 1);
+
+        teardown(&redis_connections);
+    }
+}
+
+

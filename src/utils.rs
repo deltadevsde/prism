@@ -230,16 +230,8 @@ mod tests {
         let first_insert_proof = tree.generate_proof_of_insert(&ryans_node);
         let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node);
 
-        let first_insert_zk_snark = ProofVariant::Insert(
-            first_insert_proof.0,
-            first_insert_proof.1,
-            first_insert_proof.2,
-        );
-        let second_insert_zk_snark = ProofVariant::Insert(
-            second_insert_proof.0,
-            second_insert_proof.1,
-            second_insert_proof.2,
-        );
+        let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
+        let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
 
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
         let current_commitment = tree.get_commitment();
