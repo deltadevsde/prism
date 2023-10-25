@@ -187,13 +187,11 @@ pub fn validate_epoch(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        indexed_merkle_tree::{sha256, Node},
-    };
+    use crate::indexed_merkle_tree::{sha256, Node};
 
     use super::*;
-    use bellman::{groth16};
-    use bls12_381::{Bls12};
+    use bellman::groth16;
+    use bls12_381::Bls12;
 
     #[test]
     fn test_validate_epoch_valid_proof() {
@@ -230,8 +228,12 @@ mod tests {
         let first_insert_proof = tree.generate_proof_of_insert(&ryans_node);
         let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node);
 
-        let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
-        let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
+        let first_insert_zk_snark = ProofVariant::Insert(
+            first_insert_proof
+        );
+        let second_insert_zk_snark = ProofVariant::Insert(
+            second_insert_proof
+        );
 
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
         let current_commitment = tree.get_commitment();
@@ -254,4 +256,5 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), proof);
     }
+
 }

@@ -260,17 +260,34 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
 
 mod da_tests {
     use crate::{
-        indexed_merkle_tree::{sha256, IndexedMerkleTree, Node},
-        zk_snark::{deserialize_proof},
+        indexed_merkle_tree::{sha256, IndexedMerkleTree, Node, ProofVariant},
+        zk_snark::{deserialize_proof, BatchMerkleProofCircuit, serialize_proof, VerifyingKey, serialize_verifying_key_to_custom, deserialize_custom_to_verifying_key}, utils::validate_epoch,
     };
 
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
     use rand::rngs::OsRng;
+    use std::fs::OpenOptions;
+    use std::io::{Error, Seek, SeekFrom};
 
     const EMPTY_HASH: &str = Node::EMPTY_HASH;
     const TAIL: &str = Node::TAIL;
+
+    pub fn clear_file(filename: &str) -> Result<(), Error> {
+        // Datei zum Schreiben öffnen
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open(filename)?;
+    
+        // Dateilänge auf 0 setzen, um alle Daten zu löschen
+        file.set_len(0)?;
+    
+        // Zeiger auf den Anfang der Datei setzen
+        file.seek(SeekFrom::Start(0))?;
+    
+        Ok(())
+    }
 
     fn build_empty_tree() -> IndexedMerkleTree {
         // Initial setup
@@ -298,43 +315,132 @@ mod da_tests {
         ])
     }
 
-    fn create_node(label: String, value: String) -> Node {
+    fn create_node(label: &str, value: &str) -> Node {
         let label = sha256(&label.to_string());
         let value = sha256(&value.to_string());
         Node::initialize_leaf(true, true, label, value, TAIL.to_string())
     }
 
+    fn create_proof_and_vk(prev_commitment: String, current_commitment: String, proofs: Vec<ProofVariant>) -> (Bls12Proof, VerifyingKey) {
+        let batched_proof =
+            BatchMerkleProofCircuit::create(&prev_commitment, &current_commitment, proofs).unwrap();
+
+        let rng = &mut OsRng;
+        let params =
+            groth16::generate_random_parameters::<Bls12, _, _>(batched_proof.clone(), rng).unwrap();
+        let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
+
+        // the serialized proof is posted
+        (serialize_proof(&proof), serialize_verifying_key_to_custom(&params.vk))
+    }
+
+    fn verify_epoch_json(epoch: Vec<EpochJson>) {
+        for epoch_json in epoch {
+            let prev_commitment = epoch_json.prev_commitment;
+            let current_commitment = epoch_json.current_commitment;
+
+            let proof = deserialize_proof(&epoch_json.proof).unwrap();
+            let verifying_key =
+                deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
+                    .unwrap();
+
+            match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
+                Ok(_) => {
+                    info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
+                    println!("Epoch is valid");
+                }
+                Err(err) => panic!("Failed to validate epoch: {:?}", err),
+            }
+        }
+    }
+
     #[tokio::test]
     async fn test_sequencer_and_light_client() {
+        if let Err(e) = clear_file("data.json") {
+            println!("Fehler beim Löschen der Datei: {}", e);
+        }
+        
+
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
             let sequencer_layer = InMemoryDataAvailabilityLayer::new();
             // write all 60 seconds proofs and commitments
-            loop {
-                sequencer_layer.submit(/* Ihr Beweis und Commitment */).await.unwrap();
-                tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-            }
+            // create a new tree
+            let mut tree = build_empty_tree();
+            let prev_commitment = tree.get_commitment();
+
+            // insert a first node
+            let node_1 = create_node("test1", "test2");
+
+            // generate proof for the first insert
+            let first_insert_proof = tree.generate_proof_of_insert(&node_1);
+            let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
+
+            println!("{:?}", tree.get_root());
+
+            // create bls12 proof for posting
+            let (bls12proof, vk) = create_proof_and_vk(prev_commitment.clone(), tree.get_commitment(), vec![first_insert_zk_snark]);
+
+            sequencer_layer.submit(&EpochJson { 
+                height: 1, 
+                prev_commitment: prev_commitment, 
+                current_commitment: tree.get_commitment(),
+                proof: bls12proof, 
+                verifying_key: vk 
+            }).await.unwrap();
+            tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
+
+            // update prev commitment
+            let prev_commitment = tree.get_commitment();
+
+            // insert a second and third node
+            let node_2 = create_node("test3", "test4");
+            let node_3 = create_node("test5", "test6");
+
+            // generate proof for the second and third insert
+            let second_insert_proof = tree.generate_proof_of_insert(&node_2);
+            let third_insert_proof = tree.generate_proof_of_insert(&node_3);
+            let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
+            let third_insert_zk_snark = ProofVariant::Insert(third_insert_proof);
+
+            // proof and vk
+            let (proof, vk) = create_proof_and_vk(prev_commitment.clone(), tree.get_commitment(), vec![second_insert_zk_snark, third_insert_zk_snark]);
+            sequencer_layer.submit(&EpochJson { 
+                height: 2, 
+                prev_commitment: prev_commitment, 
+                current_commitment: tree.get_commitment(),
+                proof: proof, 
+                verifying_key: vk 
+            }).await.unwrap();
+            tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
         });
     
         let light_client = tokio::spawn(async {
+            println!("light client started");
             let light_client_layer = InMemoryDataAvailabilityLayer::new();
             loop {
+                let epoch = light_client_layer.get(1).await.unwrap();
+                // verify proofs
+                verify_epoch_json(epoch);
+                
+                // light_client checks time etc. tbdiscussed with distractedm1nd
+                tokio::time::sleep(tokio::time::Duration::from_secs(70)).await;
+
                 // Der Light Client liest Beweise und Commitments
-                let proof = light_client_layer.get(/* Höhe */).await.unwrap();
-                // verify proof
-    
-                // light_client checks every 30 secs, tbd with distractedm1nd
-                tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+                let epoch = light_client_layer.get(2).await.unwrap();
+                // verify proofs
+                verify_epoch_json(epoch);
             }
        
         });
     
         // run the test for example 3 minutes
-        tokio::time::sleep(tokio::time::Duration::from_secs(180)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(150)).await;
     
         sequencer.abort();
         light_client.abort();
     }
 }
+
 
 
