@@ -134,7 +134,7 @@ pub fn deserialize_custom_to_verifying_key(
 mod tests {
     use crate::{
         indexed_merkle_tree::{sha256, IndexedMerkleTree, Node},
-        zk_snark::{deserialize_proof},
+        zk_snark::deserialize_proof,
     };
 
     use super::*;
@@ -399,6 +399,32 @@ impl Circuit<Scalar> for UpdateMerkleProofCircuit {
         }
     }
 }
+
+/* 
+    0eab3ff4edb5fe61a369b5803afa5ec04f7a0ee59c425c6eb8ffe372f138fca7
+    3aeb938c7016cd9eea6211d4a8dcd4cc547e8834426b52159b8d329df111961f
+    => 05a4cf0490ff0131576d25bb992c1a786f6cebd05b0143feb6936f908348d62c 
+
+    3aeb938c7016cd9eea6211d4a8dcd4cc547e8834426b52159b8d329df111961f
+    3aeb938c7016cd9eea6211d4a8dcd4cc547e8834426b52159b8d329df111961f
+    => ccf3a891faa147d5a7077fd099f0ef5783466f48527caaa2db7556928d474f9d
+
+    05a4cf0490ff0131576d25bb992c1a786f6cebd05b0143feb6936f908348d62c
+    ccf3a891faa147d5a7077fd099f0ef5783466f48527caaa2db7556928d474f9d
+    => 5874ae032845885fde3e3e990fc3cbcb453e491614520342a71be8ede5aebade
+
+    test1: 1b4f0e9851971998e732078544c96b36c3d01cedf7caa332359d6f1d83567014
+    test2: 60303ae22b998861bce3b28f33eec1be758a213c86c93c076dbe9f558c11c752
+    => 382bbf940b88bcd85531f5f5961f0ba4dfcb420e0d42c900ed23318780586645
+
+    0eab3ff4edb5fe61a369b5803afa5ec04f7a0ee59c425c6eb8ffe372f138fca7
+    374ac101a30c94dcb0ef8272cd31267180d4314b2cb850c579170ca4ccb71686
+    => 4d17013bad6248e2e40452c48ede70e161f379782e174e21d051c36da07ce0bc
+
+    4d17013bad6248e2e40452c48ede70e161f379782e174e21d051c36da07ce0bc
+    ccf3a891faa147d5a7077fd099f0ef5783466f48527caaa2db7556928d474f9d
+    => 
+*/
 
 impl Circuit<Scalar> for BatchMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {

@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use crate::{
     node_types::{LightClient, NodeType, Sequencer},
-    storage::{Operation, RedisConnections},
+    storage::{Operation, RedisConnections}, da::CelestiaConnection,
 };
 
 #[macro_use]
@@ -58,6 +58,7 @@ struct CommandLineArgs {
 enum DALayerOption {
     #[default]
     Celestia,
+    InMemory,
     None,
 }
 
@@ -177,7 +178,7 @@ fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
 /// 4. Registers routes for various services.
 /// 5. Binds the server to the configured IP and port.
 /// 6. Runs the server and awaits its completion.
-#[tokio::main]
+#[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
     let config = load_config(args.clone()).unwrap();
@@ -191,9 +192,17 @@ async fn main() -> std::io::Result<()> {
         DALayerOption::Celestia => {
             let celestia_conf = config.clone().celestia_config.unwrap();
             Some(Arc::new(
-                InMemoryDataAvailabilityLayer::new(),
+                CelestiaConnection::new(
+                    &celestia_conf.connection_string,
+                    Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.d1x8PXcrFxyil3gSSCmPqHDJa5tsQV_iTAhRTnS5Mos"),
+                    &celestia_conf.namespace_id,
+                )
+                .await,
             ) as Arc<dyn DataAvailabilityLayer + 'static>)
         }
+        DALayerOption::InMemory => Some(Arc::new(
+            InMemoryDataAvailabilityLayer::new(),
+        ) as Arc<dyn DataAvailabilityLayer + 'static>),
         DALayerOption::None => None,
     };
 
