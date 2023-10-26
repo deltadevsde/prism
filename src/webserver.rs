@@ -7,9 +7,8 @@ use actix_cors::Cors;
 use actix_web::{
     get, post,
     web::{self, Data},
-    App as ActixApp, HttpResponse, HttpServer, Responder,
+    App as ActixApp, HttpResponse, HttpServer, Responder, dev::Server,
 };
-use tokio::task::{LocalSet};
 use bellman::groth16;
 use bls12_381::Bls12;
 use rand::rngs::OsRng;
@@ -33,47 +32,41 @@ impl WebServer {
         WebServer { cfg }
     }
 
-    pub async fn start(&self, session: Arc<Sequencer>) -> Result<(), String> {
+    pub fn start(&self, session: Arc<Sequencer>) -> Server {
         /* let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
         builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
         builder.set_certificate_chain_file(env.cert_path).unwrap(); */
+        info!("Starting webserver on {}:{}", self.cfg.ip, self.cfg.port);
         let ctx = Data::new(session.clone());
         let (ip, port) = (self.cfg.ip.clone(), self.cfg.port);
 
-        let local = LocalSet::new();
-
-        local.spawn_local(async move {
-            HttpServer::new(move || {
-                let cors = Cors::default()
-                    .allowed_origin("http://localhost:3000")
-                    .allowed_origin("http://localhost:3001")
-                    .allowed_origin("https://visualizer.sebastianpusch.de")
-                    .allow_any_origin()
-                    .allow_any_method()
-                    .allow_any_header();
-                ActixApp::new()
-                    .app_data(ctx.clone())
-                    .wrap(cors)
-                    .service(get_hashchains)
-                    .service(get_hashchain)
-                    .service(get_commitment)
-                    .service(get_current_tree)
-                    .service(get_epochs)
-                    .service(get_epoch_operations)
-                    .service(update_entry)
-                    .service(calculate_values)
-                    .service(handle_validate_proof)
-                    .service(handle_validate_epoch)
-                    .service(handle_validate_hashchain_proof)
-                    .service(handle_finalize_epoch)
-            })
-            /* .bind_openssl((self.ip, self.port), builder)? */
-            .bind((ip, port))?
-            .run()
-            .await
-        });
-
-        Ok(())
+        HttpServer::new(move || {
+            let cors = Cors::default()
+                .allowed_origin("http://localhost:3000")
+                .allowed_origin("http://localhost:3001")
+                .allowed_origin("https://visualizer.sebastianpusch.de")
+                .allow_any_origin()
+                .allow_any_method()
+                .allow_any_header();
+            ActixApp::new()
+                .app_data(ctx.clone())
+                .wrap(cors)
+                .service(get_hashchains)
+                .service(get_hashchain)
+                .service(get_commitment)
+                .service(get_current_tree)
+                .service(get_epochs)
+                .service(get_epoch_operations)
+                .service(update_entry)
+                .service(calculate_values)
+                .service(handle_validate_proof)
+                .service(handle_validate_epoch)
+                .service(handle_validate_hashchain_proof)
+                .service(handle_finalize_epoch)
+        })
+        /* .bind_openssl((self.ip, self.port), builder)? */
+        .bind((ip, port)).expect("Could not bind to port")
+        .run()
     }
 }
 

@@ -211,13 +211,6 @@ async fn main() -> std::io::Result<()> {
             config,
         )),
     };
-    node.start().await.map_err(|e| {
-        error!("Error starting node: {:?}", e);
-        std::io::Error::new(std::io::ErrorKind::Other, "Error starting node")
-    });
-
-    let ctrl_c = tokio::signal::ctrl_c();
-    ctrl_c.await.unwrap();
-    println!(" => Ctrl+C received, shutting down");
-    Ok(())
+    
+    node.start().await
 }
