@@ -5,7 +5,7 @@ use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{PublicKey, Signature, Verifier};
 use std::{self, sync::Arc, time::Duration};
-use tokio::{time::sleep, task::{spawn}};
+use tokio::{time::sleep, task::spawn};
 
 use crate::{
     da::{DataAvailabilityLayer, EpochJson},
@@ -22,7 +22,7 @@ use crate::{
 
 #[async_trait]
 pub trait NodeType {
-    async fn start(self: Arc<Self>) -> Result<(), String>;
+    async fn start(self: Arc<Self>) -> std::result::Result<(), std::io::Error>;
     // async fn stop(&self) -> Result<(), String>;
 }
 
@@ -39,9 +39,7 @@ pub struct LightClient {
 
 #[async_trait]
 impl NodeType for Sequencer {
-    async fn start(self: Arc<Self>) -> Result<(), String> {
-        self.ws.start(self.clone()).await?;
-
+    async fn start(self: Arc<Self>) -> std::result::Result<(), std::io::Error> {
         // start listening for new headers to update sync target
         if let Some(da) = &self.da {
             da.start().await.unwrap();
@@ -52,6 +50,8 @@ impl NodeType for Sequencer {
             // if the dict is empty, we need to initialize the dict and the input order
             self.db.initialize_derived_dict();
         }
+
+        let cloned_self = self.clone();
 
         debug!("starting main sequencer loop");
         spawn(async move {
@@ -69,13 +69,14 @@ impl NodeType for Sequencer {
             }
         });
 
-        Ok(())
+        // starting the webserver
+        cloned_self.ws.start(cloned_self.clone()).await
     }
 }
 
 #[async_trait]
 impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> Result<(), String> {
+    async fn start(self: Arc<Self>) -> std::result::Result<(), std::io::Error> {
         // start listening for new headers to update sync target
         self.da.start().await.unwrap();
 
