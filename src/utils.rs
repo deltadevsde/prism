@@ -193,6 +193,12 @@ mod tests {
     use bellman::groth16;
     use bls12_381::Bls12;
 
+    /* 
+
+
+
+    */
+
     #[test]
     fn test_validate_epoch_valid_proof() {
         let active_node = Node::initialize_leaf(
@@ -217,16 +223,19 @@ mod tests {
             inactive_node,
         ]);
         let prev_commitment = tree.get_commitment();
-        let ryan = sha256(&"Ryan".to_string());
-        let ford = sha256(&"Ford".to_string());
-        let sebastian = sha256(&"Sebastian".to_string());
-        let pusch = sha256(&"Pusch".to_string());
+       /*  println!("{:?}", tree.get_root()); */
+        let ryan = sha256(&"Ryan".to_string()); // 2d1e830624b2572adc05351a7cbee2d3aa3f6a52b34fa38a260c9c78f96fcd07
+        let ford = sha256(&"Ford".to_string()); // 1aa4f3d6ea5b4c9305a7efe7d06b31e9763177119afb0604a237dd7fa36e7d82
+        let sebastian = sha256(&"Sebastian".to_string()); // db0284fc80b4881fa545953441a21958470c49d73508714a84a259cb62a5dbb5
+        let pusch = sha256(&"Pusch".to_string()); // da80a1331e3be011a3ee56dfa77d3b4a14cb6a5c65191b5d672f9a8d59e8d0b9
         let ryans_node = Node::initialize_leaf(true, true, ryan, ford, Node::TAIL.to_string());
-        let sebastians_node =
+        let sebastians_node = // FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
             Node::initialize_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
 
         let first_insert_proof = tree.generate_proof_of_insert(&ryans_node);
         let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node);
+
+        /* println!("{:?}", tree.get_root()); */
 
         let first_insert_zk_snark = ProofVariant::Insert(
             first_insert_proof
