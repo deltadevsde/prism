@@ -4,8 +4,8 @@ use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{PublicKey, Signature, Verifier};
-use std::{self, sync::Arc, time::Duration};
-use tokio::{time::sleep, task::spawn};
+use std::{self, sync::Arc, time::Duration, io::ErrorKind};
+use tokio::{time::sleep, task::{spawn, JoinError}};
 
 use crate::{
     da::{DataAvailabilityLayer, EpochJson},
@@ -84,7 +84,7 @@ impl NodeType for LightClient {
         // todo: persist current_position in datastore
         // also: have initial starting position be configurable
 
-        spawn(async move {
+        let handle = spawn(async move {
             let mut current_position = 0;
             loop {
                 // target is updated when a new header is received
@@ -120,7 +120,9 @@ impl NodeType for LightClient {
             }
         });
 
-        Ok(())
+        handle.await.map_err(|e| {
+            std::io::Error::new(ErrorKind::Other, format!("Join error: {}", e))
+        })
     }
 }
 
