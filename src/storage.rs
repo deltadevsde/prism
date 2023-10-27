@@ -176,7 +176,7 @@ impl Database for RedisConnections {
         }
     }
 
-    // TODO: bei der get_derived_value() Funktion ist ein komisches Verhalten aufgefallen, sie gibt die Werte in scheinbar zufälliger Reihenfolge zurück. Fraglich ob es nicht einfach ausreicht,
+    // TODO: bei der get_derived_keys() Funktion ist ein komisches Verhalten aufgefallen, sie gibt die Werte in scheinbar zufälliger Reihenfolge zurück. Fraglich ob es nicht einfach ausreicht,
     // die Werte mit Hilfe der input_order Tabelle zurückzugeben. Das muss nochmal mit @distractedm1nd diskutiert werden :) Dann wäre die obige Funktion auch nicht mehr nötig.
     fn get_derived_keys_in_order(&self) -> Vec<String> {
         let mut input_con = self.input_order.lock().unwrap();
@@ -502,7 +502,7 @@ mod tests {
     /* 
         TODO: Beim Testschreiben fällt auf, dass hier möglicherweise entweder Dinge nicht richtig benannt wurden, oder nochmal überdacht werden müssen. Die Funktion update_hashchain
         erhält als Parameter einen IncomingEntry und ein Vec<ChainEntry>. Das Vec<ChainEntry> ist der aktuelle Stand der Hashchain, der IncomingEntry ist der neue Eintrag, der hinzugefügt
-        werden soll. Ich hätte jetzt im Nachhinein von mir selbst sozusagen erwartet, dass innerhalb der Funktion die neue Hashchain erstellt wird oder aber einfach nur ein Wert zu einem
+        werden soll. Ich hätte jetzt im Nachhinein erwartet, dass innerhalb der Funktion die neue Hashchain erstellt wird oder aber einfach nur ein Wert zu einem
         Schlüssel-Werte-Paar erstellt wird. Beides ist aber nicht der Fall, es gibt stattdessen noch eine update_entry() Funktion außerhalb der RedisConnections, die dann die neue Hashchain
         erstellt. Das muss nochmal mit @distractedm1nd diskutiert werden :)
      */
