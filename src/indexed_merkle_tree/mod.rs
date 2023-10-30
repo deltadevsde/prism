@@ -446,8 +446,6 @@ impl IndexedMerkleTree {
         self.nodes[index] = new_node;
         self = self.clone().calculate_root();
 
-        println!("new root: {:?}", self.get_root());
-
         // generate new proof
         let new_proof = self.clone().generate_proof_of_membership(index);
 
