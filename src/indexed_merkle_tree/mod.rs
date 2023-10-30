@@ -446,6 +446,8 @@ impl IndexedMerkleTree {
         self.nodes[index] = new_node;
         self = self.clone().calculate_root();
 
+        println!("new root: {:?}", self.get_root());
+
         // generate new proof
         let new_proof = self.clone().generate_proof_of_membership(index);
 
@@ -482,9 +484,11 @@ impl IndexedMerkleTree {
         let new_index = new_index.expect("Unable to find an inactive node.");
 
         // generate second update proof
-        let (second_update_proof, _) = self
+        let (second_update_proof, updated_self) = self
             .clone()
             .generate_update_proof(new_index, new_node.clone());
+
+        *self = updated_self;
 
         (
             proof_of_non_membership,
