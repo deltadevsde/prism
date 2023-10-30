@@ -91,7 +91,6 @@ async fn update_entry(
     signature_with_key: web::Json<Value>,
 ) -> impl Responder {
     // Check if JSON data can be structured as UpdateEntryJson
-
     let signature_with_key: UpdateEntryJson =
         match serde_json::from_value(signature_with_key.into_inner()) {
             Ok(entry_json) => entry_json,
