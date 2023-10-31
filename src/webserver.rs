@@ -99,6 +99,7 @@ async fn update_entry(
             }
         };
 
+    // get epoch number and latest epoch operation number from database
     let epoch: u64 = session.db.get_epoch().unwrap();
     let epoch_operation: u64 = session.db.get_epoch_operation().unwrap();
 
@@ -111,8 +112,6 @@ async fn update_entry(
         Ok(_) => true,
         Err(_) => false,
     };
-
-    println!("update_proof: {:?}", &signature_with_key);
 
     let update_successful = session.update_entry(&signature_with_key);
 
@@ -451,8 +450,7 @@ async fn handle_validate_hashchain_proof(
     // debug!("Verifying zkSNARK proof...");
     match groth16::verify_proof(&pvk, &proof, &[public_param]) {
         Ok(_) => {
-            println!("Proof is valid");
-            println!("Verified with: {:?}", public_param);
+            info!("Proof is valid\nVerified with: {:?}", public_param);
             return HttpResponse::Ok().json({
                 json!({
                     "proof": serialize_proof(&proof),
@@ -468,7 +466,6 @@ async fn handle_validate_hashchain_proof(
 ///
 #[get("/get-commitment")]
 async fn get_commitment(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    println!("get-commitment");
     HttpResponse::Ok().body(
         serde_json::to_string(&con.create_tree().get_commitment())
             .expect("Failed to serialize commitment"),
@@ -517,8 +514,6 @@ async fn get_epoch_operations(con: web::Data<Arc<Sequencer>>, req_body: String) 
 #[get("/get-epochs")]
 async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     let mut epochs = con.db.get_epochs().unwrap();
-
-    println!("get-epochs: {:?}", epochs);
 
     #[derive(Serialize, Deserialize)]
     struct Epoch {

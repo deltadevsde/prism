@@ -57,11 +57,7 @@ pub struct CelestiaConnection {
     rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
 }
 
-pub struct InMemoryDataAvailabilityLayer {
-    store: Arc<Mutex<HashMap<u64, Vec<EpochJson>>>>,
-    tx: Arc<mpsc::Sender<Message>>,
-    rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
-}
+pub struct InMemoryDataAvailabilityLayer {}
 
 impl CelestiaConnection {
     // TODO: Should take config
@@ -163,13 +159,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
 
 impl InMemoryDataAvailabilityLayer {
     pub fn new() -> Self {
-        let (tx, rx) = mpsc::channel(5);
-
-        InMemoryDataAvailabilityLayer {
-            store: Arc::new(Mutex::new(HashMap::new())),
-            tx: Arc::new(tx),
-            rx: Arc::new(tokio::sync::Mutex::new(rx)),
-        }
+        InMemoryDataAvailabilityLayer {  }
     }
 }
 
@@ -247,17 +237,7 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     }
 }
 
-
-/* 
-    pub struct EpochJson {
-        pub height: u64,
-        pub prev_commitment: String,
-        pub current_commitment: String,
-        pub proof: Bls12Proof,
-        pub verifying_key: VerifyingKey,
-    }
-*/
-
+#[cfg(test)]
 mod da_tests {
     use crate::{
         indexed_merkle_tree::{sha256, IndexedMerkleTree, Node, ProofVariant},
@@ -347,7 +327,6 @@ mod da_tests {
             match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
                 Ok(_) => {
                     info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
-                    println!("Epoch is valid");
                 }
                 Err(err) => panic!("Failed to validate epoch: {:?}", err),
             }
@@ -359,7 +338,6 @@ mod da_tests {
         if let Err(e) = clear_file("data.json") {
             println!("Fehler beim Löschen der Datei: {}", e);
         }
-        
 
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
@@ -375,8 +353,6 @@ mod da_tests {
             // generate proof for the first insert
             let first_insert_proof = tree.generate_proof_of_insert(&node_1);
             let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
-
-            println!("{:?}", tree.get_root());
 
             // create bls12 proof for posting
             let (bls12proof, vk) = create_proof_and_vk(prev_commitment.clone(), tree.get_commitment(), vec![first_insert_zk_snark]);
@@ -422,6 +398,7 @@ mod da_tests {
                 let epoch = light_client_layer.get(1).await.unwrap();
                 // verify proofs
                 verify_epoch_json(epoch);
+                println!("light client verified epoch 1");
                 
                 // light_client checks time etc. tbdiscussed with distractedm1nd
                 tokio::time::sleep(tokio::time::Duration::from_secs(70)).await;
@@ -430,6 +407,7 @@ mod da_tests {
                 let epoch = light_client_layer.get(2).await.unwrap();
                 // verify proofs
                 verify_epoch_json(epoch);
+                println!("light client verified epoch 2");
             }
        
         });
