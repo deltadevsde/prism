@@ -10,7 +10,7 @@ use crate::{
     utils::parse_json_to_proof,
 };
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Operation {
     Add,
     Revoke,
@@ -25,7 +25,7 @@ impl Display for Operation {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct ChainEntry {
     pub hash: String,
     pub previous_hash: String,
@@ -178,6 +178,7 @@ impl Database for RedisConnections {
 
     // TODO: bei der get_derived_keys() Funktion ist ein komisches Verhalten aufgefallen, sie gibt die Werte in scheinbar zufälliger Reihenfolge zurück. Fraglich ob es nicht einfach ausreicht,
     // die Werte mit Hilfe der input_order Tabelle zurückzugeben. Das muss nochmal mit @distractedm1nd diskutiert werden :) Dann wäre die obige Funktion auch nicht mehr nötig.
+    // Does the order of the keys matter? 
     fn get_derived_keys_in_order(&self) -> Vec<String> {
         let mut input_con = self.input_order.lock().unwrap();
         
@@ -402,6 +403,8 @@ impl Database for RedisConnections {
 mod tests {
     use super::*; 
 
+    // Helper functions
+
     // set up redis connection and flush database before each test
     fn setup() -> RedisConnections {
         let redis_connections = RedisConnections::new().unwrap();
@@ -414,6 +417,26 @@ mod tests {
         redis_connections.flush_database().unwrap();
     }
 
+    fn create_mock_chain_entry() -> ChainEntry {
+        ChainEntry {
+            hash: "test_hash".to_string(),
+            previous_hash: "test_previous_hash".to_string(),
+            operation: Operation::Add,
+            value: "test_value".to_string(),
+        }
+    }
+
+    fn create_incoming_entry_with_test_value(id: &str) -> IncomingEntry {
+        IncomingEntry {
+            id: id.to_string(),
+            operation: Operation::Add,
+            value: "test_value".to_string(),
+        }
+    }
+
+
+    // TESTS FOR fn get_keys(&self) -> Vec<String>
+
     // TODO: In dem Zusammnehang fällt mir jetzt auf, dass wir möglicherweise die get_keys() Funktion umbenennen sollten
     // in get_hashchain_keys() oder so, weil es ja eigentlich nur die Schlüssel der Hashchain zurückgibt. Besser gesagt
     // gibt es auch noch die get_derived_keys() Funktion, die die Schlüssel der derived_dict zurückgibt. Das sind einfach
@@ -424,20 +447,13 @@ mod tests {
         // set up redis connection and flush database
         let redis_connections = setup();
 
-        let incoming_entry1: IncomingEntry = IncomingEntry { id: "test_key1".to_string(), operation: Operation::Add, value: "test_value".to_string() };
-        let incoming_entry2: IncomingEntry = IncomingEntry { id: "test_key2".to_string(), operation: Operation::Add, value: "test_value".to_string() };
-        let incoming_entry3: IncomingEntry = IncomingEntry { id: "test_key3".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+        let incoming_entry1 = create_incoming_entry_with_test_value("test_key1");
+        let incoming_entry2 = create_incoming_entry_with_test_value("test_key2");
+        let incoming_entry3 = create_incoming_entry_with_test_value("test_key3");
 
-        let mock_chain_entry: ChainEntry = ChainEntry {
-            hash: "test_hash".to_string(),
-            previous_hash: "test_previous_hash".to_string(),
-            operation: Operation::Add,
-            value: "test_value".to_string(),
-        };
-
-        redis_connections.update_hashchain(&incoming_entry1, &vec![mock_chain_entry.clone()]).unwrap();
-        redis_connections.update_hashchain(&incoming_entry2, &vec![mock_chain_entry.clone()]).unwrap();
-        redis_connections.update_hashchain(&incoming_entry3, &vec![mock_chain_entry]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry1, &vec![create_mock_chain_entry()]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()]).unwrap();
 
         let mut keys = redis_connections.get_keys();
         
@@ -451,11 +467,69 @@ mod tests {
         teardown(&redis_connections);
     }
 
-    /* fn get_derived_keys(&self) -> Vec<String> {
-        let mut con = self.derived_dict.lock().unwrap();
-        let keys: Vec<String> = con.keys("*").unwrap();
-        keys
-    } */
+    #[test]
+    fn test_get_keys_from_empty_dictionary() {
+        let redis_connections = setup();
+
+        let keys = redis_connections.get_keys();
+        
+        let expected_keys: Vec<String> = vec![];
+        let returned_keys: Vec<String> = keys;
+
+        assert_eq!(expected_keys, returned_keys);
+
+        teardown(&redis_connections);
+    }
+    
+    #[test]
+    #[should_panic(expected = "assertion failed")]
+    fn test_get_too_much_returned_keys() {
+        let redis_connections = setup();
+
+        let incoming_entry1 = create_incoming_entry_with_test_value("test_key_1");
+        let incoming_entry2 = create_incoming_entry_with_test_value("test_key_2");
+        let incoming_entry3 = create_incoming_entry_with_test_value("test_key_3");
+
+        redis_connections.update_hashchain(&incoming_entry1, &vec![create_mock_chain_entry()]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()]).unwrap();
+
+        let mut keys = redis_connections.get_keys();
+        
+        let too_little_keys: Vec<String> = vec!["test_key1".to_string(), "test_key2".to_string()];
+        keys.reverse();
+        let returned_keys: Vec<String> = keys;
+
+        assert_eq!(too_little_keys, returned_keys);
+
+        teardown(&redis_connections);
+    }
+     
+    #[test]
+    #[should_panic(expected = "assertion failed")]
+    fn test_get_too_little_returned_keys() {
+        let redis_connections = setup();
+
+        let incoming_entry1 = create_incoming_entry_with_test_value("test_key_1");
+        let incoming_entry2 = create_incoming_entry_with_test_value("test_key_2");
+        let incoming_entry3 = create_incoming_entry_with_test_value("test_key_3");
+
+        redis_connections.update_hashchain(&incoming_entry1, &vec![create_mock_chain_entry()]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()]).unwrap();
+        redis_connections.update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()]).unwrap();
+
+        let mut keys = redis_connections.get_keys();
+        
+        let too_little_keys: Vec<String> = vec!["test_key1".to_string(), "test_key2".to_string(), "test_key3".to_string(), "test_key4".to_string()];
+        keys.reverse();
+        let returned_keys: Vec<String> = keys;
+
+        assert_eq!(too_little_keys, returned_keys);
+
+        teardown(&redis_connections);
+    }
+    
+    //    TESTS FOR fn get_derived_keys(&self) -> Vec<String>
 
     // siehe obiges TODO
     // TODO: sollte es nicht so sein, dass die update funktion automatisch auch das derived dict weiterführt?
@@ -466,28 +540,17 @@ mod tests {
     fn test_get_hashed_keys() {
         let redis_connections = setup();
 
-        let incoming_entry1: IncomingEntry = IncomingEntry { id: "test_key1".to_string(), operation: Operation::Add, value: "test_value".to_string() };
-        let incoming_entry2: IncomingEntry = IncomingEntry { id: "test_key2".to_string(), operation: Operation::Add, value: "test_value".to_string() };
-        let incoming_entry3: IncomingEntry = IncomingEntry { id: "test_key3".to_string(), operation: Operation::Add, value: "test_value".to_string() };
+        let incoming_entry1 = create_incoming_entry_with_test_value("test_key1");
+        let incoming_entry2 = create_incoming_entry_with_test_value("test_key2");
+        let incoming_entry3 = create_incoming_entry_with_test_value("test_key3");
 
-        let mock_chain_entry: ChainEntry = ChainEntry {
-            hash: "test_hash".to_string(),
-            previous_hash: "test_previous_hash".to_string(),
-            operation: Operation::Add,
-            value: "test_value".to_string(),
-        };
-
-        println!("{}", sha256(&"test_key1".to_string()));
-        println!("{}", sha256(&"test_key2".to_string()));
-        println!("{}", sha256(&"test_key3".to_string()));
-
-        redis_connections.set_derived_entry(&incoming_entry1, &mock_chain_entry.clone(), true).unwrap();
-        redis_connections.set_derived_entry(&incoming_entry2, &mock_chain_entry.clone(), true).unwrap();
-        redis_connections.set_derived_entry(&incoming_entry3, &mock_chain_entry, true).unwrap();
+        redis_connections.set_derived_entry(&incoming_entry1, &create_mock_chain_entry(), true).unwrap();
+        redis_connections.set_derived_entry(&incoming_entry2, &create_mock_chain_entry(), true).unwrap();
+        redis_connections.set_derived_entry(&incoming_entry3, &create_mock_chain_entry(), true).unwrap();
 
         let keys = redis_connections.get_derived_keys_in_order();
         
-        // Überprüfe, ob die zurückgegebenen Schlüssel korrekt sind
+        // Überprüfen, ob die zurückgegebenen Schlüssel korrekt sind
         let expected_keys: Vec<String> = vec![sha256(&"test_key1".to_string()), sha256(&"test_key2".to_string()), sha256(&"test_key3".to_string())];
         // keys.reverse(); HIER MUSS SCHEINBAR NICHT REVERSED WERDEN?!
         let returned_keys: Vec<String> = keys;
@@ -496,6 +559,89 @@ mod tests {
         
         teardown(&redis_connections); 
     }
+
+
+    // TESTS FOR fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, &str>
+
+    #[test]
+    fn test_get_hashchain() {
+        let redis_connections = setup();
+
+        let incoming_entry = create_incoming_entry_with_test_value("test_key");
+        let chain_entry = create_mock_chain_entry();
+
+        redis_connections.update_hashchain(&incoming_entry, &vec![chain_entry.clone()]).unwrap();
+
+        let hashchain = redis_connections.get_hashchain(&incoming_entry.id).unwrap();
+        assert_eq!(hashchain[0].hash, chain_entry.hash);
+        assert_eq!(hashchain[0].previous_hash, chain_entry.previous_hash);
+        assert_eq!(hashchain[0].operation, chain_entry.operation);
+        assert_eq!(hashchain[0].value, chain_entry.value);
+
+        teardown(&redis_connections);
+    }
+
+    #[test]
+    #[should_panic(expected = "Key not found")]
+    fn test_try_getting_hashchain_for_missing_key() {
+        let redis_connections = setup();
+
+        let incoming_entry = create_incoming_entry_with_test_value("test_key");
+        let chain_entry = create_mock_chain_entry();
+
+        redis_connections.update_hashchain(&incoming_entry, &vec![chain_entry.clone()]).unwrap();
+
+        let hashchain = redis_connections.get_hashchain(&"missing_test_key".to_string()).unwrap();
+        assert_eq!(hashchain[0].hash, chain_entry.hash);
+        assert_eq!(hashchain[0].previous_hash, chain_entry.previous_hash);
+        assert_eq!(hashchain[0].operation, chain_entry.operation);
+        assert_eq!(hashchain[0].value, chain_entry.value);
+
+        teardown(&redis_connections);
+    }
+
+    #[test]
+    #[should_panic(expected = "Internal error parsing value")]
+    fn test_try_getting_wrong_formatted_hashchain_value() {
+        let redis_connections = setup();
+
+        let mut con = redis_connections.main_dict.lock().unwrap();
+
+        #[derive(Serialize, Deserialize, Clone)] 
+        struct WrongFormattedChainEntry {
+            pub hash_val: String, // instead of just "hash"
+            pub previous_hash: String, 
+            pub operation: Operation, 
+            pub value: String, 
+        } 
+
+        let wrong_chain_entry = WrongFormattedChainEntry {
+            hash_val: "wrong".to_string(),
+            previous_hash: "formatted".to_string(),
+            operation: Operation::Add,
+            value: "entry".to_string()
+        };
+
+        let value = serde_json::to_string(&vec![wrong_chain_entry.clone()]).unwrap();
+
+        con.set::<&String, String, String>(&"key_to_wrong_formatted_chain_entry".to_string(), value).unwrap();
+
+        drop(con); // drop the lock on the connection bc get_hashchain also needs a lock on the connection
+        
+        let hashchain = redis_connections.get_hashchain(&"key_to_wrong_formatted_chain_entry".to_string()).unwrap();
+
+        assert_eq!(hashchain[0].hash, wrong_chain_entry.clone().hash_val);
+        assert_eq!(hashchain[0].previous_hash, wrong_chain_entry.clone().previous_hash);
+        assert_eq!(hashchain[0].value, wrong_chain_entry.value);
+
+        teardown(&redis_connections);
+    }
+
+
+    // TESTS FOR fn get_derived_value(&self, key: &String) -> Result<String, &str>
+    
+
+
 
 
     #[test]
@@ -511,14 +657,7 @@ mod tests {
 
         let incoming_entry: IncomingEntry = IncomingEntry { id: "test_key".to_string(), operation: Operation::Add, value: "test_value".to_string() };
 
-        let mock_chain_entry: ChainEntry = ChainEntry {
-            hash: "test_hash".to_string(),
-            previous_hash: "test_previous_hash".to_string(),
-            operation: Operation::Add,
-            value: "test_value".to_string(),
-        };
-
-        let chain_entries: Vec<ChainEntry> = vec![mock_chain_entry];
+        let chain_entries: Vec<ChainEntry> = vec![create_mock_chain_entry()];
 
         match redis_connections.update_hashchain(&incoming_entry, &chain_entries) {
             Ok(_) => (),

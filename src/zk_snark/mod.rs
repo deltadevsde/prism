@@ -451,9 +451,6 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
             }
         };
 
-        println!("old root: {:?}", old_root);
-        println!("old commitment: {:?}", self.old_commitment);
-
         let provided_old_commitment =
             cs.alloc_input(|| "provided old commitment", || Ok(self.old_commitment))?;
         let old_commitment_from_proofs =
@@ -511,9 +508,6 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                 }
             }
         }
-
-        println!("new commitment: {:?}", self.new_commitment);
-        println!("new commitment calculated: {:?}", new_commitment.unwrap());
 
         let provided_new_commitment =
             cs.alloc_input(|| "provided commitment", || Ok(self.new_commitment))?;
