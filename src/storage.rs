@@ -176,8 +176,8 @@ impl Database for RedisConnections {
         }
     }
 
-    // TODO: bei der get_derived_keys() Funktion ist ein komisches Verhalten aufgefallen, sie gibt die Werte in scheinbar zufälliger Reihenfolge zurück. Fraglich ob es nicht einfach ausreicht,
-    // die Werte mit Hilfe der input_order Tabelle zurückzugeben. Das muss nochmal mit @distractedm1nd diskutiert werden :) Dann wäre die obige Funktion auch nicht mehr nötig.
+    // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
+    // Questionable if it is not simply enough to return the values using the input_order table. This needs to be discussed again with @distractedm1nd :) Then the above function wouldn't be necessary anymore.
     // Does the order of the keys matter? 
     fn get_derived_keys_in_order(&self) -> Vec<String> {
         let mut input_con = self.input_order.lock().unwrap();
@@ -437,11 +437,10 @@ mod tests {
 
     // TESTS FOR fn get_keys(&self) -> Vec<String>
 
-    // TODO: In dem Zusammnehang fällt mir jetzt auf, dass wir möglicherweise die get_keys() Funktion umbenennen sollten
-    // in get_hashchain_keys() oder so, weil es ja eigentlich nur die Schlüssel der Hashchain zurückgibt. Besser gesagt
-    // gibt es auch noch die get_derived_keys() Funktion, die die Schlüssel der derived_dict zurückgibt. Das sind einfach
-    // die gehashten Keys. Also möglicherweise: get_keys() und get_hashed_keys() ?!
-    // TODO: get_keys() gibt die Schlüssel in umgekehrter Reihenfolge zurück
+    // TODO: In this context it occurs to me now that we should probably rename the get_keys() function to get_hashchain_keys() or something, because it actually only returns the keys of the hashchain. 
+    // Better yet, there's also the get_derived_keys() function, which returns the derived_dict keys. These are simply the hashed keys. So possibly: get_keys() and get_hashed_keys() ?!
+    // probably not thaaat important
+    // TODO: get_keys() returns the keys in reverse order
     #[test]
     fn test_get_keys() {
         // set up redis connection and flush database
@@ -531,11 +530,8 @@ mod tests {
     
     //    TESTS FOR fn get_derived_keys(&self) -> Vec<String>
 
-    // siehe obiges TODO
-    // TODO: sollte es nicht so sein, dass die update funktion automatisch auch das derived dict weiterführt?
-    // TODO: hier ist die Unterscheidung dann auch wieder etwas komisch, weil ich separat die set_derived_dict Funktion nutzen
-    // muss, aber selbst wenn das so gewollt ist, ist es kein gutes Design, dass Sie andere Parameter erwartet oder?!
-    // Außerdem sollte es ja gar nicht möglich sein, Schlüssel ausschließlich direkt in das derived dict zu schreiben, oder?!
+    // TODO: shouldn't it be that the update function automatically continues the derived dict? 
+    // In addition, it should not be possible to write keys exclusively directly into the derived dict, right?
     #[test]
     fn test_get_hashed_keys() {
         let redis_connections = setup();
@@ -646,11 +642,10 @@ mod tests {
 
     #[test]
     /* 
-        TODO: Beim Testschreiben fällt auf, dass hier möglicherweise entweder Dinge nicht richtig benannt wurden, oder nochmal überdacht werden müssen. Die Funktion update_hashchain
-        erhält als Parameter einen IncomingEntry und ein Vec<ChainEntry>. Das Vec<ChainEntry> ist der aktuelle Stand der Hashchain, der IncomingEntry ist der neue Eintrag, der hinzugefügt
-        werden soll. Ich hätte jetzt im Nachhinein erwartet, dass innerhalb der Funktion die neue Hashchain erstellt wird oder aber einfach nur ein Wert zu einem
-        Schlüssel-Werte-Paar erstellt wird. Beides ist aber nicht der Fall, es gibt stattdessen noch eine update_entry() Funktion außerhalb der RedisConnections, die dann die neue Hashchain
-        erstellt. Das muss nochmal mit @distractedm1nd diskutiert werden :)
+         TODO: In the test writing, it is noticeable that things may either not have been named correctly here, or need to be reconsidered. The update_hashchain function receives an IncomingEntry and a Vec<ChainEntry> as parameters. 
+         The Vec<ChainEntry> is the current state of the hashchain, the IncomingEntry is the new entry to be added. is to be added. Now, in hindsight, I would have expected that within the function the new hashchain would be created, 
+         or else just a value to a key-value pair is created. But neither is the case, instead there are two more update() functions outside of RedisConnections, which then creates the new hashchain is created. This needs to be discussed again with @distractedm1nd :)
+         What should happen at the database level? Should the new hashchain be created? Or should only a new value be added to a key-value pair?
      */
     fn test_update_hashchain() {
         let redis_connections = setup();
