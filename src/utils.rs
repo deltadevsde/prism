@@ -179,8 +179,8 @@ pub fn validate_epoch(
     .unwrap();
 
     debug!(
-        "{}",
-        "validate_epoch: zkSNARK with groth16 random parameters was successfully verified!"
+        "validate_epoch: zkSNARK with groth16 random parameters for epoch between commitment {} and {} was successfully verified!",
+        previous_commitment, current_commitment
     );
     Ok(proof)
 }
@@ -192,12 +192,6 @@ mod tests {
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
-
-    /* 
-
-
-
-    */
 
     #[test]
     fn test_validate_epoch_valid_proof() {

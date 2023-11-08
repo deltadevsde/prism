@@ -450,7 +450,7 @@ async fn handle_validate_hashchain_proof(
     // debug!("Verifying zkSNARK proof...");
     match groth16::verify_proof(&pvk, &proof, &[public_param]) {
         Ok(_) => {
-            info!("Proof is valid\nVerified with: {:?}", public_param);
+            info!("proof successfully verified with: {:?}", public_param);
             return HttpResponse::Ok().json({
                 json!({
                     "proof": serialize_proof(&proof),

@@ -8,7 +8,7 @@ pub mod zk_snark;
 
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
-use da::{InMemoryDataAvailabilityLayer, DataAvailabilityLayer};
+use da::{LocalDataAvailabilityLayer, DataAvailabilityLayer};
 use serde::Deserialize;
 
 use dotenv::dotenv;
@@ -58,6 +58,7 @@ struct CommandLineArgs {
 enum DALayerOption {
     #[default]
     Celestia,
+    #[cfg(test)]
     InMemory,
     None,
 }
@@ -188,29 +189,31 @@ async fn main() -> std::io::Result<()> {
     pretty_env_logger::init();
     dotenv().ok();
 
+    #[cfg(test)]
+    let da = Some(Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>);
+
+    #[cfg(not(test))]
     let da = match &config.da_layer {
         DALayerOption::Celestia => {
             let celestia_conf = config.clone().celestia_config.unwrap();
             Some(Arc::new(
                 CelestiaConnection::new(
                     &celestia_conf.connection_string,
-                    Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.d1x8PXcrFxyil3gSSCmPqHDJa5tsQV_iTAhRTnS5Mos"),
+                    None,
                     &celestia_conf.namespace_id,
                 )
                 .await,
             ) as Arc<dyn DataAvailabilityLayer + 'static>)
-        }
-        DALayerOption::InMemory => Some(Arc::new(
-            InMemoryDataAvailabilityLayer::new(),
-        ) as Arc<dyn DataAvailabilityLayer + 'static>),
+        },
         DALayerOption::None => None,
     };
+
 
     let node: Arc<dyn NodeType> = match args.command {
         // LightClients need a DA layer, so we can unwrap here
         Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap())),
         Commands::Sequencer {} => Arc::new(Sequencer::new(
-            // convert error to std::io::Error...is there a better solution?
+            // TODO: convert error to std::io::Error...is there a better solution?
             Arc::new(RedisConnections::new().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?),
             da,
             config,
