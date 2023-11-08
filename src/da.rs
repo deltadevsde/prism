@@ -57,7 +57,12 @@ pub struct CelestiaConnection {
     rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
 }
 
-pub struct InMemoryDataAvailabilityLayer {}
+/// The `LocalDataAvailabilityLayer` is a mock implementation of the `DataAvailabilityLayer` trait.
+/// It simulates the behavior of a data availability layer, storing and retrieving epoch-objects in-memory only. 
+/// This allows to write and test the functionality of systems that interact with a data availability layer without the need for an actual external service or network like we do with Celestia.
+/// 
+/// This implementation is intended for testing and development only and should not be used in production environments. It provides a way to test the interactions with the data availability layer without the overhead of real network communication or data persistence.
+pub struct LocalDataAvailabilityLayer {}
 
 impl CelestiaConnection {
     // TODO: Should take config
@@ -157,14 +162,14 @@ impl DataAvailabilityLayer for CelestiaConnection {
 }
 
 
-impl InMemoryDataAvailabilityLayer {
+impl LocalDataAvailabilityLayer {
     pub fn new() -> Self {
-        InMemoryDataAvailabilityLayer {  }
+        LocalDataAvailabilityLayer {  }
     }
 }
 
 #[async_trait]
-impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
     async fn get_message(&self) -> Result<u64, String> {
         Ok(100)
     }
@@ -255,22 +260,21 @@ mod da_tests {
     const TAIL: &str = Node::TAIL;
 
     pub fn clear_file(filename: &str) -> Result<(), Error> {
-        // Datei zum Schreiben öffnen
+        // Open file for writing
         let mut file = OpenOptions::new()
             .write(true)
             .open(filename)?;
     
-        // Dateilänge auf 0 setzen, um alle Daten zu löschen
+        // Set file length to 0 to delete all data in the file
         file.set_len(0)?;
     
-        // Zeiger auf den Anfang der Datei setzen
+        // Set pointer to the beginning of the file
         file.seek(SeekFrom::Start(0))?;
     
         Ok(())
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        // Initial setup
         let active_node = Node::initialize_leaf(
             true,
             true,
@@ -341,7 +345,7 @@ mod da_tests {
 
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
-            let sequencer_layer = InMemoryDataAvailabilityLayer::new();
+            let sequencer_layer = LocalDataAvailabilityLayer::new();
             // write all 60 seconds proofs and commitments
             // create a new tree
             let mut tree = build_empty_tree();
@@ -393,7 +397,7 @@ mod da_tests {
     
         let light_client = tokio::spawn(async {
             println!("light client started");
-            let light_client_layer = InMemoryDataAvailabilityLayer::new();
+            let light_client_layer = LocalDataAvailabilityLayer::new();
             loop {
                 let epoch = light_client_layer.get(1).await.unwrap();
                 // verify proofs
