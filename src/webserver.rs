@@ -190,8 +190,14 @@ async fn calculate_values(con: web::Data<Arc<Sequencer>>, req_body: String) -> i
 ///
 #[get("/get-dictionaries")]
 async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    let keys: Vec<String> = con.db.get_keys();
-    let derived_keys: Vec<String> = con.db.get_derived_keys();
+    let keys: Vec<String> = match con.db.get_keys() {
+        Ok(keys) => keys,
+        Err(_) => return HttpResponse::NotFound().body("Keys not found"),
+    };
+    let derived_keys: Vec<String> = match con.db.get_derived_keys() {
+        Ok(keys) => keys,
+        Err(_) => return HttpResponse::NotFound().body("Derived Keys not found"),
+    };
 
     #[derive(Serialize, Deserialize)]
     struct Response {
