@@ -46,9 +46,17 @@ impl NodeType for Sequencer {
         }
 
         let derived_keys = self.db.get_derived_keys();
-        if derived_keys.len() == 0 {
-            // if the dict is empty, we need to initialize the dict and the input order
-            self.db.initialize_derived_dict();
+        match derived_keys {
+            Ok(keys) => {
+                if keys.len() == 0 {
+                    // if the dict is empty, we need to initialize the dict and the input order
+                    self.db.initialize_derived_dict();
+                }
+            }
+            Err(e) => {
+                // TODO: custom error 
+                error!("sequencer_loop: getting derived keys: {}", e);
+            }
         }
 
         let cloned_self = self.clone();

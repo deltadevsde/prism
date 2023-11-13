@@ -44,3 +44,4 @@ celestia-types = { git = "https://github.com/eigerco/celestia-node-rs" }
 clap = { version = "4.3.2", features = ["derive"] }
 config = "0.13.3"
 fs2 = "0.4.3"
+thiserror = "1.0.50"

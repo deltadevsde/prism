@@ -1,5 +1,6 @@
 pub mod da;
 pub mod indexed_merkle_tree;
+pub mod error;
 mod node_types;
 pub mod storage;
 mod utils;
