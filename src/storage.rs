@@ -10,7 +10,7 @@ use std::time::Duration;
 use crate::{
     indexed_merkle_tree::{sha256, Node, ProofVariant},
     utils::parse_json_to_proof,
-    error::{DeimosError, GeneralError, RedisError}
+    error::{DeimosError, GeneralError, DatabaseError}
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -72,18 +72,18 @@ pub struct RedisConnections {
 }
 
 pub trait Database: Send + Sync {
-    fn get_keys(&self) -> Result<Vec<String>, RedisError>;
-    fn get_derived_keys(&self) -> Result<Vec<String>, RedisError>;
+    fn get_keys(&self) -> Result<Vec<String>, DatabaseError>;
+    fn get_derived_keys(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_hashchain(&self, key: &String) ->  Result<Vec<ChainEntry>, DeimosError>;
-    fn get_derived_value(&self, key: &String) -> Result<String, RedisError>;
-    fn get_derived_keys_in_order(&self) -> Result<Vec<String>, RedisError>;
-    fn get_commitment(&self, epoch: &u64) -> Result<String, RedisError>;
-    fn get_proof(&self, id: &String) -> Result<String, RedisError>;
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, RedisError>;
-    fn get_epoch(&self) -> Result<u64, RedisError>;
-    fn get_epoch_operation(&self) -> Result<u64, RedisError>;
-    fn set_epoch(&self, epoch: &u64) -> Result<(), RedisError>;
-    fn reset_epoch_operation_counter(&self) -> Result<(), RedisError>;
+    fn get_derived_value(&self, key: &String) -> Result<String, DatabaseError>;
+    fn get_derived_keys_in_order(&self) -> Result<Vec<String>, DatabaseError>;
+    fn get_commitment(&self, epoch: &u64) -> Result<String, DatabaseError>;
+    fn get_proof(&self, id: &String) -> Result<String, DatabaseError>;
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, DatabaseError>;
+    fn get_epoch(&self) -> Result<u64, DatabaseError>;
+    fn get_epoch_operation(&self) -> Result<u64, DatabaseError>;
+    fn set_epoch(&self, epoch: &u64) -> Result<(), DatabaseError>;
+    fn reset_epoch_operation_counter(&self) -> Result<(), DatabaseError>;
     fn update_hashchain(
         &self,
         incoming_entry: &IncomingEntry,
@@ -94,19 +94,19 @@ pub trait Database: Send + Sync {
         incoming_entry: &IncomingEntry,
         value: &ChainEntry,
         new: bool,
-    ) -> Result<(), RedisError>;
+    ) -> Result<(), DatabaseError>;
     fn get_epochs(&self) -> Result<Vec<u64>, DeimosError>;
-    fn increment_epoch_operation(&self) -> Result<u64, RedisError>;
+    fn increment_epoch_operation(&self) -> Result<u64, DatabaseError>;
     fn add_merkle_proof(
         &self,
         epoch: &u64,
         epoch_operation: &u64,
         commitment: &String,
         proofs: &String,
-    ) -> Result<(), RedisError>;
-    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), RedisError>;
-    fn initialize_derived_dict(&self) -> Result<(), RedisError>;
-    fn flush_database(&self) -> Result<(), RedisError>;
+    ) -> Result<(), DatabaseError>;
+    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), DatabaseError>;
+    fn initialize_derived_dict(&self) -> Result<(), DatabaseError>;
+    fn flush_database(&self) -> Result<(), DatabaseError>;
 }
 
 impl RedisConnections {
@@ -142,38 +142,38 @@ impl RedisConnections {
         })
     }
 
-    fn lock_connection<T>(&self, mutex: &Mutex<T>) -> Result<MutexGuard<T>, RedisError> {
-        mutex.lock().map_err(|_| RedisError::LockError)
+    fn lock_connection<T>(&self, mutex: &Mutex<T>) -> Result<MutexGuard<T>, DatabaseError> {
+        mutex.lock().map_err(|_| DatabaseError::LockError)
     }
 
 }
 
 
 impl Database for RedisConnections {
-    fn get_keys(&self) -> Result<Vec<String>, RedisError> {
+    fn get_keys(&self) -> Result<Vec<String>, DatabaseError> {
         let mut con = self.lock_connection(&self.main_dict)?; 
-        let keys: Vec<String> = con.keys("*").map_err(|_| RedisError::KeysError("main".to_string()))?;
+        let keys: Vec<String> = con.keys("*").map_err(|_| DatabaseError::KeysError("main".to_string()))?;
         Ok(keys)
     }
 
-    fn get_derived_keys(&self) -> Result<Vec<String>, RedisError> {
+    fn get_derived_keys(&self) -> Result<Vec<String>, DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?; 
-        let keys: Vec<String> = con.keys("*").map_err(|_| RedisError::KeysError("derived".to_string()))?;
+        let keys: Vec<String> = con.keys("*").map_err(|_| DatabaseError::KeysError("derived".to_string()))?;
         Ok(keys)
     }
 
     fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DeimosError> {
-        let mut con = self.main_dict.lock().map_err(|_| DeimosError::Redis(RedisError::LockError))?;
-        let value: String = con.get(key).map_err(|_| DeimosError::Redis(RedisError::NotFoundError(format!("Key: {}", key))))?;
+        let mut con = self.main_dict.lock().map_err(|_| DeimosError::Redis(DatabaseError::LockError))?;
+        let value: String = con.get(key).map_err(|_| DeimosError::Redis(DatabaseError::NotFoundError(format!("Key: {}", key))))?;
 
         let chain: Vec<ChainEntry> = serde_json::from_str(&value).map_err(|_| DeimosError::General(GeneralError::ParsingError))?;
 
         Ok(chain)
     }
 
-    fn get_derived_value(&self, key: &String) -> Result<String, RedisError> {
+    fn get_derived_value(&self, key: &String) -> Result<String, DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?; 
-        let derived_value: String =  con.get(key).map_err(|_| RedisError::NotFoundError(format!("Key: {}", key)))?;
+        let derived_value: String =  con.get(key).map_err(|_| DatabaseError::NotFoundError(format!("Key: {}", key)))?;
 
         Ok(derived_value)
     }
@@ -181,23 +181,23 @@ impl Database for RedisConnections {
     // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
     // Questionable if it is not simply enough to return the values using the input_order table. This needs to be discussed again with @distractedm1nd :) Then the above function wouldn't be necessary anymore.
     // Does the order of the keys matter? 
-    fn get_derived_keys_in_order(&self) -> Result<Vec<String>, RedisError> {
+    fn get_derived_keys_in_order(&self) -> Result<Vec<String>, DatabaseError> {
         let mut input_con = self.lock_connection(&self.input_order)?; 
         
         // The lrange method returns a list of the elements between two indices. 0 and -1 mean the first and last element, i.e. the entire list.
-        let order: Vec<String> = input_con.lrange("input_order", 0, -1).map_err(|_| RedisError::GetInputOrderError)?;
+        let order: Vec<String> = input_con.lrange("input_order", 0, -1).map_err(|_| DatabaseError::GetInputOrderError)?;
         
         Ok(order)
     }
 
-    fn get_commitment(&self, epoch: &u64) -> Result<String, RedisError> {
+    fn get_commitment(&self, epoch: &u64) -> Result<String, DatabaseError> {
         let mut con = self.lock_connection(&self.commitments)?; 
         let commitment = match con.get::<&str, String>(&format!("epoch_{}", epoch)) {
             Ok(value) => {
                 let trimmed_value = value.trim_matches('"').to_string();
                 Ok(trimmed_value)
             }
-            Err(_) => Err(RedisError::NotFoundError(format!(
+            Err(_) => Err(DatabaseError::NotFoundError(format!(
                 "Commitment from epoch_{}",
                 epoch
             ))),
@@ -205,15 +205,15 @@ impl Database for RedisConnections {
         commitment
     }
 
-    fn get_proof(&self, id: &String) -> Result<String, RedisError> {
+    fn get_proof(&self, id: &String) -> Result<String, DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?; 
-        let proof = con.get(id).map_err(|_| RedisError::NotFoundError(format!("Proof with id: {}", id)))?;
+        let proof = con.get(id).map_err(|_| DatabaseError::NotFoundError(format!("Proof with id: {}", id)))?;
         Ok(proof)
     }
 
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, RedisError> {
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?; 
-        let mut epoch_proofs: Vec<String> = con.keys::<&String, Vec<String>>(&format!("epoch_{}*", epoch)).map_err(|_| RedisError::NotFoundError(format!("Epoch: {}", epoch)))?;
+        let mut epoch_proofs: Vec<String> = con.keys::<&String, Vec<String>>(&format!("epoch_{}*", epoch)).map_err(|_| DatabaseError::NotFoundError(format!("Epoch: {}", epoch)))?;
 
 
         // Sort epoch_proofs by extracting epoch number and number within the epoch
@@ -241,27 +241,27 @@ impl Database for RedisConnections {
             .collect())
     }
 
-    fn get_epoch(&self) -> Result<u64, RedisError> {
+    fn get_epoch(&self) -> Result<u64, DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
-        let epoch: u64 = con.get("epoch").map_err(|_| RedisError::NotFoundError(format!("Current epoch")))?;
+        let epoch: u64 = con.get("epoch").map_err(|_| DatabaseError::NotFoundError(format!("Current epoch")))?;
         Ok(epoch)
     }
 
-    fn get_epoch_operation(&self) -> Result<u64, RedisError> {
+    fn get_epoch_operation(&self) -> Result<u64, DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
-        let epoch_operation: u64 = con.get("epoch_operation").map_err(|_| RedisError::NotFoundError(format!("Epoch operation")))?;
+        let epoch_operation: u64 = con.get("epoch_operation").map_err(|_| DatabaseError::NotFoundError(format!("Epoch operation")))?;
         Ok(epoch_operation)
     }
 
-    fn set_epoch(&self, epoch: &u64) -> Result<(), RedisError> {
+    fn set_epoch(&self, epoch: &u64) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
-        con.set::<&str, &u64, String>("epoch", epoch).map_err(|_| RedisError::WriteError(format!("Epoch: {}", epoch)))?;
+        con.set::<&str, &u64, String>("epoch", epoch).map_err(|_| DatabaseError::WriteError(format!("Epoch: {}", epoch)))?;
         Ok(()) // TODO: should we return the written string instead of ()?
     }
 
-    fn reset_epoch_operation_counter(&self) -> Result<(), RedisError> {
+    fn reset_epoch_operation_counter(&self) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
-        con.set::<&str, &u64, String>("epoch_operation", &0).map_err(|_| RedisError::WriteError(format!("reset operations to 0")))?;
+        con.set::<&str, &u64, String>("epoch_operation", &0).map_err(|_| DatabaseError::WriteError(format!("reset operations to 0")))?;
         Ok(())
     }
 
@@ -270,9 +270,9 @@ impl Database for RedisConnections {
         incoming_entry: &IncomingEntry,
         value: &Vec<ChainEntry>,
     ) -> Result<(), DeimosError> {
-        let mut con = self.main_dict.lock().map_err(|_| DeimosError::Redis(RedisError::LockError))?;
+        let mut con = self.main_dict.lock().map_err(|_| DeimosError::Redis(DatabaseError::LockError))?;
         let value = serde_json::to_string(&value).map_err(|_| DeimosError::General(GeneralError::ParsingError))?;
-        con.set::<&String, String, String>(&incoming_entry.id, value).map_err(|_| DeimosError::Redis(RedisError::WriteError(format!("hashchain update for key: {}", incoming_entry.id))))?;
+        con.set::<&String, String, String>(&incoming_entry.id, value).map_err(|_| DeimosError::Redis(DatabaseError::WriteError(format!("hashchain update for key: {}", incoming_entry.id))))?;
         Ok(())
     }
 
@@ -281,23 +281,23 @@ impl Database for RedisConnections {
         incoming_entry: &IncomingEntry,
         value: &ChainEntry,
         new: bool,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?; 
         let mut input_con = self.lock_connection(&self.input_order)?; 
         let hashed_key = sha256(&incoming_entry.id);
-        con.set::<&String, &String, String>(&hashed_key, &value.hash).map_err(|_| RedisError::WriteError(format!("derived dict update for key: {}", hashed_key)))?;
+        con.set::<&String, &String, String>(&hashed_key, &value.hash).map_err(|_| DatabaseError::WriteError(format!("derived dict update for key: {}", hashed_key)))?;
 
         if new {
-            input_con.rpush::<&'static str, &String, u32>("input_order", &hashed_key).map_err(|_| RedisError::WriteError(format!("input order update for key: {}", hashed_key)))?;
+            input_con.rpush::<&'static str, &String, u32>("input_order", &hashed_key).map_err(|_| DatabaseError::WriteError(format!("input order update for key: {}", hashed_key)))?;
         }
         Ok(())
     }
 
     fn get_epochs(&self) -> Result<Vec<u64>, DeimosError> {
-        let mut con = self.commitments.lock().map_err(|_| DeimosError::Redis(RedisError::LockError))?;
+        let mut con = self.commitments.lock().map_err(|_| DeimosError::Redis(DatabaseError::LockError))?;
 
         let epochs: Result<Vec<u64>, DeimosError> = con.keys::<&str, Vec<String>>("*")
-            .map_err(|_| DeimosError::Redis(RedisError::NotFoundError("Commitments".to_string())))?
+            .map_err(|_| DeimosError::Redis(DatabaseError::NotFoundError("Commitments".to_string())))?
             .into_iter()
             .map(|epoch| epoch.replace("epoch_", "").parse::<u64>().map_err(|_| DeimosError::General(GeneralError::ParsingError)))
             .collect();
@@ -305,9 +305,9 @@ impl Database for RedisConnections {
         epochs
     }
 
-    fn increment_epoch_operation(&self) -> Result<u64, RedisError> {
+    fn increment_epoch_operation(&self) -> Result<u64, DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?; 
-        let incremented_epoch = con.incr::<&'static str, u64, u64>("epoch_operation", 1).map_err(|_| RedisError::WriteError(format!("incremented epoch")))?;
+        let incremented_epoch = con.incr::<&'static str, u64, u64>("epoch_operation", 1).map_err(|_| DatabaseError::WriteError(format!("incremented epoch")))?;
        
         Ok(incremented_epoch)
     }
@@ -318,37 +318,37 @@ impl Database for RedisConnections {
         epoch_operation: &u64,
         commitment: &String,
         proofs: &String,
-    ) -> Result<(), RedisError> {
+    ) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?; 
         let formatted_epoch = format!("epoch_{}_{}_{}", epoch, epoch_operation, commitment);
-        con.set::<&String, &String, String>(&formatted_epoch, &proofs).map_err(|_| RedisError::WriteError(format!("merkle proof for epoch: {}", formatted_epoch)))?;
+        con.set::<&String, &String, String>(&formatted_epoch, &proofs).map_err(|_| DatabaseError::WriteError(format!("merkle proof for epoch: {}", formatted_epoch)))?;
         Ok(())
     }
 
-    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), RedisError> {
+    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.commitments)?; 
-        con.set::<&String, &String, String>(&format!("epoch_{}", epoch), commitment).map_err(|_| RedisError::WriteError(format!("commitment for epoch: {}", epoch)))?;
+        con.set::<&String, &String, String>(&format!("epoch_{}", epoch), commitment).map_err(|_| DatabaseError::WriteError(format!("commitment for epoch: {}", epoch)))?;
         Ok(())
     }
 
-    fn initialize_derived_dict(&self) -> Result<(), RedisError> {
+    fn initialize_derived_dict(&self) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?; 
         let mut input_con = self.lock_connection(&self.input_order)?; 
 
         let empty_hash = Node::EMPTY_HASH.to_string(); // empty hash is always the first node (H(active=true, label=0^w, value=0^w, next=1^w))
         
         // set the empty hash as the first node in the derived dict
-        con.set::<&String, &String, String>(&empty_hash, &empty_hash).map_err(|_| RedisError::WriteError(format!("empty hash as first entry in the derived dictionary")))?; 
+        con.set::<&String, &String, String>(&empty_hash, &empty_hash).map_err(|_| DatabaseError::WriteError(format!("empty hash as first entry in the derived dictionary")))?; 
         debug!("Added empty hash to derived dict");
 
         // add the empty hash to the input order as first node
-        input_con.rpush::<&str, String, u32>("input_order", empty_hash.clone()).map_err(|_| RedisError::WriteError(format!("empty hash as first entry in input order")))?;
+        input_con.rpush::<&str, String, u32>("input_order", empty_hash.clone()).map_err(|_| DatabaseError::WriteError(format!("empty hash as first entry in input order")))?;
         debug!("Added empty hash to input order");
         
         Ok(())
     }
 
-    fn flush_database(&self) -> Result<(), RedisError> {
+    fn flush_database(&self) -> Result<(), DatabaseError> {
         let mut main_conn = self.lock_connection(&self.main_dict)?; 
         let mut derived_conn = self.lock_connection(&self.derived_dict)?; 
         let mut input_order_conn = self.lock_connection(&self.input_order)?; 
@@ -356,12 +356,12 @@ impl Database for RedisConnections {
         let mut merkle_proof_conn = self.lock_connection(&self.merkle_proofs)?; 
         let mut commitments_conn = self.lock_connection(&self.commitments)?; 
 
-        redis::cmd("FLUSHALL").query(&mut main_conn).map_err(|_| RedisError::DeleteError(format!("all entries in main dict")))?;
-        redis::cmd("FLUSHALL").query(&mut derived_conn).map_err(|_| RedisError::DeleteError(format!("all entries in derived dict")))?;
-        redis::cmd("FLUSHALL").query(&mut input_order_conn).map_err(|_| RedisError::DeleteError(format!("all entries in input order")))?;
-        redis::cmd("FLUSHALL").query(&mut app_state_conn).map_err(|_| RedisError::DeleteError(format!("all entries in app state")))?;
-        redis::cmd("FLUSHALL").query(&mut merkle_proof_conn).map_err(|_| RedisError::DeleteError(format!("all merkle proofs")))?;
-        redis::cmd("FLUSHALL").query(&mut commitments_conn).map_err(|_| RedisError::DeleteError(format!("all commitments")))?;
+        redis::cmd("FLUSHALL").query(&mut main_conn).map_err(|_| DatabaseError::DeleteError(format!("all entries in main dict")))?;
+        redis::cmd("FLUSHALL").query(&mut derived_conn).map_err(|_| DatabaseError::DeleteError(format!("all entries in derived dict")))?;
+        redis::cmd("FLUSHALL").query(&mut input_order_conn).map_err(|_| DatabaseError::DeleteError(format!("all entries in input order")))?;
+        redis::cmd("FLUSHALL").query(&mut app_state_conn).map_err(|_| DatabaseError::DeleteError(format!("all entries in app state")))?;
+        redis::cmd("FLUSHALL").query(&mut merkle_proof_conn).map_err(|_| DatabaseError::DeleteError(format!("all merkle proofs")))?;
+        redis::cmd("FLUSHALL").query(&mut commitments_conn).map_err(|_| DatabaseError::DeleteError(format!("all commitments")))?;
         Ok(())
     }
 }
