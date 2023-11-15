@@ -6,7 +6,7 @@ pub enum DeimosError {
     #[error("General error: {0}")]
     General(GeneralError),
     #[error("Redis error: {0}")]
-    Redis(RedisError),
+    Redis(DatabaseError),
 }
 
 // general reusable errors
@@ -19,7 +19,7 @@ pub enum GeneralError {
 
 
 #[derive(Error, Debug)]
-pub enum RedisError {
+pub enum DatabaseError {
     #[error("Failed to acquire lock on the Redis connection")]
     LockError,
     #[error("Failed to retrieve keys from {0} dictionary from the Redis database")]
