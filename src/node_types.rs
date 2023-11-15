@@ -291,7 +291,7 @@ impl Sequencer {
         tree
     }
 
-    /// Updates an entry in the Redis database based on the given operation, incoming entry, and the signature from the user.
+    /// Updates an entry in the database based on the given operation, incoming entry, and the signature from the user.
     ///
     /// # Arguments
     ///
@@ -306,7 +306,7 @@ impl Sequencer {
     ///
     pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
         println!("Updating entry...");
-        // add a new key to an existing id  ( type for the value retrieved from the Redis database explicitly set to string)
+        // add a new key to an existing id  ( type for the value retrieved from the database explicitly set to string)
         match self.db.get_hashchain(&signature.id) {
             Ok(value) => {
                 // hashchain already exists
@@ -401,7 +401,7 @@ impl Sequencer {
     /// Checks if a signature is valid for a given incoming entry.
     ///
     /// This function takes two arguments, an IncomingEntry and a Signature, and returns a boolean.
-    /// It checks if there is an entry for the id of the incoming entry in the redis database and
+    /// It checks if there is an entry for the id of the incoming entry in the database and
     /// if there is, it checks if any public key in the hashchain can verify the signature.
     ///
     /// Returns true if there is a public key for the id which can verify the signature
@@ -412,7 +412,7 @@ impl Sequencer {
         &self,
         signature_with_key: &UpdateEntryJson,
     ) -> Result<IncomingEntry, &'static str> {
-        // try to extract the value of the id from the incoming entry from the redis database
+        // try to extract the value of the id from the incoming entry from the database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
         let received_signed_message = &signature_with_key.signed_message;
         let signed_message_bytes = general_purpose::STANDARD
@@ -467,7 +467,7 @@ impl Sequencer {
         &self,
         signature_with_key: &UpdateEntryJson,
     ) -> Result<IncomingEntry, &'static str> {
-        // try to extract the value of the id from the incoming entry from the redis database
+        // try to extract the value of the id from the incoming entry from the database
         // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
         let received_public_key = &signature_with_key.public_key;
         let received_signed_message = &signature_with_key.signed_message;

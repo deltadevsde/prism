@@ -5,8 +5,8 @@ use thiserror::Error;
 pub enum DeimosError {
     #[error("General error: {0}")]
     General(GeneralError),
-    #[error("Redis error: {0}")]
-    Redis(DatabaseError),
+    #[error("Database error: {0}")]
+    Database(DatabaseError),
 }
 
 // general reusable errors
@@ -20,16 +20,16 @@ pub enum GeneralError {
 
 #[derive(Error, Debug)]
 pub enum DatabaseError {
-    #[error("Failed to acquire lock on the Redis connection")]
+    #[error("Failed to acquire lock on the Database connection")]
     LockError,
-    #[error("Failed to retrieve keys from {0} dictionary from the Redis database")]
+    #[error("Failed to retrieve keys from {0} dictionary from the Database database")]
     KeysError(String),
     #[error("{0} not found")]
     NotFoundError(String),
-    #[error("Failed to retrieve the input order list from the Redis database")]
+    #[error("Failed to retrieve the input order list from the Database database")]
     GetInputOrderError,
-    #[error("Failed to write {0} to the Redis database")]
+    #[error("Failed to write {0} to the Database database")]
     WriteError(String),
-    #[error("Failed to delete {0} from the Redis database")]
+    #[error("Failed to delete {0} from the Database database")]
     DeleteError(String),
 }

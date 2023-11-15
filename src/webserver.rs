@@ -148,7 +148,7 @@ async fn update_entry(
 /// "id": "bob@dom.org"
 /// }
 ///
-/// The function retrieves the hashchain associated with the provided ID from the Redis database. It then iterates through the hashchain to find all
+/// The function retrieves the hashchain associated with the provided ID from the database. It then iterates through the hashchain to find all
 /// the non-revoked keys. The resulting list of non-revoked keys is returned as a JSON object like the following:
 /// {
 /// "values": [public_key1, public_key2, ...]
@@ -184,7 +184,7 @@ async fn calculate_values(con: web::Data<Arc<Sequencer>>, req_body: String) -> i
     }
 }
 
-/// The `/get-dictionaries` endpoint retrieves both main and derived dictionaries from the Redis database.
+/// The `/get-dictionaries` endpoint retrieves both main and derived dictionaries from the database.
 ///
 /// The function returns a JSON object containing two fields: `dict` and `derived_dict`. Each field contains a list of dictionary entries.
 ///
@@ -318,7 +318,7 @@ pub fn get_epochs_and_proofs(
 /// Validates a Merkle proof and returns whether it is valid or not.
 ///
 /// This function receives a `proof_id` within the request body, which corresponds to the ID of a proof
-/// stored in Redis. The proof can be either a single `UpdateProof` or a tuple containing a `MerkleProof`
+/// stored in the database. The proof can be either a single `UpdateProof` or a tuple containing a `MerkleProof`
 /// and two `UpdateProof`s (which represents an insertion proof).
 ///
 /// For a single `UpdateProof`, this function checks whether the proof is valid using the
@@ -342,7 +342,7 @@ pub fn get_epochs_and_proofs(
 /// or if the zkSNARK circuit creation or proof verification fails.
 #[post("/validate-proof")]
 async fn handle_validate_proof(con: web::Data<Arc<Sequencer>>, req_body: String) -> impl Responder {
-    // get proof id from redis
+    // get proof id from the database
     let proof_id: String = match serde_json::from_str(&req_body) {
         Ok(proof_id) => proof_id,
         Err(_) => return HttpResponse::BadRequest().body("Invalid proof ID"),
@@ -468,7 +468,7 @@ async fn handle_validate_hashchain_proof(
     }
 }
 
-/// Returns the commitment (tree root) of the IndexedMerkleTree initialized from Redis data.
+/// Returns the commitment (tree root) of the IndexedMerkleTree initialized from the database.
 ///
 #[get("/get-commitment")]
 async fn get_commitment(con: web::Data<Arc<Sequencer>>) -> impl Responder {
@@ -478,7 +478,7 @@ async fn get_commitment(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     )
 }
 
-/// Returns the current state of the IndexedMerkleTree initialized from Redis data as a JSON object.
+/// Returns the current state of the IndexedMerkleTree initialized from the database as a JSON object.
 ///
 #[get("/get-current-tree")]
 async fn get_current_tree(con: web::Data<Arc<Sequencer>>) -> impl Responder {

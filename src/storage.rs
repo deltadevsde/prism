@@ -163,8 +163,8 @@ impl Database for RedisConnections {
     }
 
     fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DeimosError> {
-        let mut con = self.main_dict.lock().map_err(|_| DeimosError::Redis(DatabaseError::LockError))?;
-        let value: String = con.get(key).map_err(|_| DeimosError::Redis(DatabaseError::NotFoundError(format!("Key: {}", key))))?;
+        let mut con = self.main_dict.lock().map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
+        let value: String = con.get(key).map_err(|_| DeimosError::Database(DatabaseError::NotFoundError(format!("Key: {}", key))))?;
 
         let chain: Vec<ChainEntry> = serde_json::from_str(&value).map_err(|_| DeimosError::General(GeneralError::ParsingError))?;
 
@@ -270,9 +270,9 @@ impl Database for RedisConnections {
         incoming_entry: &IncomingEntry,
         value: &Vec<ChainEntry>,
     ) -> Result<(), DeimosError> {
-        let mut con = self.main_dict.lock().map_err(|_| DeimosError::Redis(DatabaseError::LockError))?;
+        let mut con = self.main_dict.lock().map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
         let value = serde_json::to_string(&value).map_err(|_| DeimosError::General(GeneralError::ParsingError))?;
-        con.set::<&String, String, String>(&incoming_entry.id, value).map_err(|_| DeimosError::Redis(DatabaseError::WriteError(format!("hashchain update for key: {}", incoming_entry.id))))?;
+        con.set::<&String, String, String>(&incoming_entry.id, value).map_err(|_| DeimosError::Database(DatabaseError::WriteError(format!("hashchain update for key: {}", incoming_entry.id))))?;
         Ok(())
     }
 
@@ -294,10 +294,10 @@ impl Database for RedisConnections {
     }
 
     fn get_epochs(&self) -> Result<Vec<u64>, DeimosError> {
-        let mut con = self.commitments.lock().map_err(|_| DeimosError::Redis(DatabaseError::LockError))?;
+        let mut con = self.commitments.lock().map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
 
         let epochs: Result<Vec<u64>, DeimosError> = con.keys::<&str, Vec<String>>("*")
-            .map_err(|_| DeimosError::Redis(DatabaseError::NotFoundError("Commitments".to_string())))?
+            .map_err(|_| DeimosError::Database(DatabaseError::NotFoundError("Commitments".to_string())))?
             .into_iter()
             .map(|epoch| epoch.replace("epoch_", "").parse::<u64>().map_err(|_| DeimosError::General(GeneralError::ParsingError)))
             .collect();
