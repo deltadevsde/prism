@@ -4,6 +4,8 @@ use redis::Commands;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::error::MerkleTreeError;
+
 pub type MerkleProof = (Option<String>, Option<Vec<Node>>);
 pub type UpdateProof = (MerkleProof, MerkleProof);
 pub type InsertProof = (MerkleProof, UpdateProof, UpdateProof);
@@ -178,16 +180,16 @@ impl IndexedMerkleTree {
     /// # Returns
     ///
     /// * `Self` - A new IndexedMerkleTree
-    pub fn new(nodes: Vec<Node>) -> Self {
+    pub fn new(nodes: Vec<Node>) -> Result<Self, MerkleTreeError> {
         let parsed_nodes = update_node_positions(nodes);
 
         let tree = Self {
             nodes: parsed_nodes,
         };
-        tree.calculate_root()
+        Ok(tree.calculate_root()?)
     }
 
-    pub fn calculate_empty_tree_commitment_from_site(size: usize) -> String {
+    pub fn calculate_empty_tree_commitment_from_site(size: usize) -> Result<String, MerkleTreeError> {
         let mut nodes: Vec<Node> = Vec::new();
 
         for i in 0..size {
@@ -205,37 +207,38 @@ impl IndexedMerkleTree {
             nodes.push(node);
         }
 
-        let tree = IndexedMerkleTree::new(nodes);
+        let tree = IndexedMerkleTree::new(nodes)?;
         tree.get_commitment()
     }
 
     pub fn resort_nodes_by_input_order(
         mut nodes: Vec<Node>,
         input_order: &mut redis::Connection,
-    ) -> Vec<Node> {
+    ) -> Result<Vec<Node>, MerkleTreeError> {
+        // TODO: shouldnt be redis specific, has to be a Vec<String> Argument, thats why i wont "fix" the unwrap here
         let ordered_derived_dict_keys: Vec<String> =
             input_order.lrange("input_order", 0, -1).unwrap();
 
-        // resort the nodes based on the input order
-        nodes.sort_by_cached_key(|node| {
-            let label = match node {
-                Node::Inner(_) => None,
-                Node::Leaf(leaf) => {
-                    let label = leaf.label.clone(); // get the label of the node
-                    Some(label)
-                }
-            };
-            //TODO: DRY
-            ordered_derived_dict_keys
-                .iter()
-                .enumerate() // use index
-                .find(|(_, k)| {
-                    *k == &label.clone().unwrap() // without dereferencing a &&String is compared with &String
+        let valid_nodes: Vec<_> = nodes.into_iter()
+            .filter_map(|node| { // we dont want to sort directly, when we only sort valid nodes so we dont have to handle results in the sorting function
+                let label = match &node {
+                    Node::Inner(_) => None,
+                    Node::Leaf(leaf) => Some(leaf.label.clone()),
+                };
+    
+                // if there is a valid label search for the index in the ordered_derived_dict_keys and return it with the node
+                label.and_then(|l| {
+                    ordered_derived_dict_keys.iter().position(|k| k == &l)
+                        .map(|index| (index, node))
                 })
-                .unwrap()
-                .0 // enumerate returns tuple, so we have to return index
-        });
-        nodes
+            })
+            .collect();
+    
+        let mut sorted_nodes = valid_nodes;
+        sorted_nodes.sort_by_key(|(index, _)| index); // sort by the index
+        let sorted_nodes = sorted_nodes.into_iter().map(|(_, node)| node).collect(); // remove the index from the tuple, we want the list of nodes
+    
+        Ok(sorted_nodes)
     }
 
     pub fn create_inner_node(left: Node, right: Node, index: usize) -> Node {
@@ -286,7 +289,7 @@ impl IndexedMerkleTree {
     /// # Returns
     ///
     /// * `IndexedMerkleTree` - The updated IndexedMerkleTree instance with the calculated root.
-    fn calculate_root(mut self) -> IndexedMerkleTree {
+    fn calculate_root(mut self) -> Result<IndexedMerkleTree, MerkleTreeError> {
         // first get all leaves (= nodes with no children)
         let leaves: Vec<Node> = self
             .nodes
@@ -305,26 +308,27 @@ impl IndexedMerkleTree {
         }
 
         // set root not as left sibling
-        let root = self.nodes.last_mut().unwrap();
+        let root = self.nodes.last_mut().ok_or(MerkleTreeError::EmptyMerkleTreeError)?; // TODO: are there possible other Errors? is it possible at all to have an empty tree at this point?
         root.set_left_sibling_value(false);
 
-        self
+        Ok(self)
     }
 
     /// # Returns
     ///
     /// The current root node of the Indexed Merkle tree.
-    pub fn get_root(&self) -> &Node {
-        self.nodes.last().unwrap()
+    pub fn get_root(&self) -> Result<&Node, MerkleTreeError> {
+        self.nodes.last().ok_or(MerkleTreeError::EmptyMerkleTreeError)
     }
 
     /// # Returns
     ///
     /// The current commitment (hash of the root node) of the Indexed Merkle tree.
-    pub fn get_commitment(&self) -> String {
-        self.get_root().get_hash()
+    pub fn get_commitment(&self) -> Result<String, MerkleTreeError> {
+        Ok(self.get_root()?.get_hash()) 
     }
 
+    // TODO: is it better to return a Result here and in the next function?
     pub fn find_node_index(&self, node: &Node) -> Option<usize> {
         self.nodes
             .iter()
@@ -361,10 +365,10 @@ impl IndexedMerkleTree {
         })
     }
 
-    pub fn generate_proof_of_membership(&self, index: usize) -> MerkleProof {
+    pub fn generate_proof_of_membership(&self, index: usize) -> Result<MerkleProof, MerkleTreeError> {
         // if the index is outside of the valid range of the tree, there is no proof
         if index >= self.nodes.len() {
-            return (None, None);
+            return Err(MerkleTreeError::IndexError(index.to_string()));
         }
 
         // create a vec with hashes on the way to the root as proof (proof-list so to say)
@@ -390,84 +394,81 @@ impl IndexedMerkleTree {
             current_index =
                 ((current_index as f64 + self.nodes.len() as f64) / 2.0).ceil() as usize;
         }
-        let root = self.get_commitment();
+        let root = self.get_commitment()?;
 
-        (Some(root.clone()), Some(proof_path))
+        Ok((Some(root.clone()), Some(proof_path)))
     }
 
-    pub fn generate_non_membership_proof(&self, node: &Node) -> (MerkleProof, Option<usize>) {
+    pub fn generate_non_membership_proof(&self, node: &Node) -> Result<(MerkleProof, Option<usize>), MerkleTreeError> {
         let given_node_as_leaf = match node {
             Node::Leaf(leaf) => leaf,
-            _ => unreachable!(),
+            _ => return Err(MerkleTreeError::NotFoundError(format!("Leaf"))),
         };
-        // go through current leaves to find where the new leaf should be placed
-        // use enumerate to get index
-        let leaves: Vec<Node> = self
-            .nodes
-            .clone()
-            .into_iter()
-            .filter(|node| matches!(node, Node::Leaf(_)))
-            .collect();
-        let index = leaves.iter().enumerate().find_map(|(index, current_node)| {
-            let current_leaf = match current_node {
-                Node::Leaf(leaf) => leaf,
-                _ => unreachable!(),
-            };
-
-            // convert label and next to bigints
-            let current_label = BigInt::from_str_radix(&current_leaf.label, 16).unwrap();
-            let current_next = BigInt::from_str_radix(&current_leaf.next, 16).unwrap();
-            let new_label = BigInt::from_str_radix(&given_node_as_leaf.label, 16).unwrap();
-
-            if current_label < new_label && new_label < current_next {
-                // if the new label is between the current label and next, then this is the node we are looking for
-                Some(index)
-            } else {
-                None
+    
+        let mut found_index = None;
+        for (index, current_node) in self.nodes.iter().enumerate() {
+            if let Node::Leaf(current_leaf) = current_node {
+                let current_label = BigInt::from_str_radix(&current_leaf.label, 16);
+                let current_next = BigInt::from_str_radix(&current_leaf.next, 16);
+                let new_label = BigInt::from_str_radix(&given_node_as_leaf.label, 16);
+    
+                if let (Ok(current_label), Ok(current_next), Ok(new_label)) = (current_label, current_next, new_label) {
+                    if current_label < new_label && new_label < current_next {
+                        found_index = Some(index);
+                        break;
+                    }
+                } else {
+                    return Err(MerkleTreeError::InvalidFormatError(format!("BigInt from label or next pointer")));
+                }
             }
-        });
-
-        if let Some(index) = index {
-            // generate proof of membership for the found index
-            (self.generate_proof_of_membership(index), Some(index))
-        } else {
-            ((None, None), None)
+        }
+    
+        match found_index {
+            Some(index) => Ok((self.generate_proof_of_membership(index)?, Some(index))),
+            None => Err(MerkleTreeError::MerkleProofError),
         }
     }
 
     // to perform the proof of update a proof of membership with the old node and the old root is sufficient
     // to verify this a membership proof of the new node and new root is needed
     // the old root, the old proof, the new root and the new proof are returned
-    pub fn generate_update_proof(mut self, index: usize, new_node: Node) -> (UpdateProof, Self) {
+    pub fn generate_update_proof(mut self, index: usize, new_node: Node) -> Result<(UpdateProof, Self), MerkleTreeError> {
         // generate old proof
-        let old_proof = self.generate_proof_of_membership(index);
+        let old_proof = self.generate_proof_of_membership(index)?;
 
         // update node and calculate new root
         self.nodes[index] = new_node;
-        self = self.clone().calculate_root();
+        self = self.clone().calculate_root()?;
 
         // generate new proof
-        let new_proof = self.clone().generate_proof_of_membership(index);
+        let new_proof = self.clone().generate_proof_of_membership(index)?;
 
         // return old and new proof
-        ((old_proof, new_proof), self)
+        Ok(((old_proof, new_proof), self))
     }
 
     pub fn generate_proof_of_insert(
         &mut self,
         new_node: &Node,
-    ) -> (MerkleProof, UpdateProof, UpdateProof) {
+    ) -> Result<(MerkleProof, UpdateProof, UpdateProof), MerkleTreeError> {
         // perform non-membership check in order to return the index of the node to be changed
         let (proof_of_non_membership, old_index) =
-            self.clone().generate_non_membership_proof(new_node);
+            self.clone().generate_non_membership_proof(new_node)?;
+
+        if old_index.is_none() {
+            return Err(MerkleTreeError::MerkleProofError);
+        }
+
+        // we know that the index is valid, so we can unwrap it
+        let old_index = old_index.unwrap();
 
         // generate first update proof, changing only the next pointer from the old node
-        let mut new_old_node = self.nodes[old_index.unwrap()].clone();
+        let mut new_old_node = self.nodes[old_index].clone();
         Node::update_next_pointer(&mut new_old_node, new_node);
         new_old_node.generate_hash();
         let (first_update_proof, updated_self) = self
             .clone()
-            .generate_update_proof(old_index.unwrap(), new_old_node.clone());
+            .generate_update_proof(old_index, new_old_node.clone())?;
 
         *self = updated_self;
 
@@ -484,15 +485,15 @@ impl IndexedMerkleTree {
         // generate second update proof
         let (second_update_proof, updated_self) = self
             .clone()
-            .generate_update_proof(new_index, new_node.clone());
+            .generate_update_proof(new_index, new_node.clone())?;
 
         *self = updated_self;
 
-        (
+        Ok((
             proof_of_non_membership,
             first_update_proof,
             second_update_proof,
-        )
+        ))
     }
 
     fn verify_merkle_proof(proof: &MerkleProof) -> bool {

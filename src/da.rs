@@ -1,3 +1,4 @@
+use crate::error::{GeneralError, DataAvailabilityError, DeimosError};
 use crate::zk_snark::{Bls12Proof, VerifyingKey};
 use fs2::FileExt;
 use tokio::{task::spawn, sync::Mutex};
@@ -25,15 +26,11 @@ pub struct EpochJson {
 }
 
 impl TryFrom<&Blob> for EpochJson {
-    type Error = ();
+    type Error = GeneralError;
 
-    fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        match serde_json::from_str::<EpochJson>(
-            String::from_utf8(value.data.clone()).unwrap().as_str(),
-        ) {
-            Ok(epoch_json) => Ok(epoch_json),
-            Err(_e) => Err(()),
-        }
+    fn try_from(value: &Blob) -> Result<Self, GeneralError> {
+        let str_data = String::from_utf8(value.data.clone()).map_err(|_| GeneralError::ParsingError("Failed to convert bytes to UTF-8 string".to_string()))?;
+        serde_json::from_str::<EpochJson>(&str_data).map_err(|_| GeneralError::ParsingError("Failed to parse string as EpochJson".to_string()))
     }
 }
 
@@ -43,11 +40,11 @@ enum Message {
 
 #[async_trait]
 pub trait DataAvailabilityLayer: Send + Sync {
-    async fn get_message(&self) -> Result<u64, String>;
-    async fn initialize_sync_target(&self) -> Result<u64, String>;
-    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String>;
-    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String>;
-    async fn start(&self) -> Result<(), String>;
+    async fn get_message(&self) -> Result<u64, DataAvailabilityError>;
+    async fn initialize_sync_target(&self) -> Result<u64, DataAvailabilityError>;
+    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, DataAvailabilityError>;
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DeimosError>;
+    async fn start(&self) -> Result<(), DataAvailabilityError>;
 }
 
 pub struct CelestiaConnection {
@@ -70,36 +67,45 @@ impl CelestiaConnection {
         connection_string: &String,
         auth_token: Option<&str>,
         namespace_hex: &String,
-    ) -> Self {
+    ) -> Result<Self, DeimosError> {
         // TODO: Should buffer size be configurable? Is 5 a reasonable default?
         let (tx, rx) = mpsc::channel(5);
 
-        CelestiaConnection {
-            client: new_websocket(&connection_string, auth_token).await.unwrap(),
-            namespace_id: Namespace::new_v0(&hex::decode(namespace_hex).unwrap()).unwrap(),
+        let client = new_websocket(&connection_string, auth_token).await
+            .map_err(|e| DeimosError::DataAvailability(DataAvailabilityError::WebSocketError(e.to_string())))?;
+
+        let decoded_hex = hex::decode(namespace_hex)
+            .map_err(|e| DeimosError::General(GeneralError::HexDecodingError(e.to_string())))?;
+
+        let namespace_id = Namespace::new_v0(&decoded_hex)
+            .map_err(|_| DeimosError::DataAvailability(DataAvailabilityError::NamespaceInitializationError))?;
+
+        Ok(CelestiaConnection {
+            client,
+            namespace_id,
             tx: Arc::new(tx),
             rx: Arc::new(tokio::sync::Mutex::new(rx)),
-        }
+        })
     }
 }
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
-    async fn get_message(&self) -> Result<u64, String> {
+    async fn get_message(&self) -> Result<u64, DataAvailabilityError> {
         match self.rx.lock().await.recv().await {
             Some(Message::UpdateTarget(height)) => Ok(height),
-            None => Err(format!("Could not get message from channel: FUCK")),
+            None => Err(DataAvailabilityError::ChannelClosed), //TODO: no better idea than channel closed for now, you @distractedm1nd?
         }
     }
 
-    async fn initialize_sync_target(&self) -> Result<u64, String> {
+    async fn initialize_sync_target(&self) -> Result<u64, DataAvailabilityError> {
         match HeaderClient::header_network_head(&self.client).await {
             Ok(extended_header) => Ok(extended_header.header.height.value()),
-            Err(err) => Err(format!("Could not get network head from DA layer: {}", err)),
+            Err(err) => Err(DataAvailabilityError::NetworkError(format!("Could not get network head from DA layer: {}", err))),
         }
     }
 
-    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String> {
+    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, DataAvailabilityError> {
         debug! {"Getting epoch {} from DA layer", height};
         match BlobClient::blob_get_all(&self.client, height, &[self.namespace_id]).await {
             Ok(blobs) => {
@@ -107,26 +113,23 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 for blob in blobs.iter() {
                     match EpochJson::try_from(blob) {
                         Ok(epoch_json) => epochs.push(epoch_json),
-                        Err(_) => {
-                            debug!("Could not parse epoch json for blob at height {}", height)
-                        }
+                        Err(_) => return Err(DataAvailabilityError::ParsingError(height)),
                     }
                 }
                 Ok(epochs)
             }
-            Err(err) => Err(format!(
-                "Could not get height {} from DA layer: {}",
-                height, err
-            )),
+            Err(err) => Err(DataAvailabilityError::DataRetrievalError(height, err.to_string())),
         }
     }
 
-    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String> {
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DeimosError> {
         debug! {"Posting epoch {} to DA layer", epoch.height};
-        // todo: unwraps (#11)
-        let data = serde_json::to_string(&epoch).unwrap();
-        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).unwrap();
-        debug!("blob: {}", serde_json::to_string(&blob).unwrap());
+
+        let data = serde_json::to_string(&epoch).map_err(|_| DeimosError::General(GeneralError::ParsingError("Failed to serialize EpochJson to string".to_string())))?;
+        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|_| DeimosError::General(GeneralError::BlobCreationError))?;
+        debug!("blob: {}", serde_json::to_string(&blob).map_err(|_| DeimosError::General(GeneralError::ParsingError("Failed to serialize Blob to string".to_string())))?);
+
+
         match BlobClient::blob_submit(&self.client, &[blob]).await {
             Ok(height) => {
                 debug!(
@@ -136,26 +139,31 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 Ok(height)
             }
             // TODO implement retries (#10)
-            Err(err) => Err(format!("Could not submit epoch to DA layer: {}", err)),
+            Err(err) => Err(DeimosError::DataAvailability(DataAvailabilityError::WriteError(epoch.height, err.to_string()))),
         }
     }
 
-    async fn start(&self) -> Result<(), String> {
-        let mut header_sub = HeaderClient::header_subscribe(&self.client).await.unwrap();
+    async fn start(&self) -> Result<(), DataAvailabilityError> {
+        let mut header_sub = HeaderClient::header_subscribe(&self.client).await
+            .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
 
         let tx1 = self.tx.clone();
         spawn(async move {
-            while let Some(extended_header) = header_sub.next().await {
-                let height = extended_header.unwrap().header.height.value();
+            while let Some(extended_header_result) = header_sub.next().await {
+                let extended_header = extended_header_result
+                    .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
+                let height = extended_header.header.height.value();
                 match tx1.send(Message::UpdateTarget(height)).await {
                     Ok(_) => {
                         debug!("Sent message to channel. Height: {}", height);
                     }
                     Err(_) => {
-                        debug!("Could not send message to channel");
+                        error!("Could not send message to channel");
+                        return Err(DataAvailabilityError::ChannelError);
                     }
                 }
             }
+            Ok(())
         });
         Ok(())
     }
@@ -168,17 +176,18 @@ impl LocalDataAvailabilityLayer {
     }
 }
 
+// TODO: i guess unwrap and expect arent an issue here because it's only used for testing
 #[async_trait]
 impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
-    async fn get_message(&self) -> Result<u64, String> {
+    async fn get_message(&self) -> Result<u64, DataAvailabilityError> {
         Ok(100)
     }
 
-    async fn initialize_sync_target(&self) -> Result<u64, String> {
+    async fn initialize_sync_target(&self) -> Result<u64, DataAvailabilityError> {
         Ok(0)  // header starts always at zero in test cases
     }
 
-    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, String> {
+    async fn get(&self, height: u64) -> Result<Vec<EpochJson>, DataAvailabilityError> {
         let mut file = File::open("data.json").expect("Unable to open file");
         let mut contents = String::new();
         file.lock_exclusive().expect("Unable to lock file");
@@ -193,11 +202,11 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
             Ok(vec![result_epoch.expect("WRON FORMT")])
         } else {
             file.unlock().expect("Unable to unlock file");
-            Err(format!("Could not get height {} from DA layer", height))
+            Err(DataAvailabilityError::NetworkError(format!("Could not get height {} from DA layer", height)))
         }
     }
 
-    async fn submit(&self, epoch: &EpochJson) -> Result<u64, String> {
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DeimosError> {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -237,7 +246,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         Ok(epoch.height)
     }
 
-    async fn start(&self) -> Result<(), String> {
+    async fn start(&self) -> Result<(), DataAvailabilityError> {
         Ok(())
     }
 }
