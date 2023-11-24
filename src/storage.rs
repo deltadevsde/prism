@@ -166,7 +166,7 @@ impl Database for RedisConnections {
         let mut con = self.main_dict.lock().map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
         let value: String = con.get(key).map_err(|_| DeimosError::Database(DatabaseError::NotFoundError(format!("Key: {}", key))))?;
 
-        let chain: Vec<ChainEntry> = serde_json::from_str(&value).map_err(|_| DeimosError::General(GeneralError::ParsingError))?;
+        let chain: Vec<ChainEntry> = serde_json::from_str(&value).map_err(|_| DeimosError::General(GeneralError::ParsingError(format!("failed to parse hashchain"))))?;
 
         Ok(chain)
     }
@@ -271,7 +271,7 @@ impl Database for RedisConnections {
         value: &Vec<ChainEntry>,
     ) -> Result<(), DeimosError> {
         let mut con = self.main_dict.lock().map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
-        let value = serde_json::to_string(&value).map_err(|_| DeimosError::General(GeneralError::ParsingError))?;
+        let value = serde_json::to_string(&value).map_err(|_| DeimosError::General(GeneralError::ParsingError(format!("failed to parse hashchain to string"))))?;
         con.set::<&String, String, String>(&incoming_entry.id, value).map_err(|_| DeimosError::Database(DatabaseError::WriteError(format!("hashchain update for key: {}", incoming_entry.id))))?;
         Ok(())
     }
@@ -299,7 +299,7 @@ impl Database for RedisConnections {
         let epochs: Result<Vec<u64>, DeimosError> = con.keys::<&str, Vec<String>>("*")
             .map_err(|_| DeimosError::Database(DatabaseError::NotFoundError("Commitments".to_string())))?
             .into_iter()
-            .map(|epoch| epoch.replace("epoch_", "").parse::<u64>().map_err(|_| DeimosError::General(GeneralError::ParsingError)))
+            .map(|epoch| epoch.replace("epoch_", "").parse::<u64>().map_err(|_| DeimosError::General(GeneralError::ParsingError(format!("failed to parse epoch")))))
             .collect();
 
         epochs
