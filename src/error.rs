@@ -65,16 +65,22 @@ pub enum DataAvailabilityError {
     WriteError(u64, String),
     #[error("Error sending message to channel")]
     ChannelError,
+    #[error("Error receiving message from channel")]
+    ChannelReceiveError,
 }
 
 #[derive(Error, Debug)]
 pub enum ProofError {
+    #[error("Failed to generate proof")]
+    GenerationError,
     #[error("Failed to verify proof")]
     VerificationError,
     #[error("Failed to deserialize G1Affine point")]
     G1AffineDeserializationError,
     #[error("Failed to unpack proof components")]
     ProofUnpackError,
+    #[error("Invalid proof format")]
+    InvalidFormatError,
 }
 
 #[derive(Error, Debug)]

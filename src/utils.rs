@@ -2,10 +2,10 @@ use crate::{
     indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, ProofVariant, UpdateProof},
     storage::ChainEntry,
     zk_snark::{hex_to_scalar, BatchMerkleProofCircuit, InsertMerkleProofCircuit},
-    Operation,
+    Operation, error::{ProofError, DeimosError, GeneralError},
 };
-use bellman::groth16::{self, VerifyingKey};
-use bls12_381::Bls12;
+use bellman::groth16::{self, VerifyingKey, PreparedVerifyingKey};
+use bls12_381::{Bls12, Scalar};
 use rand::rngs::OsRng;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -34,53 +34,69 @@ pub fn parse_json_to_proof(json_str: &str) -> Result<ProofVariant, Box<dyn std::
     Ok(proof)
 }
 
+fn parse_option_to_scalar(
+    option_input: Option<String>,
+) -> Result<Scalar, GeneralError> { 
+    let input_str = option_input.ok_or_else(|| 
+        GeneralError::ParsingError("Could not parse input".to_string())
+    )?;
+
+    hex_to_scalar(&input_str).map_err(|_| 
+        GeneralError::ParsingError("Could not convert input to scalar".to_string())
+    )
+}
+
 pub fn validate_snark(
     non_membership_proof: MerkleProof,
     first_proof: UpdateProof,
     second_proof: UpdateProof,
-) -> Result<(), &'static str> {
+) -> Result<(), DeimosError> {
     let circuit = match InsertMerkleProofCircuit::create(&(
         non_membership_proof.clone(),
         first_proof.clone(),
         second_proof.clone(),
     )) {
         Ok(circuit) => circuit,
-        Err(_e) => {
-            // error!("Error creating circuit: {}", e);
-            return Err("Could not create circuit");
+        Err(e) => {
+            return Err(e);
         }
     };
 
     let rng = &mut OsRng;
 
     // debug!("Creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
-    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).unwrap();
+    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).map_err(|_| DeimosError::Proof(ProofError::ProofUnpackError))?;
 
     // debug!("Creating proof for zkSNARK...");
-    let proof = groth16::create_random_proof(circuit.clone(), &params, rng).unwrap();
+    let proof = groth16::create_random_proof(circuit.clone(), &params, rng).map_err(|_| DeimosError::Proof(ProofError::GenerationError))?;
 
     // debug!("Prepare verifying key for zkSNARK...");
     let pvk = groth16::prepare_verifying_key(&params.vk);
+
+    let scalars: Result<Vec<Scalar>, _> = vec![
+        parse_option_to_scalar(non_membership_proof.0),
+        parse_option_to_scalar(first_proof.0.0),
+        parse_option_to_scalar(first_proof.1.0),
+        parse_option_to_scalar(second_proof.0.0),
+        parse_option_to_scalar(second_proof.1.0),
+    ].into_iter().collect();
+
+    // check if all scalars are valid
+    let scalars = scalars.map_err(|_| DeimosError::General(GeneralError::ParsingError(format!("unable to parse public input parameters"))))?;
 
     // debug!("Verifying zkSNARK proof...");
     groth16::verify_proof(
         &pvk,
         &proof,
-        &[
-            hex_to_scalar(non_membership_proof.0.unwrap().as_str()),
-            hex_to_scalar(first_proof.0 .0.unwrap().as_str()),
-            hex_to_scalar(first_proof.1 .0.unwrap().as_str()),
-            hex_to_scalar(second_proof.0 .0.unwrap().as_str()),
-            hex_to_scalar(second_proof.1 .0.unwrap().as_str()),
-        ],
+        &scalars,
     )
-    .unwrap();
+    .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
 
     // debug!("zkSNARK with groth16 random parameters was successfully verified!");
     Ok(())
 }
 
-pub fn validate_proof(proof_value: String) -> Result<(), &'static str> {
+pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
     if let Ok((non_membership_proof, first_proof, second_proof)) =
         serde_json::from_str::<(MerkleProof, UpdateProof, UpdateProof)>(&proof_value)
     {
@@ -91,25 +107,26 @@ pub fn validate_proof(proof_value: String) -> Result<(), &'static str> {
         ) {
             validate_snark(non_membership_proof, first_proof, second_proof)
         } else {
-            Err("Proof is invalid")
+            Err(DeimosError::Proof(ProofError::VerificationError))
         }
     } else if let Ok(proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
         if IndexedMerkleTree::verify_update_proof(&proof) {
             Ok(())
         } else {
-            Err("Proof is invalid")
+            Err(DeimosError::Proof(ProofError::VerificationError))
         }
     } else {
-        Err("Invalid proof format")
+        Err(DeimosError::Proof(ProofError::InvalidFormatError))
     }
 }
 
-//TODO: better naming
+// TODO: better naming
+// TODO: DRY with validate_snark Function()?!
 pub fn validate_epoch_from_proof_variants(
     previous_commitment: &String,
     current_commitment: &String,
     proofs: &Vec<ProofVariant>,
-) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>), String> {
+) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>), DeimosError> {
     let circuit = match BatchMerkleProofCircuit::create(
         previous_commitment,
         current_commitment,
@@ -117,17 +134,17 @@ pub fn validate_epoch_from_proof_variants(
     ) {
         Ok(circuit) => circuit,
         Err(e) => {
-            return Err(format!("Could not create circuit: {}", e));
+            return Err(DeimosError::Proof(ProofError::GenerationError));
         }
     };
 
     let rng = &mut OsRng;
 
     debug!("validate_epoch: creating parameters with BLS12-381 pairing-friendly elliptic curve construction");
-    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).unwrap();
+    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).map_err(|_| DeimosError::Proof(ProofError::ProofUnpackError))?;
 
     debug!("validate_epoch: creating proof for zkSNARK");
-    let proof = groth16::create_random_proof(circuit.clone(), &params, rng).unwrap();
+    let proof = groth16::create_random_proof(circuit.clone(), &params, rng).map_err(|_| DeimosError::Proof(ProofError::GenerationError))?;
 
     // println!("{}: {:?}", "PROOF".red(), proof);
 
@@ -137,16 +154,21 @@ pub fn validate_epoch_from_proof_variants(
     // println!("{}", "Extracting public parameters for zkSNARK...".yellow());
     // let public_parameters = extract_public_parameters(&parsed_proofs);
 
+    let scalars: Result<Vec<Scalar>, _> = vec![
+        hex_to_scalar(&previous_commitment.as_str()),
+        hex_to_scalar(&current_commitment.as_str()),
+    ].into_iter().collect();
+
+    let scalars = scalars.map_err(|_| DeimosError::General(GeneralError::ParsingError(format!("unable to parse public input parameters"))))?;
+
+
     debug!("validate_epoch: verifying zkSNARK proof...");
     groth16::verify_proof(
         &pvk,
         &proof,
-        &[
-            hex_to_scalar(&previous_commitment.as_str()),
-            hex_to_scalar(&current_commitment.as_str()),
-        ],
+        &scalars,
     )
-    .unwrap();
+    .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
 
     debug!(
         "{}",
@@ -155,28 +177,31 @@ pub fn validate_epoch_from_proof_variants(
     Ok((proof, params.vk))
 }
 
+// TODO: DRY with validate_epoch_from_proof_variants Function()?!
 pub fn validate_epoch(
     previous_commitment: &String,
     current_commitment: &String,
     proof: groth16::Proof<Bls12>,
     verifying_key: VerifyingKey<Bls12>,
-) -> Result<groth16::Proof<Bls12>, String> {
+) -> Result<groth16::Proof<Bls12>, DeimosError> {
     debug!("validate_epoch: preparing verifying key for zkSNARK");
     let pvk = groth16::prepare_verifying_key(&verifying_key);
 
-    // println!("{}", "Extracting public parameters for zkSNARK...".yellow());
-    // let public_parameters = extract_public_parameters(&parsed_proofs);
+    let scalars: Result<Vec<Scalar>, _> = vec![
+        hex_to_scalar(&previous_commitment.as_str()),
+        hex_to_scalar(&current_commitment.as_str()),
+    ].into_iter().collect();
+
+    let scalars = scalars.map_err(|_| DeimosError::General(GeneralError::ParsingError(format!("unable to parse public input parameters"))))?;
+
 
     debug!("validate_epoch: verifying zkSNARK proof...");
     groth16::verify_proof(
         &pvk,
         &proof,
-        &[
-            hex_to_scalar(&previous_commitment.as_str()),
-            hex_to_scalar(&current_commitment.as_str()),
-        ],
+        &scalars,
     )
-    .unwrap();
+    .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
 
     debug!(
         "validate_epoch: zkSNARK with groth16 random parameters for epoch between commitment {} and {} was successfully verified!",
@@ -215,8 +240,8 @@ mod tests {
             inactive_node.clone(),
             inactive_node.clone(),
             inactive_node,
-        ]);
-        let prev_commitment = tree.get_commitment();
+        ]).unwrap();
+        let prev_commitment = tree.get_commitment().unwrap();
 
         let ryan = sha256(&"Ryan".to_string());
         let ford = sha256(&"Ford".to_string()); 
@@ -226,8 +251,8 @@ mod tests {
         let sebastians_node = 
             Node::initialize_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
 
-        let first_insert_proof = tree.generate_proof_of_insert(&ryans_node);
-        let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node);
+        let first_insert_proof = tree.generate_proof_of_insert(&ryans_node).unwrap();
+        let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node).unwrap();
 
         let first_insert_zk_snark = ProofVariant::Insert(
             first_insert_proof
@@ -237,7 +262,7 @@ mod tests {
         );
 
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
-        let current_commitment = tree.get_commitment();
+        let current_commitment = tree.get_commitment().unwrap();
 
         let batched_proof =
             BatchMerkleProofCircuit::create(&prev_commitment, &current_commitment, proofs).unwrap();
