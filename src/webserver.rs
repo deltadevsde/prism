@@ -1,7 +1,7 @@
 use crate::{
     indexed_merkle_tree::{sha256, ProofVariant},
     node_types::Sequencer,
-    WebServerConfig,
+    WebServerConfig, error::DeimosError,
 };
 use actix_cors::Cors;
 use actix_web::{
@@ -33,6 +33,7 @@ impl WebServer {
     }
 
     pub fn start(&self, session: Arc<Sequencer>) -> Server {
+        // TODO: do we need to handle the unwraps for the use in production here? if it fails, the server wont start and we can fix it
         /* let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
         builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
         builder.set_certificate_chain_file(env.cert_path).unwrap(); */
@@ -105,7 +106,7 @@ async fn update_entry(
 
     let tree = session.create_tree();
 
-    let result: Result<Vec<ChainEntry>, &str> = session.db.get_hashchain(&signature_with_key.id);
+    let result: Result<Vec<ChainEntry>, DeimosError> = session.db.get_hashchain(&signature_with_key.id);
     // if the entry already exists, an update must be performed, otherwise insert
     let update_proof = match result {
         // add a new key to an existing id
@@ -122,18 +123,18 @@ async fn update_entry(
 
         let proofs = if update_proof {
             let new_index = tree.clone().find_node_index(&node).unwrap();
-            let (proof_of_update, _) = &tree.clone().generate_update_proof(new_index, node);
+            let (proof_of_update, _) = &tree.clone().generate_update_proof(new_index, node).unwrap();
             let pre_processed_string = serde_json::to_string(proof_of_update).unwrap();
             format!(r#"{{"Update":{}}}"#, pre_processed_string)
         } else {
             let pre_processed_string =
-                serde_json::to_string(&tree.clone().generate_proof_of_insert(&node)).unwrap();
+                serde_json::to_string(&tree.clone().generate_proof_of_insert(&node).unwrap()).unwrap();
             format!(r#"{{"Insert":{}}}"#, pre_processed_string)
         };
 
         session
             .db
-            .add_merkle_proof(&epoch, &epoch_operation, &tree.get_commitment(), &proofs);
+            .add_merkle_proof(&epoch, &epoch_operation, &tree.get_commitment().unwrap(), &proofs);
         session.db.increment_epoch_operation();
         HttpResponse::Ok().body("Updated entry successfully")
     } else {

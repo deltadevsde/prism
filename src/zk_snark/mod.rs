@@ -58,7 +58,6 @@ enum AffineType {
 
 // TODO: think about to refactor this to use a generic function, because they are very similar
 // but probably something for a different PR
-
 pub fn decode_and_convert_to_g1affine(encoded_data: &String) -> Result<G1Affine, DeimosError> {
     let decoded = engine.decode(encoded_data.as_bytes())
         .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
@@ -206,13 +205,13 @@ mod tests {
             inactive_node.clone(),
             inactive_node.clone(),
             inactive_node,
-        ])
+        ]).unwrap()
     }
 
     #[test]
     fn test_serialize_and_deserialize_proof() {
         let mut tree = build_empty_tree();
-        let prev_commitment = tree.get_commitment();
+        let prev_commitment = tree.get_commitment().unwrap();
 
         // create two nodes to insert
         let ryan = sha256(&"Ryan".to_string());
@@ -223,15 +222,15 @@ mod tests {
         let sebastians_node = Node::initialize_leaf(true, true, sebastian, pusch, TAIL.to_string());
 
         // generate proofs for the two nodes
-        let first_insert_proof = tree.generate_proof_of_insert(&ryans_node);
-        let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node);
+        let first_insert_proof = tree.generate_proof_of_insert(&ryans_node).unwrap();
+        let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node).unwrap();
 
         // create zkSNARKs for the two proofs
         let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
         let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
 
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
-        let current_commitment = tree.get_commitment();
+        let current_commitment = tree.get_commitment().unwrap();
 
         let batched_proof =
             BatchMerkleProofCircuit::create(&prev_commitment, &current_commitment, proofs).unwrap();

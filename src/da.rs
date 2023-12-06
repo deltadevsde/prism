@@ -29,9 +29,23 @@ impl TryFrom<&Blob> for EpochJson {
     type Error = GeneralError;
 
     fn try_from(value: &Blob) -> Result<Self, GeneralError> {
-        let str_data = String::from_utf8(value.data.clone()).map_err(|_| GeneralError::ParsingError("Failed to convert bytes to UTF-8 string".to_string()))?;
-        serde_json::from_str::<EpochJson>(&str_data).map_err(|_| GeneralError::ParsingError("Failed to parse string as EpochJson".to_string()))
+        // convert blob data to utf8 string
+        let data_str = String::from_utf8(value.data.clone()).map_err(|e| {
+            GeneralError::ParsingError(format!(
+                "Could not convert blob data to utf8 string: {}",
+                e
+            ))
+        })?;
+
+        // convert utf8 string to EpochJson
+        serde_json::from_str(&data_str).map_err(|e| {
+            GeneralError::ParsingError(format!(
+                "Could not parse epoch json: {}",
+                e
+            ))
+        })
     }
+    
 }
 
 enum Message {
@@ -67,25 +81,17 @@ impl CelestiaConnection {
         connection_string: &String,
         auth_token: Option<&str>,
         namespace_hex: &String,
-    ) -> Result<Self, DeimosError> {
+    ) -> Self {
         // TODO: Should buffer size be configurable? Is 5 a reasonable default?
         let (tx, rx) = mpsc::channel(5);
 
-        let client = new_websocket(&connection_string, auth_token).await
-            .map_err(|e| DeimosError::DataAvailability(DataAvailabilityError::WebSocketError(e.to_string())))?;
-
-        let decoded_hex = hex::decode(namespace_hex)
-            .map_err(|e| DeimosError::General(GeneralError::HexDecodingError(e.to_string())))?;
-
-        let namespace_id = Namespace::new_v0(&decoded_hex)
-            .map_err(|_| DeimosError::DataAvailability(DataAvailabilityError::NamespaceInitializationError))?;
-
-        Ok(CelestiaConnection {
-            client,
-            namespace_id,
+        // TODO: Should we handle the error here?
+        CelestiaConnection {
+            client: new_websocket(&connection_string, auth_token).await.unwrap(),
+            namespace_id: Namespace::new_v0(&hex::decode(namespace_hex).unwrap()).unwrap(),
             tx: Arc::new(tx),
             rx: Arc::new(tokio::sync::Mutex::new(rx)),
-        })
+        }
     }
 }
 
@@ -94,7 +100,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
     async fn get_message(&self) -> Result<u64, DataAvailabilityError> {
         match self.rx.lock().await.recv().await {
             Some(Message::UpdateTarget(height)) => Ok(height),
-            None => Err(DataAvailabilityError::ChannelClosed), //TODO: no better idea than channel closed for now, you @distractedm1nd?
+            None => Err(DataAvailabilityError::ChannelReceiveError),
         }
     }
 
@@ -113,23 +119,35 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 for blob in blobs.iter() {
                     match EpochJson::try_from(blob) {
                         Ok(epoch_json) => epochs.push(epoch_json),
-                        Err(_) => return Err(DataAvailabilityError::ParsingError(height)),
+                        Err(_) => {
+                            DataAvailabilityError::DataRetrievalError(
+                                height,
+                                "Could not parse epoch json for blob".to_string(),
+                            );
+                        }
                     }
                 }
                 Ok(epochs)
             }
-            Err(err) => Err(DataAvailabilityError::DataRetrievalError(height, err.to_string())),
+            Err(err) => Err(DataAvailabilityError::DataRetrievalError(
+                height,
+                format!("Could not get epoch from DA layer: {}", err),
+            )),
         }
     }
 
     async fn submit(&self, epoch: &EpochJson) -> Result<u64, DeimosError> {
         debug! {"Posting epoch {} to DA layer", epoch.height};
-
-        let data = serde_json::to_string(&epoch).map_err(|_| DeimosError::General(GeneralError::ParsingError("Failed to serialize EpochJson to string".to_string())))?;
-        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|_| DeimosError::General(GeneralError::BlobCreationError))?;
-        debug!("blob: {}", serde_json::to_string(&blob).map_err(|_| DeimosError::General(GeneralError::ParsingError("Failed to serialize Blob to string".to_string())))?);
-
-
+        
+        let data = serde_json::to_string(&epoch).map_err(|e| {
+            DeimosError::General(GeneralError::ParsingError(format!(
+                "Could not serialize epoch json: {}",
+                e
+            )))})?;
+        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|e| {
+            DeimosError::General(GeneralError::BlobCreationError)
+        })?;
+        debug!("blob: {:?}", serde_json::to_string(&blob));
         match BlobClient::blob_submit(&self.client, &[blob]).await {
             Ok(height) => {
                 debug!(
@@ -139,31 +157,45 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 Ok(height)
             }
             // TODO implement retries (#10)
-            Err(err) => Err(DeimosError::DataAvailability(DataAvailabilityError::WriteError(epoch.height, err.to_string()))),
+            Err(err) => Err(DeimosError::DataAvailability(
+                DataAvailabilityError::NetworkError(format!(
+                    "Could not submit epoch to DA layer: {}",
+                    err
+                )),
+            )),
         }
     }
 
     async fn start(&self) -> Result<(), DataAvailabilityError> {
-        let mut header_sub = HeaderClient::header_subscribe(&self.client).await
-            .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
+        let mut header_sub = HeaderClient::header_subscribe(&self.client).await.map_err(|e| {
+            DataAvailabilityError::NetworkError(format!(
+                "Could not subscribe to header updates from DA layer: {}",
+                e
+            ))
+        })?;
 
         let tx1 = self.tx.clone();
         spawn(async move {
             while let Some(extended_header_result) = header_sub.next().await {
-                let extended_header = extended_header_result
-                    .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
-                let height = extended_header.header.height.value();
-                match tx1.send(Message::UpdateTarget(height)).await {
-                    Ok(_) => {
-                        debug!("Sent message to channel. Height: {}", height);
+                match extended_header_result {
+                    Ok(extended_header) => {
+                        let height = extended_header.header.height.value();
+                        match tx1.send(Message::UpdateTarget(height)).await {
+                            Ok(_) => {
+                                debug!("Sent message to channel. Height: {}", height);
+                            }
+                            Err(_) => {
+                                DataAvailabilityError::ChannelError;
+                            }
+                        }
                     }
                     Err(_) => {
-                        error!("Could not send message to channel");
-                        return Err(DataAvailabilityError::ChannelError);
+                        DataAvailabilityError::NetworkError(
+                            "Could not get header from DA layer".to_string(),
+                        );
                     }
                 }
             }
-            Ok(())
         });
         Ok(())
     }
@@ -176,7 +208,6 @@ impl LocalDataAvailabilityLayer {
     }
 }
 
-// TODO: i guess unwrap and expect arent an issue here because it's only used for testing
 #[async_trait]
 impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
     async fn get_message(&self) -> Result<u64, DataAvailabilityError> {
@@ -202,7 +233,10 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
             Ok(vec![result_epoch.expect("WRON FORMT")])
         } else {
             file.unlock().expect("Unable to unlock file");
-            Err(DataAvailabilityError::NetworkError(format!("Could not get height {} from DA layer", height)))
+            Err(DataAvailabilityError::DataRetrievalError(
+                height,
+                "Could not get epoch from DA layer".to_string(),
+            ))
         }
     }
 
@@ -305,7 +339,7 @@ mod da_tests {
             inactive_node.clone(),
             inactive_node.clone(),
             inactive_node,
-        ])
+        ]).unwrap()
     }
 
     fn create_node(label: &str, value: &str) -> Node {
@@ -358,46 +392,46 @@ mod da_tests {
             // write all 60 seconds proofs and commitments
             // create a new tree
             let mut tree = build_empty_tree();
-            let prev_commitment = tree.get_commitment();
+            let prev_commitment = tree.get_commitment().unwrap();
 
             // insert a first node
             let node_1 = create_node("test1", "test2");
 
             // generate proof for the first insert
-            let first_insert_proof = tree.generate_proof_of_insert(&node_1);
+            let first_insert_proof = tree.generate_proof_of_insert(&node_1).unwrap();
             let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
 
             // create bls12 proof for posting
-            let (bls12proof, vk) = create_proof_and_vk(prev_commitment.clone(), tree.get_commitment(), vec![first_insert_zk_snark]);
+            let (bls12proof, vk) = create_proof_and_vk(prev_commitment.clone(), tree.get_commitment().unwrap(), vec![first_insert_zk_snark]);
 
             sequencer_layer.submit(&EpochJson { 
                 height: 1, 
                 prev_commitment: prev_commitment, 
-                current_commitment: tree.get_commitment(),
+                current_commitment: tree.get_commitment().unwrap(),
                 proof: bls12proof, 
                 verifying_key: vk 
             }).await.unwrap();
             tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
 
             // update prev commitment
-            let prev_commitment = tree.get_commitment();
+            let prev_commitment = tree.get_commitment().unwrap();
 
             // insert a second and third node
             let node_2 = create_node("test3", "test4");
             let node_3 = create_node("test5", "test6");
 
             // generate proof for the second and third insert
-            let second_insert_proof = tree.generate_proof_of_insert(&node_2);
-            let third_insert_proof = tree.generate_proof_of_insert(&node_3);
+            let second_insert_proof = tree.generate_proof_of_insert(&node_2).unwrap();
+            let third_insert_proof = tree.generate_proof_of_insert(&node_3).unwrap();
             let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
             let third_insert_zk_snark = ProofVariant::Insert(third_insert_proof);
 
             // proof and vk
-            let (proof, vk) = create_proof_and_vk(prev_commitment.clone(), tree.get_commitment(), vec![second_insert_zk_snark, third_insert_zk_snark]);
+            let (proof, vk) = create_proof_and_vk(prev_commitment.clone(), tree.get_commitment().unwrap(), vec![second_insert_zk_snark, third_insert_zk_snark]);
             sequencer_layer.submit(&EpochJson { 
                 height: 2, 
                 prev_commitment: prev_commitment, 
-                current_commitment: tree.get_commitment(),
+                current_commitment: tree.get_commitment().unwrap(),
                 proof: proof, 
                 verifying_key: vk 
             }).await.unwrap();
