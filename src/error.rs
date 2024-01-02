@@ -1,4 +1,5 @@
 use thiserror::Error;
+use hex::FromHexError;
 
 
 #[derive(Error, Debug)]
@@ -49,8 +50,11 @@ pub enum DatabaseError {
 
 #[derive(Error, Debug)]
 pub enum DataAvailabilityError {
-    #[error("Failed to establish WebSocket connection: {0}")]
-    WebSocketError(String),
+    #[error("Failed to initialize the da connection: {0}")]
+    InitializationError(String),
+    // TODO: is this error needed? doesn't seem to be used anywhere rn
+    #[error("Failed to establish connection: {0}")]
+    ConnectionError(String),
     #[error("Namespace initialization error")]
     NamespaceInitializationError,
     #[error("The data channel has been closed")]
@@ -59,14 +63,14 @@ pub enum DataAvailabilityError {
     NetworkError(String),
     #[error("Data retrieval error at height {0}: {1}")]
     DataRetrievalError(u64, String),
-    #[error("Error parsing data at height {0}")]
-    ParsingError(u64),
     #[error("Error submitting data at height {0}: {1}")]
-    WriteError(u64, String),
+    SubmissionError(u64, String),
     #[error("Error sending message to channel")]
     ChannelError,
     #[error("Error receiving message from channel")]
     ChannelReceiveError,
+    #[error("General Deimos error: {0}")]
+    GeneralError(#[from] GeneralError),
 }
 
 #[derive(Error, Debug)]

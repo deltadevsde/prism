@@ -57,7 +57,7 @@ pub trait DataAvailabilityLayer: Send + Sync {
     async fn get_message(&self) -> Result<u64, DataAvailabilityError>;
     async fn initialize_sync_target(&self) -> Result<u64, DataAvailabilityError>;
     async fn get(&self, height: u64) -> Result<Vec<EpochJson>, DataAvailabilityError>;
-    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DeimosError>;
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DataAvailabilityError>;
     async fn start(&self) -> Result<(), DataAvailabilityError>;
 }
 
@@ -81,17 +81,29 @@ impl CelestiaConnection {
         connection_string: &String,
         auth_token: Option<&str>,
         namespace_hex: &String,
-    ) -> Self {
+    ) -> Result<Self, DataAvailabilityError> {
         // TODO: Should buffer size be configurable? Is 5 a reasonable default?
         let (tx, rx) = mpsc::channel(5);
 
-        // TODO: Should we handle the error here?
-        CelestiaConnection {
-            client: new_websocket(&connection_string, auth_token).await.unwrap(),
-            namespace_id: Namespace::new_v0(&hex::decode(namespace_hex).unwrap()).unwrap(),
+        let client = new_websocket(&connection_string, auth_token).await.map_err(|e| {
+            DataAvailabilityError::InitializationError(format!("Websocket initialization failed: {}", e))
+        })?;
+
+        let decoded_hex = match hex::decode(namespace_hex) {
+            Ok(hex) => hex,
+            Err(e) => return Err(DataAvailabilityError::InitializationError(format!("Hex decoding failed: {}", e))),
+        };
+
+        let namespace_id = Namespace::new_v0(&decoded_hex).map_err(|e| {
+            DataAvailabilityError::InitializationError(format!("Namespace creation failed: {}", e))
+        })?;
+
+        Ok(CelestiaConnection {
+            client,
+            namespace_id,
             tx: Arc::new(tx),
             rx: Arc::new(tokio::sync::Mutex::new(rx)),
-        }
+        })
     }
 }
 
@@ -136,16 +148,16 @@ impl DataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DeimosError> {
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DataAvailabilityError> {
         debug! {"Posting epoch {} to DA layer", epoch.height};
         
         let data = serde_json::to_string(&epoch).map_err(|e| {
-            DeimosError::General(GeneralError::ParsingError(format!(
+            DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
                 "Could not serialize epoch json: {}",
                 e
             )))})?;
         let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|e| {
-            DeimosError::General(GeneralError::BlobCreationError)
+            DataAvailabilityError::GeneralError(GeneralError::BlobCreationError)
         })?;
         debug!("blob: {:?}", serde_json::to_string(&blob));
         match BlobClient::blob_submit(&self.client, &[blob]).await {
@@ -157,12 +169,12 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 Ok(height)
             }
             // TODO implement retries (#10)
-            Err(err) => Err(DeimosError::DataAvailability(
+            Err(err) => Err(
                 DataAvailabilityError::NetworkError(format!(
                     "Could not submit epoch to DA layer: {}",
                     err
                 )),
-            )),
+            ),
         }
     }
 
@@ -240,7 +252,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         }
     }
 
-    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DeimosError> {
+    async fn submit(&self, epoch: &EpochJson) -> Result<u64, DataAvailabilityError> {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
