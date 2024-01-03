@@ -197,14 +197,17 @@ async fn main() -> std::io::Result<()> {
     let da = match &config.da_layer {
         DALayerOption::Celestia => {
             let celestia_conf = config.clone().celestia_config.unwrap();
-            Some(Arc::new(
-                CelestiaConnection::new(
+            match CelestiaConnection::new(
                     &celestia_conf.connection_string,
                     None,
                     &celestia_conf.namespace_id,
-                )
-                .await,
-            ) as Arc<dyn DataAvailabilityLayer + 'static>)
+                ).await {
+                    Ok(da) => Some(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
+                    Err(e) => {
+                        error!("Failed to connect to Celestia: {}", e);
+                        None
+                    }
+                }
         },
         DALayerOption::None => None,
     };

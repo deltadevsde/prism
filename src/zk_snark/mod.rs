@@ -627,7 +627,7 @@ impl BatchMerkleProofCircuit {
             match proof {
                 ProofVariant::Update(update_proof) => {
                     proof_circuit_array
-                        .push(BatchMerkleProofCircuit::create_from_update(&update_proof).map_err(DeimosError::General)?);
+                        .push(BatchMerkleProofCircuit::create_from_update(update_proof).map_err(DeimosError::General)?);
                 }
                 ProofVariant::Insert((merkle_proof, first_update, second_update)) => {
                     proof_circuit_array.push(
@@ -648,7 +648,7 @@ impl BatchMerkleProofCircuit {
     }
 
     pub fn create_from_update(
-        ((old_root, old_path), (updated_root, updated_path)): &UpdateProof,
+        ((old_root, old_path), (updated_root, updated_path)): UpdateProof,
     ) -> Result<ProofVariantCircuit, GeneralError> {
         if old_root.is_none() || old_path.is_none() || updated_root.is_none() || updated_path.is_none() {
             return Err(GeneralError::MissingArgumentError);

@@ -12,6 +12,8 @@ pub enum DeimosError {
     DataAvailability(DataAvailabilityError),
     #[error("Proof error: {0}")]
     Proof(ProofError),
+    #[error("Merkle tree error: {0}")]
+    MerkleTree(MerkleTreeError),
 }
 
 // general reusable errors
@@ -50,13 +52,11 @@ pub enum DatabaseError {
 
 #[derive(Error, Debug)]
 pub enum DataAvailabilityError {
-    #[error("Failed to initialize the da connection: {0}")]
+    #[error("Initialization error: {0}")]
     InitializationError(String),
     // TODO: is this error needed? doesn't seem to be used anywhere rn
     #[error("Failed to establish connection: {0}")]
     ConnectionError(String),
-    #[error("Namespace initialization error")]
-    NamespaceInitializationError,
     #[error("The data channel has been closed")]
     ChannelClosed,
     #[error("Network error: {0}")]
@@ -65,8 +65,8 @@ pub enum DataAvailabilityError {
     DataRetrievalError(u64, String),
     #[error("Error submitting data at height {0}: {1}")]
     SubmissionError(u64, String),
-    #[error("Error sending message to channel")]
-    ChannelError,
+    #[error("Error {0} new sync target: {1}")] 
+    SyncTargetError(String, String),
     #[error("Error receiving message from channel")]
     ChannelReceiveError,
     #[error("General Deimos error: {0}")]
