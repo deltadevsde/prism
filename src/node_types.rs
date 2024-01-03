@@ -17,7 +17,7 @@ use crate::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
         serialize_verifying_key_to_custom,
     },
-    Config,
+    Config, error::{MerkleTreeError, DeimosError},
 };
 
 #[async_trait]
@@ -162,7 +162,7 @@ impl Sequencer {
     /// 3. Waits for a specified duration before starting the next epoch.
     /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
     /// 5. Repeats steps 2-4 periodically.
-    pub async fn finalize_epoch(&self) -> Result<Proof<Bls12>, String> {
+    pub async fn finalize_epoch(&self) -> Result<Proof<Bls12>, DeimosError> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -172,7 +172,7 @@ impl Sequencer {
         self.db.reset_epoch_operation_counter();
 
         // add the commitment for the operations ran since the last epoch
-        let current_commitment = self.create_tree().get_commitment();
+        let current_commitment = self.create_tree().map_err( DeimosError::MerkleTree)?.get_commitment().map_err(DeimosError::MerkleTree)?;
 
         self.db.add_commitment(&epoch, &current_commitment);
 
@@ -187,18 +187,15 @@ impl Sequencer {
             let prev_epoch = epoch - 1;
             self.db.get_commitment(&prev_epoch).unwrap()
         } else {
-            let empty_commitment = self.create_tree();
-            empty_commitment.get_commitment()
+            let empty_commitment = self.create_tree().map_err(DeimosError::MerkleTree)?;
+            empty_commitment.get_commitment().map_err(DeimosError::MerkleTree)?
         };
 
-        let (proof, verifying_key) = match validate_epoch_from_proof_variants(
+        let (proof, verifying_key) = validate_epoch_from_proof_variants(
             &prev_commitment,
             &current_commitment,
             &proofs,
-        ) {
-            Ok(proof) => proof,
-            Err(_) => return Err("Epoch validation failed".to_string()),
-        };
+        )?;
         let epoch_json = EpochJson {
             height: epoch,
             prev_commitment: prev_commitment.clone(),
@@ -213,11 +210,11 @@ impl Sequencer {
         Ok(proof)
     }
 
-    pub fn create_tree(&self) -> IndexedMerkleTree {
+    pub fn create_tree(&self) -> Result<IndexedMerkleTree, MerkleTreeError> {
         // TODO: better error handling (#11)
         // Retrieve the keys from input order and sort them.
         let ordered_derived_dict_keys: Vec<String> =
-            self.db.get_derived_dict_keys_in_order().unwrap_or(vec![]);
+            self.db.get_derived_keys_in_order().unwrap_or(vec![]);
         let mut sorted_keys = ordered_derived_dict_keys.clone();
         sorted_keys.sort();
 
@@ -287,8 +284,7 @@ impl Sequencer {
         }
 
         // create tree, setting left / right child property for each node
-        let tree = IndexedMerkleTree::new(nodes);
-        tree
+        IndexedMerkleTree::new(nodes)
     }
 
     /// Updates an entry in the database based on the given operation, incoming entry, and the signature from the user.

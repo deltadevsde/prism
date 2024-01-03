@@ -212,7 +212,7 @@ impl IndexedMerkleTree {
     }
 
     pub fn resort_nodes_by_input_order(
-        mut nodes: Vec<Node>,
+        nodes: Vec<Node>,
         input_order: &mut redis::Connection,
     ) -> Result<Vec<Node>, MerkleTreeError> {
         // TODO: shouldnt be redis specific, has to be a Vec<String> Argument, thats why i wont "fix" the unwrap here
@@ -235,7 +235,7 @@ impl IndexedMerkleTree {
             .collect();
     
         let mut sorted_nodes = valid_nodes;
-        sorted_nodes.sort_by_key(|(index, _)| index); // sort by the index
+        sorted_nodes.sort_by_key(|(index, _)| *index); // sort by the index
         let sorted_nodes = sorted_nodes.into_iter().map(|(_, node)| node).collect(); // remove the index from the tuple, we want the list of nodes
     
         Ok(sorted_nodes)

@@ -104,7 +104,7 @@ async fn update_entry(
     let epoch: u64 = session.db.get_epoch().unwrap();
     let epoch_operation: u64 = session.db.get_epoch_operation().unwrap();
 
-    let tree = session.create_tree();
+    let tree = session.create_tree().unwrap();
 
     let result: Result<Vec<ChainEntry>, DeimosError> = session.db.get_hashchain(&signature_with_key.id);
     // if the entry already exists, an update must be performed, otherwise insert
@@ -117,7 +117,7 @@ async fn update_entry(
     let update_successful = session.update_entry(&signature_with_key);
 
     if update_successful {
-        let new_tree = session.create_tree();
+        let new_tree = session.create_tree().unwrap();
         let hashed_id = sha256(&signature_with_key.id);
         let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
@@ -355,7 +355,7 @@ async fn handle_validate_proof(con: web::Data<Arc<Sequencer>>, req_body: String)
 
     match validate_proof(value) {
         Ok(_) => HttpResponse::Ok().body("Proof is valid"),
-        Err(err) => HttpResponse::BadRequest().body(err),
+        Err(err) => HttpResponse::BadRequest().body(err.to_string()),
     }
 }
 
@@ -398,7 +398,7 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
     ) {
         Ok(proof) => proof,
         Err(err) => {
-            return HttpResponse::BadRequest().body(err);
+            return HttpResponse::BadRequest().body(err.to_string());
         }
     };
 
@@ -452,7 +452,12 @@ async fn handle_validate_hashchain_proof(
     // debug!("Prepare verifying key for zkSNARK...");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
-    let public_param = HashChainEntryCircuit::create_public_parameter(&incoming_value.value);
+    let public_param = match HashChainEntryCircuit::create_public_parameter(&incoming_value.value) {
+        Ok(param) => param,
+        Err(e) => {
+            return HttpResponse::BadRequest().json(e.to_string());
+        }
+    };
 
     // debug!("Verifying zkSNARK proof...");
     match groth16::verify_proof(&pvk, &proof, &[public_param]) {
@@ -473,20 +478,40 @@ async fn handle_validate_hashchain_proof(
 ///
 #[get("/get-commitment")]
 async fn get_commitment(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    HttpResponse::Ok().body(
-        serde_json::to_string(&con.create_tree().get_commitment())
-            .expect("Failed to serialize commitment"),
-    )
+    match con.create_tree() {
+        Ok(tree) => {
+            match tree.get_commitment() {
+                Ok(commitment) => {
+                    match serde_json::to_string(&commitment) {
+                        Ok(serialized) => HttpResponse::Ok().body(serialized),
+                        Err(_) => HttpResponse::InternalServerError().body("Failed to serialize commitment"),
+                    }
+                },
+                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+            }
+        },
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
 }
 
 /// Returns the current state of the IndexedMerkleTree initialized from the database as a JSON object.
 ///
 #[get("/get-current-tree")]
 async fn get_current_tree(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    HttpResponse::Ok().body(
-        serde_json::to_string(&con.create_tree().get_root())
-            .expect("Failed to serialize tree root"),
-    )
+    match con.create_tree() {
+        Ok(tree) => {
+            match tree.get_root() {
+                Ok(node) => {
+                    match serde_json::to_string(&node) {
+                        Ok(serialized) => HttpResponse::Ok().body(serialized),
+                        Err(_) => HttpResponse::InternalServerError().body("Failed to serialize tree"),
+                    }
+                },
+                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+            }
+        },
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
 }
 
 #[post("/get-epoch-operations")]
@@ -552,6 +577,6 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 async fn handle_finalize_epoch(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     match con.finalize_epoch().await {
         Ok(proof) => HttpResponse::Ok().body(json!(serialize_proof(&proof)).to_string()),
-        Err(err) => HttpResponse::BadRequest().body(err),
+        Err(err) => HttpResponse::BadRequest().body(err.to_string()),
     }
 }

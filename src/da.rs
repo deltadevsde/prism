@@ -197,7 +197,10 @@ impl DataAvailabilityLayer for CelestiaConnection {
                                 debug!("Sent message to channel. Height: {}", height);
                             }
                             Err(_) => {
-                                DataAvailabilityError::ChannelError;
+                                DataAvailabilityError::SyncTargetError(
+                                    "sending".to_string(),
+                                    format!("Failed to send sync target update message for height {}", height)
+                                );
                             }
                         }
                     }

@@ -142,7 +142,11 @@ impl RedisConnections {
         })
     }
 
-    fn lock_connection<T>(&self, mutex: &Mutex<T>) -> Result<MutexGuard<T>, DatabaseError> {
+    // looks like we need lifetime annotations here, because we are returning a MutexGuard:
+    // 'a is a generic lifetime and &'a Mutex<T> should make sure, that the MutexGuard is not dropped before the Mutex itself... 
+    // because rust can not make sure that that's the case, we need to use the 'static lifetime here
+    // (but i dont really know why the issue pops up now and not before, i think we were using the same/similar pattern in the other functions)
+    fn lock_connection<'a, T>(&self, mutex: &'a Mutex<T>) -> Result<MutexGuard<'a, T>, DatabaseError> {
         mutex.lock().map_err(|_| DatabaseError::LockError)
     }
 
