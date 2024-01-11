@@ -301,7 +301,7 @@ impl Sequencer {
     /// * `false` if the operation was unsuccessful, e.g., due to an invalid signature or other errors.
     ///
     pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
-        println!("Updating entry...");
+        info!("Updating entry...");
         // add a new key to an existing id  ( type for the value retrieved from the database explicitly set to string)
         match self.db.get_hashchain(&signature.id) {
             Ok(value) => {
