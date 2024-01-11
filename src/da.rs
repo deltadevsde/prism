@@ -303,11 +303,11 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
 #[cfg(test)]
 mod da_tests {
     use crate::{
-        indexed_merkle_tree::{sha256, IndexedMerkleTree, Node, ProofVariant},
         zk_snark::{deserialize_proof, BatchMerkleProofCircuit, serialize_proof, VerifyingKey, serialize_verifying_key_to_custom, deserialize_custom_to_verifying_key}, utils::validate_epoch,
     };
 
     use super::*;
+    use indexed_merkle_tree::{sha256, IndexedMerkleTree, Node, ProofVariant};
     use bellman::groth16;
     use bls12_381::Bls12;
     use rand::rngs::OsRng;

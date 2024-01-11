@@ -1,8 +1,8 @@
 use crate::{
-    indexed_merkle_tree::{sha256, ProofVariant},
     node_types::Sequencer,
     WebServerConfig, error::DeimosError,
 };
+use indexed_merkle_tree::{sha256, ProofVariant};
 use actix_cors::Cors;
 use actix_web::{
     get, post,

@@ -1,7 +1,7 @@
 use crate::{
-    indexed_merkle_tree::{sha256, MerkleProof, Node, ProofVariant, UpdateProof},
     storage::ChainEntry, error::{GeneralError, DeimosError, ProofError},
 };
+use indexed_merkle_tree::{sha256, MerkleProof, Node, ProofVariant, UpdateProof};
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::{groth16::Proof, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
@@ -170,15 +170,13 @@ pub fn deserialize_custom_to_verifying_key(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        indexed_merkle_tree::{sha256, IndexedMerkleTree, Node},
-        zk_snark::deserialize_proof,
-    };
+    use crate::zk_snark::deserialize_proof;
 
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
     use rand::rngs::OsRng;
+    use indexed_merkle_tree::{sha256, IndexedMerkleTree, Node};
 
     const EMPTY_HASH: &str = Node::EMPTY_HASH;
     const TAIL: &str = Node::TAIL;

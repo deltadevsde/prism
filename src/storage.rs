@@ -1,4 +1,3 @@
-use log::kv::source;
 use redis::{Client, Commands, Connection};
 use std::sync::MutexGuard;
 use std::process::Command;
@@ -6,9 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display, sync::Mutex};
 use std::thread::sleep;
 use std::time::Duration;
+use indexed_merkle_tree::{sha256, Node, ProofVariant};
 
 use crate::{
-    indexed_merkle_tree::{sha256, Node, ProofVariant},
     utils::parse_json_to_proof,
     error::{DeimosError, GeneralError, DatabaseError}
 };

@@ -6,10 +6,10 @@ use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{PublicKey, Signature, Verifier};
 use std::{self, sync::Arc, time::Duration, io::ErrorKind};
 use tokio::{time::sleep, task::{spawn, JoinError}};
+use indexed_merkle_tree::{IndexedMerkleTree, Node, error::MerkleTreeError};
 
 use crate::{
     da::{DataAvailabilityLayer, EpochJson},
-    indexed_merkle_tree::{IndexedMerkleTree, Node},
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
     utils::{is_not_revoked, validate_epoch, validate_epoch_from_proof_variants},
     webserver::WebServer,
@@ -17,7 +17,7 @@ use crate::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
         serialize_verifying_key_to_custom,
     },
-    Config, error::{MerkleTreeError, DeimosError},
+    Config, error::DeimosError,
 };
 
 #[async_trait]
