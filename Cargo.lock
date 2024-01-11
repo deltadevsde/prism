@@ -2137,6 +2137,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
+name = "indexed-merkle-tree"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acfaf607b35cf78bd0d3daeb888755247c10e327d8a9439ccd0e5f4465d96bc6"
+dependencies = [
+ "crypto-hash",
+ "num",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "indexed_merkle_tree"
 version = "0.1.0"
 dependencies = [
@@ -2161,6 +2174,7 @@ dependencies = [
  "fs2",
  "futures",
  "hex 0.4.3",
+ "indexed-merkle-tree",
  "jsonrpsee",
  "lazy_static",
  "log",

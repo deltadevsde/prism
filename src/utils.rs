@@ -1,9 +1,9 @@
 use crate::{
-    indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, ProofVariant, UpdateProof},
     storage::ChainEntry,
     zk_snark::{hex_to_scalar, BatchMerkleProofCircuit, InsertMerkleProofCircuit},
     Operation, error::{ProofError, DeimosError, GeneralError},
 };
+use indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, ProofVariant, UpdateProof};
 use bellman::groth16::{self, VerifyingKey, PreparedVerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use rand::rngs::OsRng;
@@ -212,7 +212,7 @@ pub fn validate_epoch(
 
 #[cfg(test)]
 mod tests {
-    use crate::indexed_merkle_tree::{sha256, Node};
+    use indexed_merkle_tree::{sha256, Node};
 
     use super::*;
     use bellman::groth16;
