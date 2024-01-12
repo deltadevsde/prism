@@ -1,0 +1,28 @@
+name: Rust CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Build and test
+        run: cargo build --verbose && cargo test --verbose -- --test-threads=1
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run cargo-audit
+        run: cargo audit

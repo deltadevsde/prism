@@ -371,7 +371,7 @@ impl Database for RedisConnections {
 
 
 
-/* #[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::*; 
 
@@ -426,11 +426,11 @@ mod tests {
         redis_connections.update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()]).unwrap();
         redis_connections.update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()]).unwrap();
 
-        let mut keys = redis_connections.get_keys();
+        let mut keys = redis_connections.get_keys().unwrap();
+        keys.sort();
         
         // Überprüfe, ob die zurückgegebenen Schlüssel korrekt sind
         let expected_keys: Vec<String> = vec!["test_key1".to_string(), "test_key2".to_string(), "test_key3".to_string()];
-        keys.reverse();
         let returned_keys: Vec<String> = keys;
 
         assert_eq!(expected_keys, returned_keys);
@@ -442,7 +442,7 @@ mod tests {
     fn test_get_keys_from_empty_dictionary() {
         let redis_connections = setup();
 
-        let keys = redis_connections.get_keys();
+        let keys = redis_connections.get_keys().unwrap();
         
         let expected_keys: Vec<String> = vec![];
         let returned_keys: Vec<String> = keys;
@@ -453,7 +453,7 @@ mod tests {
     }
     
     #[test]
-    #[should_panic(expected = "assertion failed")]
+    #[should_panic(expected = "assertion `left == right` failed")]
     fn test_get_too_much_returned_keys() {
         let redis_connections = setup();
 
@@ -465,7 +465,7 @@ mod tests {
         redis_connections.update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()]).unwrap();
         redis_connections.update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()]).unwrap();
 
-        let mut keys = redis_connections.get_keys();
+        let mut keys = redis_connections.get_keys().unwrap();
         
         let too_little_keys: Vec<String> = vec!["test_key1".to_string(), "test_key2".to_string()];
         keys.reverse();
@@ -477,7 +477,7 @@ mod tests {
     }
      
     #[test]
-    #[should_panic(expected = "assertion failed")]
+    #[should_panic(expected = "assertion `left == right` failed")]
     fn test_get_too_little_returned_keys() {
         let redis_connections = setup();
 
@@ -489,7 +489,7 @@ mod tests {
         redis_connections.update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()]).unwrap();
         redis_connections.update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()]).unwrap();
 
-        let mut keys = redis_connections.get_keys();
+        let mut keys = redis_connections.get_keys().unwrap();
         
         let too_little_keys: Vec<String> = vec!["test_key1".to_string(), "test_key2".to_string(), "test_key3".to_string(), "test_key4".to_string()];
         keys.reverse();
@@ -506,6 +506,8 @@ mod tests {
     // In addition, it should not be possible to write keys exclusively directly into the derived dict, right?
     #[test]
     fn test_get_hashed_keys() {
+        println!("test_get_hashed_keys");
+
         let redis_connections = setup();
 
         let incoming_entry1 = create_incoming_entry_with_test_value("test_key1");
@@ -516,11 +518,12 @@ mod tests {
         redis_connections.set_derived_entry(&incoming_entry2, &create_mock_chain_entry(), true).unwrap();
         redis_connections.set_derived_entry(&incoming_entry3, &create_mock_chain_entry(), true).unwrap();
 
-        let keys = redis_connections.get_derived_keys_in_order();
+        let keys = redis_connections.get_derived_keys_in_order().unwrap();
+
+        println!("keys: {:?}", keys);
         
-        // Überprüfen, ob die zurückgegebenen Schlüssel korrekt sind
+        // check if the returned keys are correct
         let expected_keys: Vec<String> = vec![sha256(&"test_key1".to_string()), sha256(&"test_key2".to_string()), sha256(&"test_key3".to_string())];
-        // keys.reverse(); HIER MUSS SCHEINBAR NICHT REVERSED WERDEN?!
         let returned_keys: Vec<String> = keys;
         
         assert_eq!(expected_keys, returned_keys);
@@ -550,7 +553,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Key not found")]
     fn test_try_getting_hashchain_for_missing_key() {
         let redis_connections = setup();
 
@@ -559,17 +561,15 @@ mod tests {
 
         redis_connections.update_hashchain(&incoming_entry, &vec![chain_entry.clone()]).unwrap();
 
-        let hashchain = redis_connections.get_hashchain(&"missing_test_key".to_string()).unwrap();
-        assert_eq!(hashchain[0].hash, chain_entry.hash);
-        assert_eq!(hashchain[0].previous_hash, chain_entry.previous_hash);
-        assert_eq!(hashchain[0].operation, chain_entry.operation);
-        assert_eq!(hashchain[0].value, chain_entry.value);
+        let hashchain = redis_connections.get_hashchain(&"missing_test_key".to_string());
+        assert!(hashchain.is_err());
+        let error = hashchain.unwrap_err();
+        assert!(matches!(error, DeimosError::Database(DatabaseError::NotFoundError(msg)) if msg == "Key: missing_test_key"));
 
         teardown(&redis_connections);
     }
 
     #[test]
-    #[should_panic(expected = "Internal error parsing value")]
     fn test_try_getting_wrong_formatted_hashchain_value() {
         let redis_connections = setup();
 
@@ -596,11 +596,11 @@ mod tests {
 
         drop(con); // drop the lock on the connection bc get_hashchain also needs a lock on the connection
         
-        let hashchain = redis_connections.get_hashchain(&"key_to_wrong_formatted_chain_entry".to_string()).unwrap();
-
-        assert_eq!(hashchain[0].hash, wrong_chain_entry.clone().hash_val);
-        assert_eq!(hashchain[0].previous_hash, wrong_chain_entry.clone().previous_hash);
-        assert_eq!(hashchain[0].value, wrong_chain_entry.value);
+        let hashchain = redis_connections.get_hashchain(&"key_to_wrong_formatted_chain_entry".to_string());
+        
+        assert!(hashchain.is_err());
+        let error = hashchain.unwrap_err();
+        assert!(matches!(error, DeimosError::General(GeneralError::ParsingError(msg)) if msg == "failed to parse hashchain"));
 
         teardown(&redis_connections);
     }
@@ -638,5 +638,3 @@ mod tests {
         teardown(&redis_connections);
     }
 }
-
- */
