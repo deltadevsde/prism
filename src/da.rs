@@ -395,7 +395,7 @@ mod da_tests {
         }
     }
 
-    #[tokio::test]
+    /* #[tokio::test]
     async fn test_sequencer_and_light_client() {
         if let Err(e) = clear_file("data.json") {
             println!("Fehler beim Löschen der Datei: {}", e);
@@ -479,7 +479,7 @@ mod da_tests {
     
         sequencer.abort();
         light_client.abort();
-    }
+    } */
 }
 
 

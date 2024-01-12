@@ -248,7 +248,7 @@ mod tests {
         assert_eq!(proof.c, deserialized_proof.c);
     }
 
-    /* #[test]
+    #[test]
     fn test_deserialize_invalid_proof() {
         // Erstellen Sie ein ungültiges Bls12Proof-Objekt
         let invalid_proof = Bls12Proof {
@@ -262,7 +262,7 @@ mod tests {
 
         // Überprüfen Sie, ob die Deserialisierung fehlgeschlagen ist
         assert!(deserialized_proof_result.is_err());
-    } */
+    }
 }
 
 #[derive(Clone)]
@@ -316,9 +316,9 @@ pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError>
     for i in 1..(path.len()) {
         let sibling = &path[i];
         if sibling.is_left_sibling() {
-            current_hash = sha256(&format!("H({} || {})", &sibling.get_hash(), current_hash));
+            current_hash = sha256(&format!("{} || {}", &sibling.get_hash(), current_hash));
         } else {
-            current_hash = sha256(&format!("H({} || {})", current_hash, &sibling.get_hash()));
+            current_hash = sha256(&format!("{} || {}", current_hash, &sibling.get_hash()));
         }
     }
     hex_to_scalar(&current_hash.as_str())

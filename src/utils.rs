@@ -279,6 +279,8 @@ mod tests {
             params.vk,
         );
 
+        println!("{:?}", result);
+
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), proof);
     }
