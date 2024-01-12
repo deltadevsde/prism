@@ -8,16 +8,13 @@ pub mod zk_snark;
 
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
-use da::{LocalDataAvailabilityLayer, DataAvailabilityLayer};
+use da::{LocalDataAvailabilityLayer, DataAvailabilityLayer, CelestiaConnection};
 use serde::Deserialize;
 
 use dotenv::dotenv;
 use std::sync::Arc;
-
-use crate::{
-    node_types::{LightClient, NodeType, Sequencer},
-    storage::{Operation, RedisConnections}, da::CelestiaConnection,
-};
+use storage::{Operation, RedisConnections};
+use node_types::{LightClient, NodeType, Sequencer};
 
 #[macro_use]
 extern crate log;
