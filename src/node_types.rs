@@ -312,7 +312,7 @@ impl Sequencer {
                 let incoming_entry = match self.verify_signature_wrapper(&signature) {
                     Ok(entry) => entry,
                     Err(_) => {
-                        println!("Signature is invalid");
+                        info!("Signature is invalid");
                         return false;
                     }
                 };
