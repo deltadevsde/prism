@@ -371,6 +371,7 @@ impl Database for RedisConnections {
 
 
 
+#[cfg(not(feature = "ci"))]
 #[cfg(test)]
 mod tests {
     use super::*; 

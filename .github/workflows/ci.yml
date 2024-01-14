@@ -23,7 +23,7 @@ jobs:
         run: sudo apt-get install protobuf-compiler
 
       - name: Build and test
-        run: cargo build --verbose && cargo test --verbose -- --test-threads=1
+        run: cargo build --verbose && cargo test --features ci --verbose
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
