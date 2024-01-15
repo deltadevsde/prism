@@ -861,7 +861,8 @@ dependencies = [
 [[package]]
 name = "blockstore"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/celestia-node-rs#48f59fa5626ecbd664ed2a78ca089ac04bbe32e9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f872fa357537cb0984e85cf265e51c85d12031ecd991bfb97df93458042a7856"
 dependencies = [
  "async-trait",
  "cid",
@@ -962,7 +963,8 @@ dependencies = [
 [[package]]
 name = "celestia-proto"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/celestia-node-rs#48f59fa5626ecbd664ed2a78ca089ac04bbe32e9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "515e08188ff2667cc475b0c9833975b1a6ce1e88d5a051894354841e8787dca1"
 dependencies = [
  "anyhow",
  "celestia-tendermint-proto",
@@ -975,7 +977,8 @@ dependencies = [
 [[package]]
 name = "celestia-rpc"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/celestia-node-rs#48f59fa5626ecbd664ed2a78ca089ac04bbe32e9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08e0068d652121ecd2b8cce8b77fea8e4f7dc82d740d4da9f63f919b34782e02"
 dependencies = [
  "async-trait",
  "celestia-types",
@@ -1036,7 +1039,8 @@ dependencies = [
 [[package]]
 name = "celestia-types"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/celestia-node-rs#48f59fa5626ecbd664ed2a78ca089ac04bbe32e9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f6938e77c183ff3877900c1609df228cde992816f410143d9a4393b5362757f"
 dependencies = [
  "base64 0.21.7",
  "bech32",

@@ -3,7 +3,7 @@ use base64::{engine::general_purpose, Engine as _};
 use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
-use ed25519_dalek::{PublicKey, Signature, Verifier};
+use ed25519_dalek::{VerifyingKey, Signature, Verifier};
 use std::{self, sync::Arc, time::Duration, io::ErrorKind};
 use tokio::{time::sleep, task::{spawn, JoinError}};
 use indexed_merkle_tree::{IndexedMerkleTree, Node, error::MerkleTreeError};
@@ -17,7 +17,7 @@ use crate::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
         serialize_verifying_key_to_custom,
     },
-    Config, error::DeimosError,
+    Config, error::{DeimosError, GeneralError},
 };
 
 #[async_trait]
@@ -35,6 +35,21 @@ pub struct Sequencer {
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
+}
+
+pub fn decode_public_key(pub_key_str: &String) -> Result<VerifyingKey, GeneralError> {
+    // decode the public key from hex string to bytes
+    let public_key_bytes = hex::decode(pub_key_str)
+        .map_err(|_| GeneralError::DecodingError("Error while decoding hex string to bytes".to_string()))?;
+
+    let public_key_array: [u8; 32] = public_key_bytes
+        .try_into()
+        .map_err(|_| GeneralError::ParsingError("Error while converting Vec<u8> to [u8; 32]".to_string()))?;
+
+    let public_key = VerifyingKey::from_bytes(&public_key_array)
+        .map_err(|_| GeneralError::DecodingError("Unable to decode ed25519 verifying key".to_string()))?;
+
+    Ok(public_key)
 }
 
 #[async_trait]
@@ -415,12 +430,24 @@ impl Sequencer {
             .decode(&received_signed_message)
             .expect("Error while decoding signed message");
 
-        // Split the signed message into the signature and the message.
-        let (signature_bytes, message_bytes) = signed_message_bytes.split_at(64);
+        // check if the signed message is (at least) 64 bytes long
+        if signed_message_bytes.len() < 64 {
+            panic!("Signed message is too short");
+        }
+
+        let message_bytes = &signed_message_bytes[64..];
+
+        // extract the first 64 bytes from the signed message
+        let signature_bytes: &[u8; 64] = match signed_message_bytes.get(..64) {
+            Some(array_section) => match array_section.try_into() {
+                Ok(array) => array,
+                Err(_) => panic!("Error while converting slice to array"),
+            },
+            None => panic!("Failed to get first 64 bytes from signed message"),
+        };
 
         // Create PublicKey and Signature objects.
-        let signature =
-            Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
+        let signature = Signature::from_bytes(signature_bytes);
 
         let mut current_chain: Vec<ChainEntry> = self
             .db
@@ -434,12 +461,7 @@ impl Sequencer {
                 continue;
             }
 
-            let public_key = PublicKey::from_bytes(
-                &general_purpose::STANDARD
-                    .decode(&entry.value)
-                    .map_err(|_| "Error while decoding public key bytes")?,
-            )
-            .map_err(|_| "Error while creating PublicKey object")?;
+            let public_key = decode_public_key(&entry.value).map_err(|_| "Error while decoding public key")?;
 
             if public_key.verify(message_bytes, &signature).is_ok() {
                 // Deserialize the message
@@ -459,6 +481,7 @@ impl Sequencer {
         Err("No valid signature found")
     }
 
+
     fn verify_signature_with_given_key(
         &self,
         signature_with_key: &UpdateEntryJson,
@@ -469,21 +492,29 @@ impl Sequencer {
         let received_signed_message = &signature_with_key.signed_message;
 
         // TODO: better error handling (#11)
-        let received_public_key_bytes = general_purpose::STANDARD
-            .decode(&received_public_key)
-            .expect("Error while decoding public key");
         let signed_message_bytes = general_purpose::STANDARD
-            .decode(&received_signed_message)
-            .expect("Error while decoding signed message");
+        .decode(&received_signed_message)
+        .expect("Error while decoding signed message");
 
-        // Split the signed message into the signature and the message.
-        let (signature_bytes, message_bytes) = signed_message_bytes.split_at(64);
+        // check if the signed message is (at least) 64 bytes long
+        if signed_message_bytes.len() < 64 {
+            panic!("Signed message is too short");
+        }
+
+        let message_bytes = &signed_message_bytes[64..];
+
+        // extract the first 64 bytes from the signed message
+        let signature_bytes: &[u8; 64] = match signed_message_bytes.get(..64) {
+            Some(array_section) => match array_section.try_into() {
+                Ok(array) => array,
+                Err(_) => panic!("Error while converting slice to array"),
+            },
+            None => panic!("Failed to get first 64 bytes from signed message"),
+        };
 
         // Create PublicKey and Signature objects.
-        let received_public_key = PublicKey::from_bytes(&received_public_key_bytes)
-            .expect("Error while creating PublicKey object");
-        let signature =
-            Signature::from_bytes(signature_bytes).expect("Error while creating Signature object");
+        let received_public_key = decode_public_key(&received_public_key).map_err(|_| "Error while decoding public key")?;
+        let signature = Signature::from_bytes(signature_bytes);
 
         if received_public_key
             .verify(message_bytes, &signature)
