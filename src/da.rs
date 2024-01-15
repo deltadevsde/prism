@@ -1,13 +1,13 @@
-use crate::error::{GeneralError, DataAvailabilityError, DeimosError};
+use crate::error::{GeneralError, DataAvailabilityError};
 use crate::zk_snark::{Bls12Proof, VerifyingKey};
 use celestia_types::blob::SubmitOptions;
 use fs2::FileExt;
-use tokio::{task::spawn, sync::Mutex};
+use tokio::task::spawn;
 use async_trait::async_trait;
 use celestia_rpc::{Client, BlobClient, HeaderClient};
 use celestia_types::{nmt::Namespace, Blob};
 use serde::{Deserialize, Serialize};
-use std::{self, sync::Arc, collections::HashMap};
+use std::{self, sync::Arc};
 use tokio::sync::mpsc;
 use serde_json::json;
 use std::fs::{File, OpenOptions};

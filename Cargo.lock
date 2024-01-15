@@ -22,6 +22,7 @@ dependencies = [
 [[package]]
 name = "actix-cors"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9e772b3bcafe335042b5db010ab7c09013dad6eac4915c91d8d50902769f331"
@@ -30,6 +31,11 @@ version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0346d8c1f762b41b458ed3145eea914966bb9ad20b9be0d6d463b20d45586370"
 >>>>>>> 715c350 (fix: fix celestia deps)
+=======
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9e772b3bcafe335042b5db010ab7c09013dad6eac4915c91d8d50902769f331"
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 dependencies = [
  "actix-utils",
  "actix-web",
@@ -155,8 +161,8 @@ dependencies = [
  "impl-more",
  "openssl",
  "pin-project-lite",
- "rustls",
- "rustls-webpki",
+ "rustls 0.21.10",
+ "rustls-webpki 0.101.7",
  "tokio",
  "tokio-openssl",
  "tokio-util 0.7.10",
@@ -2390,10 +2396,14 @@ dependencies = [
  "hex 0.4.3",
  "indexed-merkle-tree",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "jsonrpsee 0.21.0",
 =======
  "jsonrpsee 0.18.2",
 >>>>>>> 715c350 (fix: fix celestia deps)
+=======
+ "jsonrpsee 0.21.0",
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
  "lazy_static",
  "log",
  "num",
@@ -2518,6 +2528,7 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee"
+<<<<<<< HEAD
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "affdc52f7596ccb2d7645231fc6163bb314630c989b64998f3699a28b4d5d4dc"
@@ -2531,6 +2542,8 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee"
+=======
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "affdc52f7596ccb2d7645231fc6163bb314630c989b64998f3699a28b4d5d4dc"
@@ -2549,6 +2562,7 @@ name = "jsonrpsee"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9579d0ca9fb30da026bac2f0f7d9576ec93489aeb7cd4971dd5b4617d82c79b2"
+<<<<<<< HEAD
 dependencies = [
  "jsonrpsee-core 0.21.0",
  "jsonrpsee-types 0.21.0",
@@ -2602,6 +2616,12 @@ dependencies = [
  "tokio-util 0.7.10",
  "tracing",
  "url",
+=======
+dependencies = [
+ "jsonrpsee-core 0.21.0",
+ "jsonrpsee-types 0.21.0",
+ "jsonrpsee-ws-client 0.21.0",
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 ]
 
 [[package]]
@@ -2614,28 +2634,31 @@ dependencies = [
  "http",
  "jsonrpsee-core 0.20.3",
  "pin-project",
- "rustls-native-certs",
+ "rustls-native-certs 0.6.3",
  "soketto",
  "thiserror",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.24.1",
  "tokio-util 0.7.10",
  "tracing",
  "url",
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "jsonrpsee-core"
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da2327ba8df2fdbd5e897e2b5ed25ce7f299d345b9736b6828814c3dbd1fd47b"
+=======
+name = "jsonrpsee-client-transport"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f9f9ed46590a8d5681975f126e22531698211b926129a40a2db47cbca429220"
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 dependencies = [
- "anyhow",
- "async-lock 2.8.0",
- "async-trait",
- "beef",
- "futures-timer",
  "futures-util",
+<<<<<<< HEAD
 <<<<<<< HEAD
  "hyper",
  "jsonrpsee-types 0.20.3",
@@ -2667,10 +2690,20 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+=======
+ "http",
+ "jsonrpsee-core 0.21.0",
+ "pin-project",
+ "rustls-native-certs 0.7.0",
+ "rustls-pki-types",
+ "soketto",
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
  "thiserror",
  "tokio",
- "tokio-stream",
+ "tokio-rustls 0.25.0",
+ "tokio-util 0.7.10",
  "tracing",
+ "url",
 ]
 
 [[package]]
@@ -2697,6 +2730,29 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-core"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "776d009e2f591b78c038e0d053a796f94575d66ca4e77dd84bfc5e81419e436c"
+dependencies = [
+ "anyhow",
+ "async-lock 3.3.0",
+ "async-trait",
+ "beef",
+ "futures-timer",
+ "futures-util",
+ "jsonrpsee-types 0.21.0",
+ "pin-project",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
  "tracing",
 ]
 
@@ -2736,6 +2792,7 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-types"
+<<<<<<< HEAD
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5be0be325642e850ed0bdff426674d2e66b2b7117c9be23a7caef68a2902b7d9"
@@ -2753,6 +2810,8 @@ name = "jsonrpsee-types"
 <<<<<<< HEAD
 version = "0.21.0"
 =======
+=======
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5be0be325642e850ed0bdff426674d2e66b2b7117c9be23a7caef68a2902b7d9"
@@ -2766,9 +2825,14 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "jsonrpsee-ws-client"
 version = "0.18.2"
 >>>>>>> 715c350 (fix: fix celestia deps)
+=======
+name = "jsonrpsee-types"
+version = "0.21.0"
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3266dfb045c9174b24c77c2dfe0084914bb23a6b2597d70c9dc6018392e1cd1b"
 dependencies = [
@@ -2819,6 +2883,19 @@ dependencies = [
  "jsonrpsee-core 0.20.3",
  "jsonrpsee-types 0.20.3",
 >>>>>>> 715c350 (fix: fix celestia deps)
+ "url",
+]
+
+[[package]]
+name = "jsonrpsee-ws-client"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "073c077471e89c4b511fa88b3df9a0f0abdf4a0a2e6683dd2ab36893af87bb2d"
+dependencies = [
+ "http",
+ "jsonrpsee-client-transport 0.21.0",
+ "jsonrpsee-core 0.21.0",
+ "jsonrpsee-types 0.21.0",
  "url",
 ]
 
@@ -4080,6 +4157,9 @@ dependencies = [
 
 [[package]]
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 name = "rustls-pemfile"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4112,6 +4192,9 @@ dependencies = [
 
 [[package]]
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 name = "rustls-webpki"
 version = "0.102.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
