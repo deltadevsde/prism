@@ -7,6 +7,7 @@ use indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, ProofVariant, UpdatePr
 use bellman::groth16::{self, VerifyingKey, PreparedVerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use rand::rngs::OsRng;
+use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
 ///
@@ -44,6 +45,21 @@ fn parse_option_to_scalar(
     hex_to_scalar(&input_str).map_err(|_| 
         GeneralError::ParsingError("Could not convert input to scalar".to_string())
     )
+}
+
+pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, GeneralError> {
+    // decode the public key from hex string to bytes
+    let public_key_bytes = hex::decode(pub_key_str)
+        .map_err(|_| GeneralError::DecodingError("Error while decoding hex string to bytes".to_string()))?;
+
+    let public_key_array: [u8; 32] = public_key_bytes
+        .try_into()
+        .map_err(|_| GeneralError::ParsingError("Error while converting Vec<u8> to [u8; 32]".to_string()))?;
+
+    let public_key = Ed25519VerifyingKey::from_bytes(&public_key_array)
+        .map_err(|_| GeneralError::DecodingError("Unable to decode ed25519 verifying key".to_string()))?;
+
+    Ok(public_key)
 }
 
 pub fn validate_snark(
@@ -193,7 +209,6 @@ pub fn validate_epoch(
     ].into_iter().collect();
 
     let scalars = scalars.map_err(|_| DeimosError::General(GeneralError::ParsingError(format!("unable to parse public input parameters"))))?;
-
 
     debug!("validate_epoch: verifying zkSNARK proof...");
     groth16::verify_proof(

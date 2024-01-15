@@ -25,9 +25,9 @@ pub enum GeneralError {
     BlobCreationError,
     #[error("Hexadecimal decoding error: {0}")]
     HexDecodingError(String),
-    #[error("Base64 encoding error: {0}")]
+    #[error("Encoding error: {0}")]
     EncodingError(String),
-    #[error("Base64 decoding error: {0}")]
+    #[error("Decoding error: {0}")]
     DecodingError(String),
     #[error("Required argument missing")]
     MissingArgumentError,
