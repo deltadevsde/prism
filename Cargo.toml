@@ -39,8 +39,6 @@ lazy_static = "1.4"
 colored = "2.0.0"
 log = "0.4"
 pretty_env_logger = "0.5.0"
-celestia-rpc = { git = "https://github.com/eigerco/celestia-node-rs" }
-celestia-types = { git = "https://github.com/eigerco/celestia-node-rs" }
 clap = { version = "4.3.2", features = ["derive"] }
 config = "0.13.4"
 fs2 = "0.4.3"
@@ -48,3 +46,5 @@ thiserror = "1.0.50"
 indexed-merkle-tree = "0.1.1"
 dotenvy = "0.15.7"
 ahash = "0.8.7"
+celestia-rpc = "0.1.0"
+celestia-types = "0.1.0"
