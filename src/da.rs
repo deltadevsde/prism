@@ -1,11 +1,11 @@
 use crate::error::{GeneralError, DataAvailabilityError, DeimosError};
 use crate::zk_snark::{Bls12Proof, VerifyingKey};
+use celestia_types::blob::SubmitOptions;
 use fs2::FileExt;
 use tokio::{task::spawn, sync::Mutex};
 use async_trait::async_trait;
-use celestia_rpc::{client::new_websocket, BlobClient, HeaderClient};
+use celestia_rpc::{Client, BlobClient, HeaderClient};
 use celestia_types::{nmt::Namespace, Blob};
-use jsonrpsee::ws_client::WsClient;
 use serde::{Deserialize, Serialize};
 use std::{self, sync::Arc, collections::HashMap};
 use tokio::sync::mpsc;
@@ -62,7 +62,7 @@ pub trait DataAvailabilityLayer: Send + Sync {
 }
 
 pub struct CelestiaConnection {
-    pub client: WsClient,
+    pub client: celestia_rpc::Client,
     pub namespace_id: Namespace,
     tx: Arc<mpsc::Sender<Message>>,
     rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
@@ -85,7 +85,7 @@ impl CelestiaConnection {
         // TODO: Should buffer size be configurable? Is 5 a reasonable default?
         let (tx, rx) = mpsc::channel(5);
 
-        let client = new_websocket(&connection_string, auth_token).await.map_err(|e| {
+        let client = Client::new(&connection_string, auth_token).await.map_err(|e| {
             DataAvailabilityError::InitializationError(format!("Websocket initialization failed: {}", e))
         })?;
 
@@ -160,7 +160,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError)
         })?;
         debug!("blob: {:?}", serde_json::to_string(&blob));
-        match BlobClient::blob_submit(&self.client, &[blob]).await {
+        match self.client.blob_submit(&[blob], SubmitOptions::default()).await {
             Ok(height) => {
                 debug!(
                     "Submitted epoch {} to DA layer at height {}",
