@@ -11,7 +11,7 @@ use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 use da::{LocalDataAvailabilityLayer, DataAvailabilityLayer, CelestiaConnection};
 use serde::Deserialize;
 
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use std::sync::Arc;
 use storage::{Operation, RedisConnections};
 use node_types::{LightClient, NodeType, Sequencer};

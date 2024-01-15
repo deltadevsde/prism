@@ -14,27 +14,26 @@ crypto-hash = "0.3.4"
 async-trait = "0.1.68"
 serde = { version = "1.0.151", features = ["derive"] }
 serde_json = "1.0.79"
-redis = "0.22.1"
-actix-web = { version = "4", features = ["openssl"]}
+redis = "0.24.0"
+actix-web = { version = "4.4.1" }
 actix-cors = "0.7.0"
 async-redis-session = "0.2.2"
 ed25519-dalek = "2.1.0"
 ed25519 = "2.2.0"
 base64 = "0.21.0"
 tokio = { version = "1.16.1", features = ["full"] }
-reqwest = { version = "0.11.14", features = ["json"] }
+reqwest = { version = "0.11.23", features = ["json"] }
 ctrlc = "3.1.5"
 num = "0.4.0"
 bellman = "0.14.0"
 pairing = "0.23.0"
-jsonrpsee = { version = "0.18.2", features = ["ws-client"] }
+jsonrpsee = { version = "0.21.0", features = ["ws-client"] }
 bls12_381 = "0.8.0"
 rand = "0.8.5"
 rand07 = { package = "rand", version = "0.7.0" }
 hex = "0.4.3"
 ff = "0.13.0"
 openssl = "0.10.62"
-dotenv = "0.15"
 futures = "0.3"
 lazy_static = "1.4"
 colored = "2.0.0"
@@ -43,7 +42,9 @@ pretty_env_logger = "0.5.0"
 celestia-rpc = { git = "https://github.com/eigerco/celestia-node-rs" }
 celestia-types = { git = "https://github.com/eigerco/celestia-node-rs" }
 clap = { version = "4.3.2", features = ["derive"] }
-config = "0.13.3"
+config = "0.13.4"
 fs2 = "0.4.3"
 thiserror = "1.0.50"
 indexed-merkle-tree = "0.1.1"
+dotenvy = "0.15.7"
+ahash = "0.8.7"
