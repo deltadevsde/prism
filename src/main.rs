@@ -8,6 +8,7 @@ pub mod zk_snark;
 
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
+#[allow(unused_imports)]
 use da::{LocalDataAvailabilityLayer, DataAvailabilityLayer, CelestiaConnection};
 use serde::Deserialize;
 
@@ -127,7 +128,7 @@ fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
         ))
         .build()?;
 
-    println!("{}", settings.get_string("log_level").unwrap_or_default());
+    info!("{}", settings.get_string("log_level").unwrap_or_default());
 
     let default_config = Config::default();
 
@@ -167,6 +168,32 @@ fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
     })
 }
 
+#[cfg(not(test))]
+async fn initialize_da_layer(config: &Config) -> Option<Arc<dyn DataAvailabilityLayer + 'static>> {
+    match &config.da_layer {
+        DALayerOption::Celestia => {
+            let celestia_conf = config.clone().celestia_config.unwrap();
+            match CelestiaConnection::new(
+                &celestia_conf.connection_string,
+                None,
+                &celestia_conf.namespace_id,
+            ).await {
+                Ok(da) => Some(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
+                Err(e) => {
+                    error!("Failed to connect to Celestia: {}", e);
+                    None
+                }
+            }
+        }
+        DALayerOption::None => None,
+    }
+}
+
+#[cfg(test)]
+async fn initialize_da_layer(_config: &Config) -> Option<Arc<dyn DataAvailabilityLayer + 'static>> {
+    Some(Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>)
+}
+
 /// The main function that initializes and runs the Actix web server.
 ///
 /// # Behavior
@@ -186,28 +213,7 @@ async fn main() -> std::io::Result<()> {
     pretty_env_logger::init();
     dotenv().ok();
 
-    #[cfg(test)]
-    let da = Some(Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>);
-
-    #[cfg(not(test))]
-    let da = match &config.da_layer {
-        DALayerOption::Celestia => {
-            let celestia_conf = config.clone().celestia_config.unwrap();
-            match CelestiaConnection::new(
-                    &celestia_conf.connection_string,
-                    None,
-                    &celestia_conf.namespace_id,
-                ).await {
-                    Ok(da) => Some(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
-                    Err(e) => {
-                        error!("Failed to connect to Celestia: {}", e);
-                        None
-                    }
-                }
-        },
-        DALayerOption::None => None,
-    };
-
+    let da = initialize_da_layer(&config).await;
 
     let node: Arc<dyn NodeType> = match args.command {
         // LightClients need a DA layer, so we can unwrap here

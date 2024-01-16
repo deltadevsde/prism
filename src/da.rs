@@ -156,7 +156,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 "Could not serialize epoch json: {}",
                 e
             )))})?;
-        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|e| {
+        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|_| {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError)
         })?;
         debug!("blob: {:?}", serde_json::to_string(&blob));
@@ -398,7 +398,7 @@ mod da_tests {
     #[tokio::test]
     async fn test_sequencer_and_light_client() {
         if let Err(e) = clear_file("data.json") {
-            println!("Fehler beim Löschen der Datei: {}", e);
+            debug!("Fehler beim Löschen der Datei: {}", e);
         }
 
         // simulate sequencer start
@@ -454,13 +454,13 @@ mod da_tests {
         });
     
         let light_client = tokio::spawn(async {
-            println!("light client started");
+            debug!("light client started");
             let light_client_layer = LocalDataAvailabilityLayer::new();
             loop {
                 let epoch = light_client_layer.get(1).await.unwrap();
                 // verify proofs
                 verify_epoch_json(epoch);
-                println!("light client verified epoch 1");
+                debug!("light client verified epoch 1");
                 
                 // light_client checks time etc. tbdiscussed with distractedm1nd
                 tokio::time::sleep(tokio::time::Duration::from_secs(70)).await;
@@ -469,7 +469,7 @@ mod da_tests {
                 let epoch = light_client_layer.get(2).await.unwrap();
                 // verify proofs
                 verify_epoch_json(epoch);
-                println!("light client verified epoch 2");
+                debug!("light client verified epoch 2");
             }
        
         });
