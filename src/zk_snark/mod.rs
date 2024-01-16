@@ -51,11 +51,6 @@ pub struct VerifyingKey {
     pub ic: String,
 }
 
-enum AffineType {
-    G1,
-    G2,
-}
-
 // TODO: think about to refactor this to use a generic function, because they are very similar
 // but probably something for a different PR
 pub fn decode_and_convert_to_g1affine(encoded_data: &String) -> Result<G1Affine, DeimosError> {

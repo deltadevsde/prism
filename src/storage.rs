@@ -507,8 +507,6 @@ mod tests {
     // In addition, it should not be possible to write keys exclusively directly into the derived dict, right?
     #[test]
     fn test_get_hashed_keys() {
-        println!("test_get_hashed_keys");
-
         let redis_connections = setup();
 
         let incoming_entry1 = create_incoming_entry_with_test_value("test_key1");
@@ -520,8 +518,6 @@ mod tests {
         redis_connections.set_derived_entry(&incoming_entry3, &create_mock_chain_entry(), true).unwrap();
 
         let keys = redis_connections.get_derived_keys_in_order().unwrap();
-
-        println!("keys: {:?}", keys);
         
         // check if the returned keys are correct
         let expected_keys: Vec<String> = vec![sha256(&"test_key1".to_string()), sha256(&"test_key2".to_string()), sha256(&"test_key3".to_string())];

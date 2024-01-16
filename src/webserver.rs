@@ -132,10 +132,14 @@ async fn update_entry(
             format!(r#"{{"Insert":{}}}"#, pre_processed_string)
         };
 
-        session
-            .db
-            .add_merkle_proof(&epoch, &epoch_operation, &tree.get_commitment().unwrap(), &proofs);
-        session.db.increment_epoch_operation();
+        if let Err(err) = session.db.add_merkle_proof(&epoch, &epoch_operation, &tree.get_commitment().unwrap(), &proofs) {
+            return HttpResponse::InternalServerError().json(format!("Error adding merkle proof: {}", err));
+        }
+
+        if let Err(err) = session.db.increment_epoch_operation() {
+            return HttpResponse::InternalServerError().json(format!("Error incrementing epoch operation: {}", err));
+        }
+
         HttpResponse::Ok().body("Updated entry successfully")
     } else {
         HttpResponse::BadRequest().body("Could not update entry")

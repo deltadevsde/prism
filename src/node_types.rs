@@ -5,8 +5,9 @@ use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signature, Verifier};
 use std::{self, sync::Arc, time::Duration, io::ErrorKind};
-use tokio::{time::sleep, task::{spawn, JoinError}};
+use tokio::{time::sleep, task::spawn};
 use indexed_merkle_tree::{IndexedMerkleTree, Node, error::MerkleTreeError};
+
 
 use crate::{
     da::{DataAvailabilityLayer, EpochJson},
@@ -168,13 +169,13 @@ impl Sequencer {
             Err(_) => 0,
         };
 
-        self.db.set_epoch(&epoch);
-        self.db.reset_epoch_operation_counter();
+        self.db.set_epoch(&epoch).map_err(DeimosError::Database)?;
+        self.db.reset_epoch_operation_counter().map_err(DeimosError::Database)?;
 
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self.create_tree().map_err( DeimosError::MerkleTree)?.get_commitment().map_err(DeimosError::MerkleTree)?;
 
-        self.db.add_commitment(&epoch, &current_commitment);
+        self.db.add_commitment(&epoch, &current_commitment).map_err(DeimosError::Database)?;
 
         let proofs = if epoch > 0 {
             let prev_epoch = epoch - 1;
@@ -390,7 +391,6 @@ impl Sequencer {
         }
         #[cfg(not(feature = "key_transparency"))]
         {
-            println!("Key transparency is not enabled");
             self.verify_signature_with_given_key(signature_with_key)
         }
     }
@@ -405,7 +405,7 @@ impl Sequencer {
     /// Returns false if there is no public key for the id or if no public key can verify the signature
     ///
     /// ONLY FOR KEY TRANSPARENCY APPLICATION
-    fn verify_signature(
+    fn _verify_signature(
         &self,
         signature_with_key: &UpdateEntryJson,
     ) -> Result<IncomingEntry, &'static str> {

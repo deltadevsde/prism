@@ -21,21 +21,9 @@ dependencies = [
 
 [[package]]
 name = "actix-cors"
-<<<<<<< HEAD
-<<<<<<< HEAD
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9e772b3bcafe335042b5db010ab7c09013dad6eac4915c91d8d50902769f331"
-=======
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0346d8c1f762b41b458ed3145eea914966bb9ad20b9be0d6d463b20d45586370"
->>>>>>> 715c350 (fix: fix celestia deps)
-=======
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9e772b3bcafe335042b5db010ab7c09013dad6eac4915c91d8d50902769f331"
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 dependencies = [
  "actix-utils",
  "actix-web",
@@ -147,30 +135,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
-name = "actix-tls"
-version = "3.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72616e7fbec0aa99c6f3164677fa48ff5a60036d0799c98cab894a44f3e0efc3"
-dependencies = [
- "actix-rt",
- "actix-service",
- "actix-utils",
- "futures-core",
- "impl-more",
- "openssl",
- "pin-project-lite",
- "rustls 0.21.10",
- "rustls-webpki 0.101.7",
- "tokio",
- "tokio-openssl",
- "tokio-util 0.7.10",
- "tracing",
-]
-
-[[package]]
->>>>>>> 715c350 (fix: fix celestia deps)
 name = "actix-utils"
 version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -562,7 +526,7 @@ checksum = "05b1b633a2115cd122d73b955eadd9916c18c8f510ec9cd1686404c60ad1c29c"
 dependencies = [
  "async-channel 2.1.1",
  "async-executor",
- "async-io 2.2.2",
+ "async-io 2.3.0",
  "async-lock 3.3.0",
  "blocking",
  "futures-lite 2.2.0",
@@ -591,9 +555,9 @@ dependencies = [
 
 [[package]]
 name = "async-io"
-version = "2.2.2"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6afaa937395a620e33dc6a742c593c01aced20aa376ffb0f628121198578ccc7"
+checksum = "fb41eb19024a91746eba0773aa5e16036045bbf45733766661099e182ea6a744"
 dependencies = [
  "async-lock 3.3.0",
  "cfg-if 1.0.0",
@@ -601,11 +565,7 @@ dependencies = [
  "futures-io",
  "futures-lite 2.2.0",
  "parking",
-<<<<<<< HEAD
- "polling 3.3.1",
-=======
  "polling 3.3.2",
->>>>>>> 715c350 (fix: fix celestia deps)
  "rustix 0.38.30",
  "slab",
  "tracing",
@@ -900,13 +860,9 @@ dependencies = [
 
 [[package]]
 name = "blockstore"
-version = "0.1.0"
-<<<<<<< HEAD
-source = "git+https://github.com/eigerco/celestia-node-rs#48f59fa5626ecbd664ed2a78ca089ac04bbe32e9"
-=======
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f872fa357537cb0984e85cf265e51c85d12031ecd991bfb97df93458042a7856"
->>>>>>> 715c350 (fix: fix celestia deps)
+checksum = "b5bff157a9c999bf0a39ca45e0b62076aa27135012cfbf9cc54ad1cf971876f0"
 dependencies = [
  "async-trait",
  "cid",
@@ -1006,13 +962,9 @@ dependencies = [
 
 [[package]]
 name = "celestia-proto"
-version = "0.1.0"
-<<<<<<< HEAD
-source = "git+https://github.com/eigerco/celestia-node-rs#48f59fa5626ecbd664ed2a78ca089ac04bbe32e9"
-=======
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "515e08188ff2667cc475b0c9833975b1a6ce1e88d5a051894354841e8787dca1"
->>>>>>> 715c350 (fix: fix celestia deps)
+checksum = "f7d93904482a787d8caecb3a348788704fa044df6fb2402f28da5b91a2a5eabb"
 dependencies = [
  "anyhow",
  "celestia-tendermint-proto",
@@ -1024,13 +976,9 @@ dependencies = [
 
 [[package]]
 name = "celestia-rpc"
-version = "0.1.0"
-<<<<<<< HEAD
-source = "git+https://github.com/eigerco/celestia-node-rs#48f59fa5626ecbd664ed2a78ca089ac04bbe32e9"
-=======
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08e0068d652121ecd2b8cce8b77fea8e4f7dc82d740d4da9f63f919b34782e02"
->>>>>>> 715c350 (fix: fix celestia deps)
+checksum = "4f4c948ab3cd9562d256b752d874d573c836ec8b200bba87d1154bbf662d3a00"
 dependencies = [
  "async-trait",
  "celestia-types",
@@ -1043,15 +991,9 @@ dependencies = [
 
 [[package]]
 name = "celestia-tendermint"
-<<<<<<< HEAD
-version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c452fbfbc7b397f5ee39be36bfbbb1870898f8644f88da96fcdbda9015397d51"
-=======
 version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95f93b5cbbd62b6cfde961889bf05d5fe19e70d8500c4465694306ed2695ac23"
->>>>>>> 715c350 (fix: fix celestia deps)
 dependencies = [
  "bytes",
  "celestia-tendermint-proto",
@@ -1078,15 +1020,9 @@ dependencies = [
 
 [[package]]
 name = "celestia-tendermint-proto"
-<<<<<<< HEAD
-version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "670067a9fb113fe86cb5f1b3db08c718da158a40beed6d167027ae7723fb5642"
-=======
 version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8f7d49c1ececa30a4587c5fe8a4035b786b78a3253ed0f9636de591b3dc2b37"
->>>>>>> 715c350 (fix: fix celestia deps)
 dependencies = [
  "bytes",
  "flex-error",
@@ -1102,13 +1038,9 @@ dependencies = [
 
 [[package]]
 name = "celestia-types"
-version = "0.1.0"
-<<<<<<< HEAD
-source = "git+https://github.com/eigerco/celestia-node-rs#48f59fa5626ecbd664ed2a78ca089ac04bbe32e9"
-=======
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f6938e77c183ff3877900c1609df228cde992816f410143d9a4393b5362757f"
->>>>>>> 715c350 (fix: fix celestia deps)
+checksum = "fc3c4c6698257125b315c04236a28cf5156a866211d336ba6ac70cc5f88e24eb"
 dependencies = [
  "base64 0.21.7",
  "bech32",
@@ -1170,9 +1102,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.16"
+version = "4.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58e54881c004cec7895b0068a0a954cd5d62da01aef83fa35b1e594497bf5445"
+checksum = "80932e03c33999b9235edb8655bc9df3204adc9887c2f95b50cb1deb9fd54253"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1180,9 +1112,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.4.16"
+version = "4.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59cb82d7f531603d2fd1f507441cdd35184fa81beff7bd489570de7f773460bb"
+checksum = "d6c0db58c659eef1c73e444d298c27322a1b52f6927d2ad470c0c0f96fa7b8fa"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1499,15 +1431,7 @@ checksum = "f46882e17999c6cc590af592290432be3bce0428cb0d5f8b6715e4dc7b383eb3"
 dependencies = [
  "proc-macro2",
  "quote",
-<<<<<<< HEAD
-<<<<<<< HEAD
  "syn 2.0.48",
-=======
- "syn 2.0.31",
->>>>>>> dff3423 (fix: update ed25519 verifying keys)
-=======
- "syn 2.0.48",
->>>>>>> 715c350 (fix: fix celestia deps)
 ]
 
 [[package]]
@@ -1645,21 +1569,9 @@ checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
 
 [[package]]
 name = "ed25519"
-<<<<<<< HEAD
-<<<<<<< HEAD
 version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
-=======
-version = "2.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60f6d271ca33075c88028be6f04d502853d63a5ece419d269c15315d4fc1cf1d"
->>>>>>> dff3423 (fix: update ed25519 verifying keys)
-=======
-version = "2.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
->>>>>>> 715c350 (fix: fix celestia deps)
 dependencies = [
  "pkcs8",
  "signature",
@@ -1687,15 +1599,7 @@ dependencies = [
  "curve25519-dalek",
  "ed25519",
  "serde",
-<<<<<<< HEAD
-<<<<<<< HEAD
  "sha2 0.10.8",
-=======
- "sha2 0.10.7",
->>>>>>> dff3423 (fix: update ed25519 verifying keys)
-=======
- "sha2 0.10.8",
->>>>>>> 715c350 (fix: fix celestia deps)
  "subtle",
  "zeroize",
 ]
@@ -2383,11 +2287,7 @@ dependencies = [
  "config",
  "crypto-hash",
  "ctrlc",
-<<<<<<< HEAD
  "dotenvy",
-=======
- "dotenv",
->>>>>>> dff3423 (fix: update ed25519 verifying keys)
  "ed25519",
  "ed25519-dalek",
  "ff",
@@ -2395,15 +2295,7 @@ dependencies = [
  "futures",
  "hex 0.4.3",
  "indexed-merkle-tree",
-<<<<<<< HEAD
-<<<<<<< HEAD
  "jsonrpsee 0.21.0",
-=======
- "jsonrpsee 0.18.2",
->>>>>>> 715c350 (fix: fix celestia deps)
-=======
- "jsonrpsee 0.21.0",
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
  "lazy_static",
  "log",
  "num",
@@ -2528,27 +2420,10 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee"
-<<<<<<< HEAD
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "affdc52f7596ccb2d7645231fc6163bb314630c989b64998f3699a28b4d5d4dc"
 dependencies = [
-<<<<<<< HEAD
-=======
- "jsonrpsee-core 0.18.2",
- "jsonrpsee-types 0.18.2",
- "jsonrpsee-ws-client 0.18.2",
-]
-
-[[package]]
-name = "jsonrpsee"
-=======
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
-version = "0.20.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "affdc52f7596ccb2d7645231fc6163bb314630c989b64998f3699a28b4d5d4dc"
-dependencies = [
->>>>>>> 715c350 (fix: fix celestia deps)
  "jsonrpsee-core 0.20.3",
  "jsonrpsee-http-client",
  "jsonrpsee-proc-macros",
@@ -2562,7 +2437,6 @@ name = "jsonrpsee"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9579d0ca9fb30da026bac2f0f7d9576ec93489aeb7cd4971dd5b4617d82c79b2"
-<<<<<<< HEAD
 dependencies = [
  "jsonrpsee-core 0.21.0",
  "jsonrpsee-types 0.21.0",
@@ -2577,21 +2451,13 @@ checksum = "b5b005c793122d03217da09af68ba9383363caa950b90d3436106df8cabce935"
 dependencies = [
  "futures-util",
  "http",
-<<<<<<< HEAD
  "jsonrpsee-core 0.20.3",
-=======
- "jsonrpsee-core 0.18.2",
->>>>>>> 715c350 (fix: fix celestia deps)
  "pin-project",
  "rustls-native-certs 0.6.3",
  "soketto",
  "thiserror",
  "tokio",
-<<<<<<< HEAD
  "tokio-rustls 0.24.1",
-=======
- "tokio-rustls",
->>>>>>> 715c350 (fix: fix celestia deps)
  "tokio-util 0.7.10",
  "tracing",
  "url",
@@ -2616,102 +2482,9 @@ dependencies = [
  "tokio-util 0.7.10",
  "tracing",
  "url",
-=======
-dependencies = [
- "jsonrpsee-core 0.21.0",
- "jsonrpsee-types 0.21.0",
- "jsonrpsee-ws-client 0.21.0",
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 ]
 
 [[package]]
-name = "jsonrpsee-client-transport"
-version = "0.20.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5b005c793122d03217da09af68ba9383363caa950b90d3436106df8cabce935"
-dependencies = [
- "futures-util",
- "http",
- "jsonrpsee-core 0.20.3",
- "pin-project",
- "rustls-native-certs 0.6.3",
- "soketto",
- "thiserror",
- "tokio",
- "tokio-rustls 0.24.1",
- "tokio-util 0.7.10",
- "tracing",
- "url",
-]
-
-[[package]]
-<<<<<<< HEAD
-name = "jsonrpsee-core"
-version = "0.20.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da2327ba8df2fdbd5e897e2b5ed25ce7f299d345b9736b6828814c3dbd1fd47b"
-=======
-name = "jsonrpsee-client-transport"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f9f9ed46590a8d5681975f126e22531698211b926129a40a2db47cbca429220"
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
-dependencies = [
- "futures-util",
-<<<<<<< HEAD
-<<<<<<< HEAD
- "hyper",
- "jsonrpsee-types 0.20.3",
- "rustc-hash",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "jsonrpsee-core"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "776d009e2f591b78c038e0d053a796f94575d66ca4e77dd84bfc5e81419e436c"
-dependencies = [
- "anyhow",
- "async-lock 3.3.0",
- "async-trait",
- "beef",
- "futures-timer",
- "futures-util",
- "jsonrpsee-types 0.21.0",
- "pin-project",
-=======
- "jsonrpsee-types 0.18.2",
->>>>>>> 715c350 (fix: fix celestia deps)
- "rustc-hash",
- "serde",
- "serde_json",
-=======
- "http",
- "jsonrpsee-core 0.21.0",
- "pin-project",
- "rustls-native-certs 0.7.0",
- "rustls-pki-types",
- "soketto",
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
- "thiserror",
- "tokio",
- "tokio-rustls 0.25.0",
- "tokio-util 0.7.10",
- "tracing",
- "url",
-]
-
-[[package]]
-<<<<<<< HEAD
-name = "jsonrpsee-http-client"
-version = "0.20.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-=======
 name = "jsonrpsee-core"
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2760,7 +2533,6 @@ dependencies = [
 name = "jsonrpsee-http-client"
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
->>>>>>> 715c350 (fix: fix celestia deps)
 checksum = "5f80c17f62c7653ce767e3d7288b793dfec920f97067ceb189ebdd3570f2bc20"
 dependencies = [
  "async-trait",
@@ -2792,7 +2564,6 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-types"
-<<<<<<< HEAD
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5be0be325642e850ed0bdff426674d2e66b2b7117c9be23a7caef68a2902b7d9"
@@ -2807,32 +2578,7 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-types"
-<<<<<<< HEAD
 version = "0.21.0"
-=======
-=======
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
-version = "0.20.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5be0be325642e850ed0bdff426674d2e66b2b7117c9be23a7caef68a2902b7d9"
-dependencies = [
- "anyhow",
- "beef",
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-<<<<<<< HEAD
-name = "jsonrpsee-ws-client"
-version = "0.18.2"
->>>>>>> 715c350 (fix: fix celestia deps)
-=======
-name = "jsonrpsee-types"
-version = "0.21.0"
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3266dfb045c9174b24c77c2dfe0084914bb23a6b2597d70c9dc6018392e1cd1b"
 dependencies = [
@@ -2850,39 +2596,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bca9cb3933ccae417eb6b08c3448eb1cb46e39834e5b503e395e5e5bd08546c0"
 dependencies = [
  "http",
-<<<<<<< HEAD
  "jsonrpsee-client-transport 0.20.3",
  "jsonrpsee-core 0.20.3",
  "jsonrpsee-types 0.20.3",
- "url",
-=======
- "jsonrpsee-client-transport 0.18.2",
- "jsonrpsee-core 0.18.2",
- "jsonrpsee-types 0.18.2",
->>>>>>> 715c350 (fix: fix celestia deps)
-]
-
-[[package]]
-name = "jsonrpsee-ws-client"
-<<<<<<< HEAD
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "073c077471e89c4b511fa88b3df9a0f0abdf4a0a2e6683dd2ab36893af87bb2d"
-dependencies = [
- "http",
- "jsonrpsee-client-transport 0.21.0",
- "jsonrpsee-core 0.21.0",
- "jsonrpsee-types 0.21.0",
-=======
-version = "0.20.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bca9cb3933ccae417eb6b08c3448eb1cb46e39834e5b503e395e5e5bd08546c0"
-dependencies = [
- "http",
- "jsonrpsee-client-transport 0.20.3",
- "jsonrpsee-core 0.20.3",
- "jsonrpsee-types 0.20.3",
->>>>>>> 715c350 (fix: fix celestia deps)
  "url",
 ]
 
@@ -3503,15 +3219,6 @@ name = "pkg-config"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69d3587f8a9e599cc7ec2c00e331f71c4e69a5f9a4b8a6efd5b07466b9736f9a"
-<<<<<<< HEAD
-
-[[package]]
-name = "platforms"
-version = "3.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "626dec3cac7cc0e1577a2ec3fc496277ec2baa084bebad95bb6fdbfae235f84c"
-=======
->>>>>>> 715c350 (fix: fix celestia deps)
 
 [[package]]
 name = "platforms"
@@ -3537,15 +3244,9 @@ dependencies = [
 
 [[package]]
 name = "polling"
-<<<<<<< HEAD
-version = "3.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf63fa624ab313c11656b4cda960bfc46c410187ad493c41f6ba2d8c1e991c9e"
-=======
 version = "3.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "545c980a3880efd47b2e262f6a4bb6daad6555cf3367aa9c4e52895f69537a41"
->>>>>>> 715c350 (fix: fix celestia deps)
 dependencies = [
  "cfg-if 1.0.0",
  "concurrent-queue",
@@ -4156,10 +3857,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 name = "rustls-pemfile"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4179,11 +3876,6 @@ checksum = "9e9d979b3ce68192e42760c7810125eb6cf2ea10efae545a156063e61f314e2a"
 name = "rustls-webpki"
 version = "0.101.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-=======
-name = "rustls-webpki"
-version = "0.101.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
->>>>>>> 715c350 (fix: fix celestia deps)
 checksum = "8b6275d1ee7a1cd780b64aca7726599a1dbc893b1e64144529e55c3c2f745765"
 dependencies = [
  "ring",
@@ -4191,10 +3883,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> ce7129d (fix: fix merkle tree test and update dependencies)
 name = "rustls-webpki"
 version = "0.102.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4209,11 +3897,6 @@ dependencies = [
 name = "ryu"
 version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-=======
-name = "ryu"
-version = "1.0.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
->>>>>>> 715c350 (fix: fix celestia deps)
 checksum = "f98d2aa92eebf49b69786be48e4477826b256916e84a57ff2a4f21923b48eb4c"
 
 [[package]]
@@ -4425,27 +4108,12 @@ dependencies = [
 
 [[package]]
 name = "signature"
-<<<<<<< HEAD
-<<<<<<< HEAD
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "rand_core 0.6.4",
 ]
-=======
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e1788eed21689f9cf370582dfc467ef36ed9c707f073528ddafa8d83e3b8500"
->>>>>>> dff3423 (fix: update ed25519 verifying keys)
-=======
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
-dependencies = [
- "rand_core 0.6.4",
-]
->>>>>>> 715c350 (fix: fix celestia deps)
 
 [[package]]
 name = "slab"
@@ -4602,68 +4270,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01ce4141aa927a6d1bd34a041795abd0db1cccba5d5f24b009f694bdf3a1f3fa"
 dependencies = [
  "cfg-if 1.0.0",
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 715c350 (fix: fix celestia deps)
  "fastrand 2.0.1",
  "redox_syscall",
  "rustix 0.38.30",
  "windows-sys 0.52.0",
-<<<<<<< HEAD
-=======
- "fastrand 2.0.0",
- "redox_syscall 0.3.5",
- "rustix 0.38.11",
- "windows-sys",
-]
-
-[[package]]
-name = "tendermint"
-version = "0.32.0"
-source = "git+https://github.com/eigerco/celestia-tendermint-rs.git?rev=dbb4434#dbb4434020b53c94e01946eb9de677fed7766fa8"
-dependencies = [
- "bytes",
- "digest 0.10.7",
- "ed25519",
- "ed25519-consensus",
- "flex-error",
- "futures",
- "num-traits",
- "once_cell",
- "prost",
- "prost-types",
- "serde",
- "serde_bytes",
- "serde_json",
- "serde_repr",
- "sha2 0.10.7",
- "signature",
- "subtle",
- "subtle-encoding",
- "tendermint-proto",
- "time",
- "zeroize",
-]
-
-[[package]]
-name = "tendermint-proto"
-version = "0.32.0"
-source = "git+https://github.com/eigerco/celestia-tendermint-rs.git?rev=dbb4434#dbb4434020b53c94e01946eb9de677fed7766fa8"
-dependencies = [
- "bytes",
- "flex-error",
- "num-derive",
- "num-traits",
- "prost",
- "prost-types",
- "serde",
- "serde_bytes",
- "subtle-encoding",
- "time",
->>>>>>> dff3423 (fix: update ed25519 verifying keys)
-=======
->>>>>>> 715c350 (fix: fix celestia deps)
 ]
 
 [[package]]
@@ -4780,21 +4390,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
-name = "tokio-openssl"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ffab79df67727f6acf57f1ff743091873c24c579b1e2ce4d8f53e47ded4d63d"
-dependencies = [
- "futures-util",
- "openssl",
- "openssl-sys",
- "tokio",
-]
-
-[[package]]
->>>>>>> 715c350 (fix: fix celestia deps)
 name = "tokio-rustls"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

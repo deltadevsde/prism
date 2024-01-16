@@ -4,7 +4,7 @@ use crate::{
     Operation, error::{ProofError, DeimosError, GeneralError},
 };
 use indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, ProofVariant, UpdateProof};
-use bellman::groth16::{self, VerifyingKey, PreparedVerifyingKey};
+use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use rand::rngs::OsRng;
 use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
@@ -150,7 +150,7 @@ pub fn validate_epoch_from_proof_variants(
     ) {
         Ok(circuit) => circuit,
         Err(e) => {
-            return Err(DeimosError::Proof(ProofError::GenerationError));
+            return Err(e);
         }
     };
 
@@ -162,12 +162,9 @@ pub fn validate_epoch_from_proof_variants(
     debug!("validate_epoch: creating proof for zkSNARK");
     let proof = groth16::create_random_proof(circuit.clone(), &params, rng).map_err(|_| DeimosError::Proof(ProofError::GenerationError))?;
 
-    // println!("{}: {:?}", "PROOF".red(), proof);
-
     debug!("validate_epoch: preparing verifying key for zkSNARK");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
-    // println!("{}", "Extracting public parameters for zkSNARK...".yellow());
     // let public_parameters = extract_public_parameters(&parsed_proofs);
 
     let scalars: Result<Vec<Scalar>, _> = vec![
@@ -293,8 +290,6 @@ mod tests {
             proof.clone(),
             params.vk,
         );
-
-        println!("{:?}", result);
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), proof);
