@@ -42,7 +42,7 @@ lets demonstrate our application here because it could look nice with some pics
 
 ### Prerequisites
 
-To use this project, you need a working database. A reference implementation with Redis is supported. The use of a data availability layer is also required. A reference implementation with Celestia is available for this project, on which the cryptographic commitments and the zero-knowledge proofs are posted and verified by light clients. We are planning further reference implementations; for the moment, we are showing the process and installation of the existing implementations and, based on this, the launch of Deimos.
+To use this project, you need a working database. A reference implementation with Redis is supported. The use of a data availability layer is also required. A reference implementation with Celestia is available for this project, which is a very cost efficient and lightweight blockchain solution and on which the cryptographic commitments and the zero-knowledge proofs are posted and verified by light clients. We are planning further reference implementations; for the moment, we are showing the process and installation of the existing implementations and, based on this, the launch of Deimos.
 
 ### Install Redis
 
@@ -55,9 +55,23 @@ You don't have to start redis on your own, Deimos is doing that job for you.
 
 ### Install Celestia
 
-A DA layer such as Celestia is an important component for data security and availability. It stores the cryptographic commitments and ideally enables the verification of zero-knowledge proofs. The installation is as follows:
+A DA layer such as Celestia is an important component for data security and availability. It stores the cryptographic commitments and parameters of the zkSNARKs and ideally enables them to be verified. Follow the instructions [here](https://github.com/rollkit/local-celestia-devnet) to deploy a local testnet.
 
+### Starting the sequencer
 
+If redis is installed and the local devnet is running, Deimos can be started. Deimos can be started in two different ways, as a sequencer (which creates the proofs later on;TODO: more info and link to documentation needed) or as a lightclient (to verify the proofs posted on Celestia using the cryptographic commitments). To start the sequencer, run the following command:
+
+```bash
+cargo run sequencer
+```
+
+to start the light-client, run the following command:
+
+```bash
+cargo run light-client
+```
+
+You can then interact with Deimos via the interfaces defined in [webserver.rs](https://github.com/deltadevsde/deimos/blob/main/src/webserver.rs). Based on the data exchanged or stored via the interface the global indexed merkle tree changes and proofs based on these changes then are created in defined epochs (currently 60 seconds) and cryptographic commitments including the proof parameters are posted in the Celestia namespace.
 
 ## 🌑 Contributions
 
