@@ -18,11 +18,11 @@
 
 # Deimos: Transparency Dictionary - Rust Implementation
 
-## Overview
+## 🌕 Overview
 
 This project is a Rust-based implementation of a Transparency Dictionary, strongly inspired by descriptions in [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf). It offers a secure, scalable solution for managing a label-value map in environments where the service maintaining the map is not completely trusted. The system ensures the integrity and authenticity of operations using cryptographic proofs.
 
-## Features
+## 🌖 Features
 
 -	Robust Security: Leverages indexed Merkle trees and zkSNARKs to protect against unauthorized data modifications.
 -	Efficient Verification: Offers O(log n) proofs of membership/non-membership ensuring minimal verification time.
@@ -31,26 +31,51 @@ This project is a Rust-based implementation of a Transparency Dictionary, strong
 
 
 
-## Usage
+## 🌗 Usage
 
 TBD ... something like "The library is designed to be user-friendly, with clear APIs for interacting with the transparency dictionary. Example code snippets are provided to demonstrate basic operations like adding, retrieving, and verifying entries."
 <br/>
 lets demonstrate our application here because it could look nice with some pics
 
 
-## Installation
+## 🌘 Installation
 
-Step-by-step guide for integrating this library into your Rust projects. Includes instructions for handling dependencies and any necessary configuration.
+### Prerequisites
 
-## Contributions
+To use this project, you need a working database. A reference implementation with Redis is supported. The use of a data availability layer is also required. A reference implementation with Celestia is available for this project, on which the cryptographic commitments and the zero-knowledge proofs are posted and verified by light clients. We are planning further reference implementations; for the moment, we are showing the process and installation of the existing implementations and, based on this, the launch of Deimos.
+
+### Install Redis
+
+Redis serves as a powerful in-memory database that is used to store the label-value pairs. Follow these steps to install Redis:
+
+1. Download Redis from [Redis Download Page](https://redis.io/download/).
+2. Follow the installation instructions for your operating system.
+
+You don't have to start redis on your own, Deimos is doing that job for you.
+
+### Install Celestia
+
+A DA layer such as Celestia is an important component for data security and availability. It stores the cryptographic commitments and ideally enables the verification of zero-knowledge proofs. The installation is as follows:
+
+
+
+## 🌑 Contributions
 
 Contributions are welcome! I saw a lot of contribution guidelines so we need some and write: "Please refer to our contributing guidelines for information on how to submit pull requests, report issues, and contribute to the codebase."
 
-## Advanced Usage
+## 🌒 Advanced Usage
 sommeeee...
 - Custom Configurations: How to adjust the library for specific use cases. -> Deimos Chat POC, EU Transparency Dictionary
 - ...
 
-## Documentation
+## 🌓 Documentation
 
 Link to comprehensive documentation, including API reference, design philosophy, and more detailed examples. Should we link other papers that inspired us here?
+
+## 🌔 Next Heading
+
+we need one more heading until fullmoon again
+
+## 🌕 Last Heading
+
+yaay reached deimos fullmoon again
