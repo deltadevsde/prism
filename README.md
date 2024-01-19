@@ -94,9 +94,11 @@ You can then interact with Deimos via the interfaces defined in [webserver.rs](h
 
 ## 🌑 Usage
 
-Deimos is designed to be user-friendly, with clear APIs for interacting with the transparency dictionary. 
+It makes sense and is necessary to build different frontends in order to use the transparency dictionaries in this way. In the following, we will provide a brief overview of the most important interfaces for interacting with Deimos.
 
-Update the Dictionary
+### Update the Dictionary
+
+The update operation causes either the hashchain for an existing entry to be updated (i.e. an entry is added to the hashchain) or, if the ID does not yet exist, it's added as a new ID to the Transparency Dictionary and the associated value is the first and last value of the associated hashchain to date.
 
 ```bash
 curl -X POST http://localhost:8080/update-entry \
@@ -104,6 +106,37 @@ curl -X POST http://localhost:8080/update-entry \
       -d '{ "id": "YOUR_ID", \
             "public_key": "YOUR_PUBLIC_KEY", \
             "signed_message": "YOUR_SIGNED_MESSAGE"}'
+```
+
+### Get derived and normal dictionary
+
+```bash
+curl http://localhost:8080/get-dictionaries
+```
+
+Returns both the tranparency dictionary with all entries and the derived dictionary containing only the hashed ids together with the hash value of the last block of the corresponding hashchain in the following format: 
+
+```json
+{
+  "dict":[
+    { "id": "FIRST_ID",
+      "value": [
+        {"hash":"FIRST_BLOCK_HASH","previous_hash":"000..","operation":"...","value":"FIRST_HASHED_VALUE"}
+        {"hash":"SECOND_BLOCK_HASH","previous_hash":"FIRST_BLOCK_HASH","operation":"...","value":"SECOND_HASHED_VALUE"}
+      ]
+    },
+    { "id": "SECOND_ID",
+      "value": [
+        {"hash":"FIRST_BLOCK_HASH","previous_hash":"000..","operation":"...","value":"FIRST_HASHED_VALUE"}
+        {"hash":"SECOND_BLOCK_HASH","previous_hash":"FIRST_BLOCK_HASH","operation":"...","value":"SECOND_HASHED_VALUE"}
+      ]
+    }, 
+  ],
+  "derived_dict": [
+    { "id": "HASHED_FIRST_ID", "value": "HASH_OF_LAST_BLOCK"},
+    { "id": "HASHED_SECOND_ID", "value": "HASH_OF_LAST_BLOCK"}
+  ]
+}
 ```
 
 ## 🌓 Contributions
