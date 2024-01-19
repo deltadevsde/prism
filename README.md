@@ -63,7 +63,6 @@ TBD ... something like "The library is designed to be user-friendly, with clear 
 <br/>
 lets demonstrate our application here because it could look nice with some pics
 
-
 ## 🌒 Installation
 
 ### Prerequisites
@@ -101,13 +100,13 @@ You can then interact with Deimos via the interfaces defined in [webserver.rs](h
 
 ## 🌓 Contributions
 
-Contributions are welcome! I saw a lot of contribution guidelines so we need some and write: "Please refer to our contributing guidelines for information on how to submit pull requests, report issues, and contribute to the codebase."
+Contributions are welcome! Please refer to our [contributing guidelines](https://github.com/deltadevsde/deimos/blob/create-readme/CONTRIBUTING.md) for information on how to submit pull requests, report issues, and contribute to the codebase.
 
 ## 🌔 Documentation
 
-Link to comprehensive documentation, including API reference, design philosophy, and more detailed examples. Should we link other papers that inspired us here?
+This project is strongly inspired by the scientific papers about [Transparency Dictionaries with Succinct Proofs of Correct Operation](https://eprint.iacr.org/2021/1263.pdf), [CONIKS](https://eprint.iacr.org/2014/1004.pdf) and [Certificate Transparency](https://datatracker.ietf.org/doc/draft-laurie-rfc6962-bis/). For detailed background information regarding the basics of the project, we invite you to have a look at our [documentation](https://thesis.sebastianpusch.de). It contains both cryptographic basics and the more advanced concepts that make Deimos possible.
 
 
 ## 🌕 Last Heading
 
-yaay reached deimos fullmoon again
+yaay reached deimos fullmoon again, LFG.
