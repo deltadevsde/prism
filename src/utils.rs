@@ -8,6 +8,7 @@ use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use rand::rngs::OsRng;
 use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
+use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
 ///
@@ -48,9 +49,9 @@ fn parse_option_to_scalar(
 }
 
 pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, GeneralError> {
-    // decode the public key from hex string to bytes
-    let public_key_bytes = hex::decode(pub_key_str)
-        .map_err(|_| GeneralError::DecodingError("Error while decoding hex string to bytes".to_string()))?;
+    // decode the public key from base64 string to bytes
+    let public_key_bytes = engine.decode(pub_key_str)
+        .map_err(|e| GeneralError::DecodingError(format!("Error while decoding hex string: {}", e)))?;
 
     let public_key_array: [u8; 32] = public_key_bytes
         .try_into()
