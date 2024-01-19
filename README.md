@@ -57,12 +57,6 @@ We will continuously update the documentation to reflect the completion status o
 
 We thank you for your patience and will be happy to answer any questions.
 
-## 🌑 Usage
-
-TBD ... something like "The library is designed to be user-friendly, with clear APIs for interacting with the transparency dictionary. Example code snippets are provided to demonstrate basic operations like adding, retrieving, and verifying entries."
-<br/>
-lets demonstrate our application here because it could look nice with some pics
-
 ## 🌒 Installation
 
 ### Prerequisites
@@ -97,6 +91,20 @@ cargo run light-client
 ```
 
 You can then interact with Deimos via the interfaces defined in [webserver.rs](https://github.com/deltadevsde/deimos/blob/main/src/webserver.rs). Based on the data exchanged or stored via the interface the global indexed merkle tree changes and proofs based on these changes then are created in defined epochs (currently 60 seconds) and cryptographic commitments including the proof parameters are posted in the Celestia namespace.
+
+## 🌑 Usage
+
+Deimos is designed to be user-friendly, with clear APIs for interacting with the transparency dictionary. 
+
+Update the Dictionary
+
+```bash
+curl -X POST http://localhost:8080/update-entry \
+      -H "Content-Type: application/json" \
+      -d '{ "id": "YOUR_ID", \
+            "public_key": "YOUR_PUBLIC_KEY", \
+            "signed_message": "YOUR_SIGNED_MESSAGE"}'
+```
 
 ## 🌓 Contributions
 
