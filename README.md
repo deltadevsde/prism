@@ -148,7 +148,7 @@ Returns the tranparency dictionary with all entries for the given ID in the foll
 
 ```json
 {
-  "id": "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=",
+  "id": "{ID}",
   "dict": [
     { "hash": "FIRST_BLOCK_HASH", "previous_hash": "000...", "operation": "...", "value": "FIRST_HASHED_VALUE" },
     { "hash": "SECOND_BLOCK_HASH", "previous_hash": "000...", "operation": "...", "value": "SECOND_HASHED_VALUE" },
