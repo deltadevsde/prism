@@ -108,7 +108,7 @@ curl -X POST http://localhost:8080/update-entry \
             "signed_message": "YOUR_SIGNED_MESSAGE"}'
 ```
 
-### Get derived and normal dictionary
+### Get all derived and normal dictionary
 
 ```bash
 curl http://localhost:8080/get-dictionaries
@@ -127,7 +127,7 @@ Returns both the tranparency dictionary with all entries and the derived diction
     },
     { "id": "SECOND_ID",
       "value": [
-        {"hash":"FIRST_BLOCK_HASH","previous_hash":"000..","operation":"...","value":"FIRST_HASHED_VALUE"}
+        {"hash":"FIRST_BLOCK_HASH","previous_hash":"000...","operation":"...","value":"FIRST_HASHED_VALUE"}
         {"hash":"SECOND_BLOCK_HASH","previous_hash":"FIRST_BLOCK_HASH","operation":"...","value":"SECOND_HASHED_VALUE"}
       ]
     }, 
@@ -135,6 +135,23 @@ Returns both the tranparency dictionary with all entries and the derived diction
   "derived_dict": [
     { "id": "HASHED_FIRST_ID", "value": "HASH_OF_LAST_BLOCK"},
     { "id": "HASHED_SECOND_ID", "value": "HASH_OF_LAST_BLOCK"}
+  ]
+}
+```
+
+### Get derived and normal dictionary for given ID
+
+```bash
+curl http://localhost:8080/get-dictionary/{ID}
+```
+Returns the tranparency dictionary with all entries for the given ID in the following format: 
+
+```json
+{
+  "id": "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=",
+  "dict": [
+    { "hash": "FIRST_BLOCK_HASH", "previous_hash": "000...", "operation": "...", "value": "FIRST_HASHED_VALUE" },
+    { "hash": "SECOND_BLOCK_HASH", "previous_hash": "000...", "operation": "...", "value": "SECOND_HASHED_VALUE" },
   ]
 }
 ```
