@@ -418,7 +418,7 @@ impl Sequencer {
 
         // check if the signed message is (at least) 64 bytes long
         if signed_message_bytes.len() < 64 {
-            panic!("Signed message is too short");
+            return Err("Signed message is too short");
         }
 
         let message_bytes = &signed_message_bytes[64..];
@@ -483,8 +483,10 @@ impl Sequencer {
 
         // check if the signed message is (at least) 64 bytes long
         if signed_message_bytes.len() < 64 {
-            panic!("Signed message is too short");
+            return Err("Signed message is too short");
         }
+
+        println!("signed message bytes: {:?}", signed_message_bytes.len());
 
         let message_bytes = &signed_message_bytes[64..];
 
@@ -520,4 +522,71 @@ impl Sequencer {
             Err("No valid signature found")
         }
     }
+
+}    
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::storage::{UpdateEntryJson, MockDatabase};
+
+    fn setup_sequencer() -> Sequencer {
+        Sequencer::new(
+            Arc::new(MockDatabase::new()),
+            None,
+            Config::default(),
+        )
+    }
+
+    fn setup_signature(valid_signature: bool) -> UpdateEntryJson {
+        let signed_message = if valid_signature {
+            "NRtq1sgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
+        } else {
+            "QVmk3wgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
+        };
+        let id_public_key = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=".to_string();
+
+        UpdateEntryJson {
+            id: id_public_key.clone(),
+            signed_message,
+            public_key: id_public_key,
+        }
+    }
+
+    #[test]
+    fn test_verify_valid_signature() {
+        let sequencer = setup_sequencer();
+        let signature_with_key = setup_signature(true);
+
+        let result = sequencer.verify_signature_with_given_key(&signature_with_key);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_verify_invalid_signature() {
+        let sequencer = setup_sequencer();
+        let signature_with_key = setup_signature(false);
+
+        let result = sequencer.verify_signature_with_given_key(&signature_with_key);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_verify_short_message() {
+        let sequencer = setup_sequencer();
+        let signature_with_key = setup_signature(true);
+
+        let short_message = general_purpose::STANDARD
+            .encode(&"this is a short message".to_string());
+
+
+        let signature_with_key = UpdateEntryJson {
+            signed_message: short_message,
+            ..signature_with_key
+        };
+
+        let result = sequencer.verify_signature_with_given_key(&signature_with_key);
+        assert!(result.is_err());
+    }
 }
+

@@ -6,6 +6,8 @@ use std::{self, fmt::Display, sync::Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 use indexed_merkle_tree::{sha256, Node, ProofVariant};
+use mockall::*;
+use mockall::predicate::*;
 
 use crate::{
     utils::parse_json_to_proof,
@@ -70,6 +72,7 @@ pub struct RedisConnections {
     pub commitments: Mutex<Connection>,   // epoch commitments
 }
 
+#[automock]
 pub trait Database: Send + Sync {
     fn get_keys(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_derived_keys(&self) -> Result<Vec<String>, DatabaseError>;

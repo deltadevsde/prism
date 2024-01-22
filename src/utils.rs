@@ -232,6 +232,24 @@ mod tests {
     use bls12_381::Bls12;
 
     #[test]
+    fn test_decode_public_key_valid() {
+        let valid_pub_key_str = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M="; 
+        assert!(decode_public_key(&valid_pub_key_str.to_string()).is_ok());
+    }
+
+    #[test]
+    fn test_decode_public_key_invalid_base64() {
+        let invalid_pub_key_str = "f3e58f3ac316b5b34b9e5a9488733a0870a4225f41f3969f53a66a110edd25b5";
+        assert!(decode_public_key(&invalid_pub_key_str.to_string()).is_err());
+    }
+
+    #[test]
+    fn test_decode_public_key_invalid_length() {
+        let invalid_length_pub_key_str = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp";
+        assert!(decode_public_key(&invalid_length_pub_key_str.to_string()).is_err());
+    }
+
+    #[test]
     fn test_validate_epoch_valid_proof() {
         let active_node = Node::initialize_leaf(
             true,
