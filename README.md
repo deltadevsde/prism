@@ -166,7 +166,7 @@ This API request validates a Groth16 zk-SNARK created with the Merkle proofs of 
 
 ```javascript
 {
-  "epoch": EPOH-NUMBER,
+  "epoch": EPOCH-NUMBER,
   "proof": {
       "a": "A_COORDINATE",
       "b": "B_COORDINATE",
