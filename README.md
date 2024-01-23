@@ -148,10 +148,137 @@ Returns the tranparency dictionary with all entries for the given ID in the foll
 
 ```json
 {
-  "id": "{ID}",
+  "id": "ID",
   "dict": [
     { "hash": "FIRST_BLOCK_HASH", "previous_hash": "000...", "operation": "...", "value": "FIRST_HASHED_VALUE" },
     { "hash": "SECOND_BLOCK_HASH", "previous_hash": "000...", "operation": "...", "value": "SECOND_HASHED_VALUE" },
+  ]
+}
+```
+
+### Validate epoch for given epoch number
+
+```bash
+curl -X POST http://localhost:8080/validate-epoch -H "Content-Type: application/json" -d '"EPOCH_NUMBER"'
+```
+
+This API request validates a Groth16 zk-SNARK created with the Merkle proofs of the past epoch. The EPOCH_NUMBER in the request should be replaced with the actual value of the epoch. The API response contains points on the BLS12-381 elliptical curve, represented by the keys 'a', 'b' and 'c' in the following format:
+
+```json
+{
+  "epoch": EPOCH_NUMBER,
+  "proof": {
+      "a": "A_COORDINATE",
+      "b": "B_COORDINATE",
+      "c": "C_COORDINATE"
+  }
+}
+```
+
+### Get the current Merkle root
+
+```bash
+curl http://localhost:8080/get-commitment
+```
+
+Returns the current Merkle root as a string
+
+```json
+"{CURRENT_MERKLE_ROOT}"
+```
+
+### Get the current Merkle tree
+
+```bash
+curl http://localhost:8080/get-tree
+```
+
+Returns the entire current Merkle tree, starting at the root in the following format:
+
+```json
+{
+  "Inner": {
+    "hash": "ROOT_HASH",
+    "is_left_sibling": false,
+    "left": {
+      "Inner": {
+        "hash": "LEFT_CHILD_HASH",
+        "is_left_sibling": true,
+          "left": {
+            ...
+          },
+          "right": {
+            ...
+          }
+      }
+    },
+    "right": {
+      "Inner": {
+        "hash": "RIGHT_CHILD_HASH",
+        "is_left_sibling": false,
+        "left": {
+          ...
+        },
+        "right": {
+          ...
+        }
+      }
+    }
+  }
+}
+```
+
+### Get all operations and Merkle proofs from a finanalized epoch
+
+```bash
+curl -X POST http://localhost:8080/get-epoch-operations -H "Content-Type: application/json" -d '"EPOCH"'
+```
+
+This API endpoint /get-epoch-operations accepts an epoch number and returns the previous and current commitment and a list of proofs for the specified epoch in the following format:
+
+```json
+{
+  "epoch": "EPOCH_NUMBER",
+  "previous_commitment": "PREVIOUS_COMMITMENT",
+  "current_commitment": "CURRENT_COMMITMENT",
+  "proofs": [
+    e.g. {
+      "Update": [ 
+        [ "OLD_ROOT",
+          [
+            { NODE_TO_PROVE },
+            { FIRST_SIBLING },
+            { PARENT_SIBLING },
+            { ... }
+          ]
+        ], [
+        [ "ROOT_AFTER_UPDATE",
+          [
+            { UPDATED_NODE_TO_PROVE },
+            { FIRST_SIBLING },
+            { PARENT_SIBLING },
+            { ... }
+          ]
+        ]]
+      ]}
+    ]
+}
+```
+
+### Get all epochs
+
+```bash
+curl http://localhost:8080/get-epochs
+```
+
+This API endpoint /get-epochs returns a sorted list of all available epochs together with the respective commitments. For each epoch, the epoch ID and the associated commitment are returned in the following form:
+
+```json
+{
+  "epochs": [
+    { "id": 0, "commitment":"COMMITMENT_EPOCH_0" },
+    { "id": 1, "commitment":"COMMITMNET_EPOCH_1" },
+    { "id": 2, "commitment":"COMMITMNET_EPOCH_2" }
   ]
 }
 ```
