@@ -173,7 +173,7 @@ impl Sequencer {
         self.db.reset_epoch_operation_counter().map_err(DeimosError::Database)?;
 
         // add the commitment for the operations ran since the last epoch
-        let current_commitment = self.create_tree().map_err( DeimosError::MerkleTree)?.get_commitment().map_err(DeimosError::MerkleTree)?;
+        let current_commitment = self.create_tree().map_err(DeimosError::MerkleTree)?.get_commitment().map_err(DeimosError::MerkleTree)?;
 
         self.db.add_commitment(&epoch, &current_commitment).map_err(DeimosError::Database)?;
 
@@ -486,8 +486,6 @@ impl Sequencer {
             return Err("Signed message is too short");
         }
 
-        println!("signed message bytes: {:?}", signed_message_bytes.len());
-
         let message_bytes = &signed_message_bytes[64..];
 
         // extract the first 64 bytes from the signed message
@@ -527,16 +525,93 @@ impl Sequencer {
 
 #[cfg(test)]
 mod tests {
+    use mockall::predicate;
+
     use super::*;
-    use crate::storage::{UpdateEntryJson, MockDatabase};
+    use crate::{storage::{UpdateEntryJson, MockDatabase}, error::DatabaseError};
+
+    const MOCK_PUBLIC_KEY: &str = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=";
+
+    fn setup_logging() {
+        pretty_env_logger::formatted_builder()
+            .filter_level(log::LevelFilter::Debug)
+            .init();
+    }
 
     fn setup_sequencer() -> Sequencer {
+        let mut mock_db = MockDatabase::new();
+
+        mock_db.expect_get_epoch().returning(|| Ok(1));
+        mock_db.expect_set_epoch().returning(|_| Ok(()));
+        
+        mock_db.expect_get_hashchain()
+        .with(predicate::eq(MOCK_PUBLIC_KEY.to_string()))
+            .returning(|_| Ok(vec![
+                setup_first_chain_entry(),
+                setup_second_chain_entry(),
+            ]));
+
+        mock_db.expect_get_hashchain()
+            .with(predicate::eq("invalid_key".to_string()))
+            .returning(|_| Err(DeimosError::Database(DatabaseError::NotFoundError("not found".to_string()))));
+
+        //  Mocking update_hashchain and set derived entry to return Ok for any input for now, but i have to think about withf()-functions, what is needed and what not?!
+        mock_db.expect_update_hashchain()
+            .returning(|_, _| Ok(()));
+
+        mock_db.expect_set_derived_entry()
+            .returning(|_, _, _| Ok(()));
+
         Sequencer::new(
-            Arc::new(MockDatabase::new()),
+            Arc::new(mock_db),
             None,
             Config::default(),
         )
     }
+
+    fn setup_sequencer_for_no_hashchain() -> Sequencer {
+        let mut mock_db = MockDatabase::new();
+    
+        mock_db.expect_get_hashchain()
+            .returning(|_| Err( DeimosError::Database(DatabaseError::NotFoundError(MOCK_PUBLIC_KEY.to_string()))));
+    
+        mock_db.expect_update_hashchain().returning(|_, _| Ok(()));
+        mock_db.expect_set_derived_entry().returning(|_, _, _| Ok(()));
+    
+        Sequencer::new(
+            Arc::new(mock_db),
+            None,
+            Config::default(),
+        )
+    }
+    
+
+    fn setup_first_chain_entry() -> ChainEntry {
+        ChainEntry {
+            hash: "dac1dd5c45e3646ee4133c6e298c31b7f79be55413bfd550eb83a8ecfab0eac5".to_string(),
+            previous_hash: "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
+            operation: Operation::Add,
+            value: "f239ed423e1bfb6cd9cd648b6088e641a33a22ea56d5a32e4b3921d8fe8d1fc6".to_string(),
+        }
+    }
+
+    fn setup_second_chain_entry() -> ChainEntry {
+        ChainEntry {
+            hash: "2db91ce87fdc8673c3aa79c7eb4ecc7a4d22813be14939a68fd6d5f7c0be34c5".to_string(),
+            previous_hash: "dac1dd5c45e3646ee4133c6e298c31b7f79be55413bfd550eb83a8ecfab0eac5".to_string(),
+            operation: Operation::Add,
+            value: "5fdc48c5d30ce17ca119bd96cdd5b4a0d388c8fb63169516adca69a24266a4e5".to_string(),
+        }
+    }
+
+    /* fn setup_third_chain_entry() -> ChainEntry {
+        ChainEntry {
+            hash: "b80e52c1abc9c4a514862c5b507ad98bbc4d0f9a83f49932ee690038cbf59bfd".to_string(),
+            previous_hash: "2db91ce87fdc8673c3aa79c7eb4ecc7a4d22813be14939a68fd6d5f7c0be34c5".to_string(),
+            operation: Operation::Add,
+            value: "d8a33fa1cc01cc9b05d35495a574cdfbfabbefcf6c7b09d16fdafacbff927d5e".to_string(),
+        }
+    } */
 
     fn setup_signature(valid_signature: bool) -> UpdateEntryJson {
         let signed_message = if valid_signature {
@@ -544,13 +619,51 @@ mod tests {
         } else {
             "QVmk3wgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
         };
-        let id_public_key = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=".to_string();
 
         UpdateEntryJson {
-            id: id_public_key.clone(),
+            id: MOCK_PUBLIC_KEY.to_string(),
             signed_message,
-            public_key: id_public_key,
+            public_key: MOCK_PUBLIC_KEY.to_string(),
         }
+    }
+
+
+    #[test]
+    fn test_update_entry() {
+        let sequencer = setup_sequencer();
+        let signature_with_key = setup_signature(true);
+
+        let result = sequencer.update_entry(&signature_with_key);
+        assert!(result);
+    }
+
+    #[test]
+    fn test_update_entry_with_invalid_signature() {
+        let sequencer = setup_sequencer();
+        let invalid_signature_entry = setup_signature(false);
+
+        let update_result = sequencer.update_entry(&invalid_signature_entry);
+        assert_eq!(update_result, false);
+    }
+
+
+    #[test]
+    fn test_add_new_key() {
+        let sequencer = setup_sequencer();
+        let signature_with_key = setup_signature(true);
+
+        let result = sequencer.update_entry(&signature_with_key);
+        assert!(result);
+    }
+
+    #[test]
+    fn test_update_entry_with_no_existing_hashchain() {
+        setup_logging();
+        let sequencer = setup_sequencer_for_no_hashchain();
+        let signature_with_key = setup_signature(true); 
+
+        let result = sequencer.update_entry(&signature_with_key);
+        assert_eq!(result, true);
     }
 
     #[test]
@@ -589,4 +702,3 @@ mod tests {
         assert!(result.is_err());
     }
 }
-

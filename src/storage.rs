@@ -607,10 +607,6 @@ mod tests {
 
 
     // TESTS FOR fn get_derived_value(&self, key: &String) -> Result<String, &str>
-    
-
-
-
 
     #[test]
     /* 

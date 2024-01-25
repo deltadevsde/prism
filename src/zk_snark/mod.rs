@@ -423,6 +423,8 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
             &self.second_merkle_proof.updated_path,
         );
 
+        println!("Bis hier ist ja alles super...");
+
         match second_update {
             Ok(_) => Ok(()),
             Err(_) => return Err(SynthesisError::Unsatisfiable),
@@ -577,11 +579,16 @@ impl InsertMerkleProofCircuit {
         proof: &(MerkleProof, UpdateProof, UpdateProof),
     ) -> Result<InsertMerkleProofCircuit, DeimosError> {
         // Unwrap proof values and handle possible errors
-        let (non_membership_root, non_membership_path) = unpack_and_process(&proof.0)?;
-        let (first_update_old_root, first_update_old_path) = unpack_and_process(&proof.1.0)?;
-        let (first_update_new_root, first_update_new_path) = unpack_and_process(&proof.1.1)?;
-        let (second_update_old_root, second_update_old_path) = unpack_and_process(&proof.2.0)?;
-        let (second_update_new_root, second_update_new_path) = unpack_and_process(&proof.2.1)?;        
+        let (
+            non_membership_proof,
+            (first_update_old, first_update_new),
+            (second_update_old, second_update_new),
+        ) = proof;
+        let (non_membership_root, non_membership_path) = unpack_and_process(&non_membership_proof)?;
+        let (first_update_old_root, first_update_old_path) = unpack_and_process(&first_update_old)?;
+        let (first_update_new_root, first_update_new_path) = unpack_and_process(&first_update_new)?;
+        let (second_update_old_root, second_update_old_path) = unpack_and_process(&second_update_old)?;
+        let (second_update_new_root, second_update_new_path) = unpack_and_process(&second_update_new)?;   
 
         let first_merkle_proof_circuit = UpdateMerkleProofCircuit {
             old_root: first_update_old_root,
@@ -597,7 +604,6 @@ impl InsertMerkleProofCircuit {
             updated_path: second_update_new_path.clone(),
         };
 
-        // Erstelle die MerkleProofCircuit-Instanz
         Ok(InsertMerkleProofCircuit {
             non_membership_root,
             non_membership_path: non_membership_path.clone(),
@@ -624,11 +630,13 @@ impl BatchMerkleProofCircuit {
                 }
                 ProofVariant::Insert((merkle_proof, first_update, second_update)) => {
                     proof_circuit_array.push(
-                        BatchMerkleProofCircuit::create_from_insert(&(
-                            merkle_proof,
-                            first_update,
-                            second_update,
-                        ))?,
+                        ProofVariantCircuit::Insert(
+                            InsertMerkleProofCircuit::create(&(
+                                merkle_proof,
+                                first_update,
+                                second_update,
+                            )
+                        )?),
                     );
                 }
             }
@@ -664,46 +672,6 @@ impl BatchMerkleProofCircuit {
 
         // Create the MerkleProofCircuit-Instance
         Ok(ProofVariantCircuit::Update(merkle_proof_circuit))
-    }
-
-    pub fn create_from_insert(
-        proofs: &(MerkleProof, UpdateProof, UpdateProof),
-    ) -> Result<ProofVariantCircuit, DeimosError> {
-        let (
-            non_membership_proof,
-            (first_update_old, first_update_new),
-            (second_update_old, second_update_new),
-        ) = proofs;
-
-        let (non_membership_root, non_membership_path) = unpack_and_process(&non_membership_proof)?;
-        let (first_update_old_root, first_update_old_path) = unpack_and_process(&first_update_old)?;
-        let (first_update_new_root, first_update_new_path) = unpack_and_process(&first_update_new)?;
-        let (second_update_old_root, second_update_old_path) = unpack_and_process(&second_update_old)?;
-        let (second_update_new_root, second_update_new_path) = unpack_and_process(&second_update_new)?;
-
-        let first_merkle_proof_circuit = UpdateMerkleProofCircuit {
-            old_root: first_update_old_root,
-            old_path: first_update_old_path.clone(),
-            updated_root: first_update_new_root,
-            updated_path: first_update_new_path.clone(),
-        };
-
-        let second_merkle_proof_circuit = UpdateMerkleProofCircuit {
-            old_root: second_update_old_root,
-            old_path: second_update_old_path.clone(),
-            updated_root: second_update_new_root,
-            updated_path: second_update_new_path.clone(),
-        };
-
-        let insert_proof_circuit = InsertMerkleProofCircuit {
-            non_membership_root,
-            non_membership_path: non_membership_path.clone(),
-            first_merkle_proof: first_merkle_proof_circuit,
-            second_merkle_proof: second_merkle_proof_circuit,
-        };
-
-        // Create the MerkleProofCircuit-Instance
-        Ok(ProofVariantCircuit::Insert(insert_proof_circuit))
     }
 }
 

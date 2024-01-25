@@ -90,22 +90,14 @@ pub fn validate_snark(
     // debug!("Prepare verifying key for zkSNARK...");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
-    let scalars: Result<Vec<Scalar>, _> = vec![
-        parse_option_to_scalar(non_membership_proof.0),
-        parse_option_to_scalar(first_proof.0.0),
-        parse_option_to_scalar(first_proof.1.0),
-        parse_option_to_scalar(second_proof.0.0),
-        parse_option_to_scalar(second_proof.1.0),
-    ].into_iter().collect();
-
-    // check if all scalars are valid
-    let scalars = scalars.map_err(|_| DeimosError::General(GeneralError::ParsingError(format!("unable to parse public input parameters"))))?;
-
-    // debug!("Verifying zkSNARK proof...");
+    /* 
+        we dont need public parameters here, because this proof of insert is a proof of internal states: 
+        The proof only concerns internal states/calculations within the circuit, and doenst require external inputs.
+    */
     groth16::verify_proof(
         &pvk,
         &proof,
-        &scalars,
+        &vec![],
     )
     .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
 
@@ -231,6 +223,37 @@ mod tests {
     use bellman::groth16;
     use bls12_381::Bls12;
 
+    fn setup_tree() -> IndexedMerkleTree {
+        let active_node = Node::initialize_leaf(
+            true,
+            true,
+            Node::EMPTY_HASH.to_string(),
+            Node::EMPTY_HASH.to_string(),
+            Node::TAIL.to_string(),
+        );
+        let inactive_node = Node::initialize_leaf(
+            false,
+            true,
+            Node::EMPTY_HASH.to_string(),
+            Node::EMPTY_HASH.to_string(),
+            Node::TAIL.to_string(),
+        );
+
+        IndexedMerkleTree::new(vec![
+            active_node,
+            inactive_node.clone(),
+            inactive_node.clone(),
+            inactive_node,
+        ])
+        .unwrap()
+    }
+
+    fn setup_node(id: String, value: String) -> Node {
+        let id = sha256(&id);
+        let value = sha256(&value);
+        Node::initialize_leaf(true, true, id, value, Node::TAIL.to_string())
+    }
+
     #[test]
     fn test_decode_public_key_valid() {
         let valid_pub_key_str = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M="; 
@@ -250,43 +273,33 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_epoch_valid_proof() {
-        let active_node = Node::initialize_leaf(
-            true,
-            true,
-            Node::EMPTY_HASH.to_string(),
-            Node::EMPTY_HASH.to_string(),
-            Node::TAIL.to_string(),
-        );
-        let inactive_node = Node::initialize_leaf(
-            false,
-            true,
-            Node::EMPTY_HASH.to_string(),
-            Node::EMPTY_HASH.to_string(),
-            Node::TAIL.to_string(),
-        );
+    fn test_validate_proof_with_valid_insert_proof() {
+        let mut tree = setup_tree();
 
-        let mut tree = IndexedMerkleTree::new(vec![
-            active_node,
-            inactive_node.clone(),
-            inactive_node.clone(),
-            inactive_node,
-        ]).unwrap();
+        let node = setup_node("test_id".to_string(), "test_value".to_string());
+        let insert_proof = tree.generate_proof_of_insert(&node).unwrap();
+
+        let non_membership_proof = insert_proof.0;
+        let first_proof = insert_proof.1;
+        let second_proof = insert_proof.2;
+
+        let result = validate_snark(non_membership_proof, first_proof, second_proof);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_epoch_valid_proof() {
+        let mut tree = setup_tree();
         let prev_commitment = tree.get_commitment().unwrap();
 
-        let ryan = sha256(&"Ryan".to_string());
-        let ford = sha256(&"Ford".to_string()); 
-        let sebastian = sha256(&"Sebastian".to_string()); 
-        let pusch = sha256(&"Pusch".to_string()); 
-        let ryans_node = Node::initialize_leaf(true, true, ryan, ford, Node::TAIL.to_string());
-        let sebastians_node = 
-            Node::initialize_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
+        let first_node = setup_node("first_id".to_string(), "first_value".to_string());
+        let second_node = setup_node("second_id".to_string(), "second_value".to_string());
 
-        let first_insert_proof = tree.generate_proof_of_insert(&ryans_node).unwrap();
-        let second_insert_proof = tree.generate_proof_of_insert(&sebastians_node).unwrap();
+        let first_insert_proof = tree.generate_proof_of_insert(&first_node).unwrap();
+        let second_insert_proof = tree.generate_proof_of_insert(&second_node).unwrap();
 
         let first_insert_zk_snark = ProofVariant::Insert(
-            first_insert_proof
+            first_insert_proof.clone()
         );
         let second_insert_zk_snark = ProofVariant::Insert(
             second_insert_proof
