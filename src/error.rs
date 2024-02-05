@@ -31,6 +31,10 @@ pub enum GeneralError {
     DecodingError(String),
     #[error("Required argument missing")]
     MissingArgumentError,
+    #[error("Invalid public key")]
+    InvalidPublicKey,
+    #[error("Invalid signature")]
+    InvalidSignature,
 }
 
 

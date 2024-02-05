@@ -49,3 +49,4 @@ ahash = "0.8.7"
 celestia-rpc = "0.1.0"
 celestia-types = "0.1.0"
 mockall = "0.12.1"
+keystore = { git = "https://github.com/deltadevsde/keystore", rev = "3a4b448819efe535d035aff5366a48d46fbc4612" } 

@@ -1,12 +1,15 @@
-use crate::error::{GeneralError, DataAvailabilityError};
+use crate::error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError};
+use crate::utils::Signable;
 use crate::zk_snark::{Bls12Proof, VerifyingKey};
 use celestia_types::blob::SubmitOptions;
+use ed25519::Signature;
 use fs2::FileExt;
 use tokio::task::spawn;
 use async_trait::async_trait;
 use celestia_rpc::{Client, BlobClient, HeaderClient};
 use celestia_types::{nmt::Namespace, Blob};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use std::{self, sync::Arc};
 use tokio::sync::mpsc;
 use serde_json::json;
@@ -15,14 +18,14 @@ use std::io::{Read, Write, Seek};
 use serde_json::Value;
 
 
-// TODO: Add signature from sequencer for lc to verify (#2)
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EpochJson {
     pub height: u64,
     pub prev_commitment: String,
     pub current_commitment: String,
     pub proof: Bls12Proof,
     pub verifying_key: VerifyingKey,
+    pub signature: Option<String>,
 }
 
 impl TryFrom<&Blob> for EpochJson {
@@ -47,6 +50,31 @@ impl TryFrom<&Blob> for EpochJson {
     }
     
 }
+
+impl Signable for EpochJson {
+    fn get_signature(&self) -> Result<Signature, DeimosError> {
+        match &self.signature {
+            Some(signature) => {
+                let signature = Signature::from_str(signature).map_err(|_| DeimosError::General(GeneralError::ParsingError("Cannot parse signature".to_string())))?;
+                Ok(signature)
+            },
+            None => Err(DeimosError::General(GeneralError::MissingArgumentError))
+        }
+    }
+
+    fn get_content_to_sign(&self) -> Result<String, DeimosError> {
+        let mut copy = self.clone();
+        copy.signature = None; 
+        serde_json::to_string(&copy).map_err(|_| DeimosError::General(GeneralError::ParsingError("Cannot serialize".to_string())))
+    }
+
+    fn get_public_key(&self) -> Result<String, DeimosError> {
+        // for epoch json the public key to verify is the one from the sequencer which should be already be public and known from every light client
+        // so if we use this function there should be an error
+        Err(DeimosError::Database(DatabaseError::NotFoundError("Public key not found".to_string())))
+    }
+}
+
 
 enum Message {
     UpdateTarget(u64),
@@ -424,7 +452,8 @@ mod da_tests {
                 prev_commitment: prev_commitment, 
                 current_commitment: tree.get_commitment().unwrap(),
                 proof: bls12proof, 
-                verifying_key: vk 
+                verifying_key: vk,
+                signature: None
             }).await.unwrap();
             tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
 
@@ -448,7 +477,8 @@ mod da_tests {
                 prev_commitment: prev_commitment, 
                 current_commitment: tree.get_commitment().unwrap(),
                 proof: proof, 
-                verifying_key: vk 
+                verifying_key: vk,
+                signature: None
             }).await.unwrap();
             tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
         });
