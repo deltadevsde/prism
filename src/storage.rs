@@ -1,3 +1,5 @@
+use base64::engine::{general_purpose, Engine as _};
+use ed25519::Signature;
 use redis::{Client, Commands, Connection};
 use std::sync::MutexGuard;
 use std::process::Command;
@@ -9,6 +11,7 @@ use indexed_merkle_tree::{sha256, Node, ProofVariant};
 use mockall::*;
 use mockall::predicate::*;
 
+use crate::utils::Signable;
 use crate::{
     utils::parse_json_to_proof,
     error::{DeimosError, GeneralError, DatabaseError}
@@ -62,6 +65,53 @@ pub struct UpdateEntryJson {
     pub signed_message: String,
     pub public_key: String,
 }
+
+fn decode_signed_message(signed_message: &String) -> Result<Vec<u8>, DeimosError> {
+    let signed_message_bytes = general_purpose::STANDARD
+        .decode(&signed_message)
+        .map_err(|_| DeimosError::General(GeneralError::DecodingError("failed to decode signed message".to_string())))?;
+
+    // check if the signed message is (at least) 64 bytes long
+    if signed_message_bytes.len() < 64 {
+        return Err(DeimosError::General(GeneralError::ParsingError(
+            "signed message is too short".to_string(),
+        )));
+    } else {
+        Ok(signed_message_bytes)
+    }
+}
+
+impl Signable for UpdateEntryJson {
+    fn get_signature(&self) -> Result<Signature, DeimosError> {
+        let signed_message_bytes = decode_signed_message(&self.signed_message)?;
+
+        // extract the first 64 bytes from the signed message which are the signature
+        let signature_bytes: &[u8; 64] = match signed_message_bytes.get(..64) {
+            Some(array_section) => match array_section.try_into() {
+                Ok(array) => array,
+                Err(_) => Err(DeimosError::General(GeneralError::ParsingError(
+                    "failed to convert signed message to array".to_string(),
+                )))?,
+            },
+            None => Err(DeimosError::General(GeneralError::ParsingError(
+                "failed to extract signature from signed message".to_string(),
+            )))?,
+        };
+
+        Ok(Signature::from_bytes(signature_bytes))        
+    }
+
+    fn get_content_to_sign(&self) -> Result<String, DeimosError> {
+        let signed_message_bytes = decode_signed_message(&self.signed_message)?;
+        let message_bytes = &signed_message_bytes[64..];
+        Ok(String::from_utf8_lossy(message_bytes).to_string()) // or from_utf8_unchecked?
+    }
+
+    fn get_public_key(&self) -> Result<String, DeimosError> {
+        Ok(self.public_key.clone())
+    }
+}
+
 
 pub struct RedisConnections {
     pub main_dict: Mutex<Connection>,    // clear text key with hashchain

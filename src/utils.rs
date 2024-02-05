@@ -3,11 +3,12 @@ use crate::{
     zk_snark::{hex_to_scalar, BatchMerkleProofCircuit, InsertMerkleProofCircuit},
     Operation, error::{ProofError, DeimosError, GeneralError},
 };
+use ed25519::Signature;
 use indexed_merkle_tree::{IndexedMerkleTree, MerkleProof, ProofVariant, UpdateProof};
 use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use rand::rngs::OsRng;
-use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
+use ed25519_dalek::{VerifyingKey as Ed25519VerifyingKey, Verifier};
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -221,6 +222,35 @@ pub fn validate_epoch(
         previous_commitment, current_commitment
     );
     Ok(proof)
+}
+
+pub trait Signable {
+    fn get_signature(&self) -> Result<Signature, DeimosError>;
+    fn get_content_to_sign(&self) -> Result<String, DeimosError>;
+    fn get_public_key(&self) -> Result<String, DeimosError>;
+}
+
+// verifies the signature of a given signable item and returns the content of the item if the signature is valid
+pub fn verify_signature<T: Signable>(
+    item: &T,
+    optional_public_key: Option<String>, 
+) -> Result<String, DeimosError> {
+    let public_key_str = match optional_public_key {
+        Some(key) => key,
+        None => item.get_public_key()?,
+    };
+
+    let public_key = decode_public_key(&public_key_str)
+        .map_err(|_| DeimosError::General(GeneralError::InvalidPublicKey))?;
+
+    let content = item.get_content_to_sign()?;
+    let signature = item.get_signature()?;
+
+    if public_key.verify(content.as_bytes(), &signature).is_ok() {
+        Ok(content)
+    } else {
+        Err(DeimosError::General(GeneralError::InvalidSignature))
+    }
 }
 
 #[cfg(test)]

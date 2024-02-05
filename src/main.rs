@@ -5,12 +5,14 @@ pub mod storage;
 mod utils;
 mod webserver;
 pub mod zk_snark;
+extern crate keystore;
 
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 #[allow(unused_imports)]
 use da::{LocalDataAvailabilityLayer, DataAvailabilityLayer, CelestiaConnection};
 use serde::Deserialize;
+use keystore::{KeyChain, KeyStore, KeyStoreType};
 
 use dotenvy::dotenv;
 use std::sync::Arc;
@@ -47,8 +49,13 @@ struct CommandLineArgs {
     #[arg(short, long)]
     port: Option<u16>,
 
+    /// Public key
+    #[arg(short, long)]
+    public_key: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
+
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize)]
@@ -76,6 +83,7 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     celestia_config: Option<CelestiaConfig>,
     epoch_time: u64,
+    public_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -116,6 +124,7 @@ impl Default for Config {
             da_layer: DALayerOption::default(),
             celestia_config: Some(CelestiaConfig::default()),
             epoch_time: 60,
+            public_key: None,
         }
     }
 }
@@ -165,6 +174,7 @@ fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
             .epoch_time
             .map(|e| e as u64)
             .unwrap_or(default_config.epoch_time),
+        public_key: args.public_key.or(default_config.public_key),
     })
 }
 
@@ -217,12 +227,13 @@ async fn main() -> std::io::Result<()> {
 
     let node: Arc<dyn NodeType> = match args.command {
         // LightClients need a DA layer, so we can unwrap here
-        Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap())),
+        Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap(), config.public_key)),
         Commands::Sequencer {} => Arc::new(Sequencer::new(
             // TODO: convert error to std::io::Error...is there a better solution?
             Arc::new(RedisConnections::new().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?),
             da,
             config,
+            KeyStoreType::KeyChain(KeyChain).get_signing_key().unwrap(),
         )),
     };
     

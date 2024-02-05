@@ -1,24 +1,22 @@
 use async_trait::async_trait;
-use base64::{engine::general_purpose, Engine as _};
 use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
-use ed25519_dalek::{Signature, Verifier};
+use ed25519_dalek::{Signer, SigningKey};
 use std::{self, sync::Arc, time::Duration, io::ErrorKind};
 use tokio::{time::sleep, task::spawn};
 use indexed_merkle_tree::{IndexedMerkleTree, Node, error::MerkleTreeError};
 
-
 use crate::{
     da::{DataAvailabilityLayer, EpochJson},
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
-    utils::{is_not_revoked, validate_epoch, validate_epoch_from_proof_variants, decode_public_key},
+    utils::{validate_epoch, validate_epoch_from_proof_variants, verify_signature},
     webserver::WebServer,
     zk_snark::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
         serialize_verifying_key_to_custom,
     },
-    Config, error::DeimosError,
+    Config, error::{DeimosError, GeneralError},
 };
 
 #[async_trait]
@@ -32,10 +30,12 @@ pub struct Sequencer {
     pub da: Option<Arc<dyn DataAvailabilityLayer>>,
     pub epoch_duration: u64,
     pub ws: WebServer,
+    pub key: SigningKey,
 }
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
+    pub sequencer_public_key: Option<String>,
 }
 
 #[async_trait]
@@ -102,16 +102,27 @@ impl NodeType for LightClient {
                     trace!("processing height: {}", i);
                     match self.da.get(i + 1).await {
                         Ok(epoch_json_vec) => {
-                            // TODO: Verify sequencer signatures,
                             // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
                             // Verify zk proofs,
                             for epoch_json in epoch_json_vec {
-                                let prev_commitment = epoch_json.prev_commitment;
-                                let current_commitment = epoch_json.current_commitment;
+                                let prev_commitment = &epoch_json.prev_commitment;
+                                let current_commitment = &epoch_json.current_commitment;
                                 let proof = deserialize_proof(&epoch_json.proof).unwrap();
                                 let verifying_key =
                                     deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
                                         .unwrap();
+                                if self.sequencer_public_key.is_some() {
+                                    if verify_signature(&epoch_json.clone(), self.sequencer_public_key.clone()).is_ok() {
+                                        debug!("Signature is valid");
+                                    } else {
+                                        panic!("Invalid signature");
+                                    }
+                                } else {
+                                    warn!("No public key found");
+                                }
+
+
+
 
                                 match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
                                     Ok(_) => (),
@@ -136,8 +147,11 @@ impl NodeType for LightClient {
 }
 
 impl LightClient {
-    pub fn new(da: Arc<dyn DataAvailabilityLayer>) -> LightClient {
-        LightClient { da }
+    pub fn new(da: Arc<dyn DataAvailabilityLayer>, sequencer_pub_key: Option<String>) -> LightClient {
+        LightClient { 
+            da,
+            sequencer_public_key: sequencer_pub_key,
+        }
     }
 }
 
@@ -146,12 +160,14 @@ impl Sequencer {
         db: Arc<dyn Database>,
         da: Option<Arc<dyn DataAvailabilityLayer>>,
         cfg: Config,
+        key: SigningKey,
     ) -> Sequencer {
         Sequencer {
             db,
             da,
             epoch_duration: cfg.epoch_time,
             ws: WebServer::new(cfg.webserver.unwrap()),
+            key,
         }
     }
     /// Initializes the epoch state by setting up the input table and incrementing the epoch number.
@@ -192,21 +208,31 @@ impl Sequencer {
             empty_commitment.get_commitment().map_err(DeimosError::MerkleTree)?
         };
 
+        let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
         let (proof, verifying_key) = validate_epoch_from_proof_variants(
-            &prev_commitment,
+            &signed_prev_commitment,
             &current_commitment,
             &proofs,
         )?;
+
         let epoch_json = EpochJson {
             height: epoch,
             prev_commitment: prev_commitment.clone(),
             current_commitment: current_commitment.clone(),
             proof: serialize_proof(&proof),
             verifying_key: serialize_verifying_key_to_custom(&verifying_key),
+            signature: None,
         };
+
+        let serialized_epoch_json_without_signature = serde_json::to_string(&epoch_json).map_err(|_| DeimosError::General(GeneralError::ParsingError("Cannot parse epoch json".to_string())))?;
+        let signature = self.key.sign(serialized_epoch_json_without_signature.as_bytes()).to_string();
+
+        let mut epoch_json_with_signature = epoch_json;
+        epoch_json_with_signature.signature = Some(signature.clone());
+
         if let Some(da) = &self.da {
             // TODO: retries (#10)
-            da.submit(&epoch_json).await;
+            da.submit(&epoch_json_with_signature).await;
         }
         Ok(proof)
     }
@@ -303,20 +329,33 @@ impl Sequencer {
     ///
     pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
         info!("Updating entry...");
+        let signed_content = match verify_signature(signature, Some(signature.public_key.clone())) {
+            Ok(content) => content,
+            Err(_) => {
+                info!("Signature is invalid");
+                return false;
+            },
+        };
+
+        let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
+            Ok(obj) => obj,
+            Err(e) => {
+                error!("Failed to parse signed content: {}", e);
+                return false; 
+            },
+        };
+
+        // check with given key if the signature is valid
+        let incoming_entry = IncomingEntry {
+            id: signature.id.clone(),
+            operation: message_obj.operation,
+            value: message_obj.value,
+        };
         // add a new key to an existing id  ( type for the value retrieved from the database explicitly set to string)
         match self.db.get_hashchain(&signature.id) {
             Ok(value) => {
                 // hashchain already exists
                 let mut current_chain = value.clone();
-
-                // check with given key if the signature is valid
-                let incoming_entry = match self.verify_signature_wrapper(&signature) {
-                    Ok(entry) => entry,
-                    Err(_) => {
-                        info!("Signature is invalid");
-                        return false;
-                    }
-                };
 
                 let new_chain_entry = ChainEntry {
                     hash: hex_digest(
@@ -346,13 +385,6 @@ impl Sequencer {
             }
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
-                let incoming_entry = match self.verify_signature_wrapper(&signature) {
-                    Ok(entry) => entry,
-                    Err(_) => {
-                        error!("Signature is invalid");
-                        return false;
-                    }
-                };
                 let new_chain = vec![ChainEntry {
                     hash: hex_digest(
                         Algorithm::SHA256,
@@ -379,164 +411,13 @@ impl Sequencer {
             }
         }
     }
-
-    fn verify_signature_wrapper(
-        &self,
-        signature_with_key: &UpdateEntryJson,
-    ) -> Result<IncomingEntry, &'static str> {
-        // to use this we have to build the project with cargo build --features "key_transparency"
-        #[cfg(feature = "key_transparency")]
-        {
-            self.verify_signature(signature_with_key)
-        }
-        #[cfg(not(feature = "key_transparency"))]
-        {
-            self.verify_signature_with_given_key(signature_with_key)
-        }
-    }
-
-    /// Checks if a signature is valid for a given incoming entry.
-    ///
-    /// This function takes two arguments, an IncomingEntry and a Signature, and returns a boolean.
-    /// It checks if there is an entry for the id of the incoming entry in the database and
-    /// if there is, it checks if any public key in the hashchain can verify the signature.
-    ///
-    /// Returns true if there is a public key for the id which can verify the signature
-    /// Returns false if there is no public key for the id or if no public key can verify the signature
-    ///
-    /// ONLY FOR KEY TRANSPARENCY APPLICATION
-    fn _verify_signature(
-        &self,
-        signature_with_key: &UpdateEntryJson,
-    ) -> Result<IncomingEntry, &'static str> {
-        // try to extract the value of the id from the incoming entry from the database
-        // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
-        let received_signed_message = &signature_with_key.signed_message;
-        let signed_message_bytes = general_purpose::STANDARD
-            .decode(&received_signed_message)
-            .expect("Error while decoding signed message");
-
-        // check if the signed message is (at least) 64 bytes long
-        if signed_message_bytes.len() < 64 {
-            return Err("Signed message is too short");
-        }
-
-        let message_bytes = &signed_message_bytes[64..];
-
-        // extract the first 64 bytes from the signed message
-        let signature_bytes: &[u8; 64] = match signed_message_bytes.get(..64) {
-            Some(array_section) => match array_section.try_into() {
-                Ok(array) => array,
-                Err(_) => panic!("Error while converting slice to array"),
-            },
-            None => panic!("Failed to get first 64 bytes from signed message"),
-        };
-
-        // Create PublicKey and Signature objects.
-        let signature = Signature::from_bytes(signature_bytes);
-
-        let mut current_chain: Vec<ChainEntry> = self
-            .db
-            .get_hashchain(&signature_with_key.id)
-            .map_err(|_| "Error while getting hashchain")?;
-
-        current_chain.reverse(); //check latest added keys first
-
-        for entry in current_chain.iter() {
-            if !is_not_revoked(&current_chain, entry.value.clone()) {
-                continue;
-            }
-
-            let public_key = decode_public_key(&entry.value).map_err(|_| "Error while decoding public key")?;
-
-            if public_key.verify(&message_bytes, &signature).is_ok() {
-                // Deserialize the message
-                let message =
-                    String::from_utf8(message_bytes.to_vec()).map_err(|_| "Invalid message")?;
-                let message_obj: IncomingEntry =
-                    serde_json::from_str(&message).map_err(|_| "Invalid message")?;
-
-                return Ok(IncomingEntry {
-                    id: signature_with_key.id.clone(),
-                    operation: message_obj.operation,
-                    value: message_obj.value,
-                });
-            }
-        }
-
-        Err("No valid signature found")
-    }
-
-    fn verify_signature_with_given_key(
-        &self,
-        signature_with_key: &UpdateEntryJson,
-    ) -> Result<IncomingEntry, &'static str> {
-        // try to extract the value of the id from the incoming entry from the database
-        // if the id does not exist, there is no id registered for the incoming entry and so the signature is invalid
-        let received_public_key = &signature_with_key.public_key;
-        let received_signed_message = &signature_with_key.signed_message;
-
-        // TODO: better error handling (#11)
-        let signed_message_bytes = general_purpose::STANDARD
-            .decode(&received_signed_message)
-            .expect("Error while decoding signed message");
-
-        // check if the signed message is (at least) 64 bytes long
-        if signed_message_bytes.len() < 64 {
-            return Err("Signed message is too short");
-        }
-
-        println!("signed message bytes: {:?}", signed_message_bytes.len());
-
-        let message_bytes = &signed_message_bytes[64..];
-
-        // extract the first 64 bytes from the signed message
-        let signature_bytes: &[u8; 64] = match signed_message_bytes.get(..64) {
-            Some(array_section) => match array_section.try_into() {
-                Ok(array) => array,
-                Err(_) => panic!("Error while converting slice to array"),
-            },
-            None => panic!("Failed to get first 64 bytes from signed message"),
-        };
-
-        // Create PublicKey and Signature objects.
-        let received_public_key = decode_public_key(&received_public_key).map_err(|_| "Error while decoding public key")?;
-        let signature = Signature::from_bytes(signature_bytes);
-
-        if received_public_key
-            .verify(message_bytes, &signature)
-            .is_ok()
-        {
-            // Deserialize the message
-            let message =
-                String::from_utf8(message_bytes.to_vec()).map_err(|_| "Invalid message")?;
-            let message_obj: IncomingEntry =
-                serde_json::from_str(&message).map_err(|_| "Invalid message")?;
-
-            return Ok(IncomingEntry {
-                id: signature_with_key.id.clone(),
-                operation: message_obj.operation,
-                value: message_obj.value,
-            });
-        } else {
-            Err("No valid signature found")
-        }
-    }
-
 }    
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::{UpdateEntryJson, MockDatabase};
-
-    fn setup_sequencer() -> Sequencer {
-        Sequencer::new(
-            Arc::new(MockDatabase::new()),
-            None,
-            Config::default(),
-        )
-    }
+    use base64::{engine::general_purpose, Engine as _};
+    use crate::storage::UpdateEntryJson;
 
     fn setup_signature(valid_signature: bool) -> UpdateEntryJson {
         let signed_message = if valid_signature {
@@ -555,25 +436,23 @@ mod tests {
 
     #[test]
     fn test_verify_valid_signature() {
-        let sequencer = setup_sequencer();
         let signature_with_key = setup_signature(true);
 
-        let result = sequencer.verify_signature_with_given_key(&signature_with_key);
+        let result = verify_signature(&signature_with_key, Some(signature_with_key.public_key.clone()));
+
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_verify_invalid_signature() {
-        let sequencer = setup_sequencer();
         let signature_with_key = setup_signature(false);
 
-        let result = sequencer.verify_signature_with_given_key(&signature_with_key);
+        let result = verify_signature(&signature_with_key, Some(signature_with_key.public_key.clone()));
         assert!(result.is_err());
     }
 
     #[test]
     fn test_verify_short_message() {
-        let sequencer = setup_sequencer();
         let signature_with_key = setup_signature(true);
 
         let short_message = general_purpose::STANDARD
@@ -585,7 +464,7 @@ mod tests {
             ..signature_with_key
         };
 
-        let result = sequencer.verify_signature_with_given_key(&signature_with_key);
+        let result = verify_signature(&signature_with_key, Some(signature_with_key.public_key.clone()));
         assert!(result.is_err());
     }
 }
