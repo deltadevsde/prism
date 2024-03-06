@@ -49,8 +49,7 @@ struct CommandLineArgs {
     #[arg(short, long)]
     port: Option<u16>,
 
-    /// Public key
-    #[arg(short, long)]
+    #[arg(long)]
     public_key: Option<String>,
 
     #[command(subcommand)]

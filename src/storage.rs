@@ -104,7 +104,7 @@ impl Signable for UpdateEntryJson {
     fn get_content_to_sign(&self) -> Result<String, DeimosError> {
         let signed_message_bytes = decode_signed_message(&self.signed_message)?;
         let message_bytes = &signed_message_bytes[64..];
-        Ok(String::from_utf8_lossy(message_bytes).to_string()) // or from_utf8_unchecked?
+        Ok(String::from_utf8_lossy(message_bytes).to_string())
     }
 
     fn get_public_key(&self) -> Result<String, DeimosError> {
