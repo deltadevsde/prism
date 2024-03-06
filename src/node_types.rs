@@ -187,19 +187,19 @@ impl Sequencer {
 
         self.db.set_epoch(&epoch).map_err(DeimosError::Database)?;
         self.db.reset_epoch_operation_counter().map_err(DeimosError::Database)?;
-
+        
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self.create_tree().map_err( DeimosError::MerkleTree)?.get_commitment().map_err(DeimosError::MerkleTree)?;
-
+        
         self.db.add_commitment(&epoch, &current_commitment).map_err(DeimosError::Database)?;
-
+        
         let proofs = if epoch > 0 {
             let prev_epoch = epoch - 1;
             self.db.get_proofs_in_epoch(&prev_epoch).unwrap()
         } else {
             vec![]
         };
-
+        
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
             self.db.get_commitment(&prev_epoch).unwrap()
@@ -207,18 +207,19 @@ impl Sequencer {
             let empty_commitment = self.create_tree().map_err(DeimosError::MerkleTree)?;
             empty_commitment.get_commitment().map_err(DeimosError::MerkleTree)?
         };
-
-        let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
+        
         let (proof, verifying_key) = validate_epoch_from_proof_variants(
-            &signed_prev_commitment,
+            &prev_commitment,
             &current_commitment,
             &proofs,
         )?;
-
+        let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
+        let signed_current_commitment = self.key.sign(&current_commitment.as_bytes()).to_string();
+        
         let epoch_json = EpochJson {
             height: epoch,
-            prev_commitment: prev_commitment.clone(),
-            current_commitment: current_commitment.clone(),
+            prev_commitment: signed_prev_commitment,
+            current_commitment: signed_current_commitment,
             proof: serialize_proof(&proof),
             verifying_key: serialize_verifying_key_to_custom(&verifying_key),
             signature: None,
@@ -226,7 +227,6 @@ impl Sequencer {
 
         let serialized_epoch_json_without_signature = serde_json::to_string(&epoch_json).map_err(|_| DeimosError::General(GeneralError::ParsingError("Cannot parse epoch json".to_string())))?;
         let signature = self.key.sign(serialized_epoch_json_without_signature.as_bytes()).to_string();
-
         let mut epoch_json_with_signature = epoch_json;
         epoch_json_with_signature.signature = Some(signature.clone());
 
