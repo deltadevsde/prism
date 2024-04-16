@@ -1,16 +1,14 @@
-use crate::{
-    node_types::Sequencer,
-    WebServerConfig, error::DeimosError,
-};
-use indexed_merkle_tree::{sha256, ProofVariant};
+use crate::{error::DeimosError, node_types::Sequencer, WebServerConfig};
 use actix_cors::Cors;
 use actix_web::{
+    dev::Server,
     get, post,
     web::{self, Data},
-    App as ActixApp, HttpResponse, HttpServer, Responder, dev::Server,
+    App as ActixApp, HttpResponse, HttpServer, Responder,
 };
 use bellman::groth16;
 use bls12_381::Bls12;
+use indexed_merkle_tree::{sha256, ProofVariant};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Value};
@@ -66,7 +64,8 @@ impl WebServer {
                 .service(handle_finalize_epoch)
         })
         /* .bind_openssl((self.ip, self.port), builder)? */
-        .bind((ip, port)).expect("Could not bind to port")
+        .bind((ip, port))
+        .expect("Could not bind to port")
         .run()
     }
 }
@@ -106,7 +105,8 @@ async fn update_entry(
 
     let tree = session.create_tree().unwrap();
 
-    let result: Result<Vec<ChainEntry>, DeimosError> = session.db.get_hashchain(&signature_with_key.id);
+    let result: Result<Vec<ChainEntry>, DeimosError> =
+        session.db.get_hashchain(&signature_with_key.id);
     // if the entry already exists, an update must be performed, otherwise insert
     let update_proof = match result {
         // add a new key to an existing id
@@ -123,21 +123,30 @@ async fn update_entry(
 
         let proofs = if update_proof {
             let new_index = tree.clone().find_node_index(&node).unwrap();
-            let (proof_of_update, _) = &tree.clone().generate_update_proof(new_index, node).unwrap();
+            let (proof_of_update, _) =
+                &tree.clone().generate_update_proof(new_index, node).unwrap();
             let pre_processed_string = serde_json::to_string(proof_of_update).unwrap();
             format!(r#"{{"Update":{}}}"#, pre_processed_string)
         } else {
             let pre_processed_string =
-                serde_json::to_string(&tree.clone().generate_proof_of_insert(&node).unwrap()).unwrap();
+                serde_json::to_string(&tree.clone().generate_proof_of_insert(&node).unwrap())
+                    .unwrap();
             format!(r#"{{"Insert":{}}}"#, pre_processed_string)
         };
 
-        if let Err(err) = session.db.add_merkle_proof(&epoch, &epoch_operation, &tree.get_commitment().unwrap(), &proofs) {
-            return HttpResponse::InternalServerError().json(format!("Error adding merkle proof: {}", err));
+        if let Err(err) = session.db.add_merkle_proof(
+            &epoch,
+            &epoch_operation,
+            &tree.get_commitment().unwrap(),
+            &proofs,
+        ) {
+            return HttpResponse::InternalServerError()
+                .json(format!("Error adding merkle proof: {}", err));
         }
 
         if let Err(err) = session.db.increment_epoch_operation() {
-            return HttpResponse::InternalServerError().json(format!("Error incrementing epoch operation: {}", err));
+            return HttpResponse::InternalServerError()
+                .json(format!("Error incrementing epoch operation: {}", err));
         }
 
         HttpResponse::Ok().body("Updated entry successfully")
@@ -483,16 +492,14 @@ async fn handle_validate_hashchain_proof(
 #[get("/get-commitment")]
 async fn get_commitment(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     match con.create_tree() {
-        Ok(tree) => {
-            match tree.get_commitment() {
-                Ok(commitment) => {
-                    match serde_json::to_string(&commitment) {
-                        Ok(serialized) => HttpResponse::Ok().body(serialized),
-                        Err(_) => HttpResponse::InternalServerError().body("Failed to serialize commitment"),
-                    }
-                },
-                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
-            }
+        Ok(tree) => match tree.get_commitment() {
+            Ok(commitment) => match serde_json::to_string(&commitment) {
+                Ok(serialized) => HttpResponse::Ok().body(serialized),
+                Err(_) => {
+                    HttpResponse::InternalServerError().body("Failed to serialize commitment")
+                }
+            },
+            Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
         },
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
@@ -503,16 +510,12 @@ async fn get_commitment(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 #[get("/get-current-tree")]
 async fn get_current_tree(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     match con.create_tree() {
-        Ok(tree) => {
-            match tree.get_root() {
-                Ok(node) => {
-                    match serde_json::to_string(&node) {
-                        Ok(serialized) => HttpResponse::Ok().body(serialized),
-                        Err(_) => HttpResponse::InternalServerError().body("Failed to serialize tree"),
-                    }
-                },
-                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
-            }
+        Ok(tree) => match tree.get_root() {
+            Ok(node) => match serde_json::to_string(&node) {
+                Ok(serialized) => HttpResponse::Ok().body(serialized),
+                Err(_) => HttpResponse::InternalServerError().body("Failed to serialize tree"),
+            },
+            Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
         },
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }

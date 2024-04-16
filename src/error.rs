@@ -1,6 +1,5 @@
-use thiserror::Error;
 use indexed_merkle_tree::error::MerkleTreeError;
-
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum DeimosError {
@@ -37,7 +36,6 @@ pub enum GeneralError {
     InvalidSignature,
 }
 
-
 #[derive(Error, Debug)]
 pub enum DatabaseError {
     #[error("Failed to acquire lock on the Database connection")]
@@ -69,7 +67,7 @@ pub enum DataAvailabilityError {
     DataRetrievalError(u64, String),
     #[error("Error submitting data at height {0}: {1}")]
     SubmissionError(u64, String),
-    #[error("Error {0} new sync target: {1}")] 
+    #[error("Error {0} new sync target: {1}")]
     SyncTargetError(String, String),
     #[error("Error receiving message from channel")]
     ChannelReceiveError,

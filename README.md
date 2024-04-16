@@ -78,7 +78,7 @@ A DA layer such as Celestia is an important component for data security and avai
 
 ### Starting the sequencer
 
-If redis is installed and the local devnet is running, Deimos can be started. Deimos can be started in two different ways, as a sequencer (which creates the proofs later on;TODO: more info and link to documentation needed) or as a lightclient (to verify the proofs posted on Celestia using the cryptographic commitments). To start the sequencer, run the following command:
+If Redis is installed and the local devnet is running, Deimos can be started. Deimos can be started in two different ways, as a sequencer (service provider and proof generator) or as a light-client (to verify the proofs posted on Celestia using the cryptographic commitments). To start the sequencer, run the following command:
 
 ```bash
 cargo run sequencer
