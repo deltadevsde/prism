@@ -1,20 +1,19 @@
 use crate::{
-    storage::ChainEntry, error::{GeneralError, DeimosError, ProofError},
+    error::{DeimosError, GeneralError, ProofError},
+    storage::ChainEntry,
 };
-use indexed_merkle_tree::{sha256, MerkleProof, Node, ProofVariant, UpdateProof};
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::{groth16::Proof, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
+use indexed_merkle_tree::{sha256, MerkleProof, Node, ProofVariant, UpdateProof};
 use serde::{Deserialize, Serialize};
 
 fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], DeimosError> {
     let mut array = [0u8; 96];
     if vec.len() != 96 {
-        return Err(
-            DeimosError::General(
-                GeneralError::ParsingError("Length mismatch".to_string())
-            )
-        );
+        return Err(DeimosError::General(GeneralError::ParsingError(
+            "Length mismatch".to_string(),
+        )));
     }
     array.copy_from_slice(&vec);
     Ok(array)
@@ -23,11 +22,9 @@ fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], DeimosError> {
 fn vec_to_192_array(vec: Vec<u8>) -> Result<[u8; 192], DeimosError> {
     let mut array = [0u8; 192];
     if vec.len() != 192 {
-        return Err(
-            DeimosError::General(
-                GeneralError::ParsingError("Length mismatch".to_string())
-            )
-        );
+        return Err(DeimosError::General(GeneralError::ParsingError(
+            "Length mismatch".to_string(),
+        )));
     }
     array.copy_from_slice(&vec);
     Ok(array)
@@ -54,30 +51,34 @@ pub struct VerifyingKey {
 // TODO: think about to refactor this to use a generic function, because they are very similar
 // but probably something for a different PR
 pub fn decode_and_convert_to_g1affine(encoded_data: &String) -> Result<G1Affine, DeimosError> {
-    let decoded = engine.decode(encoded_data.as_bytes())
+    let decoded = engine
+        .decode(encoded_data.as_bytes())
         .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
 
-    let array = vec_to_96_array(decoded)
-        .map_err(|deimos_error| deimos_error)?;
+    let array = vec_to_96_array(decoded).map_err(|deimos_error| deimos_error)?;
 
     let affine = G1Affine::from_uncompressed(&array);
     if affine.is_none().into() {
-        return Err(DeimosError::General(GeneralError::ParsingError("Failed to deserialize G1Affine".to_string())));
+        return Err(DeimosError::General(GeneralError::ParsingError(
+            "Failed to deserialize G1Affine".to_string(),
+        )));
     }
 
     Ok(affine.unwrap())
 }
 
 pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine, DeimosError> {
-    let decoded = engine.decode(encoded_data.as_bytes())
+    let decoded = engine
+        .decode(encoded_data.as_bytes())
         .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
 
-    let array = vec_to_192_array(decoded)
-        .map_err(|deimos_error| deimos_error)?;
+    let array = vec_to_192_array(decoded).map_err(|deimos_error| deimos_error)?;
 
     let affine = G2Affine::from_uncompressed(&array);
     if affine.is_none().into() {
-        return Err(DeimosError::General(GeneralError::ParsingError("Failed to deserialize G2Affine".to_string())));
+        return Err(DeimosError::General(GeneralError::ParsingError(
+            "Failed to deserialize G2Affine".to_string(),
+        )));
     }
 
     Ok(affine.unwrap())
@@ -107,7 +108,7 @@ pub fn deserialize_proof(proof: &Bls12Proof) -> Result<Proof<Bls12>, DeimosError
     // we get a CtOption type which is afaik common in crypto libraries to prevent timing attacks
     // we cant use the map_err function with CtOption types so we have to check if its none and can then unwrap it
     let a = decode_and_convert_to_g1affine(&proof.a)?;
-    let b = decode_and_convert_to_g2affine(&proof.b)?; 
+    let b = decode_and_convert_to_g2affine(&proof.b)?;
     let c = decode_and_convert_to_g1affine(&proof.c)?;
 
     Ok(Proof { a, b, c })
@@ -141,16 +142,19 @@ pub fn deserialize_custom_to_verifying_key(
     let delta_g1 = decode_and_convert_to_g1affine(&custom_vk.delta_g1)?;
     let delta_g2 = decode_and_convert_to_g2affine(&custom_vk.delta_g2)?;
     let gamma_g2 = decode_and_convert_to_g2affine(&custom_vk.gamma_g2)?;
-    let ic = custom_vk.ic.split(",")
-        .try_fold(Vec::new(), |mut acc, s| {
-            let decoded = engine.decode(s)
-                .map_err(|_| DeimosError::General(GeneralError::DecodingError("Failed to decode ic".to_string())))?;
-            let decoded_string = String::from_utf8(decoded)
-                .map_err(|_| DeimosError::General(GeneralError::ParsingError("Failed to parse ic".to_string())))?;
-            let ct_option = decode_and_convert_to_g1affine(&decoded_string)?;
-            acc.push(ct_option);
-            Ok(acc)
+    let ic = custom_vk.ic.split(",").try_fold(Vec::new(), |mut acc, s| {
+        let decoded = engine.decode(s).map_err(|_| {
+            DeimosError::General(GeneralError::DecodingError(
+                "Failed to decode ic".to_string(),
+            ))
         })?;
+        let decoded_string = String::from_utf8(decoded).map_err(|_| {
+            DeimosError::General(GeneralError::ParsingError("Failed to parse ic".to_string()))
+        })?;
+        let ct_option = decode_and_convert_to_g1affine(&decoded_string)?;
+        acc.push(ct_option);
+        Ok(acc)
+    })?;
 
     Ok(bellman::groth16::VerifyingKey {
         alpha_g1,
@@ -170,8 +174,8 @@ mod tests {
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
-    use rand::rngs::OsRng;
     use indexed_merkle_tree::{sha256, IndexedMerkleTree, Node};
+    use rand::rngs::OsRng;
 
     const EMPTY_HASH: &str = Node::EMPTY_HASH;
     const TAIL: &str = Node::TAIL;
@@ -198,7 +202,8 @@ mod tests {
             inactive_node.clone(),
             inactive_node.clone(),
             inactive_node,
-        ]).unwrap()
+        ])
+        .unwrap()
     }
 
     #[test]
@@ -297,9 +302,13 @@ pub struct BatchMerkleProofCircuit {
 
 pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
     let byte_array: [u8; 32] = hex::decode(hex_string)
-        .map_err(|_| GeneralError::DecodingError(format!("Failed to decode hex string: {}", hex_string)))?
+        .map_err(|_| {
+            GeneralError::DecodingError(format!("Failed to decode hex string: {}", hex_string))
+        })?
         .try_into()
-        .map_err(|_| GeneralError::ParsingError("Failed to parse hex string to byte array".to_string()))?;
+        .map_err(|_| {
+            GeneralError::ParsingError("Failed to parse hex string to byte array".to_string())
+        })?;
 
     let mut wide = [0u8; 64];
     wide[..32].copy_from_slice(&byte_array); // Fill 0s in front of it, then the value remains the same
@@ -339,8 +348,10 @@ fn proof_of_update<CS: ConstraintSystem<Scalar>>(
         return Err(SynthesisError::Unsatisfiable);
     }
     // we can unwrap here because we checked that the result is ok
-    let recalculated_root_with_old_pointer = recalculated_root_with_old_pointer.expect("Failed to recalculate root with old pointer");
-    let recalculated_root_with_new_pointer = recalculated_root_with_new_pointer.expect("Failed to recalculate root with new pointer");
+    let recalculated_root_with_old_pointer =
+        recalculated_root_with_old_pointer.expect("Failed to recalculate root with old pointer");
+    let recalculated_root_with_new_pointer =
+        recalculated_root_with_new_pointer.expect("Failed to recalculate root with new pointer");
 
     // Allocate variables for the calculated roots of the old and new nodes
     let allocated_recalculated_root_with_old_pointer = cs.alloc(
@@ -381,7 +392,7 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
 
     if recalculated_root.is_err() {
         return Err(SynthesisError::Unsatisfiable);
-    } 
+    }
 
     let allocated_recalculated_root = cs.alloc(
         || "recalculated non-membership root",
@@ -396,7 +407,6 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
     );
 
     Ok(())
-
 }
 
 impl Circuit<Scalar> for InsertMerkleProofCircuit {
@@ -514,15 +524,13 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                         insert_proof_circuit.first_merkle_proof.updated_root,
                         &insert_proof_circuit.first_merkle_proof.updated_path,
                     );
-                    new_commitment = Some(
-                        proof_of_update(
-                            cs,
-                            calculated_root_from_first_proof?,
-                            &insert_proof_circuit.second_merkle_proof.old_path,
-                            insert_proof_circuit.second_merkle_proof.updated_root,
-                            &insert_proof_circuit.second_merkle_proof.updated_path,
-                        )?,
-                    );
+                    new_commitment = Some(proof_of_update(
+                        cs,
+                        calculated_root_from_first_proof?,
+                        &insert_proof_circuit.second_merkle_proof.old_path,
+                        insert_proof_circuit.second_merkle_proof.updated_root,
+                        &insert_proof_circuit.second_merkle_proof.updated_path,
+                    )?);
                 }
             }
         }
@@ -532,14 +540,14 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                 cs.alloc_input(|| "provided commitment", || Ok(self.new_commitment))?;
             let recalculated_new_commitment =
                 cs.alloc(|| "recalculated commitment", || Ok(new_commitment))?;
-    
+
             cs.enforce(
                 || "new commitment check",
                 |lc| lc + recalculated_new_commitment,
                 |lc| lc + CS::one(),
                 |lc| lc + provided_new_commitment,
             );
-    
+
             Ok(())
         } else {
             Err(SynthesisError::Unsatisfiable)
@@ -578,10 +586,10 @@ impl InsertMerkleProofCircuit {
     ) -> Result<InsertMerkleProofCircuit, DeimosError> {
         // Unwrap proof values and handle possible errors
         let (non_membership_root, non_membership_path) = unpack_and_process(&proof.0)?;
-        let (first_update_old_root, first_update_old_path) = unpack_and_process(&proof.1.0)?;
-        let (first_update_new_root, first_update_new_path) = unpack_and_process(&proof.1.1)?;
-        let (second_update_old_root, second_update_old_path) = unpack_and_process(&proof.2.0)?;
-        let (second_update_new_root, second_update_new_path) = unpack_and_process(&proof.2.1)?;        
+        let (first_update_old_root, first_update_old_path) = unpack_and_process(&proof.1 .0)?;
+        let (first_update_new_root, first_update_new_path) = unpack_and_process(&proof.1 .1)?;
+        let (second_update_old_root, second_update_old_path) = unpack_and_process(&proof.2 .0)?;
+        let (second_update_new_root, second_update_new_path) = unpack_and_process(&proof.2 .1)?;
 
         let first_merkle_proof_circuit = UpdateMerkleProofCircuit {
             old_root: first_update_old_root,
@@ -613,23 +621,25 @@ impl BatchMerkleProofCircuit {
         new_commitment: &String,
         proofs: Vec<ProofVariant>,
     ) -> Result<BatchMerkleProofCircuit, DeimosError> {
-        let parsed_old_commitment = hex_to_scalar(&old_commitment.as_str()).map_err(DeimosError::General)?;
-        let parsed_new_commitment = hex_to_scalar(&new_commitment.as_str()).map_err(DeimosError::General)?;
+        let parsed_old_commitment =
+            hex_to_scalar(&old_commitment.as_str()).map_err(DeimosError::General)?;
+        let parsed_new_commitment =
+            hex_to_scalar(&new_commitment.as_str()).map_err(DeimosError::General)?;
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
                 ProofVariant::Update(update_proof) => {
-                    proof_circuit_array
-                        .push(BatchMerkleProofCircuit::create_from_update(update_proof).map_err(DeimosError::General)?);
+                    proof_circuit_array.push(
+                        BatchMerkleProofCircuit::create_from_update(update_proof)
+                            .map_err(DeimosError::General)?,
+                    );
                 }
                 ProofVariant::Insert((merkle_proof, first_update, second_update)) => {
-                    proof_circuit_array.push(
-                        BatchMerkleProofCircuit::create_from_insert(&(
-                            merkle_proof,
-                            first_update,
-                            second_update,
-                        ))?,
-                    );
+                    proof_circuit_array.push(BatchMerkleProofCircuit::create_from_insert(&(
+                        merkle_proof,
+                        first_update,
+                        second_update,
+                    ))?);
                 }
             }
         }
@@ -643,14 +653,23 @@ impl BatchMerkleProofCircuit {
     pub fn create_from_update(
         ((old_root, old_path), (updated_root, updated_path)): UpdateProof,
     ) -> Result<ProofVariantCircuit, GeneralError> {
-        if old_root.is_none() || old_path.is_none() || updated_root.is_none() || updated_path.is_none() {
+        if old_root.is_none()
+            || old_path.is_none()
+            || updated_root.is_none()
+            || updated_path.is_none()
+        {
             return Err(GeneralError::MissingArgumentError);
         }
 
         // TODO: are there cases where MissingArgumentError isnt the right type?
 
-        let old_root = hex_to_scalar(&old_root.ok_or(GeneralError::MissingArgumentError)?.as_str())?;
-        let updated_root = hex_to_scalar(&updated_root.ok_or(GeneralError::MissingArgumentError)?.as_str())?;
+        let old_root =
+            hex_to_scalar(&old_root.ok_or(GeneralError::MissingArgumentError)?.as_str())?;
+        let updated_root = hex_to_scalar(
+            &updated_root
+                .ok_or(GeneralError::MissingArgumentError)?
+                .as_str(),
+        )?;
 
         let old_path = old_path.ok_or(GeneralError::MissingArgumentError)?;
         let updated_path = updated_path.ok_or(GeneralError::MissingArgumentError)?;
@@ -678,8 +697,10 @@ impl BatchMerkleProofCircuit {
         let (non_membership_root, non_membership_path) = unpack_and_process(&non_membership_proof)?;
         let (first_update_old_root, first_update_old_path) = unpack_and_process(&first_update_old)?;
         let (first_update_new_root, first_update_new_path) = unpack_and_process(&first_update_new)?;
-        let (second_update_old_root, second_update_old_path) = unpack_and_process(&second_update_old)?;
-        let (second_update_new_root, second_update_new_path) = unpack_and_process(&second_update_new)?;
+        let (second_update_old_root, second_update_old_path) =
+            unpack_and_process(&second_update_old)?;
+        let (second_update_new_root, second_update_new_path) =
+            unpack_and_process(&second_update_new)?;
 
         let first_merkle_proof_circuit = UpdateMerkleProofCircuit {
             old_root: first_update_old_root,

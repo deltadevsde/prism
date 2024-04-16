@@ -3,12 +3,13 @@ use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
-use std::{self, sync::Arc, time::Duration, io::ErrorKind};
-use tokio::{time::sleep, task::spawn};
-use indexed_merkle_tree::{IndexedMerkleTree, Node, error::MerkleTreeError};
+use indexed_merkle_tree::{error::MerkleTreeError, IndexedMerkleTree, Node};
+use std::{self, io::ErrorKind, sync::Arc, time::Duration};
+use tokio::{task::spawn, time::sleep};
 
 use crate::{
     da::{DataAvailabilityLayer, EpochJson},
+    error::{DeimosError, GeneralError},
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
     utils::{validate_epoch, validate_epoch_from_proof_variants, verify_signature},
     webserver::WebServer,
@@ -16,7 +17,7 @@ use crate::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
         serialize_verifying_key_to_custom,
     },
-    Config, error::{DeimosError, GeneralError},
+    Config,
 };
 
 #[async_trait]
@@ -55,7 +56,7 @@ impl NodeType for Sequencer {
                 }
             }
             Err(e) => {
-                // TODO: custom error 
+                // TODO: custom error
                 error!("sequencer_loop: getting derived keys: {}", e);
             }
         }
@@ -112,7 +113,12 @@ impl NodeType for LightClient {
                                     deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
                                         .unwrap();
                                 if self.sequencer_public_key.is_some() {
-                                    if verify_signature(&epoch_json.clone(), self.sequencer_public_key.clone()).is_ok() {
+                                    if verify_signature(
+                                        &epoch_json.clone(),
+                                        self.sequencer_public_key.clone(),
+                                    )
+                                    .is_ok()
+                                    {
                                         debug!("Signature is valid");
                                     } else {
                                         panic!("Invalid signature");
@@ -121,10 +127,12 @@ impl NodeType for LightClient {
                                     warn!("No public key found");
                                 }
 
-
-
-
-                                match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
+                                match validate_epoch(
+                                    &prev_commitment,
+                                    &current_commitment,
+                                    proof,
+                                    verifying_key,
+                                ) {
                                     Ok(_) => (),
                                     Err(err) => panic!("Failed to validate epoch: {:?}", err),
                                 }
@@ -140,15 +148,18 @@ impl NodeType for LightClient {
             }
         });
 
-        handle.await.map_err(|e| {
-            std::io::Error::new(ErrorKind::Other, format!("Join error: {}", e))
-        })
+        handle
+            .await
+            .map_err(|e| std::io::Error::new(ErrorKind::Other, format!("Join error: {}", e)))
     }
 }
 
 impl LightClient {
-    pub fn new(da: Arc<dyn DataAvailabilityLayer>, sequencer_pub_key: Option<String>) -> LightClient {
-        LightClient { 
+    pub fn new(
+        da: Arc<dyn DataAvailabilityLayer>,
+        sequencer_pub_key: Option<String>,
+    ) -> LightClient {
+        LightClient {
             da,
             sequencer_public_key: sequencer_pub_key,
         }
@@ -186,36 +197,43 @@ impl Sequencer {
         };
 
         self.db.set_epoch(&epoch).map_err(DeimosError::Database)?;
-        self.db.reset_epoch_operation_counter().map_err(DeimosError::Database)?;
-        
+        self.db
+            .reset_epoch_operation_counter()
+            .map_err(DeimosError::Database)?;
+
         // add the commitment for the operations ran since the last epoch
-        let current_commitment = self.create_tree().map_err( DeimosError::MerkleTree)?.get_commitment().map_err(DeimosError::MerkleTree)?;
-        
-        self.db.add_commitment(&epoch, &current_commitment).map_err(DeimosError::Database)?;
-        
+        let current_commitment = self
+            .create_tree()
+            .map_err(DeimosError::MerkleTree)?
+            .get_commitment()
+            .map_err(DeimosError::MerkleTree)?;
+
+        self.db
+            .add_commitment(&epoch, &current_commitment)
+            .map_err(DeimosError::Database)?;
+
         let proofs = if epoch > 0 {
             let prev_epoch = epoch - 1;
             self.db.get_proofs_in_epoch(&prev_epoch).unwrap()
         } else {
             vec![]
         };
-        
+
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
             self.db.get_commitment(&prev_epoch).unwrap()
         } else {
             let empty_commitment = self.create_tree().map_err(DeimosError::MerkleTree)?;
-            empty_commitment.get_commitment().map_err(DeimosError::MerkleTree)?
+            empty_commitment
+                .get_commitment()
+                .map_err(DeimosError::MerkleTree)?
         };
-        
-        let (proof, verifying_key) = validate_epoch_from_proof_variants(
-            &prev_commitment,
-            &current_commitment,
-            &proofs,
-        )?;
+
+        let (proof, verifying_key) =
+            validate_epoch_from_proof_variants(&prev_commitment, &current_commitment, &proofs)?;
         let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
         let signed_current_commitment = self.key.sign(&current_commitment.as_bytes()).to_string();
-        
+
         let epoch_json = EpochJson {
             height: epoch,
             prev_commitment: signed_prev_commitment,
@@ -225,8 +243,16 @@ impl Sequencer {
             signature: None,
         };
 
-        let serialized_epoch_json_without_signature = serde_json::to_string(&epoch_json).map_err(|_| DeimosError::General(GeneralError::ParsingError("Cannot parse epoch json".to_string())))?;
-        let signature = self.key.sign(serialized_epoch_json_without_signature.as_bytes()).to_string();
+        let serialized_epoch_json_without_signature =
+            serde_json::to_string(&epoch_json).map_err(|_| {
+                DeimosError::General(GeneralError::ParsingError(
+                    "Cannot parse epoch json".to_string(),
+                ))
+            })?;
+        let signature = self
+            .key
+            .sign(serialized_epoch_json_without_signature.as_bytes())
+            .to_string();
         let mut epoch_json_with_signature = epoch_json;
         epoch_json_with_signature.signature = Some(signature.clone());
 
@@ -334,15 +360,15 @@ impl Sequencer {
             Err(_) => {
                 info!("Signature is invalid");
                 return false;
-            },
+            }
         };
 
         let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
             Ok(obj) => obj,
             Err(e) => {
                 error!("Failed to parse signed content: {}", e);
-                return false; 
-            },
+                return false;
+            }
         };
 
         // check with given key if the signature is valid
@@ -411,13 +437,13 @@ impl Sequencer {
             }
         }
     }
-}    
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use base64::{engine::general_purpose, Engine as _};
     use crate::storage::UpdateEntryJson;
+    use base64::{engine::general_purpose, Engine as _};
 
     fn setup_signature(valid_signature: bool) -> UpdateEntryJson {
         let signed_message = if valid_signature {
@@ -438,7 +464,10 @@ mod tests {
     fn test_verify_valid_signature() {
         let signature_with_key = setup_signature(true);
 
-        let result = verify_signature(&signature_with_key, Some(signature_with_key.public_key.clone()));
+        let result = verify_signature(
+            &signature_with_key,
+            Some(signature_with_key.public_key.clone()),
+        );
 
         assert!(result.is_ok());
     }
@@ -447,7 +476,10 @@ mod tests {
     fn test_verify_invalid_signature() {
         let signature_with_key = setup_signature(false);
 
-        let result = verify_signature(&signature_with_key, Some(signature_with_key.public_key.clone()));
+        let result = verify_signature(
+            &signature_with_key,
+            Some(signature_with_key.public_key.clone()),
+        );
         assert!(result.is_err());
     }
 
@@ -455,17 +487,18 @@ mod tests {
     fn test_verify_short_message() {
         let signature_with_key = setup_signature(true);
 
-        let short_message = general_purpose::STANDARD
-            .encode(&"this is a short message".to_string());
-
+        let short_message =
+            general_purpose::STANDARD.encode(&"this is a short message".to_string());
 
         let signature_with_key = UpdateEntryJson {
             signed_message: short_message,
             ..signature_with_key
         };
 
-        let result = verify_signature(&signature_with_key, Some(signature_with_key.public_key.clone()));
+        let result = verify_signature(
+            &signature_with_key,
+            Some(signature_with_key.public_key.clone()),
+        );
         assert!(result.is_err());
     }
 }
-

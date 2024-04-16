@@ -10,14 +10,14 @@ extern crate keystore;
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 #[allow(unused_imports)]
-use da::{LocalDataAvailabilityLayer, DataAvailabilityLayer, CelestiaConnection};
-use serde::Deserialize;
+use da::{CelestiaConnection, DataAvailabilityLayer, LocalDataAvailabilityLayer};
 use keystore::{KeyChain, KeyStore, KeyStoreType};
+use serde::Deserialize;
 
 use dotenvy::dotenv;
+use node_types::{LightClient, NodeType, Sequencer};
 use std::sync::Arc;
 use storage::{Operation, RedisConnections};
-use node_types::{LightClient, NodeType, Sequencer};
 
 #[macro_use]
 extern crate log;
@@ -54,7 +54,6 @@ struct CommandLineArgs {
 
     #[command(subcommand)]
     command: Commands,
-
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize)]
@@ -186,7 +185,9 @@ async fn initialize_da_layer(config: &Config) -> Option<Arc<dyn DataAvailability
                 &celestia_conf.connection_string,
                 None,
                 &celestia_conf.namespace_id,
-            ).await {
+            )
+            .await
+            {
                 Ok(da) => Some(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
                 Err(e) => {
                     error!("Failed to connect to Celestia: {}", e);
@@ -229,12 +230,15 @@ async fn main() -> std::io::Result<()> {
         Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap(), config.public_key)),
         Commands::Sequencer {} => Arc::new(Sequencer::new(
             // TODO: convert error to std::io::Error...is there a better solution?
-            Arc::new(RedisConnections::new().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?),
+            Arc::new(
+                RedisConnections::new()
+                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?,
+            ),
             da,
             config,
             KeyStoreType::KeyChain(KeyChain).get_signing_key().unwrap(),
         )),
     };
-    
+
     node.start().await
 }
