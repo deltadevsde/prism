@@ -125,8 +125,8 @@ async fn update_entry(
 
         let proofs = if update_proof {
             let new_index = tree.clone().find_node_index(&node).unwrap();
-            let (proof_of_update, _) = &tree.clone().update_node(new_index, node).unwrap();
-            let pre_processed_string = serde_json::to_string(proof_of_update).unwrap();
+            let update_proof = &tree.clone().update_node(new_index, node).unwrap();
+            let pre_processed_string = serde_json::to_string(update_proof).unwrap();
             format!(r#"{{"Update":{}}}"#, pre_processed_string)
         } else {
             let pre_processed_string =

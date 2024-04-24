@@ -7,7 +7,7 @@ use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::{groth16, groth16::Proof, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
 use indexed_merkle_tree::{
-    node::Node, sha256, tree::InsertProof, tree::ProofVariant, tree::UpdateProof,
+    node::Node, sha256, tree::InsertProof, tree::MerkleProof, tree::ProofVariant, tree::UpdateProof,
 };
 use serde::{Deserialize, Serialize};
 
@@ -87,11 +87,9 @@ pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine,
     Ok(affine.unwrap())
 }
 
-fn unpack_and_process(
-    tuple: &(Option<String>, Option<Vec<Node>>),
-) -> Result<(Scalar, &Vec<Node>), DeimosError> {
-    match tuple {
-        (Some(hex_root), Some(path)) => {
+fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
+    match (&proof.root_hash, &proof.path) {
+        (Some(hex_root), Some(path)) if !path.is_empty() => {
             let scalar_root = hex_to_scalar(hex_root).map_err(DeimosError::General)?;
             Ok((scalar_root, path))
         }
@@ -601,13 +599,12 @@ impl Circuit<Scalar> for HashChainEntryCircuit {
 
 // create the circuit based on the given Merkle proof
 impl InsertMerkleProofCircuit {
-    pub fn new(
-        (non_membership_proof, first_proof, second_proof): &InsertProof,
-    ) -> Result<InsertMerkleProofCircuit, DeimosError> {
-        let (non_membership_root, non_membership_path) = unpack_and_process(non_membership_proof)?;
+    pub fn new(proof: &InsertProof) -> Result<InsertMerkleProofCircuit, DeimosError> {
+        let (non_membership_root, non_membership_path) =
+            unpack_and_process(&proof.non_membership_proof)?;
 
-        let first_merkle_circuit = UpdateMerkleProofCircuit::new(first_proof)?;
-        let second_merkle_circuit = UpdateMerkleProofCircuit::new(second_proof)?;
+        let first_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.first_proof)?;
+        let second_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.second_proof)?;
 
         Ok(InsertMerkleProofCircuit {
             non_membership_root,
@@ -633,11 +630,9 @@ impl InsertMerkleProofCircuit {
 }
 
 impl UpdateMerkleProofCircuit {
-    pub fn new(
-        (old_proof, new_proof): &UpdateProof,
-    ) -> Result<UpdateMerkleProofCircuit, DeimosError> {
-        let (old_root, old_path) = unpack_and_process(old_proof)?;
-        let (updated_root, updated_path) = unpack_and_process(new_proof)?;
+    pub fn new(proof: &UpdateProof) -> Result<UpdateMerkleProofCircuit, DeimosError> {
+        let (old_root, old_path) = unpack_and_process(&proof.old_proof)?;
+        let (updated_root, updated_path) = unpack_and_process(&proof.new_proof)?;
 
         // if old_root.is_none()
         //     || old_path.is_none()
@@ -695,13 +690,9 @@ impl BatchMerkleProofCircuit {
                         UpdateMerkleProofCircuit::new(&update_proof)?,
                     ));
                 }
-                ProofVariant::Insert((merkle_proof, first_update, second_update)) => {
+                ProofVariant::Insert(insertion_proof) => {
                     proof_circuit_array.push(ProofVariantCircuit::Insert(
-                        InsertMerkleProofCircuit::new(&(
-                            merkle_proof,
-                            first_update,
-                            second_update,
-                        ))?,
+                        InsertMerkleProofCircuit::new(&insertion_proof)?,
                     ));
                 }
             }
