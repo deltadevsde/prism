@@ -1,5 +1,5 @@
 [package]
-name = "indexed_merkle_tree"
+name = "deimos"
 version = "0.1.0"
 edition = "2021"
 
@@ -43,10 +43,12 @@ clap = { version = "4.3.2", features = ["derive"] }
 config = "0.14.0"
 fs2 = "0.4.3"
 thiserror = "1.0.50"
-indexed-merkle-tree = "0.1.2"
+indexed-merkle-tree = {path = "../indexed-merkle-tree"}
 dotenvy = "0.15.7"
 ahash = "0.8.7"
 celestia-rpc = "0.1.0"
 celestia-types = "0.1.0"
 mockall = "0.12.1"
-keystore = { git = "https://github.com/deltadevsde/keystore", rev = "c817b6797ac6642d93af96949a893f58ba129e5c" } 
+keystore = { git = "https://github.com/deltadevsde/keystore", rev = "c817b6797ac6642d93af96949a893f58ba129e5c" }
+pyroscope = "0.5.7"
+pyroscope_pprofrs = "0.2.7"

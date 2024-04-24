@@ -3,21 +3,21 @@ use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{error::MerkleTreeError, IndexedMerkleTree, Node};
+use indexed_merkle_tree::{error::MerkleTreeError, node::Node, tree::IndexedMerkleTree};
 use std::{self, io::ErrorKind, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::sleep};
 
 use crate::{
+    cfg::Config,
     da::{DataAvailabilityLayer, EpochJson},
     error::{DeimosError, GeneralError},
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
-    utils::{validate_epoch, validate_epoch_from_proof_variants, verify_signature},
+    utils::{validate_epoch, verify_signature},
     webserver::WebServer,
     zk_snark::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-        serialize_verifying_key_to_custom,
+        serialize_verifying_key_to_custom, BatchMerkleProofCircuit,
     },
-    Config,
 };
 
 #[async_trait]
@@ -229,8 +229,10 @@ impl Sequencer {
                 .map_err(DeimosError::MerkleTree)?
         };
 
-        let (proof, verifying_key) =
-            validate_epoch_from_proof_variants(&prev_commitment, &current_commitment, &proofs)?;
+        let batch_circuit =
+            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
+        let (proof, verifying_key) = batch_circuit.create_and_verify_snark()?;
+
         let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
         let signed_current_commitment = self.key.sign(&current_commitment.as_bytes()).to_string();
 
