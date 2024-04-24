@@ -71,7 +71,11 @@ pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
     if let Ok((non_membership_proof, first_proof, second_proof)) =
         serde_json::from_str::<(MerkleProof, UpdateProof, UpdateProof)>(&proof_value)
     {
-        let insertion_proof: InsertProof = (non_membership_proof, first_proof, second_proof);
+        let insertion_proof = InsertProof {
+            non_membership_proof,
+            first_proof,
+            second_proof,
+        };
         if IndexedMerkleTree::verify_insert_proof(&insertion_proof.clone()) {
             let insertion_circuit = InsertMerkleProofCircuit::new(&insertion_proof)?;
             insertion_circuit.create_and_verify_snark()?;
