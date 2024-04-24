@@ -1,6 +1,6 @@
 use base64::engine::{general_purpose, Engine as _};
 use ed25519::Signature;
-use indexed_merkle_tree::{sha256, Node, ProofVariant};
+use indexed_merkle_tree::{node::Node, sha256, tree::ProofVariant};
 use mockall::predicate::*;
 use mockall::*;
 use redis::{Client, Commands, Connection};
@@ -170,7 +170,6 @@ impl RedisConnections {
         let try_connection = try_client.get_connection();
 
         if try_connection.is_err() {
-            // Redis-Server starten, wenn er noch nicht läuft
             debug!("Starting redis-server...");
 
             let _child = Command::new("redis-server").spawn()?;

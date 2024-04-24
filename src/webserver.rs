@@ -1,4 +1,3 @@
-use crate::{error::DeimosError, node_types::Sequencer, WebServerConfig};
 use actix_cors::Cors;
 use actix_web::{
     dev::Server,
@@ -8,7 +7,7 @@ use actix_web::{
 };
 use bellman::groth16;
 use bls12_381::Bls12;
-use indexed_merkle_tree::{sha256, ProofVariant};
+use indexed_merkle_tree::{sha256, tree::ProofVariant};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Value};
@@ -16,9 +15,12 @@ use serde_json::{self, json, Value};
 use std::sync::Arc;
 
 use crate::{
+    cfg::WebServerConfig,
+    error::DeimosError,
+    node_types::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
-    utils::{is_not_revoked, validate_epoch_from_proof_variants, validate_proof},
-    zk_snark::{serialize_proof, HashChainEntryCircuit},
+    utils::{is_not_revoked, validate_proof},
+    zk_snark::{serialize_proof, BatchMerkleProofCircuit, HashChainEntryCircuit},
 };
 
 pub struct WebServer {
@@ -123,14 +125,12 @@ async fn update_entry(
 
         let proofs = if update_proof {
             let new_index = tree.clone().find_node_index(&node).unwrap();
-            let (proof_of_update, _) =
-                &tree.clone().generate_update_proof(new_index, node).unwrap();
+            let (proof_of_update, _) = &tree.clone().update_node(new_index, node).unwrap();
             let pre_processed_string = serde_json::to_string(proof_of_update).unwrap();
             format!(r#"{{"Update":{}}}"#, pre_processed_string)
         } else {
             let pre_processed_string =
-                serde_json::to_string(&tree.clone().generate_proof_of_insert(&node).unwrap())
-                    .unwrap();
+                serde_json::to_string(&tree.clone().insert_node(&node).unwrap()).unwrap();
             format!(r#"{{"Insert":{}}}"#, pre_processed_string)
         };
 
@@ -404,11 +404,15 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
         epoch
     );
 
-    let (proof, _verifying_key) = match validate_epoch_from_proof_variants(
-        &previous_commitment,
-        &current_commitment,
-        &proofs,
-    ) {
+    let batch_circuit =
+        match BatchMerkleProofCircuit::new(&previous_commitment, &current_commitment, proofs) {
+            Ok(circuit) => circuit,
+            Err(err) => {
+                return HttpResponse::BadRequest().body(err.to_string());
+            }
+        };
+
+    let (proof, _verifying_key) = match batch_circuit.create_and_verify_snark() {
         Ok(proof) => proof,
         Err(err) => {
             return HttpResponse::BadRequest().body(err.to_string());
