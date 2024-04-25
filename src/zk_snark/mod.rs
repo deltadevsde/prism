@@ -4,10 +4,10 @@ use crate::{
     utils::create_and_verify_snark,
 };
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
-use bellman::{groth16, groth16::Proof, Circuit, ConstraintSystem, SynthesisError};
+use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
 use indexed_merkle_tree::{
-    node::Node, sha256, tree::InsertProof, tree::MerkleProof, tree::ProofVariant, tree::UpdateProof,
+    node::Node, sha256, tree::InsertProof, tree::MerkleProof, tree::Proof, tree::UpdateProof,
 };
 use serde::{Deserialize, Serialize};
 
@@ -97,7 +97,7 @@ fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), Deimo
     }
 }
 
-pub fn serialize_proof(proof: &Proof<Bls12>) -> Bls12Proof {
+pub fn serialize_proof(proof: &groth16::Proof<Bls12>) -> Bls12Proof {
     Bls12Proof {
         a: engine.encode(&proof.a.to_uncompressed().as_ref()),
         b: engine.encode(&proof.b.to_uncompressed().as_ref()),
@@ -105,14 +105,14 @@ pub fn serialize_proof(proof: &Proof<Bls12>) -> Bls12Proof {
     }
 }
 
-pub fn deserialize_proof(proof: &Bls12Proof) -> Result<Proof<Bls12>, DeimosError> {
+pub fn deserialize_proof(proof: &Bls12Proof) -> Result<groth16::Proof<Bls12>, DeimosError> {
     // we get a CtOption type which is afaik common in crypto libraries to prevent timing attacks
     // we cant use the map_err function with CtOption types so we have to check if its none and can then unwrap it
     let a = decode_and_convert_to_g1affine(&proof.a)?;
     let b = decode_and_convert_to_g2affine(&proof.b)?;
     let c = decode_and_convert_to_g1affine(&proof.c)?;
 
-    Ok(Proof { a, b, c })
+    Ok(groth16::Proof { a, b, c })
 }
 
 pub fn serialize_verifying_key_to_custom(
@@ -225,8 +225,8 @@ mod tests {
         let second_insert_proof = tree.insert_node(&sebastians_node).unwrap();
 
         // create zkSNARKs for the two proofs
-        let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
-        let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
+        let first_insert_zk_snark = Proof::Insert(first_insert_proof);
+        let second_insert_zk_snark = Proof::Insert(second_insert_proof);
 
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
         let current_commitment = tree.get_commitment().unwrap();
@@ -616,7 +616,7 @@ impl InsertMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
         let scalars: Vec<Scalar> = vec![
             self.non_membership_root,
             self.first_merkle_proof.old_root,
@@ -665,7 +665,7 @@ impl UpdateMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
         let scalars: Vec<Scalar> = vec![self.old_root, self.updated_root];
 
         create_and_verify_snark(ProofVariantCircuit::Update(self.clone()), scalars)
@@ -676,7 +676,7 @@ impl BatchMerkleProofCircuit {
     pub fn new(
         old_commitment: &String,
         new_commitment: &String,
-        proofs: Vec<ProofVariant>,
+        proofs: Vec<Proof>,
     ) -> Result<BatchMerkleProofCircuit, DeimosError> {
         let parsed_old_commitment =
             hex_to_scalar(&old_commitment.as_str()).map_err(DeimosError::General)?;
@@ -685,12 +685,12 @@ impl BatchMerkleProofCircuit {
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
-                ProofVariant::Update(update_proof) => {
+                Proof::Update(update_proof) => {
                     proof_circuit_array.push(ProofVariantCircuit::Update(
                         UpdateMerkleProofCircuit::new(&update_proof)?,
                     ));
                 }
-                ProofVariant::Insert(insertion_proof) => {
+                Proof::Insert(insertion_proof) => {
                     proof_circuit_array.push(ProofVariantCircuit::Insert(
                         InsertMerkleProofCircuit::new(&insertion_proof)?,
                     ));
@@ -706,7 +706,7 @@ impl BatchMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
         let scalars: Vec<Scalar> = vec![self.old_commitment, self.new_commitment];
 
         create_and_verify_snark(ProofVariantCircuit::Batch(self.clone()), scalars)

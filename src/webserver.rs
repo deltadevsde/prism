@@ -7,7 +7,7 @@ use actix_web::{
 };
 use bellman::groth16;
 use bls12_381::Bls12;
-use indexed_merkle_tree::{sha256, tree::ProofVariant};
+use indexed_merkle_tree::{sha256, tree::Proof};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Value};
@@ -265,7 +265,7 @@ async fn get_hashchain(con: web::Data<Arc<Sequencer>>, id: web::Path<String>) ->
 pub fn get_epochs_and_proofs(
     con: web::Data<Arc<Sequencer>>,
     epoch: &str,
-) -> Result<(u64, String, String, Vec<ProofVariant>), Box<dyn std::error::Error>> {
+) -> Result<(u64, String, String, Vec<Proof>), Box<dyn std::error::Error>> {
     if epoch == "0" {
         // TODO: eventually recalcualte the empty tree root and compare it to the one in the database
         return Err(Box::new(std::io::Error::new(
@@ -541,7 +541,7 @@ async fn get_epoch_operations(con: web::Data<Arc<Sequencer>>, req_body: String) 
         epoch: String,
         previous_commitment: String,
         current_commitment: String,
-        proofs: Vec<ProofVariant>,
+        proofs: Vec<Proof>,
     }
 
     let resp = Response {

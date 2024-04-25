@@ -362,7 +362,7 @@ mod da_tests {
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
-    use indexed_merkle_tree::{node::Node, sha256, tree::IndexedMerkleTree, tree::ProofVariant};
+    use indexed_merkle_tree::{node::Node, sha256, tree::IndexedMerkleTree, tree::Proof};
     use rand::rngs::OsRng;
     use std::fs::OpenOptions;
     use std::io::{Error, Seek, SeekFrom};
@@ -418,7 +418,7 @@ mod da_tests {
     fn create_proof_and_vk(
         prev_commitment: String,
         current_commitment: String,
-        proofs: Vec<ProofVariant>,
+        proofs: Vec<Proof>,
     ) -> (Bls12Proof, VerifyingKey) {
         let batched_proof =
             BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs).unwrap();
@@ -472,7 +472,7 @@ mod da_tests {
 
             // generate proof for the first insert
             let first_insert_proof = tree.insert_node(&node_1).unwrap();
-            let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
+            let first_insert_zk_snark = Proof::Insert(first_insert_proof);
 
             // create bls12 proof for posting
             let (bls12proof, vk) = create_proof_and_vk(
@@ -504,8 +504,8 @@ mod da_tests {
             // generate proof for the second and third insert
             let second_insert_proof = tree.insert_node(&node_2).unwrap();
             let third_insert_proof = tree.insert_node(&node_3).unwrap();
-            let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
-            let third_insert_zk_snark = ProofVariant::Insert(third_insert_proof);
+            let second_insert_zk_snark = Proof::Insert(second_insert_proof);
+            let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
             // proof and vk
             let (proof, vk) = create_proof_and_vk(
