@@ -11,9 +11,7 @@ use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::{
-    IndexedMerkleTree, InsertProof, MerkleProof, ProofVariant, UpdateProof,
-};
+use indexed_merkle_tree::tree::{IndexedMerkleTree, InsertProof, MerkleProof, Proof, UpdateProof};
 use rand::rngs::OsRng;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -36,8 +34,8 @@ pub fn is_not_revoked(entries: &[ChainEntry], value: String) -> bool {
     true
 }
 
-pub fn parse_json_to_proof(json_str: &str) -> Result<ProofVariant, Box<dyn std::error::Error>> {
-    let proof: ProofVariant = serde_json::from_str(json_str)?;
+pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::Error>> {
+    let proof: Proof = serde_json::from_str(json_str)?;
 
     Ok(proof)
 }
@@ -76,7 +74,7 @@ pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
             first_proof,
             second_proof,
         };
-        if IndexedMerkleTree::verify_insert_proof(&insertion_proof.clone()) {
+        if insertion_proof.verify() {
             let insertion_circuit = InsertMerkleProofCircuit::new(&insertion_proof)?;
             insertion_circuit.create_and_verify_snark()?;
             Ok(())
@@ -84,7 +82,7 @@ pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
             Err(DeimosError::Proof(ProofError::VerificationError))
         }
     } else if let Ok(proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
-        if IndexedMerkleTree::verify_update_proof(&proof) {
+        if proof.verify() {
             let update_circuit = UpdateMerkleProofCircuit::new(&proof)?;
             update_circuit.create_and_verify_snark()?;
             Ok(())
@@ -222,8 +220,8 @@ mod tests {
         let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
         let second_insert_proof = tree.insert_node(&sebastians_node).unwrap();
 
-        let first_insert_zk_snark = ProofVariant::Insert(first_insert_proof);
-        let second_insert_zk_snark = ProofVariant::Insert(second_insert_proof);
+        let first_insert_zk_snark = Proof::Insert(first_insert_proof);
+        let second_insert_zk_snark = Proof::Insert(second_insert_proof);
 
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
         let current_commitment = tree.get_commitment().unwrap();

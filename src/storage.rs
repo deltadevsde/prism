@@ -1,6 +1,6 @@
 use base64::engine::{general_purpose, Engine as _};
 use ed25519::Signature;
-use indexed_merkle_tree::{node::Node, sha256, tree::ProofVariant};
+use indexed_merkle_tree::{node::Node, sha256, tree::Proof};
 use mockall::predicate::*;
 use mockall::*;
 use redis::{Client, Commands, Connection};
@@ -134,7 +134,7 @@ pub trait Database: Send + Sync {
     fn get_derived_keys_in_order(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_commitment(&self, epoch: &u64) -> Result<String, DatabaseError>;
     fn get_proof(&self, id: &String) -> Result<String, DatabaseError>;
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, DatabaseError>;
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>, DatabaseError>;
     fn get_epoch(&self) -> Result<u64, DatabaseError>;
     fn get_epoch_operation(&self) -> Result<u64, DatabaseError>;
     fn set_epoch(&self, epoch: &u64) -> Result<(), DatabaseError>;
@@ -288,7 +288,7 @@ impl Database for RedisConnections {
         Ok(proof)
     }
 
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<ProofVariant>, DatabaseError> {
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>, DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?;
         let mut epoch_proofs: Vec<String> = con
             .keys::<&String, Vec<String>>(&format!("epoch_{}*", epoch))
