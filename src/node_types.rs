@@ -3,7 +3,9 @@ use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{error::MerkleTreeError, node::Node, tree::IndexedMerkleTree};
+use indexed_merkle_tree::{
+    error::MerkleTreeError, node::LeafNode, node::Node, tree::IndexedMerkleTree,
+};
 use std::{self, io::ErrorKind, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::sleep};
 
@@ -278,7 +280,7 @@ impl Sequencer {
             .iter()
             .map(|key| {
                 let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-                Node::initialize_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
+                Node::new_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
             })
             .collect();
 
@@ -329,7 +331,7 @@ impl Sequencer {
 
         // Add empty nodes to ensure the total number of nodes is a power of two.
         while nodes.len() < next_power_of_two {
-            nodes.push(Node::initialize_leaf(
+            nodes.push(Node::new_leaf(
                 false,
                 true,
                 Node::EMPTY_HASH.to_string(),

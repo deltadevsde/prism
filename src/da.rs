@@ -362,7 +362,11 @@ mod da_tests {
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
-    use indexed_merkle_tree::{node::Node, sha256, tree::IndexedMerkleTree, tree::Proof};
+    use indexed_merkle_tree::{
+        node::{InnerNode, LeafNode, Node},
+        sha256,
+        tree::{IndexedMerkleTree, Proof},
+    };
     use rand::rngs::OsRng;
     use std::fs::OpenOptions;
     use std::io::{Error, Seek, SeekFrom};
@@ -384,14 +388,14 @@ mod da_tests {
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::initialize_leaf(
+        let active_node = Node::new_leaf(
             true,
             true,
             EMPTY_HASH.to_string(),
             EMPTY_HASH.to_string(),
             TAIL.to_string(),
         );
-        let inactive_node = Node::initialize_leaf(
+        let inactive_node = Node::new_leaf(
             false,
             true,
             EMPTY_HASH.to_string(),
@@ -412,7 +416,7 @@ mod da_tests {
     fn create_node(label: &str, value: &str) -> Node {
         let label = sha256(&label.to_string());
         let value = sha256(&value.to_string());
-        Node::initialize_leaf(true, true, label, value, TAIL.to_string())
+        Node::new_leaf(true, true, label, value, TAIL.to_string())
     }
 
     fn create_proof_and_vk(

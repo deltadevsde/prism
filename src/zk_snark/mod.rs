@@ -182,14 +182,14 @@ mod tests {
     const TAIL: &str = Node::TAIL;
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::initialize_leaf(
+        let active_node = Node::new_leaf(
             true,
             true,
             EMPTY_HASH.to_string(),
             EMPTY_HASH.to_string(),
             TAIL.to_string(),
         );
-        let inactive_node = Node::initialize_leaf(
+        let inactive_node = Node::new_leaf(
             false,
             true,
             EMPTY_HASH.to_string(),
@@ -217,8 +217,8 @@ mod tests {
         let ford = sha256(&"Ford".to_string());
         let sebastian = sha256(&"Sebastian".to_string());
         let pusch = sha256(&"Pusch".to_string());
-        let ryans_node = Node::initialize_leaf(true, true, ryan, ford, TAIL.to_string());
-        let sebastians_node = Node::initialize_leaf(true, true, sebastian, pusch, TAIL.to_string());
+        let ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
+        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
 
         // generate proofs for the two nodes
         let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
