@@ -181,7 +181,7 @@ pub fn verify_signature<T: Signable>(
 
 #[cfg(test)]
 mod tests {
-    use indexed_merkle_tree::{node::Node, sha256};
+    use indexed_merkle_tree::{node::LeafNode, node::Node, sha256};
 
     use super::*;
 
@@ -213,9 +213,9 @@ mod tests {
         let ford = sha256(&"Ford".to_string());
         let sebastian = sha256(&"Sebastian".to_string());
         let pusch = sha256(&"Pusch".to_string());
-        let ryans_node = Node::initialize_leaf(true, true, ryan, ford, Node::TAIL.to_string());
-        let sebastians_node =
-            Node::initialize_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
+
+        let ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL.to_string());
+        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
 
         let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
         let second_insert_proof = tree.insert_node(&sebastians_node).unwrap();
