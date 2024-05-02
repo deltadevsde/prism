@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use heapless::Vec as HVec;
 use indexed_merkle_tree::{
     node::ZkNode as Node,
-    tree::{InsertProof, NonMembershipProof, Proof, UpdateProof},
+    tree::{InsertProof, MerkleProof, NonMembershipProof, Proof, UpdateProof},
 };
 use sha2::{Digest, Sha256};
 
