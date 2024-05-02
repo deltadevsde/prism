@@ -285,8 +285,8 @@ pub fn get_epochs_and_proofs(
     let previous_epoch = epoch_number - 1;
 
     // Get current commitment from database
-    let current_commitment: [u8; 32] = match con.db.get_commitment(&epoch_number) {
-        Ok(value) => value,
+    let current_commitment: String = match con.db.get_commitment(&epoch_number) {
+        Ok(value) => hex::encode(value),
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -296,8 +296,8 @@ pub fn get_epochs_and_proofs(
     };
 
     // Get previous commitment from database
-    let previous_commitment: [u8; 32] = match con.db.get_commitment(&previous_epoch) {
-        Ok(value) => value,
+    let previous_commitment: String = match con.db.get_commitment(&previous_epoch) {
+        Ok(value) => hex::encode(value),
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,

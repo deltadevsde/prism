@@ -12,7 +12,11 @@ dependencies = [
  "arc-swap",
  "backtrace",
  "canonical-path",
+<<<<<<< HEAD
  "clap",
+=======
+ "clap 4.5.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "color-eyre",
  "fs-err",
  "once_cell",
@@ -94,10 +98,14 @@ dependencies = [
  "flate2",
  "futures-core",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "h2 0.3.24",
 =======
  "h2 0.3.26",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "h2 0.3.24",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "http 0.2.12",
  "httparse",
  "httpdate",
@@ -989,6 +997,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a00dc851838a2120612785d195287475a3ac45514741da670b735818822129a0"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "bitflags 2.4.2",
  "cexpr",
  "clang-sys",
@@ -1003,6 +1012,12 @@ dependencies = [
 =======
  "itertools 0.12.1",
 >>>>>>> b7a4bd1 (feat: equalize files)
+=======
+ "bitflags 2.4.2",
+ "cexpr",
+ "clang-sys",
+ "itertools 0.11.0",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "lazy_static",
  "lazycell",
  "log",
@@ -1013,10 +1028,14 @@ dependencies = [
  "rustc-hash",
  "shlex",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.52",
 =======
  "syn 2.0.60",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "syn 2.0.52",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "which",
 ]
 
@@ -1281,7 +1300,11 @@ dependencies = [
  "auditable-serde",
  "binfarce",
  "cargo-lock",
+<<<<<<< HEAD
  "clap",
+=======
+ "clap 4.5.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "display-error-chain",
  "home",
  "is-terminal",
@@ -1316,6 +1339,7 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
+<<<<<<< HEAD
 version = "1.0.94"
 >>>>>>> 485d206 (fix: test dependencies)
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1325,6 +1349,10 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 name = "cc"
 version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+=======
+version = "1.0.89"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 checksum = "a0ba8f7aaa012f30d5b2861462f6708eccd49c3c39863fe083a308035f63d723"
 dependencies = [
  "jobserver",
@@ -1339,7 +1367,11 @@ checksum = "f7d93904482a787d8caecb3a348788704fa044df6fb2402f28da5b91a2a5eabb"
 dependencies = [
  "anyhow",
  "celestia-tendermint-proto",
+<<<<<<< HEAD
  "prost",
+=======
+ "prost 0.12.3",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "prost-build",
  "prost-types",
  "serde",
@@ -1375,7 +1407,11 @@ dependencies = [
  "futures",
  "num-traits",
  "once_cell",
+<<<<<<< HEAD
  "prost",
+=======
+ "prost 0.12.3",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "prost-types",
  "serde",
  "serde_bytes",
@@ -1399,7 +1435,11 @@ dependencies = [
  "flex-error",
  "num-derive",
  "num-traits",
+<<<<<<< HEAD
  "prost",
+=======
+ "prost 0.12.3",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "prost-types",
  "serde",
  "serde_bytes",
@@ -1576,7 +1616,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c918d541ef2913577a0f9566e9ce27cb35b6df072075769e0b26cb5a554520da"
 dependencies = [
  "clap_builder",
+<<<<<<< HEAD
  "clap_derive",
+=======
+ "clap_derive 4.5.0",
+>>>>>>> 5664a74 (feat: prepare for jolt)
 ]
 
 [[package]]
@@ -1587,8 +1631,31 @@ checksum = "9f3e7391dad68afb0c2ede1bf619f579a3dc9c2ec67f089baa397123a2f3d1eb"
 dependencies = [
  "anstream",
  "anstyle",
+<<<<<<< HEAD
  "clap_lex",
  "strsim",
+=======
+ "clap_lex 0.7.0",
+ "strsim 0.11.0",
+>>>>>>> 5664a74 (feat: prepare for jolt)
+]
+
+[[package]]
+name = "clap_derive"
+version = "4.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "307bc0538d5f0f83b8248db3087aa92fe504e4691294d0c96c0eabc33f47ba47"
+dependencies = [
+ "heck",
+<<<<<<< HEAD
+ "proc-macro2",
+ "quote",
+ "syn 2.0.52",
+=======
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1601,6 +1668,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.52",
+]
+
+[[package]]
+name = "clap_lex"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
+dependencies = [
+ "os_str_bytes",
+>>>>>>> 5664a74 (feat: prepare for jolt)
 ]
 
 [[package]]
@@ -1625,6 +1702,7 @@ checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
 name = "color-eyre"
+<<<<<<< HEAD
 version = "0.6.3"
 >>>>>>> 485d206 (fix: test dependencies)
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1634,6 +1712,10 @@ checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 name = "color-eyre"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+=======
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 checksum = "5a667583cca8c4f8436db8de46ea8233c42a7d9ae424a82d338f2e4675229204"
 dependencies = [
  "backtrace",
@@ -1677,10 +1759,14 @@ dependencies = [
 name = "common"
 version = "0.2.0"
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 dependencies = [
  "ark-serialize 0.4.2",
  "serde",
@@ -1885,10 +1971,14 @@ dependencies = [
  "cast",
  "ciborium",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "clap",
 =======
  "clap 4.5.4",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "clap 4.5.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "criterion-plot",
  "is-terminal",
  "itertools 0.10.5",
@@ -2035,7 +2125,11 @@ version = "3.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b467862cc8610ca6fc9a1532d7777cee0804e678ab45410897b9396495994a0b"
 dependencies = [
+<<<<<<< HEAD
  "nix",
+=======
+ "nix 0.27.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "windows-sys 0.52.0",
 ]
 
@@ -2142,7 +2236,11 @@ dependencies = [
  "bls12_381",
  "celestia-rpc",
  "celestia-types",
+<<<<<<< HEAD
  "clap",
+=======
+ "clap 4.5.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "colored",
  "config",
  "crypto-hash",
@@ -2158,10 +2256,14 @@ dependencies = [
  "indexed-merkle-tree",
  "jolt-sdk",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "jsonrpsee 0.22.2",
 =======
  "jsonrpsee 0.22.4",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "jsonrpsee 0.22.2",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "keystore",
  "lazy_static",
  "log",
@@ -2178,8 +2280,12 @@ dependencies = [
  "reqwest 0.12.4",
 =======
  "redis 0.24.0",
+<<<<<<< HEAD
  "reqwest 0.11.27",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "reqwest 0.11.24",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "serde",
  "serde_json",
  "thiserror",
@@ -3520,10 +3626,14 @@ dependencies = [
  "gix-sec",
  "gix-url",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "reqwest 0.11.24",
 =======
  "reqwest 0.11.27",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "reqwest 0.11.24",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "thiserror",
 ]
 
@@ -3677,10 +3787,14 @@ dependencies = [
  "futures-util",
  "http 0.2.12",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "indexmap",
 =======
  "indexmap 2.2.6",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "indexmap 2.2.5",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "slab",
  "tokio",
  "tokio-util 0.7.10",
@@ -3701,7 +3815,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http 1.1.0",
- "indexmap 2.2.6",
+ "indexmap 2.2.5",
  "slab",
  "tokio",
  "tokio-util 0.7.10",
@@ -3798,6 +3912,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
+<<<<<<< HEAD
+=======
+name = "hermit-abi"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+>>>>>>> 5664a74 (feat: prepare for jolt)
 name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3948,10 +4074,14 @@ dependencies = [
  "futures-core",
  "futures-util",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "h2 0.3.24",
 =======
  "h2 0.3.26",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "h2 0.3.24",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "http 0.2.12",
  "http-body 0.4.6",
  "httparse",
@@ -3979,10 +4109,14 @@ dependencies = [
  "http-body 1.0.0",
  "httparse",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "itoa 1.0.10",
 =======
  "itoa 1.0.11",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "itoa 1.0.10",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "pin-project-lite",
  "smallvec",
  "tokio",
@@ -4139,7 +4273,7 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 2.0.60",
+ "syn 2.0.52",
 ]
 
 [[package]]
@@ -4245,6 +4379,19 @@ dependencies = [
 name = "indexmap"
 version = "2.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
+=======
+checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
+dependencies = [
+ "autocfg",
+ "hashbrown 0.12.3",
+]
+
+[[package]]
+name = "indexmap"
+version = "2.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 checksum = "7b0b929d511467233429c45a44ac1dcaa21ba0f5ba11e4879e6ed28ddb4f9df4"
 dependencies = [
  "equivalent",
@@ -4363,10 +4510,14 @@ dependencies = [
 name = "jolt-core"
 version = "0.1.0"
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -4375,10 +4526,14 @@ dependencies = [
  "ark-std 0.4.0",
  "bincode",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "clap",
 =======
  "clap 4.5.4",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "clap 4.5.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "common",
  "criterion",
  "digest 0.8.1",
@@ -4420,20 +4575,28 @@ dependencies = [
 name = "jolt-sdk"
 version = "0.1.0"
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 dependencies = [
  "ark-bn254",
  "ark-ec",
  "ark-ff 0.4.2",
  "ark-serialize 0.4.2",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "base64 0.22.1",
 =======
  "base64 0.22.0",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "base64 0.22.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "common",
  "eyre",
  "jolt-core",
@@ -4447,10 +4610,14 @@ dependencies = [
 name = "jolt-sdk-macros"
 version = "0.1.0"
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 dependencies = [
  "common",
  "proc-macro2",
@@ -4532,10 +4699,14 @@ dependencies = [
  "futures-util",
  "http 0.2.12",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "jsonrpsee-core 0.22.2",
 =======
  "jsonrpsee-core 0.22.4",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "jsonrpsee-core 0.22.2",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "pin-project",
  "rustls-native-certs 0.7.0",
  "rustls-pki-types",
@@ -4674,6 +4845,7 @@ checksum = "68ca71e74983f624c0cb67828e480a981586074da8ad3a2f214c6a3f884edab9"
 dependencies = [
  "http 0.2.12",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "jsonrpsee-client-transport 0.22.2",
  "jsonrpsee-core 0.22.2",
  "jsonrpsee-types 0.22.2",
@@ -4682,6 +4854,11 @@ dependencies = [
  "jsonrpsee-core 0.22.4",
  "jsonrpsee-types 0.22.4",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "jsonrpsee-client-transport 0.22.2",
+ "jsonrpsee-core 0.22.2",
+ "jsonrpsee-types 0.22.2",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "url",
 ]
 
@@ -4777,7 +4954,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if 1.0.0",
- "windows-targets 0.52.5",
+ "windows-targets 0.52.4",
 ]
 
 [[package]]
@@ -4808,10 +4985,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0ff37bd590ca25063e35af745c343cb7a0271906fb7b37e4813e8f79f00268d"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "bitflags 2.4.2",
 =======
  "bitflags 2.5.0",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "bitflags 2.4.2",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "libc",
 ]
 
@@ -5030,6 +5211,19 @@ name = "multimap"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
+<<<<<<< HEAD
+=======
+
+[[package]]
+name = "names"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bddcd3bf5144b6392de80e04c347cd7fab2508f6df16a85fc496ecd5cec39bc"
+dependencies = [
+ "clap 3.2.25",
+ "rand 0.8.5",
+]
+>>>>>>> 5664a74 (feat: prepare for jolt)
 
 [[package]]
 name = "native-tls"
@@ -5061,6 +5255,20 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
+=======
+name = "nix"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
+dependencies = [
+ "bitflags 2.4.2",
+ "cfg-if 1.0.0",
+ "libc",
+]
+
+[[package]]
+>>>>>>> 5664a74 (feat: prepare for jolt)
 name = "nmt-rs"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5450,10 +5658,14 @@ checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
 dependencies = [
  "fixedbitset 0.4.2",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "indexmap",
 =======
  "indexmap 2.2.6",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "indexmap 2.2.5",
+>>>>>>> 5664a74 (feat: prepare for jolt)
 ]
 
 [[package]]
@@ -5761,7 +5973,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "146c289cda302b98a28d40c8b3b90498d6e526dd24ac2ecea73e4e491685b94a"
 dependencies = [
  "bytes",
+<<<<<<< HEAD
  "prost-derive",
+=======
+ "prost-derive 0.11.9",
+]
+
+[[package]]
+name = "prost"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "146c289cda302b98a28d40c8b3b90498d6e526dd24ac2ecea73e4e491685b94a"
+dependencies = [
+ "bytes",
+ "prost-derive 0.12.3",
+>>>>>>> 5664a74 (feat: prepare for jolt)
 ]
 
 [[package]]
@@ -5778,7 +6004,11 @@ dependencies = [
  "once_cell",
  "petgraph",
  "prettyplease",
+<<<<<<< HEAD
  "prost",
+=======
+ "prost 0.12.3",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "prost-types",
  "regex",
  "syn 2.0.52",
@@ -5796,6 +6026,22 @@ dependencies = [
  "itertools 0.11.0",
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
+=======
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efb6c9a1dd1def8e2124d17e83a20af56f1570d6c2d2bd9e266ccb768df3840e"
+dependencies = [
+ "anyhow",
+ "itertools 0.11.0",
+ "proc-macro2",
+ "quote",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "syn 2.0.52",
 ]
 
@@ -5806,9 +6052,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "193898f59edcf43c26227dcd4c8427f00d99d61e95dcde58dabd49fa291d470e"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "prost",
 =======
  "prost 0.12.4",
+=======
+ "prost 0.12.3",
+>>>>>>> 5664a74 (feat: prepare for jolt)
 ]
 
 [[package]]
@@ -5823,7 +6073,7 @@ dependencies = [
  "log",
  "names",
  "prost 0.11.9",
- "reqwest 0.11.27",
+ "reqwest 0.11.24",
  "thiserror",
  "url",
  "winapi",
@@ -6030,13 +6280,14 @@ version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd283d9651eeda4b2a83a43c1c91b266c40fd76ecd39a50a8c630ae69dc72891"
 dependencies = [
- "getrandom 0.2.14",
+ "getrandom 0.2.12",
  "libredox",
  "thiserror",
 ]
 
 [[package]]
 name = "regex"
+<<<<<<< HEAD
 version = "1.10.4"
 >>>>>>> 485d206 (fix: test dependencies)
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6051,6 +6302,10 @@ dependencies = [
 name = "regex"
 version = "1.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+=======
+version = "1.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 checksum = "b62dbe01f0b06f9d8dc7d49e05a0785f153b00b2c227856282f671e0318c9b15"
 dependencies = [
  "aho-corasick",
@@ -6104,10 +6359,14 @@ dependencies = [
  "futures-core",
  "futures-util",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "h2 0.3.24",
 =======
  "h2 0.3.26",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "h2 0.3.24",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "http 0.2.12",
  "http-body 0.4.6",
  "hyper 0.14.28",
@@ -6153,10 +6412,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "566cafdd92868e0939d3fb961bd0dc25fcfaaed179291093b3d43e6b3150ea10"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "base64 0.22.1",
 =======
  "base64 0.22.0",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "base64 0.22.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "bytes",
  "encoding_rs",
  "futures-channel",
@@ -6182,10 +6445,14 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "rustls-pemfile 2.1.1",
 =======
  "rustls-pemfile 2.1.2",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "rustls-pemfile 2.1.1",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -6471,6 +6738,7 @@ dependencies = [
 [[package]]
 name = "rustversion"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80af6f9131f277a45a3fba6ce8e2258037bb0477a67e610d3c1fe046ab31de47"
@@ -6479,6 +6747,11 @@ version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "092474d1a01ea8278f69e6a358998405fae5b8b963ddaeb2b0b04a128bf1dfb0"
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80af6f9131f277a45a3fba6ce8e2258037bb0477a67e610d3c1fe046ab31de47"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 
 [[package]]
 name = "ruzstd"
@@ -6872,9 +7145,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
 
 [[package]]
+<<<<<<< HEAD
 name = "strum"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+=======
+name = "strsim"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
+
+[[package]]
+name = "strum"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
 
 [[package]]
@@ -7006,10 +7291,14 @@ dependencies = [
  "memchr",
  "rayon",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "reqwest 0.11.24",
 =======
  "reqwest 0.11.27",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "reqwest 0.11.24",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "semver 1.0.22",
  "serde",
  "serde_json",
@@ -7347,7 +7636,11 @@ version = "0.19.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
+<<<<<<< HEAD
  "indexmap",
+=======
+ "indexmap 2.2.5",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -7360,7 +7653,11 @@ version = "0.20.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70f427fce4d84c72b5b732388bf4a9f4531b53f74e2887e3ecb2481f68f66d81"
 dependencies = [
+<<<<<<< HEAD
  "indexmap",
+=======
+ "indexmap 2.2.5",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "toml_datetime",
  "winnow 0.5.40",
 ]
@@ -7371,7 +7668,11 @@ version = "0.22.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c1b5fd4128cc8d3e0cb74d4ed9a9cc7c7284becd4df68f5f940e1ad123606f6"
 dependencies = [
+<<<<<<< HEAD
  "indexmap",
+=======
+ "indexmap 2.2.5",
+>>>>>>> 5664a74 (feat: prepare for jolt)
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -7416,10 +7717,14 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 name = "tracer"
 version = "0.2.0"
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
+>>>>>>> 5664a74 (feat: prepare for jolt)
 dependencies = [
  "common",
  "fnv",
@@ -7859,7 +8164,7 @@ dependencies = [
  "either",
  "home",
  "once_cell",
- "rustix 0.38.32",
+ "rustix 0.38.31",
 ]
 
 [[package]]
