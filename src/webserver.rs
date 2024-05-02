@@ -120,7 +120,7 @@ async fn update_entry(
 
     if update_successful {
         let new_tree = session.create_tree().unwrap();
-        let hashed_id = sha256(&signature_with_key.id);
+        let hashed_id = sha256(&signature_with_key.id.as_bytes());
         let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
         let proofs = if update_proof {
@@ -232,7 +232,7 @@ async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     }
 
     for id in derived_keys {
-        let value: String = con.db.get_derived_value(&id).unwrap();
+        let value: [u8; 32] = con.db.get_derived_value(&id).unwrap();
         resp.derived_dict.push(DerivedEntry { id, value: value });
     }
     HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
@@ -290,7 +290,7 @@ pub fn get_epochs_and_proofs(
 
     // Get current commitment from database
     let current_commitment: String = match con.db.get_commitment(&epoch_number) {
-        Ok(value) => value,
+        Ok(value) => hex::encode(value),
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -301,7 +301,7 @@ pub fn get_epochs_and_proofs(
 
     // Get previous commitment from database
     let previous_commitment: String = match con.db.get_commitment(&previous_epoch) {
-        Ok(value) => value,
+        Ok(value) => hex::encode(value),
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -483,7 +483,7 @@ async fn handle_validate_hashchain_proof(
             return HttpResponse::Ok().json({
                 json!({
                     "proof": serialize_proof(&proof),
-                    "public_param": sha256(&incoming_value.value),
+                    "public_param": sha256(&incoming_value.value.as_bytes()),
                 })
             });
         }
@@ -574,7 +574,7 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     epochs.sort();
 
     for epoch in epochs {
-        let value: String = con.db.get_commitment(&epoch).unwrap();
+        let value: String = hex::encode(con.db.get_commitment(&epoch).unwrap());
         resp.epochs.push(Epoch {
             id: epoch,
             commitment: value,
@@ -587,7 +587,10 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 #[get("/finalize-epoch")]
 async fn handle_finalize_epoch(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     match con.finalize_epoch().await {
-        Ok(proof) => HttpResponse::Ok().body(json!(serialize_proof(&proof)).to_string()),
+        Ok(proof) => {
+            let serialized_proof = &proof.serialize_to_bytes().unwrap();
+            HttpResponse::Ok().body(json!(&serialized_proof).to_string())
+        }
         Err(err) => HttpResponse::BadRequest().body(err.to_string()),
     }
 }

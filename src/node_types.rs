@@ -4,9 +4,14 @@ use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
-    error::MerkleTreeError, node::LeafNode, node::Node, tree::IndexedMerkleTree,
+    concat_slices,
+    error::MerkleTreeError,
+    node::{LeafNode, Node},
+    sha256,
+    tree::IndexedMerkleTree,
 };
-use std::{self, io::ErrorKind, sync::Arc, time::Duration};
+use jolt::Proof as JoltProof;
+use std::{self, io::ErrorKind, sync::Arc, time::Duration, vec};
 use tokio::{task::spawn, time::sleep};
 
 use crate::{
@@ -110,10 +115,9 @@ impl NodeType for LightClient {
                             for epoch_json in epoch_json_vec {
                                 let prev_commitment = &epoch_json.prev_commitment;
                                 let current_commitment = &epoch_json.current_commitment;
-                                let proof = deserialize_proof(&epoch_json.proof).unwrap();
-                                let verifying_key =
-                                    deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
-                                        .unwrap();
+                                // TODO: unwrap?
+                                let proof =
+                                    JoltProof::deserialize_from_bytes(&epoch_json.proof).unwrap();
                                 if self.sequencer_public_key.is_some() {
                                     if verify_signature(
                                         &epoch_json.clone(),
@@ -129,12 +133,7 @@ impl NodeType for LightClient {
                                     warn!("No public key found");
                                 }
 
-                                match validate_epoch(
-                                    &prev_commitment,
-                                    &current_commitment,
-                                    proof,
-                                    verifying_key,
-                                ) {
+                                match validate_epoch(&prev_commitment, &current_commitment, proof) {
                                     Ok(_) => (),
                                     Err(err) => panic!("Failed to validate epoch: {:?}", err),
                                 }
@@ -192,7 +191,7 @@ impl Sequencer {
     /// 3. Waits for a specified duration before starting the next epoch.
     /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
     /// 5. Repeats steps 2-4 periodically.
-    pub async fn finalize_epoch(&self) -> Result<Proof<Bls12>, DeimosError> {
+    pub async fn finalize_epoch(&self) -> Result<JoltProof, DeimosError> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -231,19 +230,17 @@ impl Sequencer {
                 .map_err(DeimosError::MerkleTree)?
         };
 
-        let batch_circuit =
-            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
-        let (proof, verifying_key) = batch_circuit.create_and_verify_snark()?;
+        let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
+        let (output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
 
-        let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
-        let signed_current_commitment = self.key.sign(&current_commitment.as_bytes()).to_string();
+        let signed_prev_commitment = hex::encode(self.key.sign(&prev_commitment).to_bytes());
+        let signed_current_commitment = hex::encode(self.key.sign(&current_commitment).to_bytes());
 
         let epoch_json = EpochJson {
             height: epoch,
             prev_commitment: signed_prev_commitment,
             current_commitment: signed_current_commitment,
-            proof: serialize_proof(&proof),
-            verifying_key: serialize_verifying_key_to_custom(&verifying_key),
+            proof: proof.serialize_to_bytes().unwrap(),
             signature: None,
         };
 
@@ -270,7 +267,7 @@ impl Sequencer {
     pub fn create_tree(&self) -> Result<IndexedMerkleTree, MerkleTreeError> {
         // TODO: better error handling (#11)
         // Retrieve the keys from input order and sort them.
-        let ordered_derived_dict_keys: Vec<String> =
+        let ordered_derived_dict_keys: Vec<[u8; 32]> =
             self.db.get_derived_keys_in_order().unwrap_or(vec![]);
         let mut sorted_keys = ordered_derived_dict_keys.clone();
         sorted_keys.sort();
@@ -279,8 +276,8 @@ impl Sequencer {
         let mut nodes: Vec<Node> = sorted_keys
             .iter()
             .map(|key| {
-                let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-                Node::new_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
+                let value: [u8; 32] = self.db.get_derived_value(&hex::encode(key)).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+                Node::new_leaf(true, true, key.clone(), value, Node::TAIL)
             })
             .collect();
 
@@ -334,14 +331,32 @@ impl Sequencer {
             nodes.push(Node::new_leaf(
                 false,
                 true,
-                Node::EMPTY_HASH.to_string(),
-                Node::EMPTY_HASH.to_string(),
-                Node::TAIL.to_string(),
+                Node::EMPTY_HASH,
+                Node::EMPTY_HASH,
+                Node::TAIL,
             ));
         }
 
         // create tree, setting left / right child property for each node
         IndexedMerkleTree::new(nodes)
+    }
+
+    fn hash_chain_entry(&self, entry: &IncomingEntry, previous_hash: &str) -> ChainEntry {
+        let previous_hash = if previous_hash.is_empty() {
+            Node::EMPTY_HASH
+        } else {
+            hex::decode(previous_hash).unwrap().try_into().unwrap()
+        };
+        ChainEntry {
+            hash: sha256(&concat_slices(vec![
+                &entry.operation.to_string().as_bytes(),
+                &entry.value.as_bytes(),
+                &previous_hash,
+            ])),
+            previous_hash: previous_hash,
+            operation: entry.operation.clone(),
+            value: entry.value.clone(),
+        }
     }
 
     /// Updates an entry in the database based on the given operation, incoming entry, and the signature from the user.
@@ -388,19 +403,14 @@ impl Sequencer {
                 let mut current_chain = value.clone();
 
                 let new_chain_entry = ChainEntry {
-                    hash: hex_digest(
-                        Algorithm::SHA256,
-                        format!(
-                            "{}, {}, {}",
-                            &incoming_entry.operation,
-                            &incoming_entry.value,
-                            &current_chain.last().unwrap().hash
-                        )
-                        .as_bytes(),
-                    ),
+                    hash: sha256(&concat_slices(vec![
+                        &incoming_entry.operation.to_string().as_bytes(),
+                        &incoming_entry.value.as_bytes(),
+                        &current_chain.last().unwrap().hash,
+                    ])),
                     previous_hash: current_chain.last().unwrap().hash.clone(),
                     operation: incoming_entry.operation.clone(),
-                    value: incoming_entry.value.clone(),
+                    value: incoming_entry.value.clone(), // TODO: is the value a string or u8;32 here?
                 };
 
                 current_chain.push(new_chain_entry.clone());
@@ -416,17 +426,12 @@ impl Sequencer {
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
                 let new_chain = vec![ChainEntry {
-                    hash: hex_digest(
-                        Algorithm::SHA256,
-                        format!(
-                            "{}, {}, {}",
-                            Operation::Add,
-                            &incoming_entry.value,
-                            Node::EMPTY_HASH.to_string()
-                        )
-                        .as_bytes(),
-                    ),
-                    previous_hash: Node::EMPTY_HASH.to_string(),
+                    hash: sha256(&concat_slices(vec![
+                        &Operation::Add.to_string().as_bytes(),
+                        &incoming_entry.value.as_bytes(),
+                        &Node::EMPTY_HASH,
+                    ])),
+                    previous_hash: Node::EMPTY_HASH,
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.value.clone(),
                 }];

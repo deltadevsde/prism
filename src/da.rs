@@ -1,29 +1,30 @@
-use crate::error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError};
-use crate::utils::Signable;
-use crate::zk_snark::{Bls12Proof, VerifyingKey};
+use crate::{
+    error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError},
+    utils::Signable,
+    zk_snark::{Bls12Proof, VerifyingKey},
+};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
-use celestia_types::blob::SubmitOptions;
-use celestia_types::{nmt::Namespace, Blob};
+use celestia_types::{blob::SubmitOptions, nmt::Namespace, Blob};
 use ed25519::Signature;
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_json::Value;
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Seek, Write};
-use std::str::FromStr;
-use std::{self, sync::Arc};
-use tokio::sync::mpsc;
-use tokio::task::spawn;
+use serde_json::{json, Value};
+use std::{
+    self,
+    fs::{File, OpenOptions},
+    io::{Read, Seek, Write},
+    str::FromStr,
+    sync::Arc,
+};
+use tokio::{sync::mpsc, task::spawn};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EpochJson {
     pub height: u64,
     pub prev_commitment: String,
     pub current_commitment: String,
-    pub proof: Bls12Proof,
-    pub verifying_key: VerifyingKey,
+    pub proof: Vec<u8>,
     pub signature: Option<String>,
 }
 
@@ -367,12 +368,15 @@ mod da_tests {
         sha256,
         tree::{IndexedMerkleTree, Proof},
     };
+    use jolt::Proof as JoltProof;
     use rand::rngs::OsRng;
-    use std::fs::OpenOptions;
-    use std::io::{Error, Seek, SeekFrom};
+    use std::{
+        fs::OpenOptions,
+        io::{Error, Seek, SeekFrom},
+    };
 
-    const EMPTY_HASH: &str = Node::EMPTY_HASH;
-    const TAIL: &str = Node::TAIL;
+    const EMPTY_HASH: [u8; 32] = Node::EMPTY_HASH;
+    const TAIL: [u8; 32] = Node::TAIL;
 
     pub fn clear_file(filename: &str) -> Result<(), Error> {
         // Open file for writing
@@ -388,20 +392,8 @@ mod da_tests {
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::new_leaf(
-            true,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
-        let inactive_node = Node::new_leaf(
-            false,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
+        let active_node = Node::new_leaf(true, true, EMPTY_HASH, EMPTY_HASH, TAIL);
+        let inactive_node = Node::new_leaf(false, true, EMPTY_HASH, EMPTY_HASH, TAIL);
 
         // build a tree with 4 nodes
         IndexedMerkleTree::new(vec![
@@ -414,9 +406,9 @@ mod da_tests {
     }
 
     fn create_node(label: &str, value: &str) -> Node {
-        let label = sha256(&label.to_string());
-        let value = sha256(&value.to_string());
-        Node::new_leaf(true, true, label, value, TAIL.to_string())
+        let label = sha256(label.as_bytes());
+        let value = sha256(value.as_bytes());
+        Node::new_leaf(true, true, label, value, TAIL)
     }
 
     fn create_proof_and_vk(
@@ -444,13 +436,12 @@ mod da_tests {
             let prev_commitment = epoch_json.prev_commitment;
             let current_commitment = epoch_json.current_commitment;
 
-            let proof = deserialize_proof(&epoch_json.proof).unwrap();
-            let verifying_key =
-                deserialize_custom_to_verifying_key(&epoch_json.verifying_key).unwrap();
+            let proof = JoltProof::deserialize_from_bytes(&epoch_json.proof).unwrap();
 
-            match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
+            match validate_epoch(&prev_commitment, &current_commitment, proof) {
                 Ok(_) => {
-                    info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
+                    info!("validated successful") // TODO: logging too short?!
+                                                  //info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
                 }
                 Err(err) => panic!("Failed to validate epoch: {:?}", err),
             }
@@ -479,8 +470,9 @@ mod da_tests {
             let first_insert_zk_snark = Proof::Insert(first_insert_proof);
 
             // create bls12 proof for posting
-            let (bls12proof, vk) = create_proof_and_vk(
-                prev_commitment.clone(),
+            let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
+            let (output, proof) = proof_epoch(
+                prev_commitment,
                 tree.get_commitment().unwrap(),
                 vec![first_insert_zk_snark],
             );
@@ -488,10 +480,9 @@ mod da_tests {
             sequencer_layer
                 .submit(&EpochJson {
                     height: 1,
-                    prev_commitment: prev_commitment,
-                    current_commitment: tree.get_commitment().unwrap(),
-                    proof: bls12proof,
-                    verifying_key: vk,
+                    prev_commitment: hex::encode(prev_commitment),
+                    current_commitment: hex::encode(tree.get_commitment().unwrap()),
+                    proof: proof.serialize_to_bytes().unwrap(),
                     signature: None,
                 })
                 .await
@@ -511,19 +502,19 @@ mod da_tests {
             let second_insert_zk_snark = Proof::Insert(second_insert_proof);
             let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
-            // proof and vk
-            let (proof, vk) = create_proof_and_vk(
-                prev_commitment.clone(),
+            // TODO: proof and vk
+            let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
+            let (output, proof) = proof_epoch(
+                prev_commitment,
                 tree.get_commitment().unwrap(),
                 vec![second_insert_zk_snark, third_insert_zk_snark],
             );
             sequencer_layer
                 .submit(&EpochJson {
                     height: 2,
-                    prev_commitment: prev_commitment,
-                    current_commitment: tree.get_commitment().unwrap(),
-                    proof: proof,
-                    verifying_key: vk,
+                    prev_commitment: hex::encode(prev_commitment),
+                    current_commitment: hex::encode(tree.get_commitment().unwrap()),
+                    proof: proof.serialize_to_bytes().unwrap(),
                     signature: None,
                 })
                 .await

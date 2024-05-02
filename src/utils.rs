@@ -11,7 +11,10 @@ use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::{IndexedMerkleTree, InsertProof, MerkleProof, Proof, UpdateProof};
+use indexed_merkle_tree::tree::{
+    IndexedMerkleTree, InsertProof, MerkleProof, NonMembershipProof, Proof, UpdateProof,
+};
+use jolt::Proof as JoltProof;
 use rand::rngs::OsRng;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -67,7 +70,7 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, Ge
 
 pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
     if let Ok((non_membership_proof, first_proof, second_proof)) =
-        serde_json::from_str::<(MerkleProof, UpdateProof, UpdateProof)>(&proof_value)
+        serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
     {
         let insertion_proof = InsertProof {
             non_membership_proof,
@@ -120,34 +123,19 @@ pub fn create_and_verify_snark(
 pub fn validate_epoch(
     previous_commitment: &String,
     current_commitment: &String,
-    proof: groth16::Proof<Bls12>,
-    verifying_key: VerifyingKey<Bls12>,
-) -> Result<groth16::Proof<Bls12>, DeimosError> {
+    proof: JoltProof,
+) -> Result<bool, DeimosError> {
     debug!("validate_epoch: preparing verifying key for zkSNARK");
-    let pvk = groth16::prepare_verifying_key(&verifying_key);
-
-    let scalars: Result<Vec<Scalar>, _> = vec![
-        hex_to_scalar(&previous_commitment.as_str()),
-        hex_to_scalar(&current_commitment.as_str()),
-    ]
-    .into_iter()
-    .collect();
-
-    let scalars = scalars.map_err(|_| {
-        DeimosError::General(GeneralError::ParsingError(format!(
-            "unable to parse public input parameters"
-        )))
-    })?;
+    let (_proof_epoch, verify_epoch) = guest::build_proof_epoch();
+    // TODO: this is just the validation of the snarks! doesnt mean that the merkle proof themselves are also corret
 
     debug!("validate_epoch: verifying zkSNARK proof...");
-    groth16::verify_proof(&pvk, &proof, &scalars)
-        .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
-
+    let epoch_is_valid = verify_epoch(proof);
     debug!(
         "validate_epoch: zkSNARK with groth16 random parameters for epoch between commitment {} and {} was successfully verified!",
-        previous_commitment, current_commitment
+        previous_commitment, current_commitment // commitments are in the verifying function only necessary for debug
     );
-    Ok(proof)
+    Ok(epoch_is_valid)
 }
 
 pub trait Signable {
@@ -181,7 +169,10 @@ pub fn verify_signature<T: Signable>(
 
 #[cfg(test)]
 mod tests {
-    use indexed_merkle_tree::{node::LeafNode, node::Node, sha256};
+    use indexed_merkle_tree::{
+        node::{LeafNode, Node},
+        sha256,
+    };
 
     use super::*;
 
@@ -209,13 +200,13 @@ mod tests {
         let mut tree = IndexedMerkleTree::new_with_size(4).unwrap();
         let prev_commitment = tree.get_commitment().unwrap();
 
-        let ryan = sha256(&"Ryan".to_string());
-        let ford = sha256(&"Ford".to_string());
-        let sebastian = sha256(&"Sebastian".to_string());
-        let pusch = sha256(&"Pusch".to_string());
+        let ryan = sha256(&"Ryan".as_bytes());
+        let ford = sha256(&"Ford".as_bytes());
+        let sebastian = sha256(&"Sebastian".as_bytes());
+        let pusch = sha256(&"Pusch".as_bytes());
 
-        let ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL.to_string());
-        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
+        let ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL);
+        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL);
 
         let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
         let second_insert_proof = tree.insert_node(&sebastians_node).unwrap();
@@ -226,22 +217,16 @@ mod tests {
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
         let current_commitment = tree.get_commitment().unwrap();
 
-        let batched_proof =
-            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs).unwrap();
-
-        let rng = &mut OsRng;
-        let params =
-            groth16::generate_random_parameters::<Bls12, _, _>(batched_proof.clone(), rng).unwrap();
-        let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
+        let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
+        let (output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
 
         let result = validate_epoch(
-            &prev_commitment,
-            &current_commitment,
-            proof.clone(),
-            params.vk,
+            &hex::encode(prev_commitment),
+            &hex::encode(current_commitment),
+            proof,
         );
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), proof);
+        assert_eq!(output, true);
     }
 }
