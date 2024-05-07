@@ -2,11 +2,7 @@ use crate::error::{DeimosError, GeneralError};
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16;
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
-use indexed_merkle_tree::{
-    node::Node,
-    sha256,
-    tree::{InsertProof, MerkleProof, Proof, UpdateProof},
-};
+use indexed_merkle_tree::{node::Node, tree::Proof};
 use serde::{Deserialize, Serialize};
 
 fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], DeimosError> {
@@ -85,9 +81,19 @@ pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine,
     Ok(affine.unwrap())
 }
 
-fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
+/* fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
     let scalar_root = hex_to_scalar(&proof.root_hash).map_err(DeimosError::General)?;
     Ok((scalar_root, &proof.path))
+}
+ */
+pub fn create_epoch_proof(
+    prev_commitment: [u8; 32],
+    current_commitment: [u8; 32],
+    proofs: Vec<Proof>,
+) -> Vec<u8> {
+    let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
+    let (_output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
+    proof.serialize_to_bytes().unwrap()
 }
 
 pub fn serialize_proof(proof: &groth16::Proof<Bls12>) -> Bls12Proof {

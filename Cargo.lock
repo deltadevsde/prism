@@ -13,10 +13,14 @@ dependencies = [
  "backtrace",
  "canonical-path",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "clap",
 =======
  "clap 4.5.1",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "clap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "color-eyre",
  "fs-err",
  "once_cell",
@@ -1301,10 +1305,14 @@ dependencies = [
  "binfarce",
  "cargo-lock",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "clap",
 =======
  "clap 4.5.1",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "clap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "display-error-chain",
  "home",
  "is-terminal",
@@ -1368,10 +1376,14 @@ dependencies = [
  "anyhow",
  "celestia-tendermint-proto",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "prost",
 =======
  "prost 0.12.3",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "prost",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "prost-build",
  "prost-types",
  "serde",
@@ -1408,10 +1420,14 @@ dependencies = [
  "num-traits",
  "once_cell",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "prost",
 =======
  "prost 0.12.3",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "prost",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "prost-types",
  "serde",
  "serde_bytes",
@@ -1436,10 +1452,14 @@ dependencies = [
  "num-derive",
  "num-traits",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "prost",
 =======
  "prost 0.12.3",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "prost",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "prost-types",
  "serde",
  "serde_bytes",
@@ -1599,6 +1619,7 @@ dependencies = [
 
 [[package]]
 name = "clap"
+<<<<<<< HEAD
 version = "3.2.25"
 >>>>>>> 485d206 (fix: test dependencies)
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1611,16 +1632,22 @@ dependencies = [
 
 [[package]]
 name = "clap"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "4.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c918d541ef2913577a0f9566e9ce27cb35b6df072075769e0b26cb5a554520da"
 dependencies = [
  "clap_builder",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "clap_derive",
 =======
  "clap_derive 4.5.0",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "clap_derive",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 ]
 
 [[package]]
@@ -1631,6 +1658,7 @@ checksum = "9f3e7391dad68afb0c2ede1bf619f579a3dc9c2ec67f089baa397123a2f3d1eb"
 dependencies = [
  "anstream",
  "anstyle",
+<<<<<<< HEAD
 <<<<<<< HEAD
  "clap_lex",
  "strsim",
@@ -1656,6 +1684,10 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+=======
+ "clap_lex",
+ "strsim",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 ]
 
 [[package]]
@@ -1672,6 +1704,7 @@ dependencies = [
 
 [[package]]
 name = "clap_lex"
+<<<<<<< HEAD
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
@@ -1682,6 +1715,8 @@ dependencies = [
 
 [[package]]
 name = "clap_lex"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
@@ -1760,6 +1795,7 @@ name = "common"
 version = "0.2.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -1767,6 +1803,9 @@ source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c13
 =======
 source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 dependencies = [
  "ark-serialize 0.4.2",
  "serde",
@@ -1972,6 +2011,7 @@ dependencies = [
  "ciborium",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "clap",
 =======
  "clap 4.5.4",
@@ -1979,6 +2019,9 @@ dependencies = [
 =======
  "clap 4.5.1",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "clap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "criterion-plot",
  "is-terminal",
  "itertools 0.10.5",
@@ -2126,10 +2169,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b467862cc8610ca6fc9a1532d7777cee0804e678ab45410897b9396495994a0b"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "nix",
 =======
  "nix 0.27.1",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "nix",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "windows-sys 0.52.0",
 ]
 
@@ -2237,10 +2284,14 @@ dependencies = [
  "celestia-rpc",
  "celestia-types",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "clap",
 =======
  "clap 4.5.1",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "clap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "colored",
  "config",
  "crypto-hash",
@@ -2276,6 +2327,7 @@ dependencies = [
  "rand 0.7.3",
  "rand 0.8.5",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "redis 0.25.3",
  "reqwest 0.12.4",
 =======
@@ -2286,6 +2338,10 @@ dependencies = [
 =======
  "reqwest 0.11.24",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "redis 0.25.3",
+ "reqwest 0.12.4",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "serde",
  "serde_json",
  "thiserror",
@@ -3788,6 +3844,7 @@ dependencies = [
  "http 0.2.12",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "indexmap",
 =======
  "indexmap 2.2.6",
@@ -3795,6 +3852,9 @@ dependencies = [
 =======
  "indexmap 2.2.5",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "indexmap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "slab",
  "tokio",
  "tokio-util 0.7.10",
@@ -3815,7 +3875,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http 1.1.0",
- "indexmap 2.2.5",
+ "indexmap",
  "slab",
  "tokio",
  "tokio-util 0.7.10",
@@ -3843,6 +3903,7 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+<<<<<<< HEAD
 version = "0.12.3"
 >>>>>>> 485d206 (fix: test dependencies)
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3882,6 +3943,8 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
@@ -3915,6 +3978,7 @@ checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 <<<<<<< HEAD
 =======
 name = "hermit-abi"
+<<<<<<< HEAD
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
@@ -3925,6 +3989,8 @@ dependencies = [
 [[package]]
 >>>>>>> 5664a74 (feat: prepare for jolt)
 name = "hermit-abi"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
@@ -4141,6 +4207,7 @@ dependencies = [
 
 [[package]]
 name = "hyper-tls"
+<<<<<<< HEAD
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70206fc6890eaca9fde8a0bf71caa2ddfc9fe045ac9e5c70df101a7dbde866e0"
@@ -4216,6 +4283,8 @@ dependencies = [
 
 [[package]]
 name = "hyper-tls"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70206fc6890eaca9fde8a0bf71caa2ddfc9fe045ac9e5c70df101a7dbde866e0"
@@ -4377,6 +4446,7 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
+<<<<<<< HEAD
 version = "2.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 <<<<<<< HEAD
@@ -4389,6 +4459,8 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "2.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 >>>>>>> 5664a74 (feat: prepare for jolt)
@@ -4511,6 +4583,7 @@ name = "jolt-core"
 version = "0.1.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -4518,6 +4591,9 @@ source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c13
 =======
 source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -4527,6 +4603,7 @@ dependencies = [
  "bincode",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "clap",
 =======
  "clap 4.5.4",
@@ -4534,6 +4611,9 @@ dependencies = [
 =======
  "clap 4.5.1",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "clap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "common",
  "criterion",
  "digest 0.8.1",
@@ -4576,6 +4656,7 @@ name = "jolt-sdk"
 version = "0.1.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -4583,6 +4664,9 @@ source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c13
 =======
 source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -4611,6 +4695,7 @@ name = "jolt-sdk-macros"
 version = "0.1.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -4618,6 +4703,9 @@ source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c13
 =======
 source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 dependencies = [
  "common",
  "proc-macro2",
@@ -4938,6 +5026,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
 
 [[package]]
+<<<<<<< HEAD
 name = "libloading"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4948,6 +5037,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 name = "libloading"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5215,6 +5306,7 @@ checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 =======
 
 [[package]]
+<<<<<<< HEAD
 name = "names"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5226,6 +5318,8 @@ dependencies = [
 >>>>>>> 5664a74 (feat: prepare for jolt)
 
 [[package]]
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 name = "native-tls"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5245,6 +5339,7 @@ dependencies = [
 
 [[package]]
 name = "nix"
+<<<<<<< HEAD
 version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
@@ -5258,6 +5353,8 @@ dependencies = [
 <<<<<<< HEAD
 =======
 name = "nix"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
@@ -5659,6 +5756,7 @@ dependencies = [
  "fixedbitset 0.4.2",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "indexmap",
 =======
  "indexmap 2.2.6",
@@ -5666,6 +5764,9 @@ dependencies = [
 =======
  "indexmap 2.2.5",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "indexmap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 ]
 
 [[package]]
@@ -5968,6 +6069,7 @@ dependencies = [
 
 [[package]]
 name = "prost"
+<<<<<<< HEAD
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "146c289cda302b98a28d40c8b3b90498d6e526dd24ac2ecea73e4e491685b94a"
@@ -5981,13 +6083,19 @@ dependencies = [
 
 [[package]]
 name = "prost"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "146c289cda302b98a28d40c8b3b90498d6e526dd24ac2ecea73e4e491685b94a"
 dependencies = [
  "bytes",
+<<<<<<< HEAD
  "prost-derive 0.12.3",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "prost-derive",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 ]
 
 [[package]]
@@ -6005,10 +6113,14 @@ dependencies = [
  "petgraph",
  "prettyplease",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "prost",
 =======
  "prost 0.12.3",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "prost",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "prost-types",
  "regex",
  "syn 2.0.52",
@@ -6018,6 +6130,7 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
+<<<<<<< HEAD
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "efb6c9a1dd1def8e2124d17e83a20af56f1570d6c2d2bd9e266ccb768df3840e"
@@ -6033,6 +6146,8 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "efb6c9a1dd1def8e2124d17e83a20af56f1570d6c2d2bd9e266ccb768df3840e"
@@ -6051,6 +6166,7 @@ version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "193898f59edcf43c26227dcd4c8427f00d99d61e95dcde58dabd49fa291d470e"
 dependencies = [
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
  "prost",
@@ -6090,6 +6206,9 @@ dependencies = [
  "pyroscope",
  "thiserror",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "prost",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 ]
 
 [[package]]
@@ -6372,9 +6491,12 @@ dependencies = [
  "hyper 0.14.28",
  "hyper-rustls",
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
  "hyper-tls 0.5.0",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "ipnet",
  "js-sys",
  "log",
@@ -6399,9 +6521,12 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
  "webpki-roots",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "winreg 0.50.0",
 ]
 
@@ -6431,10 +6556,14 @@ dependencies = [
  "http-body-util",
  "hyper 1.3.1",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "hyper-tls",
 =======
  "hyper-tls 0.6.0",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "hyper-tls",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "hyper-util",
  "ipnet",
  "js-sys",
@@ -7140,6 +7269,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strsim"
+<<<<<<< HEAD
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
@@ -7151,6 +7281,8 @@ version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 =======
 name = "strsim"
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
@@ -7371,6 +7503,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "textwrap"
 version = "0.16.1"
 >>>>>>> 485d206 (fix: test dependencies)
@@ -7382,6 +7515,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 name = "thiserror"
 version = "1.0.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7637,10 +7772,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "indexmap",
 =======
  "indexmap 2.2.5",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "indexmap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -7654,10 +7793,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70f427fce4d84c72b5b732388bf4a9f4531b53f74e2887e3ecb2481f68f66d81"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "indexmap",
 =======
  "indexmap 2.2.5",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "indexmap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "toml_datetime",
  "winnow 0.5.40",
 ]
@@ -7669,10 +7812,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c1b5fd4128cc8d3e0cb74d4ed9a9cc7c7284becd4df68f5f940e1ad123606f6"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "indexmap",
 =======
  "indexmap 2.2.5",
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+ "indexmap",
+>>>>>>> 6ff9e50 (fix: types and snark lib)
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -7718,6 +7865,7 @@ name = "tracer"
 version = "0.2.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -7725,6 +7873,9 @@ source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c13
 =======
 source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e3599aae87e"
 >>>>>>> 5664a74 (feat: prepare for jolt)
+=======
+source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 dependencies = [
  "common",
  "fnv",
@@ -8144,6 +8295,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "which"
 version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8156,6 +8308,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> 6ff9e50 (fix: types and snark lib)
 name = "which"
 version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

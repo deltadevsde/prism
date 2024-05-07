@@ -1,7 +1,6 @@
 use crate::{
     error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError},
     utils::Signable,
-    zk_snark::{Bls12Proof, VerifyingKey},
 };
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
@@ -473,8 +472,7 @@ mod da_tests {
             let first_insert_zk_snark = Proof::Insert(first_insert_proof);
 
             // create bls12 proof for posting
-            let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
-            let (output, proof) = proof_epoch(
+            let (_output, proof) = proof_epoch(
                 prev_commitment,
                 tree.get_commitment().unwrap(),
                 vec![first_insert_zk_snark],
@@ -486,7 +484,7 @@ mod da_tests {
                     height: 1,
                     prev_commitment: hex::encode(prev_commitment),
                     current_commitment: hex::encode(tree.get_commitment().unwrap()),
-                    proof: proof.serialize_to_bytes().unwrap(),
+                    proof,
                     signature: None,
                 })
                 .await

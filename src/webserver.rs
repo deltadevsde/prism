@@ -16,7 +16,7 @@ use crate::{
     error::DeimosError,
     node_types::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
-    utils::{is_not_revoked, validate_proof},
+    utils::{is_not_revoked, validate_proof, PROVER},
 };
 
 pub struct WebServer {
@@ -285,8 +285,8 @@ pub fn get_epochs_and_proofs(
     let previous_epoch = epoch_number - 1;
 
     // Get current commitment from database
-    let current_commitment: String = match con.db.get_commitment(&epoch_number) {
-        Ok(value) => hex::encode(value),
+    let current_commitment: [u8; 32] = match con.db.get_commitment(&epoch_number) {
+        Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -296,8 +296,8 @@ pub fn get_epochs_and_proofs(
     };
 
     // Get previous commitment from database
-    let previous_commitment: String = match con.db.get_commitment(&previous_epoch) {
-        Ok(value) => hex::encode(value),
+    let previous_commitment: [u8; 32] = match con.db.get_commitment(&previous_epoch) {
+        Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -405,7 +405,9 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
         epoch
     );
 
-    let (prover, verifier) = guest::build_proof_epoch();
+    let jolt = PROVER.lock().unwrap();
+    let prover = jolt.get_epoch_proof();
+    let verifier = jolt.get_epoch_verify();
     let (output, proof) = prover(previous_commitment, current_commitment, proofs);
 
     let parsed_proof = proof.serialize_to_bytes().unwrap();
