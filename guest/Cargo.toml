@@ -11,7 +11,7 @@ path = "./src/lib.rs"
 guest = []
 
 [dependencies]
-jolt = { package = "jolt-sdk", git = "https://github.com/deltadevsde/jolt", rev = "583b869d148a319f2cdd7b3f092c132ed95e95d9"}
 heapless = "0.8.0"
 indexed-merkle-tree =  { git = "https://github.com/deltadevsde/indexed-merkle-tree", rev = "8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4"}
 sha2 = "0.10.8"
+jolt = { package = "jolt-sdk", git = "https://github.com/deltadevsde/jolt"}
