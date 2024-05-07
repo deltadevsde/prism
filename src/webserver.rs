@@ -16,7 +16,7 @@ use crate::{
     error::DeimosError,
     node_types::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
-    utils::{is_not_revoked, validate_proof, PROVER},
+    utils::{is_not_revoked, validate_proof},
 };
 
 pub struct WebServer {
@@ -405,9 +405,7 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
         epoch
     );
 
-    let jolt = PROVER.lock().unwrap();
-    let prover = jolt.get_epoch_proof();
-    let verifier = jolt.get_epoch_verify();
+    let (prover, verifier) = guest::build_proof_epoch();
     let (output, proof) = prover(previous_commitment, current_commitment, proofs);
 
     let parsed_proof = proof.serialize_to_bytes().unwrap();

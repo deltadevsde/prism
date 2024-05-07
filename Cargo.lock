@@ -997,8 +997,12 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
+<<<<<<< HEAD
  "itertools 0.10.5",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+ "itertools 0.12.1",
+>>>>>>> b7a4bd1 (feat: equalize files)
  "lazy_static",
  "lazycell",
  "log",
@@ -3645,13 +3649,19 @@ name = "guest"
 version = "0.1.0"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b7a4bd1 (feat: equalize files)
  "heapless",
  "indexed-merkle-tree",
  "jolt-sdk",
  "sha2 0.10.8",
+<<<<<<< HEAD
 =======
  "jolt-sdk",
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+>>>>>>> b7a4bd1 (feat: equalize files)
 ]
 
 [[package]]
@@ -3706,6 +3716,15 @@ checksum = "6dd08c532ae367adf81c312a4580bc67f1d0fe8bc9c460520283f4c0ff277888"
 dependencies = [
  "cfg-if 1.0.0",
  "crunchy",
+]
+
+[[package]]
+name = "hash32"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47d60b12902ba28e2730cd37e95b8c9223af2808df9e902d4df49588d1470606"
+dependencies = [
+ "byteorder",
 ]
 
 [[package]]
@@ -4200,12 +4219,17 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 [[package]]
 name = "indexed-merkle-tree"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "0.3.0"
 source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4#8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4"
 =======
 version = "0.2.0"
 source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=a22fd39242df3b08716fac6881e2f8f8cfd8642f#a22fd39242df3b08716fac6881e2f8f8cfd8642f"
 >>>>>>> 485d206 (fix: test dependencies)
+=======
+version = "0.3.0"
+source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4#8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4"
+>>>>>>> b7a4bd1 (feat: equalize files)
 dependencies = [
  "cargo-audit",
  "crypto-hash",
@@ -4753,7 +4777,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if 1.0.0",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]

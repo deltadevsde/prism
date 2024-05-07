@@ -92,7 +92,8 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, Ge
 }
 // TODO: Verification of single proofs?!
 pub fn validate_proof(proof_value: String) -> Result<bool, DeimosError> {
-    let prover = PROVER.lock().unwrap();
+    let (prover, verifier) = guest::build_proof_of_update();
+    let (prover_two, verifier_two) = guest::build_proof_of_insert();
     if let Ok((non_membership_proof, first_proof, second_proof)) =
         serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
     {
@@ -102,16 +103,16 @@ pub fn validate_proof(proof_value: String) -> Result<bool, DeimosError> {
             second_proof,
         };
         if insertion_proof.verify() {
-            let (output, proof) = (prover.insert_proof)(insertion_proof);
-            let is_valid = (prover.insert_verify)(proof);
+            let (output, proof) = prover_two(insertion_proof);
+            let is_valid = verifier_two(proof);
             Ok(output && is_valid)
         } else {
             Err(DeimosError::Proof(ProofError::VerificationError))
         }
     } else if let Ok(update_proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
         if update_proof.verify() {
-            let (output, proof) = (prover.update_proof)(update_proof);
-            let is_valid = (prover.update_verify)(proof);
+            let (output, proof) = prover(update_proof);
+            let is_valid = verifier(proof);
             Ok(output && is_valid)
         } else {
             Err(DeimosError::Proof(ProofError::VerificationError))

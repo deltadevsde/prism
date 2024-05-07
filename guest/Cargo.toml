@@ -15,3 +15,6 @@ heapless = "0.8.0"
 indexed-merkle-tree =  { git = "https://github.com/deltadevsde/indexed-merkle-tree", rev = "8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4"}
 sha2 = "0.10.8"
 jolt = { package = "jolt-sdk", git = "https://github.com/deltadevsde/jolt"}
+heapless = "0.8.0"
+indexed-merkle-tree =  { git = "https://github.com/deltadevsde/indexed-merkle-tree", rev = "8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4"}
+sha2 = "0.10.8"
