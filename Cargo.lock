@@ -1796,6 +1796,7 @@ version = "0.2.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -1806,6 +1807,9 @@ source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e
 =======
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 6ff9e50 (fix: types and snark lib)
+=======
+source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> df1a16c (fix: remove rev)
 dependencies = [
  "ark-serialize 0.4.2",
  "serde",
@@ -4584,6 +4588,7 @@ version = "0.1.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -4594,6 +4599,9 @@ source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e
 =======
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 6ff9e50 (fix: types and snark lib)
+=======
+source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> df1a16c (fix: remove rev)
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -4657,6 +4665,7 @@ version = "0.1.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -4667,6 +4676,9 @@ source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e
 =======
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 6ff9e50 (fix: types and snark lib)
+=======
+source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> df1a16c (fix: remove rev)
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -4696,6 +4708,7 @@ version = "0.1.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -4706,6 +4719,9 @@ source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e
 =======
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 6ff9e50 (fix: types and snark lib)
+=======
+source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> df1a16c (fix: remove rev)
 dependencies = [
  "common",
  "proc-macro2",
@@ -7866,6 +7882,7 @@ version = "0.2.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 =======
 source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
@@ -7876,6 +7893,9 @@ source = "git+https://github.com/deltadevsde/jolt#6f2f58dd1ca0526c07b0735cf1553e
 =======
 source = "git+https://github.com/deltadevsde/jolt?rev=583b869d148a319f2cdd7b3f092c132ed95e95d9#583b869d148a319f2cdd7b3f092c132ed95e95d9"
 >>>>>>> 6ff9e50 (fix: types and snark lib)
+=======
+source = "git+https://github.com/deltadevsde/jolt#583b869d148a319f2cdd7b3f092c132ed95e95d9"
+>>>>>>> df1a16c (fix: remove rev)
 dependencies = [
  "common",
  "fnv",
