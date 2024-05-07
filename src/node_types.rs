@@ -62,6 +62,11 @@ impl NodeType for Sequencer {
         debug!("starting main sequencer loop");
         spawn(async move {
             loop {
+                let (proof, verify) = guest::build_fib();
+                let (output, proof) = proof(12);
+                let verified = verify(proof);
+
+                println!("Fibonacci(12) = {}", output);
                 match self.finalize_epoch().await {
                     Ok(_) => {
                         info!(
