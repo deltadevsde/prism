@@ -1,6 +1,5 @@
 use std::time::{Duration, Instant};
 
-use deimos::utils::PROVER;
 use indexed_merkle_tree::{
     node::Node,
     sha256,
@@ -9,7 +8,7 @@ use indexed_merkle_tree::{
 
 fn generate_test_tree(size: usize, node_count: usize) -> Duration {
     let mut tree = IndexedMerkleTree::new_with_size(size).unwrap();
-    let jolt = PROVER.lock().unwrap();
+    let (epoch_proof, epoch_verify) = guest::build_proof_epoch();
 
     let prev_commitment = tree.get_commitment().unwrap();
     let mut proofs = Vec::with_capacity(node_count);
@@ -39,8 +38,6 @@ fn generate_test_tree(size: usize, node_count: usize) -> Duration {
     let current_commitment = tree.get_commitment().unwrap();
 
     let start = Instant::now();
-    let epoch_proof = jolt.get_epoch_proof();
-    let epoch_verify = jolt.get_epoch_verify();
     let (output, proof) = epoch_proof(prev_commitment, current_commitment, proofs);
 
     let end = Instant::now();

@@ -2324,7 +2324,6 @@ dependencies = [
  "log",
  "mockall",
  "num",
- "once_cell",
  "openssl",
  "pairing",
  "pretty_env_logger",

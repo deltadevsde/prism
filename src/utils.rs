@@ -9,7 +9,8 @@ use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
 use indexed_merkle_tree::tree::{InsertProof, NonMembershipProof, Proof, UpdateProof};
 use jolt::Proof as JoltProof;
-use once_cell::sync::Lazy;
+
+/* use once_cell::sync::Lazy;
 
 pub static PROVER: Lazy<Mutex<JoltProver>> = Lazy::new(|| Mutex::new(JoltProver::new()));
 
@@ -46,7 +47,7 @@ impl JoltProver {
     pub fn get_epoch_verify(&self) -> &Box<dyn Fn(JoltProof) -> bool + Sync + Send> {
         &self.epoch_verify
     }
-}
+} */
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
 ///
@@ -92,7 +93,8 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, Ge
 }
 // TODO: Verification of single proofs?!
 pub fn validate_proof(proof_value: String) -> Result<bool, DeimosError> {
-    let prover = PROVER.lock().unwrap();
+    let (insert_prover, insert_verifier) = guest::build_proof_of_insert();
+    let (update_prover, update_verifier) = guest::build_proof_of_update();
     if let Ok((non_membership_proof, first_proof, second_proof)) =
         serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
     {
@@ -102,16 +104,16 @@ pub fn validate_proof(proof_value: String) -> Result<bool, DeimosError> {
             second_proof,
         };
         if insertion_proof.verify() {
-            let (output, proof) = (prover.insert_proof)(insertion_proof);
-            let is_valid = (prover.insert_verify)(proof);
+            let (output, proof) = insert_prover(insertion_proof);
+            let is_valid = insert_verifier(proof);
             Ok(output && is_valid)
         } else {
             Err(DeimosError::Proof(ProofError::VerificationError))
         }
     } else if let Ok(update_proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
         if update_proof.verify() {
-            let (output, proof) = (prover.update_proof)(update_proof);
-            let is_valid = (prover.update_verify)(proof);
+            let (output, proof) = update_prover(update_proof);
+            let is_valid = update_verifier(proof);
             Ok(output && is_valid)
         } else {
             Err(DeimosError::Proof(ProofError::VerificationError))
