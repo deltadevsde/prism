@@ -32,6 +32,7 @@ extern crate log;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
+
     let config = load_config(args.clone()).unwrap();
 
     std::env::set_var("RUST_LOG", &config.log_level);
@@ -39,16 +40,18 @@ async fn main() -> std::io::Result<()> {
     pretty_env_logger::init();
     dotenv().ok();
 
-    let (proof, verify) = guest::build_sha256();
-    let (output, proof) = proof("test".as_bytes());
-    let serialized_proof = proof.serialize_to_string().unwrap();
+    let (proof, _verify) = guest::build_sha256();
+    let (_output, proof) = proof("test".as_bytes());
+    let _serialized_proof = proof.serialize_to_string().unwrap();
 
     let da = initialize_da_layer(&config).await;
 
     let node: Arc<dyn NodeType> = match args.command {
         // LightClients need a DA layer, so we can unwrap here
-        Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap(), config.public_key)),
-        Commands::Sequencer {} => Arc::new(Sequencer::new(
+        Some(Commands::LightClient {}) => {
+            Arc::new(LightClient::new(da.unwrap(), config.public_key))
+        }
+        _ => Arc::new(Sequencer::new(
             // TODO: convert error to std::io::Error...is there a better solution?
             Arc::new(
                 RedisConnections::new()

@@ -1,21 +1,52 @@
+use std::sync::Mutex;
+
 use crate::{
     error::{DeimosError, GeneralError, ProofError},
     storage::{ChainEntry, Operation},
-    zk_snark::{
-        hex_to_scalar, BatchMerkleProofCircuit, InsertMerkleProofCircuit, ProofVariantCircuit,
-        UpdateMerkleProofCircuit,
-    },
 };
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
-use bellman::groth16::{self, VerifyingKey};
-use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::{
-    IndexedMerkleTree, InsertProof, MerkleProof, NonMembershipProof, Proof, UpdateProof,
-};
+use indexed_merkle_tree::tree::{InsertProof, NonMembershipProof, Proof, UpdateProof};
 use jolt::Proof as JoltProof;
-use rand::rngs::OsRng;
+use once_cell::sync::Lazy;
+
+pub static PROVER: Lazy<Mutex<JoltProver>> = Lazy::new(|| Mutex::new(JoltProver::new()));
+
+pub struct JoltProver {
+    pub epoch_proof: Box<dyn Fn([u8; 32], [u8; 32], Vec<Proof>) -> (bool, JoltProof) + Sync + Send>,
+    pub epoch_verify: Box<dyn Fn(JoltProof) -> bool + Sync + Send>,
+    pub insert_proof: Box<dyn Fn(InsertProof) -> (bool, jolt::Proof) + Sync + Send>,
+    pub insert_verify: Box<dyn Fn(JoltProof) -> bool + Sync + Send>,
+    pub update_proof: Box<dyn Fn(UpdateProof) -> (bool, jolt::Proof) + Sync + Send>,
+    pub update_verify: Box<dyn Fn(JoltProof) -> bool + Sync + Send>,
+}
+
+impl JoltProver {
+    pub fn new() -> Self {
+        let (epoch_proof, epoch_verify) = guest::build_proof_epoch();
+        let (insert_proof, insert_verify) = guest::build_proof_of_insert();
+        let (update_proof, update_verify) = guest::build_proof_of_update();
+        JoltProver {
+            epoch_proof: Box::new(epoch_proof),
+            epoch_verify: Box::new(epoch_verify),
+            insert_proof: Box::new(insert_proof),
+            insert_verify: Box::new(insert_verify),
+            update_proof: Box::new(update_proof),
+            update_verify: Box::new(update_verify),
+        }
+    }
+
+    pub fn get_epoch_proof(
+        &self,
+    ) -> &Box<dyn Fn([u8; 32], [u8; 32], Vec<Proof>) -> (bool, JoltProof) + Sync + Send> {
+        &self.epoch_proof
+    }
+
+    pub fn get_epoch_verify(&self) -> &Box<dyn Fn(JoltProof) -> bool + Sync + Send> {
+        &self.epoch_verify
+    }
+}
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
 ///
@@ -43,14 +74,6 @@ pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::
     Ok(proof)
 }
 
-fn parse_option_to_scalar(option_input: Option<String>) -> Result<Scalar, GeneralError> {
-    let input_str = option_input
-        .ok_or_else(|| GeneralError::ParsingError("Could not parse input".to_string()))?;
-
-    hex_to_scalar(&input_str)
-        .map_err(|_| GeneralError::ParsingError("Could not convert input to scalar".to_string()))
-}
-
 pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, GeneralError> {
     // decode the public key from base64 string to bytes
     let public_key_bytes = engine.decode(pub_key_str).map_err(|e| {
@@ -67,8 +90,9 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, Ge
 
     Ok(public_key)
 }
-
-pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
+// TODO: Verification of single proofs?!
+pub fn validate_proof(proof_value: String) -> Result<bool, DeimosError> {
+    let prover = PROVER.lock().unwrap();
     if let Ok((non_membership_proof, first_proof, second_proof)) =
         serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
     {
@@ -78,17 +102,17 @@ pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
             second_proof,
         };
         if insertion_proof.verify() {
-            let insertion_circuit = InsertMerkleProofCircuit::new(&insertion_proof)?;
-            insertion_circuit.create_and_verify_snark()?;
-            Ok(())
+            let (output, proof) = (prover.insert_proof)(insertion_proof);
+            let is_valid = (prover.insert_verify)(proof);
+            Ok(output && is_valid)
         } else {
             Err(DeimosError::Proof(ProofError::VerificationError))
         }
-    } else if let Ok(proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
-        if proof.verify() {
-            let update_circuit = UpdateMerkleProofCircuit::new(&proof)?;
-            update_circuit.create_and_verify_snark()?;
-            Ok(())
+    } else if let Ok(update_proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
+        if update_proof.verify() {
+            let (output, proof) = (prover.update_proof)(update_proof);
+            let is_valid = (prover.update_verify)(proof);
+            Ok(output && is_valid)
         } else {
             Err(DeimosError::Proof(ProofError::VerificationError))
         }
@@ -96,8 +120,10 @@ pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
         Err(DeimosError::Proof(ProofError::InvalidFormatError))
     }
 }
-
-pub fn create_and_verify_snark(
+/*
+ */
+// TODO: creation and verification of snarks now handled by jolt
+/* pub fn create_and_verify_snark(
     circuit: ProofVariantCircuit,
     scalars: Vec<Scalar>,
 ) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>), DeimosError> {
@@ -118,7 +144,7 @@ pub fn create_and_verify_snark(
         .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
 
     Ok((proof, params.vk))
-}
+} */
 
 pub fn validate_epoch(
     previous_commitment: &String,
@@ -169,10 +195,7 @@ pub fn verify_signature<T: Signable>(
 
 #[cfg(test)]
 mod tests {
-    use indexed_merkle_tree::{
-        node::{LeafNode, Node},
-        sha256,
-    };
+    use indexed_merkle_tree::{node::Node, sha256, tree::IndexedMerkleTree};
 
     use super::*;
 

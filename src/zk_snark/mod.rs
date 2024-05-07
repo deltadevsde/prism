@@ -1,16 +1,8 @@
-use crate::{
-    error::{DeimosError, GeneralError, ProofError},
-    storage::ChainEntry,
-    utils::create_and_verify_snark,
-};
+use crate::error::{DeimosError, GeneralError};
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
-use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
+use bellman::groth16;
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
-use indexed_merkle_tree::{
-    node::Node,
-    sha256,
-    tree::{InsertProof, MerkleProof, Proof, UpdateProof},
-};
+use indexed_merkle_tree::{node::Node, tree::Proof};
 use serde::{Deserialize, Serialize};
 
 fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], DeimosError> {
@@ -89,9 +81,19 @@ pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine,
     Ok(affine.unwrap())
 }
 
-fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
+/* fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
     let scalar_root = hex_to_scalar(&proof.root_hash).map_err(DeimosError::General)?;
     Ok((scalar_root, &proof.path))
+}
+ */
+pub fn create_epoch_proof(
+    prev_commitment: [u8; 32],
+    current_commitment: [u8; 32],
+    proofs: Vec<Proof>,
+) -> Vec<u8> {
+    let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
+    let (_output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
+    proof.serialize_to_bytes().unwrap()
 }
 
 pub fn serialize_proof(proof: &groth16::Proof<Bls12>) -> Bls12Proof {
@@ -165,7 +167,7 @@ pub fn deserialize_custom_to_verifying_key(
     })
 }
 
-#[cfg(test)]
+/* #[cfg(test)]
 mod tests {
     use crate::zk_snark::deserialize_proof;
 
@@ -263,6 +265,7 @@ mod tests {
     }
 }
 
+ */
 #[derive(Clone)]
 pub struct HashChainEntryCircuit {
     pub value: Scalar,
@@ -314,7 +317,7 @@ pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
     Ok(Scalar::from_bytes_wide(&wide))
 }
 
-pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError> {
+/* pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError> {
     let mut current_hash = path[0].get_hash();
     for i in 1..(path.len()) {
         let sibling = &path[i];
@@ -734,3 +737,4 @@ impl HashChainEntryCircuit {
         Ok(hex_to_scalar(&hashed_value)?)
     }
 }
+ */

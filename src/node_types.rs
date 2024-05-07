@@ -1,14 +1,7 @@
 use async_trait::async_trait;
-use bellman::groth16::Proof;
-use bls12_381::Bls12;
-use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
-    concat_slices,
-    error::MerkleTreeError,
-    node::{LeafNode, Node},
-    sha256,
-    tree::IndexedMerkleTree,
+    concat_slices, error::MerkleTreeError, node::Node, sha256, tree::IndexedMerkleTree,
 };
 use jolt::Proof as JoltProof;
 use std::{self, io::ErrorKind, sync::Arc, time::Duration, vec};
@@ -21,10 +14,6 @@ use crate::{
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
     utils::{validate_epoch, verify_signature},
     webserver::WebServer,
-    zk_snark::{
-        deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-        serialize_verifying_key_to_custom, BatchMerkleProofCircuit,
-    },
 };
 
 #[async_trait]
@@ -230,8 +219,8 @@ impl Sequencer {
                 .map_err(DeimosError::MerkleTree)?
         };
 
-        let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
-        let (output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
+        let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
+        let (_output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
 
         let signed_prev_commitment = hex::encode(self.key.sign(&prev_commitment).to_bytes());
         let signed_current_commitment = hex::encode(self.key.sign(&current_commitment).to_bytes());
@@ -339,24 +328,6 @@ impl Sequencer {
 
         // create tree, setting left / right child property for each node
         IndexedMerkleTree::new(nodes)
-    }
-
-    fn hash_chain_entry(&self, entry: &IncomingEntry, previous_hash: &str) -> ChainEntry {
-        let previous_hash = if previous_hash.is_empty() {
-            Node::EMPTY_HASH
-        } else {
-            hex::decode(previous_hash).unwrap().try_into().unwrap()
-        };
-        ChainEntry {
-            hash: sha256(&concat_slices(vec![
-                &entry.operation.to_string().as_bytes(),
-                &entry.value.as_bytes(),
-                &previous_hash,
-            ])),
-            previous_hash: previous_hash,
-            operation: entry.operation.clone(),
-            value: entry.value.clone(),
-        }
     }
 
     /// Updates an entry in the database based on the given operation, incoming entry, and the signature from the user.

@@ -1,7 +1,6 @@
 use crate::{
     error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError},
     utils::Signable,
-    zk_snark::{Bls12Proof, VerifyingKey},
 };
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
@@ -355,8 +354,9 @@ mod da_tests {
     use crate::{
         utils::validate_epoch,
         zk_snark::{
-            deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-            serialize_verifying_key_to_custom, BatchMerkleProofCircuit, VerifyingKey,
+            create_epoch_proof, deserialize_custom_to_verifying_key, deserialize_proof,
+            serialize_proof, serialize_verifying_key_to_custom, BatchMerkleProofCircuit,
+            VerifyingKey,
         },
     };
 
@@ -411,7 +411,7 @@ mod da_tests {
         Node::new_leaf(true, true, label, value, TAIL)
     }
 
-    fn create_proof_and_vk(
+    /*  fn create_proof_and_vk(
         prev_commitment: String,
         current_commitment: String,
         proofs: Vec<Proof>,
@@ -429,7 +429,7 @@ mod da_tests {
             serialize_proof(&proof),
             serialize_verifying_key_to_custom(&params.vk),
         )
-    }
+    } */
 
     fn verify_epoch_json(epoch: Vec<EpochJson>) {
         for epoch_json in epoch {
@@ -456,6 +456,8 @@ mod da_tests {
 
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
+            let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
+
             let sequencer_layer = LocalDataAvailabilityLayer::new();
             // write all 60 seconds proofs and commitments
             // create a new tree
@@ -465,24 +467,24 @@ mod da_tests {
             // insert a first node
             let node_1 = create_node("test1", "test2");
 
-            // generate proof for the first insert
+            // generate proof for the first insert<
             let first_insert_proof = tree.insert_node(&node_1).unwrap();
             let first_insert_zk_snark = Proof::Insert(first_insert_proof);
 
             // create bls12 proof for posting
-            let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
-            let (output, proof) = proof_epoch(
+            let (_output, proof) = proof_epoch(
                 prev_commitment,
                 tree.get_commitment().unwrap(),
                 vec![first_insert_zk_snark],
             );
+            let proof = proof.serialize_to_bytes().unwrap();
 
             sequencer_layer
                 .submit(&EpochJson {
                     height: 1,
                     prev_commitment: hex::encode(prev_commitment),
                     current_commitment: hex::encode(tree.get_commitment().unwrap()),
-                    proof: proof.serialize_to_bytes().unwrap(),
+                    proof,
                     signature: None,
                 })
                 .await
