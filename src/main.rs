@@ -34,6 +34,13 @@ async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
     let config = load_config(args.clone()).unwrap();
 
+    let (prover, verifier) = guest::build_fib();
+    let (output, proof) = prover(12);
+    let verified = verifier(proof);
+
+    debug!("JOLT PROOF. Output: {}", output);
+    debug!("JOLT PROOF. Verified: {}", verified);
+
     std::env::set_var("RUST_LOG", &config.log_level);
 
     pretty_env_logger::init();
@@ -43,8 +50,10 @@ async fn main() -> std::io::Result<()> {
 
     let node: Arc<dyn NodeType> = match args.command {
         // LightClients need a DA layer, so we can unwrap here
-        Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap(), config.public_key)),
-        Commands::Sequencer {} => Arc::new(Sequencer::new(
+        Some(Commands::LightClient {}) => {
+            Arc::new(LightClient::new(da.unwrap(), config.public_key))
+        }
+        _ => Arc::new(Sequencer::new(
             // TODO: convert error to std::io::Error...is there a better solution?
             Arc::new(
                 RedisConnections::new()

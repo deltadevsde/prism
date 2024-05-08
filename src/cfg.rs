@@ -42,7 +42,7 @@ pub struct CommandLineArgs {
     public_key: Option<String>,
 
     #[command(subcommand)]
-    pub command: Commands,
+    pub command: Option<Commands>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

@@ -9,6 +9,14 @@ key_transparency = []
 testing = []
 ci = []
 
+[workspace]
+members = ["guest"]
+
+[profile.release]
+debug = 1
+codegen-units = 1
+lto = "fat"
+
 [dependencies]
 crypto-hash = "0.3.4"
 async-trait = "0.1.68"
@@ -43,7 +51,7 @@ clap = { version = "4.3.2", features = ["derive"] }
 config = "0.14.0"
 fs2 = "0.4.3"
 thiserror = "1.0.50"
-indexed-merkle-tree = "0.2.0"
+indexed-merkle-tree = { git = "https://github.com/deltadevsde/indexed-merkle-tree", rev = "a22fd39242df3b08716fac6881e2f8f8cfd8642f"}
 dotenvy = "0.15.7"
 ahash = "0.8.7"
 celestia-rpc = "0.1.0"
@@ -52,3 +60,11 @@ mockall = "0.12.1"
 keystore = { git = "https://github.com/deltadevsde/keystore", rev = "c817b6797ac6642d93af96949a893f58ba129e5c" }
 pyroscope = "0.5.7"
 pyroscope_pprofrs = "0.2.7"
+
+jolt = { package = "jolt-sdk", git = "https://github.com/deltadevsde/jolt", features = ["host"] }
+guest = { path = "./guest" }
+
+[patch.crates-io]
+ark-ff = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+ark-ec = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
+ark-serialize = { git = "https://github.com/a16z/arkworks-algebra", branch = "optimize/field-from-u64" }
