@@ -11,7 +11,9 @@ use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::{IndexedMerkleTree, InsertProof, MerkleProof, Proof, UpdateProof};
+use indexed_merkle_tree::tree::{
+    IndexedMerkleTree, InsertProof, MerkleProof, NonMembershipProof, Proof, UpdateProof,
+};
 use rand::rngs::OsRng;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -67,7 +69,7 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, Ge
 
 pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
     if let Ok((non_membership_proof, first_proof, second_proof)) =
-        serde_json::from_str::<(MerkleProof, UpdateProof, UpdateProof)>(&proof_value)
+        serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
     {
         let insertion_proof = InsertProof {
             non_membership_proof,
@@ -181,7 +183,10 @@ pub fn verify_signature<T: Signable>(
 
 #[cfg(test)]
 mod tests {
-    use indexed_merkle_tree::{node::LeafNode, node::Node, sha256};
+    use indexed_merkle_tree::{
+        node::{LeafNode, Node},
+        sha256,
+    };
 
     use super::*;
 
@@ -214,8 +219,8 @@ mod tests {
         let sebastian = sha256(&"Sebastian".to_string());
         let pusch = sha256(&"Pusch".to_string());
 
-        let ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL.to_string());
-        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
+        let ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL);
+        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL);
 
         let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
         let second_insert_proof = tree.insert_node(&sebastians_node).unwrap();
@@ -226,8 +231,12 @@ mod tests {
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
         let current_commitment = tree.get_commitment().unwrap();
 
-        let batched_proof =
-            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs).unwrap();
+        let batched_proof = BatchMerkleProofCircuit::new(
+            &hex::encode(&prev_commitment),
+            &hex::encode(&current_commitment),
+            proofs,
+        )
+        .unwrap();
 
         let rng = &mut OsRng;
         let params =
@@ -235,8 +244,8 @@ mod tests {
         let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
 
         let result = validate_epoch(
-            &prev_commitment,
-            &current_commitment,
+            &hex::encode(prev_commitment),
+            &hex::encode(current_commitment),
             proof.clone(),
             params.vk,
         );

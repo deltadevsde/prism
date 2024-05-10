@@ -34,13 +34,6 @@ async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
     let config = load_config(args.clone()).unwrap();
 
-    let (prover, verifier) = guest::build_fib();
-    let (output, proof) = prover(12);
-    let verified = verifier(proof);
-
-    debug!("JOLT PROOF. Output: {}", output);
-    debug!("JOLT PROOF. Verified: {}", verified);
-
     std::env::set_var("RUST_LOG", &config.log_level);
 
     pretty_env_logger::init();

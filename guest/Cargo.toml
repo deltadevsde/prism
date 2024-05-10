@@ -12,3 +12,6 @@ guest = []
 
 [dependencies]
 jolt = { package = "jolt-sdk", git = "https://github.com/deltadevsde/jolt" }
+heapless = "0.8.0"
+indexed-merkle-tree =  { git = "https://github.com/deltadevsde/indexed-merkle-tree", rev = "c5edc9c0e5679f7a212c78fea09ab960ed9fccac"}
+sha2 = { version = "0.10", default-features = false }

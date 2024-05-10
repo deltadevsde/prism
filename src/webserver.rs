@@ -137,7 +137,7 @@ async fn update_entry(
         if let Err(err) = session.db.add_merkle_proof(
             &epoch,
             &epoch_operation,
-            &tree.get_commitment().unwrap(),
+            &hex::encode(tree.get_commitment().unwrap()),
             &proofs,
         ) {
             return HttpResponse::InternalServerError()
@@ -232,7 +232,7 @@ async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     }
 
     for id in derived_keys {
-        let value: String = con.db.get_derived_value(&id).unwrap();
+        let value: String = hex::encode(con.db.get_derived_value(&id).unwrap());
         resp.derived_dict.push(DerivedEntry { id, value: value });
     }
     HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
@@ -289,7 +289,7 @@ pub fn get_epochs_and_proofs(
     let previous_epoch = epoch_number - 1;
 
     // Get current commitment from database
-    let current_commitment: String = match con.db.get_commitment(&epoch_number) {
+    let current_commitment: [u8; 32] = match con.db.get_commitment(&epoch_number) {
         Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
@@ -300,7 +300,7 @@ pub fn get_epochs_and_proofs(
     };
 
     // Get previous commitment from database
-    let previous_commitment: String = match con.db.get_commitment(&previous_epoch) {
+    let previous_commitment: [u8; 32] = match con.db.get_commitment(&previous_epoch) {
         Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
@@ -322,8 +322,8 @@ pub fn get_epochs_and_proofs(
 
     Ok((
         epoch_number,
-        previous_commitment,
-        current_commitment,
+        hex::encode(previous_commitment),
+        hex::encode(current_commitment),
         proofs,
     ))
 }
@@ -574,10 +574,10 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     epochs.sort();
 
     for epoch in epochs {
-        let value: String = con.db.get_commitment(&epoch).unwrap();
+        let value: [u8; 32] = con.db.get_commitment(&epoch).unwrap();
         resp.epochs.push(Epoch {
             id: epoch,
-            commitment: value,
+            commitment: hex::encode(value),
         });
     }
 

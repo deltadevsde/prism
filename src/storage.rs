@@ -1,20 +1,21 @@
 use base64::engine::{general_purpose, Engine as _};
 use ed25519::Signature;
 use indexed_merkle_tree::{node::Node, sha256, tree::Proof};
-use mockall::predicate::*;
-use mockall::*;
+use mockall::{predicate::*, *};
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
-use std::process::Command;
-use std::sync::MutexGuard;
-use std::thread::sleep;
-use std::time::Duration;
-use std::{self, fmt::Display, sync::Mutex};
+use std::{
+    self,
+    fmt::Display,
+    process::Command,
+    sync::{Mutex, MutexGuard},
+    thread::sleep,
+    time::Duration,
+};
 
-use crate::utils::Signable;
 use crate::{
     error::{DatabaseError, DeimosError, GeneralError},
-    utils::parse_json_to_proof,
+    utils::{parse_json_to_proof, Signable},
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -130,9 +131,9 @@ pub trait Database: Send + Sync {
     fn get_keys(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_derived_keys(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DeimosError>;
-    fn get_derived_value(&self, key: &String) -> Result<String, DatabaseError>;
+    fn get_derived_value(&self, key: &String) -> Result<[u8; 32], DatabaseError>;
     fn get_derived_keys_in_order(&self) -> Result<Vec<String>, DatabaseError>;
-    fn get_commitment(&self, epoch: &u64) -> Result<String, DatabaseError>;
+    fn get_commitment(&self, epoch: &u64) -> Result<[u8; 32], DatabaseError>;
     fn get_proof(&self, id: &String) -> Result<String, DatabaseError>;
     fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>, DatabaseError>;
     fn get_epoch(&self) -> Result<u64, DatabaseError>;
@@ -159,7 +160,7 @@ pub trait Database: Send + Sync {
         commitment: &String,
         proofs: &String,
     ) -> Result<(), DatabaseError>;
-    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), DatabaseError>;
+    fn add_commitment(&self, epoch: &u64, commitment: &[u8; 32]) -> Result<(), DatabaseError>;
     fn initialize_derived_dict(&self) -> Result<(), DatabaseError>;
     fn flush_database(&self) -> Result<(), DatabaseError>;
 }
@@ -242,11 +243,13 @@ impl Database for RedisConnections {
         Ok(chain)
     }
 
-    fn get_derived_value(&self, key: &String) -> Result<String, DatabaseError> {
+    fn get_derived_value(&self, key: &String) -> Result<[u8; 32], DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?;
-        let derived_value: String = con
+        let derived_value: Vec<u8> = con
             .get(key)
             .map_err(|_| DatabaseError::NotFoundError(format!("Key: {}", key)))?;
+
+        let derived_value: [u8; 32] = derived_value.as_slice().try_into().unwrap();
 
         Ok(derived_value)
     }
@@ -265,12 +268,12 @@ impl Database for RedisConnections {
         Ok(order)
     }
 
-    fn get_commitment(&self, epoch: &u64) -> Result<String, DatabaseError> {
+    fn get_commitment(&self, epoch: &u64) -> Result<[u8; 32], DatabaseError> {
         let mut con = self.lock_connection(&self.commitments)?;
-        let commitment = match con.get::<&str, String>(&format!("epoch_{}", epoch)) {
+        let commitment = match con.get::<&str, Vec<u8>>(&format!("epoch_{}", epoch)) {
             Ok(value) => {
-                let trimmed_value = value.trim_matches('"').to_string();
-                Ok(trimmed_value)
+                let parsed_value: [u8; 32] = value.as_slice().try_into().unwrap();
+                return Ok(parsed_value);
             }
             Err(_) => Err(DatabaseError::NotFoundError(format!(
                 "Commitment from epoch_{}",
@@ -382,16 +385,22 @@ impl Database for RedisConnections {
         let mut con = self.lock_connection(&self.derived_dict)?;
         let mut input_con = self.lock_connection(&self.input_order)?;
         let hashed_key = sha256(&incoming_entry.id);
-        con.set::<&String, &String, String>(&hashed_key, &value.hash)
+        con.set::<&String, &String, String>(&hex::encode(hashed_key), &value.hash)
             .map_err(|_| {
-                DatabaseError::WriteError(format!("derived dict update for key: {}", hashed_key))
+                DatabaseError::WriteError(format!(
+                    "derived dict update for key: {}",
+                    hex::encode(hashed_key)
+                ))
             })?;
 
         if new {
             input_con
-                .rpush::<&'static str, &String, u32>("input_order", &hashed_key)
+                .rpush::<&'static str, &String, u32>("input_order", &hex::encode(hashed_key))
                 .map_err(|_| {
-                    DatabaseError::WriteError(format!("input order update for key: {}", hashed_key))
+                    DatabaseError::WriteError(format!(
+                        "input order update for key: {}",
+                        hex::encode(hashed_key)
+                    ))
                 })?;
         }
         Ok(())
@@ -446,9 +455,9 @@ impl Database for RedisConnections {
         Ok(())
     }
 
-    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), DatabaseError> {
+    fn add_commitment(&self, epoch: &u64, commitment: &[u8; 32]) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.commitments)?;
-        con.set::<&String, &String, String>(&format!("epoch_{}", epoch), commitment)
+        con.set::<&String, &[u8; 32], String>(&format!("epoch_{}", epoch), commitment)
             .map_err(|_| DatabaseError::WriteError(format!("commitment for epoch: {}", epoch)))?;
         Ok(())
     }
@@ -457,10 +466,10 @@ impl Database for RedisConnections {
         let mut con = self.lock_connection(&self.derived_dict)?;
         let mut input_con = self.lock_connection(&self.input_order)?;
 
-        let empty_hash = Node::EMPTY_HASH.to_string(); // empty hash is always the first node (H(active=true, label=0^w, value=0^w, next=1^w))
+        let empty_hash = Node::EMPTY_HASH; // empty hash is always the first node (H(active=true, label=0^w, value=0^w, next=1^w))
 
         // set the empty hash as the first node in the derived dict
-        con.set::<&String, &String, String>(&empty_hash, &empty_hash)
+        con.set::<&String, &[u8; 32], String>(&hex::encode(empty_hash), &empty_hash)
             .map_err(|_| {
                 DatabaseError::WriteError(format!(
                     "empty hash as first entry in the derived dictionary"
@@ -470,7 +479,7 @@ impl Database for RedisConnections {
 
         // add the empty hash to the input order as first node
         input_con
-            .rpush::<&str, String, u32>("input_order", empty_hash.clone())
+            .rpush::<&str, String, u32>("input_order", hex::encode(empty_hash))
             .map_err(|_| {
                 DatabaseError::WriteError(format!("empty hash as first entry in input order"))
             })?;
@@ -691,9 +700,9 @@ mod tests {
 
         // check if the returned keys are correct
         let expected_keys: Vec<String> = vec![
-            sha256(&"test_key1".to_string()),
-            sha256(&"test_key2".to_string()),
-            sha256(&"test_key3".to_string()),
+            hex::encode(sha256(&"test_key1".to_string())),
+            hex::encode(sha256(&"test_key2".to_string())),
+            hex::encode(sha256(&"test_key3".to_string())),
         ];
         let returned_keys: Vec<String> = keys;
 

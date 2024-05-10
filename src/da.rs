@@ -375,8 +375,8 @@ mod da_tests {
         io::{Error, Seek, SeekFrom},
     };
 
-    const EMPTY_HASH: &str = Node::EMPTY_HASH;
-    const TAIL: &str = Node::TAIL;
+    const EMPTY_HASH: [u8; 32] = Node::EMPTY_HASH;
+    const TAIL: [u8; 32] = Node::TAIL;
 
     pub fn clear_file(filename: &str) -> Result<(), Error> {
         // Open file for writing
@@ -392,20 +392,8 @@ mod da_tests {
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::new_leaf(
-            true,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
-        let inactive_node = Node::new_leaf(
-            false,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
+        let active_node = Node::new_leaf(true, true, EMPTY_HASH, EMPTY_HASH, TAIL);
+        let inactive_node = Node::new_leaf(false, true, EMPTY_HASH, EMPTY_HASH, TAIL);
 
         // build a tree with 4 nodes
         IndexedMerkleTree::new(vec![
@@ -420,7 +408,7 @@ mod da_tests {
     fn create_node(label: &str, value: &str) -> Node {
         let label = sha256(&label.to_string());
         let value = sha256(&value.to_string());
-        Node::new_leaf(true, true, label, value, TAIL.to_string())
+        Node::new_leaf(true, true, label, value, TAIL)
     }
 
     fn create_proof_and_vk(
@@ -484,16 +472,16 @@ mod da_tests {
 
             // create bls12 proof for posting
             let (bls12proof, vk) = create_proof_and_vk(
-                prev_commitment.clone(),
-                tree.get_commitment().unwrap(),
+                hex::encode(prev_commitment),
+                hex::encode(tree.get_commitment().unwrap()),
                 vec![first_insert_zk_snark],
             );
 
             sequencer_layer
                 .submit(&EpochJson {
                     height: 1,
-                    prev_commitment: prev_commitment,
-                    current_commitment: tree.get_commitment().unwrap(),
+                    prev_commitment: hex::encode(prev_commitment),
+                    current_commitment: hex::encode(tree.get_commitment().unwrap()),
                     proof: bls12proof,
                     verifying_key: vk,
                     signature: None,
@@ -517,15 +505,15 @@ mod da_tests {
 
             // proof and vk
             let (proof, vk) = create_proof_and_vk(
-                prev_commitment.clone(),
-                tree.get_commitment().unwrap(),
+                hex::encode(prev_commitment.clone()),
+                hex::encode(tree.get_commitment().unwrap()),
                 vec![second_insert_zk_snark, third_insert_zk_snark],
             );
             sequencer_layer
                 .submit(&EpochJson {
                     height: 2,
-                    prev_commitment: prev_commitment,
-                    current_commitment: tree.get_commitment().unwrap(),
+                    prev_commitment: hex::encode(prev_commitment),
+                    current_commitment: hex::encode(tree.get_commitment().unwrap()),
                     proof: proof,
                     verifying_key: vk,
                     signature: None,

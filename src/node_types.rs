@@ -4,7 +4,11 @@ use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
-    error::MerkleTreeError, node::LeafNode, node::Node, tree::IndexedMerkleTree,
+    concat_slices,
+    error::MerkleTreeError,
+    node::{LeafNode, Node},
+    sha256,
+    tree::IndexedMerkleTree,
 };
 use std::{self, io::ErrorKind, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::sleep};
@@ -231,12 +235,15 @@ impl Sequencer {
                 .map_err(DeimosError::MerkleTree)?
         };
 
-        let batch_circuit =
-            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
+        let batch_circuit = BatchMerkleProofCircuit::new(
+            &hex::encode(prev_commitment),
+            &hex::encode(current_commitment),
+            proofs,
+        )?;
         let (proof, verifying_key) = batch_circuit.create_and_verify_snark()?;
 
-        let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
-        let signed_current_commitment = self.key.sign(&current_commitment.as_bytes()).to_string();
+        let signed_prev_commitment = self.key.sign(&prev_commitment).to_string();
+        let signed_current_commitment = self.key.sign(&current_commitment).to_string();
 
         let epoch_json = EpochJson {
             height: epoch,
@@ -279,8 +286,9 @@ impl Sequencer {
         let mut nodes: Vec<Node> = sorted_keys
             .iter()
             .map(|key| {
-                let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-                Node::new_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
+                let parsed_key: [u8; 32] = hex::decode(key.clone()).unwrap().try_into().unwrap();
+                let value: [u8; 32] = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+                Node::new_leaf(true, true, parsed_key, value, Node::TAIL)
             })
             .collect();
 
@@ -323,7 +331,8 @@ impl Sequencer {
                 .iter()
                 .enumerate() // use index
                 .find(|(_, k)| {
-                    *k == &label.clone().unwrap() // without dereferencing we compare  &&string with &string
+                    let k: [u8; 32] = hex::decode(k).unwrap().try_into().unwrap();
+                    k == label.clone().unwrap() // without dereferencing we compare  &&string with &string
                 })
                 .unwrap()
                 .0
@@ -334,9 +343,9 @@ impl Sequencer {
             nodes.push(Node::new_leaf(
                 false,
                 true,
-                Node::EMPTY_HASH.to_string(),
-                Node::EMPTY_HASH.to_string(),
-                Node::TAIL.to_string(),
+                Node::EMPTY_HASH,
+                Node::EMPTY_HASH,
+                Node::TAIL,
             ));
         }
 
@@ -416,17 +425,12 @@ impl Sequencer {
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
                 let new_chain = vec![ChainEntry {
-                    hash: hex_digest(
-                        Algorithm::SHA256,
-                        format!(
-                            "{}, {}, {}",
-                            Operation::Add,
-                            &incoming_entry.value,
-                            Node::EMPTY_HASH.to_string()
-                        )
-                        .as_bytes(),
-                    ),
-                    previous_hash: Node::EMPTY_HASH.to_string(),
+                    hash: hex::encode(sha256(concat_slices(vec![
+                        Operation::Add.to_string().as_bytes(),
+                        &incoming_entry.value.as_bytes(), // TODO: should that be the value or the hash of the value?
+                        &Node::EMPTY_HASH,
+                    ]))),
+                    previous_hash: hex::encode(Node::EMPTY_HASH), // TODO: previous hash shouldnt be a string
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.value.clone(),
                 }];

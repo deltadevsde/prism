@@ -7,7 +7,10 @@ use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
 use indexed_merkle_tree::{
-    node::Node, sha256, tree::InsertProof, tree::MerkleProof, tree::Proof, tree::UpdateProof,
+    concat_slices,
+    node::Node,
+    sha256,
+    tree::{InsertProof, MerkleProof, NonMembershipProof, Proof, UpdateProof},
 };
 use serde::{Deserialize, Serialize};
 
@@ -88,12 +91,26 @@ pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine,
 }
 
 fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
-    match (&proof.root_hash, &proof.path) {
-        (Some(hex_root), Some(path)) if !path.is_empty() => {
-            let scalar_root = hex_to_scalar(hex_root).map_err(DeimosError::General)?;
-            Ok((scalar_root, path))
-        }
-        _ => Err(DeimosError::Proof(ProofError::ProofUnpackError)),
+    if !proof.path.is_empty() {
+        let scalar_root =
+            hex_to_scalar(hex::encode(proof.root_hash).as_str()).map_err(DeimosError::General)?;
+        Ok((scalar_root, &proof.path))
+    } else {
+        Err(DeimosError::General(GeneralError::MissingArgumentError))
+    }
+}
+
+fn unpack_and_process_non_membership_proof(
+    proof: &NonMembershipProof,
+) -> Result<(Scalar, &Vec<Node>, Scalar), DeimosError> {
+    if !proof.merkle_proof.path.is_empty() {
+        let scalar_root = hex_to_scalar(hex::encode(proof.merkle_proof.root_hash).as_str())
+            .map_err(DeimosError::General)?;
+        let scalar_missing_node = hex_to_scalar(hex::encode(proof.missing_node.hash).as_str())
+            .map_err(DeimosError::General)?;
+        Ok((scalar_root, &proof.merkle_proof.path, scalar_missing_node))
+    } else {
+        Err(DeimosError::General(GeneralError::MissingArgumentError))
     }
 }
 
@@ -178,24 +195,12 @@ mod tests {
     use indexed_merkle_tree::{node::Node, sha256, tree::IndexedMerkleTree};
     use rand::rngs::OsRng;
 
-    const EMPTY_HASH: &str = Node::EMPTY_HASH;
-    const TAIL: &str = Node::TAIL;
+    const EMPTY_HASH: [u8; 32] = Node::EMPTY_HASH;
+    const TAIL: [u8; 32] = Node::TAIL;
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::new_leaf(
-            true,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
-        let inactive_node = Node::new_leaf(
-            false,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
+        let active_node = Node::new_leaf(true, true, EMPTY_HASH, EMPTY_HASH, TAIL);
+        let inactive_node = Node::new_leaf(false, true, EMPTY_HASH, EMPTY_HASH, TAIL);
 
         // build a tree with 4 nodes
         IndexedMerkleTree::new(vec![
@@ -217,8 +222,8 @@ mod tests {
         let ford = sha256(&"Ford".to_string());
         let sebastian = sha256(&"Sebastian".to_string());
         let pusch = sha256(&"Pusch".to_string());
-        let ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
-        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
+        let ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL);
+        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL);
 
         // generate proofs for the two nodes
         let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
@@ -231,8 +236,12 @@ mod tests {
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
         let current_commitment = tree.get_commitment().unwrap();
 
-        let batched_proof =
-            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs).unwrap();
+        let batched_proof = BatchMerkleProofCircuit::new(
+            &hex::encode(prev_commitment),
+            &hex::encode(current_commitment),
+            proofs,
+        )
+        .unwrap();
 
         let rng = &mut OsRng;
         let params =
@@ -322,12 +331,12 @@ pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError>
     for i in 1..(path.len()) {
         let sibling = &path[i];
         if sibling.is_left_sibling() {
-            current_hash = sha256(&format!("{} || {}", &sibling.get_hash(), current_hash));
+            current_hash = sha256(concat_slices(vec![&sibling.get_hash(), &current_hash]));
         } else {
-            current_hash = sha256(&format!("{} || {}", current_hash, &sibling.get_hash()));
+            current_hash = sha256(concat_slices(vec![&current_hash, &sibling.get_hash()]));
         }
     }
-    hex_to_scalar(&current_hash.as_str())
+    hex_to_scalar(&hex::encode(current_hash))
 }
 
 fn proof_of_update<CS: ConstraintSystem<Scalar>>(
@@ -600,8 +609,8 @@ impl Circuit<Scalar> for HashChainEntryCircuit {
 // create the circuit based on the given Merkle proof
 impl InsertMerkleProofCircuit {
     pub fn new(proof: &InsertProof) -> Result<InsertMerkleProofCircuit, DeimosError> {
-        let (non_membership_root, non_membership_path) =
-            unpack_and_process(&proof.non_membership_proof)?;
+        let (non_membership_root, non_membership_path, missing_node_hash) =
+            unpack_and_process_non_membership_proof(&proof.non_membership_proof)?;
 
         let first_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.first_proof)?;
         let second_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.second_proof)?;
@@ -720,7 +729,7 @@ impl HashChainEntryCircuit {
     ) -> Result<HashChainEntryCircuit, GeneralError> {
         // hash the clear text and parse it to scalar
         let hashed_value = sha256(&value);
-        let parsed_value = hex_to_scalar(&hashed_value)?;
+        let parsed_value = hex_to_scalar(&hex::encode(hashed_value))?;
         let mut parsed_hashchain: Vec<Scalar> = vec![];
         for entry in hashchain {
             parsed_hashchain.push(hex_to_scalar(entry.value.as_str())?)
@@ -733,6 +742,6 @@ impl HashChainEntryCircuit {
 
     pub fn create_public_parameter(value: &String) -> Result<Scalar, GeneralError> {
         let hashed_value = sha256(&value);
-        Ok(hex_to_scalar(&hashed_value)?)
+        Ok(hex_to_scalar(&hex::encode(hashed_value))?)
     }
 }
