@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 use heapless::Vec as HVec;
 use indexed_merkle_tree::{
-    node::ZkNode as Node,
+    node::Node,
     tree::{InsertProof, NonMembershipProof, Proof, UpdateProof},
 };
 use sha2::{Digest, Sha256};
