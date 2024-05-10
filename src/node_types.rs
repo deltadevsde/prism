@@ -256,7 +256,7 @@ impl Sequencer {
     pub fn create_tree(&self) -> Result<IndexedMerkleTree, MerkleTreeError> {
         // TODO: better error handling (#11)
         // Retrieve the keys from input order and sort them.
-        let ordered_derived_dict_keys: Vec<[u8; 32]> =
+        let ordered_derived_dict_keys: Vec<String> =
             self.db.get_derived_keys_in_order().unwrap_or(vec![]);
         let mut sorted_keys = ordered_derived_dict_keys.clone();
         sorted_keys.sort();
@@ -265,8 +265,9 @@ impl Sequencer {
         let mut nodes: Vec<Node> = sorted_keys
             .iter()
             .map(|key| {
-                let value: [u8; 32] = self.db.get_derived_value(&hex::encode(key)).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-                Node::new_leaf(true, true, key.clone(), value, Node::TAIL)
+                let parsed_key: [u8; 32] = hex::decode(key.clone()).unwrap().try_into().unwrap();
+                let value: [u8; 32] = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+                Node::new_leaf(true, true, parsed_key, value, Node::TAIL)
             })
             .collect();
 
@@ -309,7 +310,8 @@ impl Sequencer {
                 .iter()
                 .enumerate() // use index
                 .find(|(_, k)| {
-                    *k == &label.clone().unwrap() // without dereferencing we compare  &&string with &string
+                    let k: [u8; 32] = hex::decode(k).unwrap().try_into().unwrap();
+                    k == label.clone().unwrap() // without dereferencing we compare  &&string with &string
                 })
                 .unwrap()
                 .0

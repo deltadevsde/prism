@@ -132,7 +132,7 @@ pub trait Database: Send + Sync {
     fn get_derived_keys(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DeimosError>;
     fn get_derived_value(&self, key: &String) -> Result<[u8; 32], DatabaseError>;
-    fn get_derived_keys_in_order(&self) -> Result<Vec<[u8; 32]>, DatabaseError>;
+    fn get_derived_keys_in_order(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_commitment(&self, epoch: &u64) -> Result<[u8; 32], DatabaseError>;
     fn get_proof(&self, id: &String) -> Result<String, DatabaseError>;
     fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>, DatabaseError>;
@@ -247,13 +247,13 @@ impl Database for RedisConnections {
         let mut con = self.lock_connection(&self.derived_dict)?;
         let derived_value: String = con
             .get(key)
-            .map_err(|_| DatabaseError::NotFoundError(format!("Key: {}", key)))?;
+            .map_err(|_| DatabaseError::NotFoundError(format!("Key: {}", hex::encode(key))))?;
         // TODO: refactor! ugly
         let decoded_value = hex::decode(derived_value).map_err(|_| {
-            DatabaseError::NotFoundError(format!("Derived value from key: {}", key))
+            DatabaseError::NotFoundError(format!("Derived value from key: {}", hex::encode(key)))
         })?;
         let decoded_value: [u8; 32] = decoded_value.try_into().map_err(|_| {
-            DatabaseError::NotFoundError(format!("Derived value from key: {}", key))
+            DatabaseError::NotFoundError(format!("Derived value from key: {}", hex::encode(key)))
         })?;
 
         Ok(decoded_value)
@@ -262,24 +262,13 @@ impl Database for RedisConnections {
     // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
     // Questionable if it is not simply enough to return the values using the input_order table. This needs to be discussed again with @distractedm1nd :) Then the above function wouldn't be necessary anymore.
     // Does the order of the keys matter?
-    fn get_derived_keys_in_order(&self) -> Result<Vec<[u8; 32]>, DatabaseError> {
+    fn get_derived_keys_in_order(&self) -> Result<Vec<String>, DatabaseError> {
         let mut input_con = self.lock_connection(&self.input_order)?;
 
         // The lrange method returns a list of the elements between two indices. 0 and -1 mean the first and last element, i.e. the entire list.
         let order: Vec<String> = input_con
             .lrange("input_order", 0, -1)
             .map_err(|_| DatabaseError::GetInputOrderError)?;
-
-        // decode the keys from hex to [u8; 32]
-        let order: Vec<[u8; 32]> = order
-            .iter()
-            .map(|key| {
-                let key_bytes = hex::decode(key).unwrap();
-                let mut key_array = [0; 32];
-                key_array.copy_from_slice(&key_bytes);
-                key_array
-            })
-            .collect();
 
         Ok(order)
     }
@@ -497,7 +486,7 @@ impl Database for RedisConnections {
         let empty_hash = Node::EMPTY_HASH; // empty hash is always the first node (H(active=true, label=0^w, value=0^w, next=1^w))
 
         // set the empty hash as the first node in the derived dict
-        con.set::<&[u8; 32], &[u8; 32], String>(&empty_hash, &empty_hash)
+        con.set::<String, &[u8; 32], String>(hex::encode(empty_hash), &empty_hash)
             .map_err(|_| {
                 DatabaseError::WriteError(format!(
                     "empty hash as first entry in the derived dictionary"
@@ -507,7 +496,7 @@ impl Database for RedisConnections {
 
         // add the empty hash to the input order as first node
         input_con
-            .rpush::<&str, &[u8; 32], u32>("input_order", &empty_hash)
+            .rpush::<&str, String, u32>("input_order", hex::encode(empty_hash))
             .map_err(|_| {
                 DatabaseError::WriteError(format!("empty hash as first entry in input order"))
             })?;
@@ -727,12 +716,12 @@ mod tests {
         let keys = redis_connections.get_derived_keys_in_order().unwrap();
 
         // check if the returned keys are correct
-        let expected_keys: Vec<[u8; 32]> = vec![
-            sha256(&"test_key1".as_bytes()),
-            sha256(&"test_key2".as_bytes()),
-            sha256(&"test_key3".as_bytes()),
+        let expected_keys: Vec<String> = vec![
+            hex::encode(sha256(&"test_key1".to_string())),
+            hex::encode(sha256(&"test_key2".to_string())),
+            hex::encode(sha256(&"test_key3".to_string())),
         ];
-        let returned_keys: Vec<[u8; 32]> = keys;
+        let returned_keys: Vec<String> = keys;
 
         assert_eq!(expected_keys, returned_keys);
 
