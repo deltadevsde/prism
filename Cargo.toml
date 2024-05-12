@@ -46,7 +46,7 @@ clap = { version = "4.3.2", features = ["derive"] }
 config = "0.14.0"
 fs2 = "0.4.3"
 thiserror = "1.0.50"
-indexed-merkle-tree =  { git = "https://github.com/deltadevsde/indexed-merkle-tree", rev = "c5edc9c0e5679f7a212c78fea09ab960ed9fccac", features = ["std"]}
+indexed-merkle-tree =  { git = "https://github.com/deltadevsde/indexed-merkle-tree", rev = "02454d4fee09728b671fcac2393dcd5d54928ebf", features = ["std"]}
 dotenvy = "0.15.7"
 ahash = "0.8.7"
 celestia-rpc = "0.1.0"

@@ -265,8 +265,8 @@ impl Sequencer {
         let mut nodes: Vec<Node> = sorted_keys
             .iter()
             .map(|key| {
-                let parsed_key: [u8; 32] = hex::decode(key.clone()).unwrap().try_into().unwrap();
-                let value: [u8; 32] = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+                let value: [u8; 32] = self.db.get_derived_value(key).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+                let parsed_key: [u8; 32] = hex::decode(key).unwrap().try_into().unwrap();
                 Node::new_leaf(true, true, parsed_key, value, Node::TAIL)
             })
             .collect();

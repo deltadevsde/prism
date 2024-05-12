@@ -369,6 +369,7 @@ mod da_tests {
         tree::{IndexedMerkleTree, Proof},
     };
     use jolt::Proof as JoltProof;
+    use num::PrimInt;
     use rand::rngs::OsRng;
     use std::{
         fs::OpenOptions,
@@ -438,25 +439,37 @@ mod da_tests {
 
             let proof = JoltProof::deserialize_from_bytes(&epoch_json.proof).unwrap();
 
-            match validate_epoch(&prev_commitment, &current_commitment, proof) {
+            let (prover, verifier) = guest::build_proof_of_update();
+
+            let output = verifier(proof);
+
+            if output {
+                info!("verified successful");
+            } else {
+                panic!("Failed to verify epoch");
+            }
+
+            /* match validate_epoch(&prev_commitment, &current_commitment, proof) {
                 Ok(_) => {
                     info!("validated successful") // TODO: logging too short?!
                                                   //info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
                 }
                 Err(err) => panic!("Failed to validate epoch: {:?}", err),
-            }
+            } */
         }
     }
 
     #[tokio::test]
     async fn test_sequencer_and_light_client() {
+        println!("test sequencer and light client");
         if let Err(e) = clear_file("data.json") {
             debug!("Fehler beim Löschen der Datei: {}", e);
         }
 
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
-            let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
+            println!("sequencer started");
+            let (proof_epoch, verify_epoch) = guest::build_proof_of_update();
 
             let sequencer_layer = LocalDataAvailabilityLayer::new();
             // write all 60 seconds proofs and commitments
@@ -464,21 +477,38 @@ mod da_tests {
             let mut tree = build_empty_tree();
             let prev_commitment = tree.get_commitment().unwrap();
 
+            fn extract_first_root(proof_variant: Proof) -> [u8; 32] {
+                match proof_variant {
+                    Proof::Update(proof) => proof.old_proof.root_hash,
+                    Proof::Insert(proof) => proof.non_membership_proof.merkle_proof.root_hash,
+                }
+            }
+            fn extract_last_root(proof_variant: Proof) -> [u8; 32] {
+                match proof_variant {
+                    Proof::Update(proof) => proof.new_proof.root_hash,
+                    Proof::Insert(proof) => proof.second_proof.new_proof.root_hash,
+                }
+            }
+
             // insert a first node
             let node_1 = create_node("test1", "test2");
 
             // generate proof for the first insert<
             let first_insert_proof = tree.insert_node(&node_1).unwrap();
-            let first_insert_zk_snark = Proof::Insert(first_insert_proof);
+            let first_insert_zk_snark = Proof::Insert(first_insert_proof.clone());
+            let first_insert_zk_snark = first_insert_zk_snark.prepare_for_snark();
+            println!("trying to prove the first insert");
 
-            // create bls12 proof for posting
-            let (_output, proof) = proof_epoch(
-                prev_commitment,
-                tree.get_commitment().unwrap(),
-                vec![first_insert_zk_snark],
+            println!("prev_commitment: {}", hex::encode(prev_commitment));
+            println!(
+                "current commitment: {}",
+                hex::encode(tree.get_commitment().unwrap())
             );
+            // create bls12 proof for posting
+            let (_output, proof) = proof_epoch(first_insert_proof.second_proof);
+            println!("proof built successfully");
             let proof = proof.serialize_to_bytes().unwrap();
-
+            println!("proof serialized successfully");
             sequencer_layer
                 .submit(&EpochJson {
                     height: 1,
@@ -489,6 +519,7 @@ mod da_tests {
                 })
                 .await
                 .unwrap();
+            println!("submitted first epoch, now sleep");
             tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
 
             // update prev commitment
@@ -501,16 +532,11 @@ mod da_tests {
             // generate proof for the second and third insert
             let second_insert_proof = tree.insert_node(&node_2).unwrap();
             let third_insert_proof = tree.insert_node(&node_3).unwrap();
-            let second_insert_zk_snark = Proof::Insert(second_insert_proof);
+            let second_insert_zk_snark = Proof::Insert(second_insert_proof.clone());
             let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
             // TODO: proof and vk
-            let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
-            let (output, proof) = proof_epoch(
-                prev_commitment,
-                tree.get_commitment().unwrap(),
-                vec![second_insert_zk_snark, third_insert_zk_snark],
-            );
+            let (output, proof) = proof_epoch(second_insert_proof.first_proof);
             sequencer_layer
                 .submit(&EpochJson {
                     height: 2,

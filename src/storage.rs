@@ -245,18 +245,15 @@ impl Database for RedisConnections {
 
     fn get_derived_value(&self, key: &String) -> Result<[u8; 32], DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?;
-        let derived_value: String = con
+        let value: Vec<u8> = con
             .get(key)
-            .map_err(|_| DatabaseError::NotFoundError(format!("Key: {}", hex::encode(key))))?;
-        // TODO: refactor! ugly
-        let decoded_value = hex::decode(derived_value).map_err(|_| {
-            DatabaseError::NotFoundError(format!("Derived value from key: {}", hex::encode(key)))
-        })?;
-        let decoded_value: [u8; 32] = decoded_value.try_into().map_err(|_| {
-            DatabaseError::NotFoundError(format!("Derived value from key: {}", hex::encode(key)))
+            .map_err(|_| DatabaseError::NotFoundError(format!("Key: {}", key)))?;
+
+        let derived_value: [u8; 32] = value.try_into().map_err(|_| {
+            DatabaseError::NotFoundError(format!("Derived value from key: {}", key))
         })?;
 
-        Ok(decoded_value)
+        Ok(derived_value)
     }
 
     // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
@@ -275,13 +272,8 @@ impl Database for RedisConnections {
 
     fn get_commitment(&self, epoch: &u64) -> Result<[u8; 32], DatabaseError> {
         let mut con = self.lock_connection(&self.commitments)?;
-        let commitment = match con.get::<&str, String>(&format!("epoch_{}", epoch)) {
-            Ok(value) => {
-                let trimmed_value = value.trim_matches('"').to_string();
-                Ok(hex::decode(trimmed_value).map_err(|_| {
-                    DatabaseError::NotFoundError(format!("Commitment from epoch_{}", epoch))
-                })?)?
-            }
+        let commitment = match con.get::<&str, Vec<u8>>(&format!("epoch_{}", epoch)) {
+            Ok(value) => Ok(value)?,
             Err(_) => {
                 return Err(DatabaseError::NotFoundError(format!(
                     "Commitment from epoch_{}",
@@ -397,7 +389,7 @@ impl Database for RedisConnections {
         let mut con = self.lock_connection(&self.derived_dict)?;
         let mut input_con = self.lock_connection(&self.input_order)?;
         let hashed_key = sha256(&incoming_entry.id.as_bytes());
-        con.set::<&[u8; 32], &[u8; 32], String>(&hashed_key, &value.hash)
+        con.set::<String, &Vec<u8>, String>(hex::encode(hashed_key), &value.hash.to_vec())
             .map_err(|_| {
                 DatabaseError::WriteError(format!(
                     "derived dict update for key: {}",
@@ -407,7 +399,7 @@ impl Database for RedisConnections {
 
         if new {
             input_con
-                .rpush::<&'static str, &[u8; 32], u32>("input_order", &hashed_key)
+                .rpush::<&'static str, String, u32>("input_order", hex::encode(hashed_key))
                 .map_err(|_| {
                     DatabaseError::WriteError(format!(
                         "input order update for key: {}",
@@ -474,7 +466,7 @@ impl Database for RedisConnections {
 
     fn add_commitment(&self, epoch: &u64, commitment: &[u8; 32]) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.commitments)?;
-        con.set::<&String, &[u8; 32], String>(&format!("epoch_{}", epoch), commitment)
+        con.set::<&String, Vec<u8>, String>(&format!("epoch_{}", epoch), commitment.to_vec())
             .map_err(|_| DatabaseError::WriteError(format!("commitment for epoch: {}", epoch)))?;
         Ok(())
     }
@@ -486,7 +478,7 @@ impl Database for RedisConnections {
         let empty_hash = Node::EMPTY_HASH; // empty hash is always the first node (H(active=true, label=0^w, value=0^w, next=1^w))
 
         // set the empty hash as the first node in the derived dict
-        con.set::<String, &[u8; 32], String>(hex::encode(empty_hash), &empty_hash)
+        con.set::<String, Vec<u8>, String>(hex::encode(empty_hash), empty_hash.to_vec())
             .map_err(|_| {
                 DatabaseError::WriteError(format!(
                     "empty hash as first entry in the derived dictionary"
