@@ -2,7 +2,10 @@ use crate::error::{DeimosError, GeneralError};
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16;
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
-use indexed_merkle_tree::{node::Node, tree::Proof};
+use indexed_merkle_tree::{
+    node::Node,
+    tree::{Proof, ZkProof},
+};
 use serde::{Deserialize, Serialize};
 
 fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], DeimosError> {
@@ -89,7 +92,7 @@ pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine,
 pub fn create_epoch_proof(
     prev_commitment: [u8; 32],
     current_commitment: [u8; 32],
-    proofs: Vec<Proof>,
+    proofs: Vec<ZkProof>,
 ) -> Vec<u8> {
     let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
     let (_output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);

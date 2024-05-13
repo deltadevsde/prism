@@ -1,7 +1,11 @@
 use async_trait::async_trait;
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
-    concat_slices, error::MerkleTreeError, node::Node, sha256, tree::IndexedMerkleTree,
+    concat_slices,
+    error::MerkleTreeError,
+    node::Node,
+    sha256,
+    tree::{IndexedMerkleTree, Proof},
 };
 use jolt::Proof as JoltProof;
 use std::{self, io::ErrorKind, sync::Arc, time::Duration, vec};
@@ -219,8 +223,13 @@ impl Sequencer {
                 .map_err(DeimosError::MerkleTree)?
         };
 
+        let prepared_proofs = proofs
+            .iter()
+            .map(|proof| proof.prepare_for_snark())
+            .collect();
+
         let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
-        let (_output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
+        let (_output, proof) = proof_epoch(prev_commitment, current_commitment, prepared_proofs);
 
         let signed_prev_commitment = hex::encode(self.key.sign(&prev_commitment).to_bytes());
         let signed_current_commitment = hex::encode(self.key.sign(&current_commitment).to_bytes());

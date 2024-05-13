@@ -5,9 +5,13 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 use heapless::Vec as HVec;
+
 use indexed_merkle_tree::{
     node::Node,
-    tree::{InsertProof, NonMembershipProof, Proof, UpdateProof},
+    tree::{
+        ZkInsertProof, ZkMerkleProof, ZkNonMembershipProof as NonMembershipProof, ZkProof as Proof,
+        ZkUpdateProof as UpdateProof,
+    },
 };
 use sha2::{Digest, Sha256};
 
@@ -33,34 +37,33 @@ fn sha256(input: &[u8]) -> [u8; 32] {
 }
 
 #[jolt::provable]
-fn recalculate_merkle_tree(merkle_root: [u8; 32], proof: Vec<Node>) -> bool {
-    let mut current_hash = proof[0].get_hash();
+fn recalculate_merkle_tree(merkle_root: ZkMerkleProof) -> bool {
+    let mut current_hash = merkle_root.path[0];
 
-    for i in 1..proof.len() {
+    for i in 1..merkle_root.path.len() {
         let mut heapless_string: HVec<u8, 64> = HVec::new();
-        let sibling = proof[i].clone();
-        let sibling_hash = sibling.get_hash();
+        let sibling = merkle_root.path[i];
 
-        if sibling.is_left_sibling() {
-            heapless_string
-                .extend_from_slice(&sibling_hash)
-                .expect("heapless string is the problem");
+        /* if sibling.is_left_sibling() { */
+        heapless_string
+            .extend_from_slice(&sibling)
+            .expect("heapless string is the problem");
+        heapless_string
+            .extend_from_slice(&current_hash)
+            .expect("heapless string is the problem");
+        /* } else {
             heapless_string
                 .extend_from_slice(&current_hash)
                 .expect("heapless string is the problem");
-        } else {
-            heapless_string
-                .extend_from_slice(&current_hash)
-                .expect("heapless string is the problem");
             heapless_string
                 .extend_from_slice(&sibling_hash)
                 .expect("heapless string is the problem");
-        }
+        } */
         let new_hash = sha256(&heapless_string);
         current_hash = new_hash;
     }
 
-    current_hash == merkle_root
+    current_hash == merkle_root.root_hash
 }
 
 #[jolt::provable]
@@ -68,14 +71,11 @@ fn proof_of_non_membership(proof: NonMembershipProof) -> bool {
     let merkle_proof = proof.merkle_proof;
     let not_included_node = proof.missing_node;
 
-    let node_to_verify = match merkle_proof.path[0].clone() {
-        Node::Leaf(leaf) => leaf,
-        _ => return false,
-    };
+    let node_to_verify = proof.node_to_prove;
 
-    node_to_verify.label < not_included_node.label
-        && not_included_node.label < node_to_verify.next
-        && recalculate_merkle_tree(merkle_proof.root_hash, merkle_proof.path)
+    node_to_verify.label < not_included_node
+        && not_included_node < node_to_verify.next
+        && recalculate_merkle_tree(merkle_proof)
 }
 
 #[jolt::provable]
@@ -93,18 +93,17 @@ fn proof_of_update(proof: UpdateProof) -> bool {
     // and the label of the old leaf is the empty string, dann muss aber irgendein nachbar auf das label des neuen leafs zeigen.
     // buuuut: its not always the direct neighbor that points to the new leaf, so this is not a valid check ... hmmm we have to figure it out
     /* (old_leaf.label == updated_leaf.label || !old_leaf.active) &&*/
-    recalculate_merkle_tree(proof.old_proof.root_hash, proof.old_proof.path)
-    /* && recalculate_merkle_tree(proof.new_proof.root_hash, proof.new_proof.path) */
+    recalculate_merkle_tree(proof.old_proof) && recalculate_merkle_tree(proof.new_proof)
 }
 
 #[jolt::provable]
-fn proof_of_insert(proof: InsertProof) -> bool {
+fn proof_of_insert(proof: ZkInsertProof) -> bool {
     proof_of_non_membership(proof.non_membership_proof)
         && proof_of_update(proof.first_proof)
         && proof_of_update(proof.second_proof)
 }
 
-#[jolt::provable(max_input_size = 100000, max_output_size = 100000)]
+#[jolt::provable]
 fn proof_epoch(old_commitment: [u8; 32], new_commitment: [u8; 32], proofs: Vec<Proof>) -> bool {
     if proofs.is_empty() || old_commitment != new_commitment {
         return false;

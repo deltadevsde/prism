@@ -198,7 +198,16 @@ impl DataAvailabilityLayer for CelestiaConnection {
         })?;
         let blob = Blob::new(self.namespace_id.clone(), data.into_bytes())
             .map_err(|_| DataAvailabilityError::GeneralError(GeneralError::BlobCreationError))?;
-        debug!("blob: {:?}", serde_json::to_string(&blob));
+        match serde_json::to_string(&blob) {
+            Ok(json_string) => {
+                if json_string.len() > 30 {
+                    debug!("{}...", &json_string[..30]);
+                } else {
+                    debug!("{}", json_string);
+                }
+            }
+            Err(e) => debug!("Serialization error: {}", e),
+        }
         match self
             .client
             .blob_submit(&[blob], SubmitOptions::default())
@@ -439,13 +448,15 @@ mod da_tests {
 
             let proof = JoltProof::deserialize_from_bytes(&epoch_json.proof).unwrap();
 
-            let (prover, verifier) = guest::build_proof_of_update();
+            let (prover, verifier) = guest::build_proof_epoch();
 
             let output = verifier(proof);
 
             if output {
+                println!("verified successful");
                 info!("verified successful");
             } else {
+                println!("Failed to verify epoch");
                 panic!("Failed to verify epoch");
             }
 
@@ -455,7 +466,7 @@ mod da_tests {
                                                   //info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
                 }
                 Err(err) => panic!("Failed to validate epoch: {:?}", err),
-            } */
+            }  */
         }
     }
 
@@ -469,26 +480,13 @@ mod da_tests {
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
             println!("sequencer started");
-            let (proof_epoch, verify_epoch) = guest::build_proof_of_update();
+            let (proof_epoch, verify_epoch) = guest::build_proof_epoch();
 
             let sequencer_layer = LocalDataAvailabilityLayer::new();
             // write all 60 seconds proofs and commitments
             // create a new tree
             let mut tree = build_empty_tree();
             let prev_commitment = tree.get_commitment().unwrap();
-
-            fn extract_first_root(proof_variant: Proof) -> [u8; 32] {
-                match proof_variant {
-                    Proof::Update(proof) => proof.old_proof.root_hash,
-                    Proof::Insert(proof) => proof.non_membership_proof.merkle_proof.root_hash,
-                }
-            }
-            fn extract_last_root(proof_variant: Proof) -> [u8; 32] {
-                match proof_variant {
-                    Proof::Update(proof) => proof.new_proof.root_hash,
-                    Proof::Insert(proof) => proof.second_proof.new_proof.root_hash,
-                }
-            }
 
             // insert a first node
             let node_1 = create_node("test1", "test2");
@@ -505,7 +503,11 @@ mod da_tests {
                 hex::encode(tree.get_commitment().unwrap())
             );
             // create bls12 proof for posting
-            let (_output, proof) = proof_epoch(first_insert_proof.second_proof);
+            let (_output, proof) = proof_epoch(
+                prev_commitment,
+                tree.get_commitment().unwrap(),
+                vec![first_insert_zk_snark],
+            );
             println!("proof built successfully");
             let proof = proof.serialize_to_bytes().unwrap();
             println!("proof serialized successfully");
@@ -536,7 +538,14 @@ mod da_tests {
             let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
             // TODO: proof and vk
-            let (output, proof) = proof_epoch(second_insert_proof.first_proof);
+            let (output, proof) = proof_epoch(
+                prev_commitment,
+                tree.get_commitment().unwrap(),
+                vec![
+                    second_insert_zk_snark.prepare_for_snark(),
+                    third_insert_zk_snark.prepare_for_snark(),
+                ],
+            );
             sequencer_layer
                 .submit(&EpochJson {
                     height: 2,
@@ -551,7 +560,7 @@ mod da_tests {
         });
 
         let light_client = tokio::spawn(async {
-            debug!("light client started");
+            println!("light client started");
             let light_client_layer = LocalDataAvailabilityLayer::new();
             loop {
                 let epoch = light_client_layer.get(1).await.unwrap();

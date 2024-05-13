@@ -7,7 +7,10 @@ use crate::{
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::{InsertProof, NonMembershipProof, Proof, UpdateProof};
+use indexed_merkle_tree::tree::{
+    InsertProof, NonMembershipProof, Proof, UpdateProof, ZkInsertProof, ZkNonMembershipProof,
+    ZkUpdateProof,
+};
 use jolt::Proof as JoltProof;
 
 /* use once_cell::sync::Lazy;
@@ -96,28 +99,28 @@ pub fn validate_proof(proof_value: String) -> Result<bool, DeimosError> {
     let (insert_prover, insert_verifier) = guest::build_proof_of_insert();
     let (update_prover, update_verifier) = guest::build_proof_of_update();
     if let Ok((non_membership_proof, first_proof, second_proof)) =
-        serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
+        serde_json::from_str::<(ZkNonMembershipProof, ZkUpdateProof, ZkUpdateProof)>(&proof_value)
     {
-        let insertion_proof = InsertProof {
+        let insertion_proof = ZkInsertProof {
             non_membership_proof,
             first_proof,
             second_proof,
         };
-        if insertion_proof.verify() {
-            let (output, proof) = insert_prover(insertion_proof);
-            let is_valid = insert_verifier(proof);
-            Ok(output && is_valid)
-        } else {
+        /*  if insertion_proof.verify() { */
+        let (output, proof) = insert_prover(insertion_proof);
+        let is_valid = insert_verifier(proof);
+        Ok(output && is_valid)
+        /* } else {
             Err(DeimosError::Proof(ProofError::VerificationError))
-        }
-    } else if let Ok(update_proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
-        if update_proof.verify() {
-            let (output, proof) = update_prover(update_proof);
-            let is_valid = update_verifier(proof);
-            Ok(output && is_valid)
-        } else {
+        } */
+    } else if let Ok(update_proof) = serde_json::from_str::<ZkUpdateProof>(&proof_value) {
+        /* if update_proof.verify() { */
+        let (output, proof) = update_prover(update_proof);
+        let is_valid = update_verifier(proof);
+        Ok(output && is_valid)
+        /* } else {
             Err(DeimosError::Proof(ProofError::VerificationError))
-        }
+        } */
     } else {
         Err(DeimosError::Proof(ProofError::InvalidFormatError))
     }
@@ -240,10 +243,14 @@ mod tests {
         let second_insert_zk_snark = Proof::Insert(second_insert_proof);
 
         let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
+        let prepared_proofs = proofs
+            .iter()
+            .map(|proof| proof.prepare_for_snark())
+            .collect();
         let current_commitment = tree.get_commitment().unwrap();
 
         let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
-        let (output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
+        let (output, proof) = proof_epoch(prev_commitment, current_commitment, prepared_proofs);
 
         let result = validate_epoch(
             &hex::encode(prev_commitment),

@@ -40,10 +40,6 @@ async fn main() -> std::io::Result<()> {
     pretty_env_logger::init();
     dotenv().ok();
 
-    let (proof, _verify) = guest::build_sha256();
-    let (_output, proof) = proof("test".as_bytes());
-    let _serialized_proof = proof.serialize_to_string().unwrap();
-
     let da = initialize_da_layer(&config).await;
 
     let node: Arc<dyn NodeType> = match args.command {
