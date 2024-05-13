@@ -405,14 +405,14 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
         epoch
     );
 
-    let prepared_proofs = proofs
+    let proofs = proofs
         .iter()
         .map(|proof| proof.prepare_for_snark())
-        .collect::<Vec<_>>();
+        .collect();
 
     let (prover, verifier) = guest::build_proof_epoch();
 
-    let (output, proof) = prover(previous_commitment, current_commitment, prepared_proofs);
+    let (output, proof) = prover(previous_commitment, current_commitment, proofs);
 
     let parsed_proof = proof.serialize_to_bytes().unwrap();
 

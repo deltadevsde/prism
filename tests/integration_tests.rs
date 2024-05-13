@@ -37,10 +37,7 @@ fn generate_test_tree(size: usize, node_count: usize) -> Duration {
 
     let current_commitment = tree.get_commitment().unwrap();
 
-    let proofs = proofs
-        .iter()
-        .map(|proof| proof.prepare_for_snark())
-        .collect();
+    let proofs = proofs.iter().map(|p| p.prepare_for_snark()).collect();
 
     let start = Instant::now();
     let (output, proof) = epoch_proof(prev_commitment, current_commitment, proofs);

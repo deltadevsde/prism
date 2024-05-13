@@ -10,6 +10,7 @@ extern crate keystore;
 
 use clap::Parser;
 use keystore::{KeyChain, KeyStore, KeyStoreType};
+use utils::JoltProver;
 
 use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use dotenvy::dotenv;
@@ -41,11 +42,12 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
     let da = initialize_da_layer(&config).await;
+    let jolt = JoltProver::new();
 
     let node: Arc<dyn NodeType> = match args.command {
         // LightClients need a DA layer, so we can unwrap here
         Some(Commands::LightClient {}) => {
-            Arc::new(LightClient::new(da.unwrap(), config.public_key))
+            Arc::new(LightClient::new(da.unwrap(), jolt, config.public_key))
         }
         _ => Arc::new(Sequencer::new(
             // TODO: convert error to std::io::Error...is there a better solution?
@@ -55,6 +57,7 @@ async fn main() -> std::io::Result<()> {
             ),
             da,
             config,
+            jolt,
             KeyStoreType::KeyChain(KeyChain).get_signing_key().unwrap(),
         )),
     };

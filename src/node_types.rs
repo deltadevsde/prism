@@ -1,11 +1,7 @@
 use async_trait::async_trait;
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
-    concat_slices,
-    error::MerkleTreeError,
-    node::Node,
-    sha256,
-    tree::{IndexedMerkleTree, Proof},
+    concat_slices, error::MerkleTreeError, node::Node, sha256, tree::IndexedMerkleTree,
 };
 use jolt::Proof as JoltProof;
 use std::{self, io::ErrorKind, sync::Arc, time::Duration, vec};
@@ -16,7 +12,7 @@ use crate::{
     da::{DataAvailabilityLayer, EpochJson},
     error::{DeimosError, GeneralError},
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
-    utils::{validate_epoch, verify_signature},
+    utils::{verify_signature, JoltProver},
     webserver::WebServer,
 };
 
@@ -30,12 +26,14 @@ pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Option<Arc<dyn DataAvailabilityLayer>>,
     pub epoch_duration: u64,
+    pub jolt: JoltProver,
     pub ws: WebServer,
     pub key: SigningKey,
 }
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
+    pub jolt: JoltProver,
     pub sequencer_public_key: Option<String>,
 }
 
@@ -106,8 +104,6 @@ impl NodeType for LightClient {
                             // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
                             // Verify zk proofs,
                             for epoch_json in epoch_json_vec {
-                                let prev_commitment = &epoch_json.prev_commitment;
-                                let current_commitment = &epoch_json.current_commitment;
                                 // TODO: unwrap?
                                 let proof =
                                     JoltProof::deserialize_from_bytes(&epoch_json.proof).unwrap();
@@ -126,10 +122,11 @@ impl NodeType for LightClient {
                                     warn!("No public key found");
                                 }
 
-                                match validate_epoch(&prev_commitment, &current_commitment, proof) {
-                                    Ok(_) => (),
-                                    Err(err) => panic!("Failed to validate epoch: {:?}", err),
-                                }
+                                if self.jolt.verify_epoch(proof) {
+                                    ()
+                                } else {
+                                    panic!("Failed to validate epoch")
+                                };
                             }
 
                             info!("light client: got epochs at height {}", i + 1);
@@ -151,10 +148,12 @@ impl NodeType for LightClient {
 impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
+        jolt: JoltProver,
         sequencer_pub_key: Option<String>,
     ) -> LightClient {
         LightClient {
             da,
+            jolt,
             sequencer_public_key: sequencer_pub_key,
         }
     }
@@ -165,11 +164,13 @@ impl Sequencer {
         db: Arc<dyn Database>,
         da: Option<Arc<dyn DataAvailabilityLayer>>,
         cfg: Config,
+        jolt: JoltProver,
         key: SigningKey,
     ) -> Sequencer {
         Sequencer {
             db,
             da,
+            jolt,
             epoch_duration: cfg.epoch_time,
             ws: WebServer::new(cfg.webserver.unwrap()),
             key,
@@ -223,13 +224,14 @@ impl Sequencer {
                 .map_err(DeimosError::MerkleTree)?
         };
 
-        let prepared_proofs = proofs
+        let proofs = proofs
             .iter()
             .map(|proof| proof.prepare_for_snark())
             .collect();
 
-        let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
-        let (_output, proof) = proof_epoch(prev_commitment, current_commitment, prepared_proofs);
+        let (_output, proof) = self
+            .jolt
+            .prove_epoch(prev_commitment, current_commitment, proofs);
 
         let signed_prev_commitment = hex::encode(self.key.sign(&prev_commitment).to_bytes());
         let signed_current_commitment = hex::encode(self.key.sign(&current_commitment).to_bytes());

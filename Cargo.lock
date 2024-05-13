@@ -4252,6 +4252,7 @@ version = "0.3.0"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4#8e419c3a2a0e1be2d05df4b7a39dd7b9d18deed4"
 =======
 version = "0.2.0"
@@ -4270,6 +4271,9 @@ source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=02454d4fee0
 =======
 source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=24277d515c497d0631e5a02d6f80828c5f127a14#24277d515c497d0631e5a02d6f80828c5f127a14"
 >>>>>>> 23d7131 (feat: prepare for snark function to reduce proof size, working example and tests)
+=======
+source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=35c2ea3efdd4e47992925bebb8065c166518f0ae#35c2ea3efdd4e47992925bebb8065c166518f0ae"
+>>>>>>> 1954eba (fix: increased stack size)
 dependencies = [
  "hex 0.4.3",
  "serde",

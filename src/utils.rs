@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use crate::{
     error::{DeimosError, GeneralError, ProofError},
     storage::{ChainEntry, Operation},
@@ -9,48 +7,38 @@ use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
 use indexed_merkle_tree::tree::{
     InsertProof, NonMembershipProof, Proof, UpdateProof, ZkInsertProof, ZkNonMembershipProof,
-    ZkUpdateProof,
+    ZkProof, ZkUpdateProof,
 };
 use jolt::Proof as JoltProof;
 
-/* use once_cell::sync::Lazy;
-
-pub static PROVER: Lazy<Mutex<JoltProver>> = Lazy::new(|| Mutex::new(JoltProver::new()));
-
 pub struct JoltProver {
-    pub epoch_proof: Box<dyn Fn([u8; 32], [u8; 32], Vec<Proof>) -> (bool, JoltProof) + Sync + Send>,
+    pub epoch_proof:
+        Box<dyn Fn([u8; 32], [u8; 32], Vec<ZkProof>) -> (bool, JoltProof) + Sync + Send>,
     pub epoch_verify: Box<dyn Fn(JoltProof) -> bool + Sync + Send>,
-    pub insert_proof: Box<dyn Fn(InsertProof) -> (bool, jolt::Proof) + Sync + Send>,
-    pub insert_verify: Box<dyn Fn(JoltProof) -> bool + Sync + Send>,
-    pub update_proof: Box<dyn Fn(UpdateProof) -> (bool, jolt::Proof) + Sync + Send>,
-    pub update_verify: Box<dyn Fn(JoltProof) -> bool + Sync + Send>,
 }
 
 impl JoltProver {
     pub fn new() -> Self {
         let (epoch_proof, epoch_verify) = guest::build_proof_epoch();
-        let (insert_proof, insert_verify) = guest::build_proof_of_insert();
-        let (update_proof, update_verify) = guest::build_proof_of_update();
         JoltProver {
             epoch_proof: Box::new(epoch_proof),
             epoch_verify: Box::new(epoch_verify),
-            insert_proof: Box::new(insert_proof),
-            insert_verify: Box::new(insert_verify),
-            update_proof: Box::new(update_proof),
-            update_verify: Box::new(update_verify),
         }
     }
 
-    pub fn get_epoch_proof(
+    pub fn prove_epoch(
         &self,
-    ) -> &Box<dyn Fn([u8; 32], [u8; 32], Vec<Proof>) -> (bool, JoltProof) + Sync + Send> {
-        &self.epoch_proof
+        prev_commitment: [u8; 32],
+        current_commitment: [u8; 32],
+        proofs: Vec<ZkProof>,
+    ) -> (bool, JoltProof) {
+        (self.epoch_proof)(prev_commitment, current_commitment, proofs)
     }
 
-    pub fn get_epoch_verify(&self) -> &Box<dyn Fn(JoltProof) -> bool + Sync + Send> {
-        &self.epoch_verify
+    pub fn verify_epoch(&self, proof: JoltProof) -> bool {
+        (self.epoch_verify)(proof)
     }
-} */
+}
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
 ///
@@ -125,32 +113,8 @@ pub fn validate_proof(proof_value: String) -> Result<bool, DeimosError> {
         Err(DeimosError::Proof(ProofError::InvalidFormatError))
     }
 }
-/*
- */
-// TODO: creation and verification of snarks now handled by jolt
-/* pub fn create_and_verify_snark(
-    circuit: ProofVariantCircuit,
-    scalars: Vec<Scalar>,
-) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>), DeimosError> {
-    let rng = &mut OsRng;
 
-    trace!("Creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
-    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng)
-        .map_err(|_| DeimosError::Proof(ProofError::ProofUnpackError))?;
-
-    trace!("Creating proof for zkSNARK...");
-    let proof = groth16::create_random_proof(circuit, &params, rng)
-        .map_err(|_| DeimosError::Proof(ProofError::GenerationError))?;
-
-    trace!("Preparing verifying key for zkSNARK...");
-    let pvk = groth16::prepare_verifying_key(&params.vk);
-
-    groth16::verify_proof(&pvk, &proof, &scalars)
-        .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
-
-    Ok((proof, params.vk))
-} */
-
+// right now its only used in validate_epoch enpoint and some test cases
 pub fn validate_epoch(
     previous_commitment: &String,
     current_commitment: &String,
@@ -242,15 +206,15 @@ mod tests {
         let first_insert_zk_snark = Proof::Insert(first_insert_proof);
         let second_insert_zk_snark = Proof::Insert(second_insert_proof);
 
-        let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
-        let prepared_proofs = proofs
-            .iter()
-            .map(|proof| proof.prepare_for_snark())
-            .collect();
+        let proofs = vec![
+            first_insert_zk_snark.prepare_for_snark(),
+            second_insert_zk_snark.prepare_for_snark(),
+        ];
+
         let current_commitment = tree.get_commitment().unwrap();
 
         let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
-        let (output, proof) = proof_epoch(prev_commitment, current_commitment, prepared_proofs);
+        let (output, proof) = proof_epoch(prev_commitment, current_commitment, proofs);
 
         let result = validate_epoch(
             &hex::encode(prev_commitment),
