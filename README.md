@@ -1,12 +1,7 @@
-<h1 align="center">
-  <br>
-  <a href="http://www.deltadevs.xyz"><img src="https://www.deltadevs.xyz/deimos-logo1.png" alt="DEIMOS" width="300"></a>
-  <br>
-  <h4 align="center">Blockchain-Enhanced, Rust-Implemented Transparency Dictionary for Secure, Trustless Data Management and Communication.</h4>
-  <br>
-</h1>
-
-<div align="center">
+<p align="center">
+  <img src="https://github.com/IORacer/deimos/blob/readme-update/assets/deimos.jpeg?raw=true" alt="Deimos"/>
+</p>
+<br>
 
 [![delta devs](https://img.shields.io/badge/building-in_stealth-E58E36)](https://deltadevs.xyz)
 ![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-E58E36.svg)
@@ -14,40 +9,40 @@
 ![Contributions welcome](https://img.shields.io/badge/contributions-welcome-E58E36.svg)
 [![License](https://img.shields.io/badge/license-MIT-E58E36.svg)](https://opensource.org/licenses/MIT)
 
-</div>
-
-# Deimos: Transparency Dictionary - Rust Implementation
+# Deimos Key-Transparency
 
 ## 🌕 Overview
 
-This project is a Rust-based implementation of a Transparency Dictionary, strongly inspired by the paper [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf). It offers a secure, scalable solution for managing a label-value map in environments where the service maintaining the map is not completely trusted. The system ensures the integrity and authenticity of operations using cryptographic proofs.
+Deimos is a key-transparency solution, strongly inspired by the paper [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf). It uses transparency dictionaries under the hood, offering a generalized solution for managing a label-value map in environments where the service maintaining the map is not completely trusted.
+
+Deimos provides the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over a data availbility layer. The system is designed to be efficient, scalable and secure, making it suitable for a wide range of applications.
 
 ## 🌖 Features
 
-- Robust Security: Leverages indexed Merkle trees and zkSNARKs to protect against unauthorized data modifications.
 - Efficient Verification: Offers O(log n) proofs of membership/non-membership ensuring minimal verification time.
 - Scalability: Optimized for large-scale applications, capable of managing millions of labels with low overhead.
 - Rust-Based: Implemented in Rust, offering strong memory safety and performance benefits.
+- WASM Light Clients: Provides a WASM light client for automatic verification of the service provider.
+- Data Availability Layer: Utilizes a data availability layer for posting cryptographic commitments and SNARKs.
+- Security: Provides a robust solution for secure data management and communication.
 
 ## 🌗 Goals
 
-Here are the key objectives that are driving the current development of our project:
+Deimos development is currently driven by these key objectives:
 
-1. Versatile utility: Development of a highly versatile application that ensures data security and automatic verifiability.
+1. Versatile utility: Development of a highly versatile application that can be used in a wide range of scenarios. We aim to provide a robust solution that can be easily integrated into existing systems, offering a high level of security and privacy.
 
-2. Decentralized trust: Implementing a system where trust is decentralized. By using transparency dictionaries such as Deimos, we want to ensure secure and transparent operation, regardless of the trustworthiness of the service provider.
+2. Enabling light client verification: We are implementing a WASM light client that can be integrated into any front end application. This will allow for automatic verification of the service for end users. This allows the creation of (the first ever) E2EE chat apps without solely depending on safety numbers to guard against MITM attacks.
 
-3. Enabling light client verification: We are implementing a WASM light client that can be integrated into any front end application. This will allow for automatic verification of the service for end users. This allows the creation of (the first ever) E2EE chat apps without solely depending on safety numbers to guard against MITM attacks.
+3. Security and privacy for Web2 and Web3 applications: By incorporating the features of Deimos, we plan to improve the security and privacy aspects of Web2 and Web3 applications. This is in line with our goal to provide robust data protection for both private and commercial users across different platforms.
 
-4. Security and privacy for Web2 and Web3 applications: By incorporating the features of Deimos, we plan to improve the security and privacy aspects of Web2 and Web3 applications. This is in line with our goal to provide robust data protection for both private and commercial users across different platforms.
-
-5. Maximizing privacy: Our ultimate goal is to maximize privacy for users of all kinds. We aim to create a framework that not only secures data, but also respects and upholds user privacy.
+4. Maximizing privacy: Our ultimate goal is to maximize privacy for users of all kinds. We aim to create a framework that not only secures data, but also respects and upholds user privacy - We are working on a privacy-preserving version of Deimos that will allow for the use of zero-knowledge proofs to ensure that users can generate proofs of their data without revealinganything about it.
 
 ## 🌘 Status
 
-The project is still in the development phase and is not yet suitable for use in production environments.
+The project is still in the early development phase and is not yet suitable for use in production environments.
 
-We have already implemented working zkSNARKs, but are focusing on optimizing the computations within the circuits and making general improvements to the structure of the zkSNARK code. In addition, we are experimenting with different methods of posting on public ledgers such as blockchains (e.g. Celestia) and exploring the feasibility and effectiveness of P2P solutions consisting solely of transparency dictionaries such as Deimos.
+We have already implemented working zkSNARKs, but are focusing on optimizing the computations within the circuits and making general improvements to the structure of the zkSNARK code. In addition, we are experimenting with different methods of posting on data availability laters such as public ledgers (e.g. Celestia, Ethereum) and exploring the feasibility and effectiveness of P2P solutions consisting solely of transparency dictionaries such as Deimos.
 
 Due to this ongoing development work, changes are still being made that may affect existing functionalities.
 
