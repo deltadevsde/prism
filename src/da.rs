@@ -479,7 +479,6 @@ mod da_tests {
             // generate proof for the first insert<
             let first_insert_proof = tree.insert_node(&node_1).unwrap();
             let first_insert_zk_snark = Proof::Insert(first_insert_proof.clone());
-            println!("{:?}", first_insert_zk_snark);
             println!("trying to prove the first insert");
 
             println!("prev_commitment: {}", hex::encode(prev_commitment));
