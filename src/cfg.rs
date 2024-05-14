@@ -3,7 +3,7 @@ use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::da::{CelestiaConnection, DataAvailabilityLayer, LocalDataAvailabilityLayer};
+use crate::da::DataAvailabilityLayer;
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
@@ -42,7 +42,7 @@ pub struct CommandLineArgs {
     public_key: Option<String>,
 
     #[command(subcommand)]
-    pub command: Commands,
+    pub command: Option<Commands>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -163,12 +163,13 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
 pub async fn initialize_da_layer(
     config: &Config,
 ) -> Option<Arc<dyn DataAvailabilityLayer + 'static>> {
+    use crate::da::CelestiaConnection;
     match &config.da_layer {
         DALayerOption::Celestia => {
             let celestia_conf = config.clone().celestia_config.unwrap();
             match CelestiaConnection::new(
                 &celestia_conf.connection_string,
-                None,
+                Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.fn9aJ0RYC-MuZb8Ln-c61iwgZ2CXTI9A-xZBBSGG1f0"),
                 &celestia_conf.namespace_id,
             )
             .await
@@ -188,5 +189,7 @@ pub async fn initialize_da_layer(
 pub async fn initialize_da_layer(
     _config: &Config,
 ) -> Option<Arc<dyn DataAvailabilityLayer + 'static>> {
+    use crate::da::LocalDataAvailabilityLayer;
+
     Some(Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>)
 }

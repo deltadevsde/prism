@@ -5,10 +5,7 @@ use actix_web::{
     web::{self, Data},
     App as ActixApp, HttpResponse, HttpServer, Responder,
 };
-use bellman::groth16;
-use bls12_381::Bls12;
 use indexed_merkle_tree::{sha256, tree::Proof};
-use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Value};
 
@@ -20,7 +17,6 @@ use crate::{
     node_types::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
     utils::{is_not_revoked, validate_proof},
-    zk_snark::{serialize_proof, BatchMerkleProofCircuit, HashChainEntryCircuit},
 };
 
 pub struct WebServer {
@@ -62,7 +58,7 @@ impl WebServer {
                 .service(calculate_values)
                 .service(handle_validate_proof)
                 .service(handle_validate_epoch)
-                .service(handle_validate_hashchain_proof)
+                //.service(handle_validate_hashchain_proof)
                 .service(handle_finalize_epoch)
         })
         /* .bind_openssl((self.ip, self.port), builder)? */
@@ -120,7 +116,7 @@ async fn update_entry(
 
     if update_successful {
         let new_tree = session.create_tree().unwrap();
-        let hashed_id = sha256(&signature_with_key.id);
+        let hashed_id = sha256(&signature_with_key.id.as_bytes());
         let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
         let proofs = if update_proof {
@@ -232,7 +228,7 @@ async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     }
 
     for id in derived_keys {
-        let value: String = con.db.get_derived_value(&id).unwrap();
+        let value: [u8; 32] = con.db.get_derived_value(&id).unwrap();
         resp.derived_dict.push(DerivedEntry { id, value: value });
     }
     HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
@@ -265,7 +261,7 @@ async fn get_hashchain(con: web::Data<Arc<Sequencer>>, id: web::Path<String>) ->
 pub fn get_epochs_and_proofs(
     con: web::Data<Arc<Sequencer>>,
     epoch: &str,
-) -> Result<(u64, String, String, Vec<Proof>), Box<dyn std::error::Error>> {
+) -> Result<(u64, [u8; 32], [u8; 32], Vec<Proof>), Box<dyn std::error::Error>> {
     if epoch == "0" {
         // TODO: eventually recalcualte the empty tree root and compare it to the one in the database
         return Err(Box::new(std::io::Error::new(
@@ -289,7 +285,7 @@ pub fn get_epochs_and_proofs(
     let previous_epoch = epoch_number - 1;
 
     // Get current commitment from database
-    let current_commitment: String = match con.db.get_commitment(&epoch_number) {
+    let current_commitment: [u8; 32] = match con.db.get_commitment(&epoch_number) {
         Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
@@ -300,7 +296,7 @@ pub fn get_epochs_and_proofs(
     };
 
     // Get previous commitment from database
-    let previous_commitment: String = match con.db.get_commitment(&previous_epoch) {
+    let previous_commitment: [u8; 32] = match con.db.get_commitment(&previous_epoch) {
         Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
@@ -367,7 +363,12 @@ async fn handle_validate_proof(con: web::Data<Arc<Sequencer>>, req_body: String)
     };
 
     match validate_proof(value) {
-        Ok(_) => HttpResponse::Ok().body("Proof is valid"),
+        Ok(is_valid) => {
+            if !is_valid {
+                return HttpResponse::BadRequest().body("Proof is invalid");
+            }
+            HttpResponse::Ok().body("Proof is valid")
+        }
         Err(err) => HttpResponse::BadRequest().body(err.to_string()),
     }
 }
@@ -404,32 +405,38 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
         epoch
     );
 
-    let batch_circuit =
-        match BatchMerkleProofCircuit::new(&previous_commitment, &current_commitment, proofs) {
-            Ok(circuit) => circuit,
-            Err(err) => {
-                return HttpResponse::BadRequest().body(err.to_string());
-            }
-        };
+    let proofs = proofs
+        .iter()
+        .map(|proof| proof.prepare_for_snark())
+        .collect();
 
-    let (proof, _verifying_key) = match batch_circuit.create_and_verify_snark() {
-        Ok(proof) => proof,
-        Err(err) => {
-            return HttpResponse::BadRequest().body(err.to_string());
-        }
+    let (prover, verifier) = guest::build_proof_epoch();
+
+    let (output, proof) = prover(previous_commitment, current_commitment, proofs);
+
+    let parsed_proof = proof.serialize_to_bytes().unwrap();
+
+    if output && verifier(proof) {
+        info!(
+            "validate-epoch: zkSNARK with groth16 random parameters for epoch {} between commitment {:?} and {:?} was successfully verified!",
+            epoch_number, previous_commitment, current_commitment
+        );
+    } else {
+        return HttpResponse::BadRequest().body("Epoch validation failed");
     };
 
     // Create the JSON object for the response
     let response = json!({
         "epoch": epoch_number,
-        "proof": serialize_proof(&proof)
+        "proof": parsed_proof.clone()
     });
 
     HttpResponse::Ok().json(response)
 }
 
-#[post("/validate-hashchain-proof")]
-async fn handle_validate_hashchain_proof(
+// TODO: this is out of transparency dictionary scope so i'll leave it out for now
+// #[post("/validate-hashchain-proof")]
+/* async fn handle_validate_hashchain_proof(
     session: web::Data<Arc<Sequencer>>,
     incoming_value: web::Json<Value>,
 ) -> impl Responder {
@@ -483,13 +490,14 @@ async fn handle_validate_hashchain_proof(
             return HttpResponse::Ok().json({
                 json!({
                     "proof": serialize_proof(&proof),
-                    "public_param": sha256(&incoming_value.value),
+                    "public_param": sha256(&incoming_value.value.as_bytes()),
                 })
             });
         }
         Err(_) => HttpResponse::BadRequest().body("Proof is invalid"),
     }
 }
+ */
 
 /// Returns the commitment (tree root) of the IndexedMerkleTree initialized from the database.
 ///
@@ -546,8 +554,8 @@ async fn get_epoch_operations(con: web::Data<Arc<Sequencer>>, req_body: String) 
 
     let resp = Response {
         epoch,
-        previous_commitment,
-        current_commitment,
+        previous_commitment: hex::encode(previous_commitment),
+        current_commitment: hex::encode(current_commitment),
         proofs,
     };
 
@@ -574,7 +582,7 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     epochs.sort();
 
     for epoch in epochs {
-        let value: String = con.db.get_commitment(&epoch).unwrap();
+        let value: String = hex::encode(con.db.get_commitment(&epoch).unwrap());
         resp.epochs.push(Epoch {
             id: epoch,
             commitment: value,
@@ -587,7 +595,10 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 #[get("/finalize-epoch")]
 async fn handle_finalize_epoch(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     match con.finalize_epoch().await {
-        Ok(proof) => HttpResponse::Ok().body(json!(serialize_proof(&proof)).to_string()),
+        Ok(proof) => {
+            let serialized_proof = &proof.serialize_to_bytes().unwrap();
+            HttpResponse::Ok().body(json!(&serialized_proof).to_string())
+        }
         Err(err) => HttpResponse::BadRequest().body(err.to_string()),
     }
 }

@@ -1,29 +1,29 @@
-use crate::error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError};
-use crate::utils::Signable;
-use crate::zk_snark::{Bls12Proof, VerifyingKey};
+use crate::{
+    error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError},
+    utils::Signable,
+};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
-use celestia_types::blob::SubmitOptions;
-use celestia_types::{nmt::Namespace, Blob};
+use celestia_types::{blob::SubmitOptions, nmt::Namespace, Blob};
 use ed25519::Signature;
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_json::Value;
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Seek, Write};
-use std::str::FromStr;
-use std::{self, sync::Arc};
-use tokio::sync::mpsc;
-use tokio::task::spawn;
+use serde_json::{json, Value};
+use std::{
+    self,
+    fs::{File, OpenOptions},
+    io::{Read, Seek, Write},
+    str::FromStr,
+    sync::Arc,
+};
+use tokio::{sync::mpsc, task::spawn};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EpochJson {
     pub height: u64,
     pub prev_commitment: String,
     pub current_commitment: String,
-    pub proof: Bls12Proof,
-    pub verifying_key: VerifyingKey,
+    pub proof: Vec<u8>,
     pub signature: Option<String>,
 }
 
@@ -198,7 +198,16 @@ impl DataAvailabilityLayer for CelestiaConnection {
         })?;
         let blob = Blob::new(self.namespace_id.clone(), data.into_bytes())
             .map_err(|_| DataAvailabilityError::GeneralError(GeneralError::BlobCreationError))?;
-        debug!("blob: {:?}", serde_json::to_string(&blob));
+        match serde_json::to_string(&blob) {
+            Ok(json_string) => {
+                if json_string.len() > 30 {
+                    debug!("{}...", &json_string[..30]);
+                } else {
+                    debug!("{}", json_string);
+                }
+            }
+            Err(e) => debug!("Serialization error: {}", e),
+        }
         match self
             .client
             .blob_submit(&[blob], SubmitOptions::default())
@@ -351,28 +360,21 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
 
 #[cfg(test)]
 mod da_tests {
-    use crate::{
-        utils::validate_epoch,
-        zk_snark::{
-            deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-            serialize_verifying_key_to_custom, BatchMerkleProofCircuit, VerifyingKey,
-        },
-    };
-
     use super::*;
-    use bellman::groth16;
-    use bls12_381::Bls12;
+
     use indexed_merkle_tree::{
-        node::{InnerNode, LeafNode, Node},
+        node::Node,
         sha256,
         tree::{IndexedMerkleTree, Proof},
     };
-    use rand::rngs::OsRng;
-    use std::fs::OpenOptions;
-    use std::io::{Error, Seek, SeekFrom};
+    use jolt::Proof as JoltProof;
+    use std::{
+        fs::OpenOptions,
+        io::{Error, Seek, SeekFrom},
+    };
 
-    const EMPTY_HASH: &str = Node::EMPTY_HASH;
-    const TAIL: &str = Node::TAIL;
+    const EMPTY_HASH: [u8; 32] = Node::EMPTY_HASH;
+    const TAIL: [u8; 32] = Node::TAIL;
 
     pub fn clear_file(filename: &str) -> Result<(), Error> {
         // Open file for writing
@@ -388,20 +390,8 @@ mod da_tests {
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::new_leaf(
-            true,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
-        let inactive_node = Node::new_leaf(
-            false,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
+        let active_node = Node::new_leaf(true, true, EMPTY_HASH, EMPTY_HASH, TAIL);
+        let inactive_node = Node::new_leaf(false, true, EMPTY_HASH, EMPTY_HASH, TAIL);
 
         // build a tree with 4 nodes
         IndexedMerkleTree::new(vec![
@@ -414,12 +404,12 @@ mod da_tests {
     }
 
     fn create_node(label: &str, value: &str) -> Node {
-        let label = sha256(&label.to_string());
-        let value = sha256(&value.to_string());
-        Node::new_leaf(true, true, label, value, TAIL.to_string())
+        let label = sha256(label.as_bytes());
+        let value = sha256(value.as_bytes());
+        Node::new_leaf(true, true, label, value, TAIL)
     }
 
-    fn create_proof_and_vk(
+    /*  fn create_proof_and_vk(
         prev_commitment: String,
         current_commitment: String,
         proofs: Vec<Proof>,
@@ -437,34 +427,46 @@ mod da_tests {
             serialize_proof(&proof),
             serialize_verifying_key_to_custom(&params.vk),
         )
-    }
+    } */
 
     fn verify_epoch_json(epoch: Vec<EpochJson>) {
         for epoch_json in epoch {
-            let prev_commitment = epoch_json.prev_commitment;
-            let current_commitment = epoch_json.current_commitment;
+            let proof = JoltProof::deserialize_from_bytes(&epoch_json.proof).unwrap();
 
-            let proof = deserialize_proof(&epoch_json.proof).unwrap();
-            let verifying_key =
-                deserialize_custom_to_verifying_key(&epoch_json.verifying_key).unwrap();
+            let (_prover, verifier) = guest::build_proof_epoch();
 
-            match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
+            let output = verifier(proof);
+
+            if output {
+                println!("verified successful");
+                info!("verified successful");
+            } else {
+                println!("Failed to verify epoch");
+                panic!("Failed to verify epoch");
+            }
+
+            /* match validate_epoch(&prev_commitment, &current_commitment, proof) {
                 Ok(_) => {
-                    info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
+                    info!("validated successful") // TODO: logging too short?!
+                                                  //info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
                 }
                 Err(err) => panic!("Failed to validate epoch: {:?}", err),
-            }
+            }  */
         }
     }
 
     #[tokio::test]
     async fn test_sequencer_and_light_client() {
+        println!("test sequencer and light client");
         if let Err(e) = clear_file("data.json") {
             debug!("Fehler beim Löschen der Datei: {}", e);
         }
 
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
+            println!("sequencer started");
+            let (proof_epoch, _verify_epoch) = guest::build_proof_epoch();
+
             let sequencer_layer = LocalDataAvailabilityLayer::new();
             // write all 60 seconds proofs and commitments
             // create a new tree
@@ -474,28 +476,36 @@ mod da_tests {
             // insert a first node
             let node_1 = create_node("test1", "test2");
 
-            // generate proof for the first insert
+            // generate proof for the first insert<
             let first_insert_proof = tree.insert_node(&node_1).unwrap();
-            let first_insert_zk_snark = Proof::Insert(first_insert_proof);
+            let first_insert_zk_snark = Proof::Insert(first_insert_proof.clone());
+            println!("trying to prove the first insert");
 
-            // create bls12 proof for posting
-            let (bls12proof, vk) = create_proof_and_vk(
-                prev_commitment.clone(),
-                tree.get_commitment().unwrap(),
-                vec![first_insert_zk_snark],
+            println!("prev_commitment: {}", hex::encode(prev_commitment));
+            println!(
+                "current commitment: {}",
+                hex::encode(tree.get_commitment().unwrap())
             );
-
+            // create bls12 proof for posting
+            let (_output, proof) = proof_epoch(
+                prev_commitment,
+                tree.get_commitment().unwrap(),
+                vec![first_insert_zk_snark.prepare_for_snark()],
+            );
+            println!("proof built successfully");
+            let proof = proof.serialize_to_bytes().unwrap();
+            println!("proof serialized successfully");
             sequencer_layer
                 .submit(&EpochJson {
                     height: 1,
-                    prev_commitment: prev_commitment,
-                    current_commitment: tree.get_commitment().unwrap(),
-                    proof: bls12proof,
-                    verifying_key: vk,
+                    prev_commitment: hex::encode(prev_commitment),
+                    current_commitment: hex::encode(tree.get_commitment().unwrap()),
+                    proof,
                     signature: None,
                 })
                 .await
                 .unwrap();
+            println!("submitted first epoch, now sleep");
             tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
 
             // update prev commitment
@@ -508,22 +518,23 @@ mod da_tests {
             // generate proof for the second and third insert
             let second_insert_proof = tree.insert_node(&node_2).unwrap();
             let third_insert_proof = tree.insert_node(&node_3).unwrap();
-            let second_insert_zk_snark = Proof::Insert(second_insert_proof);
+            let second_insert_zk_snark = Proof::Insert(second_insert_proof.clone());
             let third_insert_zk_snark = Proof::Insert(third_insert_proof);
+            let second_insert_zk_snark = second_insert_zk_snark.prepare_for_snark();
+            let third_insert_zk_snark = third_insert_zk_snark.prepare_for_snark();
 
-            // proof and vk
-            let (proof, vk) = create_proof_and_vk(
-                prev_commitment.clone(),
+            // TODO: proof and vk
+            let (_output, proof) = proof_epoch(
+                prev_commitment,
                 tree.get_commitment().unwrap(),
                 vec![second_insert_zk_snark, third_insert_zk_snark],
             );
             sequencer_layer
                 .submit(&EpochJson {
                     height: 2,
-                    prev_commitment: prev_commitment,
-                    current_commitment: tree.get_commitment().unwrap(),
-                    proof: proof,
-                    verifying_key: vk,
+                    prev_commitment: hex::encode(prev_commitment),
+                    current_commitment: hex::encode(tree.get_commitment().unwrap()),
+                    proof: proof.serialize_to_bytes().unwrap(),
                     signature: None,
                 })
                 .await
@@ -532,7 +543,7 @@ mod da_tests {
         });
 
         let light_client = tokio::spawn(async {
-            debug!("light client started");
+            println!("light client started");
             let light_client_layer = LocalDataAvailabilityLayer::new();
             loop {
                 let epoch = light_client_layer.get(1).await.unwrap();

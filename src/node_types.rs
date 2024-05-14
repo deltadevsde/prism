@@ -1,12 +1,14 @@
 use async_trait::async_trait;
-use bellman::groth16::Proof;
-use bls12_381::Bls12;
-use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
-    error::MerkleTreeError, node::LeafNode, node::Node, tree::IndexedMerkleTree,
+    concat_slices,
+    error::MerkleTreeError,
+    node::Node,
+    sha256,
+    tree::{IndexedMerkleTree, ZkProof},
 };
-use std::{self, io::ErrorKind, sync::Arc, time::Duration};
+use jolt::Proof as JoltProof;
+use std::{self, io::ErrorKind, sync::Arc, time::Duration, vec};
 use tokio::{task::spawn, time::sleep};
 
 use crate::{
@@ -14,12 +16,8 @@ use crate::{
     da::{DataAvailabilityLayer, EpochJson},
     error::{DeimosError, GeneralError},
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
-    utils::{validate_epoch, verify_signature},
+    utils::{verify_signature, JoltProver},
     webserver::WebServer,
-    zk_snark::{
-        deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-        serialize_verifying_key_to_custom, BatchMerkleProofCircuit,
-    },
 };
 
 #[async_trait]
@@ -32,12 +30,14 @@ pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Option<Arc<dyn DataAvailabilityLayer>>,
     pub epoch_duration: u64,
+    pub jolt: JoltProver,
     pub ws: WebServer,
     pub key: SigningKey,
 }
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
+    pub jolt: JoltProver,
     pub sequencer_public_key: Option<String>,
 }
 
@@ -108,12 +108,9 @@ impl NodeType for LightClient {
                             // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
                             // Verify zk proofs,
                             for epoch_json in epoch_json_vec {
-                                let prev_commitment = &epoch_json.prev_commitment;
-                                let current_commitment = &epoch_json.current_commitment;
-                                let proof = deserialize_proof(&epoch_json.proof).unwrap();
-                                let verifying_key =
-                                    deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
-                                        .unwrap();
+                                // TODO: unwrap?
+                                let proof =
+                                    JoltProof::deserialize_from_bytes(&epoch_json.proof).unwrap();
                                 if self.sequencer_public_key.is_some() {
                                     if verify_signature(
                                         &epoch_json.clone(),
@@ -129,15 +126,11 @@ impl NodeType for LightClient {
                                     warn!("No public key found");
                                 }
 
-                                match validate_epoch(
-                                    &prev_commitment,
-                                    &current_commitment,
-                                    proof,
-                                    verifying_key,
-                                ) {
-                                    Ok(_) => (),
-                                    Err(err) => panic!("Failed to validate epoch: {:?}", err),
-                                }
+                                if self.jolt.verify_epoch(proof) {
+                                    ()
+                                } else {
+                                    panic!("Failed to validate epoch")
+                                };
                             }
 
                             info!("light client: got epochs at height {}", i + 1);
@@ -159,10 +152,12 @@ impl NodeType for LightClient {
 impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
+        jolt: JoltProver,
         sequencer_pub_key: Option<String>,
     ) -> LightClient {
         LightClient {
             da,
+            jolt,
             sequencer_public_key: sequencer_pub_key,
         }
     }
@@ -173,11 +168,13 @@ impl Sequencer {
         db: Arc<dyn Database>,
         da: Option<Arc<dyn DataAvailabilityLayer>>,
         cfg: Config,
+        jolt: JoltProver,
         key: SigningKey,
     ) -> Sequencer {
         Sequencer {
             db,
             da,
+            jolt,
             epoch_duration: cfg.epoch_time,
             ws: WebServer::new(cfg.webserver.unwrap()),
             key,
@@ -192,7 +189,7 @@ impl Sequencer {
     /// 3. Waits for a specified duration before starting the next epoch.
     /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
     /// 5. Repeats steps 2-4 periodically.
-    pub async fn finalize_epoch(&self) -> Result<Proof<Bls12>, DeimosError> {
+    pub async fn finalize_epoch(&self) -> Result<JoltProof, DeimosError> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -218,7 +215,7 @@ impl Sequencer {
             let prev_epoch = epoch - 1;
             self.db.get_proofs_in_epoch(&prev_epoch).unwrap()
         } else {
-            vec![]
+            Vec::new()
         };
 
         let prev_commitment = if epoch > 0 {
@@ -231,19 +228,23 @@ impl Sequencer {
                 .map_err(DeimosError::MerkleTree)?
         };
 
-        let batch_circuit =
-            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
-        let (proof, verifying_key) = batch_circuit.create_and_verify_snark()?;
+        let proofs: Vec<ZkProof> = proofs
+            .iter()
+            .map(|proof| proof.prepare_for_snark())
+            .collect();
 
-        let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
-        let signed_current_commitment = self.key.sign(&current_commitment.as_bytes()).to_string();
+        let (_output, proof) = self
+            .jolt
+            .prove_epoch(prev_commitment, current_commitment, proofs);
+
+        let signed_prev_commitment = hex::encode(self.key.sign(&prev_commitment).to_bytes());
+        let signed_current_commitment = hex::encode(self.key.sign(&current_commitment).to_bytes());
 
         let epoch_json = EpochJson {
             height: epoch,
             prev_commitment: signed_prev_commitment,
             current_commitment: signed_current_commitment,
-            proof: serialize_proof(&proof),
-            verifying_key: serialize_verifying_key_to_custom(&verifying_key),
+            proof: proof.serialize_to_bytes().unwrap(),
             signature: None,
         };
 
@@ -279,8 +280,9 @@ impl Sequencer {
         let mut nodes: Vec<Node> = sorted_keys
             .iter()
             .map(|key| {
-                let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-                Node::new_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
+                let value: [u8; 32] = self.db.get_derived_value(key).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
+                let parsed_key: [u8; 32] = hex::decode(key).unwrap().try_into().unwrap();
+                Node::new_leaf(true, true, parsed_key, value, Node::TAIL)
             })
             .collect();
 
@@ -323,7 +325,8 @@ impl Sequencer {
                 .iter()
                 .enumerate() // use index
                 .find(|(_, k)| {
-                    *k == &label.clone().unwrap() // without dereferencing we compare  &&string with &string
+                    let k: [u8; 32] = hex::decode(k).unwrap().try_into().unwrap();
+                    k == label.clone().unwrap() // without dereferencing we compare  &&string with &string
                 })
                 .unwrap()
                 .0
@@ -334,9 +337,9 @@ impl Sequencer {
             nodes.push(Node::new_leaf(
                 false,
                 true,
-                Node::EMPTY_HASH.to_string(),
-                Node::EMPTY_HASH.to_string(),
-                Node::TAIL.to_string(),
+                Node::EMPTY_HASH,
+                Node::EMPTY_HASH,
+                Node::TAIL,
             ));
         }
 
@@ -388,19 +391,14 @@ impl Sequencer {
                 let mut current_chain = value.clone();
 
                 let new_chain_entry = ChainEntry {
-                    hash: hex_digest(
-                        Algorithm::SHA256,
-                        format!(
-                            "{}, {}, {}",
-                            &incoming_entry.operation,
-                            &incoming_entry.value,
-                            &current_chain.last().unwrap().hash
-                        )
-                        .as_bytes(),
-                    ),
+                    hash: sha256(&concat_slices(vec![
+                        &incoming_entry.operation.to_string().as_bytes(),
+                        &incoming_entry.value.as_bytes(),
+                        &current_chain.last().unwrap().hash,
+                    ])),
                     previous_hash: current_chain.last().unwrap().hash.clone(),
                     operation: incoming_entry.operation.clone(),
-                    value: incoming_entry.value.clone(),
+                    value: incoming_entry.value.clone(), // TODO: is the value a string or u8;32 here?
                 };
 
                 current_chain.push(new_chain_entry.clone());
@@ -416,17 +414,12 @@ impl Sequencer {
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
                 let new_chain = vec![ChainEntry {
-                    hash: hex_digest(
-                        Algorithm::SHA256,
-                        format!(
-                            "{}, {}, {}",
-                            Operation::Add,
-                            &incoming_entry.value,
-                            Node::EMPTY_HASH.to_string()
-                        )
-                        .as_bytes(),
-                    ),
-                    previous_hash: Node::EMPTY_HASH.to_string(),
+                    hash: sha256(&concat_slices(vec![
+                        &Operation::Add.to_string().as_bytes(),
+                        &incoming_entry.value.as_bytes(),
+                        &Node::EMPTY_HASH,
+                    ])),
+                    previous_hash: Node::EMPTY_HASH,
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.value.clone(),
                 }];
