@@ -87,7 +87,11 @@ fn proof_of_insert(proof: ZkInsertProof) -> bool {
 #[jolt::provable(stack_size = 100000, max_input_size = 100000, memory_size = 100000000)]
 fn proof_epoch(old_commitment: [u8; 32], new_commitment: [u8; 32], proofs: Vec<ZkProof>) -> bool {
     if proofs.is_empty() && old_commitment != new_commitment {
-        return false;
+        panic!("Invalid commitment");
+    }
+
+    if proofs.is_empty() && old_commitment == new_commitment {
+        return true;
     }
 
     fn extract_first_root(proof_variant: ZkProof) -> [u8; 32] {
@@ -107,7 +111,7 @@ fn proof_epoch(old_commitment: [u8; 32], new_commitment: [u8; 32], proofs: Vec<Z
     let last_root = extract_last_root(proofs[proofs.len() - 1].clone());
 
     if old_commitment != first_root || new_commitment != last_root {
-        return false;
+        panic!("Invalid commitment");
     }
 
     for proof in proofs {
@@ -117,7 +121,7 @@ fn proof_epoch(old_commitment: [u8; 32], new_commitment: [u8; 32], proofs: Vec<Z
         };
 
         if !result {
-            return false;
+            panic!("Invalid proof");
         }
     }
     true
