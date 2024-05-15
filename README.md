@@ -13,7 +13,7 @@
 
 ## 🌕 Overview
 
-Deimos is a key-transparency solution, strongly inspired by the paper [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf). It uses transparency dictionaries under the hood, offering a generalized solution for managing a label-value map in environments where the service maintaining the map is not completely trusted.
+Deimos is a key-transparency solution, strongly inspired by the paper [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf). It utilizes transparency dictionaries under the hood, offering a generalized solution for trustlessly surveilling a service's maintenance of a label-value map.
 
 Deimos provides the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over a data availbility layer. The system is designed to be efficient, scalable and secure, making it suitable for a wide range of applications.
 
