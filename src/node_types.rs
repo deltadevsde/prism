@@ -1,14 +1,13 @@
 use crate::error::DataAvailabilityError;
 use async_trait::async_trait;
-use bellman::groth16::Proof;
-use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{
-    error::MerkleTreeError, node::LeafNode, node::Node, tree::IndexedMerkleTree,
+use indexed_merkle_tree::{error::MerkleTreeError, node::Node, tree::IndexedMerkleTree};
+use std::{self, io::ErrorKind, sync::Arc, time::Duration};
+use tokio::sync::{
+    mpsc::{channel, Receiver, Sender},
+    Mutex,
 };
-use std::{self, collections::VecDeque, io::ErrorKind, sync::Arc, time::Duration};
-use tokio::sync::mpsc;
 use tokio::{task::spawn, time::sleep};
 
 use crate::{
@@ -24,12 +23,20 @@ use crate::{
     },
 };
 
+/// DA_RETRY_COUNT determines how many times to retry epoch submission.
+const DA_RETRY_COUNT: u64 = 5;
+/// DA_RETRY_COUNT determines how long to wait between failed submissions.
+const DA_RETRY_INTERVAL: Duration = Duration::from_secs(5);
+/// CHANNEL_BUFFER_SIZE determines the size of the channel buffer for the DA backlog.
+const CHANNEL_BUFFER_SIZE: usize = 5;
+
 #[async_trait]
 pub trait NodeType {
     async fn start(self: Arc<Self>) -> std::result::Result<(), std::io::Error>;
     // async fn stop(&self) -> Result<(), String>;
 }
 
+// Message represents an internal message that can be sent between sequencer threads.
 enum Message {
     FinalizedEpoch(EpochJson),
 }
@@ -41,8 +48,8 @@ pub struct Sequencer {
     pub ws: WebServer,
     pub key: SigningKey,
 
-    tx: Arc<mpsc::Sender<Message>>,
-    rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
+    epoch_buffer_tx: Arc<Sender<Message>>,
+    epoch_buffer_rx: Arc<Mutex<Receiver<Message>>>,
 }
 
 pub struct LightClient {
@@ -70,55 +77,9 @@ impl NodeType for Sequencer {
             }
         }
 
-        let cloned_self = self.clone();
-
-        debug!("starting main sequencer loop");
-        let tx1 = self.tx.clone();
-        let self_arc = self.clone();
-        spawn(async move {
-            loop {
-                match self_arc.finalize_epoch().await {
-                    Ok(epoch) => {
-                        info!(
-                            "sequencer_loop: finalized epoch {}",
-                            self_arc.db.get_epoch().unwrap()
-                        );
-                        tx1.send(Message::FinalizedEpoch(epoch));
-                    }
-                    Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
-                }
-                // elapsed time/ticker instead of sleep
-                sleep(Duration::from_secs(self_arc.epoch_duration)).await;
-            }
-        });
-
-        debug!("starting da submission loop");
-        spawn(async move {
-            loop {
-                let epoch = self.get_message().await.unwrap();
-                let mut retry_counter = 0;
-                loop {
-                    // todo: make constant
-                    if retry_counter > 5 {
-                        // todo: graceful shutdown
-                        panic!("da_loop: too many retries, giving up");
-                    }
-                    match self.da.submit(&epoch).await {
-                        Ok(height) => {
-                            info!("da_loop: submitted epoch at height {}", height);
-                            break;
-                        }
-                        Err(e) => {
-                            error!("da_loop: submitting epoch: {}", e);
-                            retry_counter += 1;
-                        }
-                    };
-                }
-            }
-        });
-
-        // starting the webserver
-        cloned_self.ws.start(cloned_self.clone()).await
+        self.clone().main_loop().await;
+        self.clone().da_loop().await;
+        self.clone().ws.start(self.clone()).await
     }
 }
 
@@ -211,18 +172,68 @@ impl Sequencer {
         cfg: Config,
         key: SigningKey,
     ) -> Sequencer {
-        // TODO: Make buffer size constant
-        let (tx, rx) = mpsc::channel(5);
+        let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
         Sequencer {
             db,
             da,
             epoch_duration: cfg.epoch_time,
             ws: WebServer::new(cfg.webserver.unwrap()),
             key,
-            tx: Arc::new(tx),
-            rx: Arc::new(tokio::sync::Mutex::new(rx)),
+            epoch_buffer_tx: Arc::new(tx),
+            epoch_buffer_rx: Arc::new(tokio::sync::Mutex::new(rx)),
         }
     }
+
+    // main_loop is responsible for finalizing epochs every epoch length and writing them to the buffer for DA submission.
+    async fn main_loop(self: Arc<Self>) {
+        info!("starting main sequencer loop");
+        let tx1 = self.epoch_buffer_tx.clone();
+        spawn(async move {
+            loop {
+                match self.finalize_epoch().await {
+                    Ok(epoch) => {
+                        info!(
+                            "sequencer_loop: finalized epoch {}",
+                            self.db.get_epoch().unwrap()
+                        );
+                        tx1.send(Message::FinalizedEpoch(epoch));
+                    }
+                    Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
+                }
+                // elapsed time/ticker instead of sleep
+                sleep(Duration::from_secs(self.epoch_duration)).await;
+            }
+        });
+    }
+
+    // da_loop is responsible for submitting finalized epochs to the DA layer.
+    async fn da_loop(self: Arc<Self>) {
+        info!("starting da submission loop");
+        spawn(async move {
+            loop {
+                let epoch = self.get_message().await.unwrap();
+                let mut retry_counter = 0;
+                loop {
+                    if retry_counter > DA_RETRY_COUNT {
+                        // todo: graceful shutdown
+                        panic!("da_loop: too many retries, giving up");
+                    }
+                    match self.da.submit(&epoch).await {
+                        Ok(height) => {
+                            info!("da_loop: submitted epoch at height {}", height);
+                            break;
+                        }
+                        Err(e) => {
+                            error!("da_loop: submitting epoch: {}", e);
+                            retry_counter += 1;
+                            sleep(DA_RETRY_INTERVAL).await;
+                        }
+                    };
+                }
+            }
+        });
+    }
+
     /// Initializes the epoch state by setting up the input table and incrementing the epoch number.
     /// Periodically calls the `set_epoch_commitment` function to update the commitment for the current epoch.
     ///
@@ -303,7 +314,7 @@ impl Sequencer {
     }
 
     async fn get_message(&self) -> std::result::Result<EpochJson, DataAvailabilityError> {
-        match self.rx.lock().await.recv().await {
+        match self.epoch_buffer_rx.lock().await.recv().await {
             Some(Message::FinalizedEpoch(epoch)) => Ok(epoch),
             None => Err(DataAvailabilityError::ChannelReceiveError),
         }

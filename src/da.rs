@@ -14,7 +14,10 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, Write};
 use std::str::FromStr;
 use std::{self, sync::Arc};
-use tokio::sync::mpsc;
+use tokio::sync::{
+    mpsc::{channel, Receiver, Sender},
+    Mutex,
+};
 use tokio::task::spawn;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -74,6 +77,8 @@ impl Signable for EpochJson {
     }
 }
 
+/// Message represents an internal message that a new height has been reached on the DA layer
+/// and the sync target should be updated.
 enum Message {
     UpdateTarget(u64),
 }
@@ -90,8 +95,9 @@ pub trait DataAvailabilityLayer: Send + Sync {
 pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
     pub namespace_id: Namespace,
-    tx: Arc<mpsc::Sender<Message>>,
-    rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
+
+    synctarget_tx: Arc<Sender<Message>>,
+    synctarget_rx: Arc<Mutex<Receiver<Message>>>,
 }
 
 /// The `NoopDataAvailabilityLayer` is a mock implementation of the `DataAvailabilityLayer` trait.
@@ -135,7 +141,7 @@ impl CelestiaConnection {
         namespace_hex: &String,
     ) -> Result<Self, DataAvailabilityError> {
         // TODO: Make buffer size constant
-        let (tx, rx) = mpsc::channel(5);
+        let (tx, rx) = channel(5);
 
         let client = Client::new(&connection_string, auth_token)
             .await
@@ -163,8 +169,8 @@ impl CelestiaConnection {
         Ok(CelestiaConnection {
             client,
             namespace_id,
-            tx: Arc::new(tx),
-            rx: Arc::new(tokio::sync::Mutex::new(rx)),
+            synctarget_tx: Arc::new(tx),
+            synctarget_rx: Arc::new(Mutex::new(rx)),
         })
     }
 }
@@ -172,7 +178,7 @@ impl CelestiaConnection {
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
     async fn get_message(&self) -> Result<u64, DataAvailabilityError> {
-        match self.rx.lock().await.recv().await {
+        match self.synctarget_rx.lock().await.recv().await {
             Some(Message::UpdateTarget(height)) => Ok(height),
             None => Err(DataAvailabilityError::ChannelReceiveError),
         }
@@ -254,13 +260,13 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 ))
             })?;
 
-        let tx1 = self.tx.clone();
+        let synctarget_buffer = self.synctarget_tx.clone();
         spawn(async move {
             while let Some(extended_header_result) = header_sub.next().await {
                 match extended_header_result {
                     Ok(extended_header) => {
                         let height = extended_header.header.height.value();
-                        match tx1.send(Message::UpdateTarget(height)).await {
+                        match synctarget_buffer.send(Message::UpdateTarget(height)).await {
                             Ok(_) => {
                                 debug!("Sent message to channel. Height: {}", height);
                             }
