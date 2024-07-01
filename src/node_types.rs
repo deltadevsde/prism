@@ -1,3 +1,4 @@
+use crate::consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL};
 use crate::error::DataAvailabilityError;
 use async_trait::async_trait;
 use crypto_hash::{hex_digest, Algorithm};
@@ -22,13 +23,6 @@ use crate::{
         serialize_verifying_key_to_custom, BatchMerkleProofCircuit,
     },
 };
-
-/// DA_RETRY_COUNT determines how many times to retry epoch submission.
-const DA_RETRY_COUNT: u64 = 5;
-/// DA_RETRY_COUNT determines how long to wait between failed submissions.
-const DA_RETRY_INTERVAL: Duration = Duration::from_secs(5);
-/// CHANNEL_BUFFER_SIZE determines the size of the channel buffer for the DA backlog.
-const CHANNEL_BUFFER_SIZE: usize = 5;
 
 #[async_trait]
 pub trait NodeType {
