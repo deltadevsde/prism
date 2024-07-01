@@ -4,3 +4,4 @@
 .env
 *.rdb
 dump.rdb
+Cargo.lock
