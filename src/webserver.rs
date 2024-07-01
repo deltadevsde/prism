@@ -584,7 +584,7 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 #[get("/finalize-epoch")]
 async fn handle_finalize_epoch(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     match con.finalize_epoch().await {
-        Ok(proof) => HttpResponse::Ok().body(json!(serialize_proof(&proof)).to_string()),
+        Ok(epoch) => HttpResponse::Ok().body(json!(epoch.proof).to_string()),
         Err(err) => HttpResponse::BadRequest().body(err.to_string()),
     }
 }
