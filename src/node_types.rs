@@ -3,13 +3,14 @@ use crate::error::DataAvailabilityError;
 use async_trait::async_trait;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
+use futures::future::join_all;
 use indexed_merkle_tree::{error::MerkleTreeError, node::Node, tree::IndexedMerkleTree};
 use std::{self, io::ErrorKind, sync::Arc, time::Duration};
 use tokio::sync::{
     mpsc::{channel, Receiver, Sender},
     Mutex,
 };
-use tokio::{task::spawn, time::interval, time::sleep};
+use tokio::{task::spawn, time::interval};
 
 use crate::{
     cfg::Config,
@@ -52,7 +53,7 @@ impl NodeType for Sequencer {
         // start listening for new headers to update sync target
         self.da.start().await.unwrap();
 
-        let derived_keys = self.db.get_derived_keys();
+        let derived_keys = self.db.get_derived_keys().await;
         match derived_keys {
             Ok(keys) => {
                 if keys.len() == 0 {
@@ -186,7 +187,7 @@ impl Sequencer {
                     Ok(epoch) => {
                         info!(
                             "sequencer_loop: finalized epoch {}",
-                            self.db.get_epoch().unwrap()
+                            self.db.get_epoch().await.unwrap()
                         );
                         epoch_buffer.send(epoch);
                     }
@@ -235,39 +236,45 @@ impl Sequencer {
     /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
     /// 5. Repeats steps 2-4 periodically.
     pub async fn finalize_epoch(&self) -> Result<EpochJson, DeimosError> {
-        let epoch = match self.db.get_epoch() {
+        let epoch = match self.db.get_epoch().await {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
         };
 
-        self.db.set_epoch(&epoch).map_err(DeimosError::Database)?;
+        self.db
+            .set_epoch(&epoch)
+            .await
+            .map_err(DeimosError::Database)?;
         self.db
             .reset_epoch_operation_counter()
+            .await
             .map_err(DeimosError::Database)?;
 
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self
             .create_tree()
+            .await
             .map_err(DeimosError::MerkleTree)?
             .get_commitment()
             .map_err(DeimosError::MerkleTree)?;
 
         self.db
             .add_commitment(&epoch, &current_commitment)
+            .await
             .map_err(DeimosError::Database)?;
 
         let proofs = if epoch > 0 {
             let prev_epoch = epoch - 1;
-            self.db.get_proofs_in_epoch(&prev_epoch).unwrap()
+            self.db.get_proofs_in_epoch(&prev_epoch).await.unwrap()
         } else {
             vec![]
         };
 
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
-            self.db.get_commitment(&prev_epoch).unwrap()
+            self.db.get_commitment(&prev_epoch).await.unwrap()
         } else {
-            let empty_commitment = self.create_tree().map_err(DeimosError::MerkleTree)?;
+            let empty_commitment = self.create_tree().await.map_err(DeimosError::MerkleTree)?;
             empty_commitment
                 .get_commitment()
                 .map_err(DeimosError::MerkleTree)?
@@ -311,20 +318,33 @@ impl Sequencer {
         }
     }
 
-    pub fn create_tree(&self) -> Result<IndexedMerkleTree, MerkleTreeError> {
+    pub async fn create_tree(&self) -> Result<IndexedMerkleTree, MerkleTreeError> {
         // TODO: better error handling (#11)
         // Retrieve the keys from input order and sort them.
         let ordered_derived_dict_keys: Vec<String> =
-            self.db.get_derived_keys_in_order().unwrap_or(vec![]);
+            self.db.get_derived_keys_in_order().await.unwrap_or(vec![]);
         let mut sorted_keys = ordered_derived_dict_keys.clone();
         sorted_keys.sort();
 
         // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
-        let mut nodes: Vec<Node> = sorted_keys
+        let futures: Vec<_> = sorted_keys
             .iter()
             .map(|key| {
-                let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-                Node::new_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
+                let key_clone = key.clone();
+                async move {
+                    let value = self.db.get_derived_value(&key.clone().to_string()).await;
+                    (key_clone, value)
+                }
+            })
+            .collect();
+
+        let results: Vec<_> = join_all(futures).await;
+
+        // we retrieved the keys from the input order, so we know they exist and can get the value
+        let mut nodes: Vec<Node> = results
+            .into_iter()
+            .map(|(key, value)| {
+                Node::new_leaf(true, true, key, value.unwrap(), Node::TAIL.to_string())
             })
             .collect();
 
@@ -401,7 +421,7 @@ impl Sequencer {
     /// * `true` if the operation was successful and the entry was updated.
     /// * `false` if the operation was unsuccessful, e.g., due to an invalid signature or other errors.
     ///
-    pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
+    pub async fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
         info!("Updating entry...");
         let signed_content = match verify_signature(signature, Some(signature.public_key.clone())) {
             Ok(content) => content,
@@ -426,7 +446,7 @@ impl Sequencer {
             value: message_obj.value,
         };
         // add a new key to an existing id  ( type for the value retrieved from the database explicitly set to string)
-        match self.db.get_hashchain(&signature.id) {
+        match self.db.get_hashchain(&signature.id).await {
             Ok(value) => {
                 // hashchain already exists
                 let mut current_chain = value.clone();
@@ -450,9 +470,11 @@ impl Sequencer {
                 current_chain.push(new_chain_entry.clone());
                 self.db
                     .update_hashchain(&incoming_entry, &current_chain)
+                    .await
                     .unwrap();
                 self.db
                     .set_derived_entry(&incoming_entry, &new_chain_entry, false)
+                    .await
                     .unwrap();
 
                 true
@@ -476,9 +498,11 @@ impl Sequencer {
                 }];
                 self.db
                     .update_hashchain(&incoming_entry, &new_chain)
+                    .await
                     .unwrap();
                 self.db
                     .set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true)
+                    .await
                     .unwrap();
 
                 true

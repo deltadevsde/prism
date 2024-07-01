@@ -99,13 +99,13 @@ async fn update_entry(
         };
 
     // get epoch number and latest epoch operation number from database
-    let epoch: u64 = session.db.get_epoch().unwrap();
-    let epoch_operation: u64 = session.db.get_epoch_operation().unwrap();
+    let epoch: u64 = session.db.get_epoch().await.unwrap();
+    let epoch_operation: u64 = session.db.get_epoch_operation().await.unwrap();
 
-    let tree = session.create_tree().unwrap();
+    let tree = session.create_tree().await.unwrap();
 
     let result: Result<Vec<ChainEntry>, DeimosError> =
-        session.db.get_hashchain(&signature_with_key.id);
+        session.db.get_hashchain(&signature_with_key.id).await;
     // if the entry already exists, an update must be performed, otherwise insert
     let update_proof = match result {
         // add a new key to an existing id
@@ -113,10 +113,10 @@ async fn update_entry(
         Err(_) => false,
     };
 
-    let update_successful = session.update_entry(&signature_with_key);
+    let update_successful = session.update_entry(&signature_with_key).await;
 
     if update_successful {
-        let new_tree = session.create_tree().unwrap();
+        let new_tree = session.create_tree().await.unwrap();
         let hashed_id = sha256(&signature_with_key.id);
         let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
@@ -131,17 +131,21 @@ async fn update_entry(
             format!(r#"{{"Insert":{}}}"#, pre_processed_string)
         };
 
-        if let Err(err) = session.db.add_merkle_proof(
-            &epoch,
-            &epoch_operation,
-            &tree.get_commitment().unwrap(),
-            &proofs,
-        ) {
+        if let Err(err) = session
+            .db
+            .add_merkle_proof(
+                &epoch,
+                &epoch_operation,
+                &tree.get_commitment().unwrap(),
+                &proofs,
+            )
+            .await
+        {
             return HttpResponse::InternalServerError()
                 .json(format!("Error adding merkle proof: {}", err));
         }
 
-        if let Err(err) = session.db.increment_epoch_operation() {
+        if let Err(err) = session.db.increment_epoch_operation().await {
             return HttpResponse::InternalServerError()
                 .json(format!("Error incrementing epoch operation: {}", err));
         }
@@ -171,7 +175,7 @@ async fn update_entry(
 async fn calculate_values(con: web::Data<Arc<Sequencer>>, req_body: String) -> impl Responder {
     let incoming_id: String = serde_json::from_str(&req_body).unwrap();
 
-    match con.db.get_hashchain(&incoming_id) {
+    match con.db.get_hashchain(&incoming_id).await {
         // id exists, calculate values
         Ok(value) => {
             let chain_copy = value.clone();
@@ -201,11 +205,11 @@ async fn calculate_values(con: web::Data<Arc<Sequencer>>, req_body: String) -> i
 ///
 #[get("/get-dictionaries")]
 async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    let keys: Vec<String> = match con.db.get_keys() {
+    let keys: Vec<String> = match con.db.get_keys().await {
         Ok(keys) => keys,
         Err(_) => return HttpResponse::NotFound().body("Keys not found"),
     };
-    let derived_keys: Vec<String> = match con.db.get_derived_keys() {
+    let derived_keys: Vec<String> = match con.db.get_derived_keys().await {
         Ok(keys) => keys,
         Err(_) => return HttpResponse::NotFound().body("Derived Keys not found"),
     };
@@ -221,16 +225,13 @@ async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
         derived_dict: Vec::new(),
     };
     for id in keys {
-        let chain: Vec<ChainEntry> = con.db.get_hashchain(&id).unwrap();
-        resp.dict.push(Entry {
-            id: id,
-            value: chain,
-        });
+        let chain: Vec<ChainEntry> = con.db.get_hashchain(&id).await.unwrap();
+        resp.dict.push(Entry { id, value: chain });
     }
 
     for id in derived_keys {
-        let value: String = con.db.get_derived_value(&id).unwrap();
-        resp.derived_dict.push(DerivedEntry { id, value: value });
+        let value: String = con.db.get_derived_value(&id).await.unwrap();
+        resp.derived_dict.push(DerivedEntry { id, value });
     }
     HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
 }
@@ -238,7 +239,7 @@ async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 #[get("/get-dictionary/{id}")]
 async fn get_hashchain(con: web::Data<Arc<Sequencer>>, id: web::Path<String>) -> impl Responder {
     let id_str = id.into_inner();
-    let chain: Vec<ChainEntry> = match con.db.get_hashchain(&id_str) {
+    let chain: Vec<ChainEntry> = match con.db.get_hashchain(&id_str).await {
         Ok(chain) => chain,
         Err(_) => return HttpResponse::NotFound().body("No dictionary found for the given id"),
     };
@@ -259,7 +260,7 @@ async fn get_hashchain(con: web::Data<Arc<Sequencer>>, id: web::Path<String>) ->
 
 // get prev commitment, current commitments and proofs in between
 // TODO: is this the right error return type?
-pub fn get_epochs_and_proofs(
+pub async fn get_epochs_and_proofs(
     con: web::Data<Arc<Sequencer>>,
     epoch: &str,
 ) -> Result<(u64, String, String, Vec<Proof>), Box<dyn std::error::Error>> {
@@ -286,7 +287,7 @@ pub fn get_epochs_and_proofs(
     let previous_epoch = epoch_number - 1;
 
     // Get current commitment from database
-    let current_commitment: String = match con.db.get_commitment(&epoch_number) {
+    let current_commitment: String = match con.db.get_commitment(&epoch_number).await {
         Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
@@ -297,7 +298,7 @@ pub fn get_epochs_and_proofs(
     };
 
     // Get previous commitment from database
-    let previous_commitment: String = match con.db.get_commitment(&previous_epoch) {
+    let previous_commitment: String = match con.db.get_commitment(&previous_epoch).await {
         Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
@@ -307,7 +308,7 @@ pub fn get_epochs_and_proofs(
         }
     };
 
-    let proofs = match con.db.get_proofs_in_epoch(&previous_epoch) {
+    let proofs = match con.db.get_proofs_in_epoch(&previous_epoch).await {
         Ok(value) => value,
         Err(_) => {
             return Err(Box::new(std::io::Error::new(
@@ -358,7 +359,7 @@ async fn handle_validate_proof(con: web::Data<Arc<Sequencer>>, req_body: String)
         Ok(proof_id) => proof_id,
         Err(_) => return HttpResponse::BadRequest().body("Invalid proof ID"),
     };
-    let value: String = match con.db.get_proof(&proof_id) {
+    let value: String = match con.db.get_proof(&proof_id).await {
         Ok(value) => value,
         Err(_) => return HttpResponse::BadRequest().body("Could not find proof"),
     };
@@ -383,7 +384,7 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
     };
 
     let (epoch_number, previous_commitment, current_commitment, proofs) =
-        match get_epochs_and_proofs(con, &epoch.as_str()) {
+        match get_epochs_and_proofs(con, &epoch.as_str()).await {
             Ok(value) => value,
             Err(err) => {
                 error!(
@@ -445,7 +446,11 @@ async fn handle_validate_hashchain_proof(
             }
         };
 
-    let hashchain = session.db.get_hashchain(&incoming_value.pub_key).unwrap();
+    let hashchain = session
+        .db
+        .get_hashchain(&incoming_value.pub_key)
+        .await
+        .unwrap();
 
     let circuit = match HashChainEntryCircuit::create(&incoming_value.value, hashchain) {
         Ok(circuit) => circuit,
@@ -492,7 +497,7 @@ async fn handle_validate_hashchain_proof(
 ///
 #[get("/get-commitment")]
 async fn get_commitment(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    match con.create_tree() {
+    match con.create_tree().await {
         Ok(tree) => match tree.get_commitment() {
             Ok(commitment) => match serde_json::to_string(&commitment) {
                 Ok(serialized) => HttpResponse::Ok().body(serialized),
@@ -510,7 +515,7 @@ async fn get_commitment(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 ///
 #[get("/get-current-tree")]
 async fn get_current_tree(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    match con.create_tree() {
+    match con.create_tree().await {
         Ok(tree) => match tree.get_root() {
             Ok(node) => match serde_json::to_string(&node) {
                 Ok(serialized) => HttpResponse::Ok().body(serialized),
@@ -531,7 +536,7 @@ async fn get_epoch_operations(con: web::Data<Arc<Sequencer>>, req_body: String) 
     };
 
     let (_, previous_commitment, current_commitment, proofs) =
-        get_epochs_and_proofs(con, &epoch.as_str()).unwrap();
+        get_epochs_and_proofs(con, &epoch.as_str()).await.unwrap();
 
     #[derive(Serialize, Deserialize)]
     struct Response {
@@ -553,7 +558,7 @@ async fn get_epoch_operations(con: web::Data<Arc<Sequencer>>, req_body: String) 
 
 #[get("/get-epochs")]
 async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    let mut epochs = con.db.get_epochs().unwrap();
+    let mut epochs = con.db.get_epochs().await.unwrap();
 
     #[derive(Serialize, Deserialize)]
     struct Epoch {
@@ -571,7 +576,7 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     epochs.sort();
 
     for epoch in epochs {
-        let value: String = con.db.get_commitment(&epoch).unwrap();
+        let value: String = con.db.get_commitment(&epoch).await.unwrap();
         resp.epochs.push(Epoch {
             id: epoch,
             commitment: value,

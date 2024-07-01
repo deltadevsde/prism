@@ -50,6 +50,10 @@ pub enum DatabaseError {
     WriteError(String),
     #[error("Failed to delete {0} from the Database database")]
     DeleteError(String),
+    #[error("Fatal error occurred: {0}")]
+    FatalError(String),
+    #[error("Database error: {0}")]
+    OtherError(String),
 }
 
 #[derive(Error, Debug)]
