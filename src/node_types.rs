@@ -30,11 +30,6 @@ pub trait NodeType {
     // async fn stop(&self) -> Result<(), String>;
 }
 
-// Message represents an internal message that can be sent between sequencer threads.
-enum Message {
-    FinalizedEpoch(EpochJson),
-}
-
 pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
@@ -42,8 +37,8 @@ pub struct Sequencer {
     pub ws: WebServer,
     pub key: SigningKey,
 
-    epoch_buffer_tx: Arc<Sender<Message>>,
-    epoch_buffer_rx: Arc<Mutex<Receiver<Message>>>,
+    epoch_buffer_tx: Arc<Sender<EpochJson>>,
+    epoch_buffer_rx: Arc<Mutex<Receiver<EpochJson>>>,
 }
 
 pub struct LightClient {
@@ -174,14 +169,14 @@ impl Sequencer {
             ws: WebServer::new(cfg.webserver.unwrap()),
             key,
             epoch_buffer_tx: Arc::new(tx),
-            epoch_buffer_rx: Arc::new(tokio::sync::Mutex::new(rx)),
+            epoch_buffer_rx: Arc::new(Mutex::new(rx)),
         }
     }
 
     // main_loop is responsible for finalizing epochs every epoch length and writing them to the buffer for DA submission.
     async fn main_loop(self: Arc<Self>) {
         info!("starting main sequencer loop");
-        let tx1 = self.epoch_buffer_tx.clone();
+        let epoch_buffer = self.epoch_buffer_tx.clone();
         spawn(async move {
             loop {
                 match self.finalize_epoch().await {
@@ -190,7 +185,7 @@ impl Sequencer {
                             "sequencer_loop: finalized epoch {}",
                             self.db.get_epoch().unwrap()
                         );
-                        tx1.send(Message::FinalizedEpoch(epoch));
+                        epoch_buffer.send(epoch);
                     }
                     Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
                 }
@@ -309,7 +304,7 @@ impl Sequencer {
 
     async fn get_message(&self) -> std::result::Result<EpochJson, DataAvailabilityError> {
         match self.epoch_buffer_rx.lock().await.recv().await {
-            Some(Message::FinalizedEpoch(epoch)) => Ok(epoch),
+            Some(epoch) => Ok(epoch),
             None => Err(DataAvailabilityError::ChannelReceiveError),
         }
     }
