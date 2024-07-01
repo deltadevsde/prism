@@ -1,5 +1,7 @@
-use crate::consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL};
-use crate::error::DataAvailabilityError;
+use crate::{
+    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
+    error::DataAvailabilityError,
+};
 use async_trait::async_trait;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
@@ -11,7 +13,7 @@ use tokio::{
         Mutex,
     },
     task::spawn,
-    time::sleep,
+    time::{interval, sleep},
 };
 
 use crate::{
@@ -87,6 +89,7 @@ impl NodeType for LightClient {
 
         let handle = spawn(async move {
             let mut current_position = 0;
+            let mut ticker = interval(Duration::from_secs(1));
             loop {
                 // target is updated when a new header is received
                 let target = self.da.get_message().await.unwrap();
@@ -134,7 +137,7 @@ impl NodeType for LightClient {
                         Err(e) => debug!("light client: getting epoch: {}", e),
                     };
                 }
-                sleep(Duration::from_secs(1)).await; // only for testing purposes
+                ticker.tick().await; // only for testing purposes
                 current_position = target; // Update the current position to the latest target
             }
         });
@@ -180,8 +183,10 @@ impl Sequencer {
     async fn main_loop(self: Arc<Self>) {
         info!("starting main sequencer loop");
         let epoch_buffer = self.epoch_buffer_tx.clone();
+        let mut ticker = interval(Duration::from_secs(self.epoch_duration));
         spawn(async move {
             loop {
+                ticker.tick().await;
                 match self.finalize_epoch().await {
                     Ok(epoch) => {
                         info!(
@@ -192,8 +197,6 @@ impl Sequencer {
                     }
                     Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
                 }
-                // elapsed time/ticker instead of sleep
-                sleep(Duration::from_secs(self.epoch_duration)).await;
             }
         });
     }
@@ -201,6 +204,7 @@ impl Sequencer {
     // da_loop is responsible for submitting finalized epochs to the DA layer.
     async fn da_loop(self: Arc<Self>) {
         info!("starting da submission loop");
+        let mut ticker = interval(DA_RETRY_INTERVAL);
         spawn(async move {
             loop {
                 let epoch = self.get_message().await.unwrap();
@@ -218,7 +222,7 @@ impl Sequencer {
                         Err(e) => {
                             error!("da_loop: submitting epoch: {}", e);
                             retry_counter += 1;
-                            sleep(DA_RETRY_INTERVAL).await;
+                            ticker.tick().await;
                         }
                     };
                 }
