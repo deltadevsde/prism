@@ -83,12 +83,6 @@ impl Signable for EpochJson {
     }
 }
 
-/// Message represents an internal message that a new height has been reached on the DA layer
-/// and the sync target should be updated.
-enum Message {
-    UpdateTarget(u64),
-}
-
 #[async_trait]
 pub trait DataAvailabilityLayer: Send + Sync {
     async fn get_message(&self) -> Result<u64, DataAvailabilityError>;
@@ -102,8 +96,8 @@ pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
     pub namespace_id: Namespace,
 
-    synctarget_tx: Arc<Sender<Message>>,
-    synctarget_rx: Arc<Mutex<Receiver<Message>>>,
+    synctarget_tx: Arc<Sender<u64>>,
+    synctarget_rx: Arc<Mutex<Receiver<u64>>>,
 }
 
 /// The `NoopDataAvailabilityLayer` is a mock implementation of the `DataAvailabilityLayer` trait.
@@ -184,7 +178,7 @@ impl CelestiaConnection {
 impl DataAvailabilityLayer for CelestiaConnection {
     async fn get_message(&self) -> Result<u64, DataAvailabilityError> {
         match self.synctarget_rx.lock().await.recv().await {
-            Some(Message::UpdateTarget(height)) => Ok(height),
+            Some(height) => Ok(height),
             None => Err(DataAvailabilityError::ChannelReceiveError),
         }
     }
@@ -271,7 +265,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 match extended_header_result {
                     Ok(extended_header) => {
                         let height = extended_header.header.height.value();
-                        match synctarget_buffer.send(Message::UpdateTarget(height)).await {
+                        match synctarget_buffer.send(height).await {
                             Ok(_) => {
                                 debug!("Sent message to channel. Height: {}", height);
                             }
