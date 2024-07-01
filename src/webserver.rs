@@ -37,7 +37,7 @@ impl WebServer {
         /* let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
         builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
         builder.set_certificate_chain_file(env.cert_path).unwrap(); */
-        info!("Starting webserver on {}:{}", self.cfg.ip, self.cfg.port);
+        info!("starting webserver on {}:{}", self.cfg.ip, self.cfg.port);
         let ctx = Data::new(session.clone());
         let (ip, port) = (self.cfg.ip.clone(), self.cfg.port);
 
