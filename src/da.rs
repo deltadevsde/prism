@@ -5,7 +5,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
-use celestia_types::{blob::SubmitOptions, nmt::Namespace, Blob};
+use celestia_types::{blob::GasPrice, nmt::Namespace, Blob};
 use ed25519::Signature;
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
@@ -96,6 +96,32 @@ pub struct CelestiaConnection {
     rx: Arc<tokio::sync::Mutex<mpsc::Receiver<Message>>>,
 }
 
+/// The `NoopDataAvailabilityLayer` is a mock implementation of the `DataAvailabilityLayer` trait.
+pub struct NoopDataAvailabilityLayer {}
+
+#[async_trait]
+impl DataAvailabilityLayer for NoopDataAvailabilityLayer {
+    async fn get_message(&self) -> Result<u64, DataAvailabilityError> {
+        Ok(0)
+    }
+
+    async fn initialize_sync_target(&self) -> Result<u64, DataAvailabilityError> {
+        Ok(0)
+    }
+
+    async fn get(&self, _: u64) -> Result<Vec<EpochJson>, DataAvailabilityError> {
+        Ok(vec![])
+    }
+
+    async fn submit(&self, _: &EpochJson) -> Result<u64, DataAvailabilityError> {
+        Ok(0)
+    }
+
+    async fn start(&self) -> Result<(), DataAvailabilityError> {
+        Ok(())
+    }
+}
+
 /// The `LocalDataAvailabilityLayer` is a mock implementation of the `DataAvailabilityLayer` trait.
 /// It simulates the behavior of a data availability layer, storing and retrieving epoch-objects in-memory only.
 /// This allows to write and test the functionality of systems that interact with a data availability layer without the need for an actual external service or network like we do with Celestia.
@@ -110,7 +136,7 @@ impl CelestiaConnection {
         auth_token: Option<&str>,
         namespace_hex: &String,
     ) -> Result<Self, DataAvailabilityError> {
-        // TODO: Should buffer size be configurable? Is 5 a reasonable default?
+        // TODO: Make buffer size constant
         let (tx, rx) = mpsc::channel(5);
 
         let client = Client::new(&connection_string, auth_token)
@@ -203,7 +229,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
         debug!("blob: {:?}", serde_json::to_string(&blob));
         match self
             .client
-            .blob_submit(&[blob], SubmitOptions::default())
+            .blob_submit(&[blob.clone()], GasPrice::from(-1.0))
             .await
         {
             Ok(height) => {
@@ -213,7 +239,6 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 );
                 Ok(height)
             }
-            // TODO implement retries (#10)
             Err(err) => Err(DataAvailabilityError::NetworkError(format!(
                 "Could not submit epoch to DA layer: {}",
                 err
@@ -469,7 +494,7 @@ mod da_tests {
 
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
-            let sequencer_layer = LocalDataAvailabilityLayer::new();
+            let mut sequencer_layer = LocalDataAvailabilityLayer::new();
             // write all 60 seconds proofs and commitments
             // create a new tree
             let mut tree = build_empty_tree();
