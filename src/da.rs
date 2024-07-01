@@ -1,4 +1,5 @@
 use crate::{
+    consts::CHANNEL_BUFFER_SIZE,
     error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError},
     utils::Signable,
     zk_snark::{Bls12Proof, VerifyingKey},
@@ -145,8 +146,7 @@ impl CelestiaConnection {
         auth_token: Option<&str>,
         namespace_hex: &String,
     ) -> Result<Self, DataAvailabilityError> {
-        // TODO: Make buffer size constant
-        let (tx, rx) = channel(5);
+        let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
 
         let client = Client::new(&connection_string, auth_token)
             .await
