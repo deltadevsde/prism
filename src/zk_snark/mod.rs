@@ -7,7 +7,9 @@ use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
 use indexed_merkle_tree::{
-    node::Node, sha256, tree::InsertProof, tree::MerkleProof, tree::Proof, tree::UpdateProof,
+    node::Node,
+    sha256,
+    tree::{InsertProof, MerkleProof, Proof, UpdateProof},
 };
 use serde::{Deserialize, Serialize};
 
@@ -88,12 +90,11 @@ pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine,
 }
 
 fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
-    match (&proof.root_hash, &proof.path) {
-        (Some(hex_root), Some(path)) if !path.is_empty() => {
-            let scalar_root = hex_to_scalar(hex_root).map_err(DeimosError::General)?;
-            Ok((scalar_root, path))
-        }
-        _ => Err(DeimosError::Proof(ProofError::ProofUnpackError)),
+    if !proof.path.is_empty() {
+        let scalar_root = hex_to_scalar(proof.root_hash.as_str()).map_err(DeimosError::General)?;
+        Ok((scalar_root, &proof.path))
+    } else {
+        Err(DeimosError::General(GeneralError::MissingArgumentError))
     }
 }
 
@@ -601,7 +602,7 @@ impl Circuit<Scalar> for HashChainEntryCircuit {
 impl InsertMerkleProofCircuit {
     pub fn new(proof: &InsertProof) -> Result<InsertMerkleProofCircuit, DeimosError> {
         let (non_membership_root, non_membership_path) =
-            unpack_and_process(&proof.non_membership_proof)?;
+            unpack_and_process(&proof.non_membership_proof.merkle_proof)?;
 
         let first_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.first_proof)?;
         let second_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.second_proof)?;

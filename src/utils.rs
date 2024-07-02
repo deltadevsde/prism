@@ -11,7 +11,9 @@ use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::{IndexedMerkleTree, InsertProof, MerkleProof, Proof, UpdateProof};
+use indexed_merkle_tree::tree::{
+    IndexedMerkleTree, InsertProof, MerkleProof, NonMembershipProof, Proof, UpdateProof,
+};
 use rand::rngs::OsRng;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -67,7 +69,7 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, Ge
 
 pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
     if let Ok((non_membership_proof, first_proof, second_proof)) =
-        serde_json::from_str::<(MerkleProof, UpdateProof, UpdateProof)>(&proof_value)
+        serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
     {
         let insertion_proof = InsertProof {
             non_membership_proof,
@@ -181,7 +183,10 @@ pub fn verify_signature<T: Signable>(
 
 #[cfg(test)]
 mod tests {
-    use indexed_merkle_tree::{node::LeafNode, node::Node, sha256};
+    use indexed_merkle_tree::{
+        node::{LeafNode, Node},
+        sha256,
+    };
 
     use super::*;
 
