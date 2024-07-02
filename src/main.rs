@@ -8,10 +8,11 @@ mod webserver;
 pub mod zk_snark;
 extern crate keystore;
 
+use cfg::{initialize_da_layer, load_config};
 use clap::Parser;
 use keystore::{KeyChain, KeyStore, KeyStoreType};
 
-use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
+use crate::cfg::{CommandLineArgs, Commands};
 use dotenvy::dotenv;
 use node_types::{LightClient, NodeType, Sequencer};
 use std::sync::Arc;

@@ -1,21 +1,23 @@
-use crate::error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError};
-use crate::utils::Signable;
-use crate::zk_snark::{Bls12Proof, VerifyingKey};
+use crate::{
+    error::{DataAvailabilityError, DatabaseError, DeimosError, GeneralError},
+    utils::Signable,
+    zk_snark::{Bls12Proof, VerifyingKey},
+};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
-use celestia_types::blob::SubmitOptions;
-use celestia_types::{nmt::Namespace, Blob};
+use celestia_types::{blob::SubmitOptions, nmt::Namespace, Blob};
 use ed25519::Signature;
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_json::Value;
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Seek, Write};
-use std::str::FromStr;
-use std::{self, sync::Arc};
-use tokio::sync::mpsc;
-use tokio::task::spawn;
+use serde_json::{json, Value};
+use std::{
+    self,
+    fs::{File, OpenOptions},
+    io::{Read, Seek, Write},
+    str::FromStr,
+    sync::Arc,
+};
+use tokio::{sync::mpsc, task::spawn};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EpochJson {
@@ -363,13 +365,15 @@ mod da_tests {
     use bellman::groth16;
     use bls12_381::Bls12;
     use indexed_merkle_tree::{
-        node::{InnerNode, LeafNode, Node},
+        node::Node,
         sha256,
         tree::{IndexedMerkleTree, Proof},
     };
     use rand::rngs::OsRng;
-    use std::fs::OpenOptions;
-    use std::io::{Error, Seek, SeekFrom};
+    use std::{
+        fs::OpenOptions,
+        io::{Error, Seek, SeekFrom},
+    };
 
     const EMPTY_HASH: &str = Node::EMPTY_HASH;
     const TAIL: &str = Node::TAIL;

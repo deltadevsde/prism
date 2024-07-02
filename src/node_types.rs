@@ -3,9 +3,7 @@ use bellman::groth16::Proof;
 use bls12_381::Bls12;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{
-    error::MerkleTreeError, node::LeafNode, node::Node, tree::IndexedMerkleTree,
-};
+use indexed_merkle_tree::{error::MerkleTreeError, node::Node, tree::IndexedMerkleTree};
 use std::{self, io::ErrorKind, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::sleep};
 
@@ -54,7 +52,7 @@ impl NodeType for Sequencer {
             Ok(keys) => {
                 if keys.len() == 0 {
                     // if the dict is empty, we need to initialize the dict and the input order
-                    self.db.initialize_derived_dict();
+                    self.db.initialize_derived_dict().unwrap();
                 }
             }
             Err(e) => {
@@ -262,7 +260,9 @@ impl Sequencer {
 
         if let Some(da) = &self.da {
             // TODO: retries (#10)
-            da.submit(&epoch_json_with_signature).await;
+            da.submit(&epoch_json_with_signature)
+                .await
+                .expect("Failed to submit epoch");
         }
         Ok(proof)
     }

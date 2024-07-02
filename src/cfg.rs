@@ -3,7 +3,12 @@ use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::da::{CelestiaConnection, DataAvailabilityLayer, LocalDataAvailabilityLayer};
+#[cfg(not(test))]
+use crate::da::CelestiaConnection;
+#[cfg(test)]
+use crate::da::LocalDataAvailabilityLayer;
+
+use crate::da::DataAvailabilityLayer;
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
