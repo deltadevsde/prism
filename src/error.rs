@@ -34,6 +34,8 @@ pub enum GeneralError {
     InvalidPublicKey,
     #[error("Invalid signature")]
     InvalidSignature,
+    #[error("Failed to start webserver")]
+    WebserverError,
 }
 
 #[derive(Error, Debug)]
