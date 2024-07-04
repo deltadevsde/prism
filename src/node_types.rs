@@ -13,7 +13,7 @@ use tokio::{
         Mutex,
     },
     task::spawn,
-    time::{interval, sleep},
+    time::interval,
 };
 
 use crate::{
@@ -31,7 +31,7 @@ use crate::{
 
 #[async_trait]
 pub trait NodeType {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), std::io::Error>;
+    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError>;
     // async fn stop(&self) -> Result<(), String>;
 }
 
@@ -53,9 +53,13 @@ pub struct LightClient {
 
 #[async_trait]
 impl NodeType for Sequencer {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), std::io::Error> {
+    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError> {
         // start listening for new headers to update sync target
-        self.da.start().await.unwrap();
+        if let Err(e) = self.da.start().await {
+            return Err(DeimosError::DataAvailability(
+                DataAvailabilityError::InitializationError(e.to_string()),
+            ));
+        }
 
         let derived_keys = self.db.get_derived_keys();
         match derived_keys {
@@ -73,13 +77,17 @@ impl NodeType for Sequencer {
 
         self.clone().main_loop().await;
         self.clone().da_loop().await;
-        self.clone().ws.start(self.clone()).await
+        self.clone()
+            .ws
+            .start(self.clone())
+            .await
+            .map_err(|_| DeimosError::General(GeneralError::WebserverError))
     }
 }
 
 #[async_trait]
 impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), std::io::Error> {
+    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError> {
         // start listening for new headers to update sync target
         self.da.start().await.unwrap();
 
@@ -144,7 +152,7 @@ impl NodeType for LightClient {
 
         handle
             .await
-            .map_err(|e| std::io::Error::new(ErrorKind::Other, format!("Join error: {}", e)))
+            .map_err(|_| DeimosError::General(GeneralError::WebserverError))
     }
 }
 
