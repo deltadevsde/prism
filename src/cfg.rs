@@ -64,7 +64,7 @@ pub struct Config {
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize)]
 #[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
-enum DALayerOption {
+pub enum DALayerOption {
     #[default]
     Celestia,
     #[cfg(test)]
@@ -165,9 +165,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
 }
 
 #[cfg(not(test))]
-pub async fn initialize_da_layer(
-    config: &Config,
-) -> Option<Arc<dyn DataAvailabilityLayer + 'static>> {
+pub async fn initialize_da_layer(config: &Config) -> Arc<dyn DataAvailabilityLayer + 'static> {
     match &config.da_layer {
         DALayerOption::Celestia => {
             let celestia_conf = config.clone().celestia_config.unwrap();
@@ -178,20 +176,17 @@ pub async fn initialize_da_layer(
             )
             .await
             {
-                Ok(da) => Some(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
+                Ok(da) => Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>,
                 Err(e) => {
-                    error!("Failed to connect to Celestia: {}", e);
-                    None
+                    panic!("Failed to connect to Celestia: {}", e);
                 }
             }
         }
-        DALayerOption::None => None,
+        DALayerOption::None => panic!("No DALayer"),
     }
 }
 
 #[cfg(test)]
-pub async fn initialize_da_layer(
-    _config: &Config,
-) -> Option<Arc<dyn DataAvailabilityLayer + 'static>> {
-    Some(Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>)
+pub async fn initialize_da_layer(_config: &Config) -> Arc<dyn DataAvailabilityLayer + 'static> {
+    Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>
 }

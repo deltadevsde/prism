@@ -1,4 +1,5 @@
 mod cfg;
+pub mod consts;
 pub mod da;
 pub mod error;
 mod node_types;
@@ -44,7 +45,7 @@ async fn main() -> std::io::Result<()> {
 
     let node: Arc<dyn NodeType> = match args.command {
         // LightClients need a DA layer, so we can unwrap here
-        Commands::LightClient {} => Arc::new(LightClient::new(da.unwrap(), config.public_key)),
+        Commands::LightClient {} => Arc::new(LightClient::new(da, config.public_key)),
         Commands::Sequencer {} => Arc::new(Sequencer::new(
             // TODO: convert error to std::io::Error...is there a better solution?
             Arc::new(
