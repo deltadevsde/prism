@@ -22,15 +22,7 @@ use storage::RedisConnections;
 #[macro_use]
 extern crate log;
 
-/// The main function that initializes and runs the Actix web server.
-///
-/// # Behavior
-/// 1. Loads environment variables using `dotenv` and sets up the server configuration.
-/// 2. Spawns a task that runs the `initialize_or_increment_epoch_state` function in a loop for epoch-based behavior of the application
-/// 3. Sets up CORS (Cross-Origin Resource Sharing) rules to allow specific origins and headers.
-/// 4. Registers routes for various services.
-/// 5. Binds the server to the configured IP and port.
-/// 6. Runs the server and awaits its completion.
+/// The main function that initializes and runs a deimos client.
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
@@ -44,10 +36,8 @@ async fn main() -> std::io::Result<()> {
     let da = initialize_da_layer(&config).await;
 
     let node: Arc<dyn NodeType> = match args.command {
-        // LightClients need a DA layer, so we can unwrap here
         Commands::LightClient {} => Arc::new(LightClient::new(da, config.public_key)),
         Commands::Sequencer {} => Arc::new(Sequencer::new(
-            // TODO: convert error to std::io::Error...is there a better solution?
             Arc::new(
                 RedisConnections::new()
                     .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?,
@@ -58,5 +48,7 @@ async fn main() -> std::io::Result<()> {
         )),
     };
 
-    node.start().await
+    node.start()
+        .await
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
 }
