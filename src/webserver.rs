@@ -37,9 +37,9 @@ impl WebServer {
         /* let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
         builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
         builder.set_certificate_chain_file(env.cert_path).unwrap(); */
-        info!("starting webserver on {}:{}", self.cfg.ip, self.cfg.port);
+        info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let ctx = Data::new(session.clone());
-        let (ip, port) = (self.cfg.ip.clone(), self.cfg.port);
+        let (ip, port) = (self.cfg.host.clone(), self.cfg.port);
 
         HttpServer::new(move || {
             let cors = Cors::default()
@@ -376,7 +376,7 @@ async fn handle_validate_proof(con: web::Data<Arc<Sequencer>>, req_body: String)
 // Returns an HTTP response containing either a confirmation of successful validation or an error.
 #[post("/validate-epoch")]
 async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String) -> impl Responder {
-    debug!("Validating epoch {}", req_body);
+    debug!("validating epoch {}", req_body);
     let epoch: String = match serde_json::from_str(&req_body) {
         Ok(epoch) => epoch,
         Err(_) => return HttpResponse::BadRequest().body("Invalid epoch"),
@@ -450,20 +450,20 @@ async fn handle_validate_hashchain_proof(
     let circuit = match HashChainEntryCircuit::create(&incoming_value.value, hashchain) {
         Ok(circuit) => circuit,
         Err(e) => {
-            error!("Error creating circuit: {}", e);
+            error!("creating circuit: {}", e);
             return HttpResponse::BadRequest().json("Could not create circuit");
         }
     };
 
     let rng = &mut OsRng;
 
-    // debug!("Creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
+    trace!("creating parameters with BLS12-381 pairing-friendly elliptic curve construction");
     let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).unwrap();
 
-    // debug!("Creating proof for zkSNARK...");
+    trace!("creating proof for zkSNARK");
     let proof = groth16::create_random_proof(circuit.clone(), &params, rng).unwrap();
 
-    // debug!("Prepare verifying key for zkSNARK...");
+    trace!("prepare verifying key for zkSNARK");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
     let public_param = match HashChainEntryCircuit::create_public_parameter(&incoming_value.value) {
@@ -473,7 +473,7 @@ async fn handle_validate_hashchain_proof(
         }
     };
 
-    // debug!("Verifying zkSNARK proof...");
+    trace!("verifying zkSNARK proof");
     match groth16::verify_proof(&pvk, &proof, &[public_param]) {
         Ok(_) => {
             info!("proof successfully verified with: {:?}", public_param);

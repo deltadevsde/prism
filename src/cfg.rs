@@ -27,6 +27,9 @@ pub struct CommandLineArgs {
     #[arg(short = 'c', long)]
     celestia_client: Option<String>,
 
+    #[arg(short = 'r', long)]
+    redis_client: Option<String>,
+
     /// Celestia Namespace ID
     #[arg(short = 'n', long)]
     celestia_namespace_id: Option<String>,
@@ -35,11 +38,11 @@ pub struct CommandLineArgs {
     #[arg(short, long)]
     epoch_time: Option<u64>,
 
-    /// IP address
+    /// IP address for the webserver to listen on
     #[arg(short, long)]
-    ip: Option<String>,
+    host: Option<String>,
 
-    /// Port number
+    /// Port number for the webserver to listen on
     #[arg(short, long)]
     port: Option<u16>,
 
@@ -52,12 +55,15 @@ pub struct CommandLineArgs {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
-    pub log_level: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub webserver: Option<WebServerConfig>,
-    pub da_layer: DALayerOption,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub celestia_config: Option<CelestiaConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+
+    pub log_level: String,
+    pub da_layer: DALayerOption,
+    pub redis_config: Option<RedisConfig>,
     pub epoch_time: u64,
     pub public_key: Option<String>,
 }
@@ -73,23 +79,36 @@ pub enum DALayerOption {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct WebServerConfig {
-    pub ip: String,
+    pub host: String,
     pub port: u16,
 }
 
 impl Default for WebServerConfig {
     fn default() -> Self {
         WebServerConfig {
-            ip: "127.0.0.1".to_string(),
+            host: "127.0.0.1".to_string(),
             port: 8080,
         }
     }
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct RedisConfig {
+    pub connection_string: String
+}
+
+impl Default for RedisConfig {
+    fn default() -> Self {
+        RedisConfig{
+            connection_string: "redis://127.0.0.1/".to_string()
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct CelestiaConfig {
-    connection_string: String,
-    namespace_id: String,
+    pub connection_string: String,
+    pub namespace_id: String,
 }
 
 impl Default for CelestiaConfig {
@@ -108,6 +127,7 @@ impl Default for Config {
             log_level: "DEBUG".to_string(),
             da_layer: DALayerOption::default(),
             celestia_config: Some(CelestiaConfig::default()),
+            redis_config: Some(RedisConfig::default()),
             epoch_time: 60,
             public_key: None,
         }
@@ -129,14 +149,19 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
     Ok(Config {
         log_level: args.log_level.unwrap_or(default_config.log_level),
         webserver: Some(WebServerConfig {
-            ip: args
-                .ip
-                .unwrap_or(default_config.webserver.as_ref().unwrap().ip.clone()),
+            host: args
+                .host
+                .unwrap_or(default_config.webserver.as_ref().unwrap().host.clone()),
             port: args
                 .port
                 .unwrap_or(default_config.webserver.as_ref().unwrap().port),
         }),
         da_layer: DALayerOption::default(),
+        redis_config: Some(RedisConfig {
+            connection_string: args.redis_client.unwrap_or(
+                default_config.redis_config.as_ref().unwrap().connection_string.clone()
+            )
+        }),
         celestia_config: Some(CelestiaConfig {
             connection_string: args.celestia_client.unwrap_or(
                 default_config
@@ -181,6 +206,6 @@ pub async fn initialize_da_layer(config: &Config) -> Arc<dyn DataAvailabilityLay
             }
         }
         DALayerOption::InMemory => Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>,
-        DALayerOption::None => panic!("No DALayer"),
+        DALayerOption::None => panic!("No DA Layer"),
     }
 }

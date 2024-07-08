@@ -11,6 +11,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::{self, fmt::Display, sync::Mutex};
 
+use crate::cfg::RedisConfig;
 use crate::utils::Signable;
 use crate::{
     error::{DatabaseError, DeimosError, GeneralError},
@@ -165,17 +166,17 @@ pub trait Database: Send + Sync {
 }
 
 impl RedisConnections {
-    pub fn new() -> Result<RedisConnections, Box<dyn std::error::Error>> {
-        let try_client = Client::open("redis://127.0.0.1/")?;
+    pub fn new(cfg: &RedisConfig) -> Result<RedisConnections, Box<dyn std::error::Error>> {
+        let try_client = Client::open(cfg.clone().connection_string)?;
         let try_connection = try_client.get_connection();
 
         if try_connection.is_err() {
-            debug!("Starting redis-server...");
+            debug!("starting redis-server...");
 
             let _child = Command::new("redis-server").spawn()?;
 
             sleep(Duration::from_secs(5));
-            debug!("Redis-server started.");
+            debug!("redis-server started");
         }
 
         let client = Client::open("redis://127.0.0.1/")?;
@@ -466,7 +467,7 @@ impl Database for RedisConnections {
                     "empty hash as first entry in the derived dictionary"
                 ))
             })?;
-        debug!("Added empty hash to derived dict");
+        debug!("added empty hash to derived dict");
 
         // add the empty hash to the input order as first node
         input_con
@@ -474,7 +475,7 @@ impl Database for RedisConnections {
             .map_err(|_| {
                 DatabaseError::WriteError(format!("empty hash as first entry in input order"))
             })?;
-        debug!("Added empty hash to input order");
+        debug!("added empty hash to input order");
 
         Ok(())
     }
@@ -518,7 +519,7 @@ mod tests {
 
     // set up redis connection and flush database before each test
     fn setup() -> RedisConnections {
-        let redis_connections = RedisConnections::new().unwrap();
+        let redis_connections = RedisConnections::new(&RedisConfig::default()).unwrap();
         redis_connections.flush_database().unwrap();
         redis_connections
     }

@@ -39,7 +39,7 @@ async fn main() -> std::io::Result<()> {
         Commands::LightClient {} => Arc::new(LightClient::new(da, config.public_key)),
         Commands::Sequencer {} => Arc::new(Sequencer::new(
             Arc::new(
-                RedisConnections::new()
+                RedisConnections::new(&config.clone().redis_config.unwrap())
                     .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?,
             ),
             da,

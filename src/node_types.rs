@@ -70,7 +70,6 @@ impl NodeType for Sequencer {
                 }
             }
             Err(e) => {
-                // TODO: custom error
                 error!("sequencer_loop: getting derived keys: {}", e);
             }
         }
@@ -101,7 +100,7 @@ impl NodeType for LightClient {
             loop {
                 // target is updated when a new header is received
                 let target = self.da.get_message().await.unwrap();
-                debug!("Updated sync target to height {}", target);
+                debug!("updated sync target to height {}", target);
                 for i in current_position..target {
                     trace!("processing height: {}", i);
                     match self.da.get(i + 1).await {
@@ -122,12 +121,12 @@ impl NodeType for LightClient {
                                     )
                                     .is_ok()
                                     {
-                                        debug!("Signature is valid");
+                                        trace!("valid signature for height {}", i);
                                     } else {
-                                        panic!("Invalid signature");
+                                        panic!("invalid signature in retrieved epoch on height {}", i);
                                     }
                                 } else {
-                                    warn!("No public key found");
+                                    error!("epoch on height {} was not signed", i);
                                 }
 
                                 match validate_epoch(
@@ -417,11 +416,16 @@ impl Sequencer {
     /// * `false` if the operation was unsuccessful, e.g., due to an invalid signature or other errors.
     ///
     pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
-        info!("Updating entry...");
+        debug!("updating entry for uid {} with msg {}", signature.id, signature.signed_message);
         let signed_content = match verify_signature(signature, Some(signature.public_key.clone())) {
             Ok(content) => content,
             Err(_) => {
-                info!("Signature is invalid");
+                error!(
+                    "updating entry for uid {}: invalid signature with pubkey {} on msg {}",
+                    signature.id,
+                    signature.public_key,
+                    signature.signed_message
+                );
                 return false;
             }
         };
@@ -429,7 +433,7 @@ impl Sequencer {
         let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
             Ok(obj) => obj,
             Err(e) => {
-                error!("Failed to parse signed content: {}", e);
+                error!("parsing signed content: {}", e);
                 return false;
             }
         };

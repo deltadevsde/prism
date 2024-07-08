@@ -262,7 +262,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         let height = extended_header.header.height.value();
                         match synctarget_buffer.send(height).await {
                             Ok(_) => {
-                                debug!("Sent sync target update to height {}", height);
+                                debug!("sent sync target update for height {}", height);
                             }
                             Err(_) => {
                                 DataAvailabilityError::SyncTargetError(
@@ -337,7 +337,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         let mut contents = String::new();
 
         file.lock_exclusive().expect("Unable to lock file");
-        info!("File locked");
+        info!("file locked");
 
         file.read_to_string(&mut contents)
             .expect("Unable to read file");
@@ -364,7 +364,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
             .expect("Unable to set file length");
 
         file.unlock().expect("Unable to unlock file");
-        info!("File unlocked");
+        info!("file unlocked");
 
         Ok(epoch.height)
     }
@@ -487,12 +487,12 @@ mod da_tests {
     #[tokio::test]
     async fn test_sequencer_and_light_client() {
         if let Err(e) = clear_file("data.json") {
-            debug!("Fehler beim Löschen der Datei: {}", e);
+            error!("deleting file: {}", e);
         }
 
         // simulate sequencer start
         let sequencer = tokio::spawn(async {
-            let mut sequencer_layer = LocalDataAvailabilityLayer::new();
+            let sequencer_layer = LocalDataAvailabilityLayer::new();
             // write all 60 seconds proofs and commitments
             // create a new tree
             let mut tree = build_empty_tree();

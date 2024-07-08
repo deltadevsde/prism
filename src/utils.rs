@@ -91,15 +91,15 @@ pub fn create_and_verify_snark(
 ) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>), DeimosError> {
     let rng = &mut OsRng;
 
-    trace!("Creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
+    trace!("creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
     let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng)
         .map_err(|_| DeimosError::Proof(ProofError::ProofUnpackError))?;
 
-    trace!("Creating proof for zkSNARK...");
+    trace!("creating proof for zkSNARK...");
     let proof = groth16::create_random_proof(circuit, &params, rng)
         .map_err(|_| DeimosError::Proof(ProofError::GenerationError))?;
 
-    trace!("Preparing verifying key for zkSNARK...");
+    trace!("preparing verifying key for zkSNARK...");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
     groth16::verify_proof(&pvk, &proof, &scalars)
