@@ -3,10 +3,10 @@ use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 use serde::Deserialize;
 use std::sync::Arc;
 
-#[cfg(not(test))]
-use crate::da::CelestiaConnection;
-#[cfg(test)]
-use crate::da::LocalDataAvailabilityLayer;
+use crate::da::{
+    CelestiaConnection,
+    LocalDataAvailabilityLayer
+};
 
 use crate::da::DataAvailabilityLayer;
 
@@ -67,7 +67,6 @@ pub struct Config {
 pub enum DALayerOption {
     #[default]
     Celestia,
-    #[cfg(test)]
     InMemory,
     None,
 }
@@ -88,7 +87,7 @@ impl Default for WebServerConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-struct CelestiaConfig {
+pub struct CelestiaConfig {
     connection_string: String,
     namespace_id: String,
 }
@@ -164,7 +163,6 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
     })
 }
 
-#[cfg(not(test))]
 pub async fn initialize_da_layer(config: &Config) -> Arc<dyn DataAvailabilityLayer + 'static> {
     match &config.da_layer {
         DALayerOption::Celestia => {
@@ -182,11 +180,7 @@ pub async fn initialize_da_layer(config: &Config) -> Arc<dyn DataAvailabilityLay
                 }
             }
         }
+        DALayerOption::InMemory => Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>,
         DALayerOption::None => panic!("No DALayer"),
     }
-}
-
-#[cfg(test)]
-pub async fn initialize_da_layer(_config: &Config) -> Arc<dyn DataAvailabilityLayer + 'static> {
-    Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>
 }

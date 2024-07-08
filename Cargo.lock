@@ -4034,7 +4034,7 @@ dependencies = [
 [[package]]
 name = "keystore"
 version = "0.1.0"
-source = "git+https://github.com/deltadevsde/keystore?rev=c817b6797ac6642d93af96949a893f58ba129e5c#c817b6797ac6642d93af96949a893f58ba129e5c"
+source = "git+https://github.com/deltadevsde/keystore?rev=40f21a41afd0654091bb0881665288034ab8533f#40f21a41afd0654091bb0881665288034ab8533f"
 dependencies = [
  "aes-gcm",
  "dotenvy",

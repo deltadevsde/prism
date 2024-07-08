@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{error::MerkleTreeError, node::Node, tree::IndexedMerkleTree};
-use std::{self, io::ErrorKind, sync::Arc, time::Duration};
+use std::{self, sync::Arc, time::Duration};
 use tokio::{
     sync::{
         mpsc::{channel, Receiver, Sender},
@@ -201,7 +201,8 @@ impl Sequencer {
                             "sequencer_loop: finalized epoch {}",
                             self.db.get_epoch().unwrap()
                         );
-                        epoch_buffer.send(epoch);
+                        // should panic here if we cannot send to buffer
+                        epoch_buffer.send(epoch).await.unwrap();
                     }
                     Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
                 }

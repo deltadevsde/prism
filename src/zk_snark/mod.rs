@@ -1,5 +1,5 @@
 use crate::{
-    error::{DeimosError, GeneralError, ProofError},
+    error::{DeimosError, GeneralError},
     storage::ChainEntry,
     utils::create_and_verify_snark,
 };
