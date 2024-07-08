@@ -28,7 +28,9 @@ async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
     let config = load_config(args.clone()).unwrap();
 
-    std::env::set_var("RUST_LOG", &config.log_level);
+    println!("---------- STARTING Deimos node with config: {:?}", config);
+
+    std::env::set_var("RUST_LOG", &config.clone().log_level.unwrap());
 
     pretty_env_logger::init();
     dotenv().ok();
