@@ -101,6 +101,7 @@ impl NodeType for LightClient {
             loop {
                 // target is updated when a new header is received
                 let target = self.da.get_message().await.unwrap();
+                debug!("Updated sync target to height {}", target);
                 for i in current_position..target {
                     trace!("processing height: {}", i);
                     match self.da.get(i + 1).await {

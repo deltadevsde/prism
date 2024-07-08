@@ -229,19 +229,14 @@ impl DataAvailabilityLayer for CelestiaConnection {
         })?;
         let blob = Blob::new(self.namespace_id.clone(), data.into_bytes())
             .map_err(|_| DataAvailabilityError::GeneralError(GeneralError::BlobCreationError))?;
-        debug!("blob: {:?}", serde_json::to_string(&blob));
+        debug!("submitted blob with commitment {:?}", serde_json::to_string(&blob.clone().commitment).unwrap());
+        trace!("blob: {:?}", serde_json::to_string(&blob).unwrap());
         match self
             .client
             .blob_submit(&[blob.clone()], GasPrice::from(-1.0))
             .await
         {
-            Ok(height) => {
-                debug!(
-                    "Submitted epoch {} to DA layer at height {}",
-                    epoch.height, height
-                );
-                Ok(height)
-            }
+            Ok(height) => Ok(height),
             Err(err) => Err(DataAvailabilityError::NetworkError(format!(
                 "Could not submit epoch to DA layer: {}",
                 err
@@ -267,7 +262,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         let height = extended_header.header.height.value();
                         match synctarget_buffer.send(height).await {
                             Ok(_) => {
-                                debug!("Sent message to channel. Height: {}", height);
+                                debug!("Sent sync target update to height {}", height);
                             }
                             Err(_) => {
                                 DataAvailabilityError::SyncTargetError(
