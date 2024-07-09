@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
-use config::{builder::DefaultState, ConfigBuilder, ConfigError, File, FileFormat};
+use config::{builder::DefaultState, ConfigBuilder, File};
 use serde::{Deserialize, Serialize};
-use std::{env, fs, path::Path, sync::Arc};
+use std::{fs, path::Path, sync::Arc};
 
 use crate::da::{CelestiaConnection, LocalDataAvailabilityLayer};
 
@@ -61,9 +61,9 @@ pub struct Config {
     pub celestia_config: Option<CelestiaConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub log_level: Option<String>,
-    pub da_layer: DALayerOption,
+    pub da_layer: Option<DALayerOption>,
     pub redis_config: Option<RedisConfig>,
-    pub epoch_time: u64,
+    pub epoch_time: Option<u64>,
     pub public_key: Option<String>,
 }
 
@@ -124,10 +124,10 @@ impl Default for Config {
         Config {
             webserver: Some(WebServerConfig::default()),
             log_level: Some("DEBUG".to_string()),
-            da_layer: DALayerOption::default(),
+            da_layer: Some(DALayerOption::default()),
             celestia_config: Some(CelestiaConfig::default()),
             redis_config: Some(RedisConfig::default()),
-            epoch_time: 60,
+            epoch_time: Some(60),
             public_key: None,
         }
     }
@@ -153,20 +153,21 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
         .build()?;
 
     let default_config = Config::default();
-    let file_config: Config = settings
-        .try_deserialize()
-        .unwrap_or_else(|_| Config::default());
+    let file_config: Config = settings.try_deserialize().unwrap_or_else(|e| {
+        println!("Failed to deserialize config file: {}", e);
+        Config::default()
+    });
 
-    // TODO: doesnt work rn because if one of the config fields is not present in the file, then it will take the default values for everything, even if the other fields are present in the file
+    // if the config file is missing a field, use the default value
     let merged_config = Config {
-        log_level: file_config.log_level,
+        log_level: file_config.log_level.or(default_config.log_level),
         webserver: file_config.webserver.or(default_config.webserver),
         redis_config: file_config.redis_config.or(default_config.redis_config),
         celestia_config: file_config
             .celestia_config
             .or(default_config.celestia_config),
-        da_layer: file_config.da_layer,
-        epoch_time: file_config.epoch_time,
+        da_layer: file_config.da_layer.or(default_config.da_layer),
+        epoch_time: file_config.epoch_time.or(default_config.epoch_time),
         public_key: file_config.public_key.or(default_config.public_key),
     };
 
@@ -196,13 +197,13 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
                 .unwrap_or(merged_config.celestia_config.unwrap().namespace_id),
         }),
         da_layer: merged_config.da_layer,
-        epoch_time: args.epoch_time.unwrap_or(merged_config.epoch_time),
+        epoch_time: Some(args.epoch_time.unwrap_or(merged_config.epoch_time.unwrap())),
         public_key: args.public_key.or(merged_config.public_key),
     })
 }
 
 pub async fn initialize_da_layer(config: &Config) -> Arc<dyn DataAvailabilityLayer + 'static> {
-    match &config.da_layer {
+    match config.da_layer.as_ref().unwrap() {
         DALayerOption::Celestia => {
             let celestia_conf = config.clone().celestia_config.unwrap();
             match CelestiaConnection::new(
