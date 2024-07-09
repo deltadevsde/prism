@@ -1,0 +1,6 @@
+[package]
+name = "deimos-da"
+
+[dependencies]
+celestia-rpc.workspace = true
+celestia-types.workspace = true

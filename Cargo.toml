@@ -1,14 +1,17 @@
-[package]
+[workspace.package]
 name = "deimos"
 version = "0.1.0"
-edition = "2021"
 
-[features]
+[workspace.features]
 default = []
 key_transparency = []
 ci = []
 
-[dependencies]
+[workspace]
+members = ["crates/storage", "crates/da"]
+default-members = ["crates/storage", "crates/da"]
+
+[workspace.dependencies]
 crypto-hash = "0.3.4"
 async-trait = "0.1.68"
 serde = { version = "1.0.151", features = ["derive"] }

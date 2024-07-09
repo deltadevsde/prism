@@ -1,0 +1,17 @@
+[package]
+name = "deimos-storage"
+
+[dependencies]
+base64.workspace = true
+redis.workspace = true
+async-redis-session.workspace = true
+indexed-merkle-tree.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+ed25519-dalek.workspace = true
+ed25519.workspace = true
+thiserror.workspace = true
+mockall.workspace = true
+
+[dev-dependencies]
+mockall = "0.12.1"
