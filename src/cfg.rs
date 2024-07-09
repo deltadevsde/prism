@@ -4,9 +4,7 @@ use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
-use crate::da::{CelestiaConnection, LocalDataAvailabilityLayer};
-
-use crate::da::DataAvailabilityLayer;
+use crate::da::{CelestiaConnection, DataAvailabilityLayer, LocalDataAvailabilityLayer};
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
@@ -218,7 +216,7 @@ pub async fn initialize_da_layer(config: &Config) -> Arc<dyn DataAvailabilityLay
             {
                 Ok(da) => Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>,
                 Err(e) => {
-                    panic!("Failed to connect to Celestia: {}", e);
+                    panic!("connecting to celestia: {}", e);
                 }
             }
         }
