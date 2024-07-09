@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use crate::{
     cfg::WebServerConfig,
-    error::DeimosError,
+    error::{DatabaseError, DeimosError},
     node_types::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
     utils::{is_not_revoked, validate_proof},
@@ -104,7 +104,7 @@ async fn update_entry(
 
     let tree = session.create_tree().unwrap();
 
-    let result: Result<Vec<ChainEntry>, DeimosError> =
+    let result: Result<Vec<ChainEntry>, DatabaseError> =
         session.db.get_hashchain(&signature_with_key.id);
     // if the entry already exists, an update must be performed, otherwise insert
     let update_proof = match result {
@@ -113,42 +113,43 @@ async fn update_entry(
         Err(_) => false,
     };
 
-    let update_successful = session.update_entry(&signature_with_key);
+    match session.update_entry(&signature_with_key) {
+        Ok(_) => {
+            let new_tree = session.create_tree().unwrap();
+            let hashed_id = sha256(&signature_with_key.id);
+            let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
-    if update_successful {
-        let new_tree = session.create_tree().unwrap();
-        let hashed_id = sha256(&signature_with_key.id);
-        let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
+            let proofs = if update_proof {
+                let new_index = tree.clone().find_node_index(&node).unwrap();
+                let update_proof = &tree.clone().update_node(new_index, node).unwrap();
+                let pre_processed_string = serde_json::to_string(update_proof).unwrap();
+                format!(r#"{{"Update":{}}}"#, pre_processed_string)
+            } else {
+                let pre_processed_string =
+                    serde_json::to_string(&tree.clone().insert_node(&node).unwrap()).unwrap();
+                format!(r#"{{"Insert":{}}}"#, pre_processed_string)
+            };
 
-        let proofs = if update_proof {
-            let new_index = tree.clone().find_node_index(&node).unwrap();
-            let update_proof = &tree.clone().update_node(new_index, node).unwrap();
-            let pre_processed_string = serde_json::to_string(update_proof).unwrap();
-            format!(r#"{{"Update":{}}}"#, pre_processed_string)
-        } else {
-            let pre_processed_string =
-                serde_json::to_string(&tree.clone().insert_node(&node).unwrap()).unwrap();
-            format!(r#"{{"Insert":{}}}"#, pre_processed_string)
-        };
+            if let Err(err) = session.db.add_merkle_proof(
+                &epoch,
+                &epoch_operation,
+                &tree.get_commitment().unwrap(),
+                &proofs,
+            ) {
+                return HttpResponse::InternalServerError()
+                    .json(format!("Error adding merkle proof: {}", err));
+            }
 
-        if let Err(err) = session.db.add_merkle_proof(
-            &epoch,
-            &epoch_operation,
-            &tree.get_commitment().unwrap(),
-            &proofs,
-        ) {
-            return HttpResponse::InternalServerError()
-                .json(format!("Error adding merkle proof: {}", err));
+            if let Err(err) = session.db.increment_epoch_operation() {
+                return HttpResponse::InternalServerError()
+                    .json(format!("Error incrementing epoch operation: {}", err));
+            }
+
+            HttpResponse::Ok().body("Updated entry successfully")
         }
-
-        if let Err(err) = session.db.increment_epoch_operation() {
-            return HttpResponse::InternalServerError()
-                .json(format!("Error incrementing epoch operation: {}", err));
+        Err(e) => {
+            HttpResponse::BadRequest().body(format!("Could not update entry: {}", e.to_string()))
         }
-
-        HttpResponse::Ok().body("Updated entry successfully")
-    } else {
-        HttpResponse::BadRequest().body("Could not update entry")
     }
 }
 

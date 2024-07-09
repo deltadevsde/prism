@@ -3,10 +3,7 @@ use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::da::{
-    CelestiaConnection,
-    LocalDataAvailabilityLayer
-};
+use crate::da::{CelestiaConnection, LocalDataAvailabilityLayer};
 
 use crate::da::DataAvailabilityLayer;
 
@@ -60,7 +57,6 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub celestia_config: Option<CelestiaConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
-
     pub log_level: String,
     pub da_layer: DALayerOption,
     pub redis_config: Option<RedisConfig>,
@@ -94,13 +90,13 @@ impl Default for WebServerConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct RedisConfig {
-    pub connection_string: String
+    pub connection_string: String,
 }
 
 impl Default for RedisConfig {
     fn default() -> Self {
-        RedisConfig{
-            connection_string: "redis://127.0.0.1/".to_string()
+        RedisConfig {
+            connection_string: "redis://127.0.0.1/".to_string(),
         }
     }
 }
@@ -135,14 +131,14 @@ impl Default for Config {
 }
 
 pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
-    let settings = ConfigBuilder::<DefaultState>::default()
-        .add_source(File::from_str(
-            include_str!("config.toml"),
-            FileFormat::Toml,
-        ))
-        .build()?;
+    // let settings = ConfigBuilder::<DefaultState>::default()
+    //     .add_source(File::from_str(
+    //         include_str!("config.toml"),
+    //         FileFormat::Toml,
+    //     ))
+    //     .build()?;
 
-    info!("{}", settings.get_string("log_level").unwrap_or_default());
+    // info!("{}", settings.get_string("log_level").unwrap_or_default());
 
     let default_config = Config::default();
 
@@ -159,8 +155,13 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
         da_layer: DALayerOption::default(),
         redis_config: Some(RedisConfig {
             connection_string: args.redis_client.unwrap_or(
-                default_config.redis_config.as_ref().unwrap().connection_string.clone()
-            )
+                default_config
+                    .redis_config
+                    .as_ref()
+                    .unwrap()
+                    .connection_string
+                    .clone(),
+            ),
         }),
         celestia_config: Some(CelestiaConfig {
             connection_string: args.celestia_client.unwrap_or(
@@ -201,11 +202,13 @@ pub async fn initialize_da_layer(config: &Config) -> Arc<dyn DataAvailabilityLay
             {
                 Ok(da) => Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>,
                 Err(e) => {
-                    panic!("Failed to connect to Celestia: {}", e);
+                    panic!("connecting to celestia: {}", e);
                 }
             }
         }
-        DALayerOption::InMemory => Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>,
-        DALayerOption::None => panic!("No DA Layer"),
+        DALayerOption::InMemory => {
+            Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>
+        }
+        DALayerOption::None => panic!("no da Layer"),
     }
 }

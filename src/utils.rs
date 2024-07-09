@@ -1,5 +1,5 @@
 use crate::{
-    error::{DeimosError, GeneralError, ProofError},
+    error::{DeimosError, DeimosResult, GeneralError, ProofError},
     storage::{ChainEntry, Operation},
     zk_snark::{
         hex_to_scalar, InsertMerkleProofCircuit, ProofVariantCircuit, UpdateMerkleProofCircuit,
@@ -39,24 +39,21 @@ pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::
     Ok(proof)
 }
 
-pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey, GeneralError> {
+pub fn decode_public_key(pub_key_str: &String) -> DeimosResult<Ed25519VerifyingKey> {
     // decode the public key from base64 string to bytes
-    let public_key_bytes = engine.decode(pub_key_str).map_err(|e| {
-        GeneralError::DecodingError(format!("Error while decoding hex string: {}", e))
-    })?;
+    let public_key_bytes = engine
+        .decode(pub_key_str)
+        .map_err(|e| GeneralError::DecodingError(format!("hex string: {}", e)))?;
 
-    let public_key_array: [u8; 32] = public_key_bytes.try_into().map_err(|_| {
-        GeneralError::ParsingError("Error while converting Vec<u8> to [u8; 32]".to_string())
-    })?;
+    let public_key_array: [u8; 32] = public_key_bytes
+        .try_into()
+        .map_err(|_| GeneralError::ParsingError("Vec<u8> to [u8; 32]".to_string()))?;
 
-    let public_key = Ed25519VerifyingKey::from_bytes(&public_key_array).map_err(|_| {
-        GeneralError::DecodingError("Unable to decode ed25519 verifying key".to_string())
-    })?;
-
-    Ok(public_key)
+    Ed25519VerifyingKey::from_bytes(&public_key_array)
+        .map_err(|_| GeneralError::DecodingError("ed25519 verifying key".to_string()).into())
 }
 
-pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
+pub fn validate_proof(proof_value: String) -> DeimosResult<()> {
     if let Ok((non_membership_proof, first_proof, second_proof)) =
         serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
     {
@@ -70,7 +67,11 @@ pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
             insertion_circuit.create_and_verify_snark()?;
             Ok(())
         } else {
-            Err(DeimosError::Proof(ProofError::VerificationError))
+            // TODO: could insertion_proof.verify() maybe return a more detailed error to use?
+            Err(
+                ProofError::VerificationError("insertion proof could not be verified".to_string())
+                    .into(),
+            )
         }
     } else if let Ok(proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
         if proof.verify() {
@@ -78,32 +79,40 @@ pub fn validate_proof(proof_value: String) -> Result<(), DeimosError> {
             update_circuit.create_and_verify_snark()?;
             Ok(())
         } else {
-            Err(DeimosError::Proof(ProofError::VerificationError))
+            Err(
+                ProofError::VerificationError("update proof could not be verified".to_string())
+                    .into(),
+            )
         }
     } else {
-        Err(DeimosError::Proof(ProofError::InvalidFormatError))
+        Err(ProofError::InvalidFormatError.into())
     }
 }
 
 pub fn create_and_verify_snark(
     circuit: ProofVariantCircuit,
     scalars: Vec<Scalar>,
-) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>), DeimosError> {
+) -> DeimosResult<(groth16::Proof<Bls12>, VerifyingKey<Bls12>)> {
     let rng = &mut OsRng;
 
     trace!("creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
-    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng)
-        .map_err(|_| DeimosError::Proof(ProofError::ProofUnpackError))?;
+    let params =
+        groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).map_err(|e| {
+            DeimosError::Proof(ProofError::ProofUnpackError(format!(
+                "generating random params: {}",
+                e
+            )))
+        })?;
 
     trace!("creating proof for zkSNARK...");
     let proof = groth16::create_random_proof(circuit, &params, rng)
-        .map_err(|_| DeimosError::Proof(ProofError::GenerationError))?;
+        .map_err(|e| DeimosError::Proof(ProofError::GenerationError(e.to_string())))?;
 
     trace!("preparing verifying key for zkSNARK...");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
     groth16::verify_proof(&pvk, &proof, &scalars)
-        .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
+        .map_err(|e| DeimosError::Proof(ProofError::VerificationError(e.to_string())))?;
 
     Ok((proof, params.vk))
 }
@@ -132,26 +141,27 @@ pub fn validate_epoch(
 
     debug!("validate_epoch: verifying zkSNARK proof...");
     groth16::verify_proof(&pvk, &proof, &scalars)
-        .map_err(|_| DeimosError::Proof(ProofError::VerificationError))?;
+        .map_err(|e| DeimosError::Proof(ProofError::VerificationError(e.to_string())))?;
 
     debug!(
         "validate_epoch: zkSNARK with groth16 random parameters for epoch between commitment {} and {} was successfully verified!",
         previous_commitment, current_commitment
     );
+
     Ok(proof)
 }
 
 pub trait Signable {
-    fn get_signature(&self) -> Result<Signature, DeimosError>;
-    fn get_content_to_sign(&self) -> Result<String, DeimosError>;
-    fn get_public_key(&self) -> Result<String, DeimosError>;
+    fn get_signature(&self) -> DeimosResult<Signature>;
+    fn get_content_to_sign(&self) -> DeimosResult<String>;
+    fn get_public_key(&self) -> DeimosResult<String>;
 }
 
 // verifies the signature of a given signable item and returns the content of the item if the signature is valid
 pub fn verify_signature<T: Signable>(
     item: &T,
     optional_public_key: Option<String>,
-) -> Result<String, DeimosError> {
+) -> DeimosResult<String> {
     let public_key_str = match optional_public_key {
         Some(key) => key,
         None => item.get_public_key()?,
@@ -166,7 +176,7 @@ pub fn verify_signature<T: Signable>(
     if public_key.verify(content.as_bytes(), &signature).is_ok() {
         Ok(content)
     } else {
-        Err(DeimosError::General(GeneralError::InvalidSignature))
+        Err(GeneralError::InvalidSignature.into())
     }
 }
 
