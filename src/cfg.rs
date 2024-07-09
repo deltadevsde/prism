@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
+use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
@@ -134,9 +135,10 @@ impl Default for Config {
 }
 
 pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
-    let config_path = args
-        .config_path
-        .unwrap_or_else(|| ".deimos/config.toml".to_string());
+    let config_path = args.config_path.unwrap_or_else(|| {
+        let home_dir = home_dir().expect("Failed to get home directory");
+        format!("{}/.deimos/config.toml", home_dir.to_string_lossy())
+    });
 
     // if the config file doesn't exist, create it with the default values
     if !Path::new(&config_path).exists() {
@@ -155,7 +157,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
 
     let default_config = Config::default();
     let file_config: Config = settings.try_deserialize().unwrap_or_else(|e| {
-        debug!("Failed to deserialize config file: {}", e);
+        error!("deserializing config file: {}", e);
         Config::default()
     });
 
