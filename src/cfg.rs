@@ -138,6 +138,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
         .config_path
         .unwrap_or_else(|| ".deimos/config.toml".to_string());
 
+    // if the config file doesn't exist, create it with the default values
     if !Path::new(&config_path).exists() {
         if let Some(parent) = Path::new(&config_path).parent() {
             fs::create_dir_all(parent).unwrap();
@@ -154,7 +155,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
 
     let default_config = Config::default();
     let file_config: Config = settings.try_deserialize().unwrap_or_else(|e| {
-        println!("Failed to deserialize config file: {}", e);
+        debug!("Failed to deserialize config file: {}", e);
         Config::default()
     });
 
