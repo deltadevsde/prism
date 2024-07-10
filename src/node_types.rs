@@ -1,11 +1,11 @@
 use crate::{
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    error::DataAvailabilityError,
+    error::{DataAvailabilityError, DeimosResult},
 };
 use async_trait::async_trait;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{error::MerkleTreeError, node::Node, tree::IndexedMerkleTree};
+use indexed_merkle_tree::{node::Node, tree::IndexedMerkleTree};
 use std::{self, sync::Arc, time::Duration};
 use tokio::{
     sync::{
@@ -31,7 +31,7 @@ use crate::{
 
 #[async_trait]
 pub trait NodeType {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError>;
+    async fn start(self: Arc<Self>) -> DeimosResult<()>;
     // async fn stop(&self) -> Result<(), String>;
 }
 
@@ -53,12 +53,10 @@ pub struct LightClient {
 
 #[async_trait]
 impl NodeType for Sequencer {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError> {
+    async fn start(self: Arc<Self>) -> DeimosResult<()> {
         // start listening for new headers to update sync target
         if let Err(e) = self.da.start().await {
-            return Err(DeimosError::DataAvailability(
-                DataAvailabilityError::InitializationError(e.to_string()),
-            ));
+            return Err(DataAvailabilityError::InitializationError(e.to_string()).into());
         }
 
         let derived_keys = self.db.get_derived_keys();
@@ -80,13 +78,13 @@ impl NodeType for Sequencer {
             .ws
             .start(self.clone())
             .await
-            .map_err(|_| DeimosError::General(GeneralError::WebserverError))
+            .map_err(|_| GeneralError::WebserverError.into())
     }
 }
 
 #[async_trait]
 impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError> {
+    async fn start(self: Arc<Self>) -> DeimosResult<()> {
         // start listening for new headers to update sync target
         self.da.start().await.unwrap();
 
@@ -155,7 +153,7 @@ impl NodeType for LightClient {
 
         handle
             .await
-            .map_err(|_| DeimosError::General(GeneralError::WebserverError))
+            .map_err(|_| GeneralError::WebserverError.into())
     }
 }
 
@@ -251,7 +249,7 @@ impl Sequencer {
     /// 3. Waits for a specified duration before starting the next epoch.
     /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
     /// 5. Repeats steps 2-4 periodically.
-    pub async fn finalize_epoch(&self) -> Result<EpochJson, DeimosError> {
+    pub async fn finalize_epoch(&self) -> DeimosResult<EpochJson> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -264,8 +262,7 @@ impl Sequencer {
 
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self
-            .create_tree()
-            .map_err(DeimosError::MerkleTree)?
+            .create_tree()?
             .get_commitment()
             .map_err(DeimosError::MerkleTree)?;
 
@@ -284,7 +281,7 @@ impl Sequencer {
             let prev_epoch = epoch - 1;
             self.db.get_commitment(&prev_epoch).unwrap()
         } else {
-            let empty_commitment = self.create_tree().map_err(DeimosError::MerkleTree)?;
+            let empty_commitment = self.create_tree()?;
             empty_commitment
                 .get_commitment()
                 .map_err(DeimosError::MerkleTree)?
@@ -307,10 +304,8 @@ impl Sequencer {
         };
 
         let serialized_epoch_json_without_signature =
-            serde_json::to_string(&epoch_json).map_err(|_| {
-                DeimosError::General(GeneralError::ParsingError(
-                    "Cannot parse epoch json".to_string(),
-                ))
+            serde_json::to_string(&epoch_json).map_err(|e| {
+                GeneralError::ParsingError(format!("epoch json: {}", e.to_string()).into())
             })?;
         let signature = self
             .key
@@ -321,14 +316,14 @@ impl Sequencer {
         Ok(epoch_json_with_signature)
     }
 
-    async fn get_message(&self) -> std::result::Result<EpochJson, DataAvailabilityError> {
+    async fn get_message(&self) -> DeimosResult<EpochJson> {
         match self.epoch_buffer_rx.lock().await.recv().await {
             Some(epoch) => Ok(epoch),
-            None => Err(DataAvailabilityError::ChannelReceiveError),
+            None => Err(DataAvailabilityError::ChannelReceiveError.into()),
         }
     }
 
-    pub fn create_tree(&self) -> Result<IndexedMerkleTree, MerkleTreeError> {
+    pub fn create_tree(&self) -> DeimosResult<IndexedMerkleTree> {
         // TODO: better error handling (#11)
         // Retrieve the keys from input order and sort them.
         let ordered_derived_dict_keys: Vec<String> =
@@ -402,7 +397,7 @@ impl Sequencer {
         }
 
         // create tree, setting left / right child property for each node
-        IndexedMerkleTree::new(nodes)
+        IndexedMerkleTree::new(nodes).map_err(DeimosError::MerkleTree)
     }
 
     /// Updates an entry in the database based on the given operation, incoming entry, and the signature from the user.
@@ -412,13 +407,7 @@ impl Sequencer {
     /// * `operation` - An `Operation` enum variant representing the type of operation to be performed (Add or Revoke).
     /// * `incoming_entry` - A reference to an `IncomingEntry` struct containing the key and the entry data to be updated.
     /// * `signature` - A `Signature` struct representing the signature.
-    ///
-    /// # Returns
-    ///
-    /// * `true` if the operation was successful and the entry was updated.
-    /// * `false` if the operation was unsuccessful, e.g., due to an invalid signature or other errors.
-    ///
-    pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
+    pub fn update_entry(&self, signature: &UpdateEntryJson) -> DeimosResult<()> {
         debug!(
             "updating entry for uid {} with msg {}",
             signature.id, signature.signed_message
@@ -426,19 +415,23 @@ impl Sequencer {
         let signed_content = match verify_signature(signature, Some(signature.public_key.clone())) {
             Ok(content) => content,
             Err(_) => {
+                // TODO(@distractedm1nd): Add to error instead of logging
                 error!(
                     "updating entry for uid {}: invalid signature with pubkey {} on msg {}",
                     signature.id, signature.public_key, signature.signed_message
                 );
-                return false;
+                return Err(GeneralError::InvalidSignature.into());
             }
         };
 
         let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
             Ok(obj) => obj,
             Err(e) => {
-                error!("parsing signed content: {}", e);
-                return false;
+                return Err(GeneralError::ParsingError(format!(
+                    "signed content: {}",
+                    e.to_string()
+                ))
+                .into());
             }
         };
 
@@ -478,7 +471,7 @@ impl Sequencer {
                     .set_derived_entry(&incoming_entry, &new_chain_entry, false)
                     .unwrap();
 
-                true
+                Ok(())
             }
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
@@ -504,7 +497,7 @@ impl Sequencer {
                     .set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true)
                     .unwrap();
 
-                true
+                Ok(())
             }
         }
     }

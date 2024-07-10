@@ -1,5 +1,5 @@
 use crate::{
-    error::{DeimosError, GeneralError},
+    error::{DeimosError, GeneralError, ProofError},
     storage::ChainEntry,
     utils::create_and_verify_snark,
 };
@@ -64,8 +64,8 @@ pub fn decode_and_convert_to_g1affine(encoded_data: &String) -> Result<G1Affine,
 
     let affine = G1Affine::from_uncompressed(&array);
     if affine.is_none().into() {
-        return Err(DeimosError::General(GeneralError::ParsingError(
-            "Failed to deserialize G1Affine".to_string(),
+        return Err(DeimosError::General(GeneralError::DecodingError(
+            "G1Affine".to_string(),
         )));
     }
 
@@ -81,8 +81,8 @@ pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine,
 
     let affine = G2Affine::from_uncompressed(&array);
     if affine.is_none().into() {
-        return Err(DeimosError::General(GeneralError::ParsingError(
-            "Failed to deserialize G2Affine".to_string(),
+        return Err(DeimosError::General(GeneralError::DecodingError(
+            "G2Affine".to_string(),
         )));
     }
 
@@ -94,7 +94,10 @@ fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), Deimo
         let scalar_root = hex_to_scalar(proof.root_hash.as_str()).map_err(DeimosError::General)?;
         Ok((scalar_root, &proof.path))
     } else {
-        Err(DeimosError::General(GeneralError::MissingArgumentError))
+        Err(DeimosError::Proof(ProofError::ProofUnpackError(format!(
+            "proof path is empty for root hash {}",
+            proof.root_hash
+        ))))
     }
 }
 
@@ -145,17 +148,14 @@ pub fn deserialize_custom_to_verifying_key(
     let delta_g2 = decode_and_convert_to_g2affine(&custom_vk.delta_g2)?;
     let gamma_g2 = decode_and_convert_to_g2affine(&custom_vk.gamma_g2)?;
     let ic = custom_vk.ic.split(",").try_fold(Vec::new(), |mut acc, s| {
-        let decoded = engine.decode(s).map_err(|_| {
-            DeimosError::General(GeneralError::DecodingError(
-                "Failed to decode ic".to_string(),
-            ))
-        })?;
-        let decoded_string = String::from_utf8(decoded).map_err(|_| {
-            DeimosError::General(GeneralError::ParsingError("Failed to parse ic".to_string()))
-        })?;
+        let decoded = engine
+            .decode(s)
+            .map_err(|e| DeimosError::General(GeneralError::DecodingError(format!("ic: {}", e))))?;
+        let decoded_string = String::from_utf8(decoded)
+            .map_err(|e| DeimosError::General(GeneralError::ParsingError(format!("ic: {}", e))))?;
         let ct_option = decode_and_convert_to_g1affine(&decoded_string)?;
         acc.push(ct_option);
-        Ok(acc)
+        Ok::<Vec<G1Affine>, DeimosError>(acc)
     })?;
 
     Ok(bellman::groth16::VerifyingKey {

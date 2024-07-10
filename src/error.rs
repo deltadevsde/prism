@@ -1,92 +1,98 @@
 use indexed_merkle_tree::error::MerkleTreeError;
 use thiserror::Error;
 
+// Result alias for [`DeimosError`]
+pub type DeimosResult<T> = Result<T, DeimosError>;
+
 #[derive(Error, Debug)]
 pub enum DeimosError {
-    #[error("General error: {0}")]
-    General(GeneralError),
-    #[error("Database error: {0}")]
-    Database(DatabaseError),
-    #[error("Data availability error: {0}")]
-    DataAvailability(DataAvailabilityError),
-    #[error("Proof error: {0}")]
-    Proof(ProofError),
-    #[error("Merkle tree error: {0}")]
-    MerkleTree(MerkleTreeError),
+    #[error(transparent)]
+    General(#[from] GeneralError),
+    #[error(transparent)]
+    Database(#[from] DatabaseError),
+    #[error(transparent)]
+    DataAvailability(#[from] DataAvailabilityError),
+    #[error(transparent)]
+    Proof(#[from] ProofError),
+    #[error(transparent)]
+    MerkleTree(#[from] MerkleTreeError),
 }
 
 // general reusable errors
 #[derive(Error, Debug)]
 pub enum GeneralError {
-    #[error("Parsing error: {0}")]
+    #[error("parsing: {0}")]
     ParsingError(String),
-    #[error("Failed to create Blob object")]
-    BlobCreationError,
-    #[error("Hexadecimal decoding error: {0}")]
-    HexDecodingError(String),
-    #[error("Encoding error: {0}")]
+    #[error("creating blob object: {0}")]
+    BlobCreationError(String),
+    #[error("encoding: {0}")]
     EncodingError(String),
-    #[error("Decoding error: {0}")]
+    #[error("decoding: {0}")]
     DecodingError(String),
-    #[error("Required argument missing")]
-    MissingArgumentError,
-    #[error("Invalid public key")]
+    #[error("missing argument: {0}")]
+    MissingArgumentError(String),
+    #[error("invalid public key")]
     InvalidPublicKey,
-    #[error("Invalid signature")]
+    #[error("invalid signature")]
     InvalidSignature,
-    #[error("Failed to start webserver")]
+    #[error("starting webserver")]
     WebserverError,
 }
 
 #[derive(Error, Debug)]
 pub enum DatabaseError {
-    #[error("Failed to acquire lock on the Database connection")]
+    #[error("acquiring database lock")]
     LockError,
-    #[error("Failed to retrieve keys from {0} dictionary from the Database database")]
+    #[error("retrieving keys from {0} dictionary")]
     KeysError(String),
     #[error("{0} not found")]
     NotFoundError(String),
-    #[error("Failed to retrieve the input order list from the Database database")]
+    #[error("retreiving input order list")]
     GetInputOrderError,
-    #[error("Failed to write {0} to the Database database")]
+    #[error("writing {0} to database")]
     WriteError(String),
-    #[error("Failed to delete {0} from the Database database")]
+    #[error("deleting {0} from database")]
     DeleteError(String),
+    #[error(transparent)]
+    GeneralError(#[from] GeneralError),
 }
+
+// Result alias for [`DataAvailabilityError`]
+pub type DAResult<T> = Result<T, DataAvailabilityError>;
 
 #[derive(Error, Debug)]
 pub enum DataAvailabilityError {
-    #[error("Initialization error: {0}")]
+    #[error("initializing: {0}")]
     InitializationError(String),
     // TODO: is this error needed? doesn't seem to be used anywhere rn
-    #[error("Failed to establish connection: {0}")]
+    #[error("establishing connection to da layer: {0}")]
     ConnectionError(String),
-    #[error("The data channel has been closed")]
+    #[error("data channel is closed")]
     ChannelClosed,
-    #[error("Network error: {0}")]
+    #[error("da networking error: {0}")]
     NetworkError(String),
-    #[error("Data retrieval error at height {0}: {1}")]
+    #[error("retrieving data at height {0}: {1}")]
     DataRetrievalError(u64, String),
-    #[error("Error submitting data at height {0}: {1}")]
+    #[error("submitting epoch {0} to da layer: {1}")]
     SubmissionError(u64, String),
-    #[error("Error {0} new sync target: {1}")]
-    SyncTargetError(String, String),
-    #[error("Error receiving message from channel")]
+    #[error("setting new sync target: {0}")]
+    SyncTargetError(String),
+    #[error("receiving message on channel")]
     ChannelReceiveError,
-    #[error("General Deimos error: {0}")]
+    #[error(transparent)]
     GeneralError(#[from] GeneralError),
 }
 
 #[derive(Error, Debug)]
 pub enum ProofError {
-    #[error("Failed to generate proof")]
-    GenerationError,
-    #[error("Failed to verify proof")]
-    VerificationError,
-    #[error("Failed to deserialize G1Affine point")]
+    #[error("generating proof: {0}")]
+    GenerationError(String),
+    #[error("verifying proof: {0}")]
+    VerificationError(String),
+    #[error("deserializing G1Affine point")]
     G1AffineDeserializationError,
-    #[error("Failed to unpack proof components")]
-    ProofUnpackError,
-    #[error("Invalid proof format")]
+    #[error("unpacking proof components: {0}")]
+    ProofUnpackError(String),
+    #[error("invalid proof format")]
     InvalidFormatError,
 }
