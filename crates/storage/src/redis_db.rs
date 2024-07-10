@@ -1,121 +1,16 @@
-use base64::engine::{general_purpose, Engine as _};
-use ed25519::Signature;
 use indexed_merkle_tree::{node::Node, sha256, tree::Proof};
 use mockall::predicate::*;
-use mockall::*;
 use redis::{Client, Commands, Connection};
-use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::sync::MutexGuard;
 use std::thread::sleep;
 use std::time::Duration;
-use std::{self, fmt::Display, sync::Mutex};
+use std::{self, sync::Mutex};
 
-use crate::cfg::RedisConfig;
-use crate::utils::Signable;
-use crate::{
-    error::{DatabaseError, DeimosError, GeneralError},
-    utils::parse_json_to_proof,
-};
+use crate::{config::RedisConfig, storage::Database, utils::parse_json_to_proof};
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub enum Operation {
-    Add,
-    Revoke,
-}
-
-impl Display for Operation {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Operation::Add => write!(f, "Add"),
-            Operation::Revoke => write!(f, "Revoke"),
-        }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct ChainEntry {
-    pub hash: String,
-    pub previous_hash: String,
-    pub operation: Operation,
-    pub value: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Entry {
-    pub id: String,
-    pub value: Vec<ChainEntry>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct DerivedEntry {
-    pub id: String,
-    pub value: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct IncomingEntry {
-    pub id: String,
-    pub operation: Operation,
-    pub value: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct UpdateEntryJson {
-    pub id: String,
-    pub signed_message: String,
-    pub public_key: String,
-}
-
-fn decode_signed_message(signed_message: &String) -> Result<Vec<u8>, DeimosError> {
-    let signed_message_bytes = general_purpose::STANDARD
-        .decode(&signed_message)
-        .map_err(|_| {
-            DeimosError::General(GeneralError::DecodingError(
-                "failed to decode signed message".to_string(),
-            ))
-        })?;
-
-    // check if the signed message is (at least) 64 bytes long
-    if signed_message_bytes.len() < 64 {
-        return Err(DeimosError::General(GeneralError::ParsingError(
-            "signed message is too short".to_string(),
-        )));
-    } else {
-        Ok(signed_message_bytes)
-    }
-}
-
-impl Signable for UpdateEntryJson {
-    fn get_signature(&self) -> Result<Signature, DeimosError> {
-        let signed_message_bytes = decode_signed_message(&self.signed_message)?;
-
-        // extract the first 64 bytes from the signed message which are the signature
-        let signature_bytes: &[u8; 64] = match signed_message_bytes.get(..64) {
-            Some(array_section) => match array_section.try_into() {
-                Ok(array) => array,
-                Err(_) => Err(DeimosError::General(GeneralError::ParsingError(
-                    "failed to convert signed message to array".to_string(),
-                )))?,
-            },
-            None => Err(DeimosError::General(GeneralError::ParsingError(
-                "failed to extract signature from signed message".to_string(),
-            )))?,
-        };
-
-        Ok(Signature::from_bytes(signature_bytes))
-    }
-
-    fn get_content_to_sign(&self) -> Result<String, DeimosError> {
-        let signed_message_bytes = decode_signed_message(&self.signed_message)?;
-        let message_bytes = &signed_message_bytes[64..];
-        Ok(String::from_utf8_lossy(message_bytes).to_string())
-    }
-
-    fn get_public_key(&self) -> Result<String, DeimosError> {
-        Ok(self.public_key.clone())
-    }
-}
+use deimos_types::types::{ChainEntry, IncomingEntry};
+use deimos_errors::errors::{DeimosError, GeneralError, DatabaseError};
 
 pub struct RedisConnections {
     pub main_dict: Mutex<Connection>,    // clear text key with hashchain
@@ -124,45 +19,6 @@ pub struct RedisConnections {
     pub app_state: Mutex<Connection>,    // app state (just epoch counter for now)
     pub merkle_proofs: Mutex<Connection>, // merkle proofs (in the form: epoch_{epochnumber}_{commitment})
     pub commitments: Mutex<Connection>,   // epoch commitments
-}
-
-#[automock]
-pub trait Database: Send + Sync {
-    fn get_keys(&self) -> Result<Vec<String>, DatabaseError>;
-    fn get_derived_keys(&self) -> Result<Vec<String>, DatabaseError>;
-    fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DeimosError>;
-    fn get_derived_value(&self, key: &String) -> Result<String, DatabaseError>;
-    fn get_derived_keys_in_order(&self) -> Result<Vec<String>, DatabaseError>;
-    fn get_commitment(&self, epoch: &u64) -> Result<String, DatabaseError>;
-    fn get_proof(&self, id: &String) -> Result<String, DatabaseError>;
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>, DatabaseError>;
-    fn get_epoch(&self) -> Result<u64, DatabaseError>;
-    fn get_epoch_operation(&self) -> Result<u64, DatabaseError>;
-    fn set_epoch(&self, epoch: &u64) -> Result<(), DatabaseError>;
-    fn reset_epoch_operation_counter(&self) -> Result<(), DatabaseError>;
-    fn update_hashchain(
-        &self,
-        incoming_entry: &IncomingEntry,
-        value: &Vec<ChainEntry>,
-    ) -> Result<(), DeimosError>;
-    fn set_derived_entry(
-        &self,
-        incoming_entry: &IncomingEntry,
-        value: &ChainEntry,
-        new: bool,
-    ) -> Result<(), DatabaseError>;
-    fn get_epochs(&self) -> Result<Vec<u64>, DeimosError>;
-    fn increment_epoch_operation(&self) -> Result<u64, DatabaseError>;
-    fn add_merkle_proof(
-        &self,
-        epoch: &u64,
-        epoch_operation: &u64,
-        commitment: &String,
-        proofs: &String,
-    ) -> Result<(), DatabaseError>;
-    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), DatabaseError>;
-    fn initialize_derived_dict(&self) -> Result<(), DatabaseError>;
-    fn flush_database(&self) -> Result<(), DatabaseError>;
 }
 
 impl RedisConnections {
@@ -225,31 +81,23 @@ impl Database for RedisConnections {
         Ok(keys)
     }
 
-    fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DeimosError> {
+    fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DatabaseError> {
         let mut con = self
             .main_dict
             .lock()
-            .map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
-        let value: String = con.get(key).map_err(|_| {
-            DeimosError::Database(DatabaseError::NotFoundError(format!("Key: {}", key)))
-        })?;
+            .map_err(|_| DatabaseError::LockError)?;
+        let value: String = con
+            .get(key)
+            .map_err(|_| DatabaseError::NotFoundError(format!("key: {}", key)))?;
 
-        let chain: Vec<ChainEntry> = serde_json::from_str(&value).map_err(|_| {
-            DeimosError::General(GeneralError::ParsingError(format!(
-                "failed to parse hashchain"
-            )))
-        })?;
-
-        Ok(chain)
+        serde_json::from_str(&value)
+            .map_err(|e| GeneralError::ParsingError(format!("hashchain: {}", e)).into())
     }
 
     fn get_derived_value(&self, key: &String) -> Result<String, DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?;
-        let derived_value: String = con
-            .get(key)
-            .map_err(|_| DatabaseError::NotFoundError(format!("Key: {}", key)))?;
-
-        Ok(derived_value)
+        con.get(key)
+            .map_err(|_| DatabaseError::NotFoundError(format!("key: {}", key)))
     }
 
     // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
@@ -259,41 +107,36 @@ impl Database for RedisConnections {
         let mut input_con = self.lock_connection(&self.input_order)?;
 
         // The lrange method returns a list of the elements between two indices. 0 and -1 mean the first and last element, i.e. the entire list.
-        let order: Vec<String> = input_con
+        input_con
             .lrange("input_order", 0, -1)
-            .map_err(|_| DatabaseError::GetInputOrderError)?;
-
-        Ok(order)
+            .map_err(|_| DatabaseError::GetInputOrderError)
     }
 
     fn get_commitment(&self, epoch: &u64) -> Result<String, DatabaseError> {
         let mut con = self.lock_connection(&self.commitments)?;
-        let commitment = match con.get::<&str, String>(&format!("epoch_{}", epoch)) {
+        match con.get::<&str, String>(&format!("epoch_{}", epoch)) {
             Ok(value) => {
                 let trimmed_value = value.trim_matches('"').to_string();
                 Ok(trimmed_value)
             }
             Err(_) => Err(DatabaseError::NotFoundError(format!(
-                "Commitment from epoch_{}",
+                "commitment from epoch_{}",
                 epoch
             ))),
-        };
-        commitment
+        }
     }
 
     fn get_proof(&self, id: &String) -> Result<String, DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?;
-        let proof = con
-            .get(id)
-            .map_err(|_| DatabaseError::NotFoundError(format!("Proof with id: {}", id)))?;
-        Ok(proof)
+        con.get(id)
+            .map_err(|_| DatabaseError::NotFoundError(format!("Proof with id: {}", id)))
     }
 
     fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>, DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?;
         let mut epoch_proofs: Vec<String> = con
             .keys::<&String, Vec<String>>(&format!("epoch_{}*", epoch))
-            .map_err(|_| DatabaseError::NotFoundError(format!("Epoch: {}", epoch)))?;
+            .map_err(|_| DatabaseError::NotFoundError(format!("epoch: {}", epoch)))?;
 
         // Sort epoch_proofs by extracting epoch number and number within the epoch
         epoch_proofs.sort_by(|a, b| {
@@ -324,29 +167,27 @@ impl Database for RedisConnections {
         let mut con = self.lock_connection(&self.app_state)?;
         let epoch: u64 = con
             .get("epoch")
-            .map_err(|_| DatabaseError::NotFoundError(format!("Current epoch")))?;
+            .map_err(|_| DatabaseError::NotFoundError(format!("current epoch")))?;
         Ok(epoch)
     }
 
     fn get_epoch_operation(&self) -> Result<u64, DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
-        let epoch_operation: u64 = con
-            .get("epoch_operation")
-            .map_err(|_| DatabaseError::NotFoundError(format!("Epoch operation")))?;
-        Ok(epoch_operation)
+        con.get("epoch_operation")
+            .map_err(|_| DatabaseError::NotFoundError(format!("epoch operation")))
     }
 
     fn set_epoch(&self, epoch: &u64) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
         con.set::<&str, &u64, String>("epoch", epoch)
-            .map_err(|_| DatabaseError::WriteError(format!("Epoch: {}", epoch)))?;
-        Ok(()) // TODO: should we return the written string instead of ()?
+            .map_err(|_| DatabaseError::WriteError(format!("epoch: {}", epoch)))?;
+        Ok(())
     }
 
     fn reset_epoch_operation_counter(&self) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
         con.set::<&str, &u64, String>("epoch_operation", &0)
-            .map_err(|_| DatabaseError::WriteError(format!("reset operations to 0")))?;
+            .map_err(|_| DatabaseError::WriteError(format!("epoch_operation->0")))?;
         Ok(())
     }
 
@@ -360,9 +201,7 @@ impl Database for RedisConnections {
             .lock()
             .map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
         let value = serde_json::to_string(&value).map_err(|_| {
-            DeimosError::General(GeneralError::ParsingError(format!(
-                "failed to parse hashchain to string"
-            )))
+            DeimosError::General(GeneralError::ParsingError(format!("hashchain to string")))
         })?;
         con.set::<&String, String, String>(&incoming_entry.id, value)
             .map_err(|_| {
@@ -404,8 +243,7 @@ impl Database for RedisConnections {
             .lock()
             .map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
 
-        let epochs: Result<Vec<u64>, DeimosError> = con
-            .keys::<&str, Vec<String>>("*")
+        con.keys::<&str, Vec<String>>("*")
             .map_err(|_| {
                 DeimosError::Database(DatabaseError::NotFoundError("Commitments".to_string()))
             })?
@@ -417,18 +255,13 @@ impl Database for RedisConnections {
                     )))
                 })
             })
-            .collect();
-
-        epochs
+            .collect()
     }
 
     fn increment_epoch_operation(&self) -> Result<u64, DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
-        let incremented_epoch = con
-            .incr::<&'static str, u64, u64>("epoch_operation", 1)
-            .map_err(|_| DatabaseError::WriteError(format!("incremented epoch")))?;
-
-        Ok(incremented_epoch)
+        con.incr::<&'static str, u64, u64>("epoch_operation", 1)
+            .map_err(|_| DatabaseError::WriteError(format!("incremented epoch")))
     }
 
     fn add_merkle_proof(
@@ -514,6 +347,8 @@ impl Database for RedisConnections {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use deimos_types::types::Operation;
+    use serde::{Serialize, Deserialize};
 
     // Helper functions
 
@@ -574,7 +409,6 @@ mod tests {
         let mut keys = redis_connections.get_keys().unwrap();
         keys.sort();
 
-        // Überprüfe, ob die zurückgegebenen Schlüssel korrekt sind
         let expected_keys: Vec<String> = vec![
             "test_key1".to_string(),
             "test_key2".to_string(),
@@ -740,7 +574,7 @@ mod tests {
         assert!(hashchain.is_err());
         let error = hashchain.unwrap_err();
         assert!(
-            matches!(error, DeimosError::Database(DatabaseError::NotFoundError(msg)) if msg == "Key: missing_test_key")
+            matches!(error, DatabaseError::NotFoundError(msg) if msg == "key: missing_test_key")
         );
 
         teardown(&redis_connections);
@@ -783,7 +617,7 @@ mod tests {
         assert!(hashchain.is_err());
         let error = hashchain.unwrap_err();
         assert!(
-            matches!(error, DeimosError::General(GeneralError::ParsingError(msg)) if msg == "failed to parse hashchain")
+            matches!(error, DatabaseError::GeneralError(msg) if msg == "failed to parse hashchain")
         );
 
         teardown(&redis_connections);

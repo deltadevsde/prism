@@ -1,0 +1,15 @@
+[package]
+name = "deimos-node"
+edition = "2021"
+
+[dependencies]
+deimos-types.workspace = true
+deimos-zk-snark.workspace = true
+deimos-da.workspace = true
+deimos-errors.workspace = true
+async-trait.workspace = true
+crypto-hash.workspace = true
+tokio.workspace = true
+indexed-merkle-tree.workspace = true
+ed25519-dalek.workspace = true
+base64.workspace = true

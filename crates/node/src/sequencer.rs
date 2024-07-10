@@ -1,11 +1,8 @@
-use crate::{
-    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    error::DataAvailabilityError,
-};
+use deimos_errors::errors::{DataAvailabilityError, DeimosResult};
 use async_trait::async_trait;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{error::MerkleTreeError, node::Node, tree::IndexedMerkleTree};
+use indexed_merkle_tree::{node::Node, tree::IndexedMerkleTree};
 use std::{self, sync::Arc, time::Duration};
 use tokio::{
     sync::{
@@ -16,24 +13,24 @@ use tokio::{
     time::interval,
 };
 
-use crate::{
-    cfg::Config,
-    da::{DataAvailabilityLayer, EpochJson},
-    error::{DeimosError, GeneralError},
-    storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
-    utils::{validate_epoch, verify_signature},
-    webserver::WebServer,
+use deimos_errors::errors::{DeimosError, GeneralError};
+use deimos_da::da::{DataAvailabilityLayer, EpochJson};
+use deimos_types::types::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson, verify_signature};
+use deimos_zk_snark::{
     zk_snark::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-        serialize_verifying_key_to_custom, BatchMerkleProofCircuit,
+        serialize_verifying_key_to_custom, BatchMerkleProofCircuit, 
     },
+    utils::validate_epoch
 };
 
-#[async_trait]
-pub trait NodeType {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError>;
-    // async fn stop(&self) -> Result<(), String>;
-}
+
+/// DA_RETRY_COUNT determines how many times to retry epoch submission.
+pub const DA_RETRY_COUNT: u64 = 5;
+/// DA_RETRY_COUNT determines how long to wait between failed submissions.
+pub const DA_RETRY_INTERVAL: Duration = Duration::from_secs(5);
+/// CHANNEL_BUFFER_SIZE determines the default channel size.
+pub const CHANNEL_BUFFER_SIZE: usize = 5;
 
 pub struct Sequencer {
     pub db: Arc<dyn Database>,
@@ -46,19 +43,12 @@ pub struct Sequencer {
     epoch_buffer_rx: Arc<Mutex<Receiver<EpochJson>>>,
 }
 
-pub struct LightClient {
-    pub da: Arc<dyn DataAvailabilityLayer>,
-    pub sequencer_public_key: Option<String>,
-}
-
 #[async_trait]
 impl NodeType for Sequencer {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError> {
+    async fn start(self: Arc<Self>) -> DeimosResult<()> {
         // start listening for new headers to update sync target
         if let Err(e) = self.da.start().await {
-            return Err(DeimosError::DataAvailability(
-                DataAvailabilityError::InitializationError(e.to_string()),
-            ));
+            return Err(DataAvailabilityError::InitializationError(e.to_string()).into());
         }
 
         let derived_keys = self.db.get_derived_keys();
@@ -80,91 +70,7 @@ impl NodeType for Sequencer {
             .ws
             .start(self.clone())
             .await
-            .map_err(|_| DeimosError::General(GeneralError::WebserverError))
-    }
-}
-
-#[async_trait]
-impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> std::result::Result<(), DeimosError> {
-        // start listening for new headers to update sync target
-        self.da.start().await.unwrap();
-
-        info!("starting main light client loop");
-        // todo: persist current_position in datastore
-        // also: have initial starting position be configurable
-
-        let handle = spawn(async move {
-            let mut current_position = 0;
-            let mut ticker = interval(Duration::from_secs(1));
-            loop {
-                // target is updated when a new header is received
-                let target = self.da.get_message().await.unwrap();
-                debug!("updated sync target to height {}", target);
-                for i in current_position..target {
-                    trace!("processing height: {}", i);
-                    match self.da.get(i + 1).await {
-                        Ok(epoch_json_vec) => {
-                            // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
-                            // Verify zk proofs,
-                            for epoch_json in epoch_json_vec {
-                                let prev_commitment = &epoch_json.prev_commitment;
-                                let current_commitment = &epoch_json.current_commitment;
-                                let proof = deserialize_proof(&epoch_json.proof).unwrap();
-                                let verifying_key =
-                                    deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
-                                        .unwrap();
-                                if self.sequencer_public_key.is_some() {
-                                    if verify_signature(
-                                        &epoch_json.clone(),
-                                        self.sequencer_public_key.clone(),
-                                    )
-                                    .is_ok()
-                                    {
-                                        trace!("valid signature for height {}", i);
-                                    } else {
-                                        panic!("invalid signature in retrieved epoch on height {}", i);
-                                    }
-                                } else {
-                                    error!("epoch on height {} was not signed", i);
-                                }
-
-                                match validate_epoch(
-                                    &prev_commitment,
-                                    &current_commitment,
-                                    proof,
-                                    verifying_key,
-                                ) {
-                                    Ok(_) => (),
-                                    Err(err) => panic!("Failed to validate epoch: {:?}", err),
-                                }
-                            }
-
-                            info!("light client: got epochs at height {}", i + 1);
-                        }
-                        Err(e) => debug!("light client: getting epoch: {}", e),
-                    };
-                }
-                ticker.tick().await; // only for testing purposes
-                current_position = target; // Update the current position to the latest target
-            }
-        });
-
-        handle
-            .await
-            .map_err(|_| DeimosError::General(GeneralError::WebserverError))
-    }
-}
-
-impl LightClient {
-    pub fn new(
-        da: Arc<dyn DataAvailabilityLayer>,
-        sequencer_pub_key: Option<String>,
-    ) -> LightClient {
-        LightClient {
-            da,
-            sequencer_public_key: sequencer_pub_key,
-        }
+            .map_err(|_| GeneralError::WebserverError.into())
     }
 }
 
@@ -248,7 +154,7 @@ impl Sequencer {
     /// 3. Waits for a specified duration before starting the next epoch.
     /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
     /// 5. Repeats steps 2-4 periodically.
-    pub async fn finalize_epoch(&self) -> Result<EpochJson, DeimosError> {
+    pub async fn finalize_epoch(&self) -> DeimosResult<EpochJson> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -261,8 +167,7 @@ impl Sequencer {
 
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self
-            .create_tree()
-            .map_err(DeimosError::MerkleTree)?
+            .create_tree()?
             .get_commitment()
             .map_err(DeimosError::MerkleTree)?;
 
@@ -281,7 +186,7 @@ impl Sequencer {
             let prev_epoch = epoch - 1;
             self.db.get_commitment(&prev_epoch).unwrap()
         } else {
-            let empty_commitment = self.create_tree().map_err(DeimosError::MerkleTree)?;
+            let empty_commitment = self.create_tree()?;
             empty_commitment
                 .get_commitment()
                 .map_err(DeimosError::MerkleTree)?
@@ -304,10 +209,8 @@ impl Sequencer {
         };
 
         let serialized_epoch_json_without_signature =
-            serde_json::to_string(&epoch_json).map_err(|_| {
-                DeimosError::General(GeneralError::ParsingError(
-                    "Cannot parse epoch json".to_string(),
-                ))
+            serde_json::to_string(&epoch_json).map_err(|e| {
+                GeneralError::ParsingError(format!("epoch json: {}", e.to_string()).into())
             })?;
         let signature = self
             .key
@@ -318,14 +221,14 @@ impl Sequencer {
         Ok(epoch_json_with_signature)
     }
 
-    async fn get_message(&self) -> std::result::Result<EpochJson, DataAvailabilityError> {
+    async fn get_message(&self) -> DeimosResult<EpochJson> {
         match self.epoch_buffer_rx.lock().await.recv().await {
             Some(epoch) => Ok(epoch),
-            None => Err(DataAvailabilityError::ChannelReceiveError),
+            None => Err(DataAvailabilityError::ChannelReceiveError.into()),
         }
     }
 
-    pub fn create_tree(&self) -> Result<IndexedMerkleTree, MerkleTreeError> {
+    pub fn create_tree(&self) -> DeimosResult<IndexedMerkleTree> {
         // TODO: better error handling (#11)
         // Retrieve the keys from input order and sort them.
         let ordered_derived_dict_keys: Vec<String> =
@@ -399,7 +302,7 @@ impl Sequencer {
         }
 
         // create tree, setting left / right child property for each node
-        IndexedMerkleTree::new(nodes)
+        IndexedMerkleTree::new(nodes).map_err(DeimosError::MerkleTree)
     }
 
     /// Updates an entry in the database based on the given operation, incoming entry, and the signature from the user.
@@ -409,32 +312,31 @@ impl Sequencer {
     /// * `operation` - An `Operation` enum variant representing the type of operation to be performed (Add or Revoke).
     /// * `incoming_entry` - A reference to an `IncomingEntry` struct containing the key and the entry data to be updated.
     /// * `signature` - A `Signature` struct representing the signature.
-    ///
-    /// # Returns
-    ///
-    /// * `true` if the operation was successful and the entry was updated.
-    /// * `false` if the operation was unsuccessful, e.g., due to an invalid signature or other errors.
-    ///
-    pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
-        debug!("updating entry for uid {} with msg {}", signature.id, signature.signed_message);
+    pub fn update_entry(&self, signature: &UpdateEntryJson) -> DeimosResult<()> {
+        debug!(
+            "updating entry for uid {} with msg {}",
+            signature.id, signature.signed_message
+        );
         let signed_content = match verify_signature(signature, Some(signature.public_key.clone())) {
             Ok(content) => content,
             Err(_) => {
+                // TODO(@distractedm1nd): Add to error instead of logging
                 error!(
                     "updating entry for uid {}: invalid signature with pubkey {} on msg {}",
-                    signature.id,
-                    signature.public_key,
-                    signature.signed_message
+                    signature.id, signature.public_key, signature.signed_message
                 );
-                return false;
+                return Err(GeneralError::InvalidSignature.into());
             }
         };
 
         let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
             Ok(obj) => obj,
             Err(e) => {
-                error!("parsing signed content: {}", e);
-                return false;
+                return Err(GeneralError::ParsingError(format!(
+                    "signed content: {}",
+                    e.to_string()
+                ))
+                .into());
             }
         };
 
@@ -474,7 +376,7 @@ impl Sequencer {
                     .set_derived_entry(&incoming_entry, &new_chain_entry, false)
                     .unwrap();
 
-                true
+                Ok(())
             }
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
@@ -500,72 +402,8 @@ impl Sequencer {
                     .set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true)
                     .unwrap();
 
-                true
+                Ok(())
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::storage::UpdateEntryJson;
-    use base64::{engine::general_purpose, Engine as _};
-
-    fn setup_signature(valid_signature: bool) -> UpdateEntryJson {
-        let signed_message = if valid_signature {
-            "NRtq1sgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
-        } else {
-            "QVmk3wgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
-        };
-        let id_public_key = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=".to_string();
-
-        UpdateEntryJson {
-            id: id_public_key.clone(),
-            signed_message,
-            public_key: id_public_key,
-        }
-    }
-
-    #[test]
-    fn test_verify_valid_signature() {
-        let signature_with_key = setup_signature(true);
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_verify_invalid_signature() {
-        let signature_with_key = setup_signature(false);
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_verify_short_message() {
-        let signature_with_key = setup_signature(true);
-
-        let short_message =
-            general_purpose::STANDARD.encode(&"this is a short message".to_string());
-
-        let signature_with_key = UpdateEntryJson {
-            signed_message: short_message,
-            ..signature_with_key
-        };
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-        assert!(result.is_err());
     }
 }

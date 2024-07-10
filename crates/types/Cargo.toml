@@ -1,0 +1,13 @@
+[package]
+name = "deimos-types"
+
+[dependencies]
+deimos-errors.workspace = true
+base64.workspace = true
+redis.workspace = true
+async-redis-session.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+ed25519-dalek.workspace = true
+ed25519.workspace = true
+mockall.workspace = true
