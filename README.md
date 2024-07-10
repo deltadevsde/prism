@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="./assets/deimos_horizontal_dark.png" alt="Deimos"/>
+  <img src="./assets/deimos_horizontal_dark.png" alt="Deimos" width="500" />
 </p>
 <br>
 
-[![delta devs](https://img.shields.io/badge/building-in_stealth-E58E36)](https://deltadevs.xyz)
-![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-E58E36.svg)
-[![GitHub Issues](https://img.shields.io/github/issues-raw/deltadevsde/transparency-dictionary?color=E58E36)](https://github.com/deltadevsde/transparency-dictionary/issues)
-![Contributions welcome](https://img.shields.io/badge/contributions-welcome-E58E36.svg)
-[![License](https://img.shields.io/badge/license-MIT-E58E36.svg)](https://opensource.org/licenses/MIT)
+[![delta devs](https://img.shields.io/badge/building-in_stealth-0097FF)](https://deltadevs.xyz)
+![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-0097FF.svg)
+[![GitHub Issues](https://img.shields.io/github/issues-raw/deltadevsde/transparency-dictionary?color=0097FF)](https://github.com/deltadevsde/transparency-dictionary/issues)
+![Contributions welcome](https://img.shields.io/badge/contributions-welcome-0097FF.svg)
+[![License](https://img.shields.io/badge/license-MIT-0097FF.svg)](https://opensource.org/licenses/MIT)
 
 # Deimos Key-Transparency
 
