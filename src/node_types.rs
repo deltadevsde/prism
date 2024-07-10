@@ -123,7 +123,10 @@ impl NodeType for LightClient {
                                     {
                                         trace!("valid signature for height {}", i);
                                     } else {
-                                        panic!("invalid signature in retrieved epoch on height {}", i);
+                                        panic!(
+                                            "invalid signature in retrieved epoch on height {}",
+                                            i
+                                        );
                                     }
                                 } else {
                                     error!("epoch on height {} was not signed", i);
@@ -179,7 +182,7 @@ impl Sequencer {
         Sequencer {
             db,
             da,
-            epoch_duration: cfg.epoch_time,
+            epoch_duration: cfg.epoch_time.unwrap(),
             ws: WebServer::new(cfg.webserver.unwrap()),
             key,
             epoch_buffer_tx: Arc::new(tx),
@@ -416,15 +419,16 @@ impl Sequencer {
     /// * `false` if the operation was unsuccessful, e.g., due to an invalid signature or other errors.
     ///
     pub fn update_entry(&self, signature: &UpdateEntryJson) -> bool {
-        debug!("updating entry for uid {} with msg {}", signature.id, signature.signed_message);
+        debug!(
+            "updating entry for uid {} with msg {}",
+            signature.id, signature.signed_message
+        );
         let signed_content = match verify_signature(signature, Some(signature.public_key.clone())) {
             Ok(content) => content,
             Err(_) => {
                 error!(
                     "updating entry for uid {}: invalid signature with pubkey {} on msg {}",
-                    signature.id,
-                    signature.public_key,
-                    signature.signed_message
+                    signature.id, signature.public_key, signature.signed_message
                 );
                 return false;
             }
