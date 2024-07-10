@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/IORacer/deimos/blob/readme-update/assets/deimos.jpeg?raw=true" alt="Deimos"/>
+  <img src="./assets/deimos_horizontal_dark.png" alt="Deimos"/>
 </p>
 <br>
 
