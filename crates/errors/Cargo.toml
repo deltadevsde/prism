@@ -1,0 +1,6 @@
+[package]
+name = "deimos-errors"
+
+[dependencies]
+indexed-merkle-tree.workspace = true
+thiserror.workspace = true

@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct RedisConfig {
     pub connection_string: String,

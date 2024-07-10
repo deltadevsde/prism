@@ -12,10 +12,10 @@ use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Value};
 
+use crate::config::WebServerConfig;
 use std::sync::Arc;
 
 use crate::{
-    cfg::WebServerConfig,
     error::{DatabaseError, DeimosError},
     node_types::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},

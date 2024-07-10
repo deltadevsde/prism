@@ -18,6 +18,24 @@ pub enum DeimosError {
     MerkleTree(#[from] MerkleTreeError),
 }
 
+#[derive(Error, Debug)]
+pub enum DatabaseError {
+    #[error("acquiring database lock")]
+    LockError,
+    #[error("retrieving keys from {0} dictionary")]
+    KeysError(String),
+    #[error("{0} not found")]
+    NotFoundError(String),
+    #[error("retreiving input order list")]
+    GetInputOrderError,
+    #[error("writing {0} to database")]
+    WriteError(String),
+    #[error("deleting {0} from database")]
+    DeleteError(String),
+    #[error("{0}")]
+    GeneralError(String),
+}
+
 // general reusable errors
 #[derive(Error, Debug)]
 pub enum GeneralError {
@@ -40,23 +58,18 @@ pub enum GeneralError {
 }
 
 #[derive(Error, Debug)]
-pub enum DatabaseError {
-    #[error("acquiring database lock")]
-    LockError,
-    #[error("retrieving keys from {0} dictionary")]
-    KeysError(String),
-    #[error("{0} not found")]
-    NotFoundError(String),
-    #[error("retreiving input order list")]
-    GetInputOrderError,
-    #[error("writing {0} to database")]
-    WriteError(String),
-    #[error("deleting {0} from database")]
-    DeleteError(String),
-    #[error(transparent)]
-    GeneralError(#[from] GeneralError),
+pub enum ProofError {
+    #[error("generating proof: {0}")]
+    GenerationError(String),
+    #[error("verifying proof: {0}")]
+    VerificationError(String),
+    #[error("deserializing G1Affine point")]
+    G1AffineDeserializationError,
+    #[error("unpacking proof components: {0}")]
+    ProofUnpackError(String),
+    #[error("invalid proof format")]
+    InvalidFormatError,
 }
-
 // Result alias for [`DataAvailabilityError`]
 pub type DAResult<T> = Result<T, DataAvailabilityError>;
 
@@ -81,18 +94,4 @@ pub enum DataAvailabilityError {
     ChannelReceiveError,
     #[error(transparent)]
     GeneralError(#[from] GeneralError),
-}
-
-#[derive(Error, Debug)]
-pub enum ProofError {
-    #[error("generating proof: {0}")]
-    GenerationError(String),
-    #[error("verifying proof: {0}")]
-    VerificationError(String),
-    #[error("deserializing G1Affine point")]
-    G1AffineDeserializationError,
-    #[error("unpacking proof components: {0}")]
-    ProofUnpackError(String),
-    #[error("invalid proof format")]
-    InvalidFormatError,
 }

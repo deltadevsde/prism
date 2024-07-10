@@ -1,6 +1,15 @@
 [package]
 name = "deimos-da"
+edition = "2021"
 
 [dependencies]
+deimos-types.workspace = true
+deimos-errors.workspace = true
+deimos-zk-snark.workspace = true
 celestia-rpc.workspace = true
 celestia-types.workspace = true
+serde.workspace = true
+tokio.workspace = true
+ed25519.workspace = true
+async-trait.workspace = true
+log.workspace = true

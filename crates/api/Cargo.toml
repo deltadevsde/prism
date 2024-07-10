@@ -1,0 +1,13 @@
+[package]
+name = "deimos-api"
+edition = "2021"
+
+[dependencies]
+actix-cors.workspace = true
+actix-web.workspace = true
+bellman.workspace = true
+bls12_381.workspace = true
+indexed-merkle-tree.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true

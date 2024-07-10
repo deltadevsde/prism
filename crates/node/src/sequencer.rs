@@ -1,7 +1,4 @@
-use crate::{
-    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    error::{DataAvailabilityError, DeimosResult},
-};
+use deimos_errors::errors::{DataAvailabilityError, DeimosResult};
 use async_trait::async_trait;
 use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
@@ -16,24 +13,24 @@ use tokio::{
     time::interval,
 };
 
-use crate::{
-    cfg::Config,
-    da::{DataAvailabilityLayer, EpochJson},
-    error::{DeimosError, GeneralError},
-    storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
-    utils::{validate_epoch, verify_signature},
-    webserver::WebServer,
+use deimos_errors::errors::{DeimosError, GeneralError};
+use deimos_da::da::{DataAvailabilityLayer, EpochJson};
+use deimos_types::types::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson, verify_signature};
+use deimos_zk_snark::{
     zk_snark::{
         deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-        serialize_verifying_key_to_custom, BatchMerkleProofCircuit,
+        serialize_verifying_key_to_custom, BatchMerkleProofCircuit, 
     },
+    utils::validate_epoch
 };
 
-#[async_trait]
-pub trait NodeType {
-    async fn start(self: Arc<Self>) -> DeimosResult<()>;
-    // async fn stop(&self) -> Result<(), String>;
-}
+
+/// DA_RETRY_COUNT determines how many times to retry epoch submission.
+pub const DA_RETRY_COUNT: u64 = 5;
+/// DA_RETRY_COUNT determines how long to wait between failed submissions.
+pub const DA_RETRY_INTERVAL: Duration = Duration::from_secs(5);
+/// CHANNEL_BUFFER_SIZE determines the default channel size.
+pub const CHANNEL_BUFFER_SIZE: usize = 5;
 
 pub struct Sequencer {
     pub db: Arc<dyn Database>,
@@ -44,11 +41,6 @@ pub struct Sequencer {
 
     epoch_buffer_tx: Arc<Sender<EpochJson>>,
     epoch_buffer_rx: Arc<Mutex<Receiver<EpochJson>>>,
-}
-
-pub struct LightClient {
-    pub da: Arc<dyn DataAvailabilityLayer>,
-    pub sequencer_public_key: Option<String>,
 }
 
 #[async_trait]
@@ -79,93 +71,6 @@ impl NodeType for Sequencer {
             .start(self.clone())
             .await
             .map_err(|_| GeneralError::WebserverError.into())
-    }
-}
-
-#[async_trait]
-impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> DeimosResult<()> {
-        // start listening for new headers to update sync target
-        self.da.start().await.unwrap();
-
-        info!("starting main light client loop");
-        // todo: persist current_position in datastore
-        // also: have initial starting position be configurable
-
-        let handle = spawn(async move {
-            let mut current_position = 0;
-            let mut ticker = interval(Duration::from_secs(1));
-            loop {
-                // target is updated when a new header is received
-                let target = self.da.get_message().await.unwrap();
-                debug!("updated sync target to height {}", target);
-                for i in current_position..target {
-                    trace!("processing height: {}", i);
-                    match self.da.get(i + 1).await {
-                        Ok(epoch_json_vec) => {
-                            // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
-                            // Verify zk proofs,
-                            for epoch_json in epoch_json_vec {
-                                let prev_commitment = &epoch_json.prev_commitment;
-                                let current_commitment = &epoch_json.current_commitment;
-                                let proof = deserialize_proof(&epoch_json.proof).unwrap();
-                                let verifying_key =
-                                    deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
-                                        .unwrap();
-                                if self.sequencer_public_key.is_some() {
-                                    if verify_signature(
-                                        &epoch_json.clone(),
-                                        self.sequencer_public_key.clone(),
-                                    )
-                                    .is_ok()
-                                    {
-                                        trace!("valid signature for height {}", i);
-                                    } else {
-                                        panic!(
-                                            "invalid signature in retrieved epoch on height {}",
-                                            i
-                                        );
-                                    }
-                                } else {
-                                    error!("epoch on height {} was not signed", i);
-                                }
-
-                                match validate_epoch(
-                                    &prev_commitment,
-                                    &current_commitment,
-                                    proof,
-                                    verifying_key,
-                                ) {
-                                    Ok(_) => (),
-                                    Err(err) => panic!("Failed to validate epoch: {:?}", err),
-                                }
-                            }
-
-                            info!("light client: got epochs at height {}", i + 1);
-                        }
-                        Err(e) => debug!("light client: getting epoch: {}", e),
-                    };
-                }
-                ticker.tick().await; // only for testing purposes
-                current_position = target; // Update the current position to the latest target
-            }
-        });
-
-        handle
-            .await
-            .map_err(|_| GeneralError::WebserverError.into())
-    }
-}
-
-impl LightClient {
-    pub fn new(
-        da: Arc<dyn DataAvailabilityLayer>,
-        sequencer_pub_key: Option<String>,
-    ) -> LightClient {
-        LightClient {
-            da,
-            sequencer_public_key: sequencer_pub_key,
-        }
     }
 }
 
@@ -500,69 +405,5 @@ impl Sequencer {
                 Ok(())
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::storage::UpdateEntryJson;
-    use base64::{engine::general_purpose, Engine as _};
-
-    fn setup_signature(valid_signature: bool) -> UpdateEntryJson {
-        let signed_message = if valid_signature {
-            "NRtq1sgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
-        } else {
-            "QVmk3wgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
-        };
-        let id_public_key = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=".to_string();
-
-        UpdateEntryJson {
-            id: id_public_key.clone(),
-            signed_message,
-            public_key: id_public_key,
-        }
-    }
-
-    #[test]
-    fn test_verify_valid_signature() {
-        let signature_with_key = setup_signature(true);
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_verify_invalid_signature() {
-        let signature_with_key = setup_signature(false);
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_verify_short_message() {
-        let signature_with_key = setup_signature(true);
-
-        let short_message =
-            general_purpose::STANDARD.encode(&"this is a short message".to_string());
-
-        let signature_with_key = UpdateEntryJson {
-            signed_message: short_message,
-            ..signature_with_key
-        };
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-        assert!(result.is_err());
     }
 }

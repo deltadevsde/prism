@@ -7,14 +7,10 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::{self, sync::Mutex};
 
-use crate::config::RedisConfig;
-use crate::errors::DatabaseError;
-use crate::storage::{ChainEntry, Database, IncomingEntry};
-use crate::utils::Signable;
-use crate::{
-    errors::{DatabaseError, DeimosError, DeimosResult, GeneralError},
-    utils::parse_json_to_proof,
-};
+use crate::{config::RedisConfig, storage::Database, utils::parse_json_to_proof};
+
+use deimos_types::types::{ChainEntry, IncomingEntry};
+use deimos_errors::errors::{DeimosError, GeneralError, DatabaseError};
 
 pub struct RedisConnections {
     pub main_dict: Mutex<Connection>,    // clear text key with hashchain
@@ -351,6 +347,8 @@ impl Database for RedisConnections {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use deimos_types::types::Operation;
+    use serde::{Serialize, Deserialize};
 
     // Helper functions
 
@@ -619,7 +617,7 @@ mod tests {
         assert!(hashchain.is_err());
         let error = hashchain.unwrap_err();
         assert!(
-            matches!(error, DatabaseError::GeneralError(GeneralError::ParsingError(msg)) if msg == "failed to parse hashchain")
+            matches!(error, DatabaseError::GeneralError(msg) if msg == "failed to parse hashchain")
         );
 
         teardown(&redis_connections);

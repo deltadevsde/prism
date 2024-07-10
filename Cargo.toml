@@ -1,6 +1,6 @@
 [workspace.package]
-name = "deimos"
 version = "0.1.0"
+edition = "2021"
 
 [workspace.features]
 default = []
@@ -8,10 +8,41 @@ key_transparency = []
 ci = []
 
 [workspace]
-members = ["crates/storage", "crates/da"]
-default-members = ["crates/storage", "crates/da"]
+members = [
+    "crates/storage",
+    "crates/da",
+    "crates/api",
+    "crates/errors",
+    "crates/node",
+    "crates/zk_snark",
+    "crates/types",
+    "bin/deimos",
+]
+default-members = [
+    "crates/storage",
+    "crates/da",
+    "crates/api",
+    "crates/errors",
+    "crates/node",
+    "crates/zk_snark",
+    "crates/types",
+    "bin/deimos",
+]
+
+# Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
+# https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html
+resolver = "2"
 
 [workspace.dependencies]
+deimos = { path = "bin/deimos" }
+deimos-storage = { path = "crates/storage" }
+deimos-da = { path = "crates/da" }
+deimos-api = { path = "crates/api" }
+deimos-errors = { path = "crates/errors" }
+deimos-node = { path = "crates/node" }
+deimos-zk-snark = { path = "crates/zk_snark" }
+deimos-types = { path = "crates/types" }
+
 crypto-hash = "0.3.4"
 async-trait = "0.1.68"
 serde = { version = "1.0.151", features = ["derive"] }

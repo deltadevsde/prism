@@ -1,14 +1,3 @@
-mod cfg;
-pub mod consts;
-pub mod da;
-pub mod error;
-mod node_types;
-pub mod storage;
-mod utils;
-mod webserver;
-pub mod zk_snark;
-extern crate keystore;
-
 use cfg::{initialize_da_layer, load_config};
 use clap::Parser;
 use keystore::{KeyChain, KeyStore, KeyStoreType};
