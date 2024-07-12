@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="./assets/deimos_horizontal_dark.png" alt="Deimos" width="500" />
+  <picture>
+    <source srcset="./assets/deimos_horizontal_light.png" media="(prefers-color-scheme: dark)">
+    <img src="./assets/deimos_horizontal_dark.png" alt="Deimos" width="500">
+  </picture>
 </p>
 <br>
 
