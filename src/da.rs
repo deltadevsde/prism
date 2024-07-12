@@ -500,10 +500,10 @@ mod da_tests {
             let prev_commitment = tree.get_commitment().unwrap();
 
             // insert a first node
-            let node_1 = create_node("test1", "test2");
+            let mut node_1 = create_node("test1", "test2");
 
             // generate proof for the first insert
-            let first_insert_proof = tree.insert_node(&node_1).unwrap();
+            let first_insert_proof = tree.insert_node(&mut node_1).unwrap();
             let first_insert_zk_snark = Proof::Insert(first_insert_proof);
 
             // create bls12 proof for posting
@@ -530,12 +530,12 @@ mod da_tests {
             let prev_commitment = tree.get_commitment().unwrap();
 
             // insert a second and third node
-            let node_2 = create_node("test3", "test4");
-            let node_3 = create_node("test5", "test6");
+            let mut node_2 = create_node("test3", "test4");
+            let mut node_3 = create_node("test5", "test6");
 
             // generate proof for the second and third insert
-            let second_insert_proof = tree.insert_node(&node_2).unwrap();
-            let third_insert_proof = tree.insert_node(&node_3).unwrap();
+            let second_insert_proof = tree.insert_node(&mut node_2).unwrap();
+            let third_insert_proof = tree.insert_node(&mut node_3).unwrap();
             let second_insert_zk_snark = Proof::Insert(second_insert_proof);
             let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 

@@ -3690,7 +3690,7 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 [[package]]
 name = "indexed-merkle-tree"
 version = "0.2.0"
-source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=a22fd39242df3b08716fac6881e2f8f8cfd8642f#a22fd39242df3b08716fac6881e2f8f8cfd8642f"
+source = "git+https://github.com/deltadevsde/indexed-merkle-tree?rev=5f1836a99789c707f4636fe379b60e6294753aaf#5f1836a99789c707f4636fe379b60e6294753aaf"
 dependencies = [
  "cargo-audit",
  "crypto-hash",

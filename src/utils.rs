@@ -216,34 +216,37 @@ mod tests {
         let ryan = sha256(&"Ryan".to_string());
         let ford = sha256(&"Ford".to_string());
         let sebastian = sha256(&"Sebastian".to_string());
-        //let pusch = sha256(&"Pusch".to_string());
+        let pusch = sha256(&"Pusch".to_string());
         let ethan = sha256(&"Ethan".to_string());
-        let triple_zero = sha256(&"TEst".to_string());
+        let triple_zero = sha256(&"000".to_string());
 
-        println!("Ryan: {:?}", ryan);
-        println!("Sebastian: {:?}", sebastian);
-        println!("Ethan: {:?}", ethan);
+        let mut ethans_node =
+            Node::new_leaf(true, true, ethan, triple_zero, Node::TAIL.to_string());
+        let mut ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL.to_string());
+        let mut sebastians_node =
+            Node::new_leaf(true, true, sebastian.clone(), pusch, Node::TAIL.to_string());
 
-        let ethans_node = Node::new_leaf(true, true, ethan, triple_zero, Node::TAIL.to_string());
-        let ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL.to_string());
-        /* let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL.to_string()); */
-
-        let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
-        /* let second_insert_proof = tree.insert_node(&sebastians_node).unwrap(); */
-        let third_insert_proof = tree.insert_node(&ethans_node).unwrap();
-
-        println!("First insert proof: {:?}", first_insert_proof);
-        /* println!("Second insert proof: {:?}", second_insert_proof); */
-        println!("Third insert proof: {:?}", third_insert_proof);
+        let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
+        let third_insert_proof = tree.insert_node(&mut ethans_node).unwrap();
+        let second_insert_proof = tree.insert_node(&mut sebastians_node).unwrap();
 
         let first_insert_zk_snark = Proof::Insert(first_insert_proof);
-        /* let second_insert_zk_snark = Proof::Insert(second_insert_proof); */
-        let third_insert_zk_snark = Proof::Insert(third_insert_proof);
+        let second_insert_zk_snark = Proof::Insert(second_insert_proof);
+        let third_insert_zk_snark = Proof::Insert(third_insert_proof.clone());
+
+        let updated_seb = sha256(&"Sebastian".to_string());
+        sebastians_node =
+            Node::new_leaf(true, true, sebastian, updated_seb, Node::TAIL.to_string());
+        let index = tree.find_node_index(&sebastians_node).unwrap();
+        let update_proof = tree.update_node(index, sebastians_node).unwrap();
+
+        let update_zk_snark = Proof::Update(update_proof);
 
         let proofs = vec![
-            third_insert_zk_snark,
             first_insert_zk_snark,
-            /* second_insert_zk_snark, */
+            second_insert_zk_snark,
+            third_insert_zk_snark,
+            update_zk_snark,
         ];
         let current_commitment = tree.get_commitment().unwrap();
 

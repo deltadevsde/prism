@@ -218,12 +218,12 @@ mod tests {
         let ford = sha256(&"Ford".to_string());
         let sebastian = sha256(&"Sebastian".to_string());
         let pusch = sha256(&"Pusch".to_string());
-        let ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
-        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
+        let mut ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
+        let mut sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
 
         // generate proofs for the two nodes
-        let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
-        let second_insert_proof = tree.insert_node(&sebastians_node).unwrap();
+        let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
+        let second_insert_proof = tree.insert_node(&mut sebastians_node).unwrap();
 
         // create zkSNARKs for the two proofs
         let first_insert_zk_snark = Proof::Insert(first_insert_proof);

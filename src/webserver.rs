@@ -117,7 +117,7 @@ async fn update_entry(
         Ok(_) => {
             let new_tree = session.create_tree().unwrap();
             let hashed_id = sha256(&signature_with_key.id);
-            let node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
+            let mut node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
             let proofs = if update_proof {
                 let new_index = tree.clone().find_node_index(&node).unwrap();
@@ -126,7 +126,7 @@ async fn update_entry(
                 format!(r#"{{"Update":{}}}"#, pre_processed_string)
             } else {
                 let pre_processed_string =
-                    serde_json::to_string(&tree.clone().insert_node(&node).unwrap()).unwrap();
+                    serde_json::to_string(&tree.clone().insert_node(&mut node).unwrap()).unwrap();
                 format!(r#"{{"Insert":{}}}"#, pre_processed_string)
             };
 
