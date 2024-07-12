@@ -10,7 +10,7 @@ use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::{InsertProof, NonMembershipProof, Proof, UpdateProof};
+use indexed_merkle_tree::tree::{InsertProof, MerkleProof, Proof, UpdateProof};
 use rand::rngs::OsRng;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -55,7 +55,7 @@ pub fn decode_public_key(pub_key_str: &String) -> DeimosResult<Ed25519VerifyingK
 
 pub fn validate_proof(proof_value: String) -> DeimosResult<()> {
     if let Ok((non_membership_proof, first_proof, second_proof)) =
-        serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
+        serde_json::from_str::<(MerkleProof, UpdateProof, UpdateProof)>(&proof_value)
     {
         let insertion_proof = InsertProof {
             non_membership_proof,
@@ -210,24 +210,41 @@ mod tests {
 
     #[test]
     fn test_validate_epoch_valid_proof() {
-        let mut tree = IndexedMerkleTree::new_with_size(4).unwrap();
+        let mut tree = IndexedMerkleTree::new_with_size(8).unwrap();
         let prev_commitment = tree.get_commitment().unwrap();
 
         let ryan = sha256(&"Ryan".to_string());
         let ford = sha256(&"Ford".to_string());
         let sebastian = sha256(&"Sebastian".to_string());
-        let pusch = sha256(&"Pusch".to_string());
+        //let pusch = sha256(&"Pusch".to_string());
+        let ethan = sha256(&"Ethan".to_string());
+        let triple_zero = sha256(&"TEst".to_string());
 
+        println!("Ryan: {:?}", ryan);
+        println!("Sebastian: {:?}", sebastian);
+        println!("Ethan: {:?}", ethan);
+
+        let ethans_node = Node::new_leaf(true, true, ethan, triple_zero, Node::TAIL.to_string());
         let ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL.to_string());
-        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
+        /* let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL.to_string()); */
 
         let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
-        let second_insert_proof = tree.insert_node(&sebastians_node).unwrap();
+        /* let second_insert_proof = tree.insert_node(&sebastians_node).unwrap(); */
+        let third_insert_proof = tree.insert_node(&ethans_node).unwrap();
+
+        println!("First insert proof: {:?}", first_insert_proof);
+        /* println!("Second insert proof: {:?}", second_insert_proof); */
+        println!("Third insert proof: {:?}", third_insert_proof);
 
         let first_insert_zk_snark = Proof::Insert(first_insert_proof);
-        let second_insert_zk_snark = Proof::Insert(second_insert_proof);
+        /* let second_insert_zk_snark = Proof::Insert(second_insert_proof); */
+        let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
-        let proofs = vec![first_insert_zk_snark, second_insert_zk_snark];
+        let proofs = vec![
+            third_insert_zk_snark,
+            first_insert_zk_snark,
+            /* second_insert_zk_snark, */
+        ];
         let current_commitment = tree.get_commitment().unwrap();
 
         let batched_proof =
