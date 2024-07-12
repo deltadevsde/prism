@@ -1,4 +1,5 @@
 use crate::{
+    cfg::CelestiaConfig,
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     error::{DataAvailabilityError, DeimosResult},
 };
@@ -48,7 +49,9 @@ pub struct Sequencer {
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
-    pub sequencer_public_key: Option<String>,
+    // verifying_key is the [`VerifyingKey`] used to verify epochs from the prover/sequencer
+    pub verifying_key: Option<String>,
+    start_height: u64,
 }
 
 #[async_trait]
@@ -89,11 +92,11 @@ impl NodeType for LightClient {
         self.da.start().await.unwrap();
 
         info!("starting main light client loop");
-        // todo: persist current_position in datastore
-        // also: have initial starting position be configurable
 
-        let handle = spawn(async move {
-            let mut current_position = 0;
+        // todo: persist current_position in datastore
+        let start_height = self.start_height;
+        spawn(async move {
+            let mut current_position = start_height;
             let mut ticker = interval(Duration::from_secs(1));
             loop {
                 // target is updated when a new header is received
@@ -112,10 +115,10 @@ impl NodeType for LightClient {
                                 let verifying_key =
                                     deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
                                         .unwrap();
-                                if self.sequencer_public_key.is_some() {
+                                if self.verifying_key.is_some() {
                                     if verify_signature(
                                         &epoch_json.clone(),
-                                        self.sequencer_public_key.clone(),
+                                        self.verifying_key.clone(),
                                     )
                                     .is_ok()
                                     {
@@ -137,34 +140,38 @@ impl NodeType for LightClient {
                                     verifying_key,
                                 ) {
                                     Ok(_) => (),
-                                    Err(err) => panic!("Failed to validate epoch: {:?}", err),
+                                    Err(err) => panic!("failed to validate epoch: {:?}", err),
                                 }
                             }
 
                             info!("light client: got epochs at height {}", i + 1);
                         }
-                        Err(e) => debug!("light client: getting epoch: {}", e),
+                        Err(e) => {
+                            debug!("light client: getting epoch: {}", e)
+                        }
                     };
                 }
                 ticker.tick().await; // only for testing purposes
                 current_position = target; // Update the current position to the latest target
             }
-        });
-
-        handle
-            .await
-            .map_err(|_| GeneralError::WebserverError.into())
+        })
+        .await
+        .map_err(|_| {
+            DataAvailabilityError::InitializationError("failed to initialize".to_string()).into()
+        })
     }
 }
 
 impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
+        cfg: CelestiaConfig,
         sequencer_pub_key: Option<String>,
     ) -> LightClient {
         LightClient {
             da,
-            sequencer_public_key: sequencer_pub_key,
+            verifying_key: sequencer_pub_key,
+            start_height: cfg.start_height,
         }
     }
 }

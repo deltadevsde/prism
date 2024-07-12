@@ -30,6 +30,10 @@ pub struct CommandLineArgs {
     #[arg(short = 'n', long)]
     celestia_namespace_id: Option<String>,
 
+    // Height to start searching the DA layer for SNARKs on
+    #[arg(short = 's', long)]
+    celestia_start_height: Option<u64>,
+
     /// Duration between epochs in seconds
     #[arg(short, long)]
     epoch_time: Option<u64>,
@@ -43,7 +47,7 @@ pub struct CommandLineArgs {
     port: Option<u16>,
 
     #[arg(long)]
-    public_key: Option<String>,
+    verifying_key: Option<String>,
 
     #[arg(long)]
     config_path: Option<String>,
@@ -63,7 +67,7 @@ pub struct Config {
     pub da_layer: Option<DALayerOption>,
     pub redis_config: Option<RedisConfig>,
     pub epoch_time: Option<u64>,
-    pub public_key: Option<String>,
+    pub verifying_key: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -106,6 +110,7 @@ impl Default for RedisConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CelestiaConfig {
     pub connection_string: String,
+    pub start_height: u64,
     pub namespace_id: String,
 }
 
@@ -113,6 +118,7 @@ impl Default for CelestiaConfig {
     fn default() -> Self {
         CelestiaConfig {
             connection_string: "ws://localhost:26658".to_string(),
+            start_height: 0,
             namespace_id: "00000000000000de1008".to_string(),
         }
     }
@@ -127,7 +133,7 @@ impl Default for Config {
             celestia_config: Some(CelestiaConfig::default()),
             redis_config: Some(RedisConfig::default()),
             epoch_time: Some(60),
-            public_key: None,
+            verifying_key: None,
         }
     }
 }
@@ -169,7 +175,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
             .or(default_config.celestia_config),
         da_layer: file_config.da_layer.or(default_config.da_layer),
         epoch_time: file_config.epoch_time.or(default_config.epoch_time),
-        public_key: file_config.public_key.or(default_config.public_key),
+        verifying_key: file_config.verifying_key.or(default_config.verifying_key),
     };
 
     Ok(Config {
@@ -193,13 +199,16 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
                     .unwrap()
                     .connection_string,
             ),
+            start_height: args
+                .celestia_start_height
+                .unwrap_or(merged_config.celestia_config.clone().unwrap().start_height),
             namespace_id: args
                 .celestia_namespace_id
                 .unwrap_or(merged_config.celestia_config.unwrap().namespace_id),
         }),
         da_layer: merged_config.da_layer,
         epoch_time: Some(args.epoch_time.unwrap_or(merged_config.epoch_time.unwrap())),
-        public_key: args.public_key.or(merged_config.public_key),
+        verifying_key: args.verifying_key.or(merged_config.verifying_key),
     })
 }
 

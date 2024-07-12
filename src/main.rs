@@ -34,9 +34,12 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
     let da = initialize_da_layer(&config).await;
-
     let node: Arc<dyn NodeType> = match args.command {
-        Commands::LightClient {} => Arc::new(LightClient::new(da, config.public_key)),
+        Commands::LightClient {} => Arc::new(LightClient::new(
+            da,
+            config.celestia_config.unwrap(),
+            config.verifying_key,
+        )),
         Commands::Sequencer {} => Arc::new(Sequencer::new(
             Arc::new(
                 RedisConnections::new(&config.clone().redis_config.unwrap())
