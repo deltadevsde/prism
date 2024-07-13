@@ -133,9 +133,10 @@ pub fn validate_epoch(
     .into_iter()
     .collect();
 
-    let scalars = scalars.map_err(|_| {
+    let scalars = scalars.map_err(|e| {
         DeimosError::General(GeneralError::ParsingError(format!(
-            "unable to parse public input parameters"
+            "unable to parse public input parameters: {}",
+            e.to_string()
         )))
     })?;
 
@@ -144,7 +145,7 @@ pub fn validate_epoch(
         .map_err(|e| DeimosError::Proof(ProofError::VerificationError(e.to_string())))?;
 
     debug!(
-        "validate_epoch: zkSNARK with groth16 random parameters for epoch between commitment {} and {} was successfully verified!",
+        "validate_epoch: zkSNARK with groth16 random parameters for epoch between commitment {} and {} was successfully verified",
         previous_commitment, current_commitment
     );
 
