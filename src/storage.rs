@@ -172,7 +172,8 @@ pub trait Database: Send + Sync {
 
 impl RedisConnections {
     pub fn new(cfg: &RedisConfig) -> Result<RedisConnections, Box<dyn std::error::Error>> {
-        let try_client = Client::open(cfg.clone().connection_string)?;
+        let connection_string = cfg.connection_string.clone();
+        let try_client = Client::open(connection_string.clone())?;
         let try_connection = try_client.get_connection();
 
         if try_connection.is_err() {
@@ -180,16 +181,17 @@ impl RedisConnections {
 
             let _child = Command::new("redis-server").spawn()?;
 
+            // TODO: fix this hack
             sleep(Duration::from_secs(5));
             debug!("redis-server started");
         }
 
-        let client = Client::open("redis://127.0.0.1/")?;
-        let derived_client = Client::open("redis://127.0.0.1/1")?;
-        let input_order = Client::open("redis://127.0.0.1/2")?;
-        let app_state = Client::open("redis://127.0.0.1/3")?;
-        let merkle_proofs = Client::open("redis://127.0.0.1/4")?;
-        let commitments = Client::open("redis://127.0.0.1/5")?;
+        let client = Client::open(connection_string.clone())?;
+        let derived_client = Client::open(connection_string.clone() + "1")?;
+        let input_order = Client::open(connection_string.clone() + "2")?;
+        let app_state = Client::open(connection_string.clone() + "3")?;
+        let merkle_proofs = Client::open(connection_string.clone() + "4")?;
+        let commitments = Client::open(connection_string.clone() + "5")?;
 
         Ok(RedisConnections {
             main_dict: Mutex::new(client.get_connection()?),
