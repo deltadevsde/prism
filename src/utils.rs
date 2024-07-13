@@ -123,7 +123,7 @@ pub fn validate_epoch(
     proof: groth16::Proof<Bls12>,
     verifying_key: VerifyingKey<Bls12>,
 ) -> Result<groth16::Proof<Bls12>, DeimosError> {
-    debug!("validate_epoch: preparing verifying key for zkSNARK");
+    info!("validate_epoch: preparing verifying key for zkSNARK");
     let pvk = groth16::prepare_verifying_key(&verifying_key);
 
     let scalars: Result<Vec<Scalar>, _> = vec![
@@ -140,12 +140,12 @@ pub fn validate_epoch(
         )))
     })?;
 
-    debug!("validate_epoch: verifying zkSNARK proof...");
+    trace!("validate_epoch: verifying zkSNARK proof...");
     groth16::verify_proof(&pvk, &proof, &scalars)
         .map_err(|e| DeimosError::Proof(ProofError::VerificationError(e.to_string())))?;
 
-    debug!(
-        "validate_epoch: zkSNARK with groth16 random parameters for epoch between commitment {} and {} was successfully verified",
+    info!(
+        "validate_epoch: zkSNARK for epoch between commitment {}->{} was successfully verified",
         previous_commitment, current_commitment
     );
 
