@@ -210,10 +210,17 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 }
                 Ok(epochs)
             }
-            Err(err) => Err(DataAvailabilityError::DataRetrievalError(
-                height,
-                format!("getting epoch from da layer: {}", err),
-            )),
+            Err(err) => {
+                // todo: this is a hack to handle a retarded error from cel-node that will be fixed in v0.15.0
+                if err.to_string().contains("blob: not found") {
+                    Ok(vec![])
+                } else {
+                    Err(DataAvailabilityError::DataRetrievalError(
+                        height,
+                        format!("getting epoch from da layer: {}", err),
+                    ))
+                }
+            }
         }
     }
 
@@ -229,10 +236,6 @@ impl DataAvailabilityLayer for CelestiaConnection {
         let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
         })?;
-        debug!(
-            "submitted blob with commitment {:?}",
-            serde_json::to_string(&blob.clone().commitment).unwrap()
-        );
         trace!("blob: {:?}", serde_json::to_string(&blob).unwrap());
         match self
             .client

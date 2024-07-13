@@ -1,5 +1,3 @@
-use std::array::TryFromSliceError;
-
 use crate::{
     error::{DeimosError, GeneralError, ProofError},
     storage::ChainEntry,

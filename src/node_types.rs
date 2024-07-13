@@ -237,6 +237,13 @@ impl Sequencer {
                             break;
                         }
                         Err(e) => {
+                            // code = NotFound means the account is not funded
+                            if e.to_string().contains("rpc error: code = NotFound") {
+                                panic!(
+                                    "da_loop: celestia account not funded, causing: {}",
+                                    e.to_string()
+                                );
+                            }
                             error!("da_loop: submitting epoch: {}", e);
                             retry_counter += 1;
                             ticker.tick().await;
