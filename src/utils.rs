@@ -223,14 +223,13 @@ mod tests {
 
         let mut ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL.to_string());
         let mut sebastians_node =
-            Node::new_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
+            Node::new_leaf(true, true, sebastian.clone(), pusch, Node::TAIL.to_string());
 
         let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
         let second_insert_proof = tree.insert_node(&mut sebastians_node).unwrap();
 
         let first_insert_zk_snark = Proof::Insert(first_insert_proof);
         let second_insert_zk_snark = Proof::Insert(second_insert_proof);
-        let third_insert_zk_snark = Proof::Insert(third_insert_proof.clone());
 
         let updated_seb = sha256(&"Sebastian".to_string());
         sebastians_node =
@@ -243,7 +242,6 @@ mod tests {
         let proofs = vec![
             first_insert_zk_snark,
             second_insert_zk_snark,
-            third_insert_zk_snark,
             update_zk_snark,
         ];
         let current_commitment = tree.get_commitment().unwrap();
