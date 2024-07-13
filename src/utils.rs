@@ -220,14 +220,11 @@ mod tests {
         let ethan = sha256(&"Ethan".to_string());
         let triple_zero = sha256(&"000".to_string());
 
-        let mut ethans_node =
-            Node::new_leaf(true, true, ethan, triple_zero, Node::TAIL.to_string());
         let mut ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL.to_string());
         let mut sebastians_node =
-            Node::new_leaf(true, true, sebastian.clone(), pusch, Node::TAIL.to_string());
+            Node::new_leaf(true, true, sebastian, pusch, Node::TAIL.to_string());
 
         let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
-        let third_insert_proof = tree.insert_node(&mut ethans_node).unwrap();
         let second_insert_proof = tree.insert_node(&mut sebastians_node).unwrap();
 
         let first_insert_zk_snark = Proof::Insert(first_insert_proof);
