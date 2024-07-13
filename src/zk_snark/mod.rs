@@ -90,14 +90,14 @@ pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine,
 }
 
 fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
-    if !proof.path.is_empty() {
-        let scalar_root = hex_to_scalar(proof.root_hash.as_str()).map_err(DeimosError::General)?;
-        Ok((scalar_root, &proof.path))
-    } else {
-        Err(DeimosError::Proof(ProofError::ProofUnpackError(format!(
-            "proof path is empty for root hash {}",
-            proof.root_hash
-        ))))
+    match (&proof.root_hash, &proof.path) {
+        (Some(hex_root), Some(path)) if !path.is_empty() => {
+            let scalar_root = hex_to_scalar(hex_root).map_err(DeimosError::General)?;
+            Ok((scalar_root, path))
+        }
+        _ => Err(DeimosError::Proof(ProofError::ProofUnpackError(format!(
+            "proof path is empty for root hash "
+        )))),
     }
 }
 
@@ -218,12 +218,12 @@ mod tests {
         let ford = sha256(&"Ford".to_string());
         let sebastian = sha256(&"Sebastian".to_string());
         let pusch = sha256(&"Pusch".to_string());
-        let ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
-        let sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
+        let mut ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
+        let mut sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
 
         // generate proofs for the two nodes
-        let first_insert_proof = tree.insert_node(&ryans_node).unwrap();
-        let second_insert_proof = tree.insert_node(&sebastians_node).unwrap();
+        let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
+        let second_insert_proof = tree.insert_node(&mut sebastians_node).unwrap();
 
         // create zkSNARKs for the two proofs
         let first_insert_zk_snark = Proof::Insert(first_insert_proof);
@@ -602,7 +602,7 @@ impl Circuit<Scalar> for HashChainEntryCircuit {
 impl InsertMerkleProofCircuit {
     pub fn new(proof: &InsertProof) -> Result<InsertMerkleProofCircuit, DeimosError> {
         let (non_membership_root, non_membership_path) =
-            unpack_and_process(&proof.non_membership_proof.merkle_proof)?;
+            unpack_and_process(&proof.non_membership_proof)?;
 
         let first_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.first_proof)?;
         let second_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.second_proof)?;
