@@ -298,13 +298,10 @@ impl Sequencer {
             BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
         let (proof, verifying_key) = batch_circuit.create_and_verify_snark()?;
 
-        let signed_prev_commitment = self.key.sign(&prev_commitment.as_bytes()).to_string();
-        let signed_current_commitment = self.key.sign(&current_commitment.as_bytes()).to_string();
-
         let epoch_json = EpochJson {
             height: epoch,
-            prev_commitment: signed_prev_commitment,
-            current_commitment: signed_current_commitment,
+            prev_commitment: prev_commitment,
+            current_commitment: current_commitment,
             proof: serialize_proof(&proof),
             verifying_key: serialize_verifying_key_to_custom(&verifying_key),
             signature: None,

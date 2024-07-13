@@ -1,3 +1,5 @@
+use std::array::TryFromSliceError;
+
 use crate::{
     error::{DeimosError, GeneralError, ProofError},
     storage::ChainEntry,
@@ -304,14 +306,24 @@ pub struct BatchMerkleProofCircuit {
 }
 
 pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
-    let byte_array: [u8; 32] = hex::decode(hex_string)
-        .map_err(|_| {
-            GeneralError::DecodingError(format!("Failed to decode hex string: {}", hex_string))
-        })?
-        .try_into()
-        .map_err(|_| {
-            GeneralError::ParsingError("Failed to parse hex string to byte array".to_string())
-        })?;
+    let bytes = hex::decode(hex_string).map_err(|e| {
+        GeneralError::DecodingError(format!(
+            "failed to decode hex string {}: {}",
+            hex_string,
+            e.to_string()
+        ))
+    })?;
+
+    if bytes.len() != 32 {
+        return Err(GeneralError::ParsingError(format!(
+            "failed to parse hex string to byte array: expected 32 bytes, got {} bytes",
+            bytes.len()
+        )));
+    }
+
+    let byte_array: [u8; 32] = bytes.try_into().map_err(|_| {
+        GeneralError::ParsingError(format!("failed to parse hex string to byte array"))
+    })?;
 
     let mut wide = [0u8; 64];
     wide[..32].copy_from_slice(&byte_array); // Fill 0s in front of it, then the value remains the same
