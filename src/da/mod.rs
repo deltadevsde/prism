@@ -47,7 +47,7 @@ impl Signable for EpochJson {
 
 #[async_trait]
 pub trait DataAvailabilityLayer: Send + Sync {
-    async fn get_message(&self) -> DAResult<u64>;
+    async fn get_latest_height(&self) -> DAResult<u64>;
     async fn initialize_sync_target(&self) -> DAResult<u64>;
     async fn get(&self, height: u64) -> DAResult<Vec<EpochJson>>;
     async fn submit(&self, epoch: &EpochJson) -> DAResult<u64>;

@@ -49,6 +49,8 @@ pub enum DatabaseError {
     NotFoundError(String),
     #[error("retreiving input order list")]
     GetInputOrderError,
+    #[error("reading {0} from database")]
+    ReadError(String),
     #[error("writing {0} to database")]
     WriteError(String),
     #[error("deleting {0} from database")]

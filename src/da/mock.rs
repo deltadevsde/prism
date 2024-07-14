@@ -15,7 +15,7 @@ pub struct NoopDataAvailabilityLayer {}
 
 #[async_trait]
 impl DataAvailabilityLayer for NoopDataAvailabilityLayer {
-    async fn get_message(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> DAResult<u64> {
         Ok(0)
     }
 
@@ -51,7 +51,7 @@ impl LocalDataAvailabilityLayer {
 
 #[async_trait]
 impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
-    async fn get_message(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> DAResult<u64> {
         Ok(100)
     }
 

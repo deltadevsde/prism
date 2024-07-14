@@ -85,7 +85,7 @@ impl CelestiaConnection {
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
-    async fn get_message(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> DAResult<u64> {
         match self.synctarget_rx.lock().await.recv().await {
             Some(height) => Ok(height),
             None => Err(DataAvailabilityError::ChannelReceiveError),
@@ -113,9 +113,8 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         Err(_) => {
                             DataAvailabilityError::GeneralError(GeneralError::ParsingError(
                                 format!(
-                                    "marshalling blob from height {} to epoch json: {}",
-                                    height,
-                                    serde_json::to_string(&blob).unwrap()
+                                    "marshalling blob from height {} to epoch json: {:?}",
+                                    height, &blob
                                 ),
                             ));
                         }
@@ -149,7 +148,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
         let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
         })?;
-        trace!("blob: {:?}", serde_json::to_string(&blob).unwrap());
+        trace!("blob: {:?}", &blob);
         match self
             .client
             .blob_submit(&[blob.clone()], GasPrice::from(-1.0))

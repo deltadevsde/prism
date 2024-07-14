@@ -1,6 +1,6 @@
 use crate::{
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    error::{DataAvailabilityError, DeimosResult},
+    error::{DataAvailabilityError, DatabaseError, DeimosResult},
 };
 use async_trait::async_trait;
 use crypto_hash::{hex_digest, Algorithm};
@@ -51,7 +51,12 @@ impl NodeType for Sequencer {
             Ok(keys) => {
                 if keys.len() == 0 {
                     // if the dict is empty, we need to initialize the dict and the input order
-                    self.db.initialize_derived_dict().unwrap();
+                    match self.db.initialize_derived_dict() {
+                        Ok(_) => (),
+                        Err(e) => {
+                            error!("sequencer_loop: initializing derived dictionary: {}", e);
+                        }
+                    }
                 }
             }
             Err(e) => {
@@ -75,17 +80,34 @@ impl Sequencer {
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: Config,
         key: SigningKey,
-    ) -> Sequencer {
+    ) -> DeimosResult<Sequencer> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
-        Sequencer {
+
+        let epoch_duration = match cfg.epoch_time {
+            Some(epoch_time) => epoch_time,
+            None => {
+                return Err(GeneralError::MissingArgumentError("epoch_time".to_string()).into());
+            }
+        };
+
+        let ws = match cfg.webserver {
+            Some(webserver) => WebServer::new(webserver),
+            None => {
+                return Err(
+                    GeneralError::MissingArgumentError("webserver config".to_string()).into(),
+                );
+            }
+        };
+
+        Ok(Sequencer {
             db,
             da,
-            epoch_duration: cfg.epoch_time.unwrap(),
-            ws: WebServer::new(cfg.webserver.unwrap()),
+            epoch_duration,
+            ws,
             key,
             epoch_buffer_tx: Arc::new(tx),
             epoch_buffer_rx: Arc::new(Mutex::new(rx)),
-        }
+        })
     }
 
     // main_loop is responsible for finalizing epochs every epoch length and writing them to the buffer for DA submission.
@@ -98,12 +120,21 @@ impl Sequencer {
                 ticker.tick().await;
                 match self.finalize_epoch().await {
                     Ok(epoch) => {
-                        info!(
-                            "sequencer_loop: finalized epoch {}",
-                            self.db.get_epoch().unwrap()
-                        );
-                        // should panic here if we cannot send to buffer
-                        epoch_buffer.send(epoch).await.unwrap();
+                        let epoch_height = match self.db.get_epoch() {
+                            Ok(epoch) => epoch,
+                            Err(e) => {
+                                error!("sequencer_loop: getting epoch from db: {}", e);
+                                continue;
+                            }
+                        };
+
+                        info!("sequencer_loop: finalized epoch {}", epoch_height);
+                        match epoch_buffer.send(epoch).await {
+                            Ok(_) => (),
+                            Err(e) => {
+                                error!("sequencer_loop: sending epoch to buffer: {}", e);
+                            }
+                        }
                     }
                     Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
                 }
@@ -117,7 +148,13 @@ impl Sequencer {
         let mut ticker = interval(DA_RETRY_INTERVAL);
         spawn(async move {
             loop {
-                let epoch = self.get_message().await.unwrap();
+                let epoch = match self.get_latest_height().await {
+                    Ok(e) => e,
+                    Err(e) => {
+                        error!("da_loop: getting latest height: {}", e);
+                        continue;
+                    }
+                };
                 let mut retry_counter = 0;
                 loop {
                     if retry_counter > DA_RETRY_COUNT {
@@ -177,16 +214,27 @@ impl Sequencer {
             .add_commitment(&epoch, &current_commitment)
             .map_err(DeimosError::Database)?;
 
-        let proofs = if epoch > 0 {
-            let prev_epoch = epoch - 1;
-            self.db.get_proofs_in_epoch(&prev_epoch).unwrap()
-        } else {
-            vec![]
+        let proofs = match epoch > 0 {
+            true => match self.db.get_proofs_in_epoch(&(epoch - 1)) {
+                Ok(proofs) => proofs,
+                Err(e) => return Err(DatabaseError::ReadError(e.to_string()).into()),
+            },
+            false => vec![],
         };
 
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
-            self.db.get_commitment(&prev_epoch).unwrap()
+            match self.db.get_commitment(&prev_epoch) {
+                Ok(commitment) => commitment,
+                Err(e) => {
+                    return Err(DatabaseError::ReadError(format!(
+                        "commitment for prev epoch {:?}: {:?}",
+                        prev_epoch,
+                        e.to_string()
+                    ))
+                    .into());
+                }
+            }
         } else {
             let empty_commitment = self.create_tree()?;
             empty_commitment
@@ -200,8 +248,8 @@ impl Sequencer {
 
         let epoch_json = EpochJson {
             height: epoch,
-            prev_commitment: prev_commitment,
-            current_commitment: current_commitment,
+            prev_commitment,
+            current_commitment,
             proof: serialize_proof(&proof),
             verifying_key: serialize_verifying_key_to_custom(&verifying_key),
             signature: None,
@@ -220,7 +268,7 @@ impl Sequencer {
         Ok(epoch_json_with_signature)
     }
 
-    async fn get_message(&self) -> DeimosResult<EpochJson> {
+    async fn get_latest_height(&self) -> DeimosResult<EpochJson> {
         match self.epoch_buffer_rx.lock().await.recv().await {
             Some(epoch) => Ok(epoch),
             None => Err(DataAvailabilityError::ChannelReceiveError.into()),
@@ -236,13 +284,24 @@ impl Sequencer {
         sorted_keys.sort();
 
         // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
-        let mut nodes: Vec<Node> = sorted_keys
+        let nodes_result: Result<Vec<Node>, DatabaseError> = sorted_keys
             .iter()
             .map(|key| {
-                let value: String = self.db.get_derived_value(&key.to_string()).unwrap(); // we retrieved the keys from the input order, so we know they exist and can get the value
-                Node::new_leaf(true, true, key.clone(), value, Node::TAIL.to_string())
+                let value: String = self
+                    .db
+                    .get_derived_value(&key.to_string())
+                    .map_err(|e| DatabaseError::ReadError(e.to_string()))?;
+                Ok(Node::new_leaf(
+                    true,
+                    true,
+                    key.clone(),
+                    value,
+                    Node::TAIL.to_string(),
+                ))
             })
             .collect();
+
+        let mut nodes: Vec<Node> = nodes_result?;
 
         // calculate the next power of two, tree size is at least 8 for now
         let mut next_power_of_two: usize = 8;
@@ -275,18 +334,21 @@ impl Sequencer {
             let label = match node {
                 Node::Inner(_) => None,
                 Node::Leaf(leaf) => {
-                    let label = leaf.label.clone(); // get the label of the node
+                    let label = leaf.label.clone();
                     Some(label)
                 }
             };
-            ordered_derived_dict_keys
+
+            match ordered_derived_dict_keys
                 .iter()
                 .enumerate() // use index
                 .find(|(_, k)| {
-                    *k == &label.clone().unwrap() // without dereferencing we compare  &&string with &string
-                })
-                .unwrap()
-                .0
+                    // without dereferencing we compare &&string with &string
+                    label.clone().is_some_and(|l| *k == &l)
+                }) {
+                Some((k, _)) => Some(k),
+                None => None,
+            }
         });
 
         // Add empty nodes to ensure the total number of nodes is a power of two.
@@ -350,30 +412,55 @@ impl Sequencer {
             Ok(value) => {
                 // hashchain already exists
                 let mut current_chain = value.clone();
+                let last = match current_chain.last() {
+                    Some(entry) => entry,
+                    None => {
+                        return Err(DatabaseError::NotFoundError(format!(
+                            "last value in hashchain for incoming entry with id {}",
+                            signature.id.clone()
+                        ))
+                        .into());
+                    }
+                };
 
                 let new_chain_entry = ChainEntry {
                     hash: hex_digest(
                         Algorithm::SHA256,
                         format!(
                             "{}, {}, {}",
-                            &incoming_entry.operation,
-                            &incoming_entry.value,
-                            &current_chain.last().unwrap().hash
+                            &incoming_entry.operation, &incoming_entry.value, &last.hash
                         )
                         .as_bytes(),
                     ),
-                    previous_hash: current_chain.last().unwrap().hash.clone(),
+                    previous_hash: last.hash.clone(),
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.value.clone(),
                 };
 
                 current_chain.push(new_chain_entry.clone());
-                self.db
-                    .update_hashchain(&incoming_entry, &current_chain)
-                    .unwrap();
-                self.db
+                match self.db.update_hashchain(&incoming_entry, &current_chain) {
+                    Ok(_) => (),
+                    Err(_) => {
+                        return Err(DatabaseError::WriteError(format!(
+                            "hashchain for incoming entry {:?}",
+                            incoming_entry
+                        ))
+                        .into());
+                    }
+                }
+                match self
+                    .db
                     .set_derived_entry(&incoming_entry, &new_chain_entry, false)
-                    .unwrap();
+                {
+                    Ok(_) => (),
+                    Err(_) => {
+                        return Err(DatabaseError::WriteError(format!(
+                            "derived entry for incoming entry {:?}",
+                            incoming_entry
+                        ))
+                        .into());
+                    }
+                }
 
                 Ok(())
             }
@@ -394,14 +481,36 @@ impl Sequencer {
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.value.clone(),
                 }];
-                self.db
-                    .update_hashchain(&incoming_entry, &new_chain)
-                    .unwrap();
-                self.db
-                    .set_derived_entry(&incoming_entry, new_chain.last().unwrap(), true)
-                    .unwrap();
-
-                Ok(())
+                let last_entry = match new_chain.last() {
+                    Some(entry) => entry,
+                    None => {
+                        return Err(DatabaseError::ReadError(format!(
+                            "last value in hashchain for incoming entry with id {}",
+                            signature.id.clone()
+                        ))
+                        .into());
+                    }
+                };
+                match self.db.update_hashchain(&incoming_entry, &new_chain) {
+                    Ok(_) => (),
+                    Err(_) => {
+                        return Err(DatabaseError::WriteError(format!(
+                            "hashchain for incoming entry {:?}",
+                            incoming_entry
+                        ))
+                        .into());
+                    }
+                }
+                match self.db.set_derived_entry(&incoming_entry, last_entry, true) {
+                    Ok(_) => Ok(()),
+                    Err(_) => {
+                        return Err(DatabaseError::WriteError(format!(
+                            "derived entry for incoming entry {:?}",
+                            incoming_entry
+                        ))
+                        .into());
+                    }
+                }
             }
         }
     }
