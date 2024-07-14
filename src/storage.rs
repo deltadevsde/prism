@@ -474,22 +474,22 @@ impl Database for RedisConnections {
         let mut commitments_conn = self.lock_connection(&self.commitments)?;
 
         redis::cmd("FLUSHALL")
-            .query(&mut main_conn)
+            .query::<()>(&mut main_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all entries in main dict")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut derived_conn)
+            .query::<()>(&mut derived_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all entries in derived dict")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut input_order_conn)
+            .query::<()>(&mut input_order_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all entries in input order")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut app_state_conn)
+            .query::<()>(&mut app_state_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all entries in app state")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut merkle_proof_conn)
+            .query::<()>(&mut merkle_proof_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all merkle proofs")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut commitments_conn)
+            .query::<()>(&mut commitments_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all commitments")))?;
         Ok(())
     }
