@@ -338,9 +338,9 @@ pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError>
     for i in 1..(path.len()) {
         let sibling = &path[i];
         if sibling.is_left_sibling() {
-            current_hash = sha256(&format!("{} || {}", &sibling.get_hash(), current_hash));
+            current_hash = sha256(&format!("{}{}", &sibling.get_hash(), current_hash));
         } else {
-            current_hash = sha256(&format!("{} || {}", current_hash, &sibling.get_hash()));
+            current_hash = sha256(&format!("{}{}", current_hash, &sibling.get_hash()));
         }
     }
     hex_to_scalar(&current_hash.as_str())
