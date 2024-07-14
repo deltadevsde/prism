@@ -1,5 +1,4 @@
 use crate::{
-    cfg::CelestiaConfig,
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     error::{DataAvailabilityError, DeimosResult},
 };
@@ -21,20 +20,12 @@ use crate::{
     cfg::Config,
     da::{DataAvailabilityLayer, EpochJson},
     error::{DeimosError, GeneralError},
+    node_types::NodeType,
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
-    utils::{validate_epoch, verify_signature},
+    utils::verify_signature,
     webserver::WebServer,
-    zk_snark::{
-        deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-        serialize_verifying_key_to_custom, BatchMerkleProofCircuit,
-    },
+    zk_snark::{serialize_proof, serialize_verifying_key_to_custom, BatchMerkleProofCircuit},
 };
-
-#[async_trait]
-pub trait NodeType {
-    async fn start(self: Arc<Self>) -> DeimosResult<()>;
-    // async fn stop(&self) -> Result<(), String>;
-}
 
 pub struct Sequencer {
     pub db: Arc<dyn Database>,
@@ -45,13 +36,6 @@ pub struct Sequencer {
 
     epoch_buffer_tx: Arc<Sender<EpochJson>>,
     epoch_buffer_rx: Arc<Mutex<Receiver<EpochJson>>>,
-}
-
-pub struct LightClient {
-    pub da: Arc<dyn DataAvailabilityLayer>,
-    // verifying_key is the [`VerifyingKey`] used to verify epochs from the prover/sequencer
-    pub verifying_key: Option<String>,
-    start_height: u64,
 }
 
 #[async_trait]
@@ -82,108 +66,6 @@ impl NodeType for Sequencer {
             .start(self.clone())
             .await
             .map_err(|_| GeneralError::WebserverError.into())
-    }
-}
-
-#[async_trait]
-impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> DeimosResult<()> {
-        // start listening for new headers to update sync target
-        self.da.start().await.unwrap();
-
-        info!("starting main light client loop");
-
-        // todo: persist current_position in datastore
-        let start_height = self.start_height;
-        spawn(async move {
-            let mut current_position = start_height;
-            let mut ticker = interval(Duration::from_secs(1));
-            loop {
-                // target is updated when a new header is received
-                let target = self.da.get_message().await.unwrap();
-                debug!("updated sync target to height {}", target);
-                for i in current_position..target {
-                    trace!("processing height: {}", i);
-                    match self.da.get(i + 1).await {
-                        Ok(epoch_json_vec) => {
-                            if epoch_json_vec.len() > 0 {
-                                debug!("light client: got epochs at height {}", i + 1);
-                            }
-
-                            // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
-                            // Verify zk proofs,
-                            for epoch_json in epoch_json_vec {
-                                let prev_commitment = &epoch_json.prev_commitment;
-                                let current_commitment = &epoch_json.current_commitment;
-                                let proof = match deserialize_proof(&epoch_json.proof) {
-                                    Ok(proof) => proof,
-                                    Err(e) => {
-                                        error!("failed to deserialize proof, skipping a blob at height {}: {:?}", i, e);
-                                        continue;
-                                    },
-                                };
-
-                                // TODO(@distractedm1nd): i don't know rust yet but this seems like non-idiomatic rust -
-                                // is there not a Trait that can satisfy these properties for us?
-                                let verifying_key = match deserialize_custom_to_verifying_key(&epoch_json.verifying_key) {
-                                    Ok(vk) => vk,
-                                    Err(e) => {
-                                        error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
-                                        continue;
-                                    },
-                                };
-
-                                // if the user does not add a verifying key, we will not verify the signature,
-                                // but only log a warning on startup
-                                if self.verifying_key.is_some() {
-                                    match verify_signature(&epoch_json.clone(), self.verifying_key.clone()) {
-                                        Ok(i) => trace!("valid signature for epoch {}", i),
-                                        Err(e) => {
-                                            panic!("invalid signature in epoch {}: {:?}", i, e)
-                                        }
-                                    }
-                                }
-
-                                match validate_epoch(
-                                    &prev_commitment,
-                                    &current_commitment,
-                                    proof,
-                                    verifying_key,
-                                ) {
-                                    Ok(_) => {
-                                        info!("zkSNARK for epoch {} was validated successfully", epoch_json.height)
-                                    }
-                                    Err(err) => panic!("failed to validate epoch: {:?}", err),
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            debug!("light client: getting epoch: {}", e)
-                        }
-                    };
-                }
-                ticker.tick().await; // only for testing purposes
-                current_position = target; // Update the current position to the latest target
-            }
-        })
-        .await
-        .map_err(|_| {
-            DataAvailabilityError::InitializationError("failed to initialize".to_string()).into()
-        })
-    }
-}
-
-impl LightClient {
-    pub fn new(
-        da: Arc<dyn DataAvailabilityLayer>,
-        cfg: CelestiaConfig,
-        sequencer_pub_key: Option<String>,
-    ) -> LightClient {
-        LightClient {
-            da,
-            verifying_key: sequencer_pub_key,
-            start_height: cfg.start_height,
-        }
     }
 }
 
@@ -522,69 +404,5 @@ impl Sequencer {
                 Ok(())
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::storage::UpdateEntryJson;
-    use base64::{engine::general_purpose, Engine as _};
-
-    fn setup_signature(valid_signature: bool) -> UpdateEntryJson {
-        let signed_message = if valid_signature {
-            "NRtq1sgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
-        } else {
-            "QVmk3wgoxllsPvljXZd5f4DV7570PdA9zWHa4ych2jBCDU1uUYXZvW72BS9O+C68hptk/4Y34sTJj4x92gq9DHsiaWQiOiJDb3NSWE9vU0xHN2E4c0NHeDc4S2h0ZkxFdWl5Tlk3TDRrc0Z0NzhtcDJNPSIsIm9wZXJhdGlvbiI6IkFkZCIsInZhbHVlIjoiMjE3OWM0YmIzMjc0NDQ1NGE0OTlhYTMwZTI0NTJlMTZhODcwMGQ5ODQyYjI5ZThlODcyN2VjMzczNWMwYjdhNiJ9".to_string()
-        };
-        let id_public_key = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=".to_string();
-
-        UpdateEntryJson {
-            id: id_public_key.clone(),
-            signed_message,
-            public_key: id_public_key,
-        }
-    }
-
-    #[test]
-    fn test_verify_valid_signature() {
-        let signature_with_key = setup_signature(true);
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_verify_invalid_signature() {
-        let signature_with_key = setup_signature(false);
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_verify_short_message() {
-        let signature_with_key = setup_signature(true);
-
-        let short_message =
-            general_purpose::STANDARD.encode(&"this is a short message".to_string());
-
-        let signature_with_key = UpdateEntryJson {
-            signed_message: short_message,
-            ..signature_with_key
-        };
-
-        let result = verify_signature(
-            &signature_with_key,
-            Some(signature_with_key.public_key.clone()),
-        );
-        assert!(result.is_err());
     }
 }

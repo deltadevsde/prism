@@ -17,7 +17,7 @@ use std::sync::Arc;
 use crate::{
     cfg::WebServerConfig,
     error::DatabaseError,
-    node_types::Sequencer,
+    node_types::sequencer::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
     utils::{is_not_revoked, validate_proof},
     zk_snark::{serialize_proof, BatchMerkleProofCircuit, HashChainEntryCircuit},

@@ -5,7 +5,9 @@ use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
-use crate::da::{CelestiaConnection, DataAvailabilityLayer, LocalDataAvailabilityLayer};
+use crate::da::{
+    celestia::CelestiaConnection, mock::LocalDataAvailabilityLayer, DataAvailabilityLayer,
+};
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
