@@ -1,21 +1,22 @@
 use base64::engine::{general_purpose, Engine as _};
 use ed25519::Signature;
 use indexed_merkle_tree::{node::Node, sha256, tree::Proof};
-use mockall::predicate::*;
-use mockall::*;
+use mockall::{predicate::*, *};
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
-use std::process::Command;
-use std::sync::MutexGuard;
-use std::thread::sleep;
-use std::time::Duration;
-use std::{self, fmt::Display, sync::Mutex};
+use std::{
+    self,
+    fmt::Display,
+    process::Command,
+    sync::{Mutex, MutexGuard},
+    thread::sleep,
+    time::Duration,
+};
 
-use crate::cfg::RedisConfig;
-use crate::utils::Signable;
 use crate::{
+    cfg::RedisConfig,
     error::{DatabaseError, DeimosError, DeimosResult, GeneralError},
-    utils::parse_json_to_proof,
+    utils::{parse_json_to_proof, Signable},
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -455,7 +456,7 @@ impl Database for RedisConnections {
 
         // add the empty hash to the input order as first node
         input_con
-            .rpush::<&str, String, u32>("input_order", empty_hash.clone())
+            .rpush::<String, String, u32>("input_order".to_string(), empty_hash.clone())
             .map_err(|_| {
                 DatabaseError::WriteError(format!("empty hash as first entry in input order"))
             })?;
