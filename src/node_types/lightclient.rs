@@ -24,7 +24,10 @@ pub struct LightClient {
 impl NodeType for LightClient {
     async fn start(self: Arc<Self>) -> DeimosResult<()> {
         // start listening for new headers to update sync target
-        self.da.start().await.unwrap();
+        match self.da.start().await {
+            Ok(_) => (),
+            Err(e) => return Err(DataAvailabilityError::InitializationError(e.to_string()).into()),
+        };
 
         info!("starting main light client loop");
 
@@ -35,7 +38,14 @@ impl NodeType for LightClient {
             let mut ticker = interval(Duration::from_secs(1));
             loop {
                 // target is updated when a new header is received
-                let target = self.da.get_message().await.unwrap();
+                let target = match self.da.get_latest_height().await {
+                    Ok(target) => target,
+                    Err(e) => {
+                        error!("failed to update sync target, retrying: {:?}", e);
+                        continue;
+                    }
+                };
+
                 debug!("updated sync target to height {}", target);
                 for i in current_position..target {
                     trace!("processing height: {}", i);

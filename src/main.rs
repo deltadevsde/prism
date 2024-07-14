@@ -33,15 +33,27 @@ async fn main() -> std::io::Result<()> {
             config.celestia_config.unwrap(),
             config.verifying_key,
         )),
-        Commands::Sequencer {} => Arc::new(Sequencer::new(
-            Arc::new(
-                RedisConnections::new(&config.clone().redis_config.unwrap())
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?,
-            ),
-            da,
-            config,
-            KeyStoreType::KeyChain(KeyChain).get_signing_key().unwrap(),
-        )),
+        Commands::Sequencer {} => {
+            match Sequencer::new(
+                Arc::new(
+                    RedisConnections::new(&config.clone().redis_config.unwrap()).map_err(|e| {
+                        std::io::Error::new(std::io::ErrorKind::Other, e.to_string())
+                    })?,
+                ),
+                da,
+                config,
+                KeyStoreType::KeyChain(KeyChain).get_signing_key().unwrap(),
+            ) {
+                Ok(sequencer) => Arc::new(sequencer),
+                Err(e) => {
+                    error!("error initializing sequencer: {}", e);
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        e.to_string(),
+                    ));
+                }
+            }
+        }
     };
 
     node.start()
