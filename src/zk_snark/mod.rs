@@ -147,16 +147,11 @@ pub fn deserialize_custom_to_verifying_key(
     let delta_g1 = decode_and_convert_to_g1affine(&custom_vk.delta_g1)?;
     let delta_g2 = decode_and_convert_to_g2affine(&custom_vk.delta_g2)?;
     let gamma_g2 = decode_and_convert_to_g2affine(&custom_vk.gamma_g2)?;
-    let ic = custom_vk.ic.split(",").try_fold(Vec::new(), |mut acc, s| {
-        let decoded = engine
-            .decode(s)
-            .map_err(|e| DeimosError::General(GeneralError::DecodingError(format!("ic: {}", e))))?;
-        let decoded_string = String::from_utf8(decoded)
-            .map_err(|e| DeimosError::General(GeneralError::ParsingError(format!("ic: {}", e))))?;
-        let ct_option = decode_and_convert_to_g1affine(&decoded_string)?;
-        acc.push(ct_option);
-        Ok::<Vec<G1Affine>, DeimosError>(acc)
-    })?;
+    let ic = custom_vk
+        .ic
+        .split(",")
+        .map(|s| decode_and_convert_to_g1affine(&s.to_string()))
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(bellman::groth16::VerifyingKey {
         alpha_g1,

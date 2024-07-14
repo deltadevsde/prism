@@ -14,7 +14,6 @@ use clap::Parser;
 use keystore::{KeyChain, KeyStore, KeyStoreType};
 
 use crate::cfg::{CommandLineArgs, Commands};
-use dotenvy::dotenv;
 use node_types::{LightClient, NodeType, Sequencer};
 use std::sync::Arc;
 use storage::RedisConnections;
@@ -27,11 +26,6 @@ extern crate log;
 async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
     let config = load_config(args.clone()).unwrap();
-
-    std::env::set_var("RUST_LOG", &config.clone().log_level.unwrap());
-
-    pretty_env_logger::init();
-    dotenv().ok();
 
     let da = initialize_da_layer(&config).await;
     let node: Arc<dyn NodeType> = match args.command {

@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
+use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
@@ -62,8 +63,6 @@ pub struct Config {
     pub webserver: Option<WebServerConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub celestia_config: Option<CelestiaConfig>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub log_level: Option<String>,
     pub da_layer: Option<DALayerOption>,
     pub redis_config: Option<RedisConfig>,
     pub epoch_time: Option<u64>,
@@ -128,7 +127,6 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             webserver: Some(WebServerConfig::default()),
-            log_level: Some("DEBUG".to_string()),
             da_layer: Some(DALayerOption::default()),
             celestia_config: Some(CelestiaConfig::default()),
             redis_config: Some(RedisConfig::default()),
@@ -139,8 +137,15 @@ impl Default for Config {
 }
 
 pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
+    dotenv().ok();
+    std::env::set_var(
+        "RUST_LOG",
+        args.log_level.or(Some("INFO".to_string())).unwrap(),
+    );
+    pretty_env_logger::init();
+
     let config_path = args.config_path.unwrap_or_else(|| {
-        let home_dir = home_dir().expect("Failed to get home directory");
+        let home_dir = home_dir().expect("failed to get home directory");
         format!("{}/.deimos/config.toml", home_dir.to_string_lossy())
     });
 
@@ -155,31 +160,33 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
         fs::write(&config_path, config_toml).unwrap();
     }
 
-    let settings = ConfigBuilder::<DefaultState>::default()
+    let config_source = ConfigBuilder::<DefaultState>::default()
         .add_source(File::with_name(&config_path))
         .build()?;
 
     let default_config = Config::default();
-    let file_config: Config = settings.try_deserialize().unwrap_or_else(|e| {
+    let loaded_config: Config = config_source.try_deserialize().unwrap_or_else(|e| {
         error!("deserializing config file: {}", e);
         Config::default()
     });
 
     // if the config file is missing a field, use the default value
     let merged_config = Config {
-        log_level: file_config.log_level.or(default_config.log_level),
-        webserver: file_config.webserver.or(default_config.webserver),
-        redis_config: file_config.redis_config.or(default_config.redis_config),
-        celestia_config: file_config
+        webserver: loaded_config.webserver.or(default_config.webserver),
+        redis_config: loaded_config.redis_config.or(default_config.redis_config),
+        celestia_config: loaded_config
             .celestia_config
             .or(default_config.celestia_config),
-        da_layer: file_config.da_layer.or(default_config.da_layer),
-        epoch_time: file_config.epoch_time.or(default_config.epoch_time),
-        verifying_key: file_config.verifying_key.or(default_config.verifying_key),
+        da_layer: loaded_config.da_layer.or(default_config.da_layer),
+        epoch_time: loaded_config.epoch_time.or(default_config.epoch_time),
+        verifying_key: loaded_config.verifying_key.or(default_config.verifying_key),
     };
 
+    if args.verifying_key.clone().is_none() && merged_config.verifying_key.clone().is_none() {
+        warn!("sequencer's public key was not provided, this is not recommended and epoch signatures will not be verified.")
+    }
+
     Ok(Config {
-        log_level: Some(args.log_level.unwrap_or(merged_config.log_level.unwrap())),
         webserver: Some(WebServerConfig {
             host: args
                 .host
