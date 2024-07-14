@@ -14,7 +14,7 @@ use clap::Parser;
 use keystore::{KeyChain, KeyStore, KeyStoreType};
 
 use crate::cfg::{CommandLineArgs, Commands};
-use node_types::{LightClient, NodeType, Sequencer};
+use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
 use std::sync::Arc;
 use storage::RedisConnections;
 
