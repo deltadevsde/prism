@@ -106,31 +106,42 @@ impl NodeType for LightClient {
                     trace!("processing height: {}", i);
                     match self.da.get(i + 1).await {
                         Ok(epoch_json_vec) => {
+                            if epoch_json_vec.len() > 0 {
+                                debug!("light client: got epochs at height {}", i + 1);
+                            }
+
                             // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
                             // Verify zk proofs,
                             for epoch_json in epoch_json_vec {
                                 let prev_commitment = &epoch_json.prev_commitment;
                                 let current_commitment = &epoch_json.current_commitment;
-                                let proof = deserialize_proof(&epoch_json.proof).unwrap();
-                                let verifying_key =
-                                    deserialize_custom_to_verifying_key(&epoch_json.verifying_key)
-                                        .unwrap();
+                                let proof = match deserialize_proof(&epoch_json.proof) {
+                                    Ok(proof) => proof,
+                                    Err(e) => {
+                                        error!("failed to deserialize proof, skipping a blob at height {}: {:?}", i, e);
+                                        continue;
+                                    },
+                                };
+
+                                // TODO(@distractedm1nd): i don't know rust yet but this seems like non-idiomatic rust -
+                                // is there not a Trait that can satisfy these properties for us?
+                                let verifying_key = match deserialize_custom_to_verifying_key(&epoch_json.verifying_key) {
+                                    Ok(vk) => vk,
+                                    Err(e) => {
+                                        error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
+                                        continue;
+                                    },
+                                };
+
+                                // if the user does not add a verifying key, we will not verify the signature,
+                                // but only log a warning on startup
                                 if self.verifying_key.is_some() {
-                                    if verify_signature(
-                                        &epoch_json.clone(),
-                                        self.verifying_key.clone(),
-                                    )
-                                    .is_ok()
-                                    {
-                                        trace!("valid signature for height {}", i);
-                                    } else {
-                                        panic!(
-                                            "invalid signature in retrieved epoch on height {}",
-                                            i
-                                        );
+                                    match verify_signature(&epoch_json.clone(), self.verifying_key.clone()) {
+                                        Ok(i) => trace!("valid signature for epoch {}", i),
+                                        Err(e) => {
+                                            panic!("invalid signature in epoch {}: {:?}", i, e)
+                                        }
                                     }
-                                } else {
-                                    error!("epoch on height {} was not signed", i);
                                 }
 
                                 match validate_epoch(
@@ -139,12 +150,12 @@ impl NodeType for LightClient {
                                     proof,
                                     verifying_key,
                                 ) {
-                                    Ok(_) => (),
+                                    Ok(_) => {
+                                        info!("zkSNARK for epoch {} was validated successfully", epoch_json.height)
+                                    }
                                     Err(err) => panic!("failed to validate epoch: {:?}", err),
                                 }
                             }
-
-                            info!("light client: got epochs at height {}", i + 1);
                         }
                         Err(e) => {
                             debug!("light client: getting epoch: {}", e)
