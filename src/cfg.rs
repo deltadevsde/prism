@@ -139,26 +139,55 @@ impl Default for Config {
 
 pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
     dotenv().ok();
-    std::env::set_var(
-        "RUST_LOG",
-        args.log_level.or(Some("INFO".to_string())).unwrap(),
-    );
+    std::env::set_var("RUST_LOG", args.log_level.unwrap_or("INFO".to_string()));
     pretty_env_logger::init();
 
-    let config_path = args.config_path.unwrap_or_else(|| {
-        let home_dir = home_dir().expect("failed to get home directory");
-        format!("{}/.deimos/config.toml", home_dir.to_string_lossy())
-    });
+    let config_path = match args.config_path {
+        Some(path) => path,
+        None => match home_dir() {
+            Some(path) => format!("{}/.deimos/config.toml", path.to_string_lossy()),
+            None => {
+                return Err(config::ConfigError::Message(
+                    "could not find home directory".to_string(),
+                ))
+            }
+        },
+    };
 
     // if the config file doesn't exist, create it with the default values
     if !Path::new(&config_path).exists() {
         if let Some(parent) = Path::new(&config_path).parent() {
-            fs::create_dir_all(parent).unwrap();
+            match fs::create_dir_all(parent) {
+                Ok(_) => {}
+                Err(e) => {
+                    return Err(config::ConfigError::Message(format!(
+                        "could not create config directory: {}",
+                        e.to_string()
+                    )));
+                }
+            };
         }
 
         let default_config = Config::default();
-        let config_toml = toml::to_string(&default_config).unwrap();
-        fs::write(&config_path, config_toml).unwrap();
+        let config_toml = match toml::to_string(&default_config) {
+            Ok(toml_output) => toml_output,
+            Err(e) => {
+                return Err(config::ConfigError::Message(format!(
+                    "could not serialize default config: {}",
+                    e.to_string()
+                )));
+            }
+        };
+
+        match fs::write(&config_path, config_toml) {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(config::ConfigError::Message(format!(
+                    "could not write default config to disk: {}",
+                    e.to_string()
+                )));
+            }
+        }
     }
 
     let config_source = ConfigBuilder::<DefaultState>::default()
