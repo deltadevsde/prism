@@ -4055,17 +4055,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "keyring"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9961b98f55dc0b2737000132505bdafa249abab147ee9de43c50ae04a054aa6c"
+
+[[package]]
 name = "keystore"
 version = "0.1.0"
-source = "git+https://github.com/deltadevsde/keystore?rev=40f21a41afd0654091bb0881665288034ab8533f#40f21a41afd0654091bb0881665288034ab8533f"
+source = "git+https://github.com/deltadevsde/keystore?rev=044d06f429400ff71544daac664d10f865851939#044d06f429400ff71544daac664d10f865851939"
 dependencies = [
  "aes-gcm",
+ "base64 0.22.1",
  "dotenvy",
  "ed25519-dalek",
  "hex 0.4.3",
+ "keyring",
  "mockall",
  "rand 0.8.5",
- "security-framework",
 ]
 
 [[package]]
