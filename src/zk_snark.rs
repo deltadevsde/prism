@@ -8,7 +8,7 @@ use bellman::{gadgets::boolean::Boolean, groth16, Circuit, ConstraintSystem, Syn
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
 use ff::PrimeFieldBits;
 use indexed_merkle_tree::{
-    node::Node,
+    node::{LeafNode, Node},
     sha256,
     tree::{InsertProof, MerkleProof, Proof, UpdateProof},
 };
@@ -327,6 +327,7 @@ pub struct UpdateMerkleProofCircuit {
 pub struct InsertMerkleProofCircuit {
     pub non_membership_root: Scalar,
     pub non_membership_path: Vec<Node>,
+    pub missing_node: LeafNode,
     pub first_merkle_proof: UpdateMerkleProofCircuit,
     pub second_merkle_proof: UpdateMerkleProofCircuit,
 }
@@ -344,7 +345,6 @@ pub struct BatchMerkleProofCircuit {
     pub new_commitment: Scalar,
     pub proofs: Vec<ProofVariantCircuit>,
 }
-
 pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
     let bytes = hex::decode(hex_string).map_err(|e| {
         GeneralError::DecodingError(format!(
@@ -361,13 +361,16 @@ pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
         )));
     }
 
-    let byte_array: [u8; 32] = bytes.try_into().map_err(|_| {
-        GeneralError::ParsingError(format!("failed to parse hex string to byte array"))
-    })?;
-
     let mut wide = [0u8; 64];
-    wide[..32].copy_from_slice(&byte_array); // Fill 0s in front of it, then the value remains the same
-    Ok(Scalar::from_bytes_wide(&wide))
+    wide[..32].copy_from_slice(&bytes);
+    let scalar = Scalar::from_bytes_wide(&wide);
+
+    println!(
+        "Hex: {}, Wide: {:?}, Scalar: {:?}",
+        hex_string, wide, scalar
+    );
+
+    Ok(scalar)
 }
 
 pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError> {
@@ -441,7 +444,35 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
     non_membership_root: Scalar,
     non_membership_path: &[Node],
+    missing_node: LeafNode,
 ) -> Result<(), SynthesisError> {
+    // first we need to make sure, that the label of the missing node lies between the first element of the path
+    let current_label = hex_to_scalar(&non_membership_path[0].get_label()).unwrap();
+    let missing_label = hex_to_scalar(&missing_node.label).unwrap();
+    let curret_next = hex_to_scalar(&non_membership_path[0].get_next()).unwrap();
+
+    println!(
+        "hex: {}, scalar: {}",
+        &non_membership_path[0].get_label(),
+        &current_label
+    );
+    println!("hex: {}, scalar: {}", &missing_node.label, &missing_label);
+    println!(
+        "hex: {}, scalar: {}",
+        &non_membership_path[0].get_next(),
+        &curret_next
+    );
+    println!();
+    println!();
+
+    // circuit check
+    LessThanCircuit::new(current_label, missing_label)
+        .synthesize(cs)
+        .expect("Failed to synthesize");
+    LessThanCircuit::new(missing_label, curret_next)
+        .synthesize(cs)
+        .expect("Failed to synthesize");
+
     let allocated_root = cs.alloc(|| "non_membership_root", || Ok(non_membership_root))?;
     let recalculated_root = recalculate_hash_as_scalar(non_membership_path);
 
@@ -522,7 +553,12 @@ impl Circuit<Scalar> for ProofVariantCircuit {
 impl Circuit<Scalar> for InsertMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
         // Proof of Non-Membership
-        match proof_of_non_membership(cs, self.non_membership_root, &self.non_membership_path) {
+        match proof_of_non_membership(
+            cs,
+            self.non_membership_root,
+            &self.non_membership_path,
+            self.missing_node,
+        ) {
             Ok(_) => (),
             Err(_) => return Err(SynthesisError::AssignmentMissing),
         }
@@ -622,6 +658,7 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                         cs,
                         insert_proof_circuit.non_membership_root,
                         &insert_proof_circuit.non_membership_path,
+                        insert_proof_circuit.missing_node,
                     ) {
                         Ok(_) => (),
                         Err(_) => return Err(SynthesisError::AssignmentMissing),
@@ -713,6 +750,7 @@ impl InsertMerkleProofCircuit {
         Ok(InsertMerkleProofCircuit {
             non_membership_root,
             non_membership_path: non_membership_path.clone(),
+            missing_node: proof.non_membership_proof.missing_node.clone(),
             first_merkle_proof: first_merkle_circuit,
             second_merkle_proof: second_merkle_circuit,
         })
