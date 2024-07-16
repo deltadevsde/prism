@@ -1,0 +1,44 @@
+services:
+  apollo:
+    image: apollo
+    build:
+      dockerfile: Dockerfile.apollo
+      context: .
+    restart: always
+    network_mode: "host"
+
+  deimos-sequencer:
+    image: deimos
+    build:
+      dockerfile: ci/Dockerfile.deimos
+      context: ../
+    environment:
+      - NODE_TYPE=--port=8081 sequencer
+    restart: always
+    depends_on:
+      - apollo
+      - redis
+    network_mode: "host"
+
+  deimos-lightclient:
+    image: deimos
+    build:
+      dockerfile: ci/Dockerfile.deimos
+      context: ../
+    environment:
+      - NODE_TYPE=light-client
+      - ARGS="-r redis://host.docker.internal:6379"
+    restart: always
+    depends_on:
+      - apollo
+      - deimos-sequencer
+    network_mode: "host"
+
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
+    network_mode: "host"

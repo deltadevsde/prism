@@ -1,0 +1,26 @@
+FROM rust:1.79-alpine as build
+
+RUN USER=root cargo new --bin deimos
+WORKDIR /deimos
+
+RUN apk --no-cache add protobuf protobuf-dev
+RUN apk add --no-cache openssl
+RUN apk add --no-cache pkgconf
+RUN apk add --no-cache musl-dev libressl-dev
+
+COPY ./Cargo.lock ./Cargo.lock
+COPY ./Cargo.toml ./Cargo.toml
+
+RUN cargo build --release
+RUN rm src/*.rs
+
+# copy your source tree
+COPY ./src ./src
+
+# 3. Build only the dependencies to cache them
+RUN rm ./target/release/deps/deimos*
+RUN cargo build --release
+
+FROM rust:1.79
+COPY --from=build /deimos/target/release/deimos .
+CMD ./deimos $NODE_TYPE
