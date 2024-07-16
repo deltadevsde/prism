@@ -37,6 +37,8 @@ pub enum GeneralError {
     InvalidSignature,
     #[error("starting webserver")]
     WebserverError,
+    #[error("initializing service: {0}")]
+    InitializationError(String),
 }
 
 #[derive(Error, Debug)]

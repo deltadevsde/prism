@@ -20,7 +20,7 @@ use crate::{
     node_types::sequencer::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
     utils::{is_not_revoked, validate_proof},
-    zk_snark::{serialize_proof, BatchMerkleProofCircuit, HashChainEntryCircuit},
+    zk_snark::{BatchMerkleProofCircuit, Bls12Proof, HashChainEntryCircuit},
 };
 
 pub struct WebServer {
@@ -417,10 +417,12 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
         }
     };
 
+    let serialized_proof: Bls12Proof = proof.into();
+
     // Create the JSON object for the response
     let response = json!({
         "epoch": epoch_number,
-        "proof": serialize_proof(&proof)
+        "proof": serialized_proof,
     });
 
     HttpResponse::Ok().json(response)
@@ -478,9 +480,10 @@ async fn handle_validate_hashchain_proof(
     match groth16::verify_proof(&pvk, &proof, &[public_param]) {
         Ok(_) => {
             info!("proof successfully verified with: {:?}", public_param);
+            let serialized_proof: Bls12Proof = proof.into();
             return HttpResponse::Ok().json({
                 json!({
-                    "proof": serialize_proof(&proof),
+                    "proof": serialized_proof,
                     "public_param": sha256(&incoming_value.value),
                 })
             });

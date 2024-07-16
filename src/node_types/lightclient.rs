@@ -1,6 +1,6 @@
 use crate::{
     cfg::CelestiaConfig,
-    error::{DataAvailabilityError, DeimosResult},
+    error::{DataAvailabilityError, DeimosResult, GeneralError},
 };
 use async_trait::async_trait;
 use std::{self, sync::Arc, time::Duration};
@@ -10,7 +10,6 @@ use crate::{
     da::DataAvailabilityLayer,
     node_types::NodeType,
     utils::{validate_epoch, verify_signature},
-    zk_snark::{deserialize_custom_to_verifying_key, deserialize_proof},
 };
 
 pub struct LightClient {
@@ -29,9 +28,27 @@ impl NodeType for LightClient {
             Err(e) => return Err(DataAvailabilityError::InitializationError(e.to_string()).into()),
         };
 
-        info!("starting main light client loop");
+        self.sync_loop()
+            .await
+            .map_err(|e| GeneralError::InitializationError(e.to_string()).into())
+    }
+}
 
-        // todo: persist current_position in datastore
+impl LightClient {
+    pub fn new(
+        da: Arc<dyn DataAvailabilityLayer>,
+        cfg: CelestiaConfig,
+        sequencer_pub_key: Option<String>,
+    ) -> LightClient {
+        LightClient {
+            da,
+            verifying_key: sequencer_pub_key,
+            start_height: cfg.start_height,
+        }
+    }
+
+    async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
+        info!("starting SNARK sync loop");
         let start_height = self.start_height;
         spawn(async move {
             let mut current_position = start_height;
@@ -55,33 +72,36 @@ impl NodeType for LightClient {
                                 debug!("light client: got epochs at height {}", i + 1);
                             }
 
-                            // Verify adjacency to last heights, <- for this we need some sort of storage of epochs
-                            // Verify zk proofs,
+                            // todo: verify adjacency to last heights, <- for this we need some sort of storage of epochs
                             for epoch_json in epoch_json_vec {
                                 let prev_commitment = &epoch_json.prev_commitment;
                                 let current_commitment = &epoch_json.current_commitment;
-                                let proof = match deserialize_proof(&epoch_json.proof) {
+
+                                let proof = match epoch_json.proof.clone().try_into() {
                                     Ok(proof) => proof,
                                     Err(e) => {
                                         error!("failed to deserialize proof, skipping a blob at height {}: {:?}", i, e);
                                         continue;
-                                    },
+                                    }
                                 };
 
                                 // TODO(@distractedm1nd): i don't know rust yet but this seems like non-idiomatic rust -
                                 // is there not a Trait that can satisfy these properties for us?
-                                let verifying_key = match deserialize_custom_to_verifying_key(&epoch_json.verifying_key) {
+                                let verifying_key = match epoch_json.verifying_key.clone().try_into() {
                                     Ok(vk) => vk,
                                     Err(e) => {
                                         error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
                                         continue;
-                                    },
+                                    }
                                 };
 
                                 // if the user does not add a verifying key, we will not verify the signature,
                                 // but only log a warning on startup
                                 if self.verifying_key.is_some() {
-                                    match verify_signature(&epoch_json.clone(), self.verifying_key.clone()) {
+                                    match verify_signature(
+                                        &epoch_json.clone(),
+                                        self.verifying_key.clone(),
+                                    ) {
                                         Ok(i) => trace!("valid signature for epoch {}", i),
                                         Err(e) => {
                                             panic!("invalid signature in epoch {}: {:?}", i, e)
@@ -96,7 +116,10 @@ impl NodeType for LightClient {
                                     verifying_key,
                                 ) {
                                     Ok(_) => {
-                                        info!("zkSNARK for epoch {} was validated successfully", epoch_json.height)
+                                        info!(
+                                            "zkSNARK for epoch {} was validated successfully",
+                                            epoch_json.height
+                                        )
                                     }
                                     Err(err) => panic!("failed to validate epoch: {:?}", err),
                                 }
@@ -110,24 +133,6 @@ impl NodeType for LightClient {
                 ticker.tick().await; // only for testing purposes
                 current_position = target; // Update the current position to the latest target
             }
-        })
-        .await
-        .map_err(|_| {
-            DataAvailabilityError::InitializationError("failed to initialize".to_string()).into()
-        })
-    }
-}
-
-impl LightClient {
-    pub fn new(
-        da: Arc<dyn DataAvailabilityLayer>,
-        cfg: CelestiaConfig,
-        sequencer_pub_key: Option<String>,
-    ) -> LightClient {
-        LightClient {
-            da,
-            verifying_key: sequencer_pub_key,
-            start_height: cfg.start_height,
-        }
+        }).await
     }
 }
