@@ -134,10 +134,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
 mod tests {
     use crate::{
         utils::validate_epoch,
-        zk_snark::{
-            deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-            serialize_verifying_key_to_custom, BatchMerkleProofCircuit, Bls12Proof, VerifyingKey,
-        },
+        zk_snark::{BatchMerkleProofCircuit, Bls12Proof, VerifyingKey},
     };
 
     use super::*;
@@ -216,10 +213,7 @@ mod tests {
         let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
 
         // the serialized proof is posted
-        (
-            serialize_proof(&proof),
-            serialize_verifying_key_to_custom(&params.vk),
-        )
+        (proof.into(), params.vk.into())
     }
 
     fn verify_epoch_json(epoch: Vec<EpochJson>) {
@@ -227,9 +221,8 @@ mod tests {
             let prev_commitment = epoch_json.prev_commitment;
             let current_commitment = epoch_json.current_commitment;
 
-            let proof = deserialize_proof(&epoch_json.proof).unwrap();
-            let verifying_key =
-                deserialize_custom_to_verifying_key(&epoch_json.verifying_key).unwrap();
+            let proof = epoch_json.proof.clone().try_into().unwrap();
+            let verifying_key = epoch_json.verifying_key.clone().try_into().unwrap();
 
             match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
                 Ok(_) => {

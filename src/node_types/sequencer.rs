@@ -23,7 +23,7 @@ use crate::{
     storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
     utils::verify_signature,
     webserver::WebServer,
-    zk_snark::{serialize_proof, serialize_verifying_key_to_custom, BatchMerkleProofCircuit},
+    zk_snark::BatchMerkleProofCircuit,
 };
 
 pub struct Sequencer {
@@ -63,13 +63,15 @@ impl NodeType for Sequencer {
             }
         }
 
-        self.clone().main_loop().await;
-        self.clone().da_loop().await;
-        self.clone()
-            .ws
-            .start(self.clone())
-            .await
-            .map_err(|_| GeneralError::WebserverError.into())
+        let main_loop = self.clone().main_loop();
+        let da_loop = self.clone().da_loop();
+        let ws = self.clone().ws.start(self.clone());
+
+        tokio::select! {
+            _ = main_loop => Ok(()),
+            _ = da_loop => Ok(()),
+            _ = ws => Ok(()),
+        }
     }
 }
 
@@ -110,7 +112,7 @@ impl Sequencer {
     }
 
     // main_loop is responsible for finalizing epochs every epoch length and writing them to the buffer for DA submission.
-    async fn main_loop(self: Arc<Self>) {
+    async fn main_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
         info!("starting main sequencer loop");
         let epoch_buffer = self.epoch_buffer_tx.clone();
         let mut ticker = interval(Duration::from_secs(self.epoch_duration));
@@ -138,11 +140,12 @@ impl Sequencer {
                     Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
                 }
             }
-        });
+        })
+        .await
     }
 
     // da_loop is responsible for submitting finalized epochs to the DA layer.
-    async fn da_loop(self: Arc<Self>) {
+    async fn da_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
         info!("starting da submission loop");
         let mut ticker = interval(DA_RETRY_INTERVAL);
         spawn(async move {
@@ -180,7 +183,8 @@ impl Sequencer {
                     };
                 }
             }
-        });
+        })
+        .await
     }
 
     /// Initializes the epoch state by setting up the input table and incrementing the epoch number.
@@ -249,8 +253,8 @@ impl Sequencer {
             height: epoch,
             prev_commitment,
             current_commitment,
-            proof: serialize_proof(&proof),
-            verifying_key: serialize_verifying_key_to_custom(&verifying_key),
+            proof: proof.into(),
+            verifying_key: verifying_key.into(),
             signature: None,
         };
 
