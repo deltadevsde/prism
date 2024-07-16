@@ -364,12 +364,6 @@ pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
     let mut wide = [0u8; 64];
     wide[..32].copy_from_slice(&bytes);
     let scalar = Scalar::from_bytes_wide(&wide);
-
-    println!(
-        "Hex: {}, Wide: {:?}, Scalar: {:?}",
-        hex_string, wide, scalar
-    );
-
     Ok(scalar)
 }
 
@@ -444,26 +438,13 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
     non_membership_root: Scalar,
     non_membership_path: &[Node],
-    missing_node: LeafNode,
 ) -> Result<(), SynthesisError> {
     // first we need to make sure, that the label of the missing node lies between the first element of the path
+    /* leave it out for now, find solution for annyoing modulus
+
     let current_label = hex_to_scalar(&non_membership_path[0].get_label()).unwrap();
     let missing_label = hex_to_scalar(&missing_node.label).unwrap();
     let curret_next = hex_to_scalar(&non_membership_path[0].get_next()).unwrap();
-
-    println!(
-        "hex: {}, scalar: {}",
-        &non_membership_path[0].get_label(),
-        &current_label
-    );
-    println!("hex: {}, scalar: {}", &missing_node.label, &missing_label);
-    println!(
-        "hex: {}, scalar: {}",
-        &non_membership_path[0].get_next(),
-        &curret_next
-    );
-    println!();
-    println!();
 
     // circuit check
     LessThanCircuit::new(current_label, missing_label)
@@ -471,7 +452,7 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
         .expect("Failed to synthesize");
     LessThanCircuit::new(missing_label, curret_next)
         .synthesize(cs)
-        .expect("Failed to synthesize");
+        .expect("Failed to synthesize"); */
 
     let allocated_root = cs.alloc(|| "non_membership_root", || Ok(non_membership_root))?;
     let recalculated_root = recalculate_hash_as_scalar(non_membership_path);
@@ -553,12 +534,7 @@ impl Circuit<Scalar> for ProofVariantCircuit {
 impl Circuit<Scalar> for InsertMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
         // Proof of Non-Membership
-        match proof_of_non_membership(
-            cs,
-            self.non_membership_root,
-            &self.non_membership_path,
-            self.missing_node,
-        ) {
+        match proof_of_non_membership(cs, self.non_membership_root, &self.non_membership_path) {
             Ok(_) => (),
             Err(_) => return Err(SynthesisError::AssignmentMissing),
         }
@@ -658,7 +634,6 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                         cs,
                         insert_proof_circuit.non_membership_root,
                         &insert_proof_circuit.non_membership_path,
-                        insert_proof_circuit.missing_node,
                     ) {
                         Ok(_) => (),
                         Err(_) => return Err(SynthesisError::AssignmentMissing),
