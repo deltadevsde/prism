@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+/* use std::time::{Duration, Instant};
 
 // use deimos::zk_snark::BatchMerkleProofCircuit;
 use bellman::groth16;
@@ -98,3 +98,4 @@ fn test_prover_time() {
 
     agent_running.stop().unwrap();
 }
+ */

@@ -4,8 +4,9 @@ use crate::{
     utils::create_and_verify_snark,
 };
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
-use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
+use bellman::{gadgets::boolean::Boolean, groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
+use ff::PrimeFieldBits;
 use indexed_merkle_tree::{
     node::Node,
     sha256,
@@ -177,6 +178,19 @@ mod tests {
     const EMPTY_HASH: &str = Node::EMPTY_HASH;
     const TAIL: &str = Node::TAIL;
 
+    fn setup_and_test_less_than_circuit(a: u64, b: u64) {
+        let a = Scalar::from(a);
+        let b = Scalar::from(b);
+        let circuit = LessThanCircuit::new(a, b);
+        let rng = &mut OsRng;
+        let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng)
+            .expect("unable to generate random parameters");
+        let proof = groth16::create_random_proof(circuit.clone(), &params, rng)
+            .expect("unable to create random proof");
+        let pvk = groth16::prepare_verifying_key(&params.vk);
+        groth16::verify_proof(&pvk, &proof, &[a, b]).expect("unable to verify proof")
+    }
+
     fn build_empty_tree() -> IndexedMerkleTree {
         let active_node = Node::new_leaf(
             true,
@@ -201,6 +215,23 @@ mod tests {
             inactive_node,
         ])
         .unwrap()
+    }
+
+    #[test]
+    fn valid_less_than_circuit() {
+        setup_and_test_less_than_circuit(5, 10);
+    }
+
+    #[test]
+    #[should_panic(expected = "unable to verify proof")]
+    fn invalid_less_than_circuit_a_gt_b() {
+        setup_and_test_less_than_circuit(10000, 1000)
+    }
+
+    #[test]
+    #[should_panic(expected = "unable to verify proof")]
+    fn invalid_less_than_circuit_a_eq_b() {
+        setup_and_test_less_than_circuit(1000, 1000)
     }
 
     #[test]
@@ -270,6 +301,12 @@ mod tests {
         // Überprüfen Sie, ob die Deserialisierung fehlgeschlagen ist
         assert!(deserialized_proof_result.is_err());
     }
+}
+
+#[derive(Clone)]
+pub struct LessThanCircuit {
+    a: Scalar,
+    b: Scalar,
 }
 
 #[derive(Clone)]
@@ -425,6 +462,51 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
     );
 
     Ok(())
+}
+
+impl Circuit<Scalar> for LessThanCircuit {
+    fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+        cs.alloc_input(|| "a", || Ok(self.a))?;
+        cs.alloc_input(|| "b", || Ok(self.b))?;
+        let a_bits = self.a.to_le_bits();
+        let b_bits = self.b.to_le_bits();
+
+        let mut result = Boolean::constant(false);
+
+        for i in (0..a_bits.len()).rev() {
+            let a_val = Boolean::constant(a_bits[i]);
+            let b_val = Boolean::constant(b_bits[i]);
+            let not_a = Boolean::constant(a_val.not().get_value().unwrap());
+            let not_b = Boolean::constant(b_val.not().get_value().unwrap());
+
+            let a_and_b = Boolean::and(cs.namespace(|| format!("a_and_b_{}", i)), &a_val, &b_val)?;
+            let not_a_and_not_b = Boolean::and(
+                cs.namespace(|| format!("not_a_and_not_b_{}", i)),
+                &not_a,
+                &not_b,
+            )?;
+
+            if not_a_and_not_b.get_value().unwrap() || a_and_b.get_value().unwrap() {
+                continue;
+            } else {
+                result = Boolean::and(
+                    cs.namespace(|| format!("b_and_not_a_{}", i)),
+                    &b_val,
+                    &not_a,
+                )?;
+                break;
+            }
+        }
+
+        cs.enforce(
+            || "a < b",
+            |_| result.lc(CS::one(), Scalar::one()),
+            |lc| lc + CS::one(),
+            |lc| lc + CS::one(),
+        );
+
+        Ok(())
+    }
 }
 
 impl Circuit<Scalar> for ProofVariantCircuit {
@@ -610,6 +692,12 @@ impl Circuit<Scalar> for HashChainEntryCircuit {
             }
         }
         return Err(SynthesisError::Unsatisfiable);
+    }
+}
+
+impl LessThanCircuit {
+    pub fn new(a: Scalar, b: Scalar) -> LessThanCircuit {
+        LessThanCircuit { a, b }
     }
 }
 
