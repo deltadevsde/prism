@@ -7,11 +7,10 @@ pub mod storage;
 mod utils;
 mod webserver;
 pub mod zk_snark;
-extern crate keystore;
 
 use cfg::{initialize_da_layer, load_config};
 use clap::Parser;
-use keystore::{KeyChain, KeyStore, KeyStoreType};
+use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 
 use crate::cfg::{CommandLineArgs, Commands};
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
