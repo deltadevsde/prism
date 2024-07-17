@@ -107,11 +107,7 @@ async fn update_entry(
     let result: Result<Vec<ChainEntry>, DatabaseError> =
         session.db.get_hashchain(&signature_with_key.id);
     // if the entry already exists, an update must be performed, otherwise insert
-    let update_proof = match result {
-        // add a new key to an existing id
-        Ok(_) => true,
-        Err(_) => false,
-    };
+    let update_proof = result.is_ok();
 
     match session.update_entry(&signature_with_key) {
         Ok(_) => {
@@ -147,9 +143,7 @@ async fn update_entry(
 
             HttpResponse::Ok().body("Updated entry successfully")
         }
-        Err(e) => {
-            HttpResponse::BadRequest().body(format!("Could not update entry: {}", e.to_string()))
-        }
+        Err(e) => HttpResponse::BadRequest().body(format!("Could not update entry: {}", e)),
     }
 }
 
@@ -223,15 +217,12 @@ async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     };
     for id in keys {
         let chain: Vec<ChainEntry> = con.db.get_hashchain(&id).unwrap();
-        resp.dict.push(Entry {
-            id: id,
-            value: chain,
-        });
+        resp.dict.push(Entry { id, value: chain });
     }
 
     for id in derived_keys {
         let value: String = con.db.get_derived_value(&id).unwrap();
-        resp.derived_dict.push(DerivedEntry { id, value: value });
+        resp.derived_dict.push(DerivedEntry { id, value });
     }
     HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
 }
@@ -384,7 +375,7 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
     };
 
     let (epoch_number, previous_commitment, current_commitment, proofs) =
-        match get_epochs_and_proofs(con, &epoch.as_str()) {
+        match get_epochs_and_proofs(con, epoch.as_str()) {
             Ok(value) => value,
             Err(err) => {
                 error!(
@@ -481,12 +472,12 @@ async fn handle_validate_hashchain_proof(
         Ok(_) => {
             info!("proof successfully verified with: {:?}", public_param);
             let serialized_proof: Bls12Proof = proof.into();
-            return HttpResponse::Ok().json({
+            HttpResponse::Ok().json({
                 json!({
                     "proof": serialized_proof,
                     "public_param": sha256_mod(&incoming_value.value),
                 })
-            });
+            })
         }
         Err(_) => HttpResponse::BadRequest().body("Proof is invalid"),
     }
@@ -535,7 +526,7 @@ async fn get_epoch_operations(con: web::Data<Arc<Sequencer>>, req_body: String) 
     };
 
     let (_, previous_commitment, current_commitment, proofs) =
-        get_epochs_and_proofs(con, &epoch.as_str()).unwrap();
+        get_epochs_and_proofs(con, epoch.as_str()).unwrap();
 
     #[derive(Serialize, Deserialize)]
     struct Response {

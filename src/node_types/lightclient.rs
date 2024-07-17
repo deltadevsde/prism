@@ -68,7 +68,7 @@ impl LightClient {
                     trace!("processing height: {}", i);
                     match self.da.get(i + 1).await {
                         Ok(epoch_json_vec) => {
-                            if epoch_json_vec.len() > 0 {
+                            if !epoch_json_vec.is_empty() {
                                 debug!("light client: got epochs at height {}", i + 1);
                             }
 
@@ -110,8 +110,8 @@ impl LightClient {
                                 }
 
                                 match validate_epoch(
-                                    &prev_commitment,
-                                    &current_commitment,
+                                    prev_commitment,
+                                    current_commitment,
                                     proof,
                                     verifying_key,
                                 ) {

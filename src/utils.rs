@@ -118,8 +118,8 @@ pub fn create_and_verify_snark(
 }
 
 pub fn validate_epoch(
-    previous_commitment: &String,
-    current_commitment: &String,
+    previous_commitment: &str,
+    current_commitment: &str,
     proof: groth16::Proof<Bls12>,
     verifying_key: VerifyingKey<Bls12>,
 ) -> Result<groth16::Proof<Bls12>, DeimosError> {
@@ -127,8 +127,8 @@ pub fn validate_epoch(
     let pvk = groth16::prepare_verifying_key(&verifying_key);
 
     let scalars: Result<Vec<Scalar>, _> = vec![
-        hex_to_scalar(&previous_commitment.as_str()),
-        hex_to_scalar(&current_commitment.as_str()),
+        hex_to_scalar(previous_commitment),
+        hex_to_scalar(current_commitment),
     ]
     .into_iter()
     .collect();
@@ -136,7 +136,7 @@ pub fn validate_epoch(
     let scalars = scalars.map_err(|e| {
         DeimosError::General(GeneralError::ParsingError(format!(
             "unable to parse public input parameters: {}",
-            e.to_string()
+            e
         )))
     })?;
 
@@ -209,12 +209,12 @@ mod tests {
         let mut tree = IndexedMerkleTree::new_with_size(8).unwrap();
         let prev_commitment = tree.get_commitment().unwrap();
 
-        let ryan = sha256_mod(&"Ryan".to_string());
-        let ford = sha256_mod(&"Ford".to_string());
-        let sebastian = sha256_mod(&"Sebastian".to_string());
-        let pusch = sha256_mod(&"Pusch".to_string());
-        let ethan = sha256_mod(&"Ethan".to_string());
-        let triple_zero = sha256_mod(&"000".to_string());
+        let ryan = sha256_mod("Ryan");
+        let ford = sha256_mod("Ford");
+        let sebastian = sha256_mod("Sebastian");
+        let pusch = sha256_mod("Pusch");
+        let ethan = sha256_mod("Ethan");
+        let triple_zero = sha256_mod("000");
 
         let mut ryans_node = Node::new_leaf(true, false, ryan, ford, Node::TAIL.to_string());
         let mut sebastians_node =
@@ -230,7 +230,7 @@ mod tests {
         let second_insert_zk_snark = Proof::Insert(second_insert_proof);
         let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
-        let updated_seb = sha256_mod(&"Sebastian".to_string());
+        let updated_seb = sha256_mod("Sebastian");
         sebastians_node =
             Node::new_leaf(true, true, sebastian, updated_seb, Node::TAIL.to_string());
         let index = tree.find_node_index(&sebastians_node).unwrap();

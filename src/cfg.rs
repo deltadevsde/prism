@@ -162,7 +162,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
                 Err(e) => {
                     return Err(config::ConfigError::Message(format!(
                         "could not create config directory: {}",
-                        e.to_string()
+                        e
                     )));
                 }
             };
@@ -174,7 +174,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
             Err(e) => {
                 return Err(config::ConfigError::Message(format!(
                     "could not serialize default config: {}",
-                    e.to_string()
+                    e
                 )));
             }
         };
@@ -184,7 +184,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
             Err(e) => {
                 return Err(config::ConfigError::Message(format!(
                     "could not write default config to disk: {}",
-                    e.to_string()
+                    e
                 )));
             }
         }

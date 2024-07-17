@@ -70,21 +70,21 @@ pub struct UpdateEntryJson {
 
 fn decode_signed_message(signed_message: &String) -> DeimosResult<Vec<u8>> {
     let signed_message_bytes = general_purpose::STANDARD
-        .decode(&signed_message)
+        .decode(signed_message)
         .map_err(|e| {
             DeimosError::General(GeneralError::DecodingError(format!(
                 "signed message: {}",
-                e.to_string()
+                e
             )))
         })?;
 
     // check if the signed message is (at least) 64 bytes long
     if signed_message_bytes.len() < 64 {
-        return Err(GeneralError::ParsingError(format!(
+        Err(GeneralError::ParsingError(format!(
             "signed message is too short: {} < 64",
             signed_message_bytes.len(),
         ))
-        .into());
+        .into())
     } else {
         Ok(signed_message_bytes)
     }
@@ -136,11 +136,11 @@ pub struct RedisConnections {
 pub trait Database: Send + Sync {
     fn get_keys(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_derived_keys(&self) -> Result<Vec<String>, DatabaseError>;
-    fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DatabaseError>;
-    fn get_derived_value(&self, key: &String) -> Result<String, DatabaseError>;
+    fn get_hashchain(&self, key: &str) -> Result<Vec<ChainEntry>, DatabaseError>;
+    fn get_derived_value(&self, key: &str) -> Result<String, DatabaseError>;
     fn get_derived_keys_in_order(&self) -> Result<Vec<String>, DatabaseError>;
     fn get_commitment(&self, epoch: &u64) -> Result<String, DatabaseError>;
-    fn get_proof(&self, id: &String) -> Result<String, DatabaseError>;
+    fn get_proof(&self, id: &str) -> Result<String, DatabaseError>;
     fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>, DatabaseError>;
     fn get_epoch(&self) -> Result<u64, DatabaseError>;
     fn get_epoch_operation(&self) -> Result<u64, DatabaseError>;
@@ -149,7 +149,7 @@ pub trait Database: Send + Sync {
     fn update_hashchain(
         &self,
         incoming_entry: &IncomingEntry,
-        value: &Vec<ChainEntry>,
+        value: &[ChainEntry],
     ) -> Result<(), DeimosError>;
     fn set_derived_entry(
         &self,
@@ -163,7 +163,7 @@ pub trait Database: Send + Sync {
         &self,
         epoch: &u64,
         epoch_operation: &u64,
-        commitment: &String,
+        commitment: &str,
         proofs: &String,
     ) -> Result<(), DatabaseError>;
     fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), DatabaseError>;
@@ -233,7 +233,7 @@ impl Database for RedisConnections {
         Ok(keys)
     }
 
-    fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, DatabaseError> {
+    fn get_hashchain(&self, key: &str) -> Result<Vec<ChainEntry>, DatabaseError> {
         let mut con = self
             .main_dict
             .lock()
@@ -246,7 +246,7 @@ impl Database for RedisConnections {
             .map_err(|e| GeneralError::ParsingError(format!("hashchain: {}", e)).into())
     }
 
-    fn get_derived_value(&self, key: &String) -> Result<String, DatabaseError> {
+    fn get_derived_value(&self, key: &str) -> Result<String, DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?;
         con.get(key)
             .map_err(|_| DatabaseError::NotFoundError(format!("key: {}", key)))
@@ -278,7 +278,7 @@ impl Database for RedisConnections {
         }
     }
 
-    fn get_proof(&self, id: &String) -> Result<String, DatabaseError> {
+    fn get_proof(&self, id: &str) -> Result<String, DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?;
         con.get(id)
             .map_err(|_| DatabaseError::NotFoundError(format!("Proof with id: {}", id)))
@@ -319,14 +319,14 @@ impl Database for RedisConnections {
         let mut con = self.lock_connection(&self.app_state)?;
         let epoch: u64 = con
             .get("epoch")
-            .map_err(|_| DatabaseError::NotFoundError(format!("current epoch")))?;
+            .map_err(|_| DatabaseError::NotFoundError("current epoch".to_string()))?;
         Ok(epoch)
     }
 
     fn get_epoch_operation(&self) -> Result<u64, DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
         con.get("epoch_operation")
-            .map_err(|_| DatabaseError::NotFoundError(format!("epoch operation")))
+            .map_err(|_| DatabaseError::NotFoundError("epoch operation".to_string()))
     }
 
     fn set_epoch(&self, epoch: &u64) -> Result<(), DatabaseError> {
@@ -339,21 +339,23 @@ impl Database for RedisConnections {
     fn reset_epoch_operation_counter(&self) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
         con.set::<&str, &u64, String>("epoch_operation", &0)
-            .map_err(|_| DatabaseError::WriteError(format!("epoch_operation->0")))?;
+            .map_err(|_| DatabaseError::WriteError("epoch_operation->0".to_string()))?;
         Ok(())
     }
 
     fn update_hashchain(
         &self,
         incoming_entry: &IncomingEntry,
-        value: &Vec<ChainEntry>,
+        value: &[ChainEntry],
     ) -> Result<(), DeimosError> {
         let mut con = self
             .main_dict
             .lock()
             .map_err(|_| DeimosError::Database(DatabaseError::LockError))?;
         let value = serde_json::to_string(&value).map_err(|_| {
-            DeimosError::General(GeneralError::ParsingError(format!("hashchain to string")))
+            DeimosError::General(GeneralError::ParsingError(
+                "hashchain to string".to_string(),
+            ))
         })?;
         con.set::<&String, String, String>(&incoming_entry.id, value)
             .map_err(|_| {
@@ -402,9 +404,9 @@ impl Database for RedisConnections {
             .into_iter()
             .map(|epoch| {
                 epoch.replace("epoch_", "").parse::<u64>().map_err(|_| {
-                    DeimosError::General(GeneralError::ParsingError(format!(
-                        "failed to parse epoch"
-                    )))
+                    DeimosError::General(GeneralError::ParsingError(
+                        "failed to parse epoch".to_string(),
+                    ))
                 })
             })
             .collect()
@@ -413,19 +415,19 @@ impl Database for RedisConnections {
     fn increment_epoch_operation(&self) -> Result<u64, DatabaseError> {
         let mut con = self.lock_connection(&self.app_state)?;
         con.incr::<&'static str, u64, u64>("epoch_operation", 1)
-            .map_err(|_| DatabaseError::WriteError(format!("incremented epoch")))
+            .map_err(|_| DatabaseError::WriteError("incremented epoch".to_string()))
     }
 
     fn add_merkle_proof(
         &self,
         epoch: &u64,
         epoch_operation: &u64,
-        commitment: &String,
+        commitment: &str,
         proofs: &String,
     ) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?;
         let formatted_epoch = format!("epoch_{}_{}_{}", epoch, epoch_operation, commitment);
-        con.set::<&String, &String, String>(&formatted_epoch, &proofs)
+        con.set::<&String, &String, String>(&formatted_epoch, proofs)
             .map_err(|_| {
                 DatabaseError::WriteError(format!("merkle proof for epoch: {}", formatted_epoch))
             })?;
@@ -448,9 +450,9 @@ impl Database for RedisConnections {
         // set the empty hash as the first node in the derived dict
         con.set::<&String, &String, String>(&empty_hash, &empty_hash)
             .map_err(|_| {
-                DatabaseError::WriteError(format!(
-                    "empty hash as first entry in the derived dictionary"
-                ))
+                DatabaseError::WriteError(
+                    "empty hash as first entry in the derived dictionary".to_string(),
+                )
             })?;
         debug!("added empty hash to derived dict");
 
@@ -458,7 +460,7 @@ impl Database for RedisConnections {
         input_con
             .rpush::<String, String, u32>("input_order".to_string(), empty_hash.clone())
             .map_err(|_| {
-                DatabaseError::WriteError(format!("empty hash as first entry in input order"))
+                DatabaseError::WriteError("empty hash as first entry in input order".to_string())
             })?;
         debug!("added empty hash to input order");
 
@@ -475,22 +477,22 @@ impl Database for RedisConnections {
 
         redis::cmd("FLUSHALL")
             .query::<()>(&mut main_conn)
-            .map_err(|_| DatabaseError::DeleteError(format!("all entries in main dict")))?;
+            .map_err(|_| DatabaseError::DeleteError("all entries in main dict".to_string()))?;
         redis::cmd("FLUSHALL")
             .query::<()>(&mut derived_conn)
-            .map_err(|_| DatabaseError::DeleteError(format!("all entries in derived dict")))?;
+            .map_err(|_| DatabaseError::DeleteError("all entries in derived dict".to_string()))?;
         redis::cmd("FLUSHALL")
             .query::<()>(&mut input_order_conn)
-            .map_err(|_| DatabaseError::DeleteError(format!("all entries in input order")))?;
+            .map_err(|_| DatabaseError::DeleteError("all entries in input order".to_string()))?;
         redis::cmd("FLUSHALL")
             .query::<()>(&mut app_state_conn)
-            .map_err(|_| DatabaseError::DeleteError(format!("all entries in app state")))?;
+            .map_err(|_| DatabaseError::DeleteError("all entries in app state".to_string()))?;
         redis::cmd("FLUSHALL")
             .query::<()>(&mut merkle_proof_conn)
-            .map_err(|_| DatabaseError::DeleteError(format!("all merkle proofs")))?;
+            .map_err(|_| DatabaseError::DeleteError("all merkle proofs".to_string()))?;
         redis::cmd("FLUSHALL")
             .query::<()>(&mut commitments_conn)
-            .map_err(|_| DatabaseError::DeleteError(format!("all commitments")))?;
+            .map_err(|_| DatabaseError::DeleteError("all commitments".to_string()))?;
         Ok(())
     }
 }
@@ -549,13 +551,13 @@ mod tests {
         let incoming_entry3 = create_incoming_entry_with_test_value("test_key3");
 
         redis_connections
-            .update_hashchain(&incoming_entry1, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry2, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry3, &[create_mock_chain_entry()])
             .unwrap();
 
         let mut keys = redis_connections.get_keys().unwrap();
@@ -597,13 +599,13 @@ mod tests {
         let incoming_entry3 = create_incoming_entry_with_test_value("test_key_3");
 
         redis_connections
-            .update_hashchain(&incoming_entry1, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry2, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry3, &[create_mock_chain_entry()])
             .unwrap();
 
         let mut keys = redis_connections.get_keys().unwrap();
@@ -627,13 +629,13 @@ mod tests {
         let incoming_entry3 = create_incoming_entry_with_test_value("test_key_3");
 
         redis_connections
-            .update_hashchain(&incoming_entry1, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry2, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry2, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry3, &vec![create_mock_chain_entry()])
+            .update_hashchain(&incoming_entry3, &[create_mock_chain_entry()])
             .unwrap();
 
         let mut keys = redis_connections.get_keys().unwrap();
@@ -678,9 +680,9 @@ mod tests {
 
         // check if the returned keys are correct
         let expected_keys: Vec<String> = vec![
-            sha256_mod(&"test_key1".to_string()),
-            sha256_mod(&"test_key2".to_string()),
-            sha256_mod(&"test_key3".to_string()),
+            sha256_mod("test_key1"),
+            sha256_mod("test_key2"),
+            sha256_mod("test_key3"),
         ];
         let returned_keys: Vec<String> = keys;
 
@@ -699,7 +701,7 @@ mod tests {
         let chain_entry = create_mock_chain_entry();
 
         redis_connections
-            .update_hashchain(&incoming_entry, &vec![chain_entry.clone()])
+            .update_hashchain(&incoming_entry, &[chain_entry.clone()])
             .unwrap();
 
         let hashchain = redis_connections.get_hashchain(&incoming_entry.id).unwrap();
@@ -719,10 +721,10 @@ mod tests {
         let chain_entry = create_mock_chain_entry();
 
         redis_connections
-            .update_hashchain(&incoming_entry, &vec![chain_entry.clone()])
+            .update_hashchain(&incoming_entry, &[chain_entry.clone()])
             .unwrap();
 
-        let hashchain = redis_connections.get_hashchain(&"missing_test_key".to_string());
+        let hashchain = redis_connections.get_hashchain("missing_test_key");
         assert!(hashchain.is_err());
         let error = hashchain.unwrap_err();
         assert!(
@@ -763,8 +765,7 @@ mod tests {
 
         drop(con); // drop the lock on the connection bc get_hashchain also needs a lock on the connection
 
-        let hashchain =
-            redis_connections.get_hashchain(&"key_to_wrong_formatted_chain_entry".to_string());
+        let hashchain = redis_connections.get_hashchain("key_to_wrong_formatted_chain_entry");
 
         assert!(hashchain.is_err());
         let error = hashchain.unwrap_err();

@@ -58,8 +58,7 @@ mod tests {
     fn test_verify_short_message() {
         let signature_with_key = setup_signature(true);
 
-        let short_message =
-            general_purpose::STANDARD.encode(&"this is a short message".to_string());
+        let short_message = general_purpose::STANDARD.encode("this is a short message");
 
         let signature_with_key = UpdateEntryJson {
             signed_message: short_message,

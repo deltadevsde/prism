@@ -49,6 +49,12 @@ impl LocalDataAvailabilityLayer {
     }
 }
 
+impl Default for LocalDataAvailabilityLayer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
     async fn get_latest_height(&self) -> DAResult<u64> {
@@ -194,8 +200,8 @@ mod tests {
     }
 
     fn create_node(label: &str, value: &str) -> Node {
-        let label = sha256_mod(&label.to_string());
-        let value = sha256_mod(&value.to_string());
+        let label = sha256_mod(label);
+        let value = sha256_mod(value);
         Node::new_leaf(true, true, label, value, TAIL.to_string())
     }
 
@@ -264,7 +270,7 @@ mod tests {
             sequencer_layer
                 .submit(&EpochJson {
                     height: 1,
-                    prev_commitment: prev_commitment,
+                    prev_commitment,
                     current_commitment: tree.get_commitment().unwrap(),
                     proof: bls12proof,
                     verifying_key: vk,
@@ -296,9 +302,9 @@ mod tests {
             sequencer_layer
                 .submit(&EpochJson {
                     height: 2,
-                    prev_commitment: prev_commitment,
+                    prev_commitment,
                     current_commitment: tree.get_commitment().unwrap(),
-                    proof: proof,
+                    proof,
                     verifying_key: vk,
                     signature: None,
                 })

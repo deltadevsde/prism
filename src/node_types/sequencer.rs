@@ -48,7 +48,7 @@ impl NodeType for Sequencer {
         let derived_keys = self.db.get_derived_keys();
         match derived_keys {
             Ok(keys) => {
-                if keys.len() == 0 {
+                if keys.is_empty() {
                     // if the dict is empty, we need to initialize the dict and the input order
                     match self.db.initialize_derived_dict() {
                         Ok(_) => (),
@@ -171,10 +171,7 @@ impl Sequencer {
                         Err(e) => {
                             // code = NotFound means the account is not funded
                             if e.to_string().contains("rpc error: code = NotFound") {
-                                panic!(
-                                    "da_loop: celestia account not funded, causing: {}",
-                                    e.to_string()
-                                );
+                                panic!("da_loop: celestia account not funded, causing: {}", e);
                             }
                             error!("da_loop: submitting epoch: {}", e);
                             retry_counter += 1;
@@ -258,10 +255,8 @@ impl Sequencer {
             signature: None,
         };
 
-        let serialized_epoch_json_without_signature =
-            serde_json::to_string(&epoch_json).map_err(|e| {
-                GeneralError::ParsingError(format!("epoch json: {}", e.to_string()).into())
-            })?;
+        let serialized_epoch_json_without_signature = serde_json::to_string(&epoch_json)
+            .map_err(|e| GeneralError::ParsingError(format!("epoch json: {}", e)))?;
         let signature = self
             .key
             .sign(serialized_epoch_json_without_signature.as_bytes())
@@ -282,7 +277,7 @@ impl Sequencer {
         // TODO: better error handling (#11)
         // Retrieve the keys from input order and sort them.
         let ordered_derived_dict_keys: Vec<String> =
-            self.db.get_derived_keys_in_order().unwrap_or(vec![]);
+            self.db.get_derived_keys_in_order().unwrap_or_default();
         let mut sorted_keys = ordered_derived_dict_keys.clone();
         sorted_keys.sort();
 
@@ -321,11 +316,8 @@ impl Sequencer {
                     _ => unreachable!(),
                 };
 
-                match &mut nodes[i] {
-                    Node::Leaf(leaf) => {
-                        leaf.next = next_label;
-                    }
-                    _ => (),
+                if let Node::Leaf(leaf) = &mut nodes[i] {
+                    leaf.next = next_label;
                 }
 
                 nodes[i].generate_hash();
@@ -342,16 +334,14 @@ impl Sequencer {
                 }
             };
 
-            match ordered_derived_dict_keys
+            ordered_derived_dict_keys
                 .iter()
                 .enumerate() // use index
                 .find(|(_, k)| {
                     // without dereferencing we compare &&string with &string
                     label.clone().is_some_and(|l| *k == &l)
-                }) {
-                Some((k, _)) => Some(k),
-                None => None,
-            }
+                })
+                .map(|(k, _)| k)
         });
 
         // Add empty nodes to ensure the total number of nodes is a power of two.
@@ -396,11 +386,7 @@ impl Sequencer {
         let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
             Ok(obj) => obj,
             Err(e) => {
-                return Err(GeneralError::ParsingError(format!(
-                    "signed content: {}",
-                    e.to_string()
-                ))
-                .into());
+                return Err(GeneralError::ParsingError(format!("signed content: {}", e)).into());
             }
         };
 
@@ -474,7 +460,7 @@ impl Sequencer {
                             "{}, {}, {}",
                             Operation::Add,
                             &incoming_entry.value,
-                            Node::HEAD.to_string()
+                            Node::HEAD
                         )
                         .as_str(),
                     ),
@@ -504,13 +490,11 @@ impl Sequencer {
                 }
                 match self.db.set_derived_entry(&incoming_entry, last_entry, true) {
                     Ok(_) => Ok(()),
-                    Err(_) => {
-                        return Err(DatabaseError::WriteError(format!(
-                            "derived entry for incoming entry {:?}",
-                            incoming_entry
-                        ))
-                        .into());
-                    }
+                    Err(_) => Err(DatabaseError::WriteError(format!(
+                        "derived entry for incoming entry {:?}",
+                        incoming_entry
+                    ))
+                    .into()),
                 }
             }
         }
