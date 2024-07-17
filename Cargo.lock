@@ -3689,9 +3689,9 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexed-merkle-tree"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ec2c53e2049ad8de41b553eda75f5368b084baf7f31f76ed809d12ebe98f2e1"
+checksum = "b1ac76516975752d90a983083c7da0a921df0b57ed4ba89aa3eac0d964a85252"
 dependencies = [
  "cargo-audit",
  "hex 0.4.3",
@@ -4059,9 +4059,9 @@ dependencies = [
 
 [[package]]
 name = "keyring"
-version = "3.0.1"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f32930aef50aff920e88e6cf66b70a6d587a6f2bae6aeade5c1e583661a40f8e"
+checksum = "9961b98f55dc0b2737000132505bdafa249abab147ee9de43c50ae04a054aa6c"
 
 [[package]]
 name = "keystore-rs"
