@@ -181,7 +181,7 @@ mod tests {
     use crate::zk_snark::BatchMerkleProofCircuit;
     use indexed_merkle_tree::tree::{IndexedMerkleTree, Proof};
 
-    use indexed_merkle_tree::{node::Node, sha256};
+    use indexed_merkle_tree::{node::Node, sha256_mod};
 
     use super::*;
 
@@ -209,12 +209,12 @@ mod tests {
         let mut tree = IndexedMerkleTree::new_with_size(8).unwrap();
         let prev_commitment = tree.get_commitment().unwrap();
 
-        let ryan = sha256(&"Ryan".to_string());
-        let ford = sha256(&"Ford".to_string());
-        let sebastian = sha256(&"Sebastian".to_string());
-        let pusch = sha256(&"Pusch".to_string());
-        let ethan = sha256(&"Ethan".to_string());
-        let triple_zero = sha256(&"000".to_string());
+        let ryan = sha256_mod(&"Ryan".to_string());
+        let ford = sha256_mod(&"Ford".to_string());
+        let sebastian = sha256_mod(&"Sebastian".to_string());
+        let pusch = sha256_mod(&"Pusch".to_string());
+        let ethan = sha256_mod(&"Ethan".to_string());
+        let triple_zero = sha256_mod(&"000".to_string());
 
         let mut ryans_node = Node::new_leaf(true, false, ryan, ford, Node::TAIL.to_string());
         let mut sebastians_node =
@@ -230,7 +230,7 @@ mod tests {
         let second_insert_zk_snark = Proof::Insert(second_insert_proof);
         let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
-        let updated_seb = sha256(&"Sebastian".to_string());
+        let updated_seb = sha256_mod(&"Sebastian".to_string());
         sebastians_node =
             Node::new_leaf(true, true, sebastian, updated_seb, Node::TAIL.to_string());
         let index = tree.find_node_index(&sebastians_node).unwrap();
