@@ -1890,7 +1890,7 @@ dependencies = [
  "hex 0.4.3",
  "indexed-merkle-tree",
  "jsonrpsee 0.22.5",
- "keystore",
+ "keystore-rs",
  "lazy_static",
  "log",
  "mockall",
@@ -4064,9 +4064,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f32930aef50aff920e88e6cf66b70a6d587a6f2bae6aeade5c1e583661a40f8e"
 
 [[package]]
-name = "keystore"
+name = "keystore-rs"
 version = "0.1.0"
-source = "git+https://github.com/deltadevsde/keystore?rev=389d6232a44b160d60d5931bc2b751775dc3ec9b#389d6232a44b160d60d5931bc2b751775dc3ec9b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e98b1b9570d742a01cd677f7ff91d12b8c86fdcd1e2b6dbf5a69303ab82ea0b"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
