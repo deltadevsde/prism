@@ -48,7 +48,7 @@ ahash = "0.8.7"
 celestia-rpc = "0.2.0"
 celestia-types = "0.2.0"
 mockall = "0.12.1"
-keystore = { git = "https://github.com/deltadevsde/keystore", rev = "389d6232a44b160d60d5931bc2b751775dc3ec9b" }
+keystore-rs = "0.1.0"
 pyroscope = "0.5.7"
 pyroscope_pprofrs = "0.2.7"
 toml = "0.8.14"
