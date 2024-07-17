@@ -92,6 +92,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
+            .truncate(true)
             .create(true)
             .open("data.json")
             .expect("Unable to open file");

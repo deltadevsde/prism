@@ -164,9 +164,9 @@ pub trait Database: Send + Sync {
         epoch: &u64,
         epoch_operation: &u64,
         commitment: &str,
-        proofs: &String,
+        proofs: &str,
     ) -> Result<(), DatabaseError>;
-    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), DatabaseError>;
+    fn add_commitment(&self, epoch: &u64, commitment: &str) -> Result<(), DatabaseError>;
     fn initialize_derived_dict(&self) -> Result<(), DatabaseError>;
     fn flush_database(&self) -> Result<(), DatabaseError>;
 }
@@ -423,20 +423,20 @@ impl Database for RedisConnections {
         epoch: &u64,
         epoch_operation: &u64,
         commitment: &str,
-        proofs: &String,
+        proofs: &str,
     ) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.merkle_proofs)?;
         let formatted_epoch = format!("epoch_{}_{}_{}", epoch, epoch_operation, commitment);
-        con.set::<&String, &String, String>(&formatted_epoch, proofs)
+        con.set::<&String, &String, String>(&formatted_epoch, &proofs.to_string())
             .map_err(|_| {
                 DatabaseError::WriteError(format!("merkle proof for epoch: {}", formatted_epoch))
             })?;
         Ok(())
     }
 
-    fn add_commitment(&self, epoch: &u64, commitment: &String) -> Result<(), DatabaseError> {
+    fn add_commitment(&self, epoch: &u64, commitment: &str) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.commitments)?;
-        con.set::<&String, &String, String>(&format!("epoch_{}", epoch), commitment)
+        con.set::<&String, &String, String>(&format!("epoch_{}", epoch), &commitment.to_string())
             .map_err(|_| DatabaseError::WriteError(format!("commitment for epoch: {}", epoch)))?;
         Ok(())
     }

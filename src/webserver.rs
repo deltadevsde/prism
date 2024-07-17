@@ -27,6 +27,14 @@ pub struct WebServer {
     pub cfg: WebServerConfig,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct EpochData {
+    epoch_number: u64,
+    previous_commitment: String,
+    current_commitment: String,
+    proofs: Vec<Proof>,
+}
+
 impl WebServer {
     pub fn new(cfg: WebServerConfig) -> Self {
         WebServer { cfg }
@@ -254,7 +262,7 @@ async fn get_hashchain(con: web::Data<Arc<Sequencer>>, id: web::Path<String>) ->
 pub fn get_epochs_and_proofs(
     con: web::Data<Arc<Sequencer>>,
     epoch: &str,
-) -> Result<(u64, String, String, Vec<Proof>), Box<dyn std::error::Error>> {
+) -> Result<EpochData, Box<dyn std::error::Error>> {
     if epoch == "0" {
         // TODO: eventually recalcualte the empty tree root and compare it to the one in the database
         return Err(Box::new(std::io::Error::new(
@@ -309,12 +317,12 @@ pub fn get_epochs_and_proofs(
         }
     };
 
-    Ok((
+    Ok(EpochData {
         epoch_number,
         previous_commitment,
         current_commitment,
         proofs,
-    ))
+    })
 }
 
 /// Endpoint: /validate-proof
@@ -374,49 +382,56 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
         Err(_) => return HttpResponse::BadRequest().body("Invalid epoch"),
     };
 
-    let (epoch_number, previous_commitment, current_commitment, proofs) =
-        match get_epochs_and_proofs(con, epoch.as_str()) {
-            Ok(value) => value,
-            Err(err) => {
-                error!(
-                    "validate-epoch: getting proofs for epoch {}: {}",
-                    epoch, err
-                );
-                return HttpResponse::BadRequest()
-                    .body("Something went wrong while getting the proofs");
-            }
-        };
+    match get_epochs_and_proofs(con, epoch.as_str()) {
+        Ok(epoch_data) => {
+            let EpochData {
+                epoch_number,
+                previous_commitment,
+                current_commitment,
+                proofs,
+            } = epoch_data;
 
-    debug!(
-        "validate-epoch: found {:?} proofs in epoch {}",
-        proofs.len(),
-        epoch
-    );
+            debug!(
+                "validate-epoch: found {:?} proofs in epoch {}",
+                proofs.len(),
+                epoch
+            );
+            let batch_circuit = match BatchMerkleProofCircuit::new(
+                &previous_commitment,
+                &current_commitment,
+                proofs,
+            ) {
+                Ok(circuit) => circuit,
+                Err(err) => {
+                    return HttpResponse::BadRequest().body(err.to_string());
+                }
+            };
 
-    let batch_circuit =
-        match BatchMerkleProofCircuit::new(&previous_commitment, &current_commitment, proofs) {
-            Ok(circuit) => circuit,
-            Err(err) => {
-                return HttpResponse::BadRequest().body(err.to_string());
-            }
-        };
+            let (proof, _verifying_key) = match batch_circuit.create_and_verify_snark() {
+                Ok(proof) => proof,
+                Err(err) => {
+                    return HttpResponse::BadRequest().body(err.to_string());
+                }
+            };
 
-    let (proof, _verifying_key) = match batch_circuit.create_and_verify_snark() {
-        Ok(proof) => proof,
-        Err(err) => {
-            return HttpResponse::BadRequest().body(err.to_string());
+            let serialized_proof: Bls12Proof = proof.into();
+
+            // Create the JSON object for the response
+            let response = json!({
+                "epoch": epoch_number,
+                "proof": serialized_proof,
+            });
+
+            HttpResponse::Ok().json(response)
         }
-    };
-
-    let serialized_proof: Bls12Proof = proof.into();
-
-    // Create the JSON object for the response
-    let response = json!({
-        "epoch": epoch_number,
-        "proof": serialized_proof,
-    });
-
-    HttpResponse::Ok().json(response)
+        Err(err) => {
+            error!(
+                "validate-epoch: getting proofs for epoch {}: {}",
+                epoch, err
+            );
+            HttpResponse::BadRequest().body("Something went wrong while getting the proofs")
+        }
+    }
 }
 
 #[post("/validate-hashchain-proof")]
@@ -519,31 +534,25 @@ async fn get_current_tree(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 
 #[post("/get-epoch-operations")]
 async fn get_epoch_operations(con: web::Data<Arc<Sequencer>>, req_body: String) -> impl Responder {
-    //  try to parse proof id from request body
+    // try to parse proof id from request body
     let epoch: String = match serde_json::from_str(&req_body) {
         Ok(epoch) => epoch,
         Err(_) => return HttpResponse::BadRequest().body("Invalid epoch"),
     };
 
-    let (_, previous_commitment, current_commitment, proofs) =
-        get_epochs_and_proofs(con, epoch.as_str()).unwrap();
-
-    #[derive(Serialize, Deserialize)]
-    struct Response {
-        epoch: String,
-        previous_commitment: String,
-        current_commitment: String,
-        proofs: Vec<Proof>,
-    }
-
-    let resp = Response {
-        epoch,
-        previous_commitment,
-        current_commitment,
-        proofs,
+    let epoch_data = match get_epochs_and_proofs(con, epoch.as_str()) {
+        Ok(data) => data,
+        Err(err) => {
+            error!(
+                "validate-epoch: getting proofs for epoch {}: {}",
+                epoch, err
+            );
+            return HttpResponse::BadRequest()
+                .body("Something went wrong while getting the proofs");
+        }
     };
 
-    HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
+    HttpResponse::Ok().body(serde_json::to_string(&epoch_data).unwrap())
 }
 
 #[get("/get-epochs")]
