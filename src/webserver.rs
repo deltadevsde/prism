@@ -7,7 +7,7 @@ use actix_web::{
 };
 use bellman::groth16;
 use bls12_381::Bls12;
-use indexed_merkle_tree::{sha256, tree::Proof};
+use indexed_merkle_tree::{sha256_mod, tree::Proof};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Value};
@@ -116,7 +116,7 @@ async fn update_entry(
     match session.update_entry(&signature_with_key) {
         Ok(_) => {
             let new_tree = session.create_tree().unwrap();
-            let hashed_id = sha256(&signature_with_key.id);
+            let hashed_id = sha256_mod(&signature_with_key.id);
             let mut node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
 
             let proofs = if update_proof {
@@ -481,7 +481,7 @@ async fn handle_validate_hashchain_proof(
             return HttpResponse::Ok().json({
                 json!({
                     "proof": serialize_proof(&proof),
-                    "public_param": sha256(&incoming_value.value),
+                    "public_param": sha256_mod(&incoming_value.value),
                 })
             });
         }

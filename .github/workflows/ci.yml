@@ -3,8 +3,7 @@ name: Rust CI
 on:
   push:
     branches:
-      - main
-      - setup-ci
+      - '**'  
 
 jobs:
   build:

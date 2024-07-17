@@ -4,11 +4,12 @@ use crate::{
     utils::create_and_verify_snark,
 };
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
-use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
+use bellman::{gadgets::boolean::Boolean, groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
+use ff::PrimeFieldBits;
 use indexed_merkle_tree::{
-    node::Node,
-    sha256,
+    node::{LeafNode, Node},
+    sha256_mod,
     tree::{InsertProof, MerkleProof, Proof, UpdateProof},
 };
 use serde::{Deserialize, Serialize};
@@ -171,11 +172,52 @@ mod tests {
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
-    use indexed_merkle_tree::{node::Node, sha256, tree::IndexedMerkleTree};
+    use indexed_merkle_tree::{node::Node, sha256_mod, tree::IndexedMerkleTree};
     use rand::rngs::OsRng;
 
-    const EMPTY_HASH: &str = Node::EMPTY_HASH;
+    const EMPTY_HASH: &str = Node::HEAD;
     const TAIL: &str = Node::TAIL;
+
+    fn head_scalar() -> Scalar {
+        hex_to_scalar("0000000000000000000000000000000000000000000000000000000000000000").unwrap()
+    }
+
+    fn small_scalar() -> Scalar {
+        hex_to_scalar("13ae3ed6fe76d459c9c66fe38ff187593561a1f24d34cb22e06148c77e4cc02b").unwrap()
+    }
+
+    fn mid_scalar() -> Scalar {
+        hex_to_scalar("3d1e830624b2572adc05351a7cbee2d3aa3f6a52b34fa38a260c9c78f96fcd07").unwrap()
+    }
+
+    fn big_scalar() -> Scalar {
+        hex_to_scalar("6714dda957170ad7720bbd2c38004152f34ea5d4350a154b84a259cc62a5dbb4").unwrap()
+    }
+
+    fn tail_scalar() -> Scalar {
+        hex_to_scalar("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000000").unwrap()
+    }
+
+    fn create_scalars() -> (Scalar, Scalar, Scalar, Scalar, Scalar) {
+        (
+            head_scalar(),
+            small_scalar(),
+            mid_scalar(),
+            big_scalar(),
+            tail_scalar(),
+        )
+    }
+
+    fn setup_and_test_less_than_circuit(a: Scalar, b: Scalar) {
+        let circuit = LessThanCircuit::new(a, b);
+        let rng = &mut OsRng;
+        let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng)
+            .expect("unable to generate random parameters");
+        let proof = groth16::create_random_proof(circuit.clone(), &params, rng)
+            .expect("unable to create random proof");
+        let pvk = groth16::prepare_verifying_key(&params.vk);
+        groth16::verify_proof(&pvk, &proof, &[]).expect("unable to verify proof")
+    }
 
     fn build_empty_tree() -> IndexedMerkleTree {
         let active_node = Node::new_leaf(
@@ -204,17 +246,46 @@ mod tests {
     }
 
     #[test]
+    fn le_with_scalar_valid() {
+        let (head, small, mid, big, tail) = create_scalars();
+
+        setup_and_test_less_than_circuit(head, small);
+        setup_and_test_less_than_circuit(small, tail);
+
+        setup_and_test_less_than_circuit(small, big);
+        setup_and_test_less_than_circuit(big, tail);
+
+        setup_and_test_less_than_circuit(head, mid);
+        setup_and_test_less_than_circuit(mid, big);
+    }
+
+    #[test]
+    #[should_panic(expected = "unable to verify proof")]
+    fn invalid_less_than_circuit_a_gt_b() {
+        let (_, _, _, big, tail) = create_scalars();
+
+        setup_and_test_less_than_circuit(tail, big)
+    }
+
+    #[test]
+    #[should_panic(expected = "unable to verify proof")]
+    fn invalid_less_than_circuit_a_eq_b() {
+        let head = head_scalar();
+        setup_and_test_less_than_circuit(head, head)
+    }
+
+    #[test]
     fn test_serialize_and_deserialize_proof() {
         let mut tree = build_empty_tree();
         let prev_commitment = tree.get_commitment().unwrap();
 
         // create two nodes to insert
-        let ryan = sha256(&"Ryan".to_string());
-        let ford = sha256(&"Ford".to_string());
-        let sebastian = sha256(&"Sebastian".to_string());
-        let pusch = sha256(&"Pusch".to_string());
-        let ethan = sha256(&"Ethan".to_string());
-        let triple_zero = sha256(&"000".to_string());
+        let ryan = sha256_mod(&"Ryan".to_string());
+        let ford = sha256_mod(&"Ford".to_string());
+        let sebastian = sha256_mod(&"Sebastian".to_string());
+        let pusch = sha256_mod(&"Pusch".to_string());
+        let ethan = sha256_mod(&"Ethan".to_string());
+        let triple_zero = sha256_mod(&"000".to_string());
 
         let mut ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
         let mut sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
@@ -273,6 +344,12 @@ mod tests {
 }
 
 #[derive(Clone)]
+pub struct LessThanCircuit {
+    a: Scalar,
+    b: Scalar,
+}
+
+#[derive(Clone)]
 pub struct HashChainEntryCircuit {
     pub value: Scalar,
     pub chain: Vec<Scalar>,
@@ -290,6 +367,7 @@ pub struct UpdateMerkleProofCircuit {
 pub struct InsertMerkleProofCircuit {
     pub non_membership_root: Scalar,
     pub non_membership_path: Vec<Node>,
+    pub missing_node: LeafNode,
     pub first_merkle_proof: UpdateMerkleProofCircuit,
     pub second_merkle_proof: UpdateMerkleProofCircuit,
 }
@@ -324,13 +402,20 @@ pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
         )));
     }
 
-    let byte_array: [u8; 32] = bytes.try_into().map_err(|_| {
-        GeneralError::ParsingError(format!("failed to parse hex string to byte array"))
-    })?;
+    let mut byte_array = [0u8; 32];
+    byte_array.copy_from_slice(&bytes[..32]);
+    byte_array.reverse();
 
-    let mut wide = [0u8; 64];
-    wide[..32].copy_from_slice(&byte_array); // Fill 0s in front of it, then the value remains the same
-    Ok(Scalar::from_bytes_wide(&wide))
+    // Convert the byte array to an array of four u64 values
+    let val = [
+        u64::from_le_bytes(<[u8; 8]>::try_from(&byte_array[0..8]).unwrap()),
+        u64::from_le_bytes(<[u8; 8]>::try_from(&byte_array[8..16]).unwrap()),
+        u64::from_le_bytes(<[u8; 8]>::try_from(&byte_array[16..24]).unwrap()),
+        u64::from_le_bytes(<[u8; 8]>::try_from(&byte_array[24..32]).unwrap()),
+    ];
+
+    // Use the from_raw method to convert the array to a Scalar
+    Ok(Scalar::from_raw(val))
 }
 
 pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError> {
@@ -338,9 +423,9 @@ pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError>
     for i in 1..(path.len()) {
         let sibling = &path[i];
         if sibling.is_left_sibling() {
-            current_hash = sha256(&format!("{} || {}", &sibling.get_hash(), current_hash));
+            current_hash = sha256_mod(&format!("{}{}", &sibling.get_hash(), current_hash));
         } else {
-            current_hash = sha256(&format!("{} || {}", current_hash, &sibling.get_hash()));
+            current_hash = sha256_mod(&format!("{}{}", current_hash, &sibling.get_hash()));
         }
     }
     hex_to_scalar(&current_hash.as_str())
@@ -404,7 +489,22 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
     non_membership_root: Scalar,
     non_membership_path: &[Node],
+    missing_node: LeafNode,
 ) -> Result<(), SynthesisError> {
+    // first we need to make sure, that the label of the missing node lies between the first element of the path
+
+    let current_label = hex_to_scalar(&non_membership_path[0].get_label()).unwrap();
+    let missing_label = hex_to_scalar(&missing_node.label).unwrap();
+    let curret_next = hex_to_scalar(&non_membership_path[0].get_next()).unwrap();
+
+    // circuit check
+    LessThanCircuit::new(current_label, missing_label)
+        .synthesize(cs)
+        .expect("Failed to synthesize");
+    LessThanCircuit::new(missing_label, curret_next)
+        .synthesize(cs)
+        .expect("Failed to synthesize");
+
     let allocated_root = cs.alloc(|| "non_membership_root", || Ok(non_membership_root))?;
     let recalculated_root = recalculate_hash_as_scalar(non_membership_path);
 
@@ -427,6 +527,49 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
     Ok(())
 }
 
+impl Circuit<Scalar> for LessThanCircuit {
+    fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+        let a_bits = self.a.to_le_bits();
+        let b_bits = self.b.to_le_bits();
+
+        let mut result = Boolean::constant(false);
+
+        for i in (0..a_bits.len()).rev() {
+            let a_val = Boolean::constant(a_bits[i]);
+            let b_val = Boolean::constant(b_bits[i]);
+            let not_a = Boolean::constant(a_val.not().get_value().unwrap());
+            let not_b = Boolean::constant(b_val.not().get_value().unwrap());
+
+            let a_and_b = Boolean::and(cs.namespace(|| format!("a_and_b_{}", i)), &a_val, &b_val)?;
+            let not_a_and_not_b = Boolean::and(
+                cs.namespace(|| format!("not_a_and_not_b_{}", i)),
+                &not_a,
+                &not_b,
+            )?;
+
+            if not_a_and_not_b.get_value().unwrap() || a_and_b.get_value().unwrap() {
+                continue;
+            } else {
+                result = Boolean::and(
+                    cs.namespace(|| format!("b_and_not_a_{}", i)),
+                    &b_val,
+                    &not_a,
+                )?;
+                break;
+            }
+        }
+
+        cs.enforce(
+            || "a < b",
+            |_| result.lc(CS::one(), Scalar::one()),
+            |lc| lc + CS::one(),
+            |lc| lc + CS::one(),
+        );
+
+        Ok(())
+    }
+}
+
 impl Circuit<Scalar> for ProofVariantCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
         match self {
@@ -440,7 +583,12 @@ impl Circuit<Scalar> for ProofVariantCircuit {
 impl Circuit<Scalar> for InsertMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
         // Proof of Non-Membership
-        match proof_of_non_membership(cs, self.non_membership_root, &self.non_membership_path) {
+        match proof_of_non_membership(
+            cs,
+            self.non_membership_root,
+            &self.non_membership_path,
+            self.missing_node,
+        ) {
             Ok(_) => (),
             Err(_) => return Err(SynthesisError::AssignmentMissing),
         }
@@ -540,6 +688,7 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                         cs,
                         insert_proof_circuit.non_membership_root,
                         &insert_proof_circuit.non_membership_path,
+                        insert_proof_circuit.missing_node,
                     ) {
                         Ok(_) => (),
                         Err(_) => return Err(SynthesisError::AssignmentMissing),
@@ -613,6 +762,12 @@ impl Circuit<Scalar> for HashChainEntryCircuit {
     }
 }
 
+impl LessThanCircuit {
+    pub fn new(a: Scalar, b: Scalar) -> LessThanCircuit {
+        LessThanCircuit { a, b }
+    }
+}
+
 // create the circuit based on the given Merkle proof
 impl InsertMerkleProofCircuit {
     pub fn new(proof: &InsertProof) -> Result<InsertMerkleProofCircuit, DeimosError> {
@@ -625,6 +780,7 @@ impl InsertMerkleProofCircuit {
         Ok(InsertMerkleProofCircuit {
             non_membership_root,
             non_membership_path: non_membership_path.clone(),
+            missing_node: proof.non_membership_proof.missing_node.clone(),
             first_merkle_proof: first_merkle_circuit,
             second_merkle_proof: second_merkle_circuit,
         })
@@ -735,7 +891,7 @@ impl HashChainEntryCircuit {
         hashchain: Vec<ChainEntry>,
     ) -> Result<HashChainEntryCircuit, GeneralError> {
         // hash the clear text and parse it to scalar
-        let hashed_value = sha256(&value);
+        let hashed_value = sha256_mod(&value);
         let parsed_value = hex_to_scalar(&hashed_value)?;
         let mut parsed_hashchain: Vec<Scalar> = vec![];
         for entry in hashchain {
@@ -748,7 +904,7 @@ impl HashChainEntryCircuit {
     }
 
     pub fn create_public_parameter(value: &String) -> Result<Scalar, GeneralError> {
-        let hashed_value = sha256(&value);
+        let hashed_value = sha256_mod(&value);
         Ok(hex_to_scalar(&hashed_value)?)
     }
 }

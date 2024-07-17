@@ -1,6 +1,6 @@
 use base64::engine::{general_purpose, Engine as _};
 use ed25519::Signature;
-use indexed_merkle_tree::{node::Node, sha256, tree::Proof};
+use indexed_merkle_tree::{node::Node, sha256_mod, tree::Proof};
 use mockall::{predicate::*, *};
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
@@ -373,7 +373,7 @@ impl Database for RedisConnections {
     ) -> Result<(), DatabaseError> {
         let mut con = self.lock_connection(&self.derived_dict)?;
         let mut input_con = self.lock_connection(&self.input_order)?;
-        let hashed_key = sha256(&incoming_entry.id);
+        let hashed_key = sha256_mod(&incoming_entry.id);
         con.set::<&String, &String, String>(&hashed_key, &value.hash)
             .map_err(|_| {
                 DatabaseError::WriteError(format!("derived dict update for key: {}", hashed_key))
@@ -443,7 +443,7 @@ impl Database for RedisConnections {
         let mut con = self.lock_connection(&self.derived_dict)?;
         let mut input_con = self.lock_connection(&self.input_order)?;
 
-        let empty_hash = Node::EMPTY_HASH.to_string(); // empty hash is always the first node (H(active=true, label=0^w, value=0^w, next=1^w))
+        let empty_hash = Node::HEAD.to_string(); // empty hash is always the first node (H(active=true, label=0^w, value=0^w, next=1^w))
 
         // set the empty hash as the first node in the derived dict
         con.set::<&String, &String, String>(&empty_hash, &empty_hash)
@@ -474,22 +474,22 @@ impl Database for RedisConnections {
         let mut commitments_conn = self.lock_connection(&self.commitments)?;
 
         redis::cmd("FLUSHALL")
-            .query(&mut main_conn)
+            .query::<()>(&mut main_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all entries in main dict")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut derived_conn)
+            .query::<()>(&mut derived_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all entries in derived dict")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut input_order_conn)
+            .query::<()>(&mut input_order_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all entries in input order")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut app_state_conn)
+            .query::<()>(&mut app_state_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all entries in app state")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut merkle_proof_conn)
+            .query::<()>(&mut merkle_proof_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all merkle proofs")))?;
         redis::cmd("FLUSHALL")
-            .query(&mut commitments_conn)
+            .query::<()>(&mut commitments_conn)
             .map_err(|_| DatabaseError::DeleteError(format!("all commitments")))?;
         Ok(())
     }
@@ -498,6 +498,8 @@ impl Database for RedisConnections {
 #[cfg(not(feature = "ci"))]
 #[cfg(test)]
 mod tests {
+    use indexed_merkle_tree::sha256_mod;
+
     use super::*;
 
     // Helper functions
@@ -676,9 +678,9 @@ mod tests {
 
         // check if the returned keys are correct
         let expected_keys: Vec<String> = vec![
-            sha256(&"test_key1".to_string()),
-            sha256(&"test_key2".to_string()),
-            sha256(&"test_key3".to_string()),
+            sha256_mod(&"test_key1".to_string()),
+            sha256_mod(&"test_key2".to_string()),
+            sha256_mod(&"test_key3".to_string()),
         ];
         let returned_keys: Vec<String> = keys;
 

@@ -72,7 +72,6 @@ pub struct Config {
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
 pub enum DALayerOption {
     #[default]
     Celestia,

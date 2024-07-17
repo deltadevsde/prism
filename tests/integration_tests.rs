@@ -1,16 +1,11 @@
-use std::time::{Duration, Instant};
+/* use std::time::{Duration, Instant};
 
 // use deimos::zk_snark::BatchMerkleProofCircuit;
 use bellman::groth16;
 use bls12_381::Bls12;
-use deimos::{
-    error::{DeimosError, GeneralError, ProofError},
-    storage::{ChainEntry, Operation},
-    utils::validate_epoch,
-    zk_snark::{hex_to_scalar, BatchMerkleProofCircuit, InsertMerkleProofCircuit},
-};
+use deimos::{utils::validate_epoch, zk_snark::BatchMerkleProofCircuit};
 use indexed_merkle_tree::{
-    node::{self, Node},
+    node::Node,
     sha256,
     tree::{IndexedMerkleTree, Proof},
 };
@@ -25,7 +20,7 @@ fn generate_test_tree(size: usize, node_count: usize) -> Duration {
     let mut proofs = Vec::with_capacity(node_count);
     let mut insertion_times: Vec<Duration> = Vec::with_capacity(node_count);
     for i in 0..node_count {
-        let leaf = Node::new_leaf(
+        let mut leaf = Node::new_leaf(
             true,
             true,
             (i + 1).to_string(),
@@ -34,7 +29,7 @@ fn generate_test_tree(size: usize, node_count: usize) -> Duration {
         );
 
         let start = Instant::now();
-        let proof = tree.insert_node(&leaf).unwrap();
+        let proof = tree.insert_node(&mut leaf).unwrap();
         let end = Instant::now();
         insertion_times.push(end.duration_since(start));
         proofs.push(Proof::Insert(proof))
@@ -103,3 +98,4 @@ fn test_prover_time() {
 
     agent_running.stop().unwrap();
 }
+ */

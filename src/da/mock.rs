@@ -145,7 +145,7 @@ mod tests {
     use bls12_381::Bls12;
     use indexed_merkle_tree::{
         node::Node,
-        sha256,
+        sha256_mod,
         tree::{IndexedMerkleTree, Proof},
     };
     use rand::rngs::OsRng;
@@ -154,7 +154,7 @@ mod tests {
         io::{Error, Seek, SeekFrom},
     };
 
-    const EMPTY_HASH: &str = Node::EMPTY_HASH;
+    const EMPTY_HASH: &str = Node::HEAD;
     const TAIL: &str = Node::TAIL;
 
     pub fn clear_file(filename: &str) -> Result<(), Error> {
@@ -197,8 +197,8 @@ mod tests {
     }
 
     fn create_node(label: &str, value: &str) -> Node {
-        let label = sha256(&label.to_string());
-        let value = sha256(&value.to_string());
+        let label = sha256_mod(&label.to_string());
+        let value = sha256_mod(&value.to_string());
         Node::new_leaf(true, true, label, value, TAIL.to_string())
     }
 

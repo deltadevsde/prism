@@ -3,9 +3,8 @@ use crate::{
     error::{DataAvailabilityError, DeimosResult},
 };
 use async_trait::async_trait;
-use crypto_hash::{hex_digest, Algorithm};
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{node::Node, tree::IndexedMerkleTree};
+use indexed_merkle_tree::{node::Node, sha256_mod, tree::IndexedMerkleTree};
 use std::{self, sync::Arc, time::Duration};
 use tokio::{
     sync::{
@@ -294,8 +293,8 @@ impl Sequencer {
             nodes.push(Node::new_leaf(
                 false,
                 true,
-                Node::EMPTY_HASH.to_string(),
-                Node::EMPTY_HASH.to_string(),
+                Node::HEAD.to_string(),
+                Node::HEAD.to_string(),
                 Node::TAIL.to_string(),
             ));
         }
@@ -352,15 +351,14 @@ impl Sequencer {
                 let mut current_chain = value.clone();
 
                 let new_chain_entry = ChainEntry {
-                    hash: hex_digest(
-                        Algorithm::SHA256,
+                    hash: sha256_mod(
                         format!(
                             "{}, {}, {}",
                             &incoming_entry.operation,
                             &incoming_entry.value,
                             &current_chain.last().unwrap().hash
                         )
-                        .as_bytes(),
+                        .as_str(),
                     ),
                     previous_hash: current_chain.last().unwrap().hash.clone(),
                     operation: incoming_entry.operation.clone(),
@@ -380,17 +378,16 @@ impl Sequencer {
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
                 let new_chain = vec![ChainEntry {
-                    hash: hex_digest(
-                        Algorithm::SHA256,
+                    hash: sha256_mod(
                         format!(
                             "{}, {}, {}",
                             Operation::Add,
                             &incoming_entry.value,
-                            Node::EMPTY_HASH.to_string()
+                            Node::HEAD.to_string()
                         )
-                        .as_bytes(),
+                        .as_str(),
                     ),
-                    previous_hash: Node::EMPTY_HASH.to_string(),
+                    previous_hash: Node::HEAD.to_string(),
                     operation: incoming_entry.operation.clone(),
                     value: incoming_entry.value.clone(),
                 }];
