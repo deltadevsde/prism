@@ -1,16 +1,13 @@
-/* use std::time::{Duration, Instant};
+use std::time::{Duration, Instant};
 
-// use deimos::zk_snark::BatchMerkleProofCircuit;
 use bellman::groth16;
 use bls12_381::Bls12;
 use deimos::{utils::validate_epoch, zk_snark::BatchMerkleProofCircuit};
 use indexed_merkle_tree::{
     node::Node,
-    sha256,
+    sha256_mod,
     tree::{IndexedMerkleTree, Proof},
 };
-use pyroscope::PyroscopeAgent;
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use rand::rngs::OsRng;
 
 fn generate_test_tree(size: usize, node_count: usize) -> Duration {
@@ -23,8 +20,8 @@ fn generate_test_tree(size: usize, node_count: usize) -> Duration {
         let mut leaf = Node::new_leaf(
             true,
             true,
-            (i + 1).to_string(),
-            sha256(&i.to_string()),
+            sha256_mod((i + 1).to_string().as_str()).to_string(),
+            sha256_mod(&i.to_string()),
             Node::TAIL.to_string(),
         );
 
@@ -67,35 +64,11 @@ fn generate_test_tree(size: usize, node_count: usize) -> Duration {
 
 #[test]
 fn test_prover_time() {
-    // Configure profiling backend
-    let pprof_config = PprofConfig::new().sample_rate(100);
-    let backend_impl = pprof_backend(pprof_config);
-
-    // Configure Pyroscope Agent
-    let agent = PyroscopeAgent::builder("http://localhost:4040", "deimos")
-        .backend(backend_impl)
-        .build()
-        .unwrap();
-
-    let agent_running = agent.start().unwrap();
-
-    let test_cases: Vec<(usize, usize)> = vec![
-        (4096, 8),
-        (4096, 16),
-        (4096, 32),
-        (4096, 64),
-        (4096, 128),
-        (4096, 256),
-        (4096, 512),
-        (4096, 1024),
-        (4096, 2048),
-    ];
+    // add more test cases while benchmarking, obviously
+    let test_cases: Vec<(usize, usize)> = vec![(usize::pow(2, 13), 8)];
 
     for (size, node_count) in test_cases {
         let duration = generate_test_tree(size, node_count);
         println!("{}x{}: Proof Time {:?}", size, node_count, duration)
     }
-
-    agent_running.stop().unwrap();
 }
- */

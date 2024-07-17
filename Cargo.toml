@@ -1,7 +1,17 @@
 [package]
 name = "deimos"
 version = "0.1.0"
+authors = [
+    "Sebastian Pusch <sebastian@deltadevs.xyz>",
+    "Ryan Ford <ryan@deltadevs.xyz>",
+]
 edition = "2021"
+description = "deimos is the first trust-minimized key-transparency solution, allowing for automatic verification of service providers via light clients. Powered by Celestia."
+homepage = "https://deimos.deltadevs.xyz"
+repository = "https://github.com/deltadevsde/deimos"
+license = "MIT"
+keywords = ["crypto", "key-transparency"]
+readme = "README.md"
 
 [features]
 default = []
@@ -42,7 +52,7 @@ clap = { version = "4.3.2", features = ["derive"] }
 config = "0.14.0"
 fs2 = "0.4.3"
 thiserror = "1.0.50"
-indexed-merkle-tree = "0.4.0"
+indexed-merkle-tree = "0.4.1"
 dotenvy = "0.15.7"
 ahash = "0.8.7"
 celestia-rpc = "0.2.0"
