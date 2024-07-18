@@ -1,11 +1,11 @@
 use crate::{
-    error::{DeimosError, GeneralError, ProofError},
+    error::{DeimosError, DeimosResult, GeneralError, ProofError},
     storage::ChainEntry,
     utils::create_and_verify_snark,
 };
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::{gadgets::boolean::Boolean, groth16, Circuit, ConstraintSystem, SynthesisError};
-use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
+use bls12_381::{Bls12, Scalar};
 use ff::PrimeFieldBits;
 use indexed_merkle_tree::{
     node::{LeafNode, Node},
@@ -13,6 +13,62 @@ use indexed_merkle_tree::{
     tree::{InsertProof, MerkleProof, Proof, UpdateProof},
 };
 use serde::{Deserialize, Serialize};
+
+// TODO: This serialization/deserialization using JSON is not optimal - we need to minimize the amount of bytes posted on the DA layer. Let's use borsch to start.
+
+// G1Affine is a tuple alias of [`bls12_381::G1Affine`] for defining custom conversions.
+struct G1Affine(bls12_381::G1Affine);
+
+impl TryInto<G1Affine> for String {
+    type Error = DeimosError;
+    fn try_into(self) -> Result<G1Affine, DeimosError> {
+        let decoded = engine
+            .decode(self.as_bytes())
+            .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
+
+        let array = vec_to_96_array(decoded)?;
+
+        match bls12_381::G1Affine::from_uncompressed(&array).into_option() {
+            Some(affine) => Ok(G1Affine(affine)),
+            None => Err(DeimosError::General(GeneralError::DecodingError(
+                "G1Affine".to_string(),
+            ))),
+        }
+    }
+}
+
+impl From<G1Affine> for bls12_381::G1Affine {
+    fn from(affine: G1Affine) -> Self {
+        affine.0
+    }
+}
+
+// G2Affine is a tuple alias of [`bls12_381::G2Affine`] for defining custom conversions.
+struct G2Affine(bls12_381::G2Affine);
+
+impl TryInto<G2Affine> for String {
+    type Error = DeimosError;
+    fn try_into(self) -> Result<G2Affine, DeimosError> {
+        let decoded = engine
+            .decode(self.as_bytes())
+            .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
+
+        let array = vec_to_192_array(decoded)?;
+
+        match bls12_381::G2Affine::from_uncompressed(&array).into_option() {
+            Some(affine) => Ok(G2Affine(affine)),
+            None => Err(DeimosError::General(GeneralError::DecodingError(
+                "G2Affine".to_string(),
+            ))),
+        }
+    }
+}
+
+impl From<G2Affine> for bls12_381::G2Affine {
+    fn from(affine: G2Affine) -> Self {
+        affine.0
+    }
+}
 
 fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], DeimosError> {
     let mut array = [0u8; 96];
@@ -43,6 +99,43 @@ pub struct Bls12Proof {
     pub c: String,
 }
 
+impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
+    type Error = DeimosError;
+
+    fn try_from(proof: Bls12Proof) -> DeimosResult<Self> {
+        // we get a CtOption type which is afaik common in crypto libraries to prevent timing attacks
+        // we cant use the map_err function with CtOption types so we have to check if its none and can then unwrap it
+        let a: G1Affine = proof
+            .a
+            .try_into()
+            .map_err(|e| GeneralError::DecodingError(format!("{}: a", e)))?;
+        let b: G2Affine = proof
+            .b
+            .try_into()
+            .map_err(|e| GeneralError::DecodingError(format!("{}: b", e)))?;
+        let c: G1Affine = proof
+            .c
+            .try_into()
+            .map_err(|e| GeneralError::DecodingError(format!("{}: c", e)))?;
+
+        Ok(groth16::Proof {
+            a: a.into(),
+            b: b.into(),
+            c: c.into(),
+        })
+    }
+}
+
+impl From<groth16::Proof<Bls12>> for Bls12Proof {
+    fn from(proof: groth16::Proof<Bls12>) -> Self {
+        Bls12Proof {
+            a: engine.encode(proof.a.to_uncompressed().as_ref()),
+            b: engine.encode(proof.b.to_uncompressed().as_ref()),
+            c: engine.encode(proof.c.to_uncompressed().as_ref()),
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct VerifyingKey {
     pub alpha_g1: String,
@@ -54,40 +147,69 @@ pub struct VerifyingKey {
     pub ic: String,
 }
 
-// TODO: think about to refactor this to use a generic function, because they are very similar
-// but probably something for a different PR
-pub fn decode_and_convert_to_g1affine(encoded_data: &String) -> Result<G1Affine, DeimosError> {
-    let decoded = engine
-        .decode(encoded_data.as_bytes())
-        .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
-
-    let array = vec_to_96_array(decoded).map_err(|deimos_error| deimos_error)?;
-
-    let affine = G1Affine::from_uncompressed(&array);
-    if affine.is_none().into() {
-        return Err(DeimosError::General(GeneralError::DecodingError(
-            "G1Affine".to_string(),
-        )));
+impl From<groth16::VerifyingKey<Bls12>> for VerifyingKey {
+    fn from(verifying_key: groth16::VerifyingKey<Bls12>) -> Self {
+        VerifyingKey {
+            alpha_g1: engine.encode(verifying_key.alpha_g1.to_uncompressed().as_ref()),
+            beta_g1: engine.encode(verifying_key.beta_g1.to_uncompressed().as_ref()),
+            beta_g2: engine.encode(verifying_key.beta_g2.to_uncompressed().as_ref()),
+            delta_g1: engine.encode(verifying_key.delta_g1.to_uncompressed().as_ref()),
+            delta_g2: engine.encode(verifying_key.delta_g2.to_uncompressed().as_ref()),
+            gamma_g2: engine.encode(verifying_key.gamma_g2.to_uncompressed().as_ref()),
+            ic: verifying_key
+                .ic
+                .iter()
+                .map(|x| engine.encode(x.to_uncompressed().as_ref()))
+                .collect::<Vec<String>>()
+                .join(","),
+        }
     }
-
-    Ok(affine.unwrap())
 }
 
-pub fn decode_and_convert_to_g2affine(encoded_data: &String) -> Result<G2Affine, DeimosError> {
-    let decoded = engine
-        .decode(encoded_data.as_bytes())
-        .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
+impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
+    type Error = DeimosError;
 
-    let array = vec_to_192_array(decoded).map_err(|deimos_error| deimos_error)?;
+    fn try_from(custom_vk: VerifyingKey) -> Result<Self, DeimosError> {
+        let alpha_g1: G1Affine = custom_vk
+            .alpha_g1
+            .try_into()
+            .map_err(|e| GeneralError::EncodingError(format!("{}:alpha_g1", e)))?;
+        let beta_g1: G1Affine = custom_vk
+            .beta_g1
+            .try_into()
+            .map_err(|e| GeneralError::EncodingError(format!("{}: beta_g1", e)))?;
+        let beta_g2: G2Affine = custom_vk
+            .beta_g2
+            .try_into()
+            .map_err(|e| GeneralError::EncodingError(format!("{}: beta_g2", e)))?;
+        let delta_g1: G1Affine = custom_vk
+            .delta_g1
+            .try_into()
+            .map_err(|e| GeneralError::EncodingError(format!("{}: delta_g1", e)))?;
+        let delta_g2: G2Affine = custom_vk
+            .delta_g2
+            .try_into()
+            .map_err(|e| GeneralError::EncodingError(format!("{}: delta_g1", e)))?;
+        let gamma_g2: G2Affine = custom_vk
+            .gamma_g2
+            .try_into()
+            .map_err(|e| GeneralError::EncodingError(format!("{}: gamma_g2", e)))?;
+        let ic = custom_vk
+            .ic
+            .split(',')
+            .map(|s| s.to_string().try_into())
+            .collect::<DeimosResult<Vec<G1Affine>>>()?;
 
-    let affine = G2Affine::from_uncompressed(&array);
-    if affine.is_none().into() {
-        return Err(DeimosError::General(GeneralError::DecodingError(
-            "G2Affine".to_string(),
-        )));
+        Ok(bellman::groth16::VerifyingKey {
+            alpha_g1: alpha_g1.into(),
+            beta_g1: beta_g1.into(),
+            beta_g2: beta_g2.into(),
+            gamma_g2: gamma_g2.into(),
+            delta_g1: delta_g1.into(),
+            delta_g2: delta_g2.into(),
+            ic: ic.into_iter().map(|g1| g1.into()).collect(),
+        })
     }
-
-    Ok(affine.unwrap())
 }
 
 fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
@@ -102,72 +224,9 @@ fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), Deimo
     }
 }
 
-pub fn serialize_proof(proof: &groth16::Proof<Bls12>) -> Bls12Proof {
-    Bls12Proof {
-        a: engine.encode(&proof.a.to_uncompressed().as_ref()),
-        b: engine.encode(&proof.b.to_uncompressed().as_ref()),
-        c: engine.encode(&proof.c.to_uncompressed().as_ref()),
-    }
-}
-
-pub fn deserialize_proof(proof: &Bls12Proof) -> Result<groth16::Proof<Bls12>, DeimosError> {
-    // we get a CtOption type which is afaik common in crypto libraries to prevent timing attacks
-    // we cant use the map_err function with CtOption types so we have to check if its none and can then unwrap it
-    let a = decode_and_convert_to_g1affine(&proof.a)?;
-    let b = decode_and_convert_to_g2affine(&proof.b)?;
-    let c = decode_and_convert_to_g1affine(&proof.c)?;
-
-    Ok(groth16::Proof { a, b, c })
-}
-
-pub fn serialize_verifying_key_to_custom(
-    verifying_key: &bellman::groth16::VerifyingKey<Bls12>,
-) -> VerifyingKey {
-    VerifyingKey {
-        alpha_g1: engine.encode(&verifying_key.alpha_g1.to_uncompressed().as_ref()),
-        beta_g1: engine.encode(&verifying_key.beta_g1.to_uncompressed().as_ref()),
-        beta_g2: engine.encode(&verifying_key.beta_g2.to_uncompressed().as_ref()),
-        delta_g1: engine.encode(&verifying_key.delta_g1.to_uncompressed().as_ref()),
-        delta_g2: engine.encode(&verifying_key.delta_g2.to_uncompressed().as_ref()),
-        gamma_g2: engine.encode(&verifying_key.gamma_g2.to_uncompressed().as_ref()),
-        ic: verifying_key
-            .ic
-            .iter()
-            .map(|x| engine.encode(&x.to_uncompressed().as_ref()))
-            .collect::<Vec<String>>()
-            .join(","),
-    }
-}
-
-pub fn deserialize_custom_to_verifying_key(
-    custom_vk: &VerifyingKey,
-) -> Result<bellman::groth16::VerifyingKey<Bls12>, DeimosError> {
-    let alpha_g1 = decode_and_convert_to_g1affine(&custom_vk.alpha_g1)?;
-    let beta_g1 = decode_and_convert_to_g1affine(&custom_vk.beta_g1)?;
-    let beta_g2 = decode_and_convert_to_g2affine(&custom_vk.beta_g2)?;
-    let delta_g1 = decode_and_convert_to_g1affine(&custom_vk.delta_g1)?;
-    let delta_g2 = decode_and_convert_to_g2affine(&custom_vk.delta_g2)?;
-    let gamma_g2 = decode_and_convert_to_g2affine(&custom_vk.gamma_g2)?;
-    let ic = custom_vk
-        .ic
-        .split(",")
-        .map(|s| decode_and_convert_to_g1affine(&s.to_string()))
-        .collect::<Result<Vec<_>, _>>()?;
-
-    Ok(bellman::groth16::VerifyingKey {
-        alpha_g1,
-        beta_g1,
-        beta_g2,
-        gamma_g2,
-        delta_g1,
-        delta_g2,
-        ic,
-    })
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::zk_snark::deserialize_proof;
+    use crate::error::DeimosResult;
 
     use super::*;
     use bellman::groth16;
@@ -280,12 +339,12 @@ mod tests {
         let prev_commitment = tree.get_commitment().unwrap();
 
         // create two nodes to insert
-        let ryan = sha256_mod(&"Ryan".to_string());
-        let ford = sha256_mod(&"Ford".to_string());
-        let sebastian = sha256_mod(&"Sebastian".to_string());
-        let pusch = sha256_mod(&"Pusch".to_string());
-        let ethan = sha256_mod(&"Ethan".to_string());
-        let triple_zero = sha256_mod(&"000".to_string());
+        let ryan = sha256_mod("Ryan");
+        let ford = sha256_mod("Ford");
+        let sebastian = sha256_mod("Sebastian");
+        let pusch = sha256_mod("Pusch");
+        let ethan = sha256_mod("Ethan");
+        let triple_zero = sha256_mod("000");
 
         let mut ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
         let mut sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
@@ -316,8 +375,9 @@ mod tests {
             groth16::generate_random_parameters::<Bls12, _, _>(batched_proof.clone(), rng).unwrap();
         let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
 
-        let serialized_proof = serialize_proof(&proof);
-        let deserialized_proof_result = deserialize_proof(&serialized_proof);
+        let serialized_proof: Bls12Proof = proof.clone().into();
+        let deserialized_proof_result: DeimosResult<groth16::Proof<Bls12>> =
+            serialized_proof.clone().try_into();
         assert!(deserialized_proof_result.is_ok(), "Deserialization failed");
 
         let deserialized_proof = deserialized_proof_result.unwrap();
@@ -328,17 +388,14 @@ mod tests {
 
     #[test]
     fn test_deserialize_invalid_proof() {
-        // Erstellen Sie ein ungültiges Bls12Proof-Objekt
         let invalid_proof = Bls12Proof {
             a: "blubbubs".to_string(),
             b: "FTV0oqNyecdbzY9QFPe5gfiQbSn1E0t+QHn+l+Ey6G2Dk0UZFm1wMsnRbIp5HCneDC+jf6rHCADL1NQ9FIF9o5Td8jObATCRm/YoIoeXY1yFY1rCEoJWFZU0zPeOR7XfBEmccqdMATwb8yznOj6Hn9XqZIr7E3C0XBtzk9GiahLopjP+SN9v/KLEpnLm3dn5FeAp7TcJ0gibi4nNT3u2vziKRNiDIKl71bp6tNC6grCdGOazpkrFSxiYi3QHJOYI".to_string(),
             c: "BEKZboEyoJ3l+DLIF8IMjUR2kJQ9aq2kuXTZR8YizcQMg7zTH0xLO9JtTueneS3JFx1KlK6e2NkFZamiQERujx6bhmwIDgY8ZPCJ8iG//4E3eS0CZ25CJfnOucLeotyr".to_string(),
         };
 
-        // Versuchen Sie, das ungültige Objekt zu deserialisieren
-        let deserialized_proof_result = deserialize_proof(&invalid_proof);
-
-        // Überprüfen Sie, ob die Deserialisierung fehlgeschlagen ist
+        let deserialized_proof_result: DeimosResult<groth16::Proof<Bls12>> =
+            invalid_proof.clone().try_into();
         assert!(deserialized_proof_result.is_err());
     }
 }
@@ -388,11 +445,7 @@ pub struct BatchMerkleProofCircuit {
 
 pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
     let bytes = hex::decode(hex_string).map_err(|e| {
-        GeneralError::DecodingError(format!(
-            "failed to decode hex string {}: {}",
-            hex_string,
-            e.to_string()
-        ))
+        GeneralError::DecodingError(format!("failed to decode hex string {}: {}", hex_string, e))
     })?;
 
     if bytes.len() != 32 {
@@ -420,15 +473,14 @@ pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
 
 pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError> {
     let mut current_hash = path[0].get_hash();
-    for i in 1..(path.len()) {
-        let sibling = &path[i];
-        if sibling.is_left_sibling() {
-            current_hash = sha256_mod(&format!("{}{}", &sibling.get_hash(), current_hash));
+    for node in path.iter().skip(1) {
+        if node.is_left_sibling() {
+            current_hash = sha256_mod(&format!("{}{}", &node.get_hash(), current_hash));
         } else {
-            current_hash = sha256_mod(&format!("{}{}", current_hash, &sibling.get_hash()));
+            current_hash = sha256_mod(&format!("{}{}", current_hash, &node.get_hash()));
         }
     }
-    hex_to_scalar(&current_hash.as_str())
+    hex_to_scalar(current_hash.as_str())
 }
 
 fn proof_of_update<CS: ConstraintSystem<Scalar>>(
@@ -444,8 +496,8 @@ fn proof_of_update<CS: ConstraintSystem<Scalar>>(
         cs.alloc(|| "first update root with new pointer", || Ok(new_root))?;
 
     // update the root hash for old and new path
-    let recalculated_root_with_old_pointer = recalculate_hash_as_scalar(&old_path);
-    let recalculated_root_with_new_pointer = recalculate_hash_as_scalar(&new_path);
+    let recalculated_root_with_old_pointer = recalculate_hash_as_scalar(old_path);
+    let recalculated_root_with_new_pointer = recalculate_hash_as_scalar(new_path);
 
     if recalculated_root_with_old_pointer.is_err() || recalculated_root_with_new_pointer.is_err() {
         return Err(SynthesisError::Unsatisfiable);
@@ -611,7 +663,7 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
 
         match second_update {
             Ok(_) => Ok(()),
-            Err(_) => return Err(SynthesisError::Unsatisfiable),
+            Err(_) => Err(SynthesisError::Unsatisfiable),
         }
     }
 }
@@ -627,14 +679,14 @@ impl Circuit<Scalar> for UpdateMerkleProofCircuit {
             &self.updated_path,
         ) {
             Ok(_) => Ok(()),
-            Err(_) => return Err(SynthesisError::Unsatisfiable),
+            Err(_) => Err(SynthesisError::Unsatisfiable),
         }
     }
 }
 
 impl Circuit<Scalar> for BatchMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        if &self.proofs.len() == &0 {
+        if self.proofs.is_empty() {
             let provided_old_commitment =
                 cs.alloc_input(|| "provided old commitment", || Ok(self.old_commitment))?;
             let provided_new_commitment =
@@ -740,7 +792,7 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
 
 impl Circuit<Scalar> for HashChainEntryCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        if &self.chain.len() == &0 {
+        if self.chain.is_empty() {
             return Err(SynthesisError::AssignmentMissing);
         }
 
@@ -758,7 +810,7 @@ impl Circuit<Scalar> for HashChainEntryCircuit {
                 return Ok(());
             }
         }
-        return Err(SynthesisError::Unsatisfiable);
+        Err(SynthesisError::Unsatisfiable)
     }
 }
 
@@ -846,14 +898,12 @@ impl UpdateMerkleProofCircuit {
 
 impl BatchMerkleProofCircuit {
     pub fn new(
-        old_commitment: &String,
-        new_commitment: &String,
+        old_commitment: &str,
+        new_commitment: &str,
         proofs: Vec<Proof>,
     ) -> Result<BatchMerkleProofCircuit, DeimosError> {
-        let parsed_old_commitment =
-            hex_to_scalar(&old_commitment.as_str()).map_err(DeimosError::General)?;
-        let parsed_new_commitment =
-            hex_to_scalar(&new_commitment.as_str()).map_err(DeimosError::General)?;
+        let parsed_old_commitment = hex_to_scalar(old_commitment).map_err(DeimosError::General)?;
+        let parsed_new_commitment = hex_to_scalar(new_commitment).map_err(DeimosError::General)?;
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
@@ -887,11 +937,11 @@ impl BatchMerkleProofCircuit {
 
 impl HashChainEntryCircuit {
     pub fn create(
-        value: &String,
+        value: &str,
         hashchain: Vec<ChainEntry>,
     ) -> Result<HashChainEntryCircuit, GeneralError> {
         // hash the clear text and parse it to scalar
-        let hashed_value = sha256_mod(&value);
+        let hashed_value = sha256_mod(value);
         let parsed_value = hex_to_scalar(&hashed_value)?;
         let mut parsed_hashchain: Vec<Scalar> = vec![];
         for entry in hashchain {
@@ -903,8 +953,8 @@ impl HashChainEntryCircuit {
         })
     }
 
-    pub fn create_public_parameter(value: &String) -> Result<Scalar, GeneralError> {
-        let hashed_value = sha256_mod(&value);
-        Ok(hex_to_scalar(&hashed_value)?)
+    pub fn create_public_parameter(value: &str) -> Result<Scalar, GeneralError> {
+        let hashed_value = sha256_mod(value);
+        hex_to_scalar(hashed_value.as_str())
     }
 }

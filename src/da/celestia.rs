@@ -1,6 +1,6 @@
-use crate::da::{DataAvailabilityLayer, EpochJson};
 use crate::{
     consts::CHANNEL_BUFFER_SIZE,
+    da::{DataAvailabilityLayer, EpochJson},
     error::{DAResult, DataAvailabilityError, GeneralError},
 };
 use async_trait::async_trait;
@@ -40,13 +40,13 @@ pub struct CelestiaConnection {
 impl CelestiaConnection {
     // TODO: Should take config
     pub async fn new(
-        connection_string: &String,
+        connection_string: &str,
         auth_token: Option<&str>,
         namespace_hex: &String,
     ) -> DAResult<Self> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
 
-        let client = Client::new(&connection_string, auth_token)
+        let client = Client::new(connection_string, auth_token)
             .await
             .map_err(|e| {
                 DataAvailabilityError::ConnectionError(format!(
@@ -85,7 +85,7 @@ impl CelestiaConnection {
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
-    async fn get_message(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> DAResult<u64> {
         match self.synctarget_rx.lock().await.recv().await {
             Some(height) => Ok(height),
             None => Err(DataAvailabilityError::ChannelReceiveError),
@@ -111,12 +111,9 @@ impl DataAvailabilityLayer for CelestiaConnection {
                     match EpochJson::try_from(blob) {
                         Ok(epoch_json) => epochs.push(epoch_json),
                         Err(_) => {
-                            DataAvailabilityError::GeneralError(GeneralError::ParsingError(
-                                format!(
-                                    "marshalling blob from height {} to epoch json: {}",
-                                    height,
-                                    serde_json::to_string(&blob).unwrap()
-                                ),
+                            GeneralError::ParsingError(format!(
+                                "marshalling blob from height {} to epoch json: {:?}",
+                                height, &blob
                             ));
                         }
                     }
@@ -146,10 +143,10 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 e
             )))
         })?;
-        let blob = Blob::new(self.namespace_id.clone(), data.into_bytes()).map_err(|e| {
+        let blob = Blob::new(self.namespace_id, data.into_bytes()).map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
         })?;
-        trace!("blob: {:?}", serde_json::to_string(&blob).unwrap());
+        trace!("blob: {:?}", &blob);
         match self
             .client
             .blob_submit(&[blob.clone()], GasPrice::from(-1.0))

@@ -1,3 +1,5 @@
+use crate::consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL};
+use crate::error::{DataAvailabilityError, DeimosError, DeimosResult, GeneralError};
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
@@ -137,33 +139,21 @@ impl Default for Config {
     }
 }
 
-pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError> {
+pub fn load_config(args: CommandLineArgs) -> DeimosResult<Config> {
     dotenv().ok();
     std::env::set_var(
         "RUST_LOG",
-        args.log_level.or(Some("INFO".to_string())).unwrap(),
+        args.clone().log_level.unwrap_or_else(|| "INFO".to_string()),
     );
     pretty_env_logger::init();
 
-    let config_path = args.config_path.unwrap_or_else(|| {
-        let home_dir = home_dir().expect("failed to get home directory");
-        format!("{}/.deimos/config.toml", home_dir.to_string_lossy())
-    });
-
-    // if the config file doesn't exist, create it with the default values
-    if !Path::new(&config_path).exists() {
-        if let Some(parent) = Path::new(&config_path).parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-
-        let default_config = Config::default();
-        let config_toml = toml::to_string(&default_config).unwrap();
-        fs::write(&config_path, config_toml).unwrap();
-    }
+    let config_path = get_config_path(&args)?;
+    ensure_config_file_exists(&config_path)?;
 
     let config_source = ConfigBuilder::<DefaultState>::default()
         .add_source(File::with_name(&config_path))
-        .build()?;
+        .build()
+        .map_err(|e| GeneralError::InitializationError(format!("building config: {}", e)))?;
 
     let default_config = Config::default();
     let loaded_config: Config = config_source.try_deserialize().unwrap_or_else(|e| {
@@ -171,75 +161,170 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config, config::ConfigError>
         Config::default()
     });
 
-    // if the config file is missing a field, use the default value
-    let merged_config = Config {
-        webserver: loaded_config.webserver.or(default_config.webserver),
-        redis_config: loaded_config.redis_config.or(default_config.redis_config),
-        celestia_config: loaded_config
-            .celestia_config
-            .or(default_config.celestia_config),
-        da_layer: loaded_config.da_layer.or(default_config.da_layer),
-        epoch_time: loaded_config.epoch_time.or(default_config.epoch_time),
-        verifying_key: loaded_config.verifying_key.or(default_config.verifying_key),
-    };
+    let merged_config = merge_configs(loaded_config, default_config);
+    let final_config = apply_command_line_args(merged_config, args);
 
-    if args.verifying_key.clone().is_none() && merged_config.verifying_key.clone().is_none() {
-        warn!("sequencer's public key was not provided, this is not recommended and epoch signatures will not be verified.")
+    if final_config.verifying_key.is_none() {
+        warn!("sequencer's public key was not provided. this is not recommended and epoch signatures will not be verified.");
     }
 
-    Ok(Config {
-        webserver: Some(WebServerConfig {
-            host: args
-                .host
-                .unwrap_or(merged_config.webserver.clone().unwrap().host),
-            port: args.port.unwrap_or(merged_config.webserver.unwrap().port),
-        }),
-        redis_config: Some(RedisConfig {
-            connection_string: args
-                .redis_client
-                .unwrap_or(merged_config.redis_config.unwrap().connection_string),
-        }),
-        celestia_config: Some(CelestiaConfig {
-            connection_string: args.celestia_client.unwrap_or(
-                merged_config
-                    .celestia_config
-                    .clone()
-                    .unwrap()
-                    .connection_string,
-            ),
-            start_height: args
-                .celestia_start_height
-                .unwrap_or(merged_config.celestia_config.clone().unwrap().start_height),
-            namespace_id: args
-                .celestia_namespace_id
-                .unwrap_or(merged_config.celestia_config.unwrap().namespace_id),
-        }),
-        da_layer: merged_config.da_layer,
-        epoch_time: Some(args.epoch_time.unwrap_or(merged_config.epoch_time.unwrap())),
-        verifying_key: args.verifying_key.or(merged_config.verifying_key),
-    })
+    Ok(final_config)
 }
 
-pub async fn initialize_da_layer(config: &Config) -> Arc<dyn DataAvailabilityLayer + 'static> {
-    match config.da_layer.as_ref().unwrap() {
+fn get_config_path(args: &CommandLineArgs) -> DeimosResult<String> {
+    args.config_path
+        .clone()
+        .or_else(|| {
+            home_dir().map(|path| format!("{}/.deimos/config.toml", path.to_string_lossy()))
+        })
+        .ok_or_else(|| {
+            GeneralError::MissingArgumentError("could not determine config path".to_string()).into()
+        })
+}
+
+fn ensure_config_file_exists(config_path: &str) -> DeimosResult<()> {
+    if !Path::new(config_path).exists() {
+        if let Some(parent) = Path::new(config_path).parent() {
+            fs::create_dir_all(parent).map_err(|e| {
+                GeneralError::InitializationError(format!(
+                    "failed to create config directory: {}",
+                    e
+                ))
+            })?;
+        }
+
+        let default_config = Config::default();
+        let config_toml = toml::to_string(&default_config).map_err(|e| {
+            GeneralError::EncodingError(format!("failed to serialize default config: {}", e))
+        })?;
+
+        fs::write(config_path, config_toml).map_err(|e| {
+            GeneralError::InitializationError(format!(
+                "failed to write default config to disk: {}",
+                e
+            ))
+        })?;
+    }
+    Ok(())
+}
+
+fn merge_configs(loaded: Config, default: Config) -> Config {
+    Config {
+        webserver: loaded.webserver.or(default.webserver),
+        redis_config: loaded.redis_config.or(default.redis_config),
+        celestia_config: loaded.celestia_config.or(default.celestia_config),
+        da_layer: loaded.da_layer.or(default.da_layer),
+        epoch_time: loaded.epoch_time.or(default.epoch_time),
+        verifying_key: loaded.verifying_key.or(default.verifying_key),
+    }
+}
+
+fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
+    Config {
+        webserver: Some(WebServerConfig {
+            host: args.host.unwrap_or_else(|| {
+                config
+                    .webserver
+                    .as_ref()
+                    .map(|w| w.host.clone())
+                    .unwrap_or_else(|| WebServerConfig::default().host)
+            }),
+            port: args.port.unwrap_or_else(|| {
+                config
+                    .webserver
+                    .as_ref()
+                    .map(|w| w.port)
+                    .unwrap_or_else(|| WebServerConfig::default().port)
+            }),
+        }),
+        redis_config: Some(RedisConfig {
+            connection_string: args.redis_client.unwrap_or_else(|| {
+                config
+                    .redis_config
+                    .as_ref()
+                    .map(|r| r.connection_string.clone())
+                    .unwrap_or_else(|| RedisConfig::default().connection_string)
+            }),
+        }),
+        celestia_config: Some(CelestiaConfig {
+            connection_string: args.celestia_client.unwrap_or_else(|| {
+                config
+                    .celestia_config
+                    .as_ref()
+                    .map(|c| c.connection_string.clone())
+                    .unwrap_or_else(|| CelestiaConfig::default().connection_string)
+            }),
+            start_height: args.celestia_start_height.unwrap_or_else(|| {
+                config
+                    .celestia_config
+                    .as_ref()
+                    .map(|c| c.start_height)
+                    .unwrap_or_else(|| CelestiaConfig::default().start_height)
+            }),
+            namespace_id: args.celestia_namespace_id.unwrap_or_else(|| {
+                config
+                    .celestia_config
+                    .as_ref()
+                    .map(|c| c.namespace_id.clone())
+                    .unwrap_or_else(|| CelestiaConfig::default().namespace_id)
+            }),
+        }),
+        da_layer: config.da_layer,
+        epoch_time: Some(args.epoch_time.unwrap_or_else(|| {
+            config
+                .epoch_time
+                .unwrap_or_else(|| Config::default().epoch_time.unwrap())
+        })),
+        verifying_key: args.verifying_key.or(config.verifying_key),
+    }
+}
+
+pub async fn initialize_da_layer(
+    config: &Config,
+) -> DeimosResult<Arc<dyn DataAvailabilityLayer + 'static>> {
+    let da_layer = config.da_layer.as_ref().ok_or(DeimosError::ConfigError(
+        "DA Layer not specified".to_string(),
+    ))?;
+
+    match da_layer {
         DALayerOption::Celestia => {
-            let celestia_conf = config.clone().celestia_config.unwrap();
-            match CelestiaConnection::new(
-                &celestia_conf.connection_string,
-                None,
-                &celestia_conf.namespace_id,
-            )
-            .await
-            {
-                Ok(da) => Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>,
-                Err(e) => {
-                    panic!("connecting to celestia: {}", e);
+            let celestia_conf = config
+                .celestia_config
+                .clone()
+                .ok_or(DeimosError::ConfigError(
+                    "Celestia configuration not found".to_string(),
+                ))?;
+
+            for attempt in 1..=DA_RETRY_COUNT {
+                match CelestiaConnection::new(
+                    &celestia_conf.connection_string,
+                    None,
+                    &celestia_conf.namespace_id,
+                )
+                .await
+                {
+                    Ok(da) => return Ok(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
+                    Err(e) => {
+                        if attempt == DA_RETRY_COUNT {
+                            return Err(DataAvailabilityError::ConnectionError(format!(
+                                "failed to connect to celestia node after {} attempts: {}",
+                                DA_RETRY_COUNT, e
+                            ))
+                            .into());
+                        }
+                        error!("Attempt {} to connect to celestia node failed: {}. Retrying in {} seconds...", attempt, e, DA_RETRY_INTERVAL.as_secs());
+                        tokio::time::sleep(DA_RETRY_INTERVAL).await;
+                    }
                 }
             }
+            unreachable!() // This line should never be reached due to the return in the last iteration
         }
         DALayerOption::InMemory => {
-            Arc::new(LocalDataAvailabilityLayer::new()) as Arc<dyn DataAvailabilityLayer + 'static>
+            Ok(Arc::new(LocalDataAvailabilityLayer::new())
+                as Arc<dyn DataAvailabilityLayer + 'static>)
         }
-        DALayerOption::None => panic!("No DA Layer"),
+        DALayerOption::None => Err(DeimosError::ConfigError(
+            "No DA Layer specified".to_string(),
+        )),
     }
 }

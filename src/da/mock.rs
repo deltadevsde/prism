@@ -15,7 +15,7 @@ pub struct NoopDataAvailabilityLayer {}
 
 #[async_trait]
 impl DataAvailabilityLayer for NoopDataAvailabilityLayer {
-    async fn get_message(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> DAResult<u64> {
         Ok(0)
     }
 
@@ -49,9 +49,15 @@ impl LocalDataAvailabilityLayer {
     }
 }
 
+impl Default for LocalDataAvailabilityLayer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
-    async fn get_message(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> DAResult<u64> {
         Ok(100)
     }
 
@@ -86,6 +92,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
+            .truncate(true)
             .create(true)
             .open("data.json")
             .expect("Unable to open file");
@@ -134,10 +141,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
 mod tests {
     use crate::{
         utils::validate_epoch,
-        zk_snark::{
-            deserialize_custom_to_verifying_key, deserialize_proof, serialize_proof,
-            serialize_verifying_key_to_custom, BatchMerkleProofCircuit, Bls12Proof, VerifyingKey,
-        },
+        zk_snark::{BatchMerkleProofCircuit, Bls12Proof, VerifyingKey},
     };
 
     use super::*;
@@ -197,8 +201,8 @@ mod tests {
     }
 
     fn create_node(label: &str, value: &str) -> Node {
-        let label = sha256_mod(&label.to_string());
-        let value = sha256_mod(&value.to_string());
+        let label = sha256_mod(label);
+        let value = sha256_mod(value);
         Node::new_leaf(true, true, label, value, TAIL.to_string())
     }
 
@@ -216,10 +220,7 @@ mod tests {
         let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
 
         // the serialized proof is posted
-        (
-            serialize_proof(&proof),
-            serialize_verifying_key_to_custom(&params.vk),
-        )
+        (proof.into(), params.vk.into())
     }
 
     fn verify_epoch_json(epoch: Vec<EpochJson>) {
@@ -227,9 +228,8 @@ mod tests {
             let prev_commitment = epoch_json.prev_commitment;
             let current_commitment = epoch_json.current_commitment;
 
-            let proof = deserialize_proof(&epoch_json.proof).unwrap();
-            let verifying_key =
-                deserialize_custom_to_verifying_key(&epoch_json.verifying_key).unwrap();
+            let proof = epoch_json.proof.clone().try_into().unwrap();
+            let verifying_key = epoch_json.verifying_key.clone().try_into().unwrap();
 
             match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
                 Ok(_) => {
@@ -271,7 +271,7 @@ mod tests {
             sequencer_layer
                 .submit(&EpochJson {
                     height: 1,
-                    prev_commitment: prev_commitment,
+                    prev_commitment,
                     current_commitment: tree.get_commitment().unwrap(),
                     proof: bls12proof,
                     verifying_key: vk,
@@ -303,9 +303,9 @@ mod tests {
             sequencer_layer
                 .submit(&EpochJson {
                     height: 2,
-                    prev_commitment: prev_commitment,
+                    prev_commitment,
                     current_commitment: tree.get_commitment().unwrap(),
-                    proof: proof,
+                    proof,
                     verifying_key: vk,
                     signature: None,
                 })

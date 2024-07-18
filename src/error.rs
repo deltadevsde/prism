@@ -16,6 +16,8 @@ pub enum DeimosError {
     Proof(#[from] ProofError),
     #[error(transparent)]
     MerkleTree(#[from] MerkleTreeError),
+    #[error("config error: {0}")]
+    ConfigError(String),
 }
 
 // general reusable errors
@@ -37,6 +39,8 @@ pub enum GeneralError {
     InvalidSignature,
     #[error("starting webserver")]
     WebserverError,
+    #[error("initializing service: {0}")]
+    InitializationError(String),
 }
 
 #[derive(Error, Debug)]
@@ -49,12 +53,18 @@ pub enum DatabaseError {
     NotFoundError(String),
     #[error("retreiving input order list")]
     GetInputOrderError,
+    #[error("reading {0} from database")]
+    ReadError(String),
     #[error("writing {0} to database")]
     WriteError(String),
     #[error("deleting {0} from database")]
     DeleteError(String),
     #[error(transparent)]
     GeneralError(#[from] GeneralError),
+    #[error("connecting to database: {0}")]
+    ConnectionError(String),
+    #[error("initializing database: {0}")]
+    InitializationError(String),
 }
 
 // Result alias for [`DataAvailabilityError`]
