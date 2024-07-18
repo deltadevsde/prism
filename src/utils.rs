@@ -1,16 +1,14 @@
 use crate::{
     error::{DeimosError, DeimosResult, GeneralError, ProofError},
     storage::{ChainEntry, Operation},
-    zk_snark::{
-        hex_to_scalar, InsertMerkleProofCircuit, ProofVariantCircuit, UpdateMerkleProofCircuit,
-    },
+    zk_snark::{hex_to_scalar, ProofVariantCircuit},
 };
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::{InsertProof, NonMembershipProof, Proof, UpdateProof};
+use indexed_merkle_tree::tree::Proof;
 use rand::rngs::OsRng;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -51,42 +49,6 @@ pub fn decode_public_key(pub_key_str: &String) -> DeimosResult<Ed25519VerifyingK
 
     Ed25519VerifyingKey::from_bytes(&public_key_array)
         .map_err(|_| GeneralError::DecodingError("ed25519 verifying key".to_string()).into())
-}
-
-pub fn validate_proof(proof_value: String) -> DeimosResult<()> {
-    if let Ok((non_membership_proof, first_proof, second_proof)) =
-        serde_json::from_str::<(NonMembershipProof, UpdateProof, UpdateProof)>(&proof_value)
-    {
-        let insertion_proof = InsertProof {
-            non_membership_proof,
-            first_proof,
-            second_proof,
-        };
-        if insertion_proof.verify() {
-            let insertion_circuit = InsertMerkleProofCircuit::new(&insertion_proof)?;
-            insertion_circuit.create_and_verify_snark()?;
-            Ok(())
-        } else {
-            // TODO: could insertion_proof.verify() maybe return a more detailed error to use?
-            Err(
-                ProofError::VerificationError("insertion proof could not be verified".to_string())
-                    .into(),
-            )
-        }
-    } else if let Ok(proof) = serde_json::from_str::<UpdateProof>(&proof_value) {
-        if proof.verify() {
-            let update_circuit = UpdateMerkleProofCircuit::new(&proof)?;
-            update_circuit.create_and_verify_snark()?;
-            Ok(())
-        } else {
-            Err(
-                ProofError::VerificationError("update proof could not be verified".to_string())
-                    .into(),
-            )
-        }
-    } else {
-        Err(ProofError::InvalidFormatError.into())
-    }
 }
 
 pub fn create_and_verify_snark(
