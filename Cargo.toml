@@ -52,7 +52,7 @@ clap = { version = "4.3.2", features = ["derive"] }
 config = "0.14.0"
 fs2 = "0.4.3"
 thiserror = "1.0.50"
-indexed-merkle-tree = "0.4.1"
+indexed-merkle-tree = "0.5.0"
 dotenvy = "0.15.7"
 ahash = "0.8.7"
 celestia-rpc = "0.2.0"

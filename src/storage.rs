@@ -34,10 +34,10 @@ impl Display for Operation {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct ChainEntry {
-    pub hash: String,
-    pub previous_hash: String,
+    pub hash: Hash,
+    pub previous_hash: Hash,
     pub operation: Operation,
-    pub value: String,
+    pub value: Hash,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -99,10 +99,10 @@ pub trait Database: Send + Sync {
         &self,
         epoch: &u64,
         epoch_operation: &u64,
-        commitment: &str,
+        commitment: &Hash,
         proofs: &str,
     ) -> DeimosResult<()>;
-    fn add_commitment(&self, epoch: &u64, commitment: &str) -> DeimosResult<()>;
+    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> DeimosResult<()>;
     fn initialize_derived_dict(&self) -> DeimosResult<()>;
     fn flush_database(&self) -> DeimosResult<()>;
 }
@@ -338,8 +338,10 @@ impl Database for RedisConnections {
     ) -> DeimosResult<()> {
         let mut con = self.lock_connection(&self.derived_dict)?;
         let mut input_con = self.lock_connection(&self.input_order)?;
-        let hashed_key = sha256_mod(&incoming_entry.id);
-        con.set::<&String, &String, String>(&hashed_key, &value.hash)
+        let hashed_key = sha256_mod(&incoming_entry.id.as_bytes());
+        // TODO: @distractedm1nd thought about saving the raw bytes of the hash for space effiency but it seems like redis needs at least the key to be a string and for consistency we should probably save then both value as a string wdyt?
+        // to_string() Method works here because i've implemented the Display trait for Hash in indexed_merkle_tree crate
+        con.set::<&String, &String, String>(&hashed_key.to_string(), &value.hash.to_string())
             .map_err(|_| {
                 DeimosError::Database(DatabaseError::WriteError(format!(
                     "derived dict update for key: {}",
@@ -349,7 +351,7 @@ impl Database for RedisConnections {
 
         if new {
             input_con
-                .rpush::<&'static str, &String, u32>("input_order", &hashed_key)
+                .rpush::<&'static str, &String, u32>("input_order", &hashed_key.to_string())
                 .map_err(|_| {
                     DeimosError::Database(DatabaseError::WriteError(format!(
                         "input order update for key: {}",
@@ -389,7 +391,7 @@ impl Database for RedisConnections {
         &self,
         epoch: &u64,
         epoch_operation: &u64,
-        commitment: &str,
+        commitment: &Hash,
         proofs: &str,
     ) -> DeimosResult<()> {
         let mut con = self.lock_connection(&self.merkle_proofs)?;
@@ -403,7 +405,7 @@ impl Database for RedisConnections {
             })
     }
 
-    fn add_commitment(&self, epoch: &u64, commitment: &str) -> DeimosResult<()> {
+    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> DeimosResult<()> {
         let mut con = self.lock_connection(&self.commitments)?;
         con.set::<&String, &String, ()>(&format!("epoch_{}", epoch), &commitment.to_string())
             .map_err(|_| {
@@ -484,10 +486,10 @@ mod tests {
 
     fn create_mock_chain_entry() -> ChainEntry {
         ChainEntry {
-            hash: "test_hash".to_string(),
-            previous_hash: "test_previous_hash".to_string(),
+            hash: sha256_mod(b"test_hash"),
+            previous_hash: sha256_mod(b"test_previous_hash"),
             operation: Operation::Add,
-            value: "test_value".to_string(),
+            value: sha256_mod(b"test_value"),
         }
     }
 
@@ -644,9 +646,9 @@ mod tests {
 
         // check if the returned keys are correct
         let expected_keys: Vec<String> = vec![
-            sha256_mod("test_key1"),
-            sha256_mod("test_key2"),
-            sha256_mod("test_key3"),
+            sha256_mod(b"test_key1").to_string(),
+            sha256_mod(b"test_key2").to_string(),
+            sha256_mod(b"test_key3").to_string(),
         ];
         let returned_keys: Vec<String> = keys;
 
@@ -759,7 +761,7 @@ mod tests {
         }
 
         let hashchain = redis_connections.get_hashchain(&incoming_entry.id).unwrap();
-        assert_eq!(hashchain[0].hash, "test_hash");
+        assert_eq!(hashchain[0].hash, sha256_mod(b"test_hash"));
         assert_eq!(hashchain.len(), 1);
 
         teardown(&redis_connections);

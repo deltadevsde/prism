@@ -4,7 +4,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{node::Node, sha256_mod, tree::IndexedMerkleTree};
+use indexed_merkle_tree::{node::Node, sha256_mod, tree::IndexedMerkleTree, Hash};
 use std::{self, sync::Arc, time::Duration};
 use tokio::{
     sync::{
@@ -222,7 +222,9 @@ impl Sequencer {
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
             match self.db.get_commitment(&prev_epoch) {
-                Ok(commitment) => commitment,
+                Ok(commitment) => {
+                    Hash::from_hex(commitment.as_str()).map_err(DeimosError::MerkleTree)?
+                }
                 Err(e) => {
                     return Err(DatabaseError::ReadError(format!(
                         "commitment for prev epoch {:?}: {:?}",
@@ -286,13 +288,9 @@ impl Sequencer {
                     .db
                     .get_derived_value(&key.to_string())
                     .map_err(|e| DatabaseError::ReadError(e.to_string()))?;
-                Ok(Node::new_leaf(
-                    true,
-                    true,
-                    key.clone(),
-                    value,
-                    Node::TAIL.to_string(),
-                ))
+                let hash_key = Hash::from_hex(&key).unwrap();
+                let hash_value = Hash::from_hex(&value).unwrap();
+                Ok(Node::new_leaf(true, true, hash_key, hash_value, Node::TAIL))
             })
             .collect();
 
@@ -335,8 +333,8 @@ impl Sequencer {
                 .iter()
                 .enumerate() // use index
                 .find(|(_, k)| {
-                    // without dereferencing we compare &&string with &string
-                    label.clone().is_some_and(|l| *k == &l)
+                    let k = Hash::from_hex(k).unwrap();
+                    label.clone().is_some_and(|l| k == l)
                 })
                 .map(|(k, _)| k)
         });
@@ -346,9 +344,9 @@ impl Sequencer {
             nodes.push(Node::new_leaf(
                 false,
                 true,
-                Node::HEAD.to_string(),
-                Node::HEAD.to_string(),
-                Node::TAIL.to_string(),
+                Node::HEAD,
+                Node::HEAD,
+                Node::TAIL,
             ));
         }
 

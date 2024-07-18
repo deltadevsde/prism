@@ -5,6 +5,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use ed25519::Signature;
+use indexed_merkle_tree::Hash;
 use serde::{Deserialize, Serialize};
 use std::{self, str::FromStr};
 
@@ -14,8 +15,8 @@ pub mod mock;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EpochJson {
     pub height: u64,
-    pub prev_commitment: String,
-    pub current_commitment: String,
+    pub prev_commitment: Hash,
+    pub current_commitment: Hash,
     pub proof: Bls12Proof,
     pub verifying_key: VerifyingKey,
     pub signature: Option<String>,
