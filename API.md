@@ -7,8 +7,7 @@ The update operation causes either the hashchain for an existing entry to be upd
 ```bash
 curl -X POST http://localhost:8080/update-entry \
       -H "Content-Type: application/json" \
-      -d '{ "id": "YOUR_ID", \
-            "public_key": "YOUR_PUBLIC_KEY", \
+      -d '{ "public_key": "YOUR_PUBLIC_KEY", \
             "signed_message": "YOUR_SIGNED_MESSAGE"}'
 ```
 

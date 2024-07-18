@@ -20,8 +20,9 @@ use crate::{
     da::{DataAvailabilityLayer, EpochJson},
     error::{DeimosError, GeneralError},
     node_types::NodeType,
-    storage::{ChainEntry, Database, IncomingEntry, Operation, UpdateEntryJson},
+    storage::{ChainEntry, Database, IncomingEntry, Operation},
     utils::verify_signature,
+    webserver::UpdateEntryJson,
     webserver::WebServer,
     zk_snark::BatchMerkleProofCircuit,
 };
@@ -359,25 +360,20 @@ impl Sequencer {
     ///
     /// # Arguments
     ///
-    /// * `operation` - An `Operation` enum variant representing the type of operation to be performed (Add or Revoke).
-    /// * `incoming_entry` - A reference to an `IncomingEntry` struct containing the key and the entry data to be updated.
-    /// * `signature` - A `Signature` struct representing the signature.
-    pub fn update_entry(&self, signature: &UpdateEntryJson) -> DeimosResult<()> {
-        debug!(
-            "updating entry for uid {} with msg {}",
-            signature.id, signature.signed_message
-        );
-        let signed_content = match verify_signature(signature, Some(signature.public_key.clone())) {
-            Ok(content) => content,
-            Err(_) => {
-                // TODO(@distractedm1nd): Add to error instead of logging
-                error!(
-                    "updating entry for uid {}: invalid signature with pubkey {} on msg {}",
-                    signature.id, signature.public_key, signature.signed_message
-                );
-                return Err(GeneralError::InvalidSignature.into());
-            }
-        };
+    /// * `signed_entry` - A `UpdateEntryJson` object.
+    pub fn update_entry(&self, signed_entry: &UpdateEntryJson) -> DeimosResult<()> {
+        let signed_content =
+            match verify_signature(signed_entry, Some(signed_entry.public_key.clone())) {
+                Ok(content) => content,
+                Err(_) => {
+                    // TODO(@distractedm1nd): Add to error instead of logging
+                    error!(
+                        "updating entry: invalid signature with pubkey {} on msg {}",
+                        signed_entry.public_key, signed_entry.signed_incoming_entry
+                    );
+                    return Err(GeneralError::InvalidSignature.into());
+                }
+            };
 
         let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
             Ok(obj) => obj,
@@ -386,14 +382,16 @@ impl Sequencer {
             }
         };
 
+        let id = message_obj.id.clone();
+
         // check with given key if the signature is valid
         let incoming_entry = IncomingEntry {
-            id: signature.id.clone(),
+            id: id.clone(),
             operation: message_obj.operation,
             value: message_obj.value,
         };
         // add a new key to an existing id  ( type for the value retrieved from the database explicitly set to string)
-        match self.db.get_hashchain(&signature.id) {
+        match self.db.get_hashchain(&id) {
             Ok(value) => {
                 // hashchain already exists
                 let mut current_chain = value.clone();
@@ -402,7 +400,7 @@ impl Sequencer {
                     None => {
                         return Err(DatabaseError::NotFoundError(format!(
                             "last value in hashchain for incoming entry with id {}",
-                            signature.id.clone()
+                            id.clone()
                         ))
                         .into());
                     }
@@ -469,7 +467,7 @@ impl Sequencer {
                     None => {
                         return Err(DatabaseError::ReadError(format!(
                             "last value in hashchain for incoming entry with id {}",
-                            signature.id.clone()
+                            id.clone()
                         ))
                         .into());
                     }

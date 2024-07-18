@@ -1,3 +1,10 @@
+use crate::{
+    cfg::WebServerConfig,
+    error::{DeimosError, DeimosResult, GeneralError},
+    node_types::sequencer::Sequencer,
+    storage::{ChainEntry, IncomingEntry},
+    utils::{decode_signed_message, is_not_revoked, Signable},
+};
 use actix_cors::Cors;
 use actix_web::{
     dev::Server,
@@ -5,19 +12,11 @@ use actix_web::{
     web::{self, Data},
     App as ActixApp, HttpResponse, HttpServer, Responder,
 };
+use ed25519::Signature;
 use indexed_merkle_tree::{sha256_mod, tree::Proof};
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Value};
-
 use std::sync::Arc;
-
-use crate::{
-    cfg::WebServerConfig,
-    error::DeimosResult,
-    node_types::sequencer::Sequencer,
-    storage::{ChainEntry, UpdateEntryJson},
-    utils::is_not_revoked,
-};
 
 pub struct WebServer {
     pub cfg: WebServerConfig,
@@ -29,6 +28,45 @@ pub struct EpochData {
     previous_commitment: String,
     current_commitment: String,
     proofs: Vec<Proof>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct UpdateEntryJson {
+    pub signed_incoming_entry: String,
+    pub public_key: String,
+}
+
+impl Signable for UpdateEntryJson {
+    fn get_signature(&self) -> DeimosResult<Signature> {
+        let signed_message_bytes = decode_signed_message(&self.signed_incoming_entry)?;
+
+        // extract the first 64 bytes from the signed message which are the signature
+        let signature_bytes: &[u8; 64] = match signed_message_bytes.get(..64) {
+            Some(array_section) => match array_section.try_into() {
+                Ok(array) => array,
+                Err(e) => Err(DeimosError::General(GeneralError::DecodingError(format!(
+                    "signed message to array: {}",
+                    e
+                ))))?,
+            },
+            None => Err(DeimosError::General(GeneralError::DecodingError(format!(
+                "extracting signature from signed message: {}",
+                &self.signed_incoming_entry
+            ))))?,
+        };
+
+        Ok(Signature::from_bytes(signature_bytes))
+    }
+
+    fn get_content_to_sign(&self) -> DeimosResult<String> {
+        let signed_message_bytes = decode_signed_message(&self.signed_incoming_entry)?;
+        let message_bytes = &signed_message_bytes[64..];
+        Ok(String::from_utf8_lossy(message_bytes).to_string())
+    }
+
+    fn get_public_key(&self) -> DeimosResult<String> {
+        Ok(self.public_key.clone())
+    }
 }
 
 impl WebServer {
@@ -69,9 +107,7 @@ impl WebServer {
 ///
 /// * `req_body` - A JSON string containing the information needed to update or insert an entry in the dictionary.
 ///   The JSON string should have the following fields:
-///     - `operation`: An `Operation` enum indicating whether the operation is an add or revoke operation.
-///     - `incoming_entry`: An `IncomingEntry` object containing the id and the public key.
-///     - `private_key`: A string representing the private key used to sign the incoming entry. (TODO! bessere Lösung finden)
+///     - `signed_message`: An `UpdateEntryJson` object containing the id, operation, and value, signed by the public key.
 ///
 /// # Returns
 ///
@@ -90,6 +126,23 @@ async fn update_entry(
                 return HttpResponse::BadRequest().json("Could not parse JSON data. Wrong format.")
             }
         };
+
+    let incoming_entry_json = match signature_with_key.get_content_to_sign() {
+        Ok(entry) => entry,
+        Err(e) => {
+            return HttpResponse::BadRequest().json(format!(
+                "Error retrieving content from UpdateEntryJson: {}",
+                e
+            ))
+        }
+    };
+
+    let incoming_entry: IncomingEntry = match serde_json::from_str(&incoming_entry_json) {
+        Ok(entry) => entry,
+        Err(e) => {
+            return HttpResponse::BadRequest().json(format!("Error decoding signed content: {}", e))
+        }
+    };
 
     let epoch = match session.db.get_epoch() {
         Ok(e) => e,
@@ -113,7 +166,7 @@ async fn update_entry(
         }
     };
 
-    let result: DeimosResult<Vec<ChainEntry>> = session.db.get_hashchain(&signature_with_key.id);
+    let result: DeimosResult<Vec<ChainEntry>> = session.db.get_hashchain(&incoming_entry.id);
     let update_proof = result.is_ok();
 
     match session.update_entry(&signature_with_key) {
@@ -125,7 +178,7 @@ async fn update_entry(
                         .json(format!("Error creating new tree: {}", e))
                 }
             };
-            let hashed_id = sha256_mod(&signature_with_key.id);
+            let hashed_id = sha256_mod(&incoming_entry.id);
             let mut node = match new_tree.find_leaf_by_label(&hashed_id) {
                 Some(n) => n,
                 None => return HttpResponse::InternalServerError().json("Error finding leaf"),
