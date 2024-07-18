@@ -29,3 +29,9 @@ jobs:
 
       - name: Run cargo-audit
         run: cargo audit
+
+      - name: Install clippy
+        run: rustup component add clippy
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
