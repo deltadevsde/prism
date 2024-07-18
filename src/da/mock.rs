@@ -151,15 +151,13 @@ mod tests {
         node::Node,
         sha256_mod,
         tree::{IndexedMerkleTree, Proof},
+        Hash,
     };
     use rand::rngs::OsRng;
     use std::{
         fs::OpenOptions,
         io::{Error, Seek, SeekFrom},
     };
-
-    const EMPTY_HASH: &str = Node::HEAD;
-    const TAIL: &str = Node::TAIL;
 
     pub fn clear_file(filename: &str) -> Result<(), Error> {
         // Open file for writing
@@ -175,20 +173,8 @@ mod tests {
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::new_leaf(
-            true,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
-        let inactive_node = Node::new_leaf(
-            false,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
+        let active_node = Node::new_leaf(true, true, Node::HEAD, Node::HEAD, Node::TAIL);
+        let inactive_node = Node::new_leaf(false, true, Node::HEAD, Node::HEAD, Node::TAIL);
 
         // build a tree with 4 nodes
         IndexedMerkleTree::new(vec![
@@ -201,14 +187,14 @@ mod tests {
     }
 
     fn create_node(label: &str, value: &str) -> Node {
-        let label = sha256_mod(label);
-        let value = sha256_mod(value);
-        Node::new_leaf(true, true, label, value, TAIL.to_string())
+        let label = sha256_mod(label.as_bytes());
+        let value = sha256_mod(value.as_bytes());
+        Node::new_leaf(true, true, label, value, Node::TAIL)
     }
 
     fn create_proof_and_vk(
-        prev_commitment: String,
-        current_commitment: String,
+        prev_commitment: Hash,
+        current_commitment: Hash,
         proofs: Vec<Proof>,
     ) -> (Bls12Proof, VerifyingKey) {
         let batched_proof =

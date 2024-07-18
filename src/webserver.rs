@@ -178,7 +178,7 @@ async fn update_entry(
                         .json(format!("Error creating new tree: {}", e))
                 }
             };
-            let hashed_id = sha256_mod(&incoming_entry.id);
+            let hashed_id = sha256_mod(incoming_entry.id.as_bytes());
             let mut node = match new_tree.find_leaf_by_label(&hashed_id) {
                 Some(n) => n,
                 None => return HttpResponse::InternalServerError().json("Error finding leaf"),

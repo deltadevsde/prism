@@ -1,14 +1,14 @@
 use crate::{
     error::{DeimosError, DeimosResult, GeneralError, ProofError},
     storage::{ChainEntry, Operation},
-    zk_snark::{hex_to_scalar, ProofVariantCircuit},
+    zk_snark::{hash_to_scalar, ProofVariantCircuit},
 };
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::tree::Proof;
+use indexed_merkle_tree::{tree::Proof, Hash};
 use rand::rngs::OsRng;
 
 /// Checks if a given public key in the list of `ChainEntry` objects has been revoked.
@@ -22,7 +22,7 @@ use rand::rngs::OsRng;
 ///
 /// `true` if the value was not revoked, otherwise `false`.
 /// TODO(@distractedm1nd): is_revoked > is_not_revoked, for readability
-pub fn is_not_revoked(entries: &[ChainEntry], value: String) -> bool {
+pub fn is_not_revoked(entries: &[ChainEntry], value: Hash) -> bool {
     for entry in entries {
         if entry.value == value && matches!(entry.operation, Operation::Revoke) {
             return false;
@@ -80,8 +80,8 @@ pub fn create_and_verify_snark(
 }
 
 pub fn validate_epoch(
-    previous_commitment: &str,
-    current_commitment: &str,
+    previous_commitment: &Hash,
+    current_commitment: &Hash,
     proof: groth16::Proof<Bls12>,
     verifying_key: VerifyingKey<Bls12>,
 ) -> Result<groth16::Proof<Bls12>, DeimosError> {
@@ -89,8 +89,8 @@ pub fn validate_epoch(
     let pvk = groth16::prepare_verifying_key(&verifying_key);
 
     let scalars: Result<Vec<Scalar>, _> = vec![
-        hex_to_scalar(previous_commitment),
-        hex_to_scalar(current_commitment),
+        hash_to_scalar(previous_commitment),
+        hash_to_scalar(current_commitment),
     ]
     .into_iter()
     .collect();
@@ -191,18 +191,16 @@ mod tests {
         let mut tree = IndexedMerkleTree::new_with_size(8).unwrap();
         let prev_commitment = tree.get_commitment().unwrap();
 
-        let ryan = sha256_mod("Ryan");
-        let ford = sha256_mod("Ford");
-        let sebastian = sha256_mod("Sebastian");
-        let pusch = sha256_mod("Pusch");
-        let ethan = sha256_mod("Ethan");
-        let triple_zero = sha256_mod("000");
+        let ryan = sha256_mod(b"Ryan");
+        let ford = sha256_mod(b"Ford");
+        let sebastian = sha256_mod(b"Sebastian");
+        let pusch = sha256_mod(b"Pusch");
+        let ethan = sha256_mod(b"Ethan");
+        let triple_zero = sha256_mod(b"000");
 
-        let mut ryans_node = Node::new_leaf(true, false, ryan, ford, Node::TAIL.to_string());
-        let mut sebastians_node =
-            Node::new_leaf(true, true, sebastian.clone(), pusch, Node::TAIL.to_string());
-        let mut ethans_node =
-            Node::new_leaf(true, false, ethan, triple_zero, Node::TAIL.to_string());
+        let mut ryans_node = Node::new_leaf(true, false, ryan, ford, Node::TAIL);
+        let mut sebastians_node = Node::new_leaf(true, true, sebastian.clone(), pusch, Node::TAIL);
+        let mut ethans_node = Node::new_leaf(true, false, ethan, triple_zero, Node::TAIL);
 
         let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
         let second_insert_proof = tree.insert_node(&mut sebastians_node).unwrap();
@@ -212,9 +210,8 @@ mod tests {
         let second_insert_zk_snark = Proof::Insert(second_insert_proof);
         let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
-        let updated_seb = sha256_mod("Sebastian");
-        sebastians_node =
-            Node::new_leaf(true, true, sebastian, updated_seb, Node::TAIL.to_string());
+        let updated_seb = sha256_mod(b"Sebastian");
+        sebastians_node = Node::new_leaf(true, true, sebastian, updated_seb, Node::TAIL);
         let index = tree.find_node_index(&sebastians_node).unwrap();
         let update_proof = tree.update_node(index, sebastians_node).unwrap();
 

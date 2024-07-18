@@ -11,6 +11,7 @@ use indexed_merkle_tree::{
     node::{LeafNode, Node},
     sha256_mod,
     tree::{InsertProof, MerkleProof, Proof, UpdateProof},
+    Hash,
 };
 use serde::{Deserialize, Serialize};
 
@@ -214,7 +215,7 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
 
 fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
     if !proof.path.is_empty() {
-        let root = hex_to_scalar(&proof.root_hash)?;
+        let root = hash_to_scalar(&proof.root_hash)?;
         Ok((root, &proof.path))
     } else {
         Err(DeimosError::Proof(ProofError::ProofUnpackError(format!(
@@ -234,27 +235,33 @@ mod tests {
     use indexed_merkle_tree::{node::Node, sha256_mod, tree::IndexedMerkleTree};
     use rand::rngs::OsRng;
 
-    const EMPTY_HASH: &str = Node::HEAD;
-    const TAIL: &str = Node::TAIL;
-
     fn head_scalar() -> Scalar {
-        hex_to_scalar("0000000000000000000000000000000000000000000000000000000000000000").unwrap()
+        hash_to_scalar(&Node::HEAD).unwrap()
     }
 
     fn small_scalar() -> Scalar {
-        hex_to_scalar("13ae3ed6fe76d459c9c66fe38ff187593561a1f24d34cb22e06148c77e4cc02b").unwrap()
+        let small_hash =
+            Hash::from_hex("13ae3ed6fe76d459c9c66fe38ff187593561a1f24d34cb22e06148c77e4cc02b")
+                .unwrap();
+        hash_to_scalar(&small_hash).unwrap()
     }
 
     fn mid_scalar() -> Scalar {
-        hex_to_scalar("3d1e830624b2572adc05351a7cbee2d3aa3f6a52b34fa38a260c9c78f96fcd07").unwrap()
+        let mid_hash =
+            Hash::from_hex("3d1e830624b2572adc05351a7cbee2d3aa3f6a52b34fa38a260c9c78f96fcd07")
+                .unwrap();
+        hash_to_scalar(&mid_hash).unwrap()
     }
 
     fn big_scalar() -> Scalar {
-        hex_to_scalar("6714dda957170ad7720bbd2c38004152f34ea5d4350a154b84a259cc62a5dbb4").unwrap()
+        let big_hash =
+            Hash::from_hex("6714dda957170ad7720bbd2c38004152f34ea5d4350a154b84a259cc62a5dbb4")
+                .unwrap();
+        hash_to_scalar(&big_hash).unwrap()
     }
 
     fn tail_scalar() -> Scalar {
-        hex_to_scalar("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000000").unwrap()
+        hash_to_scalar(&Node::TAIL).unwrap()
     }
 
     fn create_scalars() -> (Scalar, Scalar, Scalar, Scalar, Scalar) {
@@ -279,20 +286,8 @@ mod tests {
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::new_leaf(
-            true,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
-        let inactive_node = Node::new_leaf(
-            false,
-            true,
-            EMPTY_HASH.to_string(),
-            EMPTY_HASH.to_string(),
-            TAIL.to_string(),
-        );
+        let active_node = Node::new_leaf(true, true, Node::HEAD, Node::HEAD, Node::TAIL);
+        let inactive_node = Node::new_leaf(false, true, Node::HEAD, Node::HEAD, Node::TAIL);
 
         // build a tree with 4 nodes
         IndexedMerkleTree::new(vec![
@@ -339,16 +334,16 @@ mod tests {
         let prev_commitment = tree.get_commitment().unwrap();
 
         // create two nodes to insert
-        let ryan = sha256_mod("Ryan");
-        let ford = sha256_mod("Ford");
-        let sebastian = sha256_mod("Sebastian");
-        let pusch = sha256_mod("Pusch");
-        let ethan = sha256_mod("Ethan");
-        let triple_zero = sha256_mod("000");
+        let ryan = sha256_mod(b"Ryan");
+        let ford = sha256_mod(b"Ford");
+        let sebastian = sha256_mod(b"Sebastian");
+        let pusch = sha256_mod(b"Pusch");
+        let ethan = sha256_mod(b"Ethan");
+        let triple_zero = sha256_mod(b"000");
 
-        let mut ryans_node = Node::new_leaf(true, true, ryan, ford, TAIL.to_string());
-        let mut sebastians_node = Node::new_leaf(true, true, sebastian, pusch, TAIL.to_string());
-        let mut ethans_node = Node::new_leaf(true, true, ethan, triple_zero, TAIL.to_string());
+        let mut ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL);
+        let mut sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL);
+        let mut ethans_node = Node::new_leaf(true, true, ethan, triple_zero, Node::TAIL);
 
         // generate proofs for the two nodes
         let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
@@ -443,20 +438,9 @@ pub struct BatchMerkleProofCircuit {
     pub proofs: Vec<ProofVariantCircuit>,
 }
 
-pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
-    let bytes = hex::decode(hex_string).map_err(|e| {
-        GeneralError::DecodingError(format!("failed to decode hex string {}: {}", hex_string, e))
-    })?;
-
-    if bytes.len() != 32 {
-        return Err(GeneralError::ParsingError(format!(
-            "failed to parse hex string to byte array: expected 32 bytes, got {} bytes",
-            bytes.len()
-        )));
-    }
-
+pub fn hash_to_scalar(hash: &Hash) -> Result<Scalar, GeneralError> {
     let mut byte_array = [0u8; 32];
-    byte_array.copy_from_slice(&bytes[..32]);
+    byte_array.copy_from_slice(hash.as_ref());
     byte_array.reverse();
 
     // Convert the byte array to an array of four u64 values
@@ -474,13 +458,14 @@ pub fn hex_to_scalar(hex_string: &str) -> Result<Scalar, GeneralError> {
 pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar, GeneralError> {
     let mut current_hash = path[0].get_hash();
     for node in path.iter().skip(1) {
-        if node.is_left_sibling() {
-            current_hash = sha256_mod(&format!("{}{}", &node.get_hash(), current_hash));
+        let combined = if node.is_left_sibling() {
+            [node.get_hash().as_ref(), current_hash.as_ref()].concat()
         } else {
-            current_hash = sha256_mod(&format!("{}{}", current_hash, &node.get_hash()));
-        }
+            [current_hash.as_ref(), node.get_hash().as_ref()].concat()
+        };
+        current_hash = sha256_mod(&combined);
     }
-    hex_to_scalar(current_hash.as_str())
+    hash_to_scalar(&current_hash)
 }
 
 fn proof_of_update<CS: ConstraintSystem<Scalar>>(
@@ -545,9 +530,9 @@ fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
 ) -> Result<(), SynthesisError> {
     // first we need to make sure, that the label of the missing node lies between the first element of the path
 
-    let current_label = hex_to_scalar(&non_membership_path[0].get_label()).unwrap();
-    let missing_label = hex_to_scalar(&missing_node.label).unwrap();
-    let curret_next = hex_to_scalar(&non_membership_path[0].get_next()).unwrap();
+    let current_label = hash_to_scalar(&non_membership_path[0].get_label()).unwrap();
+    let missing_label = hash_to_scalar(&missing_node.label).unwrap();
+    let curret_next = hash_to_scalar(&non_membership_path[0].get_next()).unwrap();
 
     // circuit check
     LessThanCircuit::new(current_label, missing_label)
@@ -869,8 +854,8 @@ impl UpdateMerkleProofCircuit {
         // // TODO: are there cases where MissingArgumentError isnt the right type?
 
         // let old_root =
-        //     hex_to_scalar(&old_root.ok_or(GeneralError::MissingArgumentError)?.as_str())?;
-        // let updated_root = hex_to_scalar(
+        //     hash_to_scalar(&old_root.ok_or(GeneralError::MissingArgumentError)?.as_str())?;
+        // let updated_root = hash_to_scalar(
         //     &updated_root
         //         .ok_or(GeneralError::MissingArgumentError)?
         //         .as_str(),
@@ -898,12 +883,12 @@ impl UpdateMerkleProofCircuit {
 
 impl BatchMerkleProofCircuit {
     pub fn new(
-        old_commitment: &str,
-        new_commitment: &str,
+        old_commitment: &Hash,
+        new_commitment: &Hash,
         proofs: Vec<Proof>,
     ) -> Result<BatchMerkleProofCircuit, DeimosError> {
-        let parsed_old_commitment = hex_to_scalar(old_commitment).map_err(DeimosError::General)?;
-        let parsed_new_commitment = hex_to_scalar(new_commitment).map_err(DeimosError::General)?;
+        let parsed_old_commitment = hash_to_scalar(old_commitment).map_err(DeimosError::General)?;
+        let parsed_new_commitment = hash_to_scalar(new_commitment).map_err(DeimosError::General)?;
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
@@ -941,11 +926,11 @@ impl HashChainEntryCircuit {
         hashchain: Vec<ChainEntry>,
     ) -> Result<HashChainEntryCircuit, GeneralError> {
         // hash the clear text and parse it to scalar
-        let hashed_value = sha256_mod(value);
-        let parsed_value = hex_to_scalar(&hashed_value)?;
+        let hashed_value = sha256_mod(value.as_bytes());
+        let parsed_value = hash_to_scalar(&hashed_value)?;
         let mut parsed_hashchain: Vec<Scalar> = vec![];
         for entry in hashchain {
-            parsed_hashchain.push(hex_to_scalar(entry.value.as_str())?)
+            parsed_hashchain.push(hash_to_scalar(&entry.value)?)
         }
         Ok(HashChainEntryCircuit {
             value: parsed_value,
@@ -954,7 +939,7 @@ impl HashChainEntryCircuit {
     }
 
     pub fn create_public_parameter(value: &str) -> Result<Scalar, GeneralError> {
-        let hashed_value = sha256_mod(value);
-        hex_to_scalar(hashed_value.as_str())
+        let hashed_value = sha256_mod(value.as_bytes());
+        hash_to_scalar(&hashed_value)
     }
 }
