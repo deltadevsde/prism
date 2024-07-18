@@ -222,9 +222,7 @@ impl Sequencer {
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
             match self.db.get_commitment(&prev_epoch) {
-                Ok(commitment) => {
-                    Hash::from_hex(commitment.as_str()).map_err(DeimosError::MerkleTree)?
-                }
+                Ok(commitment) => Hash::from_hex(commitment.as_str()).unwrap(),
                 Err(e) => {
                     return Err(DatabaseError::ReadError(format!(
                         "commitment for prev epoch {:?}: {:?}",
@@ -288,7 +286,7 @@ impl Sequencer {
                     .db
                     .get_derived_value(&key.to_string())
                     .map_err(|e| DatabaseError::ReadError(e.to_string()))?;
-                let hash_key = Hash::from_hex(&key).unwrap();
+                let hash_key = Hash::from_hex(key).unwrap();
                 let hash_value = Hash::from_hex(&value).unwrap();
                 Ok(Node::new_leaf(true, true, hash_key, hash_value, Node::TAIL))
             })
@@ -405,16 +403,16 @@ impl Sequencer {
                 };
 
                 let new_chain_entry = ChainEntry {
-                    hash: sha256_mod(
-                        format!(
-                            "{}, {}, {}",
-                            &incoming_entry.operation, &incoming_entry.value, &last.hash
-                        )
-                        .as_str(),
-                    ),
+                    hash: {
+                        let mut data = Vec::new();
+                        data.extend_from_slice(incoming_entry.operation.to_string().as_bytes());
+                        data.extend_from_slice(incoming_entry.value.as_ref());
+                        data.extend_from_slice(last.hash.as_ref());
+                        sha256_mod(&data)
+                    },
                     previous_hash: last.hash.clone(),
                     operation: incoming_entry.operation.clone(),
-                    value: incoming_entry.value.clone(),
+                    value: sha256_mod(incoming_entry.value.as_bytes()),
                 };
 
                 current_chain.push(new_chain_entry.clone());
@@ -447,18 +445,16 @@ impl Sequencer {
             Err(_) => {
                 debug!("Hashchain does not exist, creating new one...");
                 let new_chain = vec![ChainEntry {
-                    hash: sha256_mod(
-                        format!(
-                            "{}, {}, {}",
-                            Operation::Add,
-                            &incoming_entry.value,
-                            Node::HEAD
-                        )
-                        .as_str(),
-                    ),
-                    previous_hash: Node::HEAD.to_string(),
+                    hash: {
+                        let mut data = Vec::new();
+                        data.extend_from_slice(Operation::Add.to_string().as_bytes());
+                        data.extend_from_slice(incoming_entry.value.as_ref());
+                        data.extend_from_slice(Node::HEAD.as_ref());
+                        sha256_mod(&data)
+                    },
+                    previous_hash: Node::HEAD,
                     operation: incoming_entry.operation.clone(),
-                    value: incoming_entry.value.clone(),
+                    value: sha256_mod(incoming_entry.value.as_bytes()),
                 }];
                 let last_entry = match new_chain.last() {
                     Some(entry) => entry,

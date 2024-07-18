@@ -20,9 +20,9 @@ fn generate_test_tree(size: usize, node_count: usize) -> Duration {
         let mut leaf = Node::new_leaf(
             true,
             true,
-            sha256_mod((i + 1).to_string().as_str()).to_string(),
-            sha256_mod(&i.to_string()),
-            Node::TAIL.to_string(),
+            sha256_mod(&[(i + 1) as u8]),
+            sha256_mod(&[i as u8]),
+            Node::TAIL,
         );
 
         let start = Instant::now();

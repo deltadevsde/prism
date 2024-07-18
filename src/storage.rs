@@ -1,4 +1,4 @@
-use indexed_merkle_tree::{node::Node, sha256_mod, tree::Proof};
+use indexed_merkle_tree::{node::Node, sha256_mod, tree::Proof, Hash};
 use mockall::{predicate::*, *};
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
@@ -338,7 +338,7 @@ impl Database for RedisConnections {
     ) -> DeimosResult<()> {
         let mut con = self.lock_connection(&self.derived_dict)?;
         let mut input_con = self.lock_connection(&self.input_order)?;
-        let hashed_key = sha256_mod(&incoming_entry.id.as_bytes());
+        let hashed_key = sha256_mod(incoming_entry.id.as_bytes());
         // TODO: @distractedm1nd thought about saving the raw bytes of the hash for space effiency but it seems like redis needs at least the key to be a string and for consistency we should probably save then both value as a string wdyt?
         // to_string() Method works here because i've implemented the Display trait for Hash in indexed_merkle_tree crate
         con.set::<&String, &String, String>(&hashed_key.to_string(), &value.hash.to_string())
