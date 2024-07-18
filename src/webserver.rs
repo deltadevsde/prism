@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use crate::{
     cfg::WebServerConfig,
-    error::DatabaseError,
+    error::DeimosResult,
     node_types::sequencer::Sequencer,
     storage::{ChainEntry, DerivedEntry, Entry, UpdateEntryJson},
     utils::{is_not_revoked, validate_proof},
@@ -126,8 +126,7 @@ async fn update_entry(
         }
     };
 
-    let result: Result<Vec<ChainEntry>, DatabaseError> =
-        session.db.get_hashchain(&signature_with_key.id);
+    let result: DeimosResult<Vec<ChainEntry>> = session.db.get_hashchain(&signature_with_key.id);
     let update_proof = result.is_ok();
 
     match session.update_entry(&signature_with_key) {

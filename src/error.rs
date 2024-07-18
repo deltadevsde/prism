@@ -61,6 +61,10 @@ pub enum DatabaseError {
     DeleteError(String),
     #[error(transparent)]
     GeneralError(#[from] GeneralError),
+    #[error("connecting to database: {0}")]
+    ConnectionError(String),
+    #[error("initializing database: {0}")]
+    InitializationError(String),
 }
 
 // Result alias for [`DataAvailabilityError`]

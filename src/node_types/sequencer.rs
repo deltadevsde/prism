@@ -199,10 +199,8 @@ impl Sequencer {
             Err(_) => 0,
         };
 
-        self.db.set_epoch(&epoch).map_err(DeimosError::Database)?;
-        self.db
-            .reset_epoch_operation_counter()
-            .map_err(DeimosError::Database)?;
+        self.db.set_epoch(&epoch)?;
+        self.db.reset_epoch_operation_counter()?;
 
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self
@@ -210,9 +208,7 @@ impl Sequencer {
             .get_commitment()
             .map_err(DeimosError::MerkleTree)?;
 
-        self.db
-            .add_commitment(&epoch, &current_commitment)
-            .map_err(DeimosError::Database)?;
+        self.db.add_commitment(&epoch, &current_commitment)?;
 
         let proofs = match epoch > 0 {
             true => match self.db.get_proofs_in_epoch(&(epoch - 1)) {
