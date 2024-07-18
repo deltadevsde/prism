@@ -13,7 +13,7 @@ pub trait NodeType {
 
 #[cfg(test)]
 mod tests {
-    use crate::{storage::UpdateEntryJson, utils::verify_signature};
+    use crate::{utils::verify_signature, webserver::UpdateEntryJson};
     use base64::{engine::general_purpose, Engine as _};
 
     fn setup_signature(valid_signature: bool) -> UpdateEntryJson {
@@ -25,8 +25,7 @@ mod tests {
         let id_public_key = "CosRXOoSLG7a8sCGx78KhtfLEuiyNY7L4ksFt78mp2M=".to_string();
 
         UpdateEntryJson {
-            id: id_public_key.clone(),
-            signed_message,
+            signed_incoming_entry: signed_message,
             public_key: id_public_key,
         }
     }
@@ -61,7 +60,7 @@ mod tests {
         let short_message = general_purpose::STANDARD.encode("this is a short message");
 
         let signature_with_key = UpdateEntryJson {
-            signed_message: short_message,
+            signed_incoming_entry: short_message,
             ..signature_with_key
         };
 
