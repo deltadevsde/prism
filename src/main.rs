@@ -24,35 +24,45 @@ extern crate log;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
-    let config = load_config(args.clone()).unwrap();
+    let config = load_config(args.clone())
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-    let da = initialize_da_layer(&config).await;
+    let da = initialize_da_layer(&config)
+        .await
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
     let node: Arc<dyn NodeType> = match args.command {
-        Commands::LightClient {} => Arc::new(LightClient::new(
-            da,
-            config.celestia_config.unwrap(),
-            config.verifying_key,
-        )),
+        Commands::LightClient {} => {
+            let celestia_config = config.celestia_config.ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "celestia configuration not found",
+                )
+            })?;
+            Arc::new(LightClient::new(da, celestia_config, config.verifying_key))
+        }
         Commands::Sequencer {} => {
-            match Sequencer::new(
-                Arc::new(
-                    RedisConnections::new(&config.clone().redis_config.unwrap()).map_err(|e| {
+            let redis_config = config.clone().redis_config.ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "redis configuration not found",
+                )
+            })?;
+            let redis_connections = RedisConnections::new(&redis_config)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+            let signing_key = KeyStoreType::KeyChain(KeyChain)
+                .get_signing_key()
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+            Arc::new(
+                Sequencer::new(Arc::new(redis_connections), da, config, signing_key).map_err(
+                    |e| {
+                        error!("error initializing sequencer: {}", e);
                         std::io::Error::new(std::io::ErrorKind::Other, e.to_string())
-                    })?,
-                ),
-                da,
-                config,
-                KeyStoreType::KeyChain(KeyChain).get_signing_key().unwrap(),
-            ) {
-                Ok(sequencer) => Arc::new(sequencer),
-                Err(e) => {
-                    error!("error initializing sequencer: {}", e);
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        e.to_string(),
-                    ));
-                }
-            }
+                    },
+                )?,
+            )
         }
     };
 

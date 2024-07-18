@@ -16,6 +16,8 @@ pub enum DeimosError {
     Proof(#[from] ProofError),
     #[error(transparent)]
     MerkleTree(#[from] MerkleTreeError),
+    #[error("config error: {0}")]
+    ConfigError(String),
 }
 
 // general reusable errors

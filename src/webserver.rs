@@ -41,7 +41,6 @@ impl WebServer {
     }
 
     pub fn start(&self, session: Arc<Sequencer>) -> Server {
-        // TODO: do we need to handle the unwraps for the use in production here? if it fails, the server wont start and we can fix it
         /* let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
         builder.set_private_key_file(env.key_path, SslFiletype::PEM).unwrap();
         builder.set_certificate_chain_file(env.cert_path).unwrap(); */
@@ -97,7 +96,6 @@ async fn update_entry(
     session: web::Data<Arc<Sequencer>>,
     signature_with_key: web::Json<Value>,
 ) -> impl Responder {
-    // Check if JSON data can be structured as UpdateEntryJson
     let signature_with_key: UpdateEntryJson =
         match serde_json::from_value(signature_with_key.into_inner()) {
             Ok(entry_json) => entry_json,
@@ -106,40 +104,99 @@ async fn update_entry(
             }
         };
 
-    // get epoch number and latest epoch operation number from database
-    let epoch: u64 = session.db.get_epoch().unwrap();
-    let epoch_operation: u64 = session.db.get_epoch_operation().unwrap();
+    let epoch = match session.db.get_epoch() {
+        Ok(e) => e,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(format!("Error getting epoch: {}", e))
+        }
+    };
 
-    let tree = session.create_tree().unwrap();
+    let epoch_operation = match session.db.get_epoch_operation() {
+        Ok(eo) => eo,
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(format!("Error getting epoch operation: {}", e))
+        }
+    };
+
+    let tree = match session.create_tree() {
+        Ok(t) => t,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(format!("Error creating tree: {}", e))
+        }
+    };
 
     let result: Result<Vec<ChainEntry>, DatabaseError> =
         session.db.get_hashchain(&signature_with_key.id);
-    // if the entry already exists, an update must be performed, otherwise insert
     let update_proof = result.is_ok();
 
     match session.update_entry(&signature_with_key) {
         Ok(_) => {
-            let new_tree = session.create_tree().unwrap();
+            let new_tree = match session.create_tree() {
+                Ok(t) => t,
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .json(format!("Error creating new tree: {}", e))
+                }
+            };
             let hashed_id = sha256_mod(&signature_with_key.id);
-            let mut node = new_tree.find_leaf_by_label(&hashed_id).unwrap();
-
-            let proofs = if update_proof {
-                let new_index = tree.clone().find_node_index(&node).unwrap();
-                let update_proof = &tree.clone().update_node(new_index, node).unwrap();
-                let pre_processed_string = serde_json::to_string(update_proof).unwrap();
-                format!(r#"{{"Update":{}}}"#, pre_processed_string)
-            } else {
-                let pre_processed_string =
-                    serde_json::to_string(&tree.clone().insert_node(&mut node).unwrap()).unwrap();
-                format!(r#"{{"Insert":{}}}"#, pre_processed_string)
+            let mut node = match new_tree.find_leaf_by_label(&hashed_id) {
+                Some(n) => n,
+                None => return HttpResponse::InternalServerError().json("Error finding leaf"),
             };
 
-            if let Err(err) = session.db.add_merkle_proof(
-                &epoch,
-                &epoch_operation,
-                &tree.get_commitment().unwrap(),
-                &proofs,
-            ) {
+            let proofs = if update_proof {
+                let new_index = match tree.clone().find_node_index(&node) {
+                    Some(i) => i,
+                    None => {
+                        return HttpResponse::InternalServerError()
+                            .json("Error finding node index: {}")
+                    }
+                };
+                let update_proof = match tree.clone().update_node(new_index, node) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return HttpResponse::InternalServerError()
+                            .json(format!("Error updating node: {}", e))
+                    }
+                };
+                match serde_json::to_string(&update_proof) {
+                    Ok(pre_processed_string) => format!(r#"{{"Update":{}}}"#, pre_processed_string),
+                    Err(e) => {
+                        return HttpResponse::InternalServerError()
+                            .json(format!("Error serializing update proof: {}", e))
+                    }
+                }
+            } else {
+                let insert_proof = match tree.clone().insert_node(&mut node) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return HttpResponse::InternalServerError()
+                            .json(format!("Error inserting node: {}", e))
+                    }
+                };
+                match serde_json::to_string(&insert_proof) {
+                    Ok(pre_processed_string) => format!(r#"{{"Insert":{}}}"#, pre_processed_string),
+                    Err(e) => {
+                        return HttpResponse::InternalServerError()
+                            .json(format!("Error serializing insert proof: {}", e))
+                    }
+                }
+            };
+
+            let commitment = match tree.get_commitment() {
+                Ok(c) => c,
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .json(format!("Error getting commitment: {}", e))
+                }
+            };
+
+            if let Err(err) =
+                session
+                    .db
+                    .add_merkle_proof(&epoch, &epoch_operation, &commitment, &proofs)
+            {
                 return HttpResponse::InternalServerError()
                     .json(format!("Error adding merkle proof: {}", err));
             }
@@ -172,10 +229,12 @@ async fn update_entry(
 ///
 #[post("/calculate-values")] // all active values for a given id
 async fn calculate_values(con: web::Data<Arc<Sequencer>>, req_body: String) -> impl Responder {
-    let incoming_id: String = serde_json::from_str(&req_body).unwrap();
+    let incoming_id: String = match serde_json::from_str(&req_body) {
+        Ok(id) => id,
+        Err(e) => return HttpResponse::BadRequest().body(format!("Invalid JSON: {}", e)),
+    };
 
     match con.db.get_hashchain(&incoming_id) {
-        // id exists, calculate values
         Ok(value) => {
             let chain_copy = value.clone();
             let mut values = vec![];
@@ -187,12 +246,11 @@ async fn calculate_values(con: web::Data<Arc<Sequencer>>, req_body: String) -> i
                 }
             }
 
-            let json_response = serde_json::to_string(&json!({
-                "values": values
-            }))
-            .unwrap();
-            // return values
-            HttpResponse::Ok().body(json_response)
+            match serde_json::to_string(&json!({ "values": values })) {
+                Ok(json_response) => HttpResponse::Ok().body(json_response),
+                Err(e) => HttpResponse::InternalServerError()
+                    .body(format!("Failed to serialize response: {}", e)),
+            }
         }
         Err(err) => HttpResponse::BadRequest().body(format!("Couldn't calculate values: {}", err)),
     }
@@ -204,13 +262,19 @@ async fn calculate_values(con: web::Data<Arc<Sequencer>>, req_body: String) -> i
 ///
 #[get("/get-dictionaries")]
 async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    let keys: Vec<String> = match con.db.get_keys() {
+    let keys = match con.db.get_keys() {
         Ok(keys) => keys,
-        Err(_) => return HttpResponse::NotFound().body("Keys not found"),
+        Err(e) => {
+            return HttpResponse::InternalServerError().body(format!("Failed to get keys: {}", e))
+        }
     };
-    let derived_keys: Vec<String> = match con.db.get_derived_keys() {
+
+    let derived_keys = match con.db.get_derived_keys() {
         Ok(keys) => keys,
-        Err(_) => return HttpResponse::NotFound().body("Derived Keys not found"),
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .body(format!("Failed to get derived keys: {}", e))
+        }
     };
 
     #[derive(Serialize, Deserialize)]
@@ -223,38 +287,62 @@ async fn get_hashchains(con: web::Data<Arc<Sequencer>>) -> impl Responder {
         dict: Vec::new(),
         derived_dict: Vec::new(),
     };
+
     for id in keys {
-        let chain: Vec<ChainEntry> = con.db.get_hashchain(&id).unwrap();
-        resp.dict.push(Entry { id, value: chain });
+        match con.db.get_hashchain(&id) {
+            Ok(chain) => resp.dict.push(Entry { id, value: chain }),
+            Err(e) => {
+                return HttpResponse::InternalServerError()
+                    .body(format!("Failed to get hashchain for id {}: {}", id, e))
+            }
+        }
     }
 
     for id in derived_keys {
-        let value: String = con.db.get_derived_value(&id).unwrap();
-        resp.derived_dict.push(DerivedEntry { id, value });
+        match con.db.get_derived_value(&id) {
+            Ok(value) => resp.derived_dict.push(DerivedEntry { id, value }),
+            Err(e) => {
+                return HttpResponse::InternalServerError()
+                    .body(format!("Failed to get derived value for id {}: {}", id, e))
+            }
+        }
     }
-    HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
+
+    match serde_json::to_string(&resp) {
+        Ok(json_resp) => HttpResponse::Ok().body(json_resp),
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to serialize response: {}", e))
+        }
+    }
 }
 
 #[get("/get-dictionary/{id}")]
 async fn get_hashchain(con: web::Data<Arc<Sequencer>>, id: web::Path<String>) -> impl Responder {
     let id_str = id.into_inner();
-    let chain: Vec<ChainEntry> = match con.db.get_hashchain(&id_str) {
-        Ok(chain) => chain,
-        Err(_) => return HttpResponse::NotFound().body("No dictionary found for the given id"),
-    };
 
-    #[derive(Serialize, Deserialize)]
-    struct Response {
-        id: String,
-        dict: Vec<ChainEntry>,
+    match con.db.get_hashchain(&id_str) {
+        Ok(chain) => {
+            #[derive(Serialize, Deserialize)]
+            struct Response {
+                id: String,
+                dict: Vec<ChainEntry>,
+            }
+
+            let resp = Response {
+                id: id_str,
+                dict: chain,
+            };
+
+            match serde_json::to_string(&resp) {
+                Ok(json_resp) => HttpResponse::Ok().body(json_resp),
+                Err(e) => HttpResponse::InternalServerError()
+                    .body(format!("Failed to serialize response: {}", e)),
+            }
+        }
+        Err(e) => {
+            HttpResponse::NotFound().body(format!("No dictionary found for the given id: {}", e))
+        }
     }
-
-    let resp = Response {
-        id: id_str,
-        dict: chain,
-    };
-
-    HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
 }
 
 // get prev commitment, current commitments and proofs in between
@@ -264,58 +352,41 @@ pub fn get_epochs_and_proofs(
     epoch: &str,
 ) -> Result<EpochData, Box<dyn std::error::Error>> {
     if epoch == "0" {
-        // TODO: eventually recalcualte the empty tree root and compare it to the one in the database
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "Epoch 0 does not have a previous commitment",
         )));
     }
 
-    // Parse epoch as u64
-    let epoch_number: u64 = match epoch.parse::<u64>() {
-        Ok(value) => value,
-        Err(_) => {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Could not parse epoch number",
-            )))
-        }
-    };
+    let epoch_number = epoch.parse::<u64>().map_err(|_| {
+        Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Could not parse epoch number",
+        ))
+    })?;
 
-    // Calculate the previous epoch
     let previous_epoch = epoch_number - 1;
 
-    // Get current commitment from database
-    let current_commitment: String = match con.db.get_commitment(&epoch_number) {
-        Ok(value) => value,
-        Err(_) => {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Could not find current commitment",
-            )))
-        }
-    };
+    let current_commitment = con.db.get_commitment(&epoch_number).map_err(|_| {
+        Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Could not find current commitment",
+        ))
+    })?;
 
-    // Get previous commitment from database
-    let previous_commitment: String = match con.db.get_commitment(&previous_epoch) {
-        Ok(value) => value,
-        Err(_) => {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Could not find previous commitment",
-            )))
-        }
-    };
+    let previous_commitment = con.db.get_commitment(&previous_epoch).map_err(|_| {
+        Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Could not find previous commitment",
+        ))
+    })?;
 
-    let proofs = match con.db.get_proofs_in_epoch(&previous_epoch) {
-        Ok(value) => value,
-        Err(_) => {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Could not find proofs in previous epoch",
-            )))
-        }
-    };
+    let proofs = con.db.get_proofs_in_epoch(&previous_epoch).map_err(|_| {
+        Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Could not find proofs in previous epoch",
+        ))
+    })?;
 
     Ok(EpochData {
         epoch_number,
@@ -353,19 +424,17 @@ pub fn get_epochs_and_proofs(
 /// or if the zkSNARK circuit creation or proof verification fails.
 #[post("/validate-proof")]
 async fn handle_validate_proof(con: web::Data<Arc<Sequencer>>, req_body: String) -> impl Responder {
-    // get proof id from the database
     let proof_id: String = match serde_json::from_str(&req_body) {
-        Ok(proof_id) => proof_id,
+        Ok(id) => id,
         Err(_) => return HttpResponse::BadRequest().body("Invalid proof ID"),
     };
-    let value: String = match con.db.get_proof(&proof_id) {
-        Ok(value) => value,
-        Err(_) => return HttpResponse::BadRequest().body("Could not find proof"),
-    };
 
-    match validate_proof(value) {
-        Ok(_) => HttpResponse::Ok().body("Proof is valid"),
-        Err(err) => HttpResponse::BadRequest().body(err.to_string()),
+    match con.db.get_proof(&proof_id) {
+        Ok(value) => match validate_proof(value) {
+            Ok(_) => HttpResponse::Ok().body("Proof is valid"),
+            Err(err) => HttpResponse::BadRequest().body(err.to_string()),
+        },
+        Err(_) => HttpResponse::BadRequest().body("Could not find proof"),
     }
 }
 
@@ -376,7 +445,6 @@ async fn handle_validate_proof(con: web::Data<Arc<Sequencer>>, req_body: String)
 // Returns an HTTP response containing either a confirmation of successful validation or an error.
 #[post("/validate-epoch")]
 async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String) -> impl Responder {
-    debug!("validating epoch {}", req_body);
     let epoch: String = match serde_json::from_str(&req_body) {
         Ok(epoch) => epoch,
         Err(_) => return HttpResponse::BadRequest().body("Invalid epoch"),
@@ -391,38 +459,20 @@ async fn handle_validate_epoch(con: web::Data<Arc<Sequencer>>, req_body: String)
                 proofs,
             } = epoch_data;
 
-            debug!(
-                "validate-epoch: found {:?} proofs in epoch {}",
-                proofs.len(),
-                epoch
-            );
-            let batch_circuit = match BatchMerkleProofCircuit::new(
-                &previous_commitment,
-                &current_commitment,
-                proofs,
-            ) {
-                Ok(circuit) => circuit,
-                Err(err) => {
-                    return HttpResponse::BadRequest().body(err.to_string());
-                }
-            };
-
-            let (proof, _verifying_key) = match batch_circuit.create_and_verify_snark() {
-                Ok(proof) => proof,
-                Err(err) => {
-                    return HttpResponse::BadRequest().body(err.to_string());
-                }
-            };
-
-            let serialized_proof: Bls12Proof = proof.into();
-
-            // Create the JSON object for the response
-            let response = json!({
-                "epoch": epoch_number,
-                "proof": serialized_proof,
-            });
-
-            HttpResponse::Ok().json(response)
+            match BatchMerkleProofCircuit::new(&previous_commitment, &current_commitment, proofs) {
+                Ok(batch_circuit) => match batch_circuit.create_and_verify_snark() {
+                    Ok((proof, _verifying_key)) => {
+                        let serialized_proof: Bls12Proof = proof.into();
+                        let response = json!({
+                            "epoch": epoch_number,
+                            "proof": serialized_proof,
+                        });
+                        HttpResponse::Ok().json(response)
+                    }
+                    Err(err) => HttpResponse::BadRequest().body(err.to_string()),
+                },
+                Err(err) => HttpResponse::BadRequest().body(err.to_string()),
+            }
         }
         Err(err) => {
             error!(
@@ -441,11 +491,10 @@ async fn handle_validate_hashchain_proof(
 ) -> impl Responder {
     #[derive(Deserialize)]
     struct ValidateHashchainBody {
-        pub_key: String, // public key from other company
-        value: String,   // clear text
+        pub_key: String,
+        value: String,
     }
 
-    // Check if JSON data can be structured as UpdateEntryJson
     let incoming_value: ValidateHashchainBody =
         match serde_json::from_value(incoming_value.into_inner()) {
             Ok(incoming_value_json) => incoming_value_json,
@@ -454,7 +503,12 @@ async fn handle_validate_hashchain_proof(
             }
         };
 
-    let hashchain = session.db.get_hashchain(&incoming_value.pub_key).unwrap();
+    let hashchain = match session.db.get_hashchain(&incoming_value.pub_key) {
+        Ok(chain) => chain,
+        Err(e) => {
+            return HttpResponse::BadRequest().json(format!("Error getting hashchain: {}", e))
+        }
+    };
 
     let circuit = match HashChainEntryCircuit::create(&incoming_value.value, hashchain) {
         Ok(circuit) => circuit,
@@ -466,33 +520,35 @@ async fn handle_validate_hashchain_proof(
 
     let rng = &mut OsRng;
 
-    trace!("creating parameters with BLS12-381 pairing-friendly elliptic curve construction");
-    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).unwrap();
+    let params = match groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng) {
+        Ok(params) => params,
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(format!("Error generating parameters: {}", e))
+        }
+    };
 
-    trace!("creating proof for zkSNARK");
-    let proof = groth16::create_random_proof(circuit.clone(), &params, rng).unwrap();
+    let proof = match groth16::create_random_proof(circuit.clone(), &params, rng) {
+        Ok(proof) => proof,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(format!("Error creating proof: {}", e))
+        }
+    };
 
-    trace!("prepare verifying key for zkSNARK");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
     let public_param = match HashChainEntryCircuit::create_public_parameter(&incoming_value.value) {
         Ok(param) => param,
-        Err(e) => {
-            return HttpResponse::BadRequest().json(e.to_string());
-        }
+        Err(e) => return HttpResponse::BadRequest().json(e.to_string()),
     };
 
-    trace!("verifying zkSNARK proof");
     match groth16::verify_proof(&pvk, &proof, &[public_param]) {
         Ok(_) => {
-            info!("proof successfully verified with: {:?}", public_param);
             let serialized_proof: Bls12Proof = proof.into();
-            HttpResponse::Ok().json({
-                json!({
-                    "proof": serialized_proof,
-                    "public_param": sha256_mod(&incoming_value.value),
-                })
-            })
+            HttpResponse::Ok().json(json!({
+                "proof": serialized_proof,
+                "public_param": sha256_mod(&incoming_value.value),
+            }))
         }
         Err(_) => HttpResponse::BadRequest().body("Proof is invalid"),
     }
@@ -534,30 +590,35 @@ async fn get_current_tree(con: web::Data<Arc<Sequencer>>) -> impl Responder {
 
 #[post("/get-epoch-operations")]
 async fn get_epoch_operations(con: web::Data<Arc<Sequencer>>, req_body: String) -> impl Responder {
-    // try to parse proof id from request body
     let epoch: String = match serde_json::from_str(&req_body) {
         Ok(epoch) => epoch,
         Err(_) => return HttpResponse::BadRequest().body("Invalid epoch"),
     };
 
-    let epoch_data = match get_epochs_and_proofs(con, epoch.as_str()) {
-        Ok(data) => data,
+    match get_epochs_and_proofs(con, epoch.as_str()) {
+        Ok(epoch_data) => match serde_json::to_string(&epoch_data) {
+            Ok(json_data) => HttpResponse::Ok().body(json_data),
+            Err(e) => HttpResponse::InternalServerError()
+                .body(format!("Failed to serialize epoch data: {}", e)),
+        },
         Err(err) => {
             error!(
                 "validate-epoch: getting proofs for epoch {}: {}",
                 epoch, err
             );
-            return HttpResponse::BadRequest()
-                .body("Something went wrong while getting the proofs");
+            HttpResponse::BadRequest().body("Something went wrong while getting the proofs")
         }
-    };
-
-    HttpResponse::Ok().body(serde_json::to_string(&epoch_data).unwrap())
+    }
 }
 
 #[get("/get-epochs")]
 async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
-    let mut epochs = con.db.get_epochs().unwrap();
+    let mut epochs = match con.db.get_epochs() {
+        Ok(epochs) => epochs,
+        Err(e) => {
+            return HttpResponse::InternalServerError().body(format!("Failed to get epochs: {}", e))
+        }
+    };
 
     #[derive(Serialize, Deserialize)]
     struct Epoch {
@@ -575,20 +636,36 @@ async fn get_epochs(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     epochs.sort();
 
     for epoch in epochs {
-        let value: String = con.db.get_commitment(&epoch).unwrap();
-        resp.epochs.push(Epoch {
-            id: epoch,
-            commitment: value,
-        });
+        match con.db.get_commitment(&epoch) {
+            Ok(value) => resp.epochs.push(Epoch {
+                id: epoch,
+                commitment: value,
+            }),
+            Err(e) => {
+                return HttpResponse::InternalServerError().body(format!(
+                    "Failed to get commitment for epoch {}: {}",
+                    epoch, e
+                ))
+            }
+        }
     }
 
-    HttpResponse::Ok().body(serde_json::to_string(&resp).unwrap())
+    match serde_json::to_string(&resp) {
+        Ok(json_resp) => HttpResponse::Ok().body(json_resp),
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to serialize response: {}", e))
+        }
+    }
 }
 
 #[get("/finalize-epoch")]
 async fn handle_finalize_epoch(con: web::Data<Arc<Sequencer>>) -> impl Responder {
     match con.finalize_epoch().await {
-        Ok(epoch) => HttpResponse::Ok().body(json!(epoch.proof).to_string()),
+        Ok(epoch) => match serde_json::to_string(&epoch.proof) {
+            Ok(json_proof) => HttpResponse::Ok().body(json_proof),
+            Err(e) => HttpResponse::InternalServerError()
+                .body(format!("Failed to serialize proof: {}", e)),
+        },
         Err(err) => HttpResponse::BadRequest().body(err.to_string()),
     }
 }

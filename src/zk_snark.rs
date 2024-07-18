@@ -196,7 +196,7 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
             .map_err(|e| GeneralError::EncodingError(format!("{}: gamma_g2", e)))?;
         let ic = custom_vk
             .ic
-            .split(",")
+            .split(',')
             .map(|s| s.to_string().try_into())
             .collect::<DeimosResult<Vec<G1Affine>>>()?;
 
