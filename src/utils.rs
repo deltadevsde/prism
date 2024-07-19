@@ -42,7 +42,7 @@ pub fn decode_public_key(pub_key_str: &String) -> DeimosResult<Ed25519VerifyingK
     // decode the public key from base64 string to bytes
     let public_key_bytes = engine
         .decode(pub_key_str)
-        .map_err(|e| GeneralError::DecodingError(format!("hex string: {}", e)))?;
+        .map_err(|e| GeneralError::DecodingError(format!("base64 string: {}", e)))?;
 
     let public_key_array: [u8; 32] = public_key_bytes
         .try_into()
@@ -124,7 +124,6 @@ pub fn decode_signed_message(signed_message: &String) -> DeimosResult<Vec<u8>> {
         )))
     })?;
 
-    // check if the signed message is (at least) 64 bytes long
     if signed_message_bytes.len() < 64 {
         Err(GeneralError::ParsingError(format!(
             "signed message is too short: {} < 64",
@@ -152,10 +151,9 @@ pub fn verify_signature<T: Signable>(
     let content = item.get_content_to_sign()?;
     let signature = item.get_signature()?;
 
-    if public_key.verify(content.as_bytes(), &signature).is_ok() {
-        Ok(content)
-    } else {
-        Err(GeneralError::InvalidSignature.into())
+    match public_key.verify(content.as_bytes(), &signature) {
+        Ok(_) => Ok(content),
+        Err(e) => Err(GeneralError::InvalidSignature(e).into()),
     }
 }
 

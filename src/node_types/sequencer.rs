@@ -7,7 +7,7 @@ use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
     node::Node,
     sha256_mod,
-    tree::{IndexedMerkleTree, MerkleProof, Proof},
+    tree::{IndexedMerkleTree, Proof},
     Hash,
 };
 use std::{self, sync::Arc, time::Duration};
@@ -521,18 +521,17 @@ impl Sequencer {
         self: Arc<Self>,
         signed_entry: &UpdateEntryJson,
     ) -> DeimosResult<()> {
-        let signed_content =
-            match verify_signature(signed_entry, Some(signed_entry.public_key.clone())) {
-                Ok(content) => content,
-                Err(_) => {
-                    // TODO(@distractedm1nd): Add to error instead of logging
-                    error!(
-                        "updating entry: invalid signature with pubkey {} on msg {}",
-                        signed_entry.public_key, signed_entry.signed_incoming_entry
-                    );
-                    return Err(GeneralError::InvalidSignature.into());
-                }
-            };
+        let signed_content = match verify_signature(signed_entry, None) {
+            Ok(content) => content,
+            Err(e) => {
+                // TODO(@distractedm1nd): Add to error instead of logging
+                error!(
+                    "updating entry: invalid signature with pubkey {} on msg {}",
+                    signed_entry.public_key, signed_entry.signed_incoming_entry
+                );
+                return Err(e);
+            }
+        };
 
         let incoming: IncomingEntry = match serde_json::from_str(&signed_content) {
             Ok(obj) => obj,
@@ -542,7 +541,7 @@ impl Sequencer {
         };
 
         let mut pending = self.pending_entries.lock().await;
-        pending.push(incoming_entry);
+        pending.push(incoming);
         Ok(())
     }
 }
@@ -553,6 +552,7 @@ mod tests {
     use crate::cfg::{Config, RedisConfig};
     use crate::da::mock::LocalDataAvailabilityLayer;
     use crate::storage::RedisConnection;
+    use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
     use keystore_rs::create_signing_key;
 
     // set up redis connection and flush database before each test
@@ -567,33 +567,103 @@ mod tests {
         redis_connections.flush_database().unwrap();
     }
 
-    // fn create_update_entry(id: String) -> UpdateEntryJson {
-    //     let key = create_signing_key();
-    //     let incoming = IncomingEntry {
-    //         id,
-    //         operation: Operation::Add,
-    //         value: "test".to_string(),
-    //     };
-    //     let sig = key.sign(&serde_json::to_string(&incoming).unwrap().as_bytes());
+    fn create_update_entry(id: String, value: String) -> UpdateEntryJson {
+        let key = create_signing_key();
+        let incoming = IncomingEntry {
+            id,
+            operation: Operation::Add,
+            value,
+        };
+        let content = serde_json::to_string(&incoming).unwrap();
+        let sig = key.sign(content.clone().as_bytes());
 
-    //     UpdateEntryJson {
-    //         signed_incoming_entry: sig.to_bytes().to_string(),
-    //         public_key: key.verifying_key().as_bytes().to_string(),
-    //     }
-    // }
+        UpdateEntryJson {
+            incoming_entry: incoming,
+            signed_incoming_entry: sig.to_string(),
+            public_key: engine.encode(key.verifying_key().to_bytes()),
+        }
+    }
 
     #[tokio::test]
-    async fn test_update() {
+    async fn test_validate_and_queue_update() {
         let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
         let db = Arc::new(setup_db());
-        let sequencer = Sequencer::new(
-            db.clone(),
-            da_layer,
-            Config::default(),
-            create_signing_key(),
-        )
-        .unwrap();
+        let sequencer = Arc::new(
+            Sequencer::new(
+                db.clone(),
+                da_layer,
+                Config::default(),
+                create_signing_key(),
+            )
+            .unwrap(),
+        );
 
-        // sequencer.validate_and_queue_update(&CUpdateEntryJson {
+        let update_entry =
+            create_update_entry("test@deltadevs.xyz".to_string(), "test".to_string());
+
+        sequencer
+            .validate_and_queue_update(&update_entry)
+            .await
+            .unwrap();
+        teardown_db(&db);
+    }
+
+    #[tokio::test]
+    async fn test_queued_update_gets_finalized() {
+        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let db = Arc::new(setup_db());
+        let sequencer = Arc::new(
+            Sequencer::new(
+                db.clone(),
+                da_layer,
+                Config::default(),
+                create_signing_key(),
+            )
+            .unwrap(),
+        );
+
+        let id = "test@deltadevs.xyz".to_string();
+
+        let update_entry = create_update_entry(id.clone(), "test".to_string());
+
+        sequencer
+            .clone()
+            .validate_and_queue_update(&update_entry)
+            .await
+            .unwrap();
+
+        sequencer.finalize_epoch().await.unwrap();
+
+        let hashchain = sequencer.db.get_hashchain(id.as_str());
+        assert_eq!(
+            hashchain.unwrap().first().unwrap().value,
+            sha256_mod("test".as_bytes())
+        );
+
+        teardown_db(&db);
+    }
+
+    #[tokio::test]
+    async fn test_validate_invalid_update_fails() {
+        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let db = Arc::new(setup_db());
+        let sequencer = Arc::new(
+            Sequencer::new(
+                db.clone(),
+                da_layer,
+                Config::default(),
+                create_signing_key(),
+            )
+            .unwrap(),
+        );
+
+        let mut update_entry =
+            create_update_entry("test@deltadevs.xyz".to_string(), "test".to_string());
+        let second_signer = create_update_entry("abcd".to_string(), "test".to_string()).public_key;
+        update_entry.public_key = second_signer;
+
+        let res = sequencer.validate_and_queue_update(&update_entry).await;
+        assert!(res.is_err());
+        teardown_db(&db);
     }
 }

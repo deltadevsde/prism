@@ -1,3 +1,4 @@
+use ed25519_dalek::SignatureError;
 use indexed_merkle_tree::error::MerkleTreeError;
 use thiserror::Error;
 
@@ -35,8 +36,8 @@ pub enum GeneralError {
     MissingArgumentError(String),
     #[error("invalid public key")]
     InvalidPublicKey,
-    #[error("invalid signature")]
-    InvalidSignature,
+    #[error(transparent)]
+    InvalidSignature(#[from] SignatureError),
     #[error("starting webserver")]
     WebserverError,
     #[error("initializing service: {0}")]
