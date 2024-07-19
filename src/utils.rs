@@ -22,6 +22,7 @@ use rand::rngs::OsRng;
 ///
 /// `true` if the value was not revoked, otherwise `false`.
 /// TODO(@distractedm1nd): is_revoked > is_not_revoked, for readability
+#[allow(dead_code)]
 pub fn is_not_revoked(entries: &[ChainEntry], value: Hash) -> bool {
     for entry in entries {
         if entry.value == value && matches!(entry.operation, Operation::Revoke) {

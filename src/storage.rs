@@ -81,9 +81,7 @@ pub trait Database: Send + Sync {
     fn get_proof(&self, id: &str) -> DeimosResult<String>;
     fn get_proofs_in_epoch(&self, epoch: &u64) -> DeimosResult<Vec<Proof>>;
     fn get_epoch(&self) -> DeimosResult<u64>;
-    fn get_epoch_operation(&self) -> DeimosResult<u64>;
     fn set_epoch(&self, epoch: &u64) -> DeimosResult<()>;
-    fn reset_epoch_operation_counter(&self) -> DeimosResult<()>;
     fn update_hashchain(
         &self,
         incoming_entry: &IncomingEntry,
@@ -96,7 +94,6 @@ pub trait Database: Send + Sync {
         new: bool,
     ) -> DeimosResult<()>;
     fn get_epochs(&self) -> DeimosResult<Vec<u64>>;
-    fn increment_epoch_operation(&self) -> DeimosResult<u64>;
     fn add_merkle_proof(
         &self,
         epoch: &u64,
@@ -255,26 +252,11 @@ impl Database for RedisConnection {
         })
     }
 
-    fn get_epoch_operation(&self) -> DeimosResult<u64> {
-        let mut con = self.lock_connection()?;
-        con.get("app_state:epoch_operation").map_err(|_| {
-            DeimosError::Database(DatabaseError::NotFoundError("epoch operation".to_string()))
-        })
-    }
-
     fn set_epoch(&self, epoch: &u64) -> DeimosResult<()> {
         let mut con = self.lock_connection()?;
         con.set::<&str, &u64, ()>("app_state:epoch", epoch)
             .map_err(|_| {
                 DeimosError::Database(DatabaseError::WriteError(format!("epoch: {}", epoch)))
-            })
-    }
-
-    fn reset_epoch_operation_counter(&self) -> DeimosResult<()> {
-        let mut con = self.lock_connection()?;
-        con.set::<&str, &u64, ()>("app_state:epoch_operation", &0)
-            .map_err(|_| {
-                DeimosError::Database(DatabaseError::WriteError("epoch_operation->0".to_string()))
             })
     }
 
@@ -344,14 +326,6 @@ impl Database for RedisConnection {
                     })
             })
             .collect()
-    }
-
-    fn increment_epoch_operation(&self) -> DeimosResult<u64> {
-        let mut con = self.lock_connection()?;
-        con.incr::<&'static str, u64, u64>("app_state:epoch_operation", 1)
-            .map_err(|_| {
-                DeimosError::Database(DatabaseError::WriteError("incremented epoch".to_string()))
-            })
     }
 
     fn add_merkle_proof(

@@ -66,7 +66,9 @@ impl NodeType for Sequencer {
 
         let main_loop = self.clone().main_loop();
         let da_loop = self.clone().da_loop();
-        let ws = self.clone().ws.start(self.clone());
+
+        let ws_self = self.clone();
+        let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
             _ = main_loop => Ok(()),
@@ -201,7 +203,6 @@ impl Sequencer {
         };
 
         self.db.set_epoch(&epoch)?;
-        self.db.reset_epoch_operation_counter()?;
 
         // add the commitment for the operations ran since the last epoch
         let current_commitment = self
