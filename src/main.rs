@@ -15,7 +15,7 @@ use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use crate::cfg::{CommandLineArgs, Commands};
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
 use std::sync::Arc;
-use storage::RedisConnections;
+use storage::RedisConnection;
 
 #[macro_use]
 extern crate log;
@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()> {
                     "redis configuration not found",
                 )
             })?;
-            let redis_connections = RedisConnections::new(&redis_config)
+            let redis_connections = RedisConnection::new(&redis_config)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
             let signing_key = KeyStoreType::KeyChain(KeyChain)
