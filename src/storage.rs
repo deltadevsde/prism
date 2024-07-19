@@ -16,6 +16,7 @@ use crate::{
     error::{DatabaseError, DeimosError, DeimosResult, GeneralError},
     utils::parse_json_to_proof,
 };
+use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Operation {
@@ -172,7 +173,10 @@ impl Database for RedisConnection {
     fn get_hashchain(&self, key: &str) -> DeimosResult<Vec<ChainEntry>> {
         let mut con = self.lock_connection()?;
         let value: String = con.get(format!("main:{}", key)).map_err(|_| {
-            DeimosError::Database(DatabaseError::NotFoundError(format!("key: {}", key)))
+            DeimosError::Database(DatabaseError::NotFoundError(format!(
+                "hashchain key {}",
+                key
+            )))
         })?;
 
         serde_json::from_str(&value).map_err(|e| {
@@ -182,9 +186,18 @@ impl Database for RedisConnection {
 
     fn get_derived_value(&self, key: &str) -> DeimosResult<String> {
         let mut con = self.lock_connection()?;
-        con.get(format!("derived:{}", key)).map_err(|_| {
-            DeimosError::Database(DatabaseError::NotFoundError(format!("key: {}", key)))
-        })
+        con.get::<String, String>(format!("derived:{}", key))
+            .map_err(|e| {
+                DeimosError::Database(DatabaseError::NotFoundError(format!(
+                    "derived key {} with err {}: ",
+                    key, e
+                )))
+            })
+
+        // match res {
+        //     Ok(value) => Ok(String::from_utf8_lossy(&hex::decode(value).unwrap()).to_string()),
+        //     Err(e) => Err(e),
+        // }
     }
 
     // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
@@ -288,7 +301,8 @@ impl Database for RedisConnection {
     ) -> DeimosResult<()> {
         let mut con = self.lock_connection()?;
         let hashed_key = sha256_mod(incoming_entry.id.as_bytes());
-        con.set::<&str, &[u8], String>(&format!("derived:{}", hashed_key), value.hash.as_ref())
+        let stored_value = hex::encode(value.hash.as_ref());
+        con.set::<&str, String, String>(&format!("derived:{}", hashed_key), stored_value)
             .map_err(|_| {
                 DeimosError::Database(DatabaseError::WriteError(format!(
                     "derived dict update for key: {}",

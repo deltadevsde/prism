@@ -180,11 +180,8 @@ async fn get_hashchain(
     )
 )]
 async fn get_commitment(State(session): State<Arc<Sequencer>>) -> impl IntoResponse {
-    match session.create_tree() {
-        Ok(tree) => match tree.get_commitment() {
-            Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-        },
+    match session.get_commitment().await {
+        Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
