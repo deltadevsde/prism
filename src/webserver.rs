@@ -134,7 +134,7 @@ impl WebServer {
     path = "/update-entry",
     request_body = UpdateEntryJson,
     responses(
-        (status = 200, description = "Entry update pending, poll in next epoch for proof"),
+        (status = 200, description = "Entry update queued for insertion into next epoch"),
         (status = 400, description = "Bad request"),
         (status = 500, description = "Internal server error")
     )
@@ -143,8 +143,12 @@ async fn update_entry(
     State(session): State<Arc<Sequencer>>,
     Json(signature_with_key): Json<UpdateEntryJson>,
 ) -> impl IntoResponse {
-    match session.update_entry(&signature_with_key) {
-        Ok(_) => (StatusCode::OK, "Entry update pending insertion into epoch").into_response(),
+    match session.validate_and_queue_update(&signature_with_key).await {
+        Ok(_) => (
+            StatusCode::OK,
+            "Entry update queued for insertion into next epoch",
+        )
+            .into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
             format!("Could not update entry: {}", e),

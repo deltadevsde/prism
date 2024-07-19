@@ -52,7 +52,7 @@ pub struct DerivedEntry {
     pub value: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct IncomingEntry {
     pub id: String,
     pub operation: Operation,
