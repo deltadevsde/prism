@@ -534,24 +534,66 @@ impl Sequencer {
                 }
             };
 
-        let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
+        let incoming: IncomingEntry = match serde_json::from_str(&signed_content) {
             Ok(obj) => obj,
             Err(e) => {
                 return Err(GeneralError::ParsingError(format!("signed content: {}", e)).into());
             }
         };
 
-        let id = message_obj.id.clone();
-
-        // check with given key if the signature is valid
-        let incoming_entry = IncomingEntry {
-            id: id.clone(),
-            operation: message_obj.operation,
-            value: message_obj.value,
-        };
-
         let mut pending = self.pending_entries.lock().await;
         pending.push(incoming_entry);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cfg::{Config, RedisConfig};
+    use crate::da::mock::LocalDataAvailabilityLayer;
+    use crate::storage::RedisConnection;
+    use keystore_rs::create_signing_key;
+
+    // set up redis connection and flush database before each test
+    fn setup_db() -> RedisConnection {
+        let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
+        redis_connection.flush_database().unwrap();
+        redis_connection
+    }
+
+    // flush database after each test
+    fn teardown_db(redis_connections: &RedisConnection) {
+        redis_connections.flush_database().unwrap();
+    }
+
+    // fn create_update_entry(id: String) -> UpdateEntryJson {
+    //     let key = create_signing_key();
+    //     let incoming = IncomingEntry {
+    //         id,
+    //         operation: Operation::Add,
+    //         value: "test".to_string(),
+    //     };
+    //     let sig = key.sign(&serde_json::to_string(&incoming).unwrap().as_bytes());
+
+    //     UpdateEntryJson {
+    //         signed_incoming_entry: sig.to_bytes().to_string(),
+    //         public_key: key.verifying_key().as_bytes().to_string(),
+    //     }
+    // }
+
+    #[tokio::test]
+    async fn test_update() {
+        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let db = Arc::new(setup_db());
+        let sequencer = Sequencer::new(
+            db.clone(),
+            da_layer,
+            Config::default(),
+            create_signing_key(),
+        )
+        .unwrap();
+
+        // sequencer.validate_and_queue_update(&CUpdateEntryJson {
     }
 }
