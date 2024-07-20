@@ -116,25 +116,6 @@ pub trait Signable {
     fn get_public_key(&self) -> DeimosResult<String>;
 }
 
-pub fn decode_signed_message(signed_message: &String) -> DeimosResult<Vec<u8>> {
-    let signed_message_bytes = engine.decode(signed_message).map_err(|e| {
-        DeimosError::General(GeneralError::DecodingError(format!(
-            "signed message: {}",
-            e
-        )))
-    })?;
-
-    if signed_message_bytes.len() < 64 {
-        Err(GeneralError::ParsingError(format!(
-            "signed message is too short: {} < 64",
-            signed_message_bytes.len(),
-        ))
-        .into())
-    } else {
-        Ok(signed_message_bytes)
-    }
-}
-
 // verifies the signature of a given signable item and returns the content of the item if the signature is valid
 pub fn verify_signature<T: Signable>(
     item: &T,

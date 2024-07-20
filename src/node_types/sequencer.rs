@@ -225,23 +225,16 @@ impl Sequencer {
         } else {
             self.get_commitment().await?
         };
-        println!("prev comm: {}", &prev_commitment);
 
         let proofs = self.finalize_pending_entries().await?;
-        let intermediate_comm = self.get_commitment().await?;
-        println!("intermediate comm: {}", &intermediate_comm);
 
-        // derive tree
         let current_commitment = {
-            let mut tree = self.tree.lock().await;
-            // let new_tree = self.derive_tree().await?;
-            // *tree = new_tree;
+            let tree = self.tree.lock().await;
             tree.get_commitment().map_err(DeimosError::MerkleTree)?
         };
 
         self.db.set_epoch(&epoch)?;
         // add the commitment for the operations ran since the last epoch
-        println!("current comm: {}", &current_commitment);
         self.db.add_commitment(&epoch, &current_commitment)?;
 
         let batch_circuit =
@@ -273,86 +266,6 @@ impl Sequencer {
             Some(epoch) => Ok(epoch),
             None => Err(DataAvailabilityError::ChannelReceiveError.into()),
         }
-    }
-
-    pub async fn derive_tree(&self) -> DeimosResult<IndexedMerkleTree> {
-        // Retrieve the keys from input order and sort them.
-        let ordered_derived_dict_keys: Vec<String> =
-            self.db.get_derived_keys_in_order().unwrap_or_default();
-        let mut sorted_keys = ordered_derived_dict_keys.clone();
-        sorted_keys.sort();
-
-        // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
-        let nodes_result: Result<Vec<Node>, DatabaseError> = sorted_keys
-            .iter()
-            .map(|key| {
-                let value: String = self
-                    .db
-                    .get_derived_value(&key.to_string())
-                    .map_err(|e| DatabaseError::ReadError(format!("derived key: {}", e)))?;
-                let hash_key = Hash::from_hex(key).unwrap();
-                let hash_value = Hash::from_hex(&value).unwrap();
-                Ok(Node::new_leaf(true, true, hash_key, hash_value, Node::TAIL))
-            })
-            .collect();
-
-        let mut nodes: Vec<Node> = nodes_result?;
-
-        // calculate the next power of two, tree size is at least 8 for now
-        let mut next_power_of_two: usize = 8;
-        while next_power_of_two < ordered_derived_dict_keys.len() + 1 {
-            next_power_of_two *= 2;
-        }
-
-        // Calculate the node hashes and sort the keys (right now they are sorted, so the next node is always the one bigger than the current one)
-        for i in 0..nodes.len() - 1 {
-            let is_next_node_active = nodes[i + 1].is_active();
-            if is_next_node_active {
-                let next_label = match &nodes[i + 1] {
-                    Node::Leaf(next_leaf) => next_leaf.label.clone(),
-                    _ => unreachable!(),
-                };
-
-                if let Node::Leaf(leaf) = &mut nodes[i] {
-                    leaf.next = next_label;
-                }
-
-                nodes[i].generate_hash();
-            }
-        }
-
-        // resort the nodes based on the input order
-        nodes.sort_by_cached_key(|node| {
-            let label = match node {
-                Node::Inner(_) => None,
-                Node::Leaf(leaf) => {
-                    let label = leaf.label.clone();
-                    Some(label)
-                }
-            };
-
-            ordered_derived_dict_keys
-                .iter()
-                .enumerate() // use index
-                .find(|(_, k)| {
-                    let k = Hash::from_hex(k).unwrap();
-                    label.clone().is_some_and(|l| k == l)
-                })
-                .map(|(k, _)| k)
-        });
-
-        // Add empty nodes to ensure the total number of nodes is a power of two.
-        while nodes.len() < next_power_of_two {
-            nodes.push(Node::new_leaf(
-                false,
-                true,
-                Node::HEAD,
-                Node::HEAD,
-                Node::TAIL,
-            ));
-        }
-
-        IndexedMerkleTree::new(nodes).map_err(DeimosError::MerkleTree)
     }
 
     async fn finalize_pending_entries(&self) -> DeimosResult<Vec<Proof>> {

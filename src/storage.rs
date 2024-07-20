@@ -16,7 +16,6 @@ use crate::{
     error::{DatabaseError, DeimosError, DeimosResult, GeneralError},
     utils::parse_json_to_proof,
 };
-use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Operation {
