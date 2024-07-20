@@ -19,6 +19,10 @@ key_transparency = []
 ci = []
 
 [dependencies]
+axum = "0.6"
+tower-http = { version = "0.4", features = ["cors"] }
+utoipa = { version = "3.3", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
 crypto-hash = "0.3.4"
 async-trait = "0.1.68"
 serde = { version = "1.0.151", features = ["derive"] }

@@ -4,7 +4,12 @@ use crate::{
 };
 use async_trait::async_trait;
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{node::Node, sha256_mod, tree::IndexedMerkleTree, Hash};
+use indexed_merkle_tree::{
+    node::Node,
+    sha256_mod,
+    tree::{IndexedMerkleTree, Proof},
+    Hash,
+};
 use std::{self, sync::Arc, time::Duration};
 use tokio::{
     sync::{
@@ -33,6 +38,9 @@ pub struct Sequencer {
     pub epoch_duration: u64,
     pub ws: WebServer,
     pub key: SigningKey,
+
+    pending_entries: Arc<Mutex<Vec<IncomingEntry>>>,
+    tree: Arc<Mutex<IndexedMerkleTree>>,
 
     epoch_buffer_tx: Arc<Sender<EpochJson>>,
     epoch_buffer_rx: Arc<Mutex<Receiver<EpochJson>>>,
@@ -66,7 +74,9 @@ impl NodeType for Sequencer {
 
         let main_loop = self.clone().main_loop();
         let da_loop = self.clone().da_loop();
-        let ws = self.clone().ws.start(self.clone());
+
+        let ws_self = self.clone();
+        let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
             _ = main_loop => Ok(()),
@@ -107,6 +117,8 @@ impl Sequencer {
             epoch_duration,
             ws,
             key,
+            tree: Arc::new(Mutex::new(IndexedMerkleTree::new_with_size(1024).unwrap())),
+            pending_entries: Arc::new(Mutex::new(Vec::new())),
             epoch_buffer_tx: Arc::new(tx),
             epoch_buffer_rx: Arc::new(Mutex::new(rx)),
         })
@@ -185,38 +197,16 @@ impl Sequencer {
         .await
     }
 
-    /// Initializes the epoch state by setting up the input table and incrementing the epoch number.
-    /// Periodically calls the `set_epoch_commitment` function to update the commitment for the current epoch.
-    ///
-    /// # Behavior
-    /// 1. Initializes the input table by inserting an empty hash if it is empty.
-    /// 2. Updates the epoch number in the app state.
-    /// 3. Waits for a specified duration before starting the next epoch.
-    /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
-    /// 5. Repeats steps 2-4 periodically.
+    pub async fn get_commitment(&self) -> DeimosResult<Hash> {
+        let tree = self.tree.lock().await;
+        tree.get_commitment().map_err(|e| e.into())
+    }
+
+    // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
     pub async fn finalize_epoch(&self) -> DeimosResult<EpochJson> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
-        };
-
-        self.db.set_epoch(&epoch)?;
-        self.db.reset_epoch_operation_counter()?;
-
-        // add the commitment for the operations ran since the last epoch
-        let current_commitment = self
-            .create_tree()?
-            .get_commitment()
-            .map_err(DeimosError::MerkleTree)?;
-
-        self.db.add_commitment(&epoch, &current_commitment)?;
-
-        let proofs = match epoch > 0 {
-            true => match self.db.get_proofs_in_epoch(&(epoch - 1)) {
-                Ok(proofs) => proofs,
-                Err(e) => return Err(DatabaseError::ReadError(e.to_string()).into()),
-            },
-            false => vec![],
         };
 
         let prev_commitment = if epoch > 0 {
@@ -233,11 +223,19 @@ impl Sequencer {
                 }
             }
         } else {
-            let empty_commitment = self.create_tree()?;
-            empty_commitment
-                .get_commitment()
-                .map_err(DeimosError::MerkleTree)?
+            self.get_commitment().await?
         };
+
+        let proofs = self.finalize_pending_entries().await?;
+
+        let current_commitment = {
+            let tree = self.tree.lock().await;
+            tree.get_commitment().map_err(DeimosError::MerkleTree)?
+        };
+
+        self.db.set_epoch(&epoch)?;
+        // add the commitment for the operations ran since the last epoch
+        self.db.add_commitment(&epoch, &current_commitment)?;
 
         let batch_circuit =
             BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
@@ -270,124 +268,22 @@ impl Sequencer {
         }
     }
 
-    pub fn create_tree(&self) -> DeimosResult<IndexedMerkleTree> {
-        // TODO: better error handling (#11)
-        // Retrieve the keys from input order and sort them.
-        let ordered_derived_dict_keys: Vec<String> =
-            self.db.get_derived_keys_in_order().unwrap_or_default();
-        let mut sorted_keys = ordered_derived_dict_keys.clone();
-        sorted_keys.sort();
-
-        // Initialize the leaf nodes with the value corresponding to the given key. Set the next node to the tail for now.
-        let nodes_result: Result<Vec<Node>, DatabaseError> = sorted_keys
-            .iter()
-            .map(|key| {
-                let value: String = self
-                    .db
-                    .get_derived_value(&key.to_string())
-                    .map_err(|e| DatabaseError::ReadError(e.to_string()))?;
-                let hash_key = Hash::from_hex(key).unwrap();
-                let hash_value = Hash::from_hex(&value).unwrap();
-                Ok(Node::new_leaf(true, true, hash_key, hash_value, Node::TAIL))
-            })
-            .collect();
-
-        let mut nodes: Vec<Node> = nodes_result?;
-
-        // calculate the next power of two, tree size is at least 8 for now
-        let mut next_power_of_two: usize = 8;
-        while next_power_of_two < ordered_derived_dict_keys.len() + 1 {
-            next_power_of_two *= 2;
+    async fn finalize_pending_entries(&self) -> DeimosResult<Vec<Proof>> {
+        let mut pending_entries = self.pending_entries.lock().await;
+        let mut proofs = Vec::new();
+        for entry in pending_entries.iter() {
+            let proof = self.update_entry(entry).await?;
+            proofs.push(proof);
         }
-
-        // Calculate the node hashes and sort the keys (right now they are sorted, so the next node is always the one bigger than the current one)
-        for i in 0..nodes.len() - 1 {
-            let is_next_node_active = nodes[i + 1].is_active();
-            if is_next_node_active {
-                let next_label = match &nodes[i + 1] {
-                    Node::Leaf(next_leaf) => next_leaf.label.clone(),
-                    _ => unreachable!(),
-                };
-
-                if let Node::Leaf(leaf) = &mut nodes[i] {
-                    leaf.next = next_label;
-                }
-
-                nodes[i].generate_hash();
-            }
-        }
-
-        // resort the nodes based on the input order
-        nodes.sort_by_cached_key(|node| {
-            let label = match node {
-                Node::Inner(_) => None,
-                Node::Leaf(leaf) => {
-                    let label = leaf.label.clone();
-                    Some(label)
-                }
-            };
-
-            ordered_derived_dict_keys
-                .iter()
-                .enumerate() // use index
-                .find(|(_, k)| {
-                    let k = Hash::from_hex(k).unwrap();
-                    label.clone().is_some_and(|l| k == l)
-                })
-                .map(|(k, _)| k)
-        });
-
-        // Add empty nodes to ensure the total number of nodes is a power of two.
-        while nodes.len() < next_power_of_two {
-            nodes.push(Node::new_leaf(
-                false,
-                true,
-                Node::HEAD,
-                Node::HEAD,
-                Node::TAIL,
-            ));
-        }
-
-        // create tree, setting left / right child property for each node
-        IndexedMerkleTree::new(nodes).map_err(DeimosError::MerkleTree)
+        pending_entries.clear();
+        Ok(proofs)
     }
 
-    /// Updates an entry in the database based on the given operation, incoming entry, and the signature from the user.
-    ///
-    /// # Arguments
-    ///
-    /// * `signed_entry` - A `UpdateEntryJson` object.
-    pub fn update_entry(&self, signed_entry: &UpdateEntryJson) -> DeimosResult<()> {
-        let signed_content =
-            match verify_signature(signed_entry, Some(signed_entry.public_key.clone())) {
-                Ok(content) => content,
-                Err(_) => {
-                    // TODO(@distractedm1nd): Add to error instead of logging
-                    error!(
-                        "updating entry: invalid signature with pubkey {} on msg {}",
-                        signed_entry.public_key, signed_entry.signed_incoming_entry
-                    );
-                    return Err(GeneralError::InvalidSignature.into());
-                }
-            };
-
-        let message_obj: IncomingEntry = match serde_json::from_str(&signed_content) {
-            Ok(obj) => obj,
-            Err(e) => {
-                return Err(GeneralError::ParsingError(format!("signed content: {}", e)).into());
-            }
-        };
-
-        let id = message_obj.id.clone();
-
-        // check with given key if the signature is valid
-        let incoming_entry = IncomingEntry {
-            id: id.clone(),
-            operation: message_obj.operation,
-            value: message_obj.value,
-        };
+    /// Updates the state from on a pending incoming entry.
+    async fn update_entry(&self, incoming_entry: &IncomingEntry) -> DeimosResult<Proof> {
+        let id = incoming_entry.id.clone();
         // add a new key to an existing id  ( type for the value retrieved from the database explicitly set to string)
-        match self.db.get_hashchain(&id) {
+        let hashchain: DeimosResult<Vec<ChainEntry>> = match self.db.get_hashchain(&id) {
             Ok(value) => {
                 // hashchain already exists
                 let mut current_chain = value.clone();
@@ -416,7 +312,7 @@ impl Sequencer {
                 };
 
                 current_chain.push(new_chain_entry.clone());
-                match self.db.update_hashchain(&incoming_entry, &current_chain) {
+                match self.db.update_hashchain(incoming_entry, &current_chain) {
                     Ok(_) => (),
                     Err(_) => {
                         return Err(DatabaseError::WriteError(format!(
@@ -428,7 +324,7 @@ impl Sequencer {
                 }
                 match self
                     .db
-                    .set_derived_entry(&incoming_entry, &new_chain_entry, false)
+                    .set_derived_entry(incoming_entry, &new_chain_entry, false)
                 {
                     Ok(_) => (),
                     Err(_) => {
@@ -440,10 +336,10 @@ impl Sequencer {
                     }
                 }
 
-                Ok(())
+                Ok(value)
             }
-            Err(_) => {
-                debug!("Hashchain does not exist, creating new one...");
+            Err(e) => {
+                debug!("creating new hashchain for user id {}", id.clone());
                 let new_chain = vec![ChainEntry {
                     hash: {
                         let mut data = Vec::new();
@@ -466,7 +362,7 @@ impl Sequencer {
                         .into());
                     }
                 };
-                match self.db.update_hashchain(&incoming_entry, &new_chain) {
+                match self.db.update_hashchain(incoming_entry, &new_chain) {
                     Ok(_) => (),
                     Err(_) => {
                         return Err(DatabaseError::WriteError(format!(
@@ -476,8 +372,9 @@ impl Sequencer {
                         .into());
                     }
                 }
-                match self.db.set_derived_entry(&incoming_entry, last_entry, true) {
-                    Ok(_) => Ok(()),
+                match self.db.set_derived_entry(incoming_entry, last_entry, true) {
+                    // we return the error so that the node is updated rather than inserted
+                    Ok(_) => Err(e),
                     Err(_) => Err(DatabaseError::WriteError(format!(
                         "derived entry for incoming entry {:?}",
                         incoming_entry
@@ -485,6 +382,210 @@ impl Sequencer {
                     .into()),
                 }
             }
+        };
+
+        let mut tree = self.tree.lock().await;
+        let hashed_id = sha256_mod(id.as_bytes());
+
+        // todo: not all error cases make it okay to continue here, so we should filter by a Hashchain key not found error
+        if hashchain.is_ok() {
+            let node = match tree.find_leaf_by_label(&hashed_id) {
+                Some(node) => node,
+                None => {
+                    // TODO: before merging, change error type
+                    return Err(GeneralError::DecodingError(format!(
+                        "node with label {} not found in the tree",
+                        hashed_id
+                    ))
+                    .into());
+                }
+            };
+            let new_index = match tree.find_node_index(&node) {
+                Some(index) => index,
+                None => {
+                    return Err(GeneralError::DecodingError(format!(
+                        "node with label {} not found in the tree, but has a hashchain entry",
+                        hashed_id
+                    ))
+                    .into());
+                }
+            };
+            // TODO: Possible optimization: cache the last update proof for each id for serving the proofs
+            tree.update_node(new_index, node)
+                .map(Proof::Update)
+                .map_err(|e| e.into())
+        } else {
+            let mut node = Node::new_leaf(
+                true,
+                true,
+                hashed_id,
+                sha256_mod(incoming_entry.value.as_bytes()),
+                sha256_mod("PLACEHOLDER".as_bytes()),
+            );
+            tree.insert_node(&mut node)
+                .map(Proof::Insert)
+                .map_err(|e| e.into())
         }
+    }
+
+    /// Adds an update to be applied in the next epoch.
+    ///
+    /// # Arguments
+    ///
+    /// * `signed_entry` - A `UpdateEntryJson` object.
+    pub async fn validate_and_queue_update(
+        self: Arc<Self>,
+        signed_entry: &UpdateEntryJson,
+    ) -> DeimosResult<()> {
+        let signed_content = match verify_signature(signed_entry, None) {
+            Ok(content) => content,
+            Err(e) => {
+                // TODO(@distractedm1nd): Add to error instead of logging
+                error!(
+                    "updating entry: invalid signature with pubkey {} on msg {}",
+                    signed_entry.public_key, signed_entry.signed_incoming_entry
+                );
+                return Err(e);
+            }
+        };
+
+        let incoming: IncomingEntry = match serde_json::from_str(&signed_content) {
+            Ok(obj) => obj,
+            Err(e) => {
+                return Err(GeneralError::ParsingError(format!("signed content: {}", e)).into());
+            }
+        };
+
+        let mut pending = self.pending_entries.lock().await;
+        pending.push(incoming);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cfg::{Config, RedisConfig};
+    use crate::da::mock::LocalDataAvailabilityLayer;
+    use crate::storage::RedisConnection;
+    use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
+    use keystore_rs::create_signing_key;
+
+    // set up redis connection and flush database before each test
+    fn setup_db() -> RedisConnection {
+        let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
+        redis_connection.flush_database().unwrap();
+        redis_connection
+    }
+
+    // flush database after each test
+    fn teardown_db(redis_connections: &RedisConnection) {
+        redis_connections.flush_database().unwrap();
+    }
+
+    fn create_update_entry(id: String, value: String) -> UpdateEntryJson {
+        let key = create_signing_key();
+        let incoming = IncomingEntry {
+            id,
+            operation: Operation::Add,
+            value,
+        };
+        let content = serde_json::to_string(&incoming).unwrap();
+        let sig = key.sign(content.clone().as_bytes());
+
+        UpdateEntryJson {
+            incoming_entry: incoming,
+            signed_incoming_entry: sig.to_string(),
+            public_key: engine.encode(key.verifying_key().to_bytes()),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_validate_and_queue_update() {
+        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let db = Arc::new(setup_db());
+        let sequencer = Arc::new(
+            Sequencer::new(
+                db.clone(),
+                da_layer,
+                Config::default(),
+                create_signing_key(),
+            )
+            .unwrap(),
+        );
+
+        let update_entry =
+            create_update_entry("test@deltadevs.xyz".to_string(), "test".to_string());
+
+        sequencer
+            .validate_and_queue_update(&update_entry)
+            .await
+            .unwrap();
+        teardown_db(&db);
+    }
+
+    #[tokio::test]
+    async fn test_queued_update_gets_finalized() {
+        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let db = Arc::new(setup_db());
+        let sequencer = Arc::new(
+            Sequencer::new(
+                db.clone(),
+                da_layer,
+                Config::default(),
+                create_signing_key(),
+            )
+            .unwrap(),
+        );
+
+        let id = "test@deltadevs.xyz".to_string();
+        let update_entry = create_update_entry(id.clone(), "test".to_string());
+
+        sequencer
+            .clone()
+            .validate_and_queue_update(&update_entry)
+            .await
+            .unwrap();
+
+        // hashchain doesn't exist yet, because operation is only queued
+        let hashchain = sequencer.db.get_hashchain(id.as_str());
+        assert!(hashchain.is_err());
+
+        let prev_commitment = sequencer.get_commitment().await.unwrap();
+        sequencer.finalize_epoch().await.unwrap();
+        let new_commitment = sequencer.get_commitment().await.unwrap();
+        assert_ne!(prev_commitment, new_commitment);
+
+        let hashchain = sequencer.db.get_hashchain(id.as_str());
+        assert_eq!(
+            hashchain.unwrap().first().unwrap().value,
+            sha256_mod("test".as_bytes())
+        );
+
+        teardown_db(&db);
+    }
+
+    #[tokio::test]
+    async fn test_validate_invalid_update_fails() {
+        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let db = Arc::new(setup_db());
+        let sequencer = Arc::new(
+            Sequencer::new(
+                db.clone(),
+                da_layer,
+                Config::default(),
+                create_signing_key(),
+            )
+            .unwrap(),
+        );
+
+        let mut update_entry =
+            create_update_entry("test@deltadevs.xyz".to_string(), "test".to_string());
+        let second_signer = create_update_entry("abcd".to_string(), "test".to_string()).public_key;
+        update_entry.public_key = second_signer;
+
+        let res = sequencer.validate_and_queue_update(&update_entry).await;
+        assert!(res.is_err());
+        teardown_db(&db);
     }
 }

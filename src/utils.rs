@@ -20,15 +20,16 @@ use rand::rngs::OsRng;
 ///
 /// # Returns
 ///
-/// `true` if the value was not revoked, otherwise `false`.
+/// `true` if the value was revoked, otherwise `false`.
 /// TODO(@distractedm1nd): is_revoked > is_not_revoked, for readability
-pub fn is_not_revoked(entries: &[ChainEntry], value: Hash) -> bool {
+#[allow(dead_code)]
+pub fn is_revoked(entries: &[ChainEntry], value: Hash) -> bool {
     for entry in entries {
         if entry.value == value && matches!(entry.operation, Operation::Revoke) {
-            return false;
+            return true;
         }
     }
-    true
+    false
 }
 
 pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::Error>> {
@@ -41,7 +42,7 @@ pub fn decode_public_key(pub_key_str: &String) -> DeimosResult<Ed25519VerifyingK
     // decode the public key from base64 string to bytes
     let public_key_bytes = engine
         .decode(pub_key_str)
-        .map_err(|e| GeneralError::DecodingError(format!("hex string: {}", e)))?;
+        .map_err(|e| GeneralError::DecodingError(format!("base64 string: {}", e)))?;
 
     let public_key_array: [u8; 32] = public_key_bytes
         .try_into()
@@ -109,34 +110,14 @@ pub fn validate_epoch(
     Ok(proof)
 }
 
-pub trait Signable {
+pub trait SignedContent {
     fn get_signature(&self) -> DeimosResult<Signature>;
-    fn get_content_to_sign(&self) -> DeimosResult<String>;
+    fn get_plaintext(&self) -> DeimosResult<String>;
     fn get_public_key(&self) -> DeimosResult<String>;
 }
 
-pub fn decode_signed_message(signed_message: &String) -> DeimosResult<Vec<u8>> {
-    let signed_message_bytes = engine.decode(signed_message).map_err(|e| {
-        DeimosError::General(GeneralError::DecodingError(format!(
-            "signed message: {}",
-            e
-        )))
-    })?;
-
-    // check if the signed message is (at least) 64 bytes long
-    if signed_message_bytes.len() < 64 {
-        Err(GeneralError::ParsingError(format!(
-            "signed message is too short: {} < 64",
-            signed_message_bytes.len(),
-        ))
-        .into())
-    } else {
-        Ok(signed_message_bytes)
-    }
-}
-
 // verifies the signature of a given signable item and returns the content of the item if the signature is valid
-pub fn verify_signature<T: Signable>(
+pub fn verify_signature<T: SignedContent>(
     item: &T,
     optional_public_key: Option<String>,
 ) -> DeimosResult<String> {
@@ -148,13 +129,12 @@ pub fn verify_signature<T: Signable>(
     let public_key = decode_public_key(&public_key_str)
         .map_err(|_| DeimosError::General(GeneralError::InvalidPublicKey))?;
 
-    let content = item.get_content_to_sign()?;
+    let content = item.get_plaintext()?;
     let signature = item.get_signature()?;
 
-    if public_key.verify(content.as_bytes(), &signature).is_ok() {
-        Ok(content)
-    } else {
-        Err(GeneralError::InvalidSignature.into())
+    match public_key.verify(content.as_bytes(), &signature) {
+        Ok(_) => Ok(content),
+        Err(e) => Err(GeneralError::InvalidSignature(e).into()),
     }
 }
 
