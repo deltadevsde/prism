@@ -209,13 +209,6 @@ impl Sequencer {
             Err(_) => 0,
         };
 
-        let proofs = self.finalize_pending_entries().await?;
-        self.db.set_epoch(&epoch)?;
-        // add the commitment for the operations ran since the last epoch
-        let mut tree = self.tree.lock().await;
-        let current_commitment = tree.get_commitment().map_err(DeimosError::MerkleTree)?;
-        self.db.add_commitment(&epoch, &current_commitment)?;
-
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
             match self.db.get_commitment(&prev_epoch) {
@@ -230,10 +223,26 @@ impl Sequencer {
                 }
             }
         } else {
-            let new_tree = self.derive_tree().await?;
-            *tree = new_tree;
+            self.get_commitment().await?
+        };
+        println!("prev comm: {}", &prev_commitment);
+
+        let proofs = self.finalize_pending_entries().await?;
+        let intermediate_comm = self.get_commitment().await?;
+        println!("intermediate comm: {}", &intermediate_comm);
+
+        // derive tree
+        let current_commitment = {
+            let mut tree = self.tree.lock().await;
+            // let new_tree = self.derive_tree().await?;
+            // *tree = new_tree;
             tree.get_commitment().map_err(DeimosError::MerkleTree)?
         };
+
+        self.db.set_epoch(&epoch)?;
+        // add the commitment for the operations ran since the last epoch
+        println!("current comm: {}", &current_commitment);
+        self.db.add_commitment(&epoch, &current_commitment)?;
 
         let batch_circuit =
             BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
