@@ -1,9 +1,9 @@
 use crate::{
     cfg::WebServerConfig,
-    error::{DeimosError, DeimosResult, GeneralError},
+    error::{DeimosResult, GeneralError},
     node_types::sequencer::Sequencer,
-    storage::ChainEntry,
-    utils::{decode_signed_message, Signable},
+    storage::{ChainEntry, IncomingEntry},
+    utils::SignedContent,
 };
 use axum::{
     extract::State,
@@ -17,6 +17,7 @@ use indexed_merkle_tree::tree::{Proof, UpdateProof};
 use indexed_merkle_tree::Hash as TreeHash;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::{self, str::FromStr};
 use tower_http::cors::CorsLayer;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
@@ -35,6 +36,7 @@ pub struct EpochData {
 
 #[derive(Deserialize, Debug, ToSchema)]
 pub struct UpdateEntryJson {
+    pub incoming_entry: IncomingEntry,
     pub signed_incoming_entry: String,
     pub public_key: String,
 }
@@ -71,32 +73,15 @@ pub struct UserKeyResponse {
 )]
 struct ApiDoc;
 
-impl Signable for UpdateEntryJson {
+impl SignedContent for UpdateEntryJson {
     fn get_signature(&self) -> DeimosResult<Signature> {
-        let signed_message_bytes = decode_signed_message(&self.signed_incoming_entry)?;
-
-        // extract the first 64 bytes from the signed message which are the signature
-        let signature_bytes: &[u8; 64] = match signed_message_bytes.get(..64) {
-            Some(array_section) => match array_section.try_into() {
-                Ok(array) => array,
-                Err(e) => Err(DeimosError::General(GeneralError::DecodingError(format!(
-                    "signed message to array: {}",
-                    e
-                ))))?,
-            },
-            None => Err(DeimosError::General(GeneralError::DecodingError(format!(
-                "extracting signature from signed message: {}",
-                &self.signed_incoming_entry
-            ))))?,
-        };
-
-        Ok(Signature::from_bytes(signature_bytes))
+        Signature::from_str(self.signed_incoming_entry.as_str())
+            .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
     }
 
-    fn get_content_to_sign(&self) -> DeimosResult<String> {
-        let signed_message_bytes = decode_signed_message(&self.signed_incoming_entry)?;
-        let message_bytes = &signed_message_bytes[64..];
-        Ok(String::from_utf8_lossy(message_bytes).to_string())
+    fn get_plaintext(&self) -> DeimosResult<String> {
+        serde_json::to_string(&self.incoming_entry)
+            .map_err(|e| GeneralError::DecodingError(e.to_string()).into())
     }
 
     fn get_public_key(&self) -> DeimosResult<String> {
@@ -134,7 +119,7 @@ impl WebServer {
     path = "/update-entry",
     request_body = UpdateEntryJson,
     responses(
-        (status = 200, description = "Entry update pending, poll in next epoch for proof"),
+        (status = 200, description = "Entry update queued for insertion into next epoch"),
         (status = 400, description = "Bad request"),
         (status = 500, description = "Internal server error")
     )
@@ -143,8 +128,12 @@ async fn update_entry(
     State(session): State<Arc<Sequencer>>,
     Json(signature_with_key): Json<UpdateEntryJson>,
 ) -> impl IntoResponse {
-    match session.update_entry(&signature_with_key) {
-        Ok(_) => (StatusCode::OK, "Entry update pending insertion into epoch").into_response(),
+    match session.validate_and_queue_update(&signature_with_key).await {
+        Ok(_) => (
+            StatusCode::OK,
+            "Entry update queued for insertion into next epoch",
+        )
+            .into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
             format!("Could not update entry: {}", e),
@@ -191,11 +180,8 @@ async fn get_hashchain(
     )
 )]
 async fn get_commitment(State(session): State<Arc<Sequencer>>) -> impl IntoResponse {
-    match session.create_tree() {
-        Ok(tree) => match tree.get_commitment() {
-            Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-        },
+    match session.get_commitment().await {
+        Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
