@@ -202,15 +202,7 @@ impl Sequencer {
         tree.get_commitment().map_err(|e| e.into())
     }
 
-    /// Initializes the epoch state by setting up the input table and incrementing the epoch number.
-    /// Periodically calls the `set_epoch_commitment` function to update the commitment for the current epoch.
-    ///
-    /// # Behavior
-    /// 1. Initializes the input table by inserting an empty hash if it is empty.
-    /// 2. Updates the epoch number in the app state.
-    /// 3. Waits for a specified duration before starting the next epoch.
-    /// 4. Calls `set_epoch_commitment` to fetch and set the commitment for the current epoch.
-    /// 5. Repeats steps 2-4 periodically.
+    // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
     pub async fn finalize_epoch(&self) -> DeimosResult<EpochJson> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
@@ -219,11 +211,9 @@ impl Sequencer {
 
         let proofs = self.finalize_pending_entries().await?;
         self.db.set_epoch(&epoch)?;
-
         // add the commitment for the operations ran since the last epoch
-        let tree = self.tree.lock().await;
+        let mut tree = self.tree.lock().await;
         let current_commitment = tree.get_commitment().map_err(DeimosError::MerkleTree)?;
-
         self.db.add_commitment(&epoch, &current_commitment)?;
 
         let prev_commitment = if epoch > 0 {
@@ -240,9 +230,8 @@ impl Sequencer {
                 }
             }
         } else {
-            // idgi. at this point isn't it just the current commitment?
-            self.derive_tree().await?;
-            let tree = self.tree.lock().await;
+            let new_tree = self.derive_tree().await?;
+            *tree = new_tree;
             tree.get_commitment().map_err(DeimosError::MerkleTree)?
         };
 
@@ -277,7 +266,7 @@ impl Sequencer {
         }
     }
 
-    pub async fn derive_tree(&self) -> DeimosResult<()> {
+    pub async fn derive_tree(&self) -> DeimosResult<IndexedMerkleTree> {
         // Retrieve the keys from input order and sort them.
         let ordered_derived_dict_keys: Vec<String> =
             self.db.get_derived_keys_in_order().unwrap_or_default();
@@ -354,10 +343,7 @@ impl Sequencer {
             ));
         }
 
-        let new_tree = IndexedMerkleTree::new(nodes).map_err(DeimosError::MerkleTree)?;
-        let mut tree = self.tree.lock().await;
-        *tree = new_tree;
-        Ok(())
+        IndexedMerkleTree::new(nodes).map_err(DeimosError::MerkleTree)
     }
 
     async fn finalize_pending_entries(&self) -> DeimosResult<Vec<Proof>> {
@@ -476,29 +462,22 @@ impl Sequencer {
             }
         };
 
-        if hashchain.is_err() {
-            println!("hashchain error: {:?}", hashchain);
-        }
-
-        // HOLY FUCK WE CNANOT BE DOING THIS, MUST AVOID
-        self.derive_tree().await?;
-
         let mut tree = self.tree.lock().await;
         let hashed_id = sha256_mod(id.as_bytes());
-        let mut node = match tree.find_leaf_by_label(&hashed_id) {
-            Some(node) => node,
-            None => {
-                // TODO: before merging, change error type
-                return Err(GeneralError::DecodingError(format!(
-                    "node with label {} not found in the tree",
-                    hashed_id
-                ))
-                .into());
-            }
-        };
 
         // todo: not all error cases make it okay to continue here, so we should filter by a Hashchain key not found error
         if hashchain.is_ok() {
+            let node = match tree.find_leaf_by_label(&hashed_id) {
+                Some(node) => node,
+                None => {
+                    // TODO: before merging, change error type
+                    return Err(GeneralError::DecodingError(format!(
+                        "node with label {} not found in the tree",
+                        hashed_id
+                    ))
+                    .into());
+                }
+            };
             let new_index = match tree.find_node_index(&node) {
                 Some(index) => index,
                 None => {
@@ -514,14 +493,13 @@ impl Sequencer {
                 .map(Proof::Update)
                 .map_err(|e| e.into())
         } else {
-            // @sebasti810 can we do something like this instead of deriving the tree for every entry update?
-            // let mut node = Node::new_leaf(
-            //     true,
-            //     true,
-            //     hashed_id,
-            //     sha256_mod(incoming_entry.value.as_bytes()),
-            //     sha256_mod("PLACEHOLDER".as_bytes()),
-            // );
+            let mut node = Node::new_leaf(
+                true,
+                true,
+                hashed_id,
+                sha256_mod(incoming_entry.value.as_bytes()),
+                sha256_mod("PLACEHOLDER".as_bytes()),
+            );
             tree.insert_node(&mut node)
                 .map(Proof::Insert)
                 .map_err(|e| e.into())
@@ -639,8 +617,6 @@ mod tests {
         );
 
         let id = "test@deltadevs.xyz".to_string();
-        println!("id: {}, {}", id, sha256_mod(id.as_bytes()));
-
         let update_entry = create_update_entry(id.clone(), "test".to_string());
 
         sequencer
@@ -649,7 +625,14 @@ mod tests {
             .await
             .unwrap();
 
+        // hashchain doesn't exist yet, because operation is only queued
+        let hashchain = sequencer.db.get_hashchain(id.as_str());
+        assert!(hashchain.is_err());
+
+        let prev_commitment = sequencer.get_commitment().await.unwrap();
         sequencer.finalize_epoch().await.unwrap();
+        let new_commitment = sequencer.get_commitment().await.unwrap();
+        assert_ne!(prev_commitment, new_commitment);
 
         let hashchain = sequencer.db.get_hashchain(id.as_str());
         assert_eq!(
