@@ -1,6 +1,6 @@
 use crate::{
     error::{DAResult, DeimosResult, GeneralError},
-    utils::Signable,
+    utils::SignedContent,
     zk_snark::{Bls12Proof, VerifyingKey},
 };
 use async_trait::async_trait;
@@ -22,7 +22,7 @@ pub struct EpochJson {
     pub signature: Option<String>,
 }
 
-impl Signable for EpochJson {
+impl SignedContent for EpochJson {
     fn get_signature(&self) -> DeimosResult<Signature> {
         match &self.signature {
             Some(signature) => Signature::from_str(signature)
@@ -31,7 +31,7 @@ impl Signable for EpochJson {
         }
     }
 
-    fn get_content_to_sign(&self) -> DeimosResult<String> {
+    fn get_plaintext(&self) -> DeimosResult<String> {
         let mut copy = self.clone();
         copy.signature = None;
         serde_json::to_string(&copy).map_err(|e| GeneralError::EncodingError(e.to_string()).into())

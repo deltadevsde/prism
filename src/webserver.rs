@@ -3,7 +3,7 @@ use crate::{
     error::{DeimosResult, GeneralError},
     node_types::sequencer::Sequencer,
     storage::{ChainEntry, IncomingEntry},
-    utils::Signable,
+    utils::SignedContent,
 };
 use axum::{
     extract::State,
@@ -73,13 +73,13 @@ pub struct UserKeyResponse {
 )]
 struct ApiDoc;
 
-impl Signable for UpdateEntryJson {
+impl SignedContent for UpdateEntryJson {
     fn get_signature(&self) -> DeimosResult<Signature> {
         Signature::from_str(self.signed_incoming_entry.as_str())
             .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
     }
 
-    fn get_content_to_sign(&self) -> DeimosResult<String> {
+    fn get_plaintext(&self) -> DeimosResult<String> {
         serde_json::to_string(&self.incoming_entry)
             .map_err(|e| GeneralError::DecodingError(e.to_string()).into())
     }

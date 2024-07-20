@@ -20,16 +20,16 @@ use rand::rngs::OsRng;
 ///
 /// # Returns
 ///
-/// `true` if the value was not revoked, otherwise `false`.
+/// `true` if the value was revoked, otherwise `false`.
 /// TODO(@distractedm1nd): is_revoked > is_not_revoked, for readability
 #[allow(dead_code)]
-pub fn is_not_revoked(entries: &[ChainEntry], value: Hash) -> bool {
+pub fn is_revoked(entries: &[ChainEntry], value: Hash) -> bool {
     for entry in entries {
         if entry.value == value && matches!(entry.operation, Operation::Revoke) {
-            return false;
+            return true;
         }
     }
-    true
+    false
 }
 
 pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::Error>> {
@@ -110,14 +110,14 @@ pub fn validate_epoch(
     Ok(proof)
 }
 
-pub trait Signable {
+pub trait SignedContent {
     fn get_signature(&self) -> DeimosResult<Signature>;
-    fn get_content_to_sign(&self) -> DeimosResult<String>;
+    fn get_plaintext(&self) -> DeimosResult<String>;
     fn get_public_key(&self) -> DeimosResult<String>;
 }
 
 // verifies the signature of a given signable item and returns the content of the item if the signature is valid
-pub fn verify_signature<T: Signable>(
+pub fn verify_signature<T: SignedContent>(
     item: &T,
     optional_public_key: Option<String>,
 ) -> DeimosResult<String> {
@@ -129,7 +129,7 @@ pub fn verify_signature<T: Signable>(
     let public_key = decode_public_key(&public_key_str)
         .map_err(|_| DeimosError::General(GeneralError::InvalidPublicKey))?;
 
-    let content = item.get_content_to_sign()?;
+    let content = item.get_plaintext()?;
     let signature = item.get_signature()?;
 
     match public_key.verify(content.as_bytes(), &signature) {

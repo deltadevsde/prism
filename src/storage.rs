@@ -192,11 +192,6 @@ impl Database for RedisConnection {
                     key, e
                 )))
             })
-
-        // match res {
-        //     Ok(value) => Ok(String::from_utf8_lossy(&hex::decode(value).unwrap()).to_string()),
-        //     Err(e) => Err(e),
-        // }
     }
 
     // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
