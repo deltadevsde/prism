@@ -1,5 +1,5 @@
 use crate::{
-    error::{DeimosError, DeimosResult, GeneralError, ProofError},
+    error::{PrismError, PrismResult, GeneralError, ProofError},
     storage::ChainEntry,
     utils::create_and_verify_snark,
 };
@@ -21,17 +21,17 @@ use serde::{Deserialize, Serialize};
 struct G1Affine(bls12_381::G1Affine);
 
 impl TryInto<G1Affine> for String {
-    type Error = DeimosError;
-    fn try_into(self) -> Result<G1Affine, DeimosError> {
+    type Error = PrismError;
+    fn try_into(self) -> Result<G1Affine, PrismError> {
         let decoded = engine
             .decode(self.as_bytes())
-            .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
+            .map_err(|e| PrismError::General(GeneralError::DecodingError(e.to_string())))?;
 
         let array = vec_to_96_array(decoded)?;
 
         match bls12_381::G1Affine::from_uncompressed(&array).into_option() {
             Some(affine) => Ok(G1Affine(affine)),
-            None => Err(DeimosError::General(GeneralError::DecodingError(
+            None => Err(PrismError::General(GeneralError::DecodingError(
                 "G1Affine".to_string(),
             ))),
         }
@@ -48,17 +48,17 @@ impl From<G1Affine> for bls12_381::G1Affine {
 struct G2Affine(bls12_381::G2Affine);
 
 impl TryInto<G2Affine> for String {
-    type Error = DeimosError;
-    fn try_into(self) -> Result<G2Affine, DeimosError> {
+    type Error = PrismError;
+    fn try_into(self) -> Result<G2Affine, PrismError> {
         let decoded = engine
             .decode(self.as_bytes())
-            .map_err(|e| DeimosError::General(GeneralError::DecodingError(e.to_string())))?;
+            .map_err(|e| PrismError::General(GeneralError::DecodingError(e.to_string())))?;
 
         let array = vec_to_192_array(decoded)?;
 
         match bls12_381::G2Affine::from_uncompressed(&array).into_option() {
             Some(affine) => Ok(G2Affine(affine)),
-            None => Err(DeimosError::General(GeneralError::DecodingError(
+            None => Err(PrismError::General(GeneralError::DecodingError(
                 "G2Affine".to_string(),
             ))),
         }
@@ -71,10 +71,10 @@ impl From<G2Affine> for bls12_381::G2Affine {
     }
 }
 
-fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], DeimosError> {
+fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], PrismError> {
     let mut array = [0u8; 96];
     if vec.len() != 96 {
-        return Err(DeimosError::General(GeneralError::ParsingError(
+        return Err(PrismError::General(GeneralError::ParsingError(
             "Length mismatch".to_string(),
         )));
     }
@@ -82,10 +82,10 @@ fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], DeimosError> {
     Ok(array)
 }
 
-fn vec_to_192_array(vec: Vec<u8>) -> Result<[u8; 192], DeimosError> {
+fn vec_to_192_array(vec: Vec<u8>) -> Result<[u8; 192], PrismError> {
     let mut array = [0u8; 192];
     if vec.len() != 192 {
-        return Err(DeimosError::General(GeneralError::ParsingError(
+        return Err(PrismError::General(GeneralError::ParsingError(
             "Length mismatch".to_string(),
         )));
     }
@@ -101,9 +101,9 @@ pub struct Bls12Proof {
 }
 
 impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
-    type Error = DeimosError;
+    type Error = PrismError;
 
-    fn try_from(proof: Bls12Proof) -> DeimosResult<Self> {
+    fn try_from(proof: Bls12Proof) -> PrismResult<Self> {
         // we get a CtOption type which is afaik common in crypto libraries to prevent timing attacks
         // we cant use the map_err function with CtOption types so we have to check if its none and can then unwrap it
         let a: G1Affine = proof
@@ -168,9 +168,9 @@ impl From<groth16::VerifyingKey<Bls12>> for VerifyingKey {
 }
 
 impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
-    type Error = DeimosError;
+    type Error = PrismError;
 
-    fn try_from(custom_vk: VerifyingKey) -> Result<Self, DeimosError> {
+    fn try_from(custom_vk: VerifyingKey) -> Result<Self, PrismError> {
         let alpha_g1: G1Affine = custom_vk
             .alpha_g1
             .try_into()
@@ -199,7 +199,7 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
             .ic
             .split(',')
             .map(|s| s.to_string().try_into())
-            .collect::<DeimosResult<Vec<G1Affine>>>()?;
+            .collect::<PrismResult<Vec<G1Affine>>>()?;
 
         Ok(bellman::groth16::VerifyingKey {
             alpha_g1: alpha_g1.into(),
@@ -213,12 +213,12 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
     }
 }
 
-fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), DeimosError> {
+fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), PrismError> {
     if !proof.path.is_empty() {
         let root = hash_to_scalar(&proof.root_hash)?;
         Ok((root, &proof.path))
     } else {
-        Err(DeimosError::Proof(ProofError::ProofUnpackError(format!(
+        Err(PrismError::Proof(ProofError::ProofUnpackError(format!(
             "proof path is empty for root hash {}",
             proof.root_hash
         ))))
@@ -227,7 +227,7 @@ fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), Deimo
 
 #[cfg(test)]
 mod tests {
-    use crate::error::DeimosResult;
+    use crate::error::PrismResult;
 
     use super::*;
     use bellman::groth16;
@@ -371,7 +371,7 @@ mod tests {
         let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
 
         let serialized_proof: Bls12Proof = proof.clone().into();
-        let deserialized_proof_result: DeimosResult<groth16::Proof<Bls12>> =
+        let deserialized_proof_result: PrismResult<groth16::Proof<Bls12>> =
             serialized_proof.clone().try_into();
         assert!(deserialized_proof_result.is_ok(), "Deserialization failed");
 
@@ -389,7 +389,7 @@ mod tests {
             c: "BEKZboEyoJ3l+DLIF8IMjUR2kJQ9aq2kuXTZR8YizcQMg7zTH0xLO9JtTueneS3JFx1KlK6e2NkFZamiQERujx6bhmwIDgY8ZPCJ8iG//4E3eS0CZ25CJfnOucLeotyr".to_string(),
         };
 
-        let deserialized_proof_result: DeimosResult<groth16::Proof<Bls12>> =
+        let deserialized_proof_result: PrismResult<groth16::Proof<Bls12>> =
             invalid_proof.clone().try_into();
         assert!(deserialized_proof_result.is_err());
     }
@@ -807,7 +807,7 @@ impl LessThanCircuit {
 
 // create the circuit based on the given Merkle proof
 impl InsertMerkleProofCircuit {
-    pub fn new(proof: &InsertProof) -> Result<InsertMerkleProofCircuit, DeimosError> {
+    pub fn new(proof: &InsertProof) -> Result<InsertMerkleProofCircuit, PrismError> {
         let (non_membership_root, non_membership_path) =
             unpack_and_process(&proof.non_membership_proof.merkle_proof)?;
 
@@ -825,7 +825,7 @@ impl InsertMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), PrismError> {
         let scalars: Vec<Scalar> = vec![
             self.non_membership_root,
             self.first_merkle_proof.old_root,
@@ -839,7 +839,7 @@ impl InsertMerkleProofCircuit {
 }
 
 impl UpdateMerkleProofCircuit {
-    pub fn new(proof: &UpdateProof) -> Result<UpdateMerkleProofCircuit, DeimosError> {
+    pub fn new(proof: &UpdateProof) -> Result<UpdateMerkleProofCircuit, PrismError> {
         let (old_root, old_path) = unpack_and_process(&proof.old_proof)?;
         let (updated_root, updated_path) = unpack_and_process(&proof.new_proof)?;
 
@@ -874,7 +874,7 @@ impl UpdateMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), PrismError> {
         let scalars: Vec<Scalar> = vec![self.old_root, self.updated_root];
 
         create_and_verify_snark(ProofVariantCircuit::Update(self.clone()), scalars)
@@ -886,9 +886,9 @@ impl BatchMerkleProofCircuit {
         old_commitment: &Hash,
         new_commitment: &Hash,
         proofs: Vec<Proof>,
-    ) -> Result<BatchMerkleProofCircuit, DeimosError> {
-        let parsed_old_commitment = hash_to_scalar(old_commitment).map_err(DeimosError::General)?;
-        let parsed_new_commitment = hash_to_scalar(new_commitment).map_err(DeimosError::General)?;
+    ) -> Result<BatchMerkleProofCircuit, PrismError> {
+        let parsed_old_commitment = hash_to_scalar(old_commitment).map_err(PrismError::General)?;
+        let parsed_new_commitment = hash_to_scalar(new_commitment).map_err(PrismError::General)?;
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
@@ -913,7 +913,7 @@ impl BatchMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), DeimosError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), PrismError> {
         let scalars: Vec<Scalar> = vec![self.old_commitment, self.new_commitment];
 
         create_and_verify_snark(ProofVariantCircuit::Batch(self.clone()), scalars)

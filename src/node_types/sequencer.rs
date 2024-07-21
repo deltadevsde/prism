@@ -1,6 +1,6 @@
 use crate::{
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    error::{DataAvailabilityError, DatabaseError, DeimosResult},
+    error::{DataAvailabilityError, DatabaseError, PrismResult},
 };
 use async_trait::async_trait;
 use ed25519_dalek::{Signer, SigningKey};
@@ -23,7 +23,7 @@ use tokio::{
 use crate::{
     cfg::Config,
     da::{DataAvailabilityLayer, EpochJson},
-    error::{DeimosError, GeneralError},
+    error::{PrismError, GeneralError},
     node_types::NodeType,
     storage::{ChainEntry, Database, IncomingEntry, Operation},
     utils::verify_signature,
@@ -48,7 +48,7 @@ pub struct Sequencer {
 
 #[async_trait]
 impl NodeType for Sequencer {
-    async fn start(self: Arc<Self>) -> DeimosResult<()> {
+    async fn start(self: Arc<Self>) -> PrismResult<()> {
         // start listening for new headers to update sync target
         if let Err(e) = self.da.start().await {
             return Err(DataAvailabilityError::InitializationError(e.to_string()).into());
@@ -92,7 +92,7 @@ impl Sequencer {
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: Config,
         key: SigningKey,
-    ) -> DeimosResult<Sequencer> {
+    ) -> PrismResult<Sequencer> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
 
         let epoch_duration = match cfg.epoch_time {
@@ -197,13 +197,13 @@ impl Sequencer {
         .await
     }
 
-    pub async fn get_commitment(&self) -> DeimosResult<Hash> {
+    pub async fn get_commitment(&self) -> PrismResult<Hash> {
         let tree = self.tree.lock().await;
         tree.get_commitment().map_err(|e| e.into())
     }
 
     // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
-    pub async fn finalize_epoch(&self) -> DeimosResult<EpochJson> {
+    pub async fn finalize_epoch(&self) -> PrismResult<EpochJson> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -230,7 +230,7 @@ impl Sequencer {
 
         let current_commitment = {
             let tree = self.tree.lock().await;
-            tree.get_commitment().map_err(DeimosError::MerkleTree)?
+            tree.get_commitment().map_err(PrismError::MerkleTree)?
         };
 
         self.db.set_epoch(&epoch)?;
@@ -261,14 +261,14 @@ impl Sequencer {
         Ok(epoch_json_with_signature)
     }
 
-    async fn get_latest_height(&self) -> DeimosResult<EpochJson> {
+    async fn get_latest_height(&self) -> PrismResult<EpochJson> {
         match self.epoch_buffer_rx.lock().await.recv().await {
             Some(epoch) => Ok(epoch),
             None => Err(DataAvailabilityError::ChannelReceiveError.into()),
         }
     }
 
-    async fn finalize_pending_entries(&self) -> DeimosResult<Vec<Proof>> {
+    async fn finalize_pending_entries(&self) -> PrismResult<Vec<Proof>> {
         let mut pending_entries = self.pending_entries.lock().await;
         let mut proofs = Vec::new();
         for entry in pending_entries.iter() {
@@ -280,10 +280,10 @@ impl Sequencer {
     }
 
     /// Updates the state from on a pending incoming entry.
-    async fn update_entry(&self, incoming_entry: &IncomingEntry) -> DeimosResult<Proof> {
+    async fn update_entry(&self, incoming_entry: &IncomingEntry) -> PrismResult<Proof> {
         let id = incoming_entry.id.clone();
         // add a new key to an existing id  ( type for the value retrieved from the database explicitly set to string)
-        let hashchain: DeimosResult<Vec<ChainEntry>> = match self.db.get_hashchain(&id) {
+        let hashchain: PrismResult<Vec<ChainEntry>> = match self.db.get_hashchain(&id) {
             Ok(value) => {
                 // hashchain already exists
                 let mut current_chain = value.clone();
@@ -436,7 +436,7 @@ impl Sequencer {
     pub async fn validate_and_queue_update(
         self: Arc<Self>,
         signed_entry: &UpdateEntryJson,
-    ) -> DeimosResult<()> {
+    ) -> PrismResult<()> {
         let signed_content = match verify_signature(signed_entry, None) {
             Ok(content) => content,
             Err(e) => {

@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use bellman::groth16;
 use bls12_381::Bls12;
-use deimos::{utils::validate_epoch, zk_snark::BatchMerkleProofCircuit};
+use prism::{utils::validate_epoch, zk_snark::BatchMerkleProofCircuit};
 use indexed_merkle_tree::{
     node::Node,
     sha256_mod,

@@ -1,6 +1,6 @@
 use crate::{
     cfg::CelestiaConfig,
-    error::{DataAvailabilityError, DeimosResult, GeneralError},
+    error::{DataAvailabilityError, PrismResult, GeneralError},
 };
 use async_trait::async_trait;
 use std::{self, sync::Arc, time::Duration};
@@ -21,7 +21,7 @@ pub struct LightClient {
 
 #[async_trait]
 impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> DeimosResult<()> {
+    async fn start(self: Arc<Self>) -> PrismResult<()> {
         // start listening for new headers to update sync target
         match self.da.start().await {
             Ok(_) => (),

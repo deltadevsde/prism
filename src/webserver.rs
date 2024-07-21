@@ -1,6 +1,6 @@
 use crate::{
     cfg::WebServerConfig,
-    error::{DeimosResult, GeneralError},
+    error::{PrismResult, GeneralError},
     node_types::sequencer::Sequencer,
     storage::{ChainEntry, IncomingEntry},
     utils::SignedContent,
@@ -74,17 +74,17 @@ pub struct UserKeyResponse {
 struct ApiDoc;
 
 impl SignedContent for UpdateEntryJson {
-    fn get_signature(&self) -> DeimosResult<Signature> {
+    fn get_signature(&self) -> PrismResult<Signature> {
         Signature::from_str(self.signed_incoming_entry.as_str())
             .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
     }
 
-    fn get_plaintext(&self) -> DeimosResult<String> {
+    fn get_plaintext(&self) -> PrismResult<String> {
         serde_json::to_string(&self.incoming_entry)
             .map_err(|e| GeneralError::DecodingError(e.to_string()).into())
     }
 
-    fn get_public_key(&self) -> DeimosResult<String> {
+    fn get_public_key(&self) -> PrismResult<String> {
         Ok(self.public_key.clone())
     }
 }
