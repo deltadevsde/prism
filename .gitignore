@@ -5,3 +5,4 @@
 *.rdb
 dump.rdb
 Cargo.lock
+.idea
