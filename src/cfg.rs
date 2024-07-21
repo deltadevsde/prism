@@ -1,5 +1,5 @@
 use crate::consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL};
-use crate::error::{DataAvailabilityError, DeimosError, DeimosResult, GeneralError};
+use crate::error::{DataAvailabilityError, PrismError, PrismResult, GeneralError};
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
@@ -139,7 +139,7 @@ impl Default for Config {
     }
 }
 
-pub fn load_config(args: CommandLineArgs) -> DeimosResult<Config> {
+pub fn load_config(args: CommandLineArgs) -> PrismResult<Config> {
     dotenv().ok();
     std::env::set_var(
         "RUST_LOG",
@@ -171,18 +171,18 @@ pub fn load_config(args: CommandLineArgs) -> DeimosResult<Config> {
     Ok(final_config)
 }
 
-fn get_config_path(args: &CommandLineArgs) -> DeimosResult<String> {
+fn get_config_path(args: &CommandLineArgs) -> PrismResult<String> {
     args.config_path
         .clone()
         .or_else(|| {
-            home_dir().map(|path| format!("{}/.deimos/config.toml", path.to_string_lossy()))
+            home_dir().map(|path| format!("{}/.prism/config.toml", path.to_string_lossy()))
         })
         .ok_or_else(|| {
             GeneralError::MissingArgumentError("could not determine config path".to_string()).into()
         })
 }
 
-fn ensure_config_file_exists(config_path: &str) -> DeimosResult<()> {
+fn ensure_config_file_exists(config_path: &str) -> PrismResult<()> {
     if !Path::new(config_path).exists() {
         if let Some(parent) = Path::new(config_path).parent() {
             fs::create_dir_all(parent).map_err(|e| {
@@ -281,8 +281,8 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
 
 pub async fn initialize_da_layer(
     config: &Config,
-) -> DeimosResult<Arc<dyn DataAvailabilityLayer + 'static>> {
-    let da_layer = config.da_layer.as_ref().ok_or(DeimosError::ConfigError(
+) -> PrismResult<Arc<dyn DataAvailabilityLayer + 'static>> {
+    let da_layer = config.da_layer.as_ref().ok_or(PrismError::ConfigError(
         "DA Layer not specified".to_string(),
     ))?;
 
@@ -291,7 +291,7 @@ pub async fn initialize_da_layer(
             let celestia_conf = config
                 .celestia_config
                 .clone()
-                .ok_or(DeimosError::ConfigError(
+                .ok_or(PrismError::ConfigError(
                     "Celestia configuration not found".to_string(),
                 ))?;
 
@@ -323,7 +323,7 @@ pub async fn initialize_da_layer(
             Ok(Arc::new(LocalDataAvailabilityLayer::new())
                 as Arc<dyn DataAvailabilityLayer + 'static>)
         }
-        DALayerOption::None => Err(DeimosError::ConfigError(
+        DALayerOption::None => Err(PrismError::ConfigError(
             "No DA Layer specified".to_string(),
         )),
     }

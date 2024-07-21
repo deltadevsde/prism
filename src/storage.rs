@@ -13,7 +13,7 @@ use std::{
 
 use crate::{
     cfg::RedisConfig,
-    error::{DatabaseError, DeimosError, DeimosResult, GeneralError},
+    error::{DatabaseError, PrismError, PrismResult, GeneralError},
     utils::parse_json_to_proof,
 };
 
@@ -72,46 +72,46 @@ pub struct RedisConnection {
 
 #[automock]
 pub trait Database: Send + Sync {
-    fn get_keys(&self) -> DeimosResult<Vec<String>>;
-    fn get_derived_keys(&self) -> DeimosResult<Vec<String>>;
-    fn get_hashchain(&self, key: &str) -> DeimosResult<Vec<ChainEntry>>;
-    fn get_derived_value(&self, key: &str) -> DeimosResult<String>;
-    fn get_derived_keys_in_order(&self) -> DeimosResult<Vec<String>>;
-    fn get_commitment(&self, epoch: &u64) -> DeimosResult<String>;
-    fn get_proof(&self, id: &str) -> DeimosResult<String>;
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> DeimosResult<Vec<Proof>>;
-    fn get_epoch(&self) -> DeimosResult<u64>;
-    fn set_epoch(&self, epoch: &u64) -> DeimosResult<()>;
+    fn get_keys(&self) -> PrismResult<Vec<String>>;
+    fn get_derived_keys(&self) -> PrismResult<Vec<String>>;
+    fn get_hashchain(&self, key: &str) -> PrismResult<Vec<ChainEntry>>;
+    fn get_derived_value(&self, key: &str) -> PrismResult<String>;
+    fn get_derived_keys_in_order(&self) -> PrismResult<Vec<String>>;
+    fn get_commitment(&self, epoch: &u64) -> PrismResult<String>;
+    fn get_proof(&self, id: &str) -> PrismResult<String>;
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> PrismResult<Vec<Proof>>;
+    fn get_epoch(&self) -> PrismResult<u64>;
+    fn set_epoch(&self, epoch: &u64) -> PrismResult<()>;
     fn update_hashchain(
         &self,
         incoming_entry: &IncomingEntry,
         value: &[ChainEntry],
-    ) -> DeimosResult<()>;
+    ) -> PrismResult<()>;
     fn set_derived_entry(
         &self,
         incoming_entry: &IncomingEntry,
         value: &ChainEntry,
         new: bool,
-    ) -> DeimosResult<()>;
-    fn get_epochs(&self) -> DeimosResult<Vec<u64>>;
+    ) -> PrismResult<()>;
+    fn get_epochs(&self) -> PrismResult<Vec<u64>>;
     fn add_merkle_proof(
         &self,
         epoch: &u64,
         epoch_operation: &u64,
         commitment: &Hash,
         proofs: &str,
-    ) -> DeimosResult<()>;
-    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> DeimosResult<()>;
-    fn initialize_derived_dict(&self) -> DeimosResult<()>;
-    fn flush_database(&self) -> DeimosResult<()>;
+    ) -> PrismResult<()>;
+    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> PrismResult<()>;
+    fn initialize_derived_dict(&self) -> PrismResult<()>;
+    fn flush_database(&self) -> PrismResult<()>;
 }
 
-fn convert_to_connection_error(e: redis::RedisError) -> DeimosError {
-    DeimosError::Database(DatabaseError::ConnectionError(e.to_string()))
+fn convert_to_connection_error(e: redis::RedisError) -> PrismError {
+    PrismError::Database(DatabaseError::ConnectionError(e.to_string()))
 }
 
 impl RedisConnection {
-    pub fn new(cfg: &RedisConfig) -> DeimosResult<RedisConnection> {
+    pub fn new(cfg: &RedisConfig) -> PrismResult<RedisConnection> {
         let connection_string = cfg.connection_string.clone();
         let try_client =
             Client::open(connection_string.clone()).map_err(convert_to_connection_error)?;
@@ -121,7 +121,7 @@ impl RedisConnection {
             debug!("starting redis-server...");
 
             let _child = Command::new("redis-server").spawn().map_err(|e| {
-                DeimosError::Database(DatabaseError::InitializationError(e.to_string()))
+                PrismError::Database(DatabaseError::InitializationError(e.to_string()))
             })?;
 
             // TODO: fix this hack
@@ -142,52 +142,52 @@ impl RedisConnection {
     // 'a is a generic lifetime and &'a Mutex<T> should make sure, that the MutexGuard is not dropped before the Mutex itself...
     // because rust can not make sure that that's the case, we need to use the 'static lifetime here
     // (but i dont really know why the issue pops up now and not before, i think we were using the same/similar pattern in the other functions)
-    fn lock_connection(&self) -> DeimosResult<MutexGuard<Connection>> {
+    fn lock_connection(&self) -> PrismResult<MutexGuard<Connection>> {
         self.connection
             .lock()
-            .map_err(|_| DeimosError::Database(DatabaseError::LockError))
+            .map_err(|_| PrismError::Database(DatabaseError::LockError))
     }
 }
 
 impl Database for RedisConnection {
-    fn get_keys(&self) -> DeimosResult<Vec<String>> {
+    fn get_keys(&self) -> PrismResult<Vec<String>> {
         let mut con = self.lock_connection()?;
         let keys: Vec<String> = con
             .keys("main:*")
-            .map_err(|_| DeimosError::Database(DatabaseError::KeysError("main".to_string())))?;
+            .map_err(|_| PrismError::Database(DatabaseError::KeysError("main".to_string())))?;
         Ok(keys.into_iter().map(|k| k.replace("main:", "")).collect())
     }
 
-    fn get_derived_keys(&self) -> DeimosResult<Vec<String>> {
+    fn get_derived_keys(&self) -> PrismResult<Vec<String>> {
         let mut con = self.lock_connection()?;
         let keys: Vec<String> = con
             .keys("derived:*")
-            .map_err(|_| DeimosError::Database(DatabaseError::KeysError("derived".to_string())))?;
+            .map_err(|_| PrismError::Database(DatabaseError::KeysError("derived".to_string())))?;
         Ok(keys
             .into_iter()
             .map(|k| k.replace("derived:", ""))
             .collect())
     }
 
-    fn get_hashchain(&self, key: &str) -> DeimosResult<Vec<ChainEntry>> {
+    fn get_hashchain(&self, key: &str) -> PrismResult<Vec<ChainEntry>> {
         let mut con = self.lock_connection()?;
         let value: String = con.get(format!("main:{}", key)).map_err(|_| {
-            DeimosError::Database(DatabaseError::NotFoundError(format!(
+            PrismError::Database(DatabaseError::NotFoundError(format!(
                 "hashchain key {}",
                 key
             )))
         })?;
 
         serde_json::from_str(&value).map_err(|e| {
-            DeimosError::General(GeneralError::ParsingError(format!("hashchain: {}", e)))
+            PrismError::General(GeneralError::ParsingError(format!("hashchain: {}", e)))
         })
     }
 
-    fn get_derived_value(&self, key: &str) -> DeimosResult<String> {
+    fn get_derived_value(&self, key: &str) -> PrismResult<String> {
         let mut con = self.lock_connection()?;
         con.get::<String, String>(format!("derived:{}", key))
             .map_err(|e| {
-                DeimosError::Database(DatabaseError::NotFoundError(format!(
+                PrismError::Database(DatabaseError::NotFoundError(format!(
                     "derived key {} with err {}: ",
                     key, e
                 )))
@@ -197,18 +197,18 @@ impl Database for RedisConnection {
     // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
     // Questionable if it is not simply enough to return the values using the input_order table. This needs to be discussed again with @distractedm1nd :) Then the above function wouldn't be necessary anymore.
     // Does the order of the keys matter?
-    fn get_derived_keys_in_order(&self) -> DeimosResult<Vec<String>> {
+    fn get_derived_keys_in_order(&self) -> PrismResult<Vec<String>> {
         let mut con = self.lock_connection()?;
         con.lrange("input_order", 0, -1)
-            .map_err(|_| DeimosError::Database(DatabaseError::GetInputOrderError))
+            .map_err(|_| PrismError::Database(DatabaseError::GetInputOrderError))
     }
 
-    fn get_commitment(&self, epoch: &u64) -> DeimosResult<String> {
+    fn get_commitment(&self, epoch: &u64) -> PrismResult<String> {
         let mut con = self.lock_connection()?;
         let value = con
             .get::<&str, String>(&format!("commitments:epoch_{}", epoch))
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::NotFoundError(format!(
+                PrismError::Database(DatabaseError::NotFoundError(format!(
                     "commitment from epoch_{}",
                     epoch
                 )))
@@ -216,22 +216,22 @@ impl Database for RedisConnection {
         Ok(value.trim_matches('"').to_string())
     }
 
-    fn get_proof(&self, id: &str) -> DeimosResult<String> {
+    fn get_proof(&self, id: &str) -> PrismResult<String> {
         let mut con = self.lock_connection()?;
         con.get(format!("merkle_proofs:{}", id)).map_err(|_| {
-            DeimosError::Database(DatabaseError::NotFoundError(format!(
+            PrismError::Database(DatabaseError::NotFoundError(format!(
                 "Proof with id: {}",
                 id
             )))
         })
     }
 
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> DeimosResult<Vec<Proof>> {
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> PrismResult<Vec<Proof>> {
         let mut con = self.lock_connection()?;
         let mut epoch_proofs: Vec<String> = con
             .keys::<&String, Vec<String>>(&format!("merkle_proofs:epoch_{}*", epoch))
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::NotFoundError(format!("epoch: {}", epoch)))
+                PrismError::Database(DatabaseError::NotFoundError(format!("epoch: {}", epoch)))
             })?;
 
         epoch_proofs.sort_by(|a, b| {
@@ -252,18 +252,18 @@ impl Database for RedisConnection {
             .collect())
     }
 
-    fn get_epoch(&self) -> DeimosResult<u64> {
+    fn get_epoch(&self) -> PrismResult<u64> {
         let mut con = self.lock_connection()?;
         con.get("app_state:epoch").map_err(|_| {
-            DeimosError::Database(DatabaseError::NotFoundError("current epoch".to_string()))
+            PrismError::Database(DatabaseError::NotFoundError("current epoch".to_string()))
         })
     }
 
-    fn set_epoch(&self, epoch: &u64) -> DeimosResult<()> {
+    fn set_epoch(&self, epoch: &u64) -> PrismResult<()> {
         let mut con = self.lock_connection()?;
         con.set::<&str, &u64, ()>("app_state:epoch", epoch)
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::WriteError(format!("epoch: {}", epoch)))
+                PrismError::Database(DatabaseError::WriteError(format!("epoch: {}", epoch)))
             })
     }
 
@@ -271,16 +271,16 @@ impl Database for RedisConnection {
         &self,
         incoming_entry: &IncomingEntry,
         value: &[ChainEntry],
-    ) -> DeimosResult<()> {
+    ) -> PrismResult<()> {
         let mut con = self.lock_connection()?;
         let value = serde_json::to_string(&value).map_err(|_| {
-            DeimosError::General(GeneralError::ParsingError(
+            PrismError::General(GeneralError::ParsingError(
                 "hashchain to string".to_string(),
             ))
         })?;
         con.set::<&str, String, ()>(&format!("main:{}", incoming_entry.id), value)
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::WriteError(format!(
+                PrismError::Database(DatabaseError::WriteError(format!(
                     "hashchain update for key: {}",
                     incoming_entry.id
                 )))
@@ -292,13 +292,13 @@ impl Database for RedisConnection {
         incoming_entry: &IncomingEntry,
         value: &ChainEntry,
         new: bool,
-    ) -> DeimosResult<()> {
+    ) -> PrismResult<()> {
         let mut con = self.lock_connection()?;
         let hashed_key = sha256_mod(incoming_entry.id.as_bytes());
         let stored_value = hex::encode(value.hash.as_ref());
         con.set::<&str, String, String>(&format!("derived:{}", hashed_key), stored_value)
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::WriteError(format!(
+                PrismError::Database(DatabaseError::WriteError(format!(
                     "derived dict update for key: {}",
                     hashed_key
                 )))
@@ -307,7 +307,7 @@ impl Database for RedisConnection {
         if new {
             con.rpush::<&'static str, &String, u32>("input_order", &hashed_key.to_string())
                 .map_err(|_| {
-                    DeimosError::Database(DatabaseError::WriteError(format!(
+                    PrismError::Database(DatabaseError::WriteError(format!(
                         "input order update for key: {}",
                         hashed_key
                     )))
@@ -316,11 +316,11 @@ impl Database for RedisConnection {
         Ok(())
     }
 
-    fn get_epochs(&self) -> DeimosResult<Vec<u64>> {
+    fn get_epochs(&self) -> PrismResult<Vec<u64>> {
         let mut con = self.lock_connection()?;
         con.keys::<&str, Vec<String>>("commitments:*")
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::NotFoundError("Commitments".to_string()))
+                PrismError::Database(DatabaseError::NotFoundError("Commitments".to_string()))
             })?
             .into_iter()
             .map(|epoch| {
@@ -328,7 +328,7 @@ impl Database for RedisConnection {
                     .replace("commitments:epoch_", "")
                     .parse::<u64>()
                     .map_err(|_| {
-                        DeimosError::General(GeneralError::ParsingError(
+                        PrismError::General(GeneralError::ParsingError(
                             "failed to parse epoch".to_string(),
                         ))
                     })
@@ -342,7 +342,7 @@ impl Database for RedisConnection {
         epoch_operation: &u64,
         commitment: &Hash,
         proofs: &str,
-    ) -> DeimosResult<()> {
+    ) -> PrismResult<()> {
         let mut con = self.lock_connection()?;
         let formatted_epoch = format!(
             "merkle_proofs:epoch_{}_{}_{}",
@@ -350,41 +350,41 @@ impl Database for RedisConnection {
         );
         con.set::<&String, &String, ()>(&formatted_epoch, &proofs.to_string())
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::WriteError(format!(
+                PrismError::Database(DatabaseError::WriteError(format!(
                     "merkle proof for epoch: {}",
                     formatted_epoch
                 )))
             })
     }
 
-    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> DeimosResult<()> {
+    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> PrismResult<()> {
         let mut con = self.lock_connection()?;
         con.set::<&String, &String, ()>(
             &format!("commitments:epoch_{}", epoch),
             &commitment.to_string(),
         )
         .map_err(|_| {
-            DeimosError::Database(DatabaseError::WriteError(format!(
+            PrismError::Database(DatabaseError::WriteError(format!(
                 "commitment for epoch: {}",
                 epoch
             )))
         })
     }
 
-    fn initialize_derived_dict(&self) -> DeimosResult<()> {
+    fn initialize_derived_dict(&self) -> PrismResult<()> {
         let mut con = self.lock_connection()?;
         let empty_hash = Node::HEAD.to_string();
 
         con.set::<&String, &String, String>(&format!("derived:{}", empty_hash), &empty_hash)
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::WriteError(
+                PrismError::Database(DatabaseError::WriteError(
                     "empty hash as first entry in the derived dictionary".to_string(),
                 ))
             })?;
 
         con.rpush::<String, String, u32>("input_order".to_string(), empty_hash.clone())
             .map_err(|_| {
-                DeimosError::Database(DatabaseError::WriteError(
+                PrismError::Database(DatabaseError::WriteError(
                     "empty hash as first entry in input order".to_string(),
                 ))
             })?;
@@ -392,10 +392,10 @@ impl Database for RedisConnection {
         Ok(())
     }
 
-    fn flush_database(&self) -> DeimosResult<()> {
+    fn flush_database(&self) -> PrismResult<()> {
         let mut conn = self.lock_connection()?;
         redis::cmd("FLUSHALL").query::<()>(&mut conn).map_err(|_| {
-            DeimosError::Database(DatabaseError::DeleteError("all entries".to_string()))
+            PrismError::Database(DatabaseError::DeleteError("all entries".to_string()))
         })
     }
 }

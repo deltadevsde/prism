@@ -1,5 +1,5 @@
 use crate::{
-    error::{DeimosError, DeimosResult, GeneralError, ProofError},
+    error::{PrismError, PrismResult, GeneralError, ProofError},
     storage::{ChainEntry, Operation},
     zk_snark::{hash_to_scalar, ProofVariantCircuit},
 };
@@ -38,7 +38,7 @@ pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::
     Ok(proof)
 }
 
-pub fn decode_public_key(pub_key_str: &String) -> DeimosResult<Ed25519VerifyingKey> {
+pub fn decode_public_key(pub_key_str: &String) -> PrismResult<Ed25519VerifyingKey> {
     // decode the public key from base64 string to bytes
     let public_key_bytes = engine
         .decode(pub_key_str)
@@ -55,13 +55,13 @@ pub fn decode_public_key(pub_key_str: &String) -> DeimosResult<Ed25519VerifyingK
 pub fn create_and_verify_snark(
     circuit: ProofVariantCircuit,
     scalars: Vec<Scalar>,
-) -> DeimosResult<(groth16::Proof<Bls12>, VerifyingKey<Bls12>)> {
+) -> PrismResult<(groth16::Proof<Bls12>, VerifyingKey<Bls12>)> {
     let rng = &mut OsRng;
 
     trace!("creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
     let params =
         groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).map_err(|e| {
-            DeimosError::Proof(ProofError::ProofUnpackError(format!(
+            PrismError::Proof(ProofError::ProofUnpackError(format!(
                 "generating random params: {}",
                 e
             )))
@@ -69,13 +69,13 @@ pub fn create_and_verify_snark(
 
     trace!("creating proof for zkSNARK...");
     let proof = groth16::create_random_proof(circuit, &params, rng)
-        .map_err(|e| DeimosError::Proof(ProofError::GenerationError(e.to_string())))?;
+        .map_err(|e| PrismError::Proof(ProofError::GenerationError(e.to_string())))?;
 
     trace!("preparing verifying key for zkSNARK...");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
     groth16::verify_proof(&pvk, &proof, &scalars)
-        .map_err(|e| DeimosError::Proof(ProofError::VerificationError(e.to_string())))?;
+        .map_err(|e| PrismError::Proof(ProofError::VerificationError(e.to_string())))?;
 
     Ok((proof, params.vk))
 }
@@ -85,7 +85,7 @@ pub fn validate_epoch(
     current_commitment: &Hash,
     proof: groth16::Proof<Bls12>,
     verifying_key: VerifyingKey<Bls12>,
-) -> Result<groth16::Proof<Bls12>, DeimosError> {
+) -> Result<groth16::Proof<Bls12>, PrismError> {
     trace!("validate_epoch: preparing verifying key for zkSNARK");
     let pvk = groth16::prepare_verifying_key(&verifying_key);
 
@@ -97,7 +97,7 @@ pub fn validate_epoch(
     .collect();
 
     let scalars = scalars.map_err(|e| {
-        DeimosError::General(GeneralError::ParsingError(format!(
+        PrismError::General(GeneralError::ParsingError(format!(
             "unable to parse public input parameters: {}",
             e
         )))
@@ -105,29 +105,29 @@ pub fn validate_epoch(
 
     trace!("validate_epoch: verifying zkSNARK proof...");
     groth16::verify_proof(&pvk, &proof, &scalars)
-        .map_err(|e| DeimosError::Proof(ProofError::VerificationError(e.to_string())))?;
+        .map_err(|e| PrismError::Proof(ProofError::VerificationError(e.to_string())))?;
 
     Ok(proof)
 }
 
 pub trait SignedContent {
-    fn get_signature(&self) -> DeimosResult<Signature>;
-    fn get_plaintext(&self) -> DeimosResult<String>;
-    fn get_public_key(&self) -> DeimosResult<String>;
+    fn get_signature(&self) -> PrismResult<Signature>;
+    fn get_plaintext(&self) -> PrismResult<String>;
+    fn get_public_key(&self) -> PrismResult<String>;
 }
 
 // verifies the signature of a given signable item and returns the content of the item if the signature is valid
 pub fn verify_signature<T: SignedContent>(
     item: &T,
     optional_public_key: Option<String>,
-) -> DeimosResult<String> {
+) -> PrismResult<String> {
     let public_key_str = match optional_public_key {
         Some(key) => key,
         None => item.get_public_key()?,
     };
 
     let public_key = decode_public_key(&public_key_str)
-        .map_err(|_| DeimosError::General(GeneralError::InvalidPublicKey))?;
+        .map_err(|_| PrismError::General(GeneralError::InvalidPublicKey))?;
 
     let content = item.get_plaintext()?;
     let signature = item.get_signature()?;

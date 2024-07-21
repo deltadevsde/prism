@@ -1,8 +1,8 @@
-# Contributing to Deimos
+# Contributing to Prism
 
 ## Hi there!
 
-Thank you for considering contributing to Deimos. We value the contributions of each individual and are excited to have you as part of our community.
+Thank you for considering contributing to Prism. We value the contributions of each individual and are excited to have you as part of our community.
 
 ## Code of Conduct
 

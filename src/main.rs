@@ -20,7 +20,7 @@ use storage::RedisConnection;
 #[macro_use]
 extern crate log;
 
-/// The main function that initializes and runs a deimos client.
+/// The main function that initializes and runs a prism client.
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();

@@ -1,14 +1,14 @@
 [package]
-name = "deimos"
+name = "prism"
 version = "0.1.0"
 authors = [
     "Sebastian Pusch <sebastian@deltadevs.xyz>",
     "Ryan Ford <ryan@deltadevs.xyz>",
 ]
 edition = "2021"
-description = "deimos is the first trust-minimized key-transparency solution, allowing for automatic verification of service providers via light clients. Powered by Celestia."
-homepage = "https://deimos.deltadevs.xyz"
-repository = "https://github.com/deltadevsde/deimos"
+description = "prism is the first trust-minimized key-transparency solution, allowing for automatic verification of service providers via light clients. Powered by Celestia."
+homepage = "https://prism.deltadevs.xyz"
+repository = "https://github.com/deltadevsde/prism"
 license = "MIT"
 keywords = ["crypto", "key-transparency"]
 readme = "README.md"

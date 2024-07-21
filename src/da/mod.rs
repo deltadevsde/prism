@@ -1,5 +1,5 @@
 use crate::{
-    error::{DAResult, DeimosResult, GeneralError},
+    error::{DAResult, PrismResult, GeneralError},
     utils::SignedContent,
     zk_snark::{Bls12Proof, VerifyingKey},
 };
@@ -23,7 +23,7 @@ pub struct EpochJson {
 }
 
 impl SignedContent for EpochJson {
-    fn get_signature(&self) -> DeimosResult<Signature> {
+    fn get_signature(&self) -> PrismResult<Signature> {
         match &self.signature {
             Some(signature) => Signature::from_str(signature)
                 .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into()),
@@ -31,13 +31,13 @@ impl SignedContent for EpochJson {
         }
     }
 
-    fn get_plaintext(&self) -> DeimosResult<String> {
+    fn get_plaintext(&self) -> PrismResult<String> {
         let mut copy = self.clone();
         copy.signature = None;
         serde_json::to_string(&copy).map_err(|e| GeneralError::EncodingError(e.to_string()).into())
     }
 
-    fn get_public_key(&self) -> DeimosResult<String> {
+    fn get_public_key(&self) -> PrismResult<String> {
         //TODO(@distractedm1nd): the below comment isn't good enough of an argument to not return the public key, it should be fixed
 
         // for epoch json the public key to verify is the one from the sequencer which should be already be public and known from every light client
