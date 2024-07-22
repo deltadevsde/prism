@@ -16,7 +16,6 @@ readme = "README.md"
 [features]
 default = []
 key_transparency = []
-ci = []
 
 [dependencies]
 axum = "0.6"
