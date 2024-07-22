@@ -3,29 +3,71 @@ name: Rust CI
 on:
   push:
     branches:
-      - '**'  
+      - '**'
+  pull_request:
+    branches:
+      - '**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+    strategy:
+      fail-fast: false
+      matrix:
+        rust:
+          - version: stable
+            profile: minimal
+          - version: beta
+            profile: default
+          - version: nightly
+            profile: default
+
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        run: |
+          rustup toolchain install ${{ matrix.rust.version }} --profile ${{ matrix.rust.profile }}
+          rustup default ${{ matrix.rust.version }}
 
       - name: Install protoc
         run: sudo apt-get install protobuf-compiler
 
-      - name: Build and test
-        run: cargo build --verbose && cargo test --features ci --verbose
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ runner.os }}-cargo-${{ matrix.rust.version }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install dependencies
+        run: cargo fetch
+
+      # can execute code formatting, to be enabled later
+      # there are some oddities with it being configured to ONLY
+      # run on nightly AND it fails, i can work through and fix if
+      # you want to enable it
+      #
+      # - name: Check code formatting
+      #   # run only on nightly because of import_granularity=Crate
+      #   if: matrix.rust.version == 'nightly'
+      #   run: cargo fmt --all -- --check
+
+      - name: Add clippy component if not stable
+        if: matrix.rust.version != 'stable'
+        run: rustup component add clippy
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Build project
+        run: cargo build --verbose
+
+      - name: Run tests
+        run: cargo test --features ci --verbose
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
 
-      - name: Run cargo-audit
+      - name: Run cargo audit
         run: cargo audit
