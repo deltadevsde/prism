@@ -23,12 +23,11 @@ use tokio::{
 use crate::{
     cfg::Config,
     da::{DataAvailabilityLayer, EpochJson},
-    error::{PrismError, GeneralError},
+    error::{GeneralError, PrismError},
     node_types::NodeType,
     storage::{ChainEntry, Database, IncomingEntry, Operation},
     utils::verify_signature,
-    webserver::UpdateEntryJson,
-    webserver::WebServer,
+    webserver::{UpdateEntryJson, WebServer},
     zk_snark::BatchMerkleProofCircuit,
 };
 
@@ -465,11 +464,14 @@ impl Sequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cfg::{Config, RedisConfig};
-    use crate::da::mock::LocalDataAvailabilityLayer;
-    use crate::storage::RedisConnection;
+    use crate::{
+        cfg::{Config, RedisConfig},
+        da::mock::LocalDataAvailabilityLayer,
+        storage::RedisConnection,
+    };
     use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
     use keystore_rs::create_signing_key;
+    use serial_test::serial;
 
     // set up redis connection and flush database before each test
     fn setup_db() -> RedisConnection {
@@ -501,6 +503,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_validate_and_queue_update() {
         let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
         let db = Arc::new(setup_db());
@@ -525,6 +528,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_queued_update_gets_finalized() {
         let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
         let db = Arc::new(setup_db());
@@ -566,6 +570,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_validate_invalid_update_fails() {
         let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
         let db = Arc::new(setup_db());

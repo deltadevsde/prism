@@ -13,7 +13,7 @@ use std::{
 
 use crate::{
     cfg::RedisConfig,
-    error::{DatabaseError, PrismError, PrismResult, GeneralError},
+    error::{DatabaseError, GeneralError, PrismError, PrismResult},
     utils::parse_json_to_proof,
 };
 
@@ -400,12 +400,11 @@ impl Database for RedisConnection {
     }
 }
 
-#[cfg(not(feature = "ci"))]
 #[cfg(test)]
 mod tests {
-    use indexed_merkle_tree::sha256_mod;
-
     use super::*;
+    use indexed_merkle_tree::sha256_mod;
+    use serial_test::serial;
 
     // Helper functions
 
@@ -445,6 +444,7 @@ mod tests {
     // probably not thaaat important
     // TODO: get_keys() returns the keys in reverse order
     #[test]
+    #[serial]
     fn test_get_keys() {
         // set up redis connection and flush database
         let redis_connections = setup();
@@ -479,6 +479,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_get_keys_from_empty_dictionary() {
         let redis_connections = setup();
 
@@ -493,6 +494,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     #[should_panic(expected = "assertion `left == right` failed")]
     fn test_get_too_much_returned_keys() {
         let redis_connections = setup();
@@ -523,6 +525,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     #[should_panic(expected = "assertion `left == right` failed")]
     fn test_get_too_little_returned_keys() {
         let redis_connections = setup();
@@ -562,6 +565,7 @@ mod tests {
     // TODO: shouldn't it be that the update function automatically continues the derived dict?
     // In addition, it should not be possible to write keys exclusively directly into the derived dict, right?
     #[test]
+    #[serial]
     fn test_get_hashed_keys() {
         let redis_connections = setup();
 
@@ -597,6 +601,7 @@ mod tests {
     // TESTS FOR fn get_hashchain(&self, key: &String) -> Result<Vec<ChainEntry>, &str>
 
     #[test]
+    #[serial]
     fn test_get_hashchain() {
         let redis_connections = setup();
 
@@ -617,6 +622,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_try_getting_hashchain_for_missing_key() {
         let redis_connections = setup();
 
@@ -635,6 +641,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_try_getting_wrong_formatted_hashchain_value() {
         let redis_connection = setup();
 
@@ -675,6 +682,7 @@ mod tests {
     // TESTS FOR fn get_derived_value(&self, key: &String) -> Result<String, &str>
 
     #[test]
+    #[serial]
     /*
         TODO: In the test writing, it is noticeable that things may either not have been named correctly here, or need to be reconsidered. The update_hashchain function receives an IncomingEntry and a Vec<ChainEntry> as parameters.
         The Vec<ChainEntry> is the current state of the hashchain, the IncomingEntry is the new entry to be added. is to be added. Now, in hindsight, I would have expected that within the function the new hashchain would be created,
