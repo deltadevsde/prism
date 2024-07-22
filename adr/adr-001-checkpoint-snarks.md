@@ -39,67 +39,42 @@ Proposed
 
 ### Risks
 
-1. Recursive SNARK generation might be computationally intensive and time-consuming, especially in Stage 1.
-2. Potential vulnerabilities in the recursive SNARK implementation could compromise the entire history (also a ).
+1. Recursive SNARK generation is computationally intensive and time-consuming, especially in Stage 1.
+2. Potential vulnerabilities in the recursive SNARK implementation could compromise the entire history.
 3. Compatibility issues between different SNARK systems used for epochs and checkpoints (Transition to Stage 2 - if not well thought through - may introduce compatibility issues with existing proofs and clients).
 
 ## Implementation Details
 
 ### Stage 1: Groth16 Checkpoint SNARKs
 
-1. Define a checkpoint interval (e.g., every 4 weeks or 1000 epochs).
+1. Defining a starting checkpoint interval: every 125 epochs (a pessimistic estimate is that a light client can sync 25 epochs/minute).
 2. Develop a recursive Groth16 SNARK circuit that verifies multiple epoch SNARKs.
 3. Implement a process to generate and post checkpoint SNARKs to Celestia.
 4. Modify light clients to start syncing from the latest checkpoint SNARK.
-5. Ensure backwards compatibility for existing light clients (necessary rn?).
 
 ### Stage 2: Transition to Advanced SNARK Systems
 
 1. Evaluate Nova and zkVM solutions (e.g., Nexus with HyperNova) for compatibility with our use case and future based rollup plans.
 2. Develop a prototype implementation using the chosen system.
-3. Create a migration strategy for existing proofs and clients.
-4. Implement additional proving capabilities required for based rollups (different ADR).
-5. Tests for the new system.
+3. Create a migration strategy in an update to this ADR for existing proofs and clients.
+4. Update this ADR with a testing strategy and execute it before deployment.
 
 ## Why Nova (SuperNova / HyperNova) could be Beneficial for Us
 
-1. Efficient Aggregation: We aggregate many proofs into epoch SNARKs. Nova's folding scheme is particularly efficient for this use case, reducing our constraint complexity from possibly millions to tens of thousands.
+1. Effiency: By leveraging Nova's efficient folding scheme, we achieve significant reductions in constraint complexity, enhance scalability through efficient proof aggregation, and lower resource requirements. This allows for faster proving times, reduced memory usage, and the ability to operate effectively on less powerful hardware, making our system more efficient and scalable in the long term.
 
-2. Scalability: As our system grows, the ability to efficiently aggregate proofs becomes crucial. Nova / SuperNova / HyperNova allows us to create "checkpoint SNARKs" more efficiently, enabling better long-term scalability.
-
-3. Reduced Resource Requirements: The dramatic reduction in constraint complexity translates to lower memory usage and faster proving times, allowing us to operate more efficiently and potentially on less powerful hardware.
-
-4. Flexibility: Nova's approach allows for more frequent aggregation and checkpoint creation, giving us more flexibility in how we structure our proof hierarchy.
-
-5. Future-proofing: Nova's design aligns well with potential future requirements, such as more complex proof structures or more frequent updates.
+2. Future-proofing: Nova's design aligns well with potential future requirements, such as more complex proof structures or more frequent updates.
 
 ## Alternatives Considered
 
-1. Using a different data availability layer with longer-term storage (@distractedm1nd told me already why not kyve?).
+1. Using a different data availability layer with longer-term storage.
 2. Exploring other SNARK systems like Plonk or Halo2 (eventhough we do think Nova provides better efficiency for our specific use case of repeated proof aggregation).
-
-## Future Considerations
-
-While currently using Groth16, we should consider transitioning to more future-proof systems like Nexus zkVM with HyperNova for the following reasons:
-
-1. Based Rollups: The Stage 2 implementation should account for the need to prove additional aspects beyond epoch proofs, such as transaction validity and garbage exclusion in blocks. This aligns with our plans for based rollups (refer to the Based Rollup ADR for more details).
-2. zkVMs: While zkVMs introduce overhead and may not be justified for our current specific use case (proving valid Merkle paths), they offer flexibility for future extensions. As we move towards based rollups and more complex proofs, a zkVM like Jolt, SP1, Risc0 or Nexus could provide a unified framework for all our proving needs.
-3. Performance vs. Flexibility: We need to carefully balance the performance benefits of specialized systems like Nova with the flexibility offered by zkVMs. Our choice in Stage 2 will depend on the complexity of proofs required for based rollups and other future features.
-4. Proving System Ecosystem: We should monitor the development of proving systems like Nova and Nexus, considering factors such as performance improvements, community support, and ease of use when making our Stage 2 decision.
-
-The transition plan should include:
-
-1. Evaluating Nexus zkVM or similar systems for compatibility with our use case.
-2. Developing a prototype implementation using the new system.
-3. Creating a migration strategy for existing proofs and clients.
-4. Thoroughly testing the new system before deployment.
 
 ## Open Questions
 
-1. What is the optimal checkpoint interval (checkpoint SNARK frequency) for our system?
-2. How do we handle the transition period where both Groth16 and Nova proofs might coexist?
-3. What specific based rollup features will we need to prove in Stage 2, and how do they influence our choice between Nova and a zkVM solution?
-4. How can we ensure smooth transition and backwards compatibility when moving from Stage 1 to Stage 2?
+1. How do we handle the transition period where both Groth16 and Nova proofs might coexist?
+2. What specific based rollup features will we need to prove in Stage 2, and how do they influence our choice between Nova and a zkVM solution?
+3. How can we ensure smooth transition and backwards compatibility when moving from Stage 1 to Stage 2?
 
 ## Action Items
 
