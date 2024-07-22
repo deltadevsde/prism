@@ -13,7 +13,7 @@ use std::{
 
 use crate::{
     cfg::RedisConfig,
-    error::{DatabaseError, PrismError, PrismResult, GeneralError},
+    error::{DatabaseError, GeneralError, PrismError, PrismResult},
     utils::parse_json_to_proof,
 };
 
@@ -400,7 +400,6 @@ impl Database for RedisConnection {
     }
 }
 
-#[cfg(not(feature = "ci"))]
 #[cfg(test)]
 mod tests {
     use indexed_merkle_tree::sha256_mod;
