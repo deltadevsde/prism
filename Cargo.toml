@@ -45,7 +45,7 @@ rand = "0.8.5"
 rand07 = { package = "rand", version = "0.7.0" }
 hex = "0.4.3"
 ff = "0.13.0"
-openssl = "0.10.62"
+openssl = "0.10.66"
 futures = "0.3"
 lazy_static = "1.4"
 colored = "2.0.0"
@@ -66,3 +66,6 @@ pyroscope = "0.5.7"
 pyroscope_pprofrs = "0.2.7"
 toml = "0.8.14"
 dirs = "5.0.1"
+
+[dev-dependencies]
+serial_test = "3.1.1"
