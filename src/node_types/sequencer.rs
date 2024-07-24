@@ -22,7 +22,7 @@ use tokio::{
 
 use crate::{
     cfg::Config,
-    da::{DataAvailabilityLayer, EpochJson},
+    da::{DataAvailabilityLayer, FinalizedEpoch},
     error::{GeneralError, PrismError},
     node_types::NodeType,
     storage::{ChainEntry, Database, IncomingEntry, Operation},
@@ -41,14 +41,13 @@ pub struct Sequencer {
     pending_entries: Arc<Mutex<Vec<IncomingEntry>>>,
     tree: Arc<Mutex<IndexedMerkleTree>>,
 
-    epoch_buffer_tx: Arc<Sender<EpochJson>>,
-    epoch_buffer_rx: Arc<Mutex<Receiver<EpochJson>>>,
+    epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
+    epoch_buffer_rx: Arc<Mutex<Receiver<FinalizedEpoch>>>,
 }
 
 #[async_trait]
 impl NodeType for Sequencer {
     async fn start(self: Arc<Self>) -> PrismResult<()> {
-        // start listening for new headers to update sync target
         if let Err(e) = self.da.start().await {
             return Err(DataAvailabilityError::InitializationError(e.to_string()).into());
         }
@@ -144,7 +143,7 @@ impl Sequencer {
         let mut ticker = interval(DA_RETRY_INTERVAL);
         spawn(async move {
             loop {
-                let epoch = match self.get_latest_height().await {
+                let epoch = match self.receive_finalized_epoch().await {
                     Ok(e) => e,
                     Err(e) => {
                         error!("da_loop: getting latest height: {}", e);
@@ -184,7 +183,7 @@ impl Sequencer {
     }
 
     // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
-    pub async fn finalize_epoch(&self) -> PrismResult<EpochJson> {
+    pub async fn finalize_epoch(&self) -> PrismResult<FinalizedEpoch> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -222,7 +221,7 @@ impl Sequencer {
             BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
         let (proof, verifying_key) = batch_circuit.create_and_verify_snark()?;
 
-        let epoch_json = EpochJson {
+        let epoch_json = FinalizedEpoch {
             height: epoch,
             prev_commitment,
             current_commitment,
@@ -231,18 +230,18 @@ impl Sequencer {
             signature: None,
         };
 
-        let serialized_epoch_json_without_signature = serde_json::to_string(&epoch_json)
-            .map_err(|e| GeneralError::ParsingError(format!("epoch json: {}", e)))?;
+        let serialized_epoch_json_without_signature = borsh::to_vec(&epoch_json)
+            .map_err(|e| GeneralError::ParsingError(format!("epoch: {}", e)))?;
         let signature = self
             .key
-            .sign(serialized_epoch_json_without_signature.as_bytes())
+            .sign(serialized_epoch_json_without_signature.as_slice())
             .to_string();
         let mut epoch_json_with_signature = epoch_json;
         epoch_json_with_signature.signature = Some(signature.clone());
         Ok(epoch_json_with_signature)
     }
 
-    async fn get_latest_height(&self) -> PrismResult<EpochJson> {
+    async fn receive_finalized_epoch(&self) -> PrismResult<FinalizedEpoch> {
         match self.epoch_buffer_rx.lock().await.recv().await {
             Some(epoch) => Ok(epoch),
             None => Err(DataAvailabilityError::ChannelReceiveError.into()),
@@ -397,7 +396,9 @@ impl Sequencer {
             }
         };
 
-        let incoming: IncomingEntry = match serde_json::from_str(&signed_content) {
+        // utf8lossy
+        let json_string = String::from_utf8_lossy(&signed_content).to_string();
+        let incoming: IncomingEntry = match serde_json::from_str(&json_string) {
             Ok(obj) => obj,
             Err(e) => {
                 return Err(GeneralError::ParsingError(format!("signed content: {}", e)).into());

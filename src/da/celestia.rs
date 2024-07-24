@@ -1,9 +1,10 @@
 use crate::{
     consts::CHANNEL_BUFFER_SIZE,
-    da::{DataAvailabilityLayer, EpochJson},
+    da::{DataAvailabilityLayer, FinalizedEpoch},
     error::{DAResult, DataAvailabilityError, GeneralError},
 };
 use async_trait::async_trait;
+use borsh::from_slice;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::{blob::GasPrice, nmt::Namespace, Blob};
 use std::{self, sync::Arc};
@@ -15,17 +16,12 @@ use tokio::{
     task::spawn,
 };
 
-impl TryFrom<&Blob> for EpochJson {
+impl TryFrom<&Blob> for FinalizedEpoch {
     type Error = GeneralError;
 
     fn try_from(value: &Blob) -> Result<Self, GeneralError> {
-        // convert blob data to utf8 string
-        let data_str = String::from_utf8(value.data.clone()).map_err(|e| {
-            GeneralError::EncodingError(format!("encoding blob data to utf8 string: {}", e))
-        })?;
-
-        serde_json::from_str(&data_str)
-            .map_err(|e| GeneralError::DecodingError(format!("epoch json: {}", e)))
+        from_slice::<Self>(&value.data)
+            .map_err(|e| GeneralError::DecodingError(format!("decoding blob: {}", e)))
     }
 }
 
@@ -102,13 +98,13 @@ impl DataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    async fn get(&self, height: u64) -> DAResult<Vec<EpochJson>> {
+    async fn get(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
         match BlobClient::blob_get_all(&self.client, height, &[self.namespace_id]).await {
             Ok(blobs) => {
                 let mut epochs = Vec::new();
                 for blob in blobs.iter() {
-                    match EpochJson::try_from(blob) {
+                    match FinalizedEpoch::try_from(blob) {
                         Ok(epoch_json) => epochs.push(epoch_json),
                         Err(_) => {
                             GeneralError::ParsingError(format!(
@@ -134,16 +130,16 @@ impl DataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    async fn submit(&self, epoch: &EpochJson) -> DAResult<u64> {
+    async fn submit(&self, epoch: &FinalizedEpoch) -> DAResult<u64> {
         debug!("posting epoch {} to da layer", epoch.height);
 
-        let data = serde_json::to_string(&epoch).map_err(|e| {
+        let data = borsh::to_vec(&epoch).map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
-                "serializing epoch json: {}",
+                "serializing epoch: {}",
                 e
             )))
         })?;
-        let blob = Blob::new(self.namespace_id, data.into_bytes()).map_err(|e| {
+        let blob = Blob::new(self.namespace_id, data).map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
         })?;
         trace!("blob: {:?}", &blob);
