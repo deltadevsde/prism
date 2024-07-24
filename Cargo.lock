@@ -3713,9 +3713,9 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexed-merkle-tree"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf4dc2cc52ea31575588d7e2cab85ef27052df59c9584e23e00849668150ea3c"
+checksum = "bea33f773b5f19b3b25f7927c7c70117f8b96538a91be20c6e1f6e63074601f4"
 dependencies = [
  "cargo-audit",
  "hex 0.4.3",

@@ -1,5 +1,5 @@
 use crate::{
-    error::{PrismError, PrismResult, GeneralError, ProofError},
+    error::{GeneralError, PrismError, PrismResult, ProofError},
     storage::{ChainEntry, Operation},
     zk_snark::{hash_to_scalar, ProofVariantCircuit},
 };
@@ -178,9 +178,9 @@ mod tests {
         let ethan = sha256_mod(b"Ethan");
         let triple_zero = sha256_mod(b"000");
 
-        let mut ryans_node = Node::new_leaf(true, false, ryan, ford, Node::TAIL);
-        let mut sebastians_node = Node::new_leaf(true, true, sebastian.clone(), pusch, Node::TAIL);
-        let mut ethans_node = Node::new_leaf(true, false, ethan, triple_zero, Node::TAIL);
+        let mut ryans_node = Node::new_leaf(false, ryan, ford, Node::TAIL);
+        let mut sebastians_node = Node::new_leaf(true, sebastian, pusch, Node::TAIL);
+        let mut ethans_node = Node::new_leaf(false, ethan, triple_zero, Node::TAIL);
 
         let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
         let second_insert_proof = tree.insert_node(&mut sebastians_node).unwrap();
@@ -191,7 +191,7 @@ mod tests {
         let third_insert_zk_snark = Proof::Insert(third_insert_proof);
 
         let updated_seb = sha256_mod(b"Sebastian");
-        sebastians_node = Node::new_leaf(true, true, sebastian, updated_seb, Node::TAIL);
+        sebastians_node = Node::new_leaf(true, sebastian, updated_seb, Node::TAIL);
         let index = tree.find_node_index(&sebastians_node).unwrap();
         let update_proof = tree.update_node(index, sebastians_node).unwrap();
 

@@ -305,7 +305,7 @@ impl Sequencer {
                         data.extend_from_slice(last.hash.as_ref());
                         sha256_mod(&data)
                     },
-                    previous_hash: last.hash.clone(),
+                    previous_hash: last.hash,
                     operation: incoming_entry.operation.clone(),
                     value: sha256_mod(incoming_entry.value.as_bytes()),
                 };
@@ -415,7 +415,6 @@ impl Sequencer {
                 .map_err(|e| e.into())
         } else {
             let mut node = Node::new_leaf(
-                true,
                 true,
                 hashed_id,
                 sha256_mod(incoming_entry.value.as_bytes()),

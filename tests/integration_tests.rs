@@ -2,12 +2,12 @@ use std::time::{Duration, Instant};
 
 use bellman::groth16;
 use bls12_381::Bls12;
-use prism::{utils::validate_epoch, zk_snark::BatchMerkleProofCircuit};
 use indexed_merkle_tree::{
     node::Node,
     sha256_mod,
     tree::{IndexedMerkleTree, Proof},
 };
+use prism::{utils::validate_epoch, zk_snark::BatchMerkleProofCircuit};
 use rand::rngs::OsRng;
 
 fn generate_test_tree(size: usize, node_count: usize) -> Duration {
@@ -18,7 +18,6 @@ fn generate_test_tree(size: usize, node_count: usize) -> Duration {
     let mut insertion_times: Vec<Duration> = Vec::with_capacity(node_count);
     for i in 0..node_count {
         let mut leaf = Node::new_leaf(
-            true,
             true,
             sha256_mod(&[(i + 1) as u8]),
             sha256_mod(&[i as u8]),

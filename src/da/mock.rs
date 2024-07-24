@@ -173,15 +173,14 @@ mod tests {
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::new_leaf(true, true, Node::HEAD, Node::HEAD, Node::TAIL);
-        let inactive_node = Node::new_leaf(false, true, Node::HEAD, Node::HEAD, Node::TAIL);
+        let empty_node = Node::new_leaf(true, Node::HEAD, Node::HEAD, Node::TAIL);
 
         // build a tree with 4 nodes
         IndexedMerkleTree::new(vec![
-            active_node,
-            inactive_node.clone(),
-            inactive_node.clone(),
-            inactive_node,
+            empty_node.clone(),
+            empty_node.clone(),
+            empty_node.clone(),
+            empty_node,
         ])
         .unwrap()
     }
@@ -189,7 +188,7 @@ mod tests {
     fn create_node(label: &str, value: &str) -> Node {
         let label = sha256_mod(label.as_bytes());
         let value = sha256_mod(value.as_bytes());
-        Node::new_leaf(true, true, label, value, Node::TAIL)
+        Node::new_leaf(true, label, value, Node::TAIL)
     }
 
     fn create_proof_and_vk(
@@ -249,7 +248,7 @@ mod tests {
 
             // create bls12 proof for posting
             let (bls12proof, vk) = create_proof_and_vk(
-                prev_commitment.clone(),
+                prev_commitment,
                 tree.get_commitment().unwrap(),
                 vec![first_insert_zk_snark],
             );
@@ -282,7 +281,7 @@ mod tests {
 
             // proof and vk
             let (proof, vk) = create_proof_and_vk(
-                prev_commitment.clone(),
+                prev_commitment,
                 tree.get_commitment().unwrap(),
                 vec![second_insert_zk_snark, third_insert_zk_snark],
             );

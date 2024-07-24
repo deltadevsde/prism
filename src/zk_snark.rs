@@ -1,5 +1,5 @@
 use crate::{
-    error::{PrismError, PrismResult, GeneralError, ProofError},
+    error::{GeneralError, PrismError, PrismResult, ProofError},
     storage::ChainEntry,
     utils::create_and_verify_snark,
 };
@@ -286,15 +286,14 @@ mod tests {
     }
 
     fn build_empty_tree() -> IndexedMerkleTree {
-        let active_node = Node::new_leaf(true, true, Node::HEAD, Node::HEAD, Node::TAIL);
-        let inactive_node = Node::new_leaf(false, true, Node::HEAD, Node::HEAD, Node::TAIL);
+        let empty_node = Node::new_leaf(true, Node::HEAD, Node::HEAD, Node::TAIL);
 
         // build a tree with 4 nodes
         IndexedMerkleTree::new(vec![
-            active_node,
-            inactive_node.clone(),
-            inactive_node.clone(),
-            inactive_node,
+            empty_node.clone(),
+            empty_node.clone(),
+            empty_node.clone(),
+            empty_node,
         ])
         .unwrap()
     }
@@ -341,9 +340,9 @@ mod tests {
         let ethan = sha256_mod(b"Ethan");
         let triple_zero = sha256_mod(b"000");
 
-        let mut ryans_node = Node::new_leaf(true, true, ryan, ford, Node::TAIL);
-        let mut sebastians_node = Node::new_leaf(true, true, sebastian, pusch, Node::TAIL);
-        let mut ethans_node = Node::new_leaf(true, true, ethan, triple_zero, Node::TAIL);
+        let mut ryans_node = Node::new_leaf(true, ryan, ford, Node::TAIL);
+        let mut sebastians_node = Node::new_leaf(true, sebastian, pusch, Node::TAIL);
+        let mut ethans_node = Node::new_leaf(true, ethan, triple_zero, Node::TAIL);
 
         // generate proofs for the two nodes
         let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
