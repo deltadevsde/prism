@@ -3,9 +3,9 @@ use crate::{
     storage::ChainEntry,
     utils::create_and_verify_snark,
 };
-use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::{gadgets::boolean::Boolean, groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, Scalar};
+use borsh::{BorshDeserialize, BorshSerialize};
 use ff::PrimeFieldBits;
 use indexed_merkle_tree::{
     node::{LeafNode, Node},
@@ -13,23 +13,14 @@ use indexed_merkle_tree::{
     tree::{InsertProof, MerkleProof, Proof, UpdateProof},
     Hash,
 };
-use serde::{Deserialize, Serialize};
-
-// TODO: This serialization/deserialization using JSON is not optimal - we need to minimize the amount of bytes posted on the DA layer. Let's use borsch to start.
 
 // G1Affine is a tuple alias of [`bls12_381::G1Affine`] for defining custom conversions.
 struct G1Affine(bls12_381::G1Affine);
 
-impl TryInto<G1Affine> for String {
+impl TryInto<G1Affine> for [u8; 48] {
     type Error = PrismError;
-    fn try_into(self) -> Result<G1Affine, PrismError> {
-        let decoded = engine
-            .decode(self.as_bytes())
-            .map_err(|e| PrismError::General(GeneralError::DecodingError(e.to_string())))?;
-
-        let array = vec_to_96_array(decoded)?;
-
-        match bls12_381::G1Affine::from_uncompressed(&array).into_option() {
+    fn try_into(self) -> PrismResult<G1Affine> {
+        match bls12_381::G1Affine::from_compressed(&self).into_option() {
             Some(affine) => Ok(G1Affine(affine)),
             None => Err(PrismError::General(GeneralError::DecodingError(
                 "G1Affine".to_string(),
@@ -47,16 +38,10 @@ impl From<G1Affine> for bls12_381::G1Affine {
 // G2Affine is a tuple alias of [`bls12_381::G2Affine`] for defining custom conversions.
 struct G2Affine(bls12_381::G2Affine);
 
-impl TryInto<G2Affine> for String {
+impl TryInto<G2Affine> for [u8; 96] {
     type Error = PrismError;
-    fn try_into(self) -> Result<G2Affine, PrismError> {
-        let decoded = engine
-            .decode(self.as_bytes())
-            .map_err(|e| PrismError::General(GeneralError::DecodingError(e.to_string())))?;
-
-        let array = vec_to_192_array(decoded)?;
-
-        match bls12_381::G2Affine::from_uncompressed(&array).into_option() {
+    fn try_into(self) -> PrismResult<G2Affine> {
+        match bls12_381::G2Affine::from_compressed(&self).into_option() {
             Some(affine) => Ok(G2Affine(affine)),
             None => Err(PrismError::General(GeneralError::DecodingError(
                 "G2Affine".to_string(),
@@ -71,33 +56,11 @@ impl From<G2Affine> for bls12_381::G2Affine {
     }
 }
 
-fn vec_to_96_array(vec: Vec<u8>) -> Result<[u8; 96], PrismError> {
-    let mut array = [0u8; 96];
-    if vec.len() != 96 {
-        return Err(PrismError::General(GeneralError::ParsingError(
-            "Length mismatch".to_string(),
-        )));
-    }
-    array.copy_from_slice(&vec);
-    Ok(array)
-}
-
-fn vec_to_192_array(vec: Vec<u8>) -> Result<[u8; 192], PrismError> {
-    let mut array = [0u8; 192];
-    if vec.len() != 192 {
-        return Err(PrismError::General(GeneralError::ParsingError(
-            "Length mismatch".to_string(),
-        )));
-    }
-    array.copy_from_slice(&vec);
-    Ok(array)
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub struct Bls12Proof {
-    pub a: String,
-    pub b: String,
-    pub c: String,
+    pub a: [u8; 48],
+    pub b: [u8; 96],
+    pub c: [u8; 48],
 }
 
 impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
@@ -130,39 +93,38 @@ impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
 impl From<groth16::Proof<Bls12>> for Bls12Proof {
     fn from(proof: groth16::Proof<Bls12>) -> Self {
         Bls12Proof {
-            a: engine.encode(proof.a.to_uncompressed().as_ref()),
-            b: engine.encode(proof.b.to_uncompressed().as_ref()),
-            c: engine.encode(proof.c.to_uncompressed().as_ref()),
+            a: proof.a.to_compressed(),
+            b: proof.b.to_compressed(),
+            c: proof.c.to_compressed(),
         }
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub struct VerifyingKey {
-    pub alpha_g1: String,
-    pub beta_g1: String,
-    pub beta_g2: String,
-    pub delta_g1: String,
-    pub delta_g2: String,
-    pub gamma_g2: String,
-    pub ic: String,
+    pub alpha_g1: [u8; 48],
+    pub beta_g1: [u8; 48],
+    pub beta_g2: [u8; 96],
+    pub delta_g1: [u8; 48],
+    pub delta_g2: [u8; 96],
+    pub gamma_g2: [u8; 96],
+    pub ic: Vec<[u8; 48]>,
 }
 
 impl From<groth16::VerifyingKey<Bls12>> for VerifyingKey {
     fn from(verifying_key: groth16::VerifyingKey<Bls12>) -> Self {
         VerifyingKey {
-            alpha_g1: engine.encode(verifying_key.alpha_g1.to_uncompressed().as_ref()),
-            beta_g1: engine.encode(verifying_key.beta_g1.to_uncompressed().as_ref()),
-            beta_g2: engine.encode(verifying_key.beta_g2.to_uncompressed().as_ref()),
-            delta_g1: engine.encode(verifying_key.delta_g1.to_uncompressed().as_ref()),
-            delta_g2: engine.encode(verifying_key.delta_g2.to_uncompressed().as_ref()),
-            gamma_g2: engine.encode(verifying_key.gamma_g2.to_uncompressed().as_ref()),
+            alpha_g1: verifying_key.alpha_g1.to_compressed(),
+            beta_g1: verifying_key.beta_g1.to_compressed(),
+            beta_g2: verifying_key.beta_g2.to_compressed(),
+            delta_g1: verifying_key.delta_g1.to_compressed(),
+            delta_g2: verifying_key.delta_g2.to_compressed(),
+            gamma_g2: verifying_key.gamma_g2.to_compressed(),
             ic: verifying_key
                 .ic
                 .iter()
-                .map(|x| engine.encode(x.to_uncompressed().as_ref()))
-                .collect::<Vec<String>>()
-                .join(","),
+                .map(|x| x.to_compressed())
+                .collect::<Vec<[u8; 48]>>(),
         }
     }
 }
@@ -197,8 +159,8 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
             .map_err(|e| GeneralError::EncodingError(format!("{}: gamma_g2", e)))?;
         let ic = custom_vk
             .ic
-            .split(',')
-            .map(|s| s.to_string().try_into())
+            .into_iter()
+            .map(|s| s.try_into())
             .collect::<PrismResult<Vec<G1Affine>>>()?;
 
         Ok(bellman::groth16::VerifyingKey {
@@ -285,19 +247,6 @@ mod tests {
         groth16::verify_proof(&pvk, &proof, &[]).expect("unable to verify proof")
     }
 
-    fn build_empty_tree() -> IndexedMerkleTree {
-        let empty_node = Node::new_leaf(true, Node::HEAD, Node::HEAD, Node::TAIL);
-
-        // build a tree with 4 nodes
-        IndexedMerkleTree::new(vec![
-            empty_node.clone(),
-            empty_node.clone(),
-            empty_node.clone(),
-            empty_node,
-        ])
-        .unwrap()
-    }
-
     #[test]
     fn le_with_scalar_valid() {
         let (head, small, mid, big, tail) = create_scalars();
@@ -329,7 +278,7 @@ mod tests {
 
     #[test]
     fn test_serialize_and_deserialize_proof() {
-        let mut tree = build_empty_tree();
+        let mut tree = IndexedMerkleTree::new_with_size(4).unwrap();
         let prev_commitment = tree.get_commitment().unwrap();
 
         // create two nodes to insert
@@ -383,9 +332,9 @@ mod tests {
     #[test]
     fn test_deserialize_invalid_proof() {
         let invalid_proof = Bls12Proof {
-            a: "blubbubs".to_string(),
-            b: "FTV0oqNyecdbzY9QFPe5gfiQbSn1E0t+QHn+l+Ey6G2Dk0UZFm1wMsnRbIp5HCneDC+jf6rHCADL1NQ9FIF9o5Td8jObATCRm/YoIoeXY1yFY1rCEoJWFZU0zPeOR7XfBEmccqdMATwb8yznOj6Hn9XqZIr7E3C0XBtzk9GiahLopjP+SN9v/KLEpnLm3dn5FeAp7TcJ0gibi4nNT3u2vziKRNiDIKl71bp6tNC6grCdGOazpkrFSxiYi3QHJOYI".to_string(),
-            c: "BEKZboEyoJ3l+DLIF8IMjUR2kJQ9aq2kuXTZR8YizcQMg7zTH0xLO9JtTueneS3JFx1KlK6e2NkFZamiQERujx6bhmwIDgY8ZPCJ8iG//4E3eS0CZ25CJfnOucLeotyr".to_string(),
+            a: [1; 48],
+            b: [2; 96],
+            c: [3; 48],
         };
 
         let deserialized_proof_result: PrismResult<groth16::Proof<Bls12>> =

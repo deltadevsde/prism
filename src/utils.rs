@@ -112,7 +112,7 @@ pub fn validate_epoch(
 
 pub trait SignedContent {
     fn get_signature(&self) -> PrismResult<Signature>;
-    fn get_plaintext(&self) -> PrismResult<String>;
+    fn get_plaintext(&self) -> PrismResult<Vec<u8>>;
     fn get_public_key(&self) -> PrismResult<String>;
 }
 
@@ -120,7 +120,7 @@ pub trait SignedContent {
 pub fn verify_signature<T: SignedContent>(
     item: &T,
     optional_public_key: Option<String>,
-) -> PrismResult<String> {
+) -> PrismResult<Vec<u8>> {
     let public_key_str = match optional_public_key {
         Some(key) => key,
         None => item.get_public_key()?,
@@ -132,7 +132,7 @@ pub fn verify_signature<T: SignedContent>(
     let content = item.get_plaintext()?;
     let signature = item.get_signature()?;
 
-    match public_key.verify(content.as_bytes(), &signature) {
+    match public_key.verify(content.as_slice(), &signature) {
         Ok(_) => Ok(content),
         Err(e) => Err(GeneralError::InvalidSignature(e).into()),
     }

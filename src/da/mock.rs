@@ -8,7 +8,7 @@ use std::{
     io::{Read, Seek, Write},
 };
 
-use crate::da::{DataAvailabilityLayer, EpochJson};
+use crate::da::{DataAvailabilityLayer, FinalizedEpoch};
 
 /// The `NoopDataAvailabilityLayer` is a mock implementation of the `DataAvailabilityLayer` trait.
 pub struct NoopDataAvailabilityLayer {}
@@ -23,11 +23,11 @@ impl DataAvailabilityLayer for NoopDataAvailabilityLayer {
         Ok(0)
     }
 
-    async fn get(&self, _: u64) -> DAResult<Vec<EpochJson>> {
+    async fn get(&self, _: u64) -> DAResult<Vec<FinalizedEpoch>> {
         Ok(vec![])
     }
 
-    async fn submit(&self, _: &EpochJson) -> DAResult<u64> {
+    async fn submit(&self, _: &FinalizedEpoch) -> DAResult<u64> {
         Ok(0)
     }
 
@@ -65,7 +65,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         Ok(0) // header starts always at zero in test cases
     }
 
-    async fn get(&self, height: u64) -> DAResult<Vec<EpochJson>> {
+    async fn get(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
         let mut file = File::open("data.json").expect("Unable to open file");
         let mut contents = String::new();
         file.lock_exclusive().expect("Unable to lock file");
@@ -75,8 +75,11 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         let data: Value = serde_json::from_str(&contents).expect("Invalid JSON format");
 
         if let Some(epoch) = data.get(height.to_string()) {
-            // convert arbit. json value to EpochJson
-            let result_epoch: Result<EpochJson, _> = serde_json::from_value(epoch.clone());
+            let epoch_hex = epoch.as_str().expect("Epoch value is not a string");
+            let epoch_bytes = hex::decode(epoch_hex).expect("Invalid hex string");
+
+            let result_epoch: Result<FinalizedEpoch, _> = borsh::from_slice(&epoch_bytes);
+
             file.unlock().expect("Unable to unlock file");
             Ok(vec![result_epoch.expect("WRON FORMT")])
         } else {
@@ -88,7 +91,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         }
     }
 
-    async fn submit(&self, epoch: &EpochJson) -> DAResult<u64> {
+    async fn submit(&self, epoch: &FinalizedEpoch) -> DAResult<u64> {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -112,7 +115,8 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         };
 
         // add new epoch to existing json-file data
-        data[epoch.height.to_string()] = json!(epoch);
+        data[epoch.height.to_string()] =
+            hex::encode(borsh::to_vec(&epoch).expect("Unable to serialize epoch")).into();
 
         // Reset the file pointer to the beginning of the file
         file.seek(std::io::SeekFrom::Start(0))
@@ -208,7 +212,7 @@ mod tests {
         (proof.into(), params.vk.into())
     }
 
-    fn verify_epoch_json(epoch: Vec<EpochJson>) {
+    fn verify_epoch_json(epoch: Vec<FinalizedEpoch>) {
         for epoch_json in epoch {
             let prev_commitment = epoch_json.prev_commitment;
             let current_commitment = epoch_json.current_commitment;
@@ -218,7 +222,10 @@ mod tests {
 
             match validate_epoch(&prev_commitment, &current_commitment, proof, verifying_key) {
                 Ok(_) => {
-                    info!("\n\nvalidating epochs with commitments: [{}, {}]\n\n proof\n a: {},\n b: {},\n c: {}\n\n verifying key \n alpha_g1: {},\n beta_1: {},\n beta_2: {},\n delta_1: {},\n delta_2: {},\n gamma_2: {}\n", prev_commitment, current_commitment, &epoch_json.proof.a, &epoch_json.proof.b, &epoch_json.proof.c, &epoch_json.verifying_key.alpha_g1, &epoch_json.verifying_key.beta_g1, &epoch_json.verifying_key.beta_g2, &epoch_json.verifying_key.delta_g1, &epoch_json.verifying_key.delta_g2, &epoch_json.verifying_key.gamma_g2);
+                    info!(
+                        "epoch {}->{} validation successful",
+                        prev_commitment, current_commitment
+                    )
                 }
                 Err(err) => panic!("failed to validate epoch: {:?}", err),
             }
@@ -254,7 +261,7 @@ mod tests {
             );
 
             sequencer_layer
-                .submit(&EpochJson {
+                .submit(&FinalizedEpoch {
                     height: 1,
                     prev_commitment,
                     current_commitment: tree.get_commitment().unwrap(),
@@ -286,7 +293,7 @@ mod tests {
                 vec![second_insert_zk_snark, third_insert_zk_snark],
             );
             sequencer_layer
-                .submit(&EpochJson {
+                .submit(&FinalizedEpoch {
                     height: 2,
                     prev_commitment,
                     current_commitment: tree.get_commitment().unwrap(),

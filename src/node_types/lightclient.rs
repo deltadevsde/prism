@@ -1,6 +1,6 @@
 use crate::{
     cfg::CelestiaConfig,
-    error::{DataAvailabilityError, PrismResult, GeneralError},
+    error::{DataAvailabilityError, GeneralError, PrismResult},
 };
 use async_trait::async_trait;
 use std::{self, sync::Arc, time::Duration};
@@ -102,7 +102,7 @@ impl LightClient {
                                         &epoch_json.clone(),
                                         self.verifying_key.clone(),
                                     ) {
-                                        Ok(i) => trace!("valid signature for epoch {}", i),
+                                        Ok(_) => trace!("valid signature for epoch {}", epoch_json.height),
                                         Err(e) => {
                                             panic!("invalid signature in epoch {}: {:?}", i, e)
                                         }
