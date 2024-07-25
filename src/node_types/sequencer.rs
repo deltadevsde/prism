@@ -396,8 +396,7 @@ impl Sequencer {
             }
         };
 
-        // utf8lossy
-        let json_string = String::from_utf8_lossy(&signed_content).to_string();
+        let json_string = String::from_utf8_lossy(&signed_content);
         let incoming: IncomingEntry = match serde_json::from_str(&json_string) {
             Ok(obj) => obj,
             Err(e) => {
