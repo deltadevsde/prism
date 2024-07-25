@@ -1,4 +1,4 @@
-use indexed_merkle_tree::{node::Node, sha256_mod, tree::Proof, Hash};
+use indexed_merkle_tree::{tree::Proof, Hash};
 use mockall::{predicate::*, *};
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
@@ -47,12 +47,6 @@ pub struct Entry {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct DerivedEntry {
-    pub id: String,
-    pub value: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct IncomingEntry {
     pub id: String,
     pub operation: Operation,
@@ -73,10 +67,7 @@ pub struct RedisConnection {
 #[automock]
 pub trait Database: Send + Sync {
     fn get_keys(&self) -> PrismResult<Vec<String>>;
-    fn get_derived_keys(&self) -> PrismResult<Vec<String>>;
     fn get_hashchain(&self, key: &str) -> PrismResult<Vec<ChainEntry>>;
-    fn get_derived_value(&self, key: &str) -> PrismResult<String>;
-    fn get_derived_keys_in_order(&self) -> PrismResult<Vec<String>>;
     fn get_commitment(&self, epoch: &u64) -> PrismResult<String>;
     fn get_proof(&self, id: &str) -> PrismResult<String>;
     fn get_proofs_in_epoch(&self, epoch: &u64) -> PrismResult<Vec<Proof>>;
@@ -87,12 +78,6 @@ pub trait Database: Send + Sync {
         incoming_entry: &IncomingEntry,
         value: &[ChainEntry],
     ) -> PrismResult<()>;
-    fn set_derived_entry(
-        &self,
-        incoming_entry: &IncomingEntry,
-        value: &ChainEntry,
-        new: bool,
-    ) -> PrismResult<()>;
     fn get_epochs(&self) -> PrismResult<Vec<u64>>;
     fn add_merkle_proof(
         &self,
@@ -102,7 +87,6 @@ pub trait Database: Send + Sync {
         proofs: &str,
     ) -> PrismResult<()>;
     fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> PrismResult<()>;
-    fn initialize_derived_dict(&self) -> PrismResult<()>;
     fn flush_database(&self) -> PrismResult<()>;
 }
 
@@ -158,17 +142,6 @@ impl Database for RedisConnection {
         Ok(keys.into_iter().map(|k| k.replace("main:", "")).collect())
     }
 
-    fn get_derived_keys(&self) -> PrismResult<Vec<String>> {
-        let mut con = self.lock_connection()?;
-        let keys: Vec<String> = con
-            .keys("derived:*")
-            .map_err(|_| PrismError::Database(DatabaseError::KeysError("derived".to_string())))?;
-        Ok(keys
-            .into_iter()
-            .map(|k| k.replace("derived:", ""))
-            .collect())
-    }
-
     fn get_hashchain(&self, key: &str) -> PrismResult<Vec<ChainEntry>> {
         let mut con = self.lock_connection()?;
         let value: String = con.get(format!("main:{}", key)).map_err(|_| {
@@ -181,26 +154,6 @@ impl Database for RedisConnection {
         serde_json::from_str(&value).map_err(|e| {
             PrismError::General(GeneralError::ParsingError(format!("hashchain: {}", e)))
         })
-    }
-
-    fn get_derived_value(&self, key: &str) -> PrismResult<String> {
-        let mut con = self.lock_connection()?;
-        con.get::<String, String>(format!("derived:{}", key))
-            .map_err(|e| {
-                PrismError::Database(DatabaseError::NotFoundError(format!(
-                    "derived key {} with err {}: ",
-                    key, e
-                )))
-            })
-    }
-
-    // TODO: noticed a strange behavior with the get_derived_keys() function, it returns the values in seemingly random order. Need to investigate more
-    // Questionable if it is not simply enough to return the values using the input_order table. This needs to be discussed again with @distractedm1nd :) Then the above function wouldn't be necessary anymore.
-    // Does the order of the keys matter?
-    fn get_derived_keys_in_order(&self) -> PrismResult<Vec<String>> {
-        let mut con = self.lock_connection()?;
-        con.lrange("input_order", 0, -1)
-            .map_err(|_| PrismError::Database(DatabaseError::GetInputOrderError))
     }
 
     fn get_commitment(&self, epoch: &u64) -> PrismResult<String> {
@@ -287,35 +240,6 @@ impl Database for RedisConnection {
             })
     }
 
-    fn set_derived_entry(
-        &self,
-        incoming_entry: &IncomingEntry,
-        value: &ChainEntry,
-        new: bool,
-    ) -> PrismResult<()> {
-        let mut con = self.lock_connection()?;
-        let hashed_key = sha256_mod(incoming_entry.id.as_bytes());
-        let stored_value = hex::encode(value.hash.as_ref());
-        con.set::<&str, String, String>(&format!("derived:{}", hashed_key), stored_value)
-            .map_err(|_| {
-                PrismError::Database(DatabaseError::WriteError(format!(
-                    "derived dict update for key: {}",
-                    hashed_key
-                )))
-            })?;
-
-        if new {
-            con.rpush::<&'static str, &String, u32>("input_order", &hashed_key.to_string())
-                .map_err(|_| {
-                    PrismError::Database(DatabaseError::WriteError(format!(
-                        "input order update for key: {}",
-                        hashed_key
-                    )))
-                })?;
-        }
-        Ok(())
-    }
-
     fn get_epochs(&self) -> PrismResult<Vec<u64>> {
         let mut con = self.lock_connection()?;
         con.keys::<&str, Vec<String>>("commitments:*")
@@ -369,27 +293,6 @@ impl Database for RedisConnection {
                 epoch
             )))
         })
-    }
-
-    fn initialize_derived_dict(&self) -> PrismResult<()> {
-        let mut con = self.lock_connection()?;
-        let empty_hash = Node::HEAD.to_string();
-
-        con.set::<&String, &String, String>(&format!("derived:{}", empty_hash), &empty_hash)
-            .map_err(|_| {
-                PrismError::Database(DatabaseError::WriteError(
-                    "empty hash as first entry in the derived dictionary".to_string(),
-                ))
-            })?;
-
-        con.rpush::<String, String, u32>("input_order".to_string(), empty_hash.clone())
-            .map_err(|_| {
-                PrismError::Database(DatabaseError::WriteError(
-                    "empty hash as first entry in input order".to_string(),
-                ))
-            })?;
-
-        Ok(())
     }
 
     fn flush_database(&self) -> PrismResult<()> {
@@ -556,44 +459,6 @@ mod tests {
         let returned_keys: Vec<String> = keys;
 
         assert_eq!(too_little_keys, returned_keys);
-
-        teardown(&redis_connections);
-    }
-
-    //    TESTS FOR fn get_derived_keys(&self) -> Vec<String>
-
-    // TODO: shouldn't it be that the update function automatically continues the derived dict?
-    // In addition, it should not be possible to write keys exclusively directly into the derived dict, right?
-    #[test]
-    #[serial]
-    fn test_get_hashed_keys() {
-        let redis_connections = setup();
-
-        let incoming_entry1 = create_incoming_entry_with_test_value("derived:test_key1");
-        let incoming_entry2 = create_incoming_entry_with_test_value("derived:test_key2");
-        let incoming_entry3 = create_incoming_entry_with_test_value("derived:test_key3");
-
-        redis_connections
-            .set_derived_entry(&incoming_entry1, &create_mock_chain_entry(), true)
-            .unwrap();
-        redis_connections
-            .set_derived_entry(&incoming_entry2, &create_mock_chain_entry(), true)
-            .unwrap();
-        redis_connections
-            .set_derived_entry(&incoming_entry3, &create_mock_chain_entry(), true)
-            .unwrap();
-
-        let keys = redis_connections.get_derived_keys_in_order().unwrap();
-
-        // check if the returned keys are correct
-        let expected_keys: Vec<String> = vec![
-            sha256_mod(b"derived:test_key1").to_string(),
-            sha256_mod(b"derived:test_key2").to_string(),
-            sha256_mod(b"derived:test_key3").to_string(),
-        ];
-        let returned_keys: Vec<String> = keys;
-
-        assert_eq!(expected_keys, returned_keys);
 
         teardown(&redis_connections);
     }

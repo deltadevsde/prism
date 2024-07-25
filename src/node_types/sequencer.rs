@@ -53,24 +53,6 @@ impl NodeType for Sequencer {
             return Err(DataAvailabilityError::InitializationError(e.to_string()).into());
         }
 
-        let derived_keys = self.db.get_derived_keys();
-        match derived_keys {
-            Ok(keys) => {
-                if keys.is_empty() {
-                    // if the dict is empty, we need to initialize the dict and the input order
-                    match self.db.initialize_derived_dict() {
-                        Ok(_) => (),
-                        Err(e) => {
-                            error!("sequencer_loop: initializing derived dictionary: {}", e);
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!("sequencer_loop: getting derived keys: {}", e);
-            }
-        }
-
         let main_loop = self.clone().main_loop();
         let da_loop = self.clone().da_loop();
 
@@ -321,19 +303,6 @@ impl Sequencer {
                         .into());
                     }
                 }
-                match self
-                    .db
-                    .set_derived_entry(incoming_entry, &new_chain_entry, false)
-                {
-                    Ok(_) => (),
-                    Err(_) => {
-                        return Err(DatabaseError::WriteError(format!(
-                            "derived entry for incoming entry {:?}",
-                            incoming_entry
-                        ))
-                        .into());
-                    }
-                }
 
                 Ok(value)
             }
@@ -351,18 +320,8 @@ impl Sequencer {
                     operation: incoming_entry.operation.clone(),
                     value: sha256_mod(incoming_entry.value.as_bytes()),
                 }];
-                let last_entry = match new_chain.last() {
-                    Some(entry) => entry,
-                    None => {
-                        return Err(DatabaseError::ReadError(format!(
-                            "last value in hashchain for incoming entry with id {}",
-                            id.clone()
-                        ))
-                        .into());
-                    }
-                };
                 match self.db.update_hashchain(incoming_entry, &new_chain) {
-                    Ok(_) => (),
+                    Ok(_) => Err(e),
                     Err(_) => {
                         return Err(DatabaseError::WriteError(format!(
                             "hashchain for incoming entry {:?}",
@@ -370,15 +329,6 @@ impl Sequencer {
                         ))
                         .into());
                     }
-                }
-                match self.db.set_derived_entry(incoming_entry, last_entry, true) {
-                    // we return the error so that the node is updated rather than inserted
-                    Ok(_) => Err(e),
-                    Err(_) => Err(DatabaseError::WriteError(format!(
-                        "derived entry for incoming entry {:?}",
-                        incoming_entry
-                    ))
-                    .into()),
                 }
             }
         };
