@@ -247,19 +247,6 @@ mod tests {
         groth16::verify_proof(&pvk, &proof, &[]).expect("unable to verify proof")
     }
 
-    fn build_empty_tree() -> IndexedMerkleTree {
-        let empty_node = Node::new_leaf(true, Node::HEAD, Node::HEAD, Node::TAIL);
-
-        // build a tree with 4 nodes
-        IndexedMerkleTree::new(vec![
-            empty_node.clone(),
-            empty_node.clone(),
-            empty_node.clone(),
-            empty_node,
-        ])
-        .unwrap()
-    }
-
     #[test]
     fn le_with_scalar_valid() {
         let (head, small, mid, big, tail) = create_scalars();
@@ -291,7 +278,7 @@ mod tests {
 
     #[test]
     fn test_serialize_and_deserialize_proof() {
-        let mut tree = build_empty_tree();
+        let mut tree = IndexedMerkleTree::new_with_size(4).unwrap();
         let prev_commitment = tree.get_commitment().unwrap();
 
         // create two nodes to insert
