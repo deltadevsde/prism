@@ -397,15 +397,9 @@ impl Sequencer {
         incoming_operation: &OperationInput,
     ) -> PrismResult<()> {
         // TODO: this is only basic validation. The validation over if an entry can be added to the hashchain or not is done in the process_operation function
-<<<<<<< HEAD
         incoming_operation.validate()?;
         let mut pending = self.pending_operations.lock().await;
         pending.push(incoming_operation.operation.clone());
-=======
-        signed_entry.validate()?;
-        let mut pending = self.pending_entries.lock().await;
-        pending.push(signed_entry.operation.clone());
->>>>>>> 0d967b0 (extracting validate OperationInput and some renames)
         Ok(())
     }
 }

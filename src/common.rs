@@ -1,7 +1,7 @@
+use borsh::{BorshDeserialize, BorshSerialize};
 use indexed_merkle_tree::{sha256_mod, Hash};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use borsh::{BorshDeserialize, BorshSerialize};
 
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug, PartialEq)]
 // An [`Operation`] represents a state transition in the system.
