@@ -47,7 +47,8 @@ impl OperationInput {
         match self.operation.clone() {
             Operation::Add { id, value }
             | Operation::Revoke { id, value }
-            | Operation::CreateAccount { id, value } => {
+            // we ignore account source as this must be done using internal sequencer data, so inside process_operation
+            | Operation::CreateAccount { id, value, .. } => {
                 // basic validation
                 if id.is_empty() {
                     return Err(

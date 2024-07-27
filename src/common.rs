@@ -4,9 +4,24 @@ use std::fmt::Display;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Operation {
-    CreateAccount { id: String, value: String },
-    Add { id: String, value: String },
-    Revoke { id: String, value: String },
+    CreateAccount {
+        id: String,
+        value: String,
+        source: AccountSource,
+    },
+    Add {
+        id: String,
+        value: String,
+    },
+    Revoke {
+        id: String,
+        value: String,
+    },
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub enum AccountSource {
+    SignedBySequencer { signature: String },
 }
 
 impl Operation {
@@ -28,16 +43,9 @@ impl Operation {
 }
 
 impl Display for Operation {
+    // just print the debug
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Operation::CreateAccount { id, value } => {
-                write!(f, "CreateAccount {{ id: {}, value: {} }}", id, value)
-            }
-            Operation::Add { id, value } => write!(f, "Add {{ id: {}, value: {} }}", id, value),
-            Operation::Revoke { id, value } => {
-                write!(f, "Revoke {{ id: {}, value: {} }}", id, value)
-            }
-        }
+        write!(f, "{:?}", self)
     }
 }
 

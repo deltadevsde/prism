@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
     node::Node,
@@ -6,7 +7,7 @@ use indexed_merkle_tree::{
     tree::{IndexedMerkleTree, Proof},
     Hash,
 };
-use std::{self, sync::Arc, time::Duration};
+use std::{self, str::FromStr, sync::Arc, time::Duration};
 use tokio::{
     sync::{
         mpsc::{channel, Receiver, Sender},
@@ -18,14 +19,13 @@ use tokio::{
 
 use crate::{
     cfg::Config,
-    common::{HashchainEntry, Operation},
+    common::{AccountSource, HashchainEntry, Operation},
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
-    error::{DataAvailabilityError, DatabaseError, PrismResult},
-    error::{GeneralError, PrismError},
+    error::GeneralError,
+    error::{DataAvailabilityError, DatabaseError, PrismError, PrismResult},
     node_types::NodeType,
     storage::Database,
-    utils::verify_signature,
     webserver::{OperationInput, WebServer},
     zk_snark::BatchMerkleProofCircuit,
 };
@@ -298,7 +298,22 @@ impl Sequencer {
                     .map(Proof::Update)
                     .map_err(|e| e.into())
             }
-            Operation::CreateAccount { id, value } => {
+            Operation::CreateAccount { id, value, source } => {
+                // validation of account source
+                match source {
+                    // TODO: use Signature, not String
+                    AccountSource::SignedBySequencer { signature } => {
+                        let sig = Signature::from_str(signature).map_err(|_| {
+                            PrismError::General(GeneralError::ParsingError(
+                                "sequencer's signature on operation".to_string(),
+                            ))
+                        })?;
+                        self.key
+                            .verify(format!("{}{}", id, value).as_bytes(), &sig)
+                            .map_err(|e| PrismError::General(GeneralError::InvalidSignature(e)))
+                    }
+                }?;
+
                 let hashchain: PrismResult<Vec<HashchainEntry>> = self.db.get_hashchain(id);
                 if hashchain.is_ok() {
                     return Err(DatabaseError::NotFoundError(format!(
@@ -386,7 +401,13 @@ mod tests {
 
     fn create_new_entry(id: String, value: String) -> OperationInput {
         let key = create_signing_key();
-        let incoming = Operation::CreateAccount { id, value };
+        let incoming = Operation::CreateAccount {
+            id: id.clone(),
+            value: value.clone(),
+            source: AccountSource::SignedBySequencer {
+                signature: key.sign(format!("{}{}", id, value).as_bytes()).to_string(),
+            },
+        };
         let content = serde_json::to_string(&incoming).unwrap();
         let sig = key.sign(content.clone().as_bytes());
 
