@@ -1,4 +1,5 @@
 use crate::{
+    common::{HashchainEntry, Operation},
     error::{GeneralError, PrismError, PrismResult, ProofError},
     zk_snark::{hash_to_scalar, ProofVariantCircuit},
 };
