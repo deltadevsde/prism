@@ -1,9 +1,9 @@
 use crate::{
     cfg::WebServerConfig,
     common::{HashchainEntry, Operation},
-    error::{GeneralError, PrismResult},
+    error::{GeneralError, PrismError, PrismResult},
     node_types::sequencer::Sequencer,
-    utils::SignedContent,
+    utils::{verify_signature, SignedContent},
 };
 use axum::{
     extract::State,
@@ -40,6 +40,47 @@ pub struct OperationInput {
     pub operation: Operation,
     pub signed_operation: String,
     pub public_key: String,
+}
+
+impl OperationInput {
+    pub fn validate(&self) -> PrismResult<()> {
+        match self.operation.clone() {
+            Operation::Add { id, value }
+            | Operation::Revoke { id, value }
+            | Operation::CreateAccount { id, value } => {
+                // basic validation
+                if id.is_empty() {
+                    return Err(
+                        GeneralError::MissingArgumentError("id is empty".to_string()).into(),
+                    );
+                }
+                if value.is_empty() {
+                    return Err(
+                        GeneralError::MissingArgumentError("value is empty".to_string()).into(),
+                    );
+                }
+
+                // signature validation
+                let signed_content = verify_signature(self, None).map_err(|e| {
+                    PrismError::General(GeneralError::MissingArgumentError(format!(
+                        "signature verification failed: {}",
+                        e
+                    )))
+                })?;
+
+                // parsing validation
+                let json_string = String::from_utf8_lossy(&signed_content);
+                let _: Operation = serde_json::from_str(&json_string).map_err(|e| {
+                    PrismError::General(GeneralError::ParsingError(format!(
+                        "signed content: {}",
+                        e
+                    )))
+                })?;
+
+                Ok(())
+            }
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]

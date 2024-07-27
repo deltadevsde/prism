@@ -37,7 +37,7 @@ pub trait Database: Send + Sync {
     fn set_epoch(&self, epoch: &u64) -> PrismResult<()>;
     fn update_hashchain(
         &self,
-        incoming_entry: &Operation,
+        incoming_operation: &Operation,
         value: &[HashchainEntry],
     ) -> PrismResult<()>;
     fn get_epochs(&self) -> PrismResult<Vec<u64>>;
@@ -184,7 +184,7 @@ impl Database for RedisConnection {
 
     fn update_hashchain(
         &self,
-        incoming_entry: &Operation,
+        incoming_operation: &Operation,
         value: &[HashchainEntry],
     ) -> PrismResult<()> {
         let mut con = self.lock_connection()?;
@@ -193,7 +193,7 @@ impl Database for RedisConnection {
                 "hashchain to string".to_string(),
             ))
         })?;
-        let id = incoming_entry.id();
+        let id = incoming_operation.id();
         con.set::<&str, String, ()>(&format!("main:{}", id), value)
             .map_err(|_| {
                 PrismError::Database(DatabaseError::WriteError(format!(
@@ -318,18 +318,18 @@ mod tests {
         // set up redis connection and flush database
         let redis_connections = setup();
 
-        let incoming_entry1 = create_add_operation_with_test_value("main:test_key1");
-        let incoming_entry2 = create_add_operation_with_test_value("main:test_key2");
-        let incoming_entry3 = create_add_operation_with_test_value("main:test_key3");
+        let incoming_operation1 = create_add_operation_with_test_value("main:test_key1");
+        let incoming_operation2 = create_add_operation_with_test_value("main:test_key2");
+        let incoming_operation3 = create_add_operation_with_test_value("main:test_key3");
 
         redis_connections
-            .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation1, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry2, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation2, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry3, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation3, &[create_mock_chain_entry()])
             .unwrap();
 
         let mut keys = redis_connections.get_keys().unwrap();
@@ -368,18 +368,18 @@ mod tests {
     fn test_get_too_much_returned_keys() {
         let redis_connections = setup();
 
-        let incoming_entry1 = create_add_operation_with_test_value("test_key_1");
-        let incoming_entry2 = create_add_operation_with_test_value("test_key_2");
-        let incoming_entry3 = create_add_operation_with_test_value("test_key_3");
+        let incoming_operation1 = create_add_operation_with_test_value("test_key_1");
+        let incoming_operation2 = create_add_operation_with_test_value("test_key_2");
+        let incoming_operation3 = create_add_operation_with_test_value("test_key_3");
 
         redis_connections
-            .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation1, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry2, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation2, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry3, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation3, &[create_mock_chain_entry()])
             .unwrap();
 
         let mut keys = redis_connections.get_keys().unwrap();
@@ -399,18 +399,18 @@ mod tests {
     fn test_get_too_little_returned_keys() {
         let redis_connections = setup();
 
-        let incoming_entry1 = create_add_operation_with_test_value("test_key_1");
-        let incoming_entry2 = create_add_operation_with_test_value("test_key_2");
-        let incoming_entry3 = create_add_operation_with_test_value("test_key_3");
+        let incoming_operation1 = create_add_operation_with_test_value("test_key_1");
+        let incoming_operation2 = create_add_operation_with_test_value("test_key_2");
+        let incoming_operation3 = create_add_operation_with_test_value("test_key_3");
 
         redis_connections
-            .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation1, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry2, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation2, &[create_mock_chain_entry()])
             .unwrap();
         redis_connections
-            .update_hashchain(&incoming_entry3, &[create_mock_chain_entry()])
+            .update_hashchain(&incoming_operation3, &[create_mock_chain_entry()])
             .unwrap();
 
         let mut keys = redis_connections.get_keys().unwrap();
@@ -436,15 +436,15 @@ mod tests {
     fn test_get_hashchain() {
         let redis_connections = setup();
 
-        let incoming_entry = create_add_operation_with_test_value("main:test_key");
+        let incoming_operation = create_add_operation_with_test_value("main:test_key");
         let chain_entry = create_mock_chain_entry();
 
         redis_connections
-            .update_hashchain(&incoming_entry, &[chain_entry.clone()])
+            .update_hashchain(&incoming_operation, &[chain_entry.clone()])
             .unwrap();
 
         let hashchain = redis_connections
-            .get_hashchain(&incoming_entry.id())
+            .get_hashchain(&incoming_operation.id())
             .unwrap();
         assert_eq!(hashchain[0].hash, chain_entry.hash);
         assert_eq!(hashchain[0].previous_hash, chain_entry.previous_hash);
@@ -458,11 +458,11 @@ mod tests {
     fn test_try_getting_hashchain_for_missing_key() {
         let redis_connections = setup();
 
-        let incoming_entry = create_add_operation_with_test_value("main:test_key");
+        let incoming_operation = create_add_operation_with_test_value("main:test_key");
         let chain_entry = create_mock_chain_entry();
 
         redis_connections
-            .update_hashchain(&incoming_entry, &[chain_entry.clone()])
+            .update_hashchain(&incoming_operation, &[chain_entry.clone()])
             .unwrap();
 
         let hashchain = redis_connections.get_hashchain("main:missing_test_key");
@@ -525,20 +525,20 @@ mod tests {
     fn test_update_hashchain() {
         let redis_connections = setup();
 
-        let incoming_entry = Operation::Add {
+        let incoming_operation = Operation::Add {
             id: "test_key".to_string(),
             value: "test_value".to_string(),
         };
 
         let chain_entries: Vec<HashchainEntry> = vec![create_mock_chain_entry()];
 
-        match redis_connections.update_hashchain(&incoming_entry, &chain_entries) {
+        match redis_connections.update_hashchain(&incoming_operation, &chain_entries) {
             Ok(_) => (),
             Err(e) => panic!("Failed to update hashchain: {}", e),
         }
 
         let hashchain = redis_connections
-            .get_hashchain(&incoming_entry.id())
+            .get_hashchain(&incoming_operation.id())
             .unwrap();
         assert_eq!(hashchain[0].hash, sha256_mod(b"test_hash"));
         assert_eq!(hashchain.len(), 1);

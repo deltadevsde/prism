@@ -258,7 +258,7 @@ impl Sequencer {
         Ok(proofs)
     }
 
-    /// Updates the state from on a pending incoming entry.
+    /// Updates the state from an already verified pending operation.
     async fn process_operation(&self, operation: &Operation) -> PrismResult<Proof> {
         match operation {
             Operation::Add { id, value } | Operation::Revoke { id, value } => {
@@ -326,7 +326,7 @@ impl Sequencer {
                     .update_hashchain(operation, &new_chain)
                     .map_err(|e| {
                         PrismError::Database(DatabaseError::WriteError(format!(
-                            "hashchain for incoming entry {:?}: {:?}",
+                            "hashchain for incoming operation {:?}: {:?}",
                             operation, e
                         )))
                     })?;
@@ -352,28 +352,10 @@ impl Sequencer {
         self: Arc<Self>,
         signed_entry: &OperationInput,
     ) -> PrismResult<()> {
-        let signed_content = match verify_signature(signed_entry, None) {
-            Ok(content) => content,
-            Err(e) => {
-                // TODO(@distractedm1nd): Add to error instead of logging
-                error!(
-                    "updating entry: invalid signature with pubkey {} on msg {}",
-                    signed_entry.public_key, signed_entry.signed_operation
-                );
-                return Err(e);
-            }
-        };
-
-        let json_string = String::from_utf8_lossy(&signed_content);
-        let incoming: Operation = match serde_json::from_str(&json_string) {
-            Ok(obj) => obj,
-            Err(e) => {
-                return Err(GeneralError::ParsingError(format!("signed content: {}", e)).into());
-            }
-        };
-
+        // TODO: this is only basic validation. The validation over if an entry can be added to the hashchain or not is done in the process_operation function
+        signed_entry.validate()?;
         let mut pending = self.pending_entries.lock().await;
-        pending.push(incoming);
+        pending.push(signed_entry.operation.clone());
         Ok(())
     }
 }
