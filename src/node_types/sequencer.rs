@@ -374,7 +374,7 @@ impl Sequencer {
                     .update_hashchain(operation, &new_chain)
                     .map_err(|e| {
                         PrismError::Database(DatabaseError::WriteError(format!(
-                            "hashchain for incoming operation {:?}: {:?}",
+                            "hashchain for incoming entry {:?}: {:?}",
                             operation, e
                         )))
                     })?;
