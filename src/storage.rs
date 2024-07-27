@@ -1,10 +1,8 @@
 use indexed_merkle_tree::{tree::Proof, Hash};
 use mockall::{predicate::*, *};
 use redis::{Client, Commands, Connection};
-use serde::{Deserialize, Serialize};
 use std::{
     self,
-    fmt::Display,
     process::Command,
     sync::{Mutex, MutexGuard},
     thread::sleep,
@@ -13,49 +11,13 @@ use std::{
 
 use crate::{
     cfg::RedisConfig,
+    common::{HashchainEntry, Operation},
     error::{DatabaseError, GeneralError, PrismError, PrismResult},
     utils::parse_json_to_proof,
 };
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub enum Operation {
-    Add,
-    Revoke,
-}
-
-impl Display for Operation {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Operation::Add => write!(f, "Add"),
-            Operation::Revoke => write!(f, "Revoke"),
-        }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct ChainEntry {
-    pub hash: Hash,
-    pub previous_hash: Hash,
-    pub operation: Operation,
-    pub value: Hash,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Entry {
-    pub id: String,
-    pub value: Vec<ChainEntry>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct IncomingEntry {
-    pub id: String,
-    pub operation: Operation,
-    pub value: String,
-}
-
 // there are different key prefixes for the different tables in the database
 // main:key => clear text key with hashchain
-// derived:key => hashed key with last hashchain entry hash
 // input_order => input order of the hashchain keys
 // app_state:key => app state (just epoch counter for now)
 // merkle_proofs:key => merkle proofs (in the form: epoch_{epochnumber}_{commitment})
@@ -67,7 +29,7 @@ pub struct RedisConnection {
 #[automock]
 pub trait Database: Send + Sync {
     fn get_keys(&self) -> PrismResult<Vec<String>>;
-    fn get_hashchain(&self, key: &str) -> PrismResult<Vec<ChainEntry>>;
+    fn get_hashchain(&self, key: &str) -> PrismResult<Vec<HashchainEntry>>;
     fn get_commitment(&self, epoch: &u64) -> PrismResult<String>;
     fn get_proof(&self, id: &str) -> PrismResult<String>;
     fn get_proofs_in_epoch(&self, epoch: &u64) -> PrismResult<Vec<Proof>>;
@@ -75,8 +37,8 @@ pub trait Database: Send + Sync {
     fn set_epoch(&self, epoch: &u64) -> PrismResult<()>;
     fn update_hashchain(
         &self,
-        incoming_entry: &IncomingEntry,
-        value: &[ChainEntry],
+        incoming_entry: &Operation,
+        value: &[HashchainEntry],
     ) -> PrismResult<()>;
     fn get_epochs(&self) -> PrismResult<Vec<u64>>;
     fn add_merkle_proof(
@@ -142,7 +104,7 @@ impl Database for RedisConnection {
         Ok(keys.into_iter().map(|k| k.replace("main:", "")).collect())
     }
 
-    fn get_hashchain(&self, key: &str) -> PrismResult<Vec<ChainEntry>> {
+    fn get_hashchain(&self, key: &str) -> PrismResult<Vec<HashchainEntry>> {
         let mut con = self.lock_connection()?;
         let value: String = con.get(format!("main:{}", key)).map_err(|_| {
             PrismError::Database(DatabaseError::NotFoundError(format!(
@@ -222,8 +184,8 @@ impl Database for RedisConnection {
 
     fn update_hashchain(
         &self,
-        incoming_entry: &IncomingEntry,
-        value: &[ChainEntry],
+        incoming_entry: &Operation,
+        value: &[HashchainEntry],
     ) -> PrismResult<()> {
         let mut con = self.lock_connection()?;
         let value = serde_json::to_string(&value).map_err(|_| {
@@ -231,11 +193,12 @@ impl Database for RedisConnection {
                 "hashchain to string".to_string(),
             ))
         })?;
-        con.set::<&str, String, ()>(&format!("main:{}", incoming_entry.id), value)
+        let id = incoming_entry.id();
+        con.set::<&str, String, ()>(&format!("main:{}", id), value)
             .map_err(|_| {
                 PrismError::Database(DatabaseError::WriteError(format!(
                     "hashchain update for key: {}",
-                    incoming_entry.id
+                    id
                 )))
             })
     }
@@ -306,7 +269,9 @@ impl Database for RedisConnection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::Operation;
     use indexed_merkle_tree::sha256_mod;
+    use serde::{Deserialize, Serialize};
     use serial_test::serial;
 
     // Helper functions
@@ -323,19 +288,20 @@ mod tests {
         redis_connections.flush_database().unwrap();
     }
 
-    fn create_mock_chain_entry() -> ChainEntry {
-        ChainEntry {
+    fn create_mock_chain_entry() -> HashchainEntry {
+        HashchainEntry {
             hash: sha256_mod(b"test_hash"),
             previous_hash: sha256_mod(b"test_previous_hash"),
-            operation: Operation::Add,
-            value: sha256_mod(b"test_value"),
+            operation: Operation::Add {
+                id: "test_id".to_string(),
+                value: "test_value".to_string(),
+            },
         }
     }
 
-    fn create_incoming_entry_with_test_value(id: &str) -> IncomingEntry {
-        IncomingEntry {
+    fn create_add_operation_with_test_value(id: &str) -> Operation {
+        Operation::Add {
             id: id.to_string(),
-            operation: Operation::Add,
             value: "test_value".to_string(),
         }
     }
@@ -352,9 +318,9 @@ mod tests {
         // set up redis connection and flush database
         let redis_connections = setup();
 
-        let incoming_entry1 = create_incoming_entry_with_test_value("main:test_key1");
-        let incoming_entry2 = create_incoming_entry_with_test_value("main:test_key2");
-        let incoming_entry3 = create_incoming_entry_with_test_value("main:test_key3");
+        let incoming_entry1 = create_add_operation_with_test_value("main:test_key1");
+        let incoming_entry2 = create_add_operation_with_test_value("main:test_key2");
+        let incoming_entry3 = create_add_operation_with_test_value("main:test_key3");
 
         redis_connections
             .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
@@ -402,9 +368,9 @@ mod tests {
     fn test_get_too_much_returned_keys() {
         let redis_connections = setup();
 
-        let incoming_entry1 = create_incoming_entry_with_test_value("test_key_1");
-        let incoming_entry2 = create_incoming_entry_with_test_value("test_key_2");
-        let incoming_entry3 = create_incoming_entry_with_test_value("test_key_3");
+        let incoming_entry1 = create_add_operation_with_test_value("test_key_1");
+        let incoming_entry2 = create_add_operation_with_test_value("test_key_2");
+        let incoming_entry3 = create_add_operation_with_test_value("test_key_3");
 
         redis_connections
             .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
@@ -433,9 +399,9 @@ mod tests {
     fn test_get_too_little_returned_keys() {
         let redis_connections = setup();
 
-        let incoming_entry1 = create_incoming_entry_with_test_value("test_key_1");
-        let incoming_entry2 = create_incoming_entry_with_test_value("test_key_2");
-        let incoming_entry3 = create_incoming_entry_with_test_value("test_key_3");
+        let incoming_entry1 = create_add_operation_with_test_value("test_key_1");
+        let incoming_entry2 = create_add_operation_with_test_value("test_key_2");
+        let incoming_entry3 = create_add_operation_with_test_value("test_key_3");
 
         redis_connections
             .update_hashchain(&incoming_entry1, &[create_mock_chain_entry()])
@@ -470,18 +436,19 @@ mod tests {
     fn test_get_hashchain() {
         let redis_connections = setup();
 
-        let incoming_entry = create_incoming_entry_with_test_value("main:test_key");
+        let incoming_entry = create_add_operation_with_test_value("main:test_key");
         let chain_entry = create_mock_chain_entry();
 
         redis_connections
             .update_hashchain(&incoming_entry, &[chain_entry.clone()])
             .unwrap();
 
-        let hashchain = redis_connections.get_hashchain(&incoming_entry.id).unwrap();
+        let hashchain = redis_connections
+            .get_hashchain(&incoming_entry.id())
+            .unwrap();
         assert_eq!(hashchain[0].hash, chain_entry.hash);
         assert_eq!(hashchain[0].previous_hash, chain_entry.previous_hash);
         assert_eq!(hashchain[0].operation, chain_entry.operation);
-        assert_eq!(hashchain[0].value, chain_entry.value);
 
         teardown(&redis_connections);
     }
@@ -491,7 +458,7 @@ mod tests {
     fn test_try_getting_hashchain_for_missing_key() {
         let redis_connections = setup();
 
-        let incoming_entry = create_incoming_entry_with_test_value("main:test_key");
+        let incoming_entry = create_add_operation_with_test_value("main:test_key");
         let chain_entry = create_mock_chain_entry();
 
         redis_connections
@@ -513,18 +480,19 @@ mod tests {
         let mut con = redis_connection.lock_connection().unwrap();
 
         #[derive(Serialize, Deserialize, Clone)]
-        struct WrongFormattedChainEntry {
+        struct InvalidChainEntry {
             pub hash_val: String, // instead of just "hash"
             pub previous_hash: String,
             pub operation: Operation,
-            pub value: String,
         }
 
-        let wrong_chain_entry = WrongFormattedChainEntry {
+        let wrong_chain_entry = InvalidChainEntry {
             hash_val: "wrong".to_string(),
             previous_hash: "formatted".to_string(),
-            operation: Operation::Add,
-            value: "entry".to_string(),
+            operation: Operation::Add {
+                id: "test".to_string(),
+                value: "entry".to_string(),
+            },
         };
 
         let value = serde_json::to_string(&vec![wrong_chain_entry.clone()]).unwrap();
@@ -557,20 +525,21 @@ mod tests {
     fn test_update_hashchain() {
         let redis_connections = setup();
 
-        let incoming_entry: IncomingEntry = IncomingEntry {
+        let incoming_entry = Operation::Add {
             id: "test_key".to_string(),
-            operation: Operation::Add,
             value: "test_value".to_string(),
         };
 
-        let chain_entries: Vec<ChainEntry> = vec![create_mock_chain_entry()];
+        let chain_entries: Vec<HashchainEntry> = vec![create_mock_chain_entry()];
 
         match redis_connections.update_hashchain(&incoming_entry, &chain_entries) {
             Ok(_) => (),
             Err(e) => panic!("Failed to update hashchain: {}", e),
         }
 
-        let hashchain = redis_connections.get_hashchain(&incoming_entry.id).unwrap();
+        let hashchain = redis_connections
+            .get_hashchain(&incoming_entry.id())
+            .unwrap();
         assert_eq!(hashchain[0].hash, sha256_mod(b"test_hash"));
         assert_eq!(hashchain.len(), 1);
 

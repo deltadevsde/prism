@@ -1,8 +1,8 @@
 use crate::{
     cfg::WebServerConfig,
+    common::{HashchainEntry, Operation},
     error::{GeneralError, PrismResult},
     node_types::sequencer::Sequencer,
-    storage::{ChainEntry, IncomingEntry},
     utils::SignedContent,
 };
 use axum::{
@@ -35,9 +35,10 @@ pub struct EpochData {
 }
 
 #[derive(Deserialize, Debug, ToSchema)]
-pub struct UpdateEntryJson {
-    pub incoming_entry: IncomingEntry,
-    pub signed_incoming_entry: String,
+pub struct OperationInput {
+    // TODO: pretty sure we don't need operation if we have signed operation
+    pub operation: Operation,
+    pub signed_operation: String,
     pub public_key: String,
 }
 
@@ -55,7 +56,7 @@ pub struct UserKeyRequest {
 // TODO: Retrieve Merkle proof of current epoch
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UserKeyResponse {
-    pub hashchain: Vec<ChainEntry>,
+    pub hashchain: Vec<HashchainEntry>,
     // pub proof: MerkleProof
 }
 
@@ -63,7 +64,7 @@ pub struct UserKeyResponse {
 #[openapi(
     paths(update_entry, get_hashchain, get_commitment),
     components(schemas(
-        UpdateEntryJson,
+        OperationInput,
         EpochData,
         UpdateProofResponse,
         Hash,
@@ -73,14 +74,14 @@ pub struct UserKeyResponse {
 )]
 struct ApiDoc;
 
-impl SignedContent for UpdateEntryJson {
+impl SignedContent for OperationInput {
     fn get_signature(&self) -> PrismResult<Signature> {
-        Signature::from_str(self.signed_incoming_entry.as_str())
+        Signature::from_str(self.signed_operation.as_str())
             .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
     }
 
     fn get_plaintext(&self) -> PrismResult<Vec<u8>> {
-        serde_json::to_string(&self.incoming_entry)
+        serde_json::to_string(&self.operation)
             .map_err(|e| GeneralError::DecodingError(e.to_string()).into())
             .map(|s| s.into_bytes())
     }
@@ -127,7 +128,7 @@ impl WebServer {
 )]
 async fn update_entry(
     State(session): State<Arc<Sequencer>>,
-    Json(signature_with_key): Json<UpdateEntryJson>,
+    Json(signature_with_key): Json<OperationInput>,
 ) -> impl IntoResponse {
     match session.validate_and_queue_update(&signature_with_key).await {
         Ok(_) => (

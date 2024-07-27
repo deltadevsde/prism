@@ -1,7 +1,3 @@
-use crate::{
-    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    error::{DataAvailabilityError, DatabaseError, PrismResult},
-};
 use async_trait::async_trait;
 use ed25519_dalek::{Signer, SigningKey};
 use indexed_merkle_tree::{
@@ -22,12 +18,15 @@ use tokio::{
 
 use crate::{
     cfg::Config,
+    common::{HashchainEntry, Operation},
+    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
+    error::{DataAvailabilityError, DatabaseError, PrismResult},
     error::{GeneralError, PrismError},
     node_types::NodeType,
-    storage::{ChainEntry, Database, IncomingEntry, Operation},
+    storage::Database,
     utils::verify_signature,
-    webserver::{UpdateEntryJson, WebServer},
+    webserver::{OperationInput, WebServer},
     zk_snark::BatchMerkleProofCircuit,
 };
 
@@ -38,7 +37,7 @@ pub struct Sequencer {
     pub ws: WebServer,
     pub key: SigningKey,
 
-    pending_entries: Arc<Mutex<Vec<IncomingEntry>>>,
+    pending_entries: Arc<Mutex<Vec<Operation>>>,
     tree: Arc<Mutex<IndexedMerkleTree>>,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
@@ -252,7 +251,7 @@ impl Sequencer {
         let mut pending_entries = self.pending_entries.lock().await;
         let mut proofs = Vec::new();
         for entry in pending_entries.iter() {
-            let proof = self.update_entry(entry).await?;
+            let proof = self.process_operation(entry).await?;
             proofs.push(proof);
         }
         pending_entries.clear();
@@ -260,118 +259,87 @@ impl Sequencer {
     }
 
     /// Updates the state from on a pending incoming entry.
-    async fn update_entry(&self, incoming_entry: &IncomingEntry) -> PrismResult<Proof> {
-        let id = incoming_entry.id.clone();
-        // add a new key to an existing id  ( type for the value retrieved from the database explicitly set to string)
-        let hashchain: PrismResult<Vec<ChainEntry>> = match self.db.get_hashchain(&id) {
-            Ok(value) => {
-                // hashchain already exists
-                let mut current_chain = value.clone();
-                let last = match current_chain.last() {
-                    Some(entry) => entry,
+    async fn process_operation(&self, operation: &Operation) -> PrismResult<Proof> {
+        match operation {
+            Operation::Add { id, value } | Operation::Revoke { id, value } => {
+                // verify that the hashchain already exists
+                self.db.get_hashchain(id).map_err(|e| {
+                    DatabaseError::NotFoundError(format!("hashchain for ID {}: {}", id, e))
+                })?;
+
+                let mut tree = self.tree.lock().await;
+                let hashed_id = sha256_mod(id.as_bytes());
+
+                let node = match tree.find_leaf_by_label(&hashed_id) {
+                    Some(node) => node,
                     None => {
-                        return Err(DatabaseError::NotFoundError(format!(
-                            "last value in hashchain for incoming entry with id {}",
-                            id.clone()
+                        // TODO: before merging, change error type
+                        return Err(GeneralError::DecodingError(format!(
+                            "node with label {} not found in the tree",
+                            hashed_id
+                        ))
+                        .into());
+                    }
+                };
+                let new_index = match tree.find_node_index(&node) {
+                    Some(index) => index,
+                    None => {
+                        return Err(GeneralError::DecodingError(format!(
+                            "node with label {} not found in the tree, but has a hashchain entry",
+                            hashed_id
                         ))
                         .into());
                     }
                 };
 
-                let new_chain_entry = ChainEntry {
-                    hash: {
-                        let mut data = Vec::new();
-                        data.extend_from_slice(incoming_entry.operation.to_string().as_bytes());
-                        data.extend_from_slice(incoming_entry.value.as_ref());
-                        data.extend_from_slice(last.hash.as_ref());
-                        sha256_mod(&data)
-                    },
-                    previous_hash: last.hash,
-                    operation: incoming_entry.operation.clone(),
-                    value: sha256_mod(incoming_entry.value.as_bytes()),
-                };
-
-                current_chain.push(new_chain_entry.clone());
-                match self.db.update_hashchain(incoming_entry, &current_chain) {
-                    Ok(_) => (),
-                    Err(_) => {
-                        return Err(DatabaseError::WriteError(format!(
-                            "hashchain for incoming entry {:?}",
-                            incoming_entry
-                        ))
-                        .into());
-                    }
+                // HUGE TODO: we don't even use the value??!?
+                // TODO: Possible optimization: cache the last update proof for each id for serving the proofs
+                tree.update_node(new_index, node)
+                    .map(Proof::Update)
+                    .map_err(|e| e.into())
+            }
+            Operation::CreateAccount { id, value } => {
+                let hashchain: PrismResult<Vec<HashchainEntry>> = self.db.get_hashchain(id);
+                if hashchain.is_ok() {
+                    return Err(DatabaseError::NotFoundError(format!(
+                        "empty slot for ID {}",
+                        id.clone()
+                    ))
+                    .into());
                 }
 
-                Ok(value)
-            }
-            Err(e) => {
                 debug!("creating new hashchain for user id {}", id.clone());
-                let new_chain = vec![ChainEntry {
+                let new_chain = vec![HashchainEntry {
+                    // HASH: CreateAccount { id, value } || HEAD
                     hash: {
                         let mut data = Vec::new();
-                        data.extend_from_slice(Operation::Add.to_string().as_bytes());
-                        data.extend_from_slice(incoming_entry.value.as_ref());
+                        data.extend_from_slice(operation.clone().to_string().as_bytes());
                         data.extend_from_slice(Node::HEAD.as_ref());
                         sha256_mod(&data)
                     },
                     previous_hash: Node::HEAD,
-                    operation: incoming_entry.operation.clone(),
-                    value: sha256_mod(incoming_entry.value.as_bytes()),
+                    operation: operation.clone(),
                 }];
-                match self.db.update_hashchain(incoming_entry, &new_chain) {
-                    Ok(_) => Err(e),
-                    Err(_) => {
-                        return Err(DatabaseError::WriteError(format!(
-                            "hashchain for incoming entry {:?}",
-                            incoming_entry
-                        ))
-                        .into());
-                    }
-                }
+
+                // question: why do we not need to do this for Operation::Add/Revoke as well?
+                self.db
+                    .update_hashchain(operation, &new_chain)
+                    .map_err(|e| {
+                        PrismError::Database(DatabaseError::WriteError(format!(
+                            "hashchain for incoming entry {:?}: {:?}",
+                            operation, e
+                        )))
+                    })?;
+
+                let mut tree = self.tree.lock().await;
+                let hashed_id = sha256_mod(id.as_bytes());
+
+                let mut node =
+                    Node::new_leaf(true, hashed_id, sha256_mod(value.as_bytes()), Node::TAIL);
+                tree.insert_node(&mut node)
+                    .map(Proof::Insert)
+                    .map_err(|e| e.into())
             }
-        };
-
-        let mut tree = self.tree.lock().await;
-        let hashed_id = sha256_mod(id.as_bytes());
-
-        // todo: not all error cases make it okay to continue here, so we should filter by a Hashchain key not found error
-        if hashchain.is_ok() {
-            let node = match tree.find_leaf_by_label(&hashed_id) {
-                Some(node) => node,
-                None => {
-                    // TODO: before merging, change error type
-                    return Err(GeneralError::DecodingError(format!(
-                        "node with label {} not found in the tree",
-                        hashed_id
-                    ))
-                    .into());
-                }
-            };
-            let new_index = match tree.find_node_index(&node) {
-                Some(index) => index,
-                None => {
-                    return Err(GeneralError::DecodingError(format!(
-                        "node with label {} not found in the tree, but has a hashchain entry",
-                        hashed_id
-                    ))
-                    .into());
-                }
-            };
-            // TODO: Possible optimization: cache the last update proof for each id for serving the proofs
-            tree.update_node(new_index, node)
-                .map(Proof::Update)
-                .map_err(|e| e.into())
-        } else {
-            let mut node = Node::new_leaf(
-                true,
-                hashed_id,
-                sha256_mod(incoming_entry.value.as_bytes()),
-                sha256_mod("PLACEHOLDER".as_bytes()),
-            );
-            tree.insert_node(&mut node)
-                .map(Proof::Insert)
-                .map_err(|e| e.into())
         }
     }
 
@@ -382,7 +350,7 @@ impl Sequencer {
     /// * `signed_entry` - A `UpdateEntryJson` object.
     pub async fn validate_and_queue_update(
         self: Arc<Self>,
-        signed_entry: &UpdateEntryJson,
+        signed_entry: &OperationInput,
     ) -> PrismResult<()> {
         let signed_content = match verify_signature(signed_entry, None) {
             Ok(content) => content,
@@ -390,14 +358,14 @@ impl Sequencer {
                 // TODO(@distractedm1nd): Add to error instead of logging
                 error!(
                     "updating entry: invalid signature with pubkey {} on msg {}",
-                    signed_entry.public_key, signed_entry.signed_incoming_entry
+                    signed_entry.public_key, signed_entry.signed_operation
                 );
                 return Err(e);
             }
         };
 
         let json_string = String::from_utf8_lossy(&signed_content);
-        let incoming: IncomingEntry = match serde_json::from_str(&json_string) {
+        let incoming: Operation = match serde_json::from_str(&json_string) {
             Ok(obj) => obj,
             Err(e) => {
                 return Err(GeneralError::ParsingError(format!("signed content: {}", e)).into());
@@ -434,19 +402,28 @@ mod tests {
         redis_connections.flush_database().unwrap();
     }
 
-    fn create_update_entry(id: String, value: String) -> UpdateEntryJson {
+    fn create_new_entry(id: String, value: String) -> OperationInput {
         let key = create_signing_key();
-        let incoming = IncomingEntry {
-            id,
-            operation: Operation::Add,
-            value,
-        };
+        let incoming = Operation::CreateAccount { id, value };
         let content = serde_json::to_string(&incoming).unwrap();
         let sig = key.sign(content.clone().as_bytes());
 
-        UpdateEntryJson {
-            incoming_entry: incoming,
-            signed_incoming_entry: sig.to_string(),
+        OperationInput {
+            operation: incoming,
+            signed_operation: sig.to_string(),
+            public_key: engine.encode(key.verifying_key().to_bytes()),
+        }
+    }
+
+    fn create_update_entry(id: String, value: String) -> OperationInput {
+        let key = create_signing_key();
+        let incoming = Operation::Add { id, value };
+        let content = serde_json::to_string(&incoming).unwrap();
+        let sig = key.sign(content.clone().as_bytes());
+
+        OperationInput {
+            operation: incoming,
+            signed_operation: sig.to_string(),
             public_key: engine.encode(key.verifying_key().to_bytes()),
         }
     }
@@ -492,7 +469,7 @@ mod tests {
         );
 
         let id = "test@deltadevs.xyz".to_string();
-        let update_entry = create_update_entry(id.clone(), "test".to_string());
+        let update_entry = create_new_entry(id.clone(), "test".to_string());
 
         sequencer
             .clone()
@@ -510,10 +487,8 @@ mod tests {
         assert_ne!(prev_commitment, new_commitment);
 
         let hashchain = sequencer.db.get_hashchain(id.as_str());
-        assert_eq!(
-            hashchain.unwrap().first().unwrap().value,
-            sha256_mod("test".as_bytes())
-        );
+        let value = hashchain.unwrap().first().unwrap().operation.value();
+        assert_eq!(value, "test");
 
         teardown_db(&db);
     }
