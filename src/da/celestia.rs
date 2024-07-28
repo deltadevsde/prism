@@ -1,4 +1,5 @@
 use crate::{
+    common::Operation,
     consts::CHANNEL_BUFFER_SIZE,
     da::{DataAvailabilityLayer, FinalizedEpoch},
     error::{DAResult, DataAvailabilityError, GeneralError},
@@ -25,9 +26,19 @@ impl TryFrom<&Blob> for FinalizedEpoch {
     }
 }
 
+impl TryFrom<&Blob> for Operation {
+    type Error = GeneralError;
+
+    fn try_from(value: &Blob) -> Result<Self, GeneralError> {
+        from_slice::<Self>(&value.data)
+            .map_err(|e| GeneralError::DecodingError(format!("decoding blob: {}", e)))
+    }
+}
+
 pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
-    pub namespace_id: Namespace,
+    pub snark_namespace: Namespace,
+    pub operation_namespace: Namespace,
 
     synctarget_tx: Arc<Sender<u64>>,
     synctarget_rx: Arc<Mutex<Receiver<u64>>>,
@@ -72,7 +83,9 @@ impl CelestiaConnection {
 
         Ok(CelestiaConnection {
             client,
-            namespace_id,
+            snark_namespace: namespace_id,
+            // TODO: pass in second namespace
+            operation_namespace: namespace_id,
             synctarget_tx: Arc::new(tx),
             synctarget_rx: Arc::new(Mutex::new(rx)),
         })
@@ -100,7 +113,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
 
     async fn get_snarks(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
-        match BlobClient::blob_get_all(&self.client, height, &[self.namespace_id]).await {
+        match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
             Ok(blobs) => {
                 let mut epochs = Vec::new();
                 for blob in blobs.iter() {
@@ -129,6 +142,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
             }
         }
     }
+
     async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> DAResult<u64> {
         if epochs.is_empty() {
             return Err(DataAvailabilityError::GeneralError(
@@ -147,7 +161,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         epoch.height, e
                     )))
                 })?;
-                Blob::new(self.namespace_id, data).map_err(|e| {
+                Blob::new(self.snark_namespace, data).map_err(|e| {
                     DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(
                         e.to_string(),
                     ))
@@ -167,6 +181,67 @@ impl DataAvailabilityLayer for CelestiaConnection {
             Ok(height) => Ok(height),
             Err(err) => Err(DataAvailabilityError::SubmissionError(
                 last_epoch_height,
+                err.to_string(),
+            )),
+        }
+    }
+
+    async fn get_operations(&self, height: u64) -> DAResult<Vec<Operation>> {
+        trace!("searching for operations on da layer at height {}", height);
+        match BlobClient::blob_get_all(&self.client, height, &[self.operation_namespace]).await {
+            Ok(blobs) => {
+                let mut operations = Vec::new();
+                for blob in blobs.iter() {
+                    match Operation::try_from(blob) {
+                        Ok(operation) => operations.push(operation),
+                        Err(_) => {
+                            debug!(
+                                "marshalling blob from height {} to operation failed: {:?}",
+                                height, &blob
+                            )
+                        }
+                    }
+                }
+                Ok(operations)
+            }
+            Err(err) => Err(DataAvailabilityError::DataRetrievalError(
+                height,
+                format!("getting operations from da layer: {}", err),
+            )
+            .into()),
+        }
+    }
+
+    async fn submit_operations(&self, operations: Vec<Operation>) -> DAResult<u64> {
+        debug!("posting {} operations to DA layer", operations.len());
+        let blobs: Result<Vec<Blob>, DataAvailabilityError> = operations
+            .iter()
+            .map(|operation| {
+                let data = borsh::to_vec(operation).map_err(|e| {
+                    DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
+                        "serializing operation {}: {}",
+                        operation, e
+                    )))
+                })?;
+                Blob::new(self.operation_namespace, data).map_err(|e| {
+                    DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(
+                        e.to_string(),
+                    ))
+                })
+            })
+            .collect();
+
+        let blobs = blobs?;
+
+        for (i, blob) in blobs.iter().enumerate() {
+            trace!("blob {}: {:?}", i, blob);
+        }
+
+        match self.client.blob_submit(&blobs, GasPrice::from(-1.0)).await {
+            Ok(height) => Ok(height),
+            Err(err) => Err(DataAvailabilityError::SubmissionError(
+                // todo: fucking submission error is yikes, we need anyhow
+                0,
                 err.to_string(),
             )),
         }

@@ -1,4 +1,7 @@
-use crate::error::{DAResult, DataAvailabilityError};
+use crate::{
+    common::Operation,
+    error::{DAResult, DataAvailabilityError},
+};
 use async_trait::async_trait;
 use fs2::FileExt;
 use serde_json::{json, Value};
@@ -27,6 +30,14 @@ impl DataAvailabilityLayer for NoopDataAvailabilityLayer {
         Ok(vec![])
     }
 
+    async fn get_operations(&self, _: u64) -> DAResult<Vec<Operation>> {
+        Ok(vec![])
+    }
+
+    async fn submit_operations(&self, _: Vec<Operation>) -> DAResult<u64> {
+        Ok(0)
+    }
+
     async fn submit_snarks(&self, _: Vec<FinalizedEpoch>) -> DAResult<u64> {
         Ok(0)
     }
@@ -41,11 +52,13 @@ impl DataAvailabilityLayer for NoopDataAvailabilityLayer {
 /// This allows to write and test the functionality of systems that interact with a data availability layer without the need for an actual external service or network like we do with Celestia.
 ///
 /// This implementation is intended for testing and development only and should not be used in production environments. It provides a way to test the interactions with the data availability layer without the overhead of real network communication or data persistence.
-pub struct LocalDataAvailabilityLayer {}
+pub struct LocalDataAvailabilityLayer {
+    pub op_height: u64,
+}
 
 impl LocalDataAvailabilityLayer {
     pub fn new() -> Self {
-        LocalDataAvailabilityLayer {}
+        LocalDataAvailabilityLayer { op_height: 0 }
     }
 }
 
@@ -63,6 +76,83 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
 
     async fn initialize_sync_target(&self) -> DAResult<u64> {
         Ok(0) // header starts always at zero in test cases
+    }
+
+    async fn get_operations(&self, height: u64) -> DAResult<Vec<Operation>> {
+        let mut file = File::open("operations.json").expect("Unable to open operations file");
+        let mut contents = String::new();
+        file.lock_exclusive()
+            .expect("Unable to lock operations file");
+        file.read_to_string(&mut contents)
+            .expect("Unable to read operations file");
+
+        let data: Value =
+            serde_json::from_str(&contents).expect("Invalid JSON format in operations file");
+
+        if let Some(operations) = data.get(height.to_string()) {
+            let operations_hex = operations
+                .as_str()
+                .expect("Operations value is not a string");
+            let operations_bytes =
+                hex::decode(operations_hex).expect("Invalid hex string for operations");
+
+            let result_operations: Result<Vec<Operation>, _> = borsh::from_slice(&operations_bytes);
+
+            file.unlock().expect("Unable to unlock operations file");
+            Ok(result_operations.expect("Wrong format for operations"))
+        } else {
+            file.unlock().expect("Unable to unlock operations file");
+            Err(DataAvailabilityError::DataRetrievalError(
+                height,
+                "Could not get operations from DA layer".to_string(),
+            ))
+        }
+    }
+
+    async fn submit_operations(&self, operations: Vec<Operation>) -> DAResult<u64> {
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open("operations.json")
+            .expect("Unable to open operations file");
+
+        let mut contents = String::new();
+
+        file.lock_exclusive()
+            .expect("Unable to lock operations file");
+        info!("operations file locked");
+
+        file.read_to_string(&mut contents)
+            .expect("Unable to read operations file");
+
+        let mut data: Value = if contents.is_empty() {
+            json!({})
+        } else {
+            serde_json::from_str(&contents).expect("Invalid JSON format in operations file")
+        };
+
+        // Add new operations to existing json-file data
+        data[self.op_height.to_string()] =
+            hex::encode(borsh::to_vec(&operations).expect("Unable to serialize operations")).into();
+
+        // Reset the file pointer to the beginning of the file
+        file.seek(std::io::SeekFrom::Start(0))
+            .expect("Unable to seek to start of operations file");
+
+        // Write the updated data into the file
+        file.write_all(data.to_string().as_bytes())
+            .expect("Unable to write operations file");
+
+        // Truncate the file to the current pointer to remove any extra data
+        file.set_len(data.to_string().as_bytes().len() as u64)
+            .expect("Unable to set operations file length");
+
+        file.unlock().expect("Unable to unlock operations file");
+        info!("operations file unlocked");
+
+        Ok(self.op_height + 1)
     }
 
     async fn get_snarks(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {

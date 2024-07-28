@@ -7,7 +7,7 @@ use indexed_merkle_tree::{
     tree::{IndexedMerkleTree, Proof},
     Hash,
 };
-use std::{self, str::FromStr, sync::Arc, time::Duration};
+use std::{self, str::FromStr, sync::Arc};
 use tokio::{
     sync::{
         mpsc::{channel, Receiver, Sender},
@@ -37,7 +37,9 @@ pub struct Sequencer {
     pub ws: WebServer,
     pub key: SigningKey,
 
-    pending_entries: Arc<Mutex<Vec<Operation>>>,
+    // pending_entries is a buffer for operations that have not yet been
+    // posted to the DA layer.
+    pub pending_entries: Arc<Mutex<Vec<Operation>>>,
     tree: Arc<Mutex<IndexedMerkleTree>>,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
@@ -51,14 +53,14 @@ impl NodeType for Sequencer {
             return Err(DataAvailabilityError::InitializationError(e.to_string()).into());
         }
 
-        let main_loop = self.clone().main_loop();
+        let sync_loop = self.clone().sync_loop();
         let da_loop = self.clone().da_loop();
 
         let ws_self = self.clone();
         let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
-            _ = main_loop => Ok(()),
+            _ = sync_loop => Ok(()),
             _ = da_loop => Ok(()),
             _ = ws => Ok(()),
         }
@@ -103,34 +105,60 @@ impl Sequencer {
         })
     }
 
-    // main_loop is responsible for finalizing epochs every epoch length and writing them to the buffer for DA submission.
-    async fn main_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
-        info!("starting main sequencer loop");
+    async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
+        info!("starting operation sync loop");
+        // todo: make self.start_height
+        let start_height = 1000;
         let epoch_buffer = self.epoch_buffer_tx.clone();
-        let mut ticker = interval(Duration::from_secs(self.epoch_duration));
         spawn(async move {
+            let mut current_position = start_height;
             loop {
-                ticker.tick().await;
-                match self.finalize_epoch().await {
-                    Ok(epoch) => {
-                        let epoch_height = match self.db.get_epoch() {
-                            Ok(epoch) => epoch,
-                            Err(e) => {
-                                error!("sequencer_loop: getting epoch from db: {}", e);
-                                continue;
-                            }
-                        };
+                // target is updated when a new header is received
+                let target = match self.da.get_latest_height().await {
+                    Ok(target) => target,
+                    Err(e) => {
+                        error!("failed to update sync target, retrying: {:?}", e);
+                        continue;
+                    }
+                };
 
-                        info!("sequencer_loop: finalized epoch {}", epoch_height);
-                        match epoch_buffer.send(epoch).await {
-                            Ok(_) => (),
-                            Err(e) => {
-                                error!("sequencer_loop: sending epoch to buffer: {}", e);
+                debug!("updated sync target to height {}", target);
+                while current_position < target {
+                    trace!("processing height: {}", current_position);
+                    match self.da.get_operations(current_position + 1).await {
+                        Ok(operations) => {
+                            if !operations.is_empty() {
+                                debug!(
+                                    "sequencer: got operations at height {}",
+                                    current_position + 1
+                                );
+                            }
+
+                            // TODO: doesn't this copy the Vec? Seems very inefficient
+                            let epoch = match self.finalize_epoch(operations).await {
+                                Ok(e) => e,
+                                Err(e) => {
+                                    error!("sequencer_loop: finalizing epoch: {}", e);
+                                    continue;
+                                }
+                            };
+
+                            info!("sequencer_loop: finalized epoch {}", epoch.height);
+                            match epoch_buffer.send(epoch).await {
+                                Ok(_) => {
+                                    current_position += 1;
+                                }
+                                Err(e) => {
+                                    error!("sequencer_loop: sending epoch to buffer: {}", e);
+                                }
                             }
                         }
-                    }
-                    Err(e) => error!("sequencer_loop: finalizing epoch: {}", e),
+                        Err(e) => {
+                            debug!("light client: getting epoch: {}", e)
+                        }
+                    };
                 }
+                current_position = target; // Update the current position to the latest target
             }
         })
         .await
@@ -181,8 +209,8 @@ impl Sequencer {
         tree.get_commitment().map_err(|e| e.into())
     }
 
-    // finalize_epoch is responsible for finalizing the pending epoch and returning the [`FinalizedEpoch`] to be posted on the DA layer.
-    pub async fn finalize_epoch(&self) -> PrismResult<FinalizedEpoch> {
+    // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
+    pub async fn finalize_epoch(&self, operations: Vec<Operation>) -> PrismResult<FinalizedEpoch> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -205,7 +233,11 @@ impl Sequencer {
             self.get_commitment().await?
         };
 
-        let proofs = self.finalize_pending_entries().await?;
+        let mut proofs = Vec::new();
+        for entry in operations.iter() {
+            let proof = self.process_operation(entry).await?;
+            proofs.push(proof);
+        }
 
         let current_commitment = {
             let tree = self.tree.lock().await;
@@ -245,18 +277,6 @@ impl Sequencer {
             Some(epoch) => Ok(epoch),
             None => Err(DataAvailabilityError::ChannelReceiveError.into()),
         }
-    }
-
-    // finalize_pending_entries processes all pending entries and returns the proofs.
-    async fn finalize_pending_entries(&self) -> PrismResult<Vec<Proof>> {
-        let mut pending_entries = self.pending_entries.lock().await;
-        let mut proofs = Vec::new();
-        for entry in pending_entries.iter() {
-            let proof = self.process_operation(entry).await?;
-            proofs.push(proof);
-        }
-        pending_entries.clear();
-        Ok(proofs)
     }
 
     /// Updates the state from an already verified pending operation.
@@ -476,8 +496,9 @@ mod tests {
         let hashchain = sequencer.db.get_hashchain(id.as_str());
         assert!(hashchain.is_err());
 
+        let pending_entries = sequencer.pending_entries.lock().await.clone();
         let prev_commitment = sequencer.get_commitment().await.unwrap();
-        sequencer.finalize_epoch().await.unwrap();
+        sequencer.finalize_epoch(pending_entries).await.unwrap();
         let new_commitment = sequencer.get_commitment().await.unwrap();
         assert_ne!(prev_commitment, new_commitment);
 
