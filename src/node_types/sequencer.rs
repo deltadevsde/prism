@@ -263,38 +263,61 @@ impl Sequencer {
         match operation {
             Operation::Add { id, value } | Operation::Revoke { id, value } => {
                 // verify that the hashchain already exists
-                self.db.get_hashchain(id).map_err(|e| {
+                let mut current_chain = self.db.get_hashchain(id).map_err(|e| {
                     DatabaseError::NotFoundError(format!("hashchain for ID {}: {}", id, e))
                 })?;
 
                 let mut tree = self.tree.lock().await;
                 let hashed_id = sha256_mod(id.as_bytes());
 
-                let node = match tree.find_leaf_by_label(&hashed_id) {
-                    Some(node) => node,
-                    None => {
-                        // TODO: before merging, change error type
-                        return Err(GeneralError::DecodingError(format!(
-                            "node with label {} not found in the tree",
-                            hashed_id
-                        ))
-                        .into());
-                    }
-                };
-                let new_index = match tree.find_node_index(&node) {
-                    Some(index) => index,
-                    None => {
-                        return Err(GeneralError::DecodingError(format!(
-                            "node with label {} not found in the tree, but has a hashchain entry",
-                            hashed_id
-                        ))
-                        .into());
-                    }
-                };
+                let node = tree.find_leaf_by_label(&hashed_id).ok_or_else(|| {
+                    // TODO: before merging, change error type
+                    GeneralError::DecodingError(format!(
+                        "node with label {} not found in the tree",
+                        hashed_id
+                    ))
+                })?;
 
-                // HUGE TODO: we don't even use the value??!?
+                let updated_node = Node::new_leaf(
+                    node.is_left_sibling(),
+                    hashed_id,
+                    sha256_mod(value.as_bytes()), // value shouldnt be hashed, right?
+                    node.get_next(),
+                );
+
+                let previous_hash = current_chain.last().unwrap().hash;
+                let new_chain_entry = HashchainEntry {
+                    // HASH: CreateAccount { id, value } || HEAD
+                    hash: {
+                        let mut data = Vec::new();
+                        data.extend_from_slice(operation.clone().to_string().as_bytes());
+                        data.extend_from_slice(previous_hash.as_ref());
+                        sha256_mod(&data)
+                    },
+                    previous_hash,
+                    operation: operation.clone(),
+                };
+                current_chain.push(new_chain_entry);
+
+                // @distractedm1nd: do we really need to search for the index? the label doesn't change in this case
+                let new_index = tree.find_node_index(&node).ok_or_else(|| {
+                    GeneralError::DecodingError(format!(
+                        "node with label {} not found in the tree, but has a hashchain entry",
+                        hashed_id
+                    ))
+                })?;
+
+                self.db
+                    .update_hashchain(operation, &current_chain)
+                    .map_err(|e| {
+                        PrismError::Database(DatabaseError::WriteError(format!(
+                            "hashchain for incoming operation {:?}: {:?}",
+                            operation, e
+                        )))
+                    })?;
+
                 // TODO: Possible optimization: cache the last update proof for each id for serving the proofs
-                tree.update_node(new_index, node)
+                tree.update_node(new_index, updated_node)
                     .map(Proof::Update)
                     .map_err(|e| e.into())
             }
