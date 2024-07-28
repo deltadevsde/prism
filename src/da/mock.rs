@@ -23,11 +23,11 @@ impl DataAvailabilityLayer for NoopDataAvailabilityLayer {
         Ok(0)
     }
 
-    async fn get(&self, _: u64) -> DAResult<Vec<FinalizedEpoch>> {
+    async fn get_snarks(&self, _: u64) -> DAResult<Vec<FinalizedEpoch>> {
         Ok(vec![])
     }
 
-    async fn submit(&self, _: &FinalizedEpoch) -> DAResult<u64> {
+    async fn submit_snarks(&self, _: Vec<FinalizedEpoch>) -> DAResult<u64> {
         Ok(0)
     }
 
@@ -65,7 +65,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         Ok(0) // header starts always at zero in test cases
     }
 
-    async fn get(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
+    async fn get_snarks(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
         let mut file = File::open("data.json").expect("Unable to open file");
         let mut contents = String::new();
         file.lock_exclusive().expect("Unable to lock file");
@@ -91,7 +91,12 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         }
     }
 
-    async fn submit(&self, epoch: &FinalizedEpoch) -> DAResult<u64> {
+    async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> DAResult<u64> {
+        // we only expect one epoch to be submitted
+        assert!(epochs.len() == 1);
+
+        let epoch = epochs.first().expect("No epoch to submit");
+
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -261,14 +266,14 @@ mod tests {
             );
 
             sequencer_layer
-                .submit(&FinalizedEpoch {
+                .submit_snarks(vec![FinalizedEpoch {
                     height: 1,
                     prev_commitment,
                     current_commitment: tree.get_commitment().unwrap(),
                     proof: bls12proof,
                     verifying_key: vk,
                     signature: None,
-                })
+                }])
                 .await
                 .unwrap();
             tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
@@ -293,14 +298,14 @@ mod tests {
                 vec![second_insert_zk_snark, third_insert_zk_snark],
             );
             sequencer_layer
-                .submit(&FinalizedEpoch {
+                .submit_snarks(vec![FinalizedEpoch {
                     height: 2,
                     prev_commitment,
                     current_commitment: tree.get_commitment().unwrap(),
                     proof,
                     verifying_key: vk,
                     signature: None,
-                })
+                }])
                 .await
                 .unwrap();
             tokio::time::sleep(tokio::time::Duration::from_secs(65)).await;
@@ -310,7 +315,7 @@ mod tests {
             debug!("light client started");
             let light_client_layer = LocalDataAvailabilityLayer::new();
             loop {
-                let epoch = light_client_layer.get(1).await.unwrap();
+                let epoch = light_client_layer.get_snarks(1).await.unwrap();
                 // verify proofs
                 verify_epoch_json(epoch);
                 debug!("light client verified epoch 1");
@@ -319,7 +324,7 @@ mod tests {
                 tokio::time::sleep(tokio::time::Duration::from_secs(70)).await;
 
                 // Der Light Client liest Beweise und Commitments
-                let epoch = light_client_layer.get(2).await.unwrap();
+                let epoch = light_client_layer.get_snarks(2).await.unwrap();
                 // verify proofs
                 verify_epoch_json(epoch);
                 debug!("light client verified epoch 2");

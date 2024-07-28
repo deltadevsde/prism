@@ -155,7 +155,7 @@ impl Sequencer {
                         // todo: graceful shutdown
                         panic!("da_loop: too many retries, giving up");
                     }
-                    match self.da.submit(&epoch).await {
+                    match self.da.submit_snarks(vec![epoch.clone()]).await {
                         Ok(height) => {
                             info!("da_loop: submitted epoch at height {}", height);
                             break;

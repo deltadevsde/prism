@@ -98,7 +98,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    async fn get(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
+    async fn get_snarks(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
         match BlobClient::blob_get_all(&self.client, height, &[self.namespace_id]).await {
             Ok(blobs) => {
@@ -129,28 +129,44 @@ impl DataAvailabilityLayer for CelestiaConnection {
             }
         }
     }
+    async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> DAResult<u64> {
+        if epochs.is_empty() {
+            return Err(DataAvailabilityError::GeneralError(
+                GeneralError::MissingArgumentError("No epochs provided for submission".to_string()),
+            ));
+        }
 
-    async fn submit(&self, epoch: &FinalizedEpoch) -> DAResult<u64> {
-        debug!("posting epoch {} to da layer", epoch.height);
+        debug!("posting {} epochs to da layer", epochs.len());
 
-        let data = borsh::to_vec(&epoch).map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
-                "serializing epoch: {}",
-                e
-            )))
-        })?;
-        let blob = Blob::new(self.namespace_id, data).map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
-        })?;
-        trace!("blob: {:?}", &blob);
-        match self
-            .client
-            .blob_submit(&[blob.clone()], GasPrice::from(-1.0))
-            .await
-        {
+        let blobs: Result<Vec<Blob>, DataAvailabilityError> = epochs
+            .iter()
+            .map(|epoch| {
+                let data = borsh::to_vec(epoch).map_err(|e| {
+                    DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
+                        "serializing epoch {}: {}",
+                        epoch.height, e
+                    )))
+                })?;
+                Blob::new(self.namespace_id, data).map_err(|e| {
+                    DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(
+                        e.to_string(),
+                    ))
+                })
+            })
+            .collect();
+
+        let blobs = blobs?;
+
+        for (i, blob) in blobs.iter().enumerate() {
+            trace!("blob {}: {:?}", i, blob);
+        }
+
+        let last_epoch_height = epochs.last().map(|e| e.height).unwrap_or(0);
+
+        match self.client.blob_submit(&blobs, GasPrice::from(-1.0)).await {
             Ok(height) => Ok(height),
             Err(err) => Err(DataAvailabilityError::SubmissionError(
-                epoch.height,
+                last_epoch_height,
                 err.to_string(),
             )),
         }
