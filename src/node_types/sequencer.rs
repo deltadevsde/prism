@@ -181,7 +181,7 @@ impl Sequencer {
         tree.get_commitment().map_err(|e| e.into())
     }
 
-    // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
+    // finalize_epoch is responsible for finalizing the pending epoch and returning the [`FinalizedEpoch`] to be posted on the DA layer.
     pub async fn finalize_epoch(&self) -> PrismResult<FinalizedEpoch> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
@@ -247,6 +247,7 @@ impl Sequencer {
         }
     }
 
+    // finalize_pending_entries processes all pending entries and returns the proofs.
     async fn finalize_pending_entries(&self) -> PrismResult<Vec<Proof>> {
         let mut pending_entries = self.pending_entries.lock().await;
         let mut proofs = Vec::new();
@@ -271,7 +272,7 @@ impl Sequencer {
                 let hashed_id = sha256_mod(id.as_bytes());
 
                 let node = tree.find_leaf_by_label(&hashed_id).ok_or_else(|| {
-                    // TODO: before merging, change error type
+                    // TODO: Change error type in anyhow error PR
                     GeneralError::DecodingError(format!(
                         "node with label {} not found in the tree",
                         hashed_id
@@ -306,7 +307,6 @@ impl Sequencer {
                         )))
                     })?;
 
-                // TODO: Possible optimization: cache the last update proof for each id for serving the proofs
                 tree.update_node(index, updated_node)
                     .map(Proof::Update)
                     .map_err(|e| e.into())
@@ -339,7 +339,6 @@ impl Sequencer {
                 debug!("creating new hashchain for user id {}", id.clone());
                 let new_chain = vec![HashchainEntry::new(operation.clone(), Node::HEAD)];
 
-                // question: why do we not need to do this for Operation::Add/Revoke as well?
                 self.db
                     .update_hashchain(operation, &new_chain)
                     .map_err(|e| {
@@ -361,19 +360,15 @@ impl Sequencer {
         }
     }
 
-    /// Adds an update to be applied in the next epoch.
-    ///
-    /// # Arguments
-    ///
-    /// * `signed_entry` - A `UpdateEntryJson` object.
+    /// Adds an operation to be posted to the DA layer and applied in the next epoch.
     pub async fn validate_and_queue_update(
         self: Arc<Self>,
-        signed_entry: &OperationInput,
+        incoming_operation: &OperationInput,
     ) -> PrismResult<()> {
         // TODO: this is only basic validation. The validation over if an entry can be added to the hashchain or not is done in the process_operation function
-        signed_entry.validate()?;
+        incoming_operation.validate()?;
         let mut pending = self.pending_entries.lock().await;
-        pending.push(signed_entry.operation.clone());
+        pending.push(incoming_operation.operation.clone());
         Ok(())
     }
 }

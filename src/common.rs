@@ -3,16 +3,21 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+// An [`Operation`] represents a state transition in the system.
+// In a blockchain analogy, this would be the full set of our transaction types.
 pub enum Operation {
+    // Creates a new account with the given id and value.
     CreateAccount {
         id: String,
         value: String,
         source: AccountSource,
     },
+    // Adds a value to an existing account.
     Add {
         id: String,
         value: String,
     },
+    // Revokes a value from an existing account.
     Revoke {
         id: String,
         value: String,
@@ -20,6 +25,7 @@ pub enum Operation {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+// An [`AccountSource`] represents the source of an account. See adr-002 for more information.
 pub enum AccountSource {
     SignedBySequencer { signature: String },
 }
@@ -50,6 +56,8 @@ impl Display for Operation {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+// A [`HashchainEntry`] represents a single entry in an account's hashchain.
+// The value in the leaf of the corresponding account's node in the IMT is the hash of the last node in the hashchain.
 pub struct HashchainEntry {
     pub hash: Hash,
     pub previous_hash: Hash,
