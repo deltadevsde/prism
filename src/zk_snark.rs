@@ -1,6 +1,6 @@
 use crate::{
+    common::HashchainEntry,
     error::{GeneralError, PrismError, PrismResult, ProofError},
-    storage::ChainEntry,
     utils::create_and_verify_snark,
 };
 use bellman::{gadgets::boolean::Boolean, groth16, Circuit, ConstraintSystem, SynthesisError};
@@ -871,14 +871,16 @@ impl BatchMerkleProofCircuit {
 impl HashChainEntryCircuit {
     pub fn create(
         value: &str,
-        hashchain: Vec<ChainEntry>,
+        hashchain: Vec<HashchainEntry>,
     ) -> Result<HashChainEntryCircuit, GeneralError> {
         // hash the clear text and parse it to scalar
         let hashed_value = sha256_mod(value.as_bytes());
         let parsed_value = hash_to_scalar(&hashed_value)?;
         let mut parsed_hashchain: Vec<Scalar> = vec![];
         for entry in hashchain {
-            parsed_hashchain.push(hash_to_scalar(&entry.value)?)
+            parsed_hashchain.push(hash_to_scalar(&sha256_mod(
+                entry.operation.value().as_bytes(),
+            ))?)
         }
         Ok(HashChainEntryCircuit {
             value: parsed_value,
