@@ -70,3 +70,8 @@ dirs = "5.0.1"
 
 [dev-dependencies]
 serial_test = "3.1.1"
+criterion = "0.5.1"
+
+[[bench]]
+name = "zk_benchmarks"
+harness = false
