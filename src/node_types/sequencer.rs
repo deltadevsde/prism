@@ -261,7 +261,7 @@ impl Sequencer {
     /// Updates the state from an already verified pending operation.
     async fn process_operation(&self, operation: &Operation) -> PrismResult<Proof> {
         match operation {
-            Operation::Add { id, value } | Operation::Revoke { id, value } => {
+            Operation::Add { id, .. } | Operation::Revoke { id, .. } => {
                 // verify that the hashchain already exists
                 let mut current_chain = self.db.get_hashchain(id).map_err(|e| {
                     DatabaseError::NotFoundError(format!("hashchain for ID {}: {}", id, e))
