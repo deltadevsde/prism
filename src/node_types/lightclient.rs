@@ -4,7 +4,6 @@ use crate::{
 };
 use anyhow::Context;
 use async_trait::async_trait;
-use celestia_types::Height;
 use std::{self, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
 

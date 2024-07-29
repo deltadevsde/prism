@@ -18,12 +18,15 @@ use tokio::{
     time::interval,
 };
 
+#[cfg(test)]
+use crate::error::DataAvailabilityError;
+
 use crate::{
     cfg::Config,
     common::{AccountSource, HashchainEntry, Operation},
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
-    error::{DataAvailabilityError, DatabaseError, GeneralError, PrismError, PrismResult},
+    error::{DatabaseError, GeneralError, PrismError, PrismResult},
     node_types::NodeType,
     storage::Database,
     webserver::{OperationInput, WebServer},
@@ -494,6 +497,8 @@ mod tests {
         let id = "test@deltadevs.xyz".to_string();
         let update_entry =
             create_new_account_operation(id.clone(), "test".to_string(), signing_key.clone());
+
+        println!("update_entry: {:?}", update_entry);
 
         sequencer
             .clone()
