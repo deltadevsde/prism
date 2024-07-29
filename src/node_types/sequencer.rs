@@ -402,8 +402,7 @@ mod tests {
         redis_connections.flush_database().unwrap();
     }
 
-    fn create_new_entry(id: String, value: String) -> OperationInput {
-        let key = create_signing_key();
+    fn create_new_entry(id: String, value: String, key: SigningKey) -> OperationInput {
         let incoming = Operation::CreateAccount {
             id: id.clone(),
             value: value.clone(),
@@ -464,18 +463,13 @@ mod tests {
     async fn test_queued_update_gets_finalized() {
         let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
         let db = Arc::new(setup_db());
+        let signing_key = create_signing_key();
         let sequencer = Arc::new(
-            Sequencer::new(
-                db.clone(),
-                da_layer,
-                Config::default(),
-                create_signing_key(),
-            )
-            .unwrap(),
+            Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
         );
 
         let id = "test@deltadevs.xyz".to_string();
-        let update_entry = create_new_entry(id.clone(), "test".to_string());
+        let update_entry = create_new_entry(id.clone(), "test".to_string(), signing_key.clone());
 
         sequencer
             .clone()
