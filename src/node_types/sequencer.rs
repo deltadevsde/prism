@@ -278,29 +278,19 @@ impl Sequencer {
                     ))
                 })?;
 
+                let previous_hash = current_chain.last().unwrap().hash;
+
+                let new_chain_entry = HashchainEntry::new(operation.clone(), previous_hash);
+                current_chain.push(new_chain_entry.clone());
+
                 let updated_node = Node::new_leaf(
                     node.is_left_sibling(),
                     hashed_id,
-                    sha256_mod(value.as_bytes()), // value shouldnt be hashed, right?
+                    new_chain_entry.hash,
                     node.get_next(),
                 );
 
-                let previous_hash = current_chain.last().unwrap().hash;
-                let new_chain_entry = HashchainEntry {
-                    // HASH: CreateAccount { id, value } || HEAD
-                    hash: {
-                        let mut data = Vec::new();
-                        data.extend_from_slice(operation.clone().to_string().as_bytes());
-                        data.extend_from_slice(previous_hash.as_ref());
-                        sha256_mod(&data)
-                    },
-                    previous_hash,
-                    operation: operation.clone(),
-                };
-                current_chain.push(new_chain_entry);
-
-                // @distractedm1nd: do we really need to search for the index? the label doesn't change in this case
-                let new_index = tree.find_node_index(&node).ok_or_else(|| {
+                let index = tree.find_node_index(&node).ok_or_else(|| {
                     GeneralError::DecodingError(format!(
                         "node with label {} not found in the tree, but has a hashchain entry",
                         hashed_id
@@ -317,7 +307,7 @@ impl Sequencer {
                     })?;
 
                 // TODO: Possible optimization: cache the last update proof for each id for serving the proofs
-                tree.update_node(new_index, updated_node)
+                tree.update_node(index, updated_node)
                     .map(Proof::Update)
                     .map_err(|e| e.into())
             }
@@ -347,17 +337,7 @@ impl Sequencer {
                 }
 
                 debug!("creating new hashchain for user id {}", id.clone());
-                let new_chain = vec![HashchainEntry {
-                    // HASH: CreateAccount { id, value } || HEAD
-                    hash: {
-                        let mut data = Vec::new();
-                        data.extend_from_slice(operation.clone().to_string().as_bytes());
-                        data.extend_from_slice(Node::HEAD.as_ref());
-                        sha256_mod(&data)
-                    },
-                    previous_hash: Node::HEAD,
-                    operation: operation.clone(),
-                }];
+                let new_chain = vec![HashchainEntry::new(operation.clone(), Node::HEAD)];
 
                 // question: why do we not need to do this for Operation::Add/Revoke as well?
                 self.db
@@ -373,7 +353,7 @@ impl Sequencer {
                 let hashed_id = sha256_mod(id.as_bytes());
 
                 let mut node =
-                    Node::new_leaf(true, hashed_id, sha256_mod(value.as_bytes()), Node::TAIL);
+                    Node::new_leaf(true, hashed_id, new_chain.first().unwrap().hash, Node::TAIL);
                 tree.insert_node(&mut node)
                     .map(Proof::Insert)
                     .map_err(|e| e.into())

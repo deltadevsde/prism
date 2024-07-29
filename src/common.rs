@@ -1,4 +1,4 @@
-use indexed_merkle_tree::Hash;
+use indexed_merkle_tree::{sha256_mod, Hash};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -54,4 +54,20 @@ pub struct HashchainEntry {
     pub hash: Hash,
     pub previous_hash: Hash,
     pub operation: Operation,
+}
+
+impl HashchainEntry {
+    pub fn new(operation: Operation, previous_hash: Hash) -> Self {
+        let hash = {
+            let mut data = Vec::new();
+            data.extend_from_slice(operation.to_string().as_bytes());
+            data.extend_from_slice(previous_hash.as_ref());
+            sha256_mod(&data)
+        };
+        Self {
+            hash,
+            previous_hash,
+            operation,
+        }
+    }
 }
