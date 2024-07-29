@@ -1,6 +1,6 @@
 use crate::{
     cfg::WebServerConfig,
-    error::{PrismResult, GeneralError},
+    error::{GeneralError, PrismResult},
     node_types::sequencer::Sequencer,
     storage::{ChainEntry, IncomingEntry},
     utils::SignedContent,
@@ -79,9 +79,10 @@ impl SignedContent for UpdateEntryJson {
             .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
     }
 
-    fn get_plaintext(&self) -> PrismResult<String> {
+    fn get_plaintext(&self) -> PrismResult<Vec<u8>> {
         serde_json::to_string(&self.incoming_entry)
             .map_err(|e| GeneralError::DecodingError(e.to_string()).into())
+            .map(|s| s.into_bytes())
     }
 
     fn get_public_key(&self) -> PrismResult<String> {

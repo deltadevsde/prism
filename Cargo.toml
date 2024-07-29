@@ -19,6 +19,7 @@ key_transparency = []
 
 [dependencies]
 axum = "0.6"
+borsh = { version = "1.5.1", features = ["derive"] }
 tower-http = { version = "0.4", features = ["cors"] }
 utoipa = { version = "3.3", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
@@ -55,7 +56,7 @@ clap = { version = "4.3.2", features = ["derive"] }
 config = "0.14.0"
 fs2 = "0.4.3"
 thiserror = "1.0.62"
-indexed-merkle-tree = "0.5.2"
+indexed-merkle-tree = "0.6.0"
 dotenvy = "0.15.7"
 ahash = "0.8.7"
 celestia-rpc = "0.2.0"
