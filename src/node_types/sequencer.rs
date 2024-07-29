@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_trait::async_trait;
 use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
@@ -53,9 +54,7 @@ pub struct Sequencer {
 #[async_trait]
 impl NodeType for Sequencer {
     async fn start(self: Arc<Self>) -> PrismResult<()> {
-        if let Err(e) = self.da.start().await {
-            return Err(DataAvailabilityError::InitializationError(e.to_string()).into());
-        }
+        self.da.start().await.context("Failed to start DA layer")?;
 
         let sync_loop = self.clone().sync_loop();
         let da_loop = self.clone().da_loop();
@@ -64,9 +63,9 @@ impl NodeType for Sequencer {
         let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
-            _ = sync_loop => Ok(()),
-            _ = da_loop => Ok(()),
-            _ = ws => Ok(()),
+            res = sync_loop => Ok(res.context("sync loop failed")?),
+            res = da_loop => Ok(res.context("DA loop failed")?),
+            res = ws => Ok(res.context("WebServer failed")?),
         }
     }
 }
@@ -80,21 +79,14 @@ impl Sequencer {
     ) -> PrismResult<Sequencer> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
 
-        let ws = match cfg.webserver {
-            Some(webserver) => WebServer::new(webserver),
-            None => {
-                return Err(
-                    GeneralError::MissingArgumentError("webserver config".to_string()).into(),
-                );
-            }
-        };
+        let ws = cfg.webserver.context("Missing webserver configuration")?;
 
         let start_height = cfg.celestia_config.unwrap_or_default().start_height;
 
         Ok(Sequencer {
             db,
             da,
-            ws,
+            ws: WebServer::new(ws),
             key,
             start_height,
             tree: Arc::new(Mutex::new(IndexedMerkleTree::new_with_size(1024).unwrap())),
@@ -204,7 +196,9 @@ impl Sequencer {
 
     pub async fn get_commitment(&self) -> PrismResult<Hash> {
         let tree = self.tree.lock().await;
-        tree.get_commitment().map_err(|e| e.into())
+        tree.get_commitment()
+            .context("Failed to get commitment")
+            .map_err(|e| e.into())
     }
 
     // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
@@ -216,17 +210,11 @@ impl Sequencer {
 
         let prev_commitment = if epoch > 0 {
             let prev_epoch = epoch - 1;
-            match self.db.get_commitment(&prev_epoch) {
-                Ok(commitment) => Hash::from_hex(commitment.as_str()).unwrap(),
-                Err(e) => {
-                    return Err(DatabaseError::ReadError(format!(
-                        "commitment for prev epoch {:?}: {:?}",
-                        prev_epoch,
-                        e.to_string()
-                    ))
-                    .into());
-                }
-            }
+            let hash_string = self.db.get_commitment(&prev_epoch).context(format!(
+                "Failed to get commitment for previous epoch {}",
+                prev_epoch
+            ))?;
+            Hash::from_hex(&hash_string).context("Failed to parse commitment")?
         } else {
             self.get_commitment().await?
         };
@@ -239,16 +227,24 @@ impl Sequencer {
 
         let current_commitment = {
             let tree = self.tree.lock().await;
-            tree.get_commitment().map_err(PrismError::MerkleTree)?
+            tree.get_commitment()
+                .context("Failed to get current commitment")?
         };
 
-        self.db.set_epoch(&epoch)?;
+        self.db
+            .set_epoch(&epoch)
+            .context("Failed to set new epoch")?;
         // add the commitment for the operations ran since the last epoch
-        self.db.add_commitment(&epoch, &current_commitment)?;
+        self.db
+            .add_commitment(&epoch, &current_commitment)
+            .context("Failed to add commitment for new epoch")?;
 
         let batch_circuit =
-            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)?;
-        let (proof, verifying_key) = batch_circuit.create_and_verify_snark()?;
+            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
+                .context("Failed to create BatchMerkleProofCircuit")?;
+        let (proof, verifying_key) = batch_circuit
+            .create_and_verify_snark()
+            .context("Failed to create and verify snark")?;
 
         let epoch_json = FinalizedEpoch {
             height: epoch,
@@ -259,8 +255,8 @@ impl Sequencer {
             signature: None,
         };
 
-        let serialized_epoch_json_without_signature = borsh::to_vec(&epoch_json)
-            .map_err(|e| GeneralError::ParsingError(format!("epoch: {}", e)))?;
+        let serialized_epoch_json_without_signature =
+            borsh::to_vec(&epoch_json).context("Failed to serialize epoch json")?;
         let signature = self
             .key
             .sign(serialized_epoch_json_without_signature.as_slice())
@@ -295,22 +291,20 @@ impl Sequencer {
         match operation {
             Operation::Add { id, .. } | Operation::Revoke { id, .. } => {
                 // verify that the hashchain already exists
-                let mut current_chain = self.db.get_hashchain(id).map_err(|e| {
-                    DatabaseError::NotFoundError(format!("hashchain for ID {}: {}", id, e))
-                })?;
+                let mut current_chain = self
+                    .db
+                    .get_hashchain(id)
+                    .context(format!("Failed to get hashchain for ID {}", id))?;
 
                 let mut tree = self.tree.lock().await;
                 let hashed_id = sha256_mod(id.as_bytes());
 
-                let node = tree.find_leaf_by_label(&hashed_id).ok_or_else(|| {
-                    // TODO: Change error type in anyhow error PR
-                    GeneralError::DecodingError(format!(
-                        "node with label {} not found in the tree",
-                        hashed_id
-                    ))
-                })?;
+                let node = tree.find_leaf_by_label(&hashed_id).context(format!(
+                    "Node with label {} not found in the tree",
+                    hashed_id
+                ))?;
 
-                let previous_hash = current_chain.last().unwrap().hash;
+                let previous_hash = current_chain.last().context("Hashchain is empty")?.hash;
 
                 let new_chain_entry = HashchainEntry::new(operation.clone(), previous_hash);
                 current_chain.push(new_chain_entry.clone());
@@ -322,24 +316,21 @@ impl Sequencer {
                     node.get_next(),
                 );
 
-                let index = tree.find_node_index(&node).ok_or_else(|| {
-                    GeneralError::DecodingError(format!(
-                        "node with label {} not found in the tree, but has a hashchain entry",
-                        hashed_id
-                    ))
-                })?;
+                let index = tree.find_node_index(&node).context(format!(
+                    "Node with label {} not found in the tree, but has a hashchain entry",
+                    hashed_id
+                ))?;
 
                 self.db
                     .update_hashchain(operation, &current_chain)
-                    .map_err(|e| {
-                        PrismError::Database(DatabaseError::WriteError(format!(
-                            "hashchain for incoming operation {:?}: {:?}",
-                            operation, e
-                        )))
-                    })?;
+                    .context(format!(
+                        "Failed to update hashchain for operation {:?}",
+                        operation
+                    ))?;
 
                 tree.update_node(index, updated_node)
                     .map(Proof::Update)
+                    .context("Failed to update node in tree")
                     .map_err(|e| e.into())
             }
             Operation::CreateAccount { id, value, source } => {
@@ -347,11 +338,8 @@ impl Sequencer {
                 match source {
                     // TODO: use Signature, not String
                     AccountSource::SignedBySequencer { signature } => {
-                        let sig = Signature::from_str(signature).map_err(|_| {
-                            PrismError::General(GeneralError::ParsingError(
-                                "sequencer's signature on operation".to_string(),
-                            ))
-                        })?;
+                        let sig = Signature::from_str(signature)
+                            .context("Failed to parse sequencer's signature")?;
                         self.key
                             .verify(format!("{}{}", id, value).as_bytes(), &sig)
                             .map_err(|e| PrismError::General(GeneralError::InvalidSignature(e)))
@@ -372,12 +360,10 @@ impl Sequencer {
 
                 self.db
                     .update_hashchain(operation, &new_chain)
-                    .map_err(|e| {
-                        PrismError::Database(DatabaseError::WriteError(format!(
-                            "hashchain for incoming operation {:?}: {:?}",
-                            operation, e
-                        )))
-                    })?;
+                    .context(format!(
+                        "Failed to create hashchain for operation {:?}",
+                        operation
+                    ))?;
 
                 let mut tree = self.tree.lock().await;
                 let hashed_id = sha256_mod(id.as_bytes());
@@ -386,6 +372,7 @@ impl Sequencer {
                     Node::new_leaf(true, hashed_id, new_chain.first().unwrap().hash, Node::TAIL);
                 tree.insert_node(&mut node)
                     .map(Proof::Insert)
+                    .context("Failed to insert node into tree")
                     .map_err(|e| e.into())
             }
         }
