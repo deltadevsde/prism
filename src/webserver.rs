@@ -1,10 +1,11 @@
 use crate::{
     cfg::WebServerConfig,
     common::{HashchainEntry, Operation},
-    error::{GeneralError, PrismError, PrismResult},
+    error::{GeneralError, PrismResult},
     node_types::sequencer::Sequencer,
     utils::{verify_signature, SignedContent},
 };
+use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -62,21 +63,14 @@ impl OperationInput {
                 }
 
                 // signature validation
-                let signed_content = verify_signature(self, None).map_err(|e| {
-                    PrismError::General(GeneralError::MissingArgumentError(format!(
-                        "signature verification failed: {}",
-                        e
-                    )))
-                })?;
+                let signed_content = verify_signature(self, None)
+                    .context("Failed to verify signature")?;
+
 
                 // parsing validation
                 let json_string = String::from_utf8_lossy(&signed_content);
-                let _: Operation = serde_json::from_str(&json_string).map_err(|e| {
-                    PrismError::General(GeneralError::ParsingError(format!(
-                        "signed content: {}",
-                        e
-                    )))
-                })?;
+                serde_json::from_str::<Operation>(&json_string)
+                    .context("Failed to parse signed content as Operation")?;
 
                 Ok(())
             }
@@ -138,7 +132,7 @@ impl WebServer {
         Self { cfg }
     }
 
-    pub async fn start(&self, session: Arc<Sequencer>) {
+    pub async fn start(&self, session: Arc<Sequencer>) -> PrismResult<()> {
         info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let app = Router::new()
             .route("/update-entry", post(update_entry))
@@ -152,7 +146,9 @@ impl WebServer {
         axum::Server::bind(&addr.parse().unwrap())
             .serve(app.into_make_service())
             .await
-            .unwrap();
+            .context("Server error")?;
+
+        Ok(())
     }
 }
 

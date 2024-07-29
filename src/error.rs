@@ -1,9 +1,10 @@
+use anyhow::{Error as AnyhowError, Result};
 use ed25519_dalek::SignatureError;
 use indexed_merkle_tree::error::MerkleTreeError;
 use thiserror::Error;
 
 // Result alias for [`PrismError`]
-pub type PrismResult<T> = Result<T, PrismError>;
+pub type PrismResult<T> = anyhow::Result<T, PrismError>;
 
 #[derive(Error, Debug)]
 pub enum PrismError {
@@ -19,6 +20,8 @@ pub enum PrismError {
     MerkleTree(#[from] MerkleTreeError),
     #[error("config error: {0}")]
     ConfigError(String),
+    #[error(transparent)]
+    Other(#[from] AnyhowError),
 }
 
 // general reusable errors
