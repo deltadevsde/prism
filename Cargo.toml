@@ -67,6 +67,7 @@ pyroscope = "0.5.7"
 pyroscope_pprofrs = "0.2.7"
 toml = "0.8.14"
 dirs = "5.0.1"
+anyhow = "1.0.44"
 
 [dev-dependencies]
 serial_test = "3.1.1"

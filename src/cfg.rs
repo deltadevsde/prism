@@ -1,5 +1,6 @@
 use crate::consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL};
 use crate::error::{DataAvailabilityError, GeneralError, PrismError, PrismResult};
+use anyhow::Context;
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
@@ -147,19 +148,18 @@ pub fn load_config(args: CommandLineArgs) -> PrismResult<Config> {
     );
     pretty_env_logger::init();
 
-    let config_path = get_config_path(&args)?;
-    ensure_config_file_exists(&config_path)?;
+    let config_path = get_config_path(&args).context("Failed to determine config path")?;
+    ensure_config_file_exists(&config_path).context("Failed to ensure config file exists")?;
 
     let config_source = ConfigBuilder::<DefaultState>::default()
         .add_source(File::with_name(&config_path))
         .build()
-        .map_err(|e| GeneralError::InitializationError(format!("building config: {}", e)))?;
+        .context("Failed to build config")?;
 
     let default_config = Config::default();
-    let loaded_config: Config = config_source.try_deserialize().unwrap_or_else(|e| {
-        error!("deserializing config file: {}", e);
-        Config::default()
-    });
+    let loaded_config: Config = config_source
+        .try_deserialize()
+        .context("Failed to deserialize config file")?;
 
     let merged_config = merge_configs(loaded_config, default_config);
     let final_config = apply_command_line_args(merged_config, args);
@@ -183,25 +183,14 @@ fn get_config_path(args: &CommandLineArgs) -> PrismResult<String> {
 fn ensure_config_file_exists(config_path: &str) -> PrismResult<()> {
     if !Path::new(config_path).exists() {
         if let Some(parent) = Path::new(config_path).parent() {
-            fs::create_dir_all(parent).map_err(|e| {
-                GeneralError::InitializationError(format!(
-                    "failed to create config directory: {}",
-                    e
-                ))
-            })?;
+            fs::create_dir_all(parent).context("Failed to create config directory")?;
         }
 
         let default_config = Config::default();
-        let config_toml = toml::to_string(&default_config).map_err(|e| {
-            GeneralError::EncodingError(format!("failed to serialize default config: {}", e))
-        })?;
+        let config_toml =
+            toml::to_string(&default_config).context("Failed to serialize default config")?;
 
-        fs::write(config_path, config_toml).map_err(|e| {
-            GeneralError::InitializationError(format!(
-                "failed to write default config to disk: {}",
-                e
-            ))
-        })?;
+        fs::write(config_path, config_toml).context("Failed to write default config to disk")?;
     }
     Ok(())
 }
@@ -282,18 +271,14 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
 pub async fn initialize_da_layer(
     config: &Config,
 ) -> PrismResult<Arc<dyn DataAvailabilityLayer + 'static>> {
-    let da_layer = config.da_layer.as_ref().ok_or(PrismError::ConfigError(
-        "DA Layer not specified".to_string(),
-    ))?;
+    let da_layer = config.da_layer.as_ref().context("DA Layer not specified")?;
 
     match da_layer {
         DALayerOption::Celestia => {
             let celestia_conf = config
                 .celestia_config
                 .clone()
-                .ok_or(PrismError::ConfigError(
-                    "Celestia configuration not found".to_string(),
-                ))?;
+                .context("Celestia configuration not found")?;
 
             for attempt in 1..=DA_RETRY_COUNT {
                 match CelestiaConnection::new(&celestia_conf, None).await {
