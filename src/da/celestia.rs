@@ -204,6 +204,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 }
                 Ok(operations)
             }
+            // TODO: replace this error
             Err(err) => Err(DataAvailabilityError::DataRetrievalError(
                 height,
                 format!("getting operations from da layer: {}", err),

@@ -14,7 +14,7 @@ use tokio::{
         Mutex,
     },
     task::spawn,
-    time::interval,
+    time::{self, interval, Duration},
 };
 
 use crate::{
@@ -55,12 +55,14 @@ impl NodeType for Sequencer {
 
         let sync_loop = self.clone().sync_loop();
         let da_loop = self.clone().da_loop();
+        let main_loop = self.clone().main_loop();
 
         let ws_self = self.clone();
         let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
             _ = sync_loop => Ok(()),
+            _ = main_loop => Ok(()),
             _ = da_loop => Ok(()),
             _ = ws => Ok(()),
         }
@@ -105,6 +107,45 @@ impl Sequencer {
         })
     }
 
+    // main_loop is responsible for finalizing epochs and writing them to the buffer.
+    async fn main_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
+        spawn(async move {
+            let mut ticker = time::interval(Duration::from_secs(self.epoch_duration));
+            loop {
+                ticker.tick().await;
+                let pending = self.pending_entries.lock().await;
+                let epoch = match self.finalize_epoch(pending.clone()).await {
+                    Ok(epoch) => epoch,
+                    Err(e) => {
+                        error!("exiting loop due to finalize_epoch error: {}", e);
+                        return;
+                    }
+                };
+
+                let mut success = false;
+                // TODO: make retry count a constant
+                for _ in 0..5 {
+                    match self.epoch_buffer_tx.send(epoch.clone()).await {
+                        Ok(_) => {
+                            success = true;
+                            break;
+                        }
+                        Err(e) => {
+                            error!("Failed to send epoch to buffer: {}", e);
+                            continue;
+                        }
+                    };
+                }
+                if !success {
+                    error!("Failed to send epoch to buffer after 5 retries");
+                    return;
+                }
+            }
+        })
+        .await
+    }
+
+    // sync_loop is responsible for downloading operations from the DA layer
     async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
         info!("starting operation sync loop");
         // todo: make self.start_height
@@ -170,20 +211,21 @@ impl Sequencer {
         let mut ticker = interval(DA_RETRY_INTERVAL);
         spawn(async move {
             loop {
-                let epoch = match self.receive_finalized_epoch().await {
-                    Ok(e) => e,
+                let epochs = match self.receive_finalized_epochs().await {
+                    Ok(epochs) => epochs,
                     Err(e) => {
-                        error!("da_loop: getting latest height: {}", e);
+                        error!("da_loop: getting finalized epochs: {}", e);
                         continue;
                     }
                 };
+
                 let mut retry_counter = 0;
                 loop {
                     if retry_counter > DA_RETRY_COUNT {
                         // todo: graceful shutdown
                         panic!("da_loop: too many retries, giving up");
                     }
-                    match self.da.submit_snarks(vec![epoch.clone()]).await {
+                    match self.da.submit_snarks(epochs.clone()).await {
                         Ok(height) => {
                             info!("da_loop: submitted epoch at height {}", height);
                             break;
@@ -195,9 +237,9 @@ impl Sequencer {
                             }
                             error!("da_loop: submitting epoch: {}", e);
                             retry_counter += 1;
-                            ticker.tick().await;
                         }
                     };
+                    ticker.tick().await;
                 }
             }
         })
@@ -272,11 +314,16 @@ impl Sequencer {
         Ok(epoch_json_with_signature)
     }
 
-    async fn receive_finalized_epoch(&self) -> PrismResult<FinalizedEpoch> {
-        match self.epoch_buffer_rx.lock().await.recv().await {
-            Some(epoch) => Ok(epoch),
-            None => Err(DataAvailabilityError::ChannelReceiveError.into()),
+    // receive_finalized_epochs empties the epoch buffer into a vector and returns it.
+    async fn receive_finalized_epochs(&self) -> PrismResult<Vec<FinalizedEpoch>> {
+        let mut epochs = Vec::new();
+        let mut receiver = self.epoch_buffer_rx.lock().await;
+
+        while let Ok(epoch) = receiver.try_recv() {
+            epochs.push(epoch);
         }
+
+        Ok(epochs)
     }
 
     /// Updates the state from an already verified pending operation.
