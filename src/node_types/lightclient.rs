@@ -2,6 +2,7 @@ use crate::{
     cfg::CelestiaConfig,
     error::{DataAvailabilityError, GeneralError, PrismResult},
 };
+use anyhow::Context;
 use async_trait::async_trait;
 use std::{self, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
@@ -23,13 +24,15 @@ pub struct LightClient {
 impl NodeType for LightClient {
     async fn start(self: Arc<Self>) -> PrismResult<()> {
         // start listening for new headers to update sync target
-        match self.da.start().await {
-            Ok(_) => (),
-            Err(e) => return Err(DataAvailabilityError::InitializationError(e.to_string()).into()),
-        };
+        self.da
+            .start()
+            .await
+            .context("Failed to start DataAvailabilityLayer")
+            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
 
         self.sync_loop()
             .await
+            .context("Sync loop failed")
             .map_err(|e| GeneralError::InitializationError(e.to_string()).into())
     }
 }
