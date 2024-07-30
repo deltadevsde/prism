@@ -33,13 +33,16 @@ use crate::{
 pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
-    pub epoch_duration: u64,
+
+    pub epoch_duration: Duration,
     pub ws: WebServer,
+    // [`key`] is the [`SigningKey`] used to sign [`Operation::CreateAccount`]s
+    // (specifically, [`AccountSource::SignedBySequencer`]), as well as [`FinalizedEpoch`]s.
     pub key: SigningKey,
 
-    // pending_entries is a buffer for operations that have not yet been
+    // [`pending_operations`] is a buffer for operations that have not yet been
     // posted to the DA layer.
-    pub pending_entries: Arc<Mutex<Vec<Operation>>>,
+    pending_operations: Arc<Mutex<Vec<Operation>>>,
     tree: Arc<Mutex<IndexedMerkleTree>>,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
@@ -97,11 +100,11 @@ impl Sequencer {
         Ok(Sequencer {
             db,
             da,
-            epoch_duration,
+            epoch_duration: Duration::from_secs(epoch_duration),
             ws,
             key,
             tree: Arc::new(Mutex::new(IndexedMerkleTree::new_with_size(1024).unwrap())),
-            pending_entries: Arc::new(Mutex::new(Vec::new())),
+            pending_operations: Arc::new(Mutex::new(Vec::new())),
             epoch_buffer_tx: Arc::new(tx),
             epoch_buffer_rx: Arc::new(Mutex::new(rx)),
         })
@@ -110,10 +113,10 @@ impl Sequencer {
     // main_loop is responsible for finalizing epochs and writing them to the buffer.
     async fn main_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
         spawn(async move {
-            let mut ticker = time::interval(Duration::from_secs(self.epoch_duration));
+            let mut ticker = time::interval(self.epoch_duration);
             loop {
                 ticker.tick().await;
-                let pending = self.pending_entries.lock().await;
+                let pending = self.pending_operations.lock().await;
                 let epoch = match self.finalize_epoch(pending.clone()).await {
                     Ok(epoch) => epoch,
                     Err(e) => {
@@ -442,7 +445,7 @@ impl Sequencer {
     ) -> PrismResult<()> {
         // TODO: this is only basic validation. The validation over if an entry can be added to the hashchain or not is done in the process_operation function
         incoming_operation.validate()?;
-        let mut pending = self.pending_entries.lock().await;
+        let mut pending = self.pending_operations.lock().await;
         pending.push(incoming_operation.operation.clone());
         Ok(())
     }
@@ -484,7 +487,7 @@ mod tests {
         Arc::new(Sequencer::new(db.clone(), da_layer, cfg, signing_key.clone()).unwrap())
     }
 
-    fn create_new_entry(id: String, value: String, key: SigningKey) -> OperationInput {
+    fn create_new_account_operation(id: String, value: String, key: SigningKey) -> OperationInput {
         let incoming = Operation::CreateAccount {
             id: id.clone(),
             value: value.clone(),
@@ -502,7 +505,7 @@ mod tests {
         }
     }
 
-    fn create_update_entry(id: String, value: String) -> OperationInput {
+    fn create_update_operation(id: String, value: String) -> OperationInput {
         let key = create_signing_key();
         let incoming = Operation::Add { id, value };
         let content = serde_json::to_string(&incoming).unwrap();
@@ -531,7 +534,7 @@ mod tests {
         );
 
         let update_entry =
-            create_update_entry("test@deltadevs.xyz".to_string(), "test".to_string());
+            create_update_operation("test@deltadevs.xyz".to_string(), "test".to_string());
 
         sequencer
             .validate_and_queue_update(&update_entry)
@@ -551,7 +554,8 @@ mod tests {
         );
 
         let id = "test@deltadevs.xyz".to_string();
-        let update_entry = create_new_entry(id.clone(), "test".to_string(), signing_key.clone());
+        let update_entry =
+            create_new_account_operation(id.clone(), "test".to_string(), signing_key.clone());
 
         sequencer
             .clone()
@@ -563,9 +567,9 @@ mod tests {
         let hashchain = sequencer.db.get_hashchain(id.as_str());
         assert!(hashchain.is_err());
 
-        let pending_entries = sequencer.pending_entries.lock().await.clone();
+        let pending_operations = sequencer.pending_operations.lock().await.clone();
         let prev_commitment = sequencer.get_commitment().await.unwrap();
-        sequencer.finalize_epoch(pending_entries).await.unwrap();
+        sequencer.finalize_epoch(pending_operations).await.unwrap();
         let new_commitment = sequencer.get_commitment().await.unwrap();
         assert_ne!(prev_commitment, new_commitment);
 
@@ -592,8 +596,9 @@ mod tests {
         );
 
         let mut update_entry =
-            create_update_entry("test@deltadevs.xyz".to_string(), "test".to_string());
-        let second_signer = create_update_entry("abcd".to_string(), "test".to_string()).public_key;
+            create_update_operation("test@deltadevs.xyz".to_string(), "test".to_string());
+        let second_signer =
+            create_update_operation("abcd".to_string(), "test".to_string()).public_key;
         update_entry.public_key = second_signer;
 
         let res = sequencer.validate_and_queue_update(&update_entry).await;
@@ -606,13 +611,13 @@ mod tests {
     async fn test_finalize_epoch_first_epoch() {
         let sequencer = create_test_sequencer().await;
         let operations = vec![
-            create_new_entry(
+            create_new_account_operation(
                 "user1@example.com".to_string(),
                 "value1".to_string(),
                 sequencer.key.clone(),
             )
             .operation,
-            create_new_entry(
+            create_new_account_operation(
                 "user2@example.com".to_string(),
                 "value2".to_string(),
                 sequencer.key.clone(),
@@ -637,7 +642,7 @@ mod tests {
 
         // First epoch
         let operations1 = vec![
-            create_new_entry(
+            create_new_account_operation(
                 "user1@example.com".to_string(),
                 "value1".to_string(),
                 sequencer.key.clone(),
@@ -648,7 +653,7 @@ mod tests {
 
         // Second epoch
         let operations2 = vec![
-            create_new_entry(
+            create_new_account_operation(
                 "user2@example.com".to_string(),
                 "value2".to_string(),
                 sequencer.key.clone(),
@@ -667,7 +672,7 @@ mod tests {
         let sequencer = create_test_sequencer().await;
 
         // First, create an account
-        let create_op = create_new_entry(
+        let create_op = create_new_account_operation(
             "user@example.com".to_string(),
             "initial".to_string(),
             sequencer.key.clone(),
@@ -695,7 +700,7 @@ mod tests {
         let sequencer = create_test_sequencer().await;
 
         // First, create an account
-        let create_op = create_new_entry(
+        let create_op = create_new_account_operation(
             "user@example.com".to_string(),
             "initial".to_string(),
             sequencer.key.clone(),
@@ -723,7 +728,7 @@ mod tests {
         let sequencer = create_test_sequencer().await;
 
         // Create an account
-        let create_op = create_new_entry(
+        let create_op = create_new_account_operation(
             "user@example.com".to_string(),
             "initial".to_string(),
             sequencer.key.clone(),
@@ -742,13 +747,13 @@ mod tests {
         let sequencer = create_test_sequencer().await;
 
         // Create some realistic operations
-        let op1 = create_new_entry(
+        let op1 = create_new_account_operation(
             "user1@example.com".to_string(),
             "value1".to_string(),
             sequencer.key.clone(),
         )
         .operation;
-        let op2 = create_new_entry(
+        let op2 = create_new_account_operation(
             "user2@example.com".to_string(),
             "value2".to_string(),
             sequencer.key.clone(),
