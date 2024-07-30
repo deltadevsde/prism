@@ -1,8 +1,9 @@
 use indexed_merkle_tree::{sha256_mod, Hash};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+use borsh::{BorshDeserialize, BorshSerialize};
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug, PartialEq)]
 // An [`Operation`] represents a state transition in the system.
 // In a blockchain analogy, this would be the full set of our transaction types.
 pub enum Operation {
@@ -24,7 +25,7 @@ pub enum Operation {
     },
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
 // An [`AccountSource`] represents the source of an account. See adr-002 for more information.
 pub enum AccountSource {
     SignedBySequencer { signature: String },

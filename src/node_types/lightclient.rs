@@ -66,7 +66,7 @@ impl LightClient {
                 debug!("updated sync target to height {}", target);
                 for i in current_position..target {
                     trace!("processing height: {}", i);
-                    match self.da.get(i + 1).await {
+                    match self.da.get_snarks(i + 1).await {
                         Ok(epoch_json_vec) => {
                             if !epoch_json_vec.is_empty() {
                                 debug!("light client: got epochs at height {}", i + 1);

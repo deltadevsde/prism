@@ -1,4 +1,5 @@
 use crate::{
+    common::Operation,
     error::{DAResult, GeneralError, PrismResult},
     utils::SignedContent,
     zk_snark::{Bls12Proof, VerifyingKey},
@@ -51,7 +52,9 @@ impl SignedContent for FinalizedEpoch {
 pub trait DataAvailabilityLayer: Send + Sync {
     async fn get_latest_height(&self) -> DAResult<u64>;
     async fn initialize_sync_target(&self) -> DAResult<u64>;
-    async fn get(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>>;
-    async fn submit(&self, epoch: &FinalizedEpoch) -> DAResult<u64>;
+    async fn get_snarks(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>>;
+    async fn submit_snarks(&self, epoch: Vec<FinalizedEpoch>) -> DAResult<u64>;
+    async fn get_operations(&self, height: u64) -> DAResult<Vec<Operation>>;
+    async fn submit_operations(&self, operations: Vec<Operation>) -> DAResult<u64>;
     async fn start(&self) -> DAResult<()>;
 }

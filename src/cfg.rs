@@ -1,5 +1,5 @@
 use crate::consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL};
-use crate::error::{DataAvailabilityError, PrismError, PrismResult, GeneralError};
+use crate::error::{DataAvailabilityError, GeneralError, PrismError, PrismResult};
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
@@ -31,17 +31,17 @@ pub struct CommandLineArgs {
     #[arg(short = 'r', long)]
     redis_client: Option<String>,
 
-    /// Celestia Namespace ID
-    #[arg(short = 'n', long)]
-    celestia_namespace_id: Option<String>,
+    /// Celestia Snark Namespace ID
+    #[arg(long)]
+    snark_namespace_id: Option<String>,
+
+    /// Celestia Operation Namespace ID
+    #[arg(long)]
+    operation_namespace_id: Option<String>,
 
     // Height to start searching the DA layer for SNARKs on
     #[arg(short = 's', long)]
     celestia_start_height: Option<u64>,
-
-    /// Duration between epochs in seconds
-    #[arg(short, long)]
-    epoch_time: Option<u64>,
 
     /// IP address for the webserver to listen on
     #[arg(long)]
@@ -69,7 +69,6 @@ pub struct Config {
     pub celestia_config: Option<CelestiaConfig>,
     pub da_layer: Option<DALayerOption>,
     pub redis_config: Option<RedisConfig>,
-    pub epoch_time: Option<u64>,
     pub verifying_key: Option<String>,
 }
 
@@ -113,7 +112,8 @@ impl Default for RedisConfig {
 pub struct CelestiaConfig {
     pub connection_string: String,
     pub start_height: u64,
-    pub namespace_id: String,
+    pub snark_namespace_id: String,
+    pub operation_namespace_id: Option<String>,
 }
 
 impl Default for CelestiaConfig {
@@ -121,7 +121,8 @@ impl Default for CelestiaConfig {
         CelestiaConfig {
             connection_string: "ws://localhost:26658".to_string(),
             start_height: 0,
-            namespace_id: "00000000000000de1008".to_string(),
+            snark_namespace_id: "00000000000000de1008".to_string(),
+            operation_namespace_id: Some("00000000000000de1009".to_string()),
         }
     }
 }
@@ -133,7 +134,6 @@ impl Default for Config {
             da_layer: Some(DALayerOption::default()),
             celestia_config: Some(CelestiaConfig::default()),
             redis_config: Some(RedisConfig::default()),
-            epoch_time: Some(60),
             verifying_key: None,
         }
     }
@@ -174,9 +174,7 @@ pub fn load_config(args: CommandLineArgs) -> PrismResult<Config> {
 fn get_config_path(args: &CommandLineArgs) -> PrismResult<String> {
     args.config_path
         .clone()
-        .or_else(|| {
-            home_dir().map(|path| format!("{}/.prism/config.toml", path.to_string_lossy()))
-        })
+        .or_else(|| home_dir().map(|path| format!("{}/.prism/config.toml", path.to_string_lossy())))
         .ok_or_else(|| {
             GeneralError::MissingArgumentError("could not determine config path".to_string()).into()
         })
@@ -214,7 +212,6 @@ fn merge_configs(loaded: Config, default: Config) -> Config {
         redis_config: loaded.redis_config.or(default.redis_config),
         celestia_config: loaded.celestia_config.or(default.celestia_config),
         da_layer: loaded.da_layer.or(default.da_layer),
-        epoch_time: loaded.epoch_time.or(default.epoch_time),
         verifying_key: loaded.verifying_key.or(default.verifying_key),
     }
 }
@@ -261,20 +258,23 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
                     .map(|c| c.start_height)
                     .unwrap_or_else(|| CelestiaConfig::default().start_height)
             }),
-            namespace_id: args.celestia_namespace_id.unwrap_or_else(|| {
+            snark_namespace_id: args.snark_namespace_id.unwrap_or_else(|| {
                 config
                     .celestia_config
                     .as_ref()
-                    .map(|c| c.namespace_id.clone())
-                    .unwrap_or_else(|| CelestiaConfig::default().namespace_id)
+                    .map(|c| c.snark_namespace_id.clone())
+                    .unwrap_or_else(|| CelestiaConfig::default().snark_namespace_id)
             }),
+            operation_namespace_id: Some(args.operation_namespace_id.unwrap_or_else(|| {
+                config
+                    .celestia_config
+                    .as_ref()
+                    .map(|c| c.operation_namespace_id.clone())
+                    .unwrap_or_else(|| CelestiaConfig::default().operation_namespace_id)
+                    .unwrap()
+            })),
         }),
         da_layer: config.da_layer,
-        epoch_time: Some(args.epoch_time.unwrap_or_else(|| {
-            config
-                .epoch_time
-                .unwrap_or_else(|| Config::default().epoch_time.unwrap())
-        })),
         verifying_key: args.verifying_key.or(config.verifying_key),
     }
 }
@@ -296,13 +296,7 @@ pub async fn initialize_da_layer(
                 ))?;
 
             for attempt in 1..=DA_RETRY_COUNT {
-                match CelestiaConnection::new(
-                    &celestia_conf.connection_string,
-                    None,
-                    &celestia_conf.namespace_id,
-                )
-                .await
-                {
+                match CelestiaConnection::new(&celestia_conf, None).await {
                     Ok(da) => return Ok(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
                     Err(e) => {
                         if attempt == DA_RETRY_COUNT {
@@ -323,8 +317,6 @@ pub async fn initialize_da_layer(
             Ok(Arc::new(LocalDataAvailabilityLayer::new())
                 as Arc<dyn DataAvailabilityLayer + 'static>)
         }
-        DALayerOption::None => Err(PrismError::ConfigError(
-            "No DA Layer specified".to_string(),
-        )),
+        DALayerOption::None => Err(PrismError::ConfigError("No DA Layer specified".to_string())),
     }
 }
