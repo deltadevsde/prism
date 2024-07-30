@@ -22,8 +22,7 @@ use crate::{
     common::{AccountSource, HashchainEntry, Operation},
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
-    error::GeneralError,
-    error::{DataAvailabilityError, DatabaseError, PrismError, PrismResult},
+    error::{DataAvailabilityError, DatabaseError, GeneralError, PrismError, PrismResult},
     node_types::NodeType,
     storage::Database,
     webserver::{OperationInput, WebServer},
@@ -33,8 +32,11 @@ use crate::{
 pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
-
     pub ws: WebServer,
+
+    // [`start_height`] is the DA layer height the sequencer should start syncing operations from.
+    pub start_height: u64,
+
     // [`key`] is the [`SigningKey`] used to sign [`Operation::CreateAccount`]s
     // (specifically, [`AccountSource::SignedBySequencer`]), as well as [`FinalizedEpoch`]s.
     pub key: SigningKey,
@@ -87,11 +89,14 @@ impl Sequencer {
             }
         };
 
+        let start_height = cfg.celestia_config.unwrap_or_default().start_height;
+
         Ok(Sequencer {
             db,
             da,
             ws,
             key,
+            start_height,
             tree: Arc::new(Mutex::new(IndexedMerkleTree::new_with_size(1024).unwrap())),
             pending_operations: Arc::new(Mutex::new(Vec::new())),
             epoch_buffer_tx: Arc::new(tx),
@@ -102,11 +107,9 @@ impl Sequencer {
     // sync_loop is responsible for downloading operations from the DA layer
     async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
         info!("starting operation sync loop");
-        // todo: make self.start_height
-        let start_height = 1000;
         let epoch_buffer = self.epoch_buffer_tx.clone();
         spawn(async move {
-            let mut current_position = start_height;
+            let mut current_position = self.start_height;
             loop {
                 // target is updated when a new header is received
                 let target = match self.da.get_latest_height().await {
