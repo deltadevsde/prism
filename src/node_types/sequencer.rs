@@ -129,7 +129,6 @@ impl Sequencer {
                                 );
                             }
 
-                            // TODO: doesn't this copy the Vec? Seems very inefficient
                             let epoch = match self.finalize_epoch(operations).await {
                                 Ok(e) => e,
                                 Err(e) => {
