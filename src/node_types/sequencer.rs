@@ -326,6 +326,14 @@ impl Sequencer {
         Ok(epochs)
     }
 
+    #[cfg(test)]
+    pub async fn send_finalized_epoch(&self, epoch: &FinalizedEpoch) -> PrismResult<()> {
+        self.epoch_buffer_tx
+            .send(epoch.clone())
+            .await
+            .map_err(|_| DataAvailabilityError::ChannelClosed.into())
+    }
+
     /// Updates the state from an already verified pending operation.
     async fn process_operation(&self, operation: &Operation) -> PrismResult<Proof> {
         match operation {
@@ -464,6 +472,18 @@ mod tests {
         redis_connections.flush_database().unwrap();
     }
 
+    // Helper function to create a test Sequencer instance
+    async fn create_test_sequencer() -> Arc<Sequencer> {
+        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let db = Arc::new(setup_db());
+        let signing_key = create_signing_key();
+        let cfg = Config {
+            epoch_time: Some(1),
+            ..Default::default()
+        };
+        Arc::new(Sequencer::new(db.clone(), da_layer, cfg, signing_key.clone()).unwrap())
+    }
+
     fn create_new_entry(id: String, value: String, key: SigningKey) -> OperationInput {
         let incoming = Operation::CreateAccount {
             id: id.clone(),
@@ -579,5 +599,202 @@ mod tests {
         let res = sequencer.validate_and_queue_update(&update_entry).await;
         assert!(res.is_err());
         teardown_db(&db);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_finalize_epoch_first_epoch() {
+        let sequencer = create_test_sequencer().await;
+        let operations = vec![
+            create_new_entry(
+                "user1@example.com".to_string(),
+                "value1".to_string(),
+                sequencer.key.clone(),
+            )
+            .operation,
+            create_new_entry(
+                "user2@example.com".to_string(),
+                "value2".to_string(),
+                sequencer.key.clone(),
+            )
+            .operation,
+        ];
+
+        let prev_commitment = sequencer.get_commitment().await.unwrap();
+        let epoch = sequencer.finalize_epoch(operations).await.unwrap();
+        assert_eq!(epoch.height, 0);
+        assert_eq!(epoch.prev_commitment, prev_commitment);
+        assert_eq!(
+            epoch.current_commitment,
+            sequencer.get_commitment().await.unwrap()
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_finalize_epoch_multiple_epochs() {
+        let sequencer = create_test_sequencer().await;
+
+        // First epoch
+        let operations1 = vec![
+            create_new_entry(
+                "user1@example.com".to_string(),
+                "value1".to_string(),
+                sequencer.key.clone(),
+            )
+            .operation,
+        ];
+        let epoch1 = sequencer.finalize_epoch(operations1).await.unwrap();
+
+        // Second epoch
+        let operations2 = vec![
+            create_new_entry(
+                "user2@example.com".to_string(),
+                "value2".to_string(),
+                sequencer.key.clone(),
+            )
+            .operation,
+        ];
+        let epoch2 = sequencer.finalize_epoch(operations2).await.unwrap();
+
+        assert_eq!(epoch2.height, 1);
+        assert_eq!(epoch2.prev_commitment, epoch1.current_commitment);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_process_operation_add() {
+        let sequencer = create_test_sequencer().await;
+
+        // First, create an account
+        let create_op = create_new_entry(
+            "user@example.com".to_string(),
+            "initial".to_string(),
+            sequencer.key.clone(),
+        )
+        .operation;
+        sequencer.process_operation(&create_op).await.unwrap();
+
+        // Then, add a new value
+        let add_op = Operation::Add {
+            id: "user@example.com".to_string(),
+            value: "new_value".to_string(),
+        };
+        let proof = sequencer.process_operation(&add_op).await.unwrap();
+
+        assert!(matches!(proof, Proof::Update(_)));
+
+        let hashchain = sequencer.db.get_hashchain("user@example.com").unwrap();
+        assert_eq!(hashchain.len(), 2);
+        assert_eq!(hashchain[1].operation.value(), "new_value");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_process_operation_revoke() {
+        let sequencer = create_test_sequencer().await;
+
+        // First, create an account
+        let create_op = create_new_entry(
+            "user@example.com".to_string(),
+            "initial".to_string(),
+            sequencer.key.clone(),
+        )
+        .operation;
+        sequencer.process_operation(&create_op).await.unwrap();
+
+        // Then, revoke a value
+        let revoke_op = Operation::Revoke {
+            id: "user@example.com".to_string(),
+            value: "initial".to_string(),
+        };
+        let proof = sequencer.process_operation(&revoke_op).await.unwrap();
+
+        assert!(matches!(proof, Proof::Update(_)));
+
+        let hashchain = sequencer.db.get_hashchain("user@example.com").unwrap();
+        assert_eq!(hashchain.len(), 2);
+        assert!(matches!(hashchain[1].operation, Operation::Revoke { .. }));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_process_operation_create_account_duplicate() {
+        let sequencer = create_test_sequencer().await;
+
+        // Create an account
+        let create_op = create_new_entry(
+            "user@example.com".to_string(),
+            "initial".to_string(),
+            sequencer.key.clone(),
+        )
+        .operation;
+        sequencer.process_operation(&create_op).await.unwrap();
+
+        // Try to create the same account again
+        let result = sequencer.process_operation(&create_op).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_receive_finalized_epochs() {
+        let sequencer = create_test_sequencer().await;
+
+        // Create some realistic operations
+        let op1 = create_new_entry(
+            "user1@example.com".to_string(),
+            "value1".to_string(),
+            sequencer.key.clone(),
+        )
+        .operation;
+        let op2 = create_new_entry(
+            "user2@example.com".to_string(),
+            "value2".to_string(),
+            sequencer.key.clone(),
+        )
+        .operation;
+        let op3 = Operation::Add {
+            id: "user1@example.com".to_string(),
+            value: "new_value1".to_string(),
+        };
+
+        // Create FinalizedEpoch instances
+        let epoch1 = sequencer.finalize_epoch(vec![op1]).await.unwrap();
+        let epoch2 = sequencer.finalize_epoch(vec![op2, op3]).await.unwrap();
+
+        // Send the epochs to the sequencer
+        sequencer.send_finalized_epoch(&epoch1).await.unwrap();
+        sequencer.send_finalized_epoch(&epoch2).await.unwrap();
+
+        // Receive and verify the epochs
+        let received_epochs = sequencer.receive_finalized_epochs().await.unwrap();
+        assert_eq!(received_epochs.len(), 2);
+
+        // Verify first epoch
+        assert_eq!(received_epochs[0].height, epoch1.height);
+        assert_eq!(received_epochs[0].prev_commitment, epoch1.prev_commitment);
+        assert_eq!(
+            received_epochs[0].current_commitment,
+            epoch1.current_commitment
+        );
+
+        // Verify second epoch
+        assert_eq!(received_epochs[1].height, epoch2.height);
+        assert_eq!(received_epochs[1].prev_commitment, epoch2.prev_commitment);
+        assert_eq!(
+            received_epochs[1].current_commitment,
+            epoch2.current_commitment
+        );
+
+        // Verify that the epochs are connected
+        assert_eq!(
+            received_epochs[1].prev_commitment,
+            received_epochs[0].current_commitment
+        );
+
+        // Verify that the buffer is now empty
+        let empty_epochs = sequencer.receive_finalized_epochs().await.unwrap();
+        assert!(empty_epochs.is_empty());
     }
 }

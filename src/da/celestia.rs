@@ -1,4 +1,5 @@
 use crate::{
+    cfg::CelestiaConfig,
     common::Operation,
     consts::CHANNEL_BUFFER_SIZE,
     da::{DataAvailabilityLayer, FinalizedEpoch},
@@ -40,20 +41,15 @@ pub struct CelestiaConnection {
     pub snark_namespace: Namespace,
     pub operation_namespace: Namespace,
 
-    synctarget_tx: Arc<Sender<u64>>,
-    synctarget_rx: Arc<Mutex<Receiver<u64>>>,
+    sync_target_tx: Arc<Sender<u64>>,
+    sync_target_rx: Arc<Mutex<Receiver<u64>>>,
 }
 
 impl CelestiaConnection {
-    // TODO: Should take config
-    pub async fn new(
-        connection_string: &str,
-        auth_token: Option<&str>,
-        namespace_hex: &String,
-    ) -> DAResult<Self> {
+    pub async fn new(config: &CelestiaConfig, auth_token: Option<&str>) -> DAResult<Self> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
 
-        let client = Client::new(connection_string, auth_token)
+        let client = Client::new(&config.connection_string, auth_token)
             .await
             .map_err(|e| {
                 DataAvailabilityError::ConnectionError(format!(
@@ -62,40 +58,42 @@ impl CelestiaConnection {
                 ))
             })?;
 
-        let decoded_hex = match hex::decode(namespace_hex) {
-            Ok(hex) => hex,
-            Err(e) => {
-                return Err(DataAvailabilityError::GeneralError(
-                    GeneralError::DecodingError(format!(
-                        "decoding namespace '{}': {}",
-                        namespace_hex, e
-                    )),
-                ))
-            }
+        let snark_namespace = create_namespace(&config.snark_namespace_id)?;
+        let operation_namespace = match &config.operation_namespace_id {
+            Some(id) => create_namespace(id)?,
+            None => snark_namespace.clone(),
         };
-
-        let namespace_id = Namespace::new_v0(&decoded_hex).map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::EncodingError(format!(
-                "creating namespace '{}': {}",
-                namespace_hex, e
-            )))
-        })?;
 
         Ok(CelestiaConnection {
             client,
-            snark_namespace: namespace_id,
-            // TODO: pass in second namespace
-            operation_namespace: namespace_id,
-            synctarget_tx: Arc::new(tx),
-            synctarget_rx: Arc::new(Mutex::new(rx)),
+            snark_namespace,
+            operation_namespace,
+            sync_target_tx: Arc::new(tx),
+            sync_target_rx: Arc::new(Mutex::new(rx)),
         })
     }
+}
+
+fn create_namespace(namespace_hex: &str) -> DAResult<Namespace> {
+    let decoded_hex = hex::decode(namespace_hex).map_err(|e| {
+        DataAvailabilityError::GeneralError(GeneralError::DecodingError(format!(
+            "decoding namespace '{}': {}",
+            namespace_hex, e
+        )))
+    })?;
+
+    Namespace::new_v0(&decoded_hex).map_err(|e| {
+        DataAvailabilityError::GeneralError(GeneralError::EncodingError(format!(
+            "creating namespace '{}': {}",
+            namespace_hex, e
+        )))
+    })
 }
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
     async fn get_latest_height(&self) -> DAResult<u64> {
-        match self.synctarget_rx.lock().await.recv().await {
+        match self.sync_target_rx.lock().await.recv().await {
             Some(height) => Ok(height),
             None => Err(DataAvailabilityError::ChannelReceiveError),
         }
@@ -258,7 +256,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 ))
             })?;
 
-        let synctarget_buffer = self.synctarget_tx.clone();
+        let synctarget_buffer = self.sync_target_tx.clone();
         spawn(async move {
             while let Some(extended_header_result) = header_sub.next().await {
                 match extended_header_result {
