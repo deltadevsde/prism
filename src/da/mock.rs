@@ -60,6 +60,12 @@ pub struct LocalDataAvailabilityLayer {
     file_lock: Mutex<()>,
 }
 
+impl Default for LocalDataAvailabilityLayer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LocalDataAvailabilityLayer {
     pub fn new() -> Self {
         LocalDataAvailabilityLayer {

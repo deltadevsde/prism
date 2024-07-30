@@ -61,7 +61,7 @@ impl CelestiaConnection {
         let snark_namespace = create_namespace(&config.snark_namespace_id)?;
         let operation_namespace = match &config.operation_namespace_id {
             Some(id) => create_namespace(id)?,
-            None => snark_namespace.clone(),
+            None => snark_namespace,
         };
 
         Ok(CelestiaConnection {
@@ -206,8 +206,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
             Err(err) => Err(DataAvailabilityError::DataRetrievalError(
                 height,
                 format!("getting operations from da layer: {}", err),
-            )
-            .into()),
+            )),
         }
     }
 
