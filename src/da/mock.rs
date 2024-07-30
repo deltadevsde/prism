@@ -179,7 +179,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
     async fn get_operations(&self, height: u64) -> DAResult<Vec<Operation>> {
         let data = self.read_file(false).await?;
 
-        if let Some(operations) = data.get(&height.to_string()) {
+        if let Some(operations) = data.get(height.to_string()) {
             let operations_hex = operations.as_str().ok_or_else(|| {
                 DataAvailabilityError::GeneralError(GeneralError::ParsingError(
                     "Operations value is not a string".to_string(),
@@ -229,7 +229,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
     async fn get_snarks(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
         let data = self.read_file(true).await?;
 
-        if let Some(epoch) = data.get(&height.to_string()) {
+        if let Some(epoch) = data.get(height.to_string()) {
             let epoch_hex = epoch.as_str().ok_or_else(|| {
                 DataAvailabilityError::GeneralError(GeneralError::ParsingError(
                     "Epoch value is not a string".to_string(),

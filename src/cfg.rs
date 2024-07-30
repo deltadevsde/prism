@@ -43,10 +43,6 @@ pub struct CommandLineArgs {
     #[arg(short = 's', long)]
     celestia_start_height: Option<u64>,
 
-    /// Duration between epochs in seconds
-    #[arg(short, long)]
-    epoch_time: Option<u64>,
-
     /// IP address for the webserver to listen on
     #[arg(long)]
     host: Option<String>,
@@ -73,7 +69,6 @@ pub struct Config {
     pub celestia_config: Option<CelestiaConfig>,
     pub da_layer: Option<DALayerOption>,
     pub redis_config: Option<RedisConfig>,
-    pub epoch_time: Option<u64>,
     pub verifying_key: Option<String>,
 }
 
@@ -139,7 +134,6 @@ impl Default for Config {
             da_layer: Some(DALayerOption::default()),
             celestia_config: Some(CelestiaConfig::default()),
             redis_config: Some(RedisConfig::default()),
-            epoch_time: Some(60),
             verifying_key: None,
         }
     }
@@ -218,7 +212,6 @@ fn merge_configs(loaded: Config, default: Config) -> Config {
         redis_config: loaded.redis_config.or(default.redis_config),
         celestia_config: loaded.celestia_config.or(default.celestia_config),
         da_layer: loaded.da_layer.or(default.da_layer),
-        epoch_time: loaded.epoch_time.or(default.epoch_time),
         verifying_key: loaded.verifying_key.or(default.verifying_key),
     }
 }
@@ -282,11 +275,6 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
             })),
         }),
         da_layer: config.da_layer,
-        epoch_time: Some(args.epoch_time.unwrap_or_else(|| {
-            config
-                .epoch_time
-                .unwrap_or_else(|| Config::default().epoch_time.unwrap())
-        })),
         verifying_key: args.verifying_key.or(config.verifying_key),
     }
 }

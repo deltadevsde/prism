@@ -14,7 +14,7 @@ use tokio::{
         Mutex,
     },
     task::spawn,
-    time::{self, interval, Duration},
+    time::interval,
 };
 
 use crate::{
@@ -34,7 +34,6 @@ pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
 
-    pub epoch_duration: Duration,
     pub ws: WebServer,
     // [`key`] is the [`SigningKey`] used to sign [`Operation::CreateAccount`]s
     // (specifically, [`AccountSource::SignedBySequencer`]), as well as [`FinalizedEpoch`]s.
@@ -58,14 +57,12 @@ impl NodeType for Sequencer {
 
         let sync_loop = self.clone().sync_loop();
         let da_loop = self.clone().da_loop();
-        let main_loop = self.clone().main_loop();
 
         let ws_self = self.clone();
         let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
             _ = sync_loop => Ok(()),
-            _ = main_loop => Ok(()),
             _ = da_loop => Ok(()),
             _ = ws => Ok(()),
         }
@@ -81,13 +78,6 @@ impl Sequencer {
     ) -> PrismResult<Sequencer> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
 
-        let epoch_duration = match cfg.epoch_time {
-            Some(epoch_time) => epoch_time,
-            None => {
-                return Err(GeneralError::MissingArgumentError("epoch_time".to_string()).into());
-            }
-        };
-
         let ws = match cfg.webserver {
             Some(webserver) => WebServer::new(webserver),
             None => {
@@ -100,7 +90,6 @@ impl Sequencer {
         Ok(Sequencer {
             db,
             da,
-            epoch_duration: Duration::from_secs(epoch_duration),
             ws,
             key,
             tree: Arc::new(Mutex::new(IndexedMerkleTree::new_with_size(1024).unwrap())),
@@ -108,44 +97,6 @@ impl Sequencer {
             epoch_buffer_tx: Arc::new(tx),
             epoch_buffer_rx: Arc::new(Mutex::new(rx)),
         })
-    }
-
-    // main_loop is responsible for finalizing epochs and writing them to the buffer.
-    async fn main_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
-        spawn(async move {
-            let mut ticker = time::interval(self.epoch_duration);
-            loop {
-                ticker.tick().await;
-                let pending = self.pending_operations.lock().await;
-                let epoch = match self.finalize_epoch(pending.clone()).await {
-                    Ok(epoch) => epoch,
-                    Err(e) => {
-                        error!("exiting loop due to finalize_epoch error: {}", e);
-                        return;
-                    }
-                };
-
-                let mut success = false;
-                // TODO: make retry count a constant
-                for _ in 0..5 {
-                    match self.epoch_buffer_tx.send(epoch.clone()).await {
-                        Ok(_) => {
-                            success = true;
-                            break;
-                        }
-                        Err(e) => {
-                            error!("Failed to send epoch to buffer: {}", e);
-                            continue;
-                        }
-                    };
-                }
-                if !success {
-                    error!("Failed to send epoch to buffer after 5 retries");
-                    return;
-                }
-            }
-        })
-        .await
     }
 
     // sync_loop is responsible for downloading operations from the DA layer
@@ -480,11 +431,9 @@ mod tests {
         let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
         let db = Arc::new(setup_db());
         let signing_key = create_signing_key();
-        let cfg = Config {
-            epoch_time: Some(1),
-            ..Default::default()
-        };
-        Arc::new(Sequencer::new(db.clone(), da_layer, cfg, signing_key.clone()).unwrap())
+        Arc::new(
+            Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
+        )
     }
 
     fn create_new_account_operation(id: String, value: String, key: SigningKey) -> OperationInput {
