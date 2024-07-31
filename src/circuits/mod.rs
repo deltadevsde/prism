@@ -34,11 +34,11 @@ impl Circuit<Scalar> for ProofVariantCircuit {
     }
 }
 
-// G1Affine is a tuple alias of [`bls12_381::G1Affine`] for defining custom conversions.
+/// G1Affine is a tuple alias of [`bls12_381::G1Affine`] for defining custom conversions.
 pub struct G1Affine(bls12_381::G1Affine);
 
-// G2Affine is a tuple alias of [`bls12_381::G2Affine`] for defining custom conversions.
-struct G2Affine(bls12_381::G2Affine);
+/// G2Affine is a tuple alias of [`bls12_381::G2Affine`] for defining custom conversions.
+pub struct G2Affine(bls12_381::G2Affine);
 
 impl TryInto<G1Affine> for [u8; 48] {
     type Error = anyhow::Error;
@@ -190,7 +190,6 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
 
 #[cfg(test)]
 mod tests {
-    use super::utils::hash_to_scalar;
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
@@ -203,32 +202,32 @@ mod tests {
     use rand::rngs::OsRng;
 
     fn head_scalar() -> Scalar {
-        hash_to_scalar(&Node::HEAD).unwrap()
+        Node::HEAD.try_into().unwrap()
     }
 
     fn small_scalar() -> Scalar {
         let small_hash =
             Hash::from_hex("13ae3ed6fe76d459c9c66fe38ff187593561a1f24d34cb22e06148c77e4cc02b")
                 .unwrap();
-        hash_to_scalar(&small_hash).unwrap()
+        small_hash.try_into().unwrap()
     }
 
     fn mid_scalar() -> Scalar {
         let mid_hash =
             Hash::from_hex("3d1e830624b2572adc05351a7cbee2d3aa3f6a52b34fa38a260c9c78f96fcd07")
                 .unwrap();
-        hash_to_scalar(&mid_hash).unwrap()
+        mid_hash.try_into().unwrap()
     }
 
     fn big_scalar() -> Scalar {
         let big_hash =
             Hash::from_hex("6714dda957170ad7720bbd2c38004152f34ea5d4350a154b84a259cc62a5dbb4")
                 .unwrap();
-        hash_to_scalar(&big_hash).unwrap()
+        big_hash.try_into().unwrap()
     }
 
     fn tail_scalar() -> Scalar {
-        hash_to_scalar(&Node::TAIL).unwrap()
+        Node::TAIL.try_into().unwrap()
     }
 
     fn create_scalars() -> (Scalar, Scalar, Scalar, Scalar, Scalar) {

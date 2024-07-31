@@ -1,5 +1,5 @@
 use crate::{
-    circuits::{utils::hash_to_scalar, ProofVariantCircuit},
+    circuits::ProofVariantCircuit,
     error::{GeneralError, PrismError, ProofError},
 };
 use anyhow::Result;
@@ -69,8 +69,8 @@ pub fn validate_epoch(
     let pvk = groth16::prepare_verifying_key(&verifying_key);
 
     let scalars: Result<Vec<Scalar>, _> = vec![
-        hash_to_scalar(previous_commitment),
-        hash_to_scalar(current_commitment),
+        (*previous_commitment).try_into(),
+        (*current_commitment).try_into(),
     ]
     .into_iter()
     .collect();

@@ -61,8 +61,7 @@ impl UpdateMerkleProofCircuit {
 
 impl Circuit<Scalar> for UpdateMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        // Proof of Update for the old and new node
-        match proof_of_update(
+        match prove_update(
             cs,
             self.old_root,
             &self.old_path,
@@ -75,7 +74,7 @@ impl Circuit<Scalar> for UpdateMerkleProofCircuit {
     }
 }
 
-pub(crate) fn proof_of_update<CS: ConstraintSystem<Scalar>>(
+pub(crate) fn prove_update<CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
     old_root: Scalar,
     old_path: &[Node],
@@ -88,19 +87,11 @@ pub(crate) fn proof_of_update<CS: ConstraintSystem<Scalar>>(
         cs.alloc(|| "first update root with new pointer", || Ok(new_root))?;
 
     // update the root hash for old and new path
-    let recalculated_root_with_old_pointer = recalculate_hash_as_scalar(old_path);
-    let recalculated_root_with_new_pointer = recalculate_hash_as_scalar(new_path);
-
-    if recalculated_root_with_old_pointer.is_err() || recalculated_root_with_new_pointer.is_err() {
-        return Err(SynthesisError::Unsatisfiable);
-    }
-    // we can unwrap here because we checked that the result is ok
     let recalculated_root_with_old_pointer =
-        recalculated_root_with_old_pointer.expect("Failed to recalculate root with old pointer");
+        recalculate_hash_as_scalar(old_path).map_err(|_| SynthesisError::Unsatisfiable)?;
     let recalculated_root_with_new_pointer =
-        recalculated_root_with_new_pointer.expect("Failed to recalculate root with new pointer");
+        recalculate_hash_as_scalar(new_path).map_err(|_| SynthesisError::Unsatisfiable)?;
 
-    // Allocate variables for the calculated roots of the old and new nodes
     let allocated_recalculated_root_with_old_pointer = cs.alloc(
         || "recalculated first update proof old root",
         || Ok(recalculated_root_with_old_pointer),
@@ -110,15 +101,17 @@ pub(crate) fn proof_of_update<CS: ConstraintSystem<Scalar>>(
         || Ok(recalculated_root_with_new_pointer),
     )?;
 
-    // Überprüfe, ob der resultierende Hash der Wurzel-Hash des alten Baums entspricht
+    // Check if the resulting hash is the root hash of the old tree
+    // allocated_recalculated_root_with_old_pointer * (1) = root_with_old_pointer
     cs.enforce(
         || "first update old root equality",
         |lc| lc + allocated_recalculated_root_with_old_pointer,
         |lc| lc + CS::one(),
         |lc| lc + root_with_old_pointer,
     );
-    // lc stands for the current linear combination and we add variables to this linear combination to create a new linear combination altogether, which is then used as argument for the enforce method.
+
     // Check that the resulting hash is the root hash of the new tree.
+    // allocated_recalculated_root_with_new_pointer * (1) = root_with_new_pointer
     cs.enforce(
         || "first update new root equality",
         |lc| lc + allocated_recalculated_root_with_new_pointer,
