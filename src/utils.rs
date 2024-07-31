@@ -1,6 +1,6 @@
 use crate::{
+    circuits::{utils::hash_to_scalar, ProofVariantCircuit},
     error::{GeneralError, PrismError, ProofError},
-    zk_snark::{hash_to_scalar, ProofVariantCircuit},
 };
 use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
@@ -119,7 +119,7 @@ pub fn verify_signature<T: SignedContent>(
 
 #[cfg(test)]
 mod tests {
-    use crate::zk_snark::BatchMerkleProofCircuit;
+    use crate::circuits::BatchMerkleProofCircuit;
     use indexed_merkle_tree::tree::{IndexedMerkleTree, Proof};
 
     use indexed_merkle_tree::{node::Node, sha256_mod};
