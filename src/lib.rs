@@ -1,4 +1,5 @@
 pub mod cfg;
+pub mod circuits;
 pub mod common;
 pub mod consts;
 pub mod da;
@@ -7,6 +8,5 @@ pub mod node_types;
 pub mod storage;
 pub mod utils;
 mod webserver;
-pub mod zk_snark;
 #[macro_use]
 extern crate log;

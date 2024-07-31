@@ -1,8 +1,8 @@
 use crate::{
+    circuits::{Bls12Proof, VerifyingKey},
     common::Operation,
     error::GeneralError,
     utils::SignedContent,
-    zk_snark::{Bls12Proof, VerifyingKey},
 };
 use anyhow::Result;
 use async_trait::async_trait;

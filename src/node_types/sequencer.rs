@@ -23,6 +23,7 @@ use crate::error::DataAvailabilityError;
 
 use crate::{
     cfg::Config,
+    circuits::BatchMerkleProofCircuit,
     common::{AccountSource, HashchainEntry, Operation},
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
@@ -30,7 +31,6 @@ use crate::{
     node_types::NodeType,
     storage::Database,
     webserver::{OperationInput, WebServer},
-    zk_snark::BatchMerkleProofCircuit,
 };
 
 pub struct Sequencer {
