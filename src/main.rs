@@ -1,4 +1,5 @@
 mod cfg;
+pub mod circuits;
 pub mod common;
 pub mod consts;
 pub mod da;
@@ -7,7 +8,6 @@ mod node_types;
 pub mod storage;
 mod utils;
 mod webserver;
-pub mod zk_snark;
 
 use cfg::{initialize_da_layer, load_config};
 use clap::Parser;

@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use indexed_merkle_tree::{tree::Proof, Hash};
 use mockall::{predicate::*, *};
 use redis::{Client, Commands, Connection};
@@ -12,7 +13,7 @@ use std::{
 use crate::{
     cfg::RedisConfig,
     common::{HashchainEntry, Operation},
-    error::{DatabaseError, GeneralError, PrismError, PrismResult},
+    error::{DatabaseError, GeneralError, PrismError},
     utils::parse_json_to_proof,
 };
 
@@ -28,28 +29,28 @@ pub struct RedisConnection {
 
 #[automock]
 pub trait Database: Send + Sync {
-    fn get_keys(&self) -> PrismResult<Vec<String>>;
-    fn get_hashchain(&self, key: &str) -> PrismResult<Vec<HashchainEntry>>;
-    fn get_commitment(&self, epoch: &u64) -> PrismResult<String>;
-    fn get_proof(&self, id: &str) -> PrismResult<String>;
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> PrismResult<Vec<Proof>>;
-    fn get_epoch(&self) -> PrismResult<u64>;
-    fn set_epoch(&self, epoch: &u64) -> PrismResult<()>;
+    fn get_keys(&self) -> Result<Vec<String>>;
+    fn get_hashchain(&self, key: &str) -> Result<Vec<HashchainEntry>>;
+    fn get_commitment(&self, epoch: &u64) -> Result<String>;
+    fn get_proof(&self, id: &str) -> Result<String>;
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>>;
+    fn get_epoch(&self) -> Result<u64>;
+    fn set_epoch(&self, epoch: &u64) -> Result<()>;
     fn update_hashchain(
         &self,
         incoming_operation: &Operation,
         value: &[HashchainEntry],
-    ) -> PrismResult<()>;
-    fn get_epochs(&self) -> PrismResult<Vec<u64>>;
+    ) -> Result<()>;
+    fn get_epochs(&self) -> Result<Vec<u64>>;
     fn add_merkle_proof(
         &self,
         epoch: &u64,
         epoch_operation: &u64,
         commitment: &Hash,
         proofs: &str,
-    ) -> PrismResult<()>;
-    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> PrismResult<()>;
-    fn flush_database(&self) -> PrismResult<()>;
+    ) -> Result<()>;
+    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> Result<()>;
+    fn flush_database(&self) -> Result<()>;
 }
 
 fn convert_to_connection_error(e: redis::RedisError) -> PrismError {
@@ -57,7 +58,7 @@ fn convert_to_connection_error(e: redis::RedisError) -> PrismError {
 }
 
 impl RedisConnection {
-    pub fn new(cfg: &RedisConfig) -> PrismResult<RedisConnection> {
+    pub fn new(cfg: &RedisConfig) -> Result<RedisConnection> {
         let connection_string = cfg.connection_string.clone();
         let try_client =
             Client::open(connection_string.clone()).map_err(convert_to_connection_error)?;
@@ -66,9 +67,9 @@ impl RedisConnection {
         if try_connection.is_err() {
             debug!("starting redis-server...");
 
-            let _child = Command::new("redis-server").spawn().map_err(|e| {
-                PrismError::Database(DatabaseError::InitializationError(e.to_string()))
-            })?;
+            let _child = Command::new("redis-server")
+                .spawn()
+                .map_err(|e| DatabaseError::InitializationError(e.to_string()))?;
 
             // TODO: fix this hack
             sleep(Duration::from_secs(5));
@@ -88,66 +89,57 @@ impl RedisConnection {
     // 'a is a generic lifetime and &'a Mutex<T> should make sure, that the MutexGuard is not dropped before the Mutex itself...
     // because rust can not make sure that that's the case, we need to use the 'static lifetime here
     // (but i dont really know why the issue pops up now and not before, i think we were using the same/similar pattern in the other functions)
-    fn lock_connection(&self) -> PrismResult<MutexGuard<Connection>> {
+    fn lock_connection(&self) -> Result<MutexGuard<Connection>> {
         self.connection
             .lock()
-            .map_err(|_| PrismError::Database(DatabaseError::LockError))
+            .map_err(|_| anyhow!(DatabaseError::LockError))
     }
 }
 
 impl Database for RedisConnection {
-    fn get_keys(&self) -> PrismResult<Vec<String>> {
+    fn get_keys(&self) -> Result<Vec<String>> {
         let mut con = self.lock_connection()?;
         let keys: Vec<String> = con
             .keys("main:*")
-            .map_err(|_| PrismError::Database(DatabaseError::KeysError("main".to_string())))?;
+            .map_err(|_| DatabaseError::KeysError("main".to_string()))?;
         Ok(keys.into_iter().map(|k| k.replace("main:", "")).collect())
     }
 
-    fn get_hashchain(&self, key: &str) -> PrismResult<Vec<HashchainEntry>> {
+    fn get_hashchain(&self, key: &str) -> Result<Vec<HashchainEntry>> {
         let mut con = self.lock_connection()?;
-        let value: String = con.get(format!("main:{}", key)).map_err(|_| {
-            PrismError::Database(DatabaseError::NotFoundError(format!(
-                "hashchain key {}",
-                key
-            )))
-        })?;
+        let value: String = con
+            .get(format!("main:{}", key))
+            .map_err(|_| DatabaseError::NotFoundError(format!("hashchain key {}", key)))?;
 
-        serde_json::from_str(&value).map_err(|e| {
-            PrismError::General(GeneralError::ParsingError(format!("hashchain: {}", e)))
-        })
+        serde_json::from_str(&value)
+            .map_err(|e| anyhow!(GeneralError::ParsingError(format!("hashchain: {}", e))))
     }
 
-    fn get_commitment(&self, epoch: &u64) -> PrismResult<String> {
+    fn get_commitment(&self, epoch: &u64) -> Result<String> {
         let mut con = self.lock_connection()?;
         let value = con
             .get::<&str, String>(&format!("commitments:epoch_{}", epoch))
             .map_err(|_| {
-                PrismError::Database(DatabaseError::NotFoundError(format!(
-                    "commitment from epoch_{}",
-                    epoch
-                )))
+                DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
             })?;
         Ok(value.trim_matches('"').to_string())
     }
 
-    fn get_proof(&self, id: &str) -> PrismResult<String> {
+    fn get_proof(&self, id: &str) -> Result<String> {
         let mut con = self.lock_connection()?;
         con.get(format!("merkle_proofs:{}", id)).map_err(|_| {
-            PrismError::Database(DatabaseError::NotFoundError(format!(
+            anyhow!(DatabaseError::NotFoundError(format!(
                 "Proof with id: {}",
                 id
             )))
         })
     }
 
-    fn get_proofs_in_epoch(&self, epoch: &u64) -> PrismResult<Vec<Proof>> {
+    fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>> {
         let mut con = self.lock_connection()?;
         let mut epoch_proofs: Vec<String> = con
             .keys::<&String, Vec<String>>(&format!("merkle_proofs:epoch_{}*", epoch))
-            .map_err(|_| {
-                PrismError::Database(DatabaseError::NotFoundError(format!("epoch: {}", epoch)))
-            })?;
+            .map_err(|_| DatabaseError::NotFoundError(format!("epoch: {}", epoch)))?;
 
         epoch_proofs.sort_by(|a, b| {
             let a_parts: Vec<&str> = a.split('_').collect();
@@ -167,26 +159,23 @@ impl Database for RedisConnection {
             .collect())
     }
 
-    fn get_epoch(&self) -> PrismResult<u64> {
+    fn get_epoch(&self) -> Result<u64> {
         let mut con = self.lock_connection()?;
-        con.get("app_state:epoch").map_err(|_| {
-            PrismError::Database(DatabaseError::NotFoundError("current epoch".to_string()))
-        })
+        con.get("app_state:epoch")
+            .map_err(|_| anyhow!(DatabaseError::NotFoundError("current epoch".to_string())))
     }
 
-    fn set_epoch(&self, epoch: &u64) -> PrismResult<()> {
+    fn set_epoch(&self, epoch: &u64) -> Result<()> {
         let mut con = self.lock_connection()?;
         con.set::<&str, &u64, ()>("app_state:epoch", epoch)
-            .map_err(|_| {
-                PrismError::Database(DatabaseError::WriteError(format!("epoch: {}", epoch)))
-            })
+            .map_err(|_| anyhow!(DatabaseError::WriteError(format!("epoch: {}", epoch))))
     }
 
     fn update_hashchain(
         &self,
         incoming_operation: &Operation,
         value: &[HashchainEntry],
-    ) -> PrismResult<()> {
+    ) -> Result<()> {
         let mut con = self.lock_connection()?;
         let value = serde_json::to_string(&value).map_err(|_| {
             PrismError::General(GeneralError::ParsingError(
@@ -196,14 +185,14 @@ impl Database for RedisConnection {
         let id = incoming_operation.id();
         con.set::<&str, String, ()>(&format!("main:{}", id), value)
             .map_err(|_| {
-                PrismError::Database(DatabaseError::WriteError(format!(
+                anyhow!(DatabaseError::WriteError(format!(
                     "hashchain update for key: {}",
                     id
                 )))
             })
     }
 
-    fn get_epochs(&self) -> PrismResult<Vec<u64>> {
+    fn get_epochs(&self) -> Result<Vec<u64>> {
         let mut con = self.lock_connection()?;
         con.keys::<&str, Vec<String>>("commitments:*")
             .map_err(|_| {
@@ -215,7 +204,7 @@ impl Database for RedisConnection {
                     .replace("commitments:epoch_", "")
                     .parse::<u64>()
                     .map_err(|_| {
-                        PrismError::General(GeneralError::ParsingError(
+                        anyhow!(GeneralError::ParsingError(
                             "failed to parse epoch".to_string(),
                         ))
                     })
@@ -229,7 +218,7 @@ impl Database for RedisConnection {
         epoch_operation: &u64,
         commitment: &Hash,
         proofs: &str,
-    ) -> PrismResult<()> {
+    ) -> Result<()> {
         let mut con = self.lock_connection()?;
         let formatted_epoch = format!(
             "merkle_proofs:epoch_{}_{}_{}",
@@ -237,32 +226,32 @@ impl Database for RedisConnection {
         );
         con.set::<&String, &String, ()>(&formatted_epoch, &proofs.to_string())
             .map_err(|_| {
-                PrismError::Database(DatabaseError::WriteError(format!(
+                anyhow!(DatabaseError::WriteError(format!(
                     "merkle proof for epoch: {}",
                     formatted_epoch
                 )))
             })
     }
 
-    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> PrismResult<()> {
+    fn add_commitment(&self, epoch: &u64, commitment: &Hash) -> Result<()> {
         let mut con = self.lock_connection()?;
         con.set::<&String, &String, ()>(
             &format!("commitments:epoch_{}", epoch),
             &commitment.to_string(),
         )
         .map_err(|_| {
-            PrismError::Database(DatabaseError::WriteError(format!(
+            anyhow!(DatabaseError::WriteError(format!(
                 "commitment for epoch: {}",
                 epoch
             )))
         })
     }
 
-    fn flush_database(&self) -> PrismResult<()> {
+    fn flush_database(&self) -> Result<()> {
         let mut conn = self.lock_connection()?;
-        redis::cmd("FLUSHALL").query::<()>(&mut conn).map_err(|_| {
-            PrismError::Database(DatabaseError::DeleteError("all entries".to_string()))
-        })
+        redis::cmd("FLUSHALL")
+            .query::<()>(&mut conn)
+            .map_err(|_| anyhow!(DatabaseError::DeleteError("all entries".to_string())))
     }
 }
 

@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
@@ -23,14 +23,14 @@ use crate::error::DataAvailabilityError;
 
 use crate::{
     cfg::Config,
+    circuits::BatchMerkleProofCircuit,
     common::{AccountSource, HashchainEntry, Operation},
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
-    error::{DatabaseError, GeneralError, PrismError, PrismResult},
+    error::{DatabaseError, GeneralError},
     node_types::NodeType,
     storage::Database,
     webserver::{OperationInput, WebServer},
-    zk_snark::BatchMerkleProofCircuit,
 };
 
 pub struct Sequencer {
@@ -56,7 +56,7 @@ pub struct Sequencer {
 
 #[async_trait]
 impl NodeType for Sequencer {
-    async fn start(self: Arc<Self>) -> PrismResult<()> {
+    async fn start(self: Arc<Self>) -> Result<()> {
         self.da.start().await.context("Failed to start DA layer")?;
 
         let sync_loop = self.clone().sync_loop();
@@ -79,7 +79,7 @@ impl Sequencer {
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: Config,
         key: SigningKey,
-    ) -> PrismResult<Sequencer> {
+    ) -> Result<Sequencer> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
 
         let ws = cfg.webserver.context("Missing webserver configuration")?;
@@ -197,15 +197,13 @@ impl Sequencer {
         .await
     }
 
-    pub async fn get_commitment(&self) -> PrismResult<Hash> {
+    pub async fn get_commitment(&self) -> Result<Hash> {
         let tree = self.tree.lock().await;
-        tree.get_commitment()
-            .context("Failed to get commitment")
-            .map_err(|e| e.into())
+        tree.get_commitment().context("Failed to get commitment")
     }
 
     // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
-    pub async fn finalize_epoch(&self, operations: Vec<Operation>) -> PrismResult<FinalizedEpoch> {
+    pub async fn finalize_epoch(&self, operations: Vec<Operation>) -> Result<FinalizedEpoch> {
         let epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch + 1,
             Err(_) => 0,
@@ -270,7 +268,7 @@ impl Sequencer {
     }
 
     // receive_finalized_epochs empties the epoch buffer into a vector and returns it.
-    async fn receive_finalized_epochs(&self) -> PrismResult<Vec<FinalizedEpoch>> {
+    async fn receive_finalized_epochs(&self) -> Result<Vec<FinalizedEpoch>> {
         let mut epochs = Vec::new();
         let mut receiver = self.epoch_buffer_rx.lock().await;
 
@@ -282,7 +280,7 @@ impl Sequencer {
     }
 
     #[cfg(test)]
-    pub async fn send_finalized_epoch(&self, epoch: &FinalizedEpoch) -> PrismResult<()> {
+    pub async fn send_finalized_epoch(&self, epoch: &FinalizedEpoch) -> Result<()> {
         self.epoch_buffer_tx
             .send(epoch.clone())
             .await
@@ -290,7 +288,7 @@ impl Sequencer {
     }
 
     /// Updates the state from an already verified pending operation.
-    async fn process_operation(&self, operation: &Operation) -> PrismResult<Proof> {
+    async fn process_operation(&self, operation: &Operation) -> Result<Proof> {
         match operation {
             Operation::Add { id, .. } | Operation::Revoke { id, .. } => {
                 // verify that the hashchain already exists
@@ -334,7 +332,6 @@ impl Sequencer {
                 tree.update_node(index, updated_node)
                     .map(Proof::Update)
                     .context("Failed to update node in tree")
-                    .map_err(|e| e.into())
             }
             Operation::CreateAccount { id, value, source } => {
                 // validation of account source
@@ -345,11 +342,11 @@ impl Sequencer {
                             .context("Failed to parse sequencer's signature")?;
                         self.key
                             .verify(format!("{}{}", id, value).as_bytes(), &sig)
-                            .map_err(|e| PrismError::General(GeneralError::InvalidSignature(e)))
+                            .map_err(GeneralError::InvalidSignature)
                     }
                 }?;
 
-                let hashchain: PrismResult<Vec<HashchainEntry>> = self.db.get_hashchain(id);
+                let hashchain: Result<Vec<HashchainEntry>> = self.db.get_hashchain(id);
                 if hashchain.is_ok() {
                     return Err(DatabaseError::NotFoundError(format!(
                         "empty slot for ID {}",
@@ -376,7 +373,6 @@ impl Sequencer {
                 tree.insert_node(&mut node)
                     .map(Proof::Insert)
                     .context("Failed to insert node into tree")
-                    .map_err(|e| e.into())
             }
         }
     }
@@ -385,7 +381,7 @@ impl Sequencer {
     pub async fn validate_and_queue_update(
         self: Arc<Self>,
         incoming_operation: &OperationInput,
-    ) -> PrismResult<()> {
+    ) -> Result<()> {
         // TODO: this is only basic validation. The validation over if an entry can be added to the hashchain or not is done in the process_operation function
         incoming_operation.validate()?;
         let mut pending = self.pending_operations.lock().await;

@@ -1,11 +1,11 @@
 use crate::{
     cfg::WebServerConfig,
     common::{HashchainEntry, Operation},
-    error::{GeneralError, PrismResult},
+    error::GeneralError,
     node_types::sequencer::Sequencer,
     utils::{verify_signature, SignedContent},
 };
-use anyhow::Context;
+use anyhow::{Context, Result};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -44,7 +44,7 @@ pub struct OperationInput {
 }
 
 impl OperationInput {
-    pub fn validate(&self) -> PrismResult<()> {
+    pub fn validate(&self) -> Result<()> {
         match self.operation.clone() {
             Operation::Add { id, value }
             | Operation::Revoke { id, value }
@@ -111,18 +111,18 @@ pub struct UserKeyResponse {
 struct ApiDoc;
 
 impl SignedContent for OperationInput {
-    fn get_signature(&self) -> PrismResult<Signature> {
+    fn get_signature(&self) -> Result<Signature> {
         Signature::from_str(self.signed_operation.as_str())
             .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
     }
 
-    fn get_plaintext(&self) -> PrismResult<Vec<u8>> {
+    fn get_plaintext(&self) -> Result<Vec<u8>> {
         serde_json::to_string(&self.operation)
             .map_err(|e| GeneralError::DecodingError(e.to_string()).into())
             .map(|s| s.into_bytes())
     }
 
-    fn get_public_key(&self) -> PrismResult<String> {
+    fn get_public_key(&self) -> Result<String> {
         Ok(self.public_key.clone())
     }
 }
@@ -132,7 +132,7 @@ impl WebServer {
         Self { cfg }
     }
 
-    pub async fn start(&self, session: Arc<Sequencer>) -> PrismResult<()> {
+    pub async fn start(&self, session: Arc<Sequencer>) -> Result<()> {
         info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let app = Router::new()
             .route("/update-entry", post(update_entry))

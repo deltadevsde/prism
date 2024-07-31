@@ -1,10 +1,7 @@
-use anyhow::{Error as AnyhowError, Result};
+use anyhow::Error as AnyhowError;
 use ed25519_dalek::SignatureError;
 use indexed_merkle_tree::error::MerkleTreeError;
 use thiserror::Error;
-
-// Result alias for [`PrismError`]
-pub type PrismResult<T> = anyhow::Result<T, PrismError>;
 
 #[derive(Error, Debug)]
 pub enum PrismError {
@@ -71,24 +68,18 @@ pub enum DatabaseError {
     InitializationError(String),
 }
 
-// Result alias for [`DataAvailabilityError`]
-pub type DAResult<T> = Result<T, DataAvailabilityError>;
-
 #[derive(Error, Debug)]
 pub enum DataAvailabilityError {
     #[error("initializing: {0}")]
     InitializationError(String),
-    // TODO: is this error needed? doesn't seem to be used anywhere rn
-    #[error("establishing connection to da layer: {0}")]
-    ConnectionError(String),
     #[error("data channel is closed")]
     ChannelClosed,
     #[error("da networking error: {0}")]
     NetworkError(String),
     #[error("retrieving data at height {0}: {1}")]
     DataRetrievalError(u64, String),
-    #[error("submitting epoch {0} to da layer: {1}")]
-    SubmissionError(u64, String),
+    #[error("submitting epoch to da layer: {0}")]
+    SubmissionError(String),
     #[error("setting new sync target: {0}")]
     SyncTargetError(String),
     #[error("receiving message on channel")]

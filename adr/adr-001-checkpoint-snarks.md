@@ -172,7 +172,7 @@ impl Sequencer {
         .await
     }
 
-    async fn generate_and_post_checkpoint(&self) -> PrismResult<()> {
+    async fn generate_and_post_checkpoint(&self) -> Result<()> {
         // 1. Gather data for checkpoint
         // 2. Generate checkpoint SNARK
         // 3. Post to Celestia
@@ -196,8 +196,8 @@ We can extend your existing `DataAvailabilityLayer` trait to include a method fo
 #[async_trait]
 pub trait DataAvailabilityLayer: Send + Sync {
     // ... existing methods ...
-    
-    async fn submit_checkpoint(&self, checkpoint: &CheckpointData) -> PrismResult<()>;
+
+    async fn submit_checkpoint(&self, checkpoint: &CheckpointData) -> Result<()>;
 }
 ```
 
@@ -259,7 +259,7 @@ pub fn new(
 We also need to implemented a find_and_verify_latest_checkpoint method to scan backwards from the current height to find and verify the latest checkpoint SNARK.
 
 ```rust
-async fn find_and_verify_latest_checkpoint(&mut self, start: u64, end: u64) -> PrismResult<()> {
+async fn find_and_verify_latest_checkpoint(&mut self, start: u64, end: u64) -> Result<()> {
     for height in (start..=end).rev() {
         if let Some(checkpoint) = self.da.get_checkpoint(height).await? {
             if self.verify_checkpoint(&checkpoint).await? {
@@ -271,7 +271,7 @@ async fn find_and_verify_latest_checkpoint(&mut self, start: u64, end: u64) -> P
     Err(GeneralError::NotFoundError("No valid checkpoint found".into()).into()) // better error
 }
 
-async fn verify_checkpoint(&self, checkpoint: &CheckpointSnark) -> PrismResult<bool> {
+async fn verify_checkpoint(&self, checkpoint: &CheckpointSnark) -> Result<bool> {
     // Implement checkpoint verification logic
     validate_checkpoint_snark(checkpoint)
 }
