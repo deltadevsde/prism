@@ -15,13 +15,24 @@ use indexed_merkle_tree::{
     tree::InsertProof,
 };
 
+/// Represents a circuit for proving the insertion of a new leaf into a the IMT.
+///
+/// This circuit encapsulates the entire process of inserting a new leaf,
+/// including proving non-membership of the new leaf, updating the existing leaf's next pointer,
+/// and activating the new leaf.
 #[derive(Clone)]
 pub struct InsertMerkleProofCircuit {
-    pub non_membership_root: Scalar,
-    pub non_membership_path: Vec<Node>,
-    pub missing_node: LeafNode,
-    pub first_merkle_proof: UpdateMerkleProofCircuit,
-    pub second_merkle_proof: UpdateMerkleProofCircuit,
+    /// The root of the tree before the insertion.
+    pub pre_insertion_root: Scalar,
+    /// The path from the root to the position where the new node will be inserted,
+    /// proving that the node doesn't exist yet.
+    pub insertion_path: Vec<Node>,
+    /// The new node to be inserted.
+    pub new_leaf_node: LeafNode,
+    /// Proof for updating the existing leaf to point to the new leaf.
+    pub existing_leaf_update: UpdateMerkleProofCircuit,
+    /// Proof for activating the new leaf (converting an inactive leaf to active).
+    pub new_leaf_activation: UpdateMerkleProofCircuit,
 }
 
 impl InsertMerkleProofCircuit {
@@ -33,11 +44,11 @@ impl InsertMerkleProofCircuit {
         let second_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.second_proof)?;
 
         Ok(InsertMerkleProofCircuit {
-            non_membership_root,
-            non_membership_path: non_membership_path.clone(),
-            missing_node: proof.non_membership_proof.missing_node.clone(),
-            first_merkle_proof: first_merkle_circuit,
-            second_merkle_proof: second_merkle_circuit,
+            pre_insertion_root: non_membership_root,
+            insertion_path: non_membership_path.clone(),
+            new_leaf_node: proof.non_membership_proof.missing_node.clone(),
+            existing_leaf_update: first_merkle_circuit,
+            new_leaf_activation: second_merkle_circuit,
         })
     }
 
@@ -45,11 +56,11 @@ impl InsertMerkleProofCircuit {
         &self,
     ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>)> {
         let scalars: Vec<Scalar> = vec![
-            self.non_membership_root,
-            self.first_merkle_proof.old_root,
-            self.first_merkle_proof.updated_root,
-            self.second_merkle_proof.old_root,
-            self.second_merkle_proof.updated_root,
+            self.pre_insertion_root,
+            self.existing_leaf_update.old_root,
+            self.existing_leaf_update.updated_root,
+            self.new_leaf_activation.old_root,
+            self.new_leaf_activation.updated_root,
         ];
 
         create_and_verify_snark(ProofVariantCircuit::Insert(self.clone()), scalars)
@@ -58,75 +69,96 @@ impl InsertMerkleProofCircuit {
 
 impl Circuit<Scalar> for InsertMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        // Proof of Non-Membership
-        match proof_of_non_membership(
+        // Step 1: Prove non-membership
+        // This ensures that the new leaf we're trying to insert doesn't already exist in the tree.
+        prove_non_membership(
             cs,
-            self.non_membership_root,
-            &self.non_membership_path,
-            self.missing_node,
-        ) {
-            Ok(_) => (),
-            Err(_) => return Err(SynthesisError::AssignmentMissing),
-        }
+            self.pre_insertion_root,
+            &self.insertion_path,
+            self.new_leaf_node,
+        )?;
 
-        // Proof of Update for old and new node
-        let first_proof = proof_of_update(
+        // Step 2: Update the existing leaf
+        // This step updates the 'next' pointer of an existing leaf to point to our new leaf.
+        let updated_root_after_existing_leaf_update = proof_of_update(
             cs,
-            self.first_merkle_proof.old_root,
-            &self.first_merkle_proof.old_path,
-            self.first_merkle_proof.updated_root,
-            &self.first_merkle_proof.updated_path,
-        );
-        let second_update = proof_of_update(
-            cs,
-            first_proof?,
-            &self.second_merkle_proof.old_path,
-            self.second_merkle_proof.updated_root,
-            &self.second_merkle_proof.updated_path,
-        );
+            self.existing_leaf_update.old_root,
+            &self.existing_leaf_update.old_path,
+            self.existing_leaf_update.updated_root,
+            &self.existing_leaf_update.updated_path,
+        )?;
 
-        match second_update {
-            Ok(_) => Ok(()),
-            Err(_) => Err(SynthesisError::Unsatisfiable),
-        }
+        // Step 3: Activate the new leaf
+        // This step converts an inactive (empty) leaf into our new active leaf,
+        // effectively inserting the new data into the tree.
+        proof_of_update(
+            cs,
+            updated_root_after_existing_leaf_update,
+            &self.new_leaf_activation.old_path,
+            self.new_leaf_activation.updated_root,
+            &self.new_leaf_activation.updated_path,
+        )?;
+
+        Ok(())
     }
 }
 
-pub(crate) fn proof_of_non_membership<CS: ConstraintSystem<Scalar>>(
+/// Generates constraints to prove non-membership of a new leaf in the Merkle tree.
+///
+/// This function ensures that the new leaf to be inserted does not already exist in the tree
+/// and that it maintains the ordered structure of the tree.
+///
+/// # Arguments
+///
+/// * `cs` - A mutable reference to the constraint system.
+/// * `pre_insertion_root` - The root of the Merkle tree before insertion.
+/// * `insertion_path` - The path from the root to the insertion position.
+/// * `new_leaf_node` - The new leaf node to be inserted.
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the constraints are satisfied, or an `Err`
+/// containing a `SynthesisError` if the proof generation fails.
+pub fn prove_non_membership<CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
-    non_membership_root: Scalar,
-    non_membership_path: &[Node],
-    missing_node: LeafNode,
+    pre_insertion_root: Scalar,
+    insertion_path: &[Node],
+    new_leaf_node: LeafNode,
 ) -> Result<(), SynthesisError> {
-    // first we need to make sure, that the label of the missing node lies between the first element of the path
+    // Ensure that the label of the new leaf node lies between the first element of the path
+    // and its next pointer. This guarantees that no other node with a label between these values exists.
+    let existing_leaf_label = hash_to_scalar(&insertion_path[0].get_label())
+        .map_err(|_| SynthesisError::Unsatisfiable)?;
+    let existing_leaf_next =
+        hash_to_scalar(&insertion_path[0].get_next()).map_err(|_| SynthesisError::Unsatisfiable)?;
+    let new_leaf_label =
+        hash_to_scalar(&new_leaf_node.label).map_err(|_| SynthesisError::Unsatisfiable)?;
 
-    let current_label = hash_to_scalar(&non_membership_path[0].get_label()).unwrap();
-    let missing_label = hash_to_scalar(&missing_node.label).unwrap();
-    let curret_next = hash_to_scalar(&non_membership_path[0].get_next()).unwrap();
-
-    // circuit check
-    LessThanCircuit::new(current_label, missing_label)
+    // Enforce: existing_leaf_label < new_leaf_label < existing_leaf_next
+    LessThanCircuit::new(existing_leaf_label, new_leaf_label)
         .synthesize(cs)
-        .expect("Failed to synthesize");
-    LessThanCircuit::new(missing_label, curret_next)
+        .expect("Failed to synthesize existing_leaf_label < new_leaf_label");
+    LessThanCircuit::new(new_leaf_label, existing_leaf_next)
         .synthesize(cs)
-        .expect("Failed to synthesize");
+        .expect("Failed to synthesize new_leaf_label < existing_leaf_next");
 
-    let allocated_root = cs.alloc(|| "non_membership_root", || Ok(non_membership_root))?;
-    let recalculated_root = recalculate_hash_as_scalar(non_membership_path);
+    let allocated_pre_insertion_root =
+        cs.alloc(|| "pre_insertion_root", || Ok(pre_insertion_root))?;
 
-    if recalculated_root.is_err() {
-        return Err(SynthesisError::Unsatisfiable);
-    }
+    let recalculated_root =
+        recalculate_hash_as_scalar(insertion_path).map_err(|_| SynthesisError::Unsatisfiable)?;
 
     let allocated_recalculated_root = cs.alloc(
-        || "recalculated non-membership root",
-        || Ok(recalculated_root.unwrap()), // we can unwrap here because we checked that the result is ok
+        || "recalculated_pre_insertion_root",
+        || Ok(recalculated_root),
     )?;
 
+    // Enforce that the provided pre-insertion root matches the recalculated root.
+    // This ensures that the ordered structure of the tree is maintained in the path.
+    // (allocated_pre_insertion_root) * (1) = allocated_recalculated_root
     cs.enforce(
-        || "non-membership root check",
-        |lc| lc + allocated_root,
+        || "pre_insertion_root_verification",
+        |lc| lc + allocated_pre_insertion_root,
         |lc| lc + CS::one(),
         |lc| lc + allocated_recalculated_root,
     );

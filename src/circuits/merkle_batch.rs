@@ -1,6 +1,6 @@
 use crate::{
     circuits::{
-        merkle_insertion::proof_of_non_membership, merkle_update::proof_of_update,
+        merkle_insertion::prove_non_membership, merkle_update::proof_of_update,
         utils::hash_to_scalar, InsertMerkleProofCircuit, ProofVariantCircuit,
         UpdateMerkleProofCircuit,
     },
@@ -79,7 +79,7 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
         let old_root = match &self.proofs[0] {
             ProofVariantCircuit::Update(update_proof_circuit) => update_proof_circuit.old_root,
             ProofVariantCircuit::Insert(insert_proof_circuit) => {
-                insert_proof_circuit.non_membership_root
+                insert_proof_circuit.pre_insertion_root
             }
             ProofVariantCircuit::Batch(batch_proof_circuit) => batch_proof_circuit.old_commitment,
         };
@@ -110,11 +110,11 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                 }
                 ProofVariantCircuit::Insert(insert_proof_circuit) => {
                     // Proof of Non-Membership
-                    match proof_of_non_membership(
+                    match prove_non_membership(
                         cs,
-                        insert_proof_circuit.non_membership_root,
-                        &insert_proof_circuit.non_membership_path,
-                        insert_proof_circuit.missing_node,
+                        insert_proof_circuit.pre_insertion_root,
+                        &insert_proof_circuit.insertion_path,
+                        insert_proof_circuit.new_leaf_node,
                     ) {
                         Ok(_) => (),
                         Err(_) => return Err(SynthesisError::AssignmentMissing),
@@ -123,17 +123,17 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                     // Proof of Update for the old and new node
                     let calculated_root_from_first_proof = proof_of_update(
                         cs,
-                        insert_proof_circuit.first_merkle_proof.old_root,
-                        &insert_proof_circuit.first_merkle_proof.old_path,
-                        insert_proof_circuit.first_merkle_proof.updated_root,
-                        &insert_proof_circuit.first_merkle_proof.updated_path,
+                        insert_proof_circuit.existing_leaf_update.old_root,
+                        &insert_proof_circuit.existing_leaf_update.old_path,
+                        insert_proof_circuit.existing_leaf_update.updated_root,
+                        &insert_proof_circuit.existing_leaf_update.updated_path,
                     );
                     new_commitment = Some(proof_of_update(
                         cs,
                         calculated_root_from_first_proof?,
-                        &insert_proof_circuit.second_merkle_proof.old_path,
-                        insert_proof_circuit.second_merkle_proof.updated_root,
-                        &insert_proof_circuit.second_merkle_proof.updated_path,
+                        &insert_proof_circuit.new_leaf_activation.old_path,
+                        insert_proof_circuit.new_leaf_activation.updated_root,
+                        &insert_proof_circuit.new_leaf_activation.updated_path,
                     )?);
                 }
                 ProofVariantCircuit::Batch(_) => {
