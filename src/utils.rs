@@ -1,7 +1,8 @@
 use crate::{
-    error::{GeneralError, PrismError, PrismResult, ProofError},
+    error::{GeneralError, PrismError, ProofError},
     zk_snark::{hash_to_scalar, ProofVariantCircuit},
 };
+use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
@@ -16,7 +17,7 @@ pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::
     Ok(proof)
 }
 
-pub fn decode_public_key(pub_key_str: &String) -> PrismResult<Ed25519VerifyingKey> {
+pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey> {
     // decode the public key from base64 string to bytes
     let public_key_bytes = engine
         .decode(pub_key_str)
@@ -33,7 +34,7 @@ pub fn decode_public_key(pub_key_str: &String) -> PrismResult<Ed25519VerifyingKe
 pub fn create_and_verify_snark(
     circuit: ProofVariantCircuit,
     scalars: Vec<Scalar>,
-) -> PrismResult<(groth16::Proof<Bls12>, VerifyingKey<Bls12>)> {
+) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>)> {
     let rng = &mut OsRng;
 
     trace!("creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
@@ -89,16 +90,16 @@ pub fn validate_epoch(
 }
 
 pub trait SignedContent {
-    fn get_signature(&self) -> PrismResult<Signature>;
-    fn get_plaintext(&self) -> PrismResult<Vec<u8>>;
-    fn get_public_key(&self) -> PrismResult<String>;
+    fn get_signature(&self) -> Result<Signature>;
+    fn get_plaintext(&self) -> Result<Vec<u8>>;
+    fn get_public_key(&self) -> Result<String>;
 }
 
 // verifies the signature of a given signable item and returns the content of the item if the signature is valid
 pub fn verify_signature<T: SignedContent>(
     item: &T,
     optional_public_key: Option<String>,
-) -> PrismResult<Vec<u8>> {
+) -> Result<Vec<u8>> {
     let public_key_str = match optional_public_key {
         Some(key) => key,
         None => item.get_public_key()?,

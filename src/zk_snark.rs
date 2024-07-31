@@ -1,8 +1,9 @@
 use crate::{
     common::HashchainEntry,
-    error::{GeneralError, PrismError, PrismResult, ProofError},
+    error::{GeneralError, PrismError, ProofError},
     utils::create_and_verify_snark,
 };
+use anyhow::{anyhow, Context, Result};
 use bellman::{gadgets::boolean::Boolean, groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, Scalar};
 use borsh::{BorshDeserialize, BorshSerialize};
@@ -18,13 +19,14 @@ use indexed_merkle_tree::{
 struct G1Affine(bls12_381::G1Affine);
 
 impl TryInto<G1Affine> for [u8; 48] {
-    type Error = PrismError;
-    fn try_into(self) -> PrismResult<G1Affine> {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<G1Affine> {
         match bls12_381::G1Affine::from_compressed(&self).into_option() {
             Some(affine) => Ok(G1Affine(affine)),
-            None => Err(PrismError::General(GeneralError::DecodingError(
-                "G1Affine".to_string(),
-            ))),
+            None => Err(anyhow!(
+                GeneralError::DecodingError("G1Affine".to_string(),)
+            )),
         }
     }
 }
@@ -39,13 +41,14 @@ impl From<G1Affine> for bls12_381::G1Affine {
 struct G2Affine(bls12_381::G2Affine);
 
 impl TryInto<G2Affine> for [u8; 96] {
-    type Error = PrismError;
-    fn try_into(self) -> PrismResult<G2Affine> {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<G2Affine> {
         match bls12_381::G2Affine::from_compressed(&self).into_option() {
             Some(affine) => Ok(G2Affine(affine)),
-            None => Err(PrismError::General(GeneralError::DecodingError(
-                "G2Affine".to_string(),
-            ))),
+            None => Err(anyhow!(
+                GeneralError::DecodingError("G2Affine".to_string(),)
+            )),
         }
     }
 }
@@ -64,23 +67,26 @@ pub struct Bls12Proof {
 }
 
 impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
-    type Error = PrismError;
+    type Error = anyhow::Error;
 
-    fn try_from(proof: Bls12Proof) -> PrismResult<Self> {
+    fn try_from(proof: Bls12Proof) -> Result<Self> {
         // we get a CtOption type which is afaik common in crypto libraries to prevent timing attacks
         // we cant use the map_err function with CtOption types so we have to check if its none and can then unwrap it
         let a: G1Affine = proof
             .a
             .try_into()
-            .map_err(|e| GeneralError::DecodingError(format!("{}: a", e)))?;
+            .map_err(GeneralError::DecodingError)
+            .context("affine: a")?;
         let b: G2Affine = proof
             .b
             .try_into()
-            .map_err(|e| GeneralError::DecodingError(format!("{}: b", e)))?;
+            .map_err(GeneralError::DecodingError)
+            .context("affine: b")?;
         let c: G1Affine = proof
             .c
             .try_into()
-            .map_err(|e| GeneralError::DecodingError(format!("{}: c", e)))?;
+            .map_err(GeneralError::DecodingError)
+            .context("affine: c")?;
 
         Ok(groth16::Proof {
             a: a.into(),
@@ -161,7 +167,7 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
             .ic
             .into_iter()
             .map(|s| s.try_into())
-            .collect::<PrismResult<Vec<G1Affine>>>()?;
+            .collect::<Result<Vec<G1Affine>>>()?;
 
         Ok(bellman::groth16::VerifyingKey {
             alpha_g1: alpha_g1.into(),
@@ -175,12 +181,12 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
     }
 }
 
-fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), PrismError> {
+fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>)> {
     if !proof.path.is_empty() {
         let root = hash_to_scalar(&proof.root_hash)?;
         Ok((root, &proof.path))
     } else {
-        Err(PrismError::Proof(ProofError::ProofUnpackError(format!(
+        Err(anyhow!(ProofError::ProofUnpackError(format!(
             "proof path is empty for root hash {}",
             proof.root_hash
         ))))
@@ -189,8 +195,6 @@ fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>), Prism
 
 #[cfg(test)]
 mod tests {
-    use crate::error::PrismResult;
-
     use super::*;
     use bellman::groth16;
     use bls12_381::Bls12;
@@ -319,7 +323,7 @@ mod tests {
         let proof = groth16::create_random_proof(batched_proof.clone(), &params, rng).unwrap();
 
         let serialized_proof: Bls12Proof = proof.clone().into();
-        let deserialized_proof_result: PrismResult<groth16::Proof<Bls12>> =
+        let deserialized_proof_result: Result<groth16::Proof<Bls12>> =
             serialized_proof.clone().try_into();
         assert!(deserialized_proof_result.is_ok(), "Deserialization failed");
 
@@ -337,7 +341,7 @@ mod tests {
             c: [3; 48],
         };
 
-        let deserialized_proof_result: PrismResult<groth16::Proof<Bls12>> =
+        let deserialized_proof_result: Result<groth16::Proof<Bls12>> =
             invalid_proof.clone().try_into();
         assert!(deserialized_proof_result.is_err());
     }
@@ -773,7 +777,7 @@ impl InsertMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), PrismError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>)> {
         let scalars: Vec<Scalar> = vec![
             self.non_membership_root,
             self.first_merkle_proof.old_root,
@@ -822,7 +826,7 @@ impl UpdateMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), PrismError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>)> {
         let scalars: Vec<Scalar> = vec![self.old_root, self.updated_root];
 
         create_and_verify_snark(ProofVariantCircuit::Update(self.clone()), scalars)
@@ -861,7 +865,7 @@ impl BatchMerkleProofCircuit {
 
     pub fn create_and_verify_snark(
         &self,
-    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>), PrismError> {
+    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>)> {
         let scalars: Vec<Scalar> = vec![self.old_commitment, self.new_commitment];
 
         create_and_verify_snark(ProofVariantCircuit::Batch(self.clone()), scalars)

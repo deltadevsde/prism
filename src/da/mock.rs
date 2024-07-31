@@ -1,7 +1,8 @@
 use crate::{
     common::Operation,
-    error::{DAResult, DataAvailabilityError, GeneralError},
+    error::{DataAvailabilityError, GeneralError},
 };
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -19,31 +20,31 @@ pub struct NoopDataAvailabilityLayer {}
 
 #[async_trait]
 impl DataAvailabilityLayer for NoopDataAvailabilityLayer {
-    async fn get_latest_height(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> Result<u64> {
         Ok(0)
     }
 
-    async fn initialize_sync_target(&self) -> DAResult<u64> {
+    async fn initialize_sync_target(&self) -> Result<u64> {
         Ok(0)
     }
 
-    async fn get_snarks(&self, _: u64) -> DAResult<Vec<FinalizedEpoch>> {
+    async fn get_snarks(&self, _: u64) -> Result<Vec<FinalizedEpoch>> {
         Ok(vec![])
     }
 
-    async fn get_operations(&self, _: u64) -> DAResult<Vec<Operation>> {
+    async fn get_operations(&self, _: u64) -> Result<Vec<Operation>> {
         Ok(vec![])
     }
 
-    async fn submit_operations(&self, _: Vec<Operation>) -> DAResult<u64> {
+    async fn submit_operations(&self, _: Vec<Operation>) -> Result<u64> {
         Ok(0)
     }
 
-    async fn submit_snarks(&self, _: Vec<FinalizedEpoch>) -> DAResult<u64> {
+    async fn submit_snarks(&self, _: Vec<FinalizedEpoch>) -> Result<u64> {
         Ok(0)
     }
 
-    async fn start(&self) -> DAResult<()> {
+    async fn start(&self) -> Result<()> {
         Ok(())
     }
 }
@@ -83,7 +84,7 @@ impl LocalDataAvailabilityLayer {
         }
     }
 
-    async fn read_file(&self, is_snark: bool) -> DAResult<Value> {
+    async fn read_file(&self, is_snark: bool) -> Result<Value> {
         let _lock = self.file_lock.lock().await;
         let file_path = self.get_file_path(is_snark);
         let mut file = File::open(&file_path).map_err(|e| {
@@ -111,7 +112,7 @@ impl LocalDataAvailabilityLayer {
         Ok(data)
     }
 
-    async fn write_file(&self, is_snark: bool, data: &Value) -> DAResult<()> {
+    async fn write_file(&self, is_snark: bool, data: &Value) -> Result<()> {
         let _lock = self.file_lock.lock().await;
         let file_path = self.get_file_path(is_snark);
         let mut file = OpenOptions::new()
@@ -168,15 +169,15 @@ impl LocalDataAvailabilityLayer {
 
 #[async_trait]
 impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
-    async fn get_latest_height(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> Result<u64> {
         Ok(self.snark_height.load(Ordering::SeqCst))
     }
 
-    async fn initialize_sync_target(&self) -> DAResult<u64> {
+    async fn initialize_sync_target(&self) -> Result<u64> {
         Ok(0) // Always start at zero for testing purposes
     }
 
-    async fn get_operations(&self, height: u64) -> DAResult<Vec<Operation>> {
+    async fn get_operations(&self, height: u64) -> Result<Vec<Operation>> {
         let data = self.read_file(false).await?;
 
         if let Some(operations) = data.get(height.to_string()) {
@@ -202,14 +203,14 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
 
             Ok(result_operations)
         } else {
-            Err(DataAvailabilityError::DataRetrievalError(
+            Err(anyhow!(DataAvailabilityError::DataRetrievalError(
                 height,
                 "Could not get operations from DA layer".to_string(),
-            ))
+            )))
         }
     }
 
-    async fn submit_operations(&self, operations: Vec<Operation>) -> DAResult<u64> {
+    async fn submit_operations(&self, operations: Vec<Operation>) -> Result<u64> {
         let mut data = self.read_file(false).await?;
         let height = self.op_height.fetch_add(1, Ordering::SeqCst);
 
@@ -226,7 +227,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         Ok(height)
     }
 
-    async fn get_snarks(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
+    async fn get_snarks(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
         let data = self.read_file(true).await?;
 
         if let Some(epoch) = data.get(height.to_string()) {
@@ -251,14 +252,14 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
 
             Ok(vec![result_epoch])
         } else {
-            Err(DataAvailabilityError::DataRetrievalError(
+            Err(anyhow!(DataAvailabilityError::DataRetrievalError(
                 height,
                 "Could not get epoch from DA layer".to_string(),
-            ))
+            )))
         }
     }
 
-    async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> DAResult<u64> {
+    async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> Result<u64> {
         assert_eq!(
             epochs.len(),
             1,
@@ -282,7 +283,7 @@ impl DataAvailabilityLayer for LocalDataAvailabilityLayer {
         Ok(epoch.height)
     }
 
-    async fn start(&self) -> DAResult<()> {
+    async fn start(&self) -> Result<()> {
         // No special initialization needed for the mock implementation
         Ok(())
     }
