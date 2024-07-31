@@ -1,6 +1,6 @@
 use crate::consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL};
-use crate::error::{DataAvailabilityError, GeneralError, PrismError, PrismResult};
-use anyhow::Context;
+use crate::error::{DataAvailabilityError, GeneralError, PrismError};
+use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
@@ -140,7 +140,7 @@ impl Default for Config {
     }
 }
 
-pub fn load_config(args: CommandLineArgs) -> PrismResult<Config> {
+pub fn load_config(args: CommandLineArgs) -> Result<Config> {
     dotenv().ok();
     std::env::set_var(
         "RUST_LOG",
@@ -171,7 +171,7 @@ pub fn load_config(args: CommandLineArgs) -> PrismResult<Config> {
     Ok(final_config)
 }
 
-fn get_config_path(args: &CommandLineArgs) -> PrismResult<String> {
+fn get_config_path(args: &CommandLineArgs) -> Result<String> {
     args.config_path
         .clone()
         .or_else(|| home_dir().map(|path| format!("{}/.prism/config.toml", path.to_string_lossy())))
@@ -180,7 +180,7 @@ fn get_config_path(args: &CommandLineArgs) -> PrismResult<String> {
         })
 }
 
-fn ensure_config_file_exists(config_path: &str) -> PrismResult<()> {
+fn ensure_config_file_exists(config_path: &str) -> Result<()> {
     if !Path::new(config_path).exists() {
         if let Some(parent) = Path::new(config_path).parent() {
             fs::create_dir_all(parent).context("Failed to create config directory")?;
@@ -270,7 +270,7 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
 
 pub async fn initialize_da_layer(
     config: &Config,
-) -> PrismResult<Arc<dyn DataAvailabilityLayer + 'static>> {
+) -> Result<Arc<dyn DataAvailabilityLayer + 'static>> {
     let da_layer = config.da_layer.as_ref().context("DA Layer not specified")?;
 
     match da_layer {
@@ -285,7 +285,7 @@ pub async fn initialize_da_layer(
                     Ok(da) => return Ok(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
                     Err(e) => {
                         if attempt == DA_RETRY_COUNT {
-                            return Err(DataAvailabilityError::ConnectionError(format!(
+                            return Err(DataAvailabilityError::NetworkError(format!(
                                 "failed to connect to celestia node after {} attempts: {}",
                                 DA_RETRY_COUNT, e
                             ))
@@ -302,6 +302,8 @@ pub async fn initialize_da_layer(
             Ok(Arc::new(LocalDataAvailabilityLayer::new())
                 as Arc<dyn DataAvailabilityLayer + 'static>)
         }
-        DALayerOption::None => Err(PrismError::ConfigError("No DA Layer specified".to_string())),
+        DALayerOption::None => Err(anyhow!(PrismError::ConfigError(
+            "No DA Layer specified".into()
+        ))),
     }
 }

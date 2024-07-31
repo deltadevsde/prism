@@ -3,9 +3,9 @@ use crate::{
     common::Operation,
     consts::CHANNEL_BUFFER_SIZE,
     da::{DataAvailabilityLayer, FinalizedEpoch},
-    error::{DAResult, DataAvailabilityError, GeneralError},
+    error::{DataAvailabilityError, GeneralError},
 };
-use anyhow::{Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use borsh::from_slice;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
@@ -23,7 +23,9 @@ impl TryFrom<&Blob> for FinalizedEpoch {
     type Error = anyhow::Error;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        from_slice::<Self>(&value.data).with_context(|| "Failed to decode blob into FinalizedEpoch")
+        from_slice::<Self>(&value.data).context(format!(
+            "Failed to decode blob into FinalizedEpoch: {value:?}"
+        ))
     }
 }
 
@@ -31,7 +33,8 @@ impl TryFrom<&Blob> for Operation {
     type Error = anyhow::Error;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        from_slice::<Self>(&value.data).with_context(|| "Failed to decode blob into Operation")
+        from_slice::<Self>(&value.data)
+            .context(format!("Failed to decode blob into Operation: {value:?}"))
     }
 }
 
@@ -45,22 +48,24 @@ pub struct CelestiaConnection {
 }
 
 impl CelestiaConnection {
-    pub async fn new(config: &CelestiaConfig, auth_token: Option<&str>) -> DAResult<Self> {
+    pub async fn new(config: &CelestiaConfig, auth_token: Option<&str>) -> Result<Self> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
 
         let client = Client::new(&config.connection_string, auth_token)
             .await
             .context("Failed to initialize websocket connection")
-            .map_err(|e| DataAvailabilityError::ConnectionError(e.to_string()))?;
+            .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
 
-        let snark_namespace = create_namespace(&config.snark_namespace_id)
-            .context("Failed to create snark namespace")
-            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
+        let snark_namespace = create_namespace(&config.snark_namespace_id).context(format!(
+            "Failed to create snark namespace from: '{}'",
+            &config.snark_namespace_id
+        ))?;
 
         let operation_namespace = match &config.operation_namespace_id {
-            Some(id) => create_namespace(id)
-                .context("Failed to create operation namespace")
-                .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?,
+            Some(id) => create_namespace(id).context(format!(
+                "Failed to create operation namespace from: '{}'",
+                id
+            ))?,
             None => snark_namespace,
         };
 
@@ -74,44 +79,35 @@ impl CelestiaConnection {
     }
 }
 
-fn create_namespace(namespace_hex: &str) -> DAResult<Namespace> {
-    let decoded_hex = hex::decode(namespace_hex)
-        .context(format!(
-            "Failed to decode namespace hex '{}'",
-            namespace_hex
-        ))
-        .map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::DecodingError(e.to_string()))
-        })?;
+fn create_namespace(namespace_hex: &str) -> Result<Namespace> {
+    let decoded_hex = hex::decode(namespace_hex).context(format!(
+        "Failed to decode namespace hex '{}'",
+        namespace_hex
+    ))?;
 
-    Namespace::new_v0(&decoded_hex)
-        .context(format!(
-            "Failed to create namespace from '{}'",
-            namespace_hex
-        ))
-        .map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::EncodingError(e.to_string()))
-        })
+    Namespace::new_v0(&decoded_hex).context(format!(
+        "Failed to create namespace from '{}'",
+        namespace_hex
+    ))
 }
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
-    async fn get_latest_height(&self) -> DAResult<u64> {
+    async fn get_latest_height(&self) -> Result<u64> {
         match self.sync_target_rx.lock().await.recv().await {
             Some(height) => Ok(height),
-            None => Err(DataAvailabilityError::ChannelReceiveError),
+            None => Err(anyhow!(DataAvailabilityError::ChannelReceiveError)),
         }
     }
 
-    async fn initialize_sync_target(&self) -> DAResult<u64> {
+    async fn initialize_sync_target(&self) -> Result<u64> {
         HeaderClient::header_network_head(&self.client)
             .await
             .context("Failed to get network head from DA layer")
             .map(|extended_header| extended_header.header.height.value())
-            .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))
     }
 
-    async fn get_snarks(&self, height: u64) -> DAResult<Vec<FinalizedEpoch>> {
+    async fn get_snarks(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
             Ok(blobs) => {
@@ -134,20 +130,18 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 if err.to_string().contains("blob: not found") {
                     Ok(vec![])
                 } else {
-                    Err(DataAvailabilityError::DataRetrievalError(
+                    Err(anyhow!(DataAvailabilityError::DataRetrievalError(
                         height,
-                        format!("getting epoch from da layer: {}", err),
-                    ))
+                        format!("getting epoch from da layer: {}", err)
+                    )))
                 }
             }
         }
     }
 
-    async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> DAResult<u64> {
+    async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> Result<u64> {
         if epochs.is_empty() {
-            return Err(DataAvailabilityError::GeneralError(
-                GeneralError::MissingArgumentError("No epochs provided for submission".to_string()),
-            ));
+            bail!("no epochs provided for submission");
         }
 
         debug!("posting {} epochs to da layer", epochs.len());
@@ -175,23 +169,22 @@ impl DataAvailabilityLayer for CelestiaConnection {
             trace!("blob {}: {:?}", i, blob);
         }
 
-        let last_epoch_height = epochs.last().map(|e| e.height).unwrap_or(0);
-
-        match self.client.blob_submit(&blobs, GasPrice::from(-1.0)).await {
-            Ok(height) => Ok(height),
-            Err(err) => Err(DataAvailabilityError::SubmissionError(
-                last_epoch_height,
-                err.to_string(),
-            )),
-        }
+        self.client
+            .blob_submit(&blobs, GasPrice::from(-1.0))
+            .await
+            .map_err(|e| anyhow!(DataAvailabilityError::SubmissionError(e.to_string())))
     }
 
-    async fn get_operations(&self, height: u64) -> DAResult<Vec<Operation>> {
+    async fn get_operations(&self, height: u64) -> Result<Vec<Operation>> {
         trace!("searching for operations on da layer at height {}", height);
         let blobs = BlobClient::blob_get_all(&self.client, height, &[self.operation_namespace])
             .await
-            .with_context(|| format!("Failed to get operation blobs at height {}", height))
-            .map_err(|e| DataAvailabilityError::DataRetrievalError(height, e.to_string()))?;
+            .map_err(|e| {
+                anyhow!(DataAvailabilityError::DataRetrievalError(
+                    height,
+                    e.to_string()
+                ))
+            })?;
 
         let operations = blobs
             .iter()
@@ -210,13 +203,13 @@ impl DataAvailabilityLayer for CelestiaConnection {
         Ok(operations)
     }
 
-    async fn submit_operations(&self, operations: Vec<Operation>) -> DAResult<u64> {
+    async fn submit_operations(&self, operations: Vec<Operation>) -> Result<u64> {
         debug!("posting {} operations to DA layer", operations.len());
         let blobs: Result<Vec<Blob>, _> = operations
             .iter()
             .map(|operation| {
                 let data = borsh::to_vec(operation)
-                    .with_context(|| format!("Failed to serialize operation {}", operation))
+                    .context(format!("Failed to serialize operation {}", operation))
                     .map_err(|e| {
                         DataAvailabilityError::GeneralError(GeneralError::ParsingError(
                             e.to_string(),
@@ -224,7 +217,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                     })?;
 
                 Blob::new(self.operation_namespace, data)
-                    .with_context(|| format!("Failed to create blob for operation {}", operation))
+                    .context(format!("Failed to create blob for operation {}", operation))
                     .map_err(|e| {
                         DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(
                             e.to_string(),
@@ -242,11 +235,10 @@ impl DataAvailabilityLayer for CelestiaConnection {
         self.client
             .blob_submit(&blobs, GasPrice::from(-1.0))
             .await
-            .context("Failed to submit operation blobs")
-            .map_err(|e| DataAvailabilityError::SubmissionError(0, e.to_string()))
+            .map_err(|e| anyhow!(DataAvailabilityError::SubmissionError(e.to_string())))
     }
 
-    async fn start(&self) -> DAResult<()> {
+    async fn start(&self) -> Result<()> {
         let mut header_sub = HeaderClient::header_subscribe(&self.client)
             .await
             .context("Failed to subscribe to headers from DA layer")

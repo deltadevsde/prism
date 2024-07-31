@@ -7,7 +7,7 @@ use indexed_merkle_tree::{
     sha256_mod,
     tree::{IndexedMerkleTree, Proof},
 };
-use prism::{utils::validate_epoch, zk_snark::BatchMerkleProofCircuit};
+use prism::{circuits::BatchMerkleProofCircuit, utils::validate_epoch};
 use rand::rngs::OsRng;
 
 fn generate_test_tree(size: usize, node_count: usize) -> Duration {
