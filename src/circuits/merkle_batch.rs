@@ -1,10 +1,8 @@
 use crate::{
     circuits::{
-        merkle_insertion::prove_non_membership, merkle_update::proof_of_update,
-        utils::hash_to_scalar, InsertMerkleProofCircuit, ProofVariantCircuit,
-        UpdateMerkleProofCircuit,
+        merkle_insertion::prove_non_membership, merkle_update::prove_update,
+        InsertMerkleProofCircuit, ProofVariantCircuit, UpdateMerkleProofCircuit,
     },
-    error::PrismError,
     utils::create_and_verify_snark,
 };
 use anyhow::Result;
@@ -12,6 +10,7 @@ use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, Scalar};
 use indexed_merkle_tree::{tree::Proof, Hash};
 
+/// BatchMerkleProofCircuit represents a circuit for proving a batch of merkle proof circuits.
 #[derive(Clone)]
 pub struct BatchMerkleProofCircuit {
     pub old_commitment: Scalar,
@@ -24,9 +23,9 @@ impl BatchMerkleProofCircuit {
         old_commitment: &Hash,
         new_commitment: &Hash,
         proofs: Vec<Proof>,
-    ) -> Result<BatchMerkleProofCircuit, PrismError> {
-        let parsed_old_commitment = hash_to_scalar(old_commitment).map_err(PrismError::General)?;
-        let parsed_new_commitment = hash_to_scalar(new_commitment).map_err(PrismError::General)?;
+    ) -> Result<BatchMerkleProofCircuit> {
+        let parsed_old_commitment: Scalar = (*old_commitment).try_into()?;
+        let parsed_new_commitment: Scalar = (*new_commitment).try_into()?;
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
@@ -100,7 +99,7 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
         for proof_variant in self.proofs {
             match proof_variant {
                 ProofVariantCircuit::Update(update_proof_circuit) => {
-                    new_commitment = Some(proof_of_update(
+                    new_commitment = Some(prove_update(
                         cs,
                         update_proof_circuit.old_root,
                         &update_proof_circuit.old_path,
@@ -121,14 +120,14 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                     }
 
                     // Proof of Update for the old and new node
-                    let calculated_root_from_first_proof = proof_of_update(
+                    let calculated_root_from_first_proof = prove_update(
                         cs,
                         insert_proof_circuit.existing_leaf_update.old_root,
                         &insert_proof_circuit.existing_leaf_update.old_path,
                         insert_proof_circuit.existing_leaf_update.updated_root,
                         &insert_proof_circuit.existing_leaf_update.updated_path,
                     );
-                    new_commitment = Some(proof_of_update(
+                    new_commitment = Some(prove_update(
                         cs,
                         calculated_root_from_first_proof?,
                         &insert_proof_circuit.new_leaf_activation.old_path,

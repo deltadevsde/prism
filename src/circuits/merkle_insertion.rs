@@ -1,7 +1,7 @@
 use crate::{
     circuits::{
-        merkle_update::proof_of_update,
-        utils::{hash_to_scalar, recalculate_hash_as_scalar, unpack_and_process},
+        merkle_update::prove_update,
+        utils::{recalculate_hash_as_scalar, unpack_and_process},
         LessThanCircuit, ProofVariantCircuit, UpdateMerkleProofCircuit,
     },
     error::PrismError,
@@ -80,7 +80,7 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
 
         // Step 2: Update the existing leaf
         // This step updates the 'next' pointer of an existing leaf to point to our new leaf.
-        let updated_root_after_existing_leaf_update = proof_of_update(
+        let updated_root_after_existing_leaf_update = prove_update(
             cs,
             self.existing_leaf_update.old_root,
             &self.existing_leaf_update.old_path,
@@ -91,7 +91,7 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
         // Step 3: Activate the new leaf
         // This step converts an inactive (empty) leaf into our new active leaf,
         // effectively inserting the new data into the tree.
-        proof_of_update(
+        prove_update(
             cs,
             updated_root_after_existing_leaf_update,
             &self.new_leaf_activation.old_path,
@@ -127,12 +127,18 @@ pub fn prove_non_membership<CS: ConstraintSystem<Scalar>>(
 ) -> Result<(), SynthesisError> {
     // Ensure that the label of the new leaf node lies between the first element of the path
     // and its next pointer. This guarantees that no other node with a label between these values exists.
-    let existing_leaf_label = hash_to_scalar(&insertion_path[0].get_label())
+    let existing_leaf_label: Scalar = insertion_path[0]
+        .get_label()
+        .try_into()
         .map_err(|_| SynthesisError::Unsatisfiable)?;
-    let existing_leaf_next =
-        hash_to_scalar(&insertion_path[0].get_next()).map_err(|_| SynthesisError::Unsatisfiable)?;
-    let new_leaf_label =
-        hash_to_scalar(&new_leaf_node.label).map_err(|_| SynthesisError::Unsatisfiable)?;
+    let existing_leaf_next: Scalar = insertion_path[0]
+        .get_next()
+        .try_into()
+        .map_err(|_| SynthesisError::Unsatisfiable)?;
+    let new_leaf_label: Scalar = new_leaf_node
+        .label
+        .try_into()
+        .map_err(|_| SynthesisError::Unsatisfiable)?;
 
     // Enforce: existing_leaf_label < new_leaf_label < existing_leaf_next
     LessThanCircuit::new(existing_leaf_label, new_leaf_label)

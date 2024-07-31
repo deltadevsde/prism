@@ -1,6 +1,5 @@
 use anyhow::Error as AnyhowError;
 use ed25519_dalek::SignatureError;
-use indexed_merkle_tree::error::MerkleTreeError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -13,8 +12,6 @@ pub enum PrismError {
     DataAvailability(#[from] DataAvailabilityError),
     #[error(transparent)]
     Proof(#[from] ProofError),
-    #[error(transparent)]
-    MerkleTree(#[from] MerkleTreeError),
     #[error("config error: {0}")]
     ConfigError(String),
     #[error(transparent)]
