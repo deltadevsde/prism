@@ -90,7 +90,7 @@ impl Default for WebServerConfig {
     fn default() -> Self {
         WebServerConfig {
             host: "127.0.0.1".to_string(),
-            port: 8080,
+            port: 8089,
         }
     }
 }
@@ -298,7 +298,7 @@ pub async fn initialize_da_layer(
             unreachable!() // This line should never be reached due to the return in the last iteration
         }
         DALayerOption::InMemory => {
-            let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(1);
             Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
         }
         DALayerOption::None => Err(anyhow!(PrismError::ConfigError(
