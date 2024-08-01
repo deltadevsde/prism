@@ -395,7 +395,7 @@ mod tests {
     use super::*;
     use crate::{
         cfg::{Config, RedisConfig},
-        da::mock::LocalDataAvailabilityLayer,
+        da::memory::InMemoryDataAvailabilityLayer,
         storage::RedisConnection,
     };
     use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
@@ -416,7 +416,8 @@ mod tests {
 
     // Helper function to create a test Sequencer instance
     async fn create_test_sequencer() -> Arc<Sequencer> {
-        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+        let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
         let signing_key = create_signing_key();
         Arc::new(
@@ -458,7 +459,8 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_validate_and_queue_update() {
-        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+        let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
         let sequencer = Arc::new(
             Sequencer::new(
@@ -483,7 +485,8 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_queued_update_gets_finalized() {
-        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+        let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
         let signing_key = create_signing_key();
         let sequencer = Arc::new(
@@ -522,7 +525,8 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_validate_invalid_update_fails() {
-        let da_layer = Arc::new(LocalDataAvailabilityLayer::new());
+        let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+        let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
         let sequencer = Arc::new(
             Sequencer::new(

@@ -12,7 +12,7 @@ use indexed_merkle_tree::Hash;
 use std::{self, str::FromStr};
 
 pub mod celestia;
-pub mod mock;
+pub mod memory;
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(BorshSerialize, BorshDeserialize, Clone)]
