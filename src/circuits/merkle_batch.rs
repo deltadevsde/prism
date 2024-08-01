@@ -1,7 +1,7 @@
 use crate::{
     circuits::{
-        merkle_insertion::prove_non_membership, merkle_update::prove_update,
-        InsertMerkleProofCircuit, ProofVariantCircuit, UpdateMerkleProofCircuit,
+        merkle_insertion::prove_insertion, merkle_update::prove_update, InsertMerkleProofCircuit,
+        ProofVariantCircuit, UpdateMerkleProofCircuit,
     },
     utils::create_and_verify_snark,
 };
@@ -59,11 +59,14 @@ impl BatchMerkleProofCircuit {
 
 impl Circuit<Scalar> for BatchMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
+        // If the proofs are empty, we just verify that the commitments are equal
         if self.proofs.is_empty() {
             let provided_old_commitment =
                 cs.alloc_input(|| "provided old commitment", || Ok(self.old_commitment))?;
             let provided_new_commitment =
                 cs.alloc_input(|| "provided new commitment", || Ok(self.new_commitment))?;
+
+            // provided_old_commitment * (1) = provided_new_commitment
             cs.enforce(
                 || "old commitment check",
                 |lc| lc + provided_old_commitment,
@@ -88,6 +91,7 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
         let old_commitment_from_proofs =
             cs.alloc(|| "old commitment from proofs", || Ok(old_root))?;
 
+        // old_commitment_from_proofs * (1) = provided_old_commitment
         cs.enforce(
             || "old commitment check",
             |lc| lc + old_commitment_from_proofs,
@@ -95,45 +99,28 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
             |lc| lc + provided_old_commitment,
         );
 
-        let mut new_commitment: Option<Scalar> = None;
-        for proof_variant in self.proofs {
-            match proof_variant {
+        let mut new_commitment: Scalar = Scalar::zero();
+        for proof in self.proofs {
+            // update the new_commitment for every proof, applying the constraints of the circuit each time
+            match proof {
                 ProofVariantCircuit::Update(update_proof_circuit) => {
-                    new_commitment = Some(prove_update(
+                    new_commitment = prove_update(
                         cs,
                         update_proof_circuit.old_root,
                         &update_proof_circuit.old_path,
                         update_proof_circuit.updated_root,
                         &update_proof_circuit.updated_path,
-                    )?);
+                    )?;
                 }
                 ProofVariantCircuit::Insert(insert_proof_circuit) => {
-                    // Proof of Non-Membership
-                    match prove_non_membership(
+                    new_commitment = prove_insertion(
                         cs,
                         insert_proof_circuit.pre_insertion_root,
                         &insert_proof_circuit.insertion_path,
                         insert_proof_circuit.new_leaf_node,
-                    ) {
-                        Ok(_) => (),
-                        Err(_) => return Err(SynthesisError::AssignmentMissing),
-                    }
-
-                    // Proof of Update for the old and new node
-                    let calculated_root_from_first_proof = prove_update(
-                        cs,
-                        insert_proof_circuit.existing_leaf_update.old_root,
-                        &insert_proof_circuit.existing_leaf_update.old_path,
-                        insert_proof_circuit.existing_leaf_update.updated_root,
-                        &insert_proof_circuit.existing_leaf_update.updated_path,
-                    );
-                    new_commitment = Some(prove_update(
-                        cs,
-                        calculated_root_from_first_proof?,
-                        &insert_proof_circuit.new_leaf_activation.old_path,
-                        insert_proof_circuit.new_leaf_activation.updated_root,
-                        &insert_proof_circuit.new_leaf_activation.updated_path,
-                    )?);
+                        insert_proof_circuit.existing_leaf_update,
+                        insert_proof_circuit.new_leaf_activation,
+                    )?;
                 }
                 ProofVariantCircuit::Batch(_) => {
                     // Batches cannot be recursively constructed
@@ -143,22 +130,19 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
             }
         }
 
-        if let Some(new_commitment) = new_commitment {
-            let provided_new_commitment =
-                cs.alloc_input(|| "provided commitment", || Ok(self.new_commitment))?;
-            let recalculated_new_commitment =
-                cs.alloc(|| "recalculated commitment", || Ok(new_commitment))?;
+        let provided_new_commitment =
+            cs.alloc_input(|| "provided commitment", || Ok(self.new_commitment))?;
+        let recalculated_new_commitment =
+            cs.alloc(|| "recalculated commitment", || Ok(new_commitment))?;
 
-            cs.enforce(
-                || "new commitment check",
-                |lc| lc + recalculated_new_commitment,
-                |lc| lc + CS::one(),
-                |lc| lc + provided_new_commitment,
-            );
+        // recalculated_commitment * (1) = provided_commitment
+        cs.enforce(
+            || "new commitment check",
+            |lc| lc + recalculated_new_commitment,
+            |lc| lc + CS::one(),
+            |lc| lc + provided_new_commitment,
+        );
 
-            Ok(())
-        } else {
-            Err(SynthesisError::Unsatisfiable)
-        }
+        Ok(())
     }
 }
