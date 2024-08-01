@@ -69,38 +69,55 @@ impl InsertMerkleProofCircuit {
 
 impl Circuit<Scalar> for InsertMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        // Step 1: Prove non-membership
-        // This ensures that the new leaf we're trying to insert doesn't already exist in the tree.
-        prove_non_membership(
+        match prove_insertion(
             cs,
             self.pre_insertion_root,
             &self.insertion_path,
             self.new_leaf_node,
-        )?;
-
-        // Step 2: Update the existing leaf
-        // This step updates the 'next' pointer of an existing leaf to point to our new leaf.
-        let updated_root_after_existing_leaf_update = prove_update(
-            cs,
-            self.existing_leaf_update.old_root,
-            &self.existing_leaf_update.old_path,
-            self.existing_leaf_update.updated_root,
-            &self.existing_leaf_update.updated_path,
-        )?;
-
-        // Step 3: Activate the new leaf
-        // This step converts an inactive (empty) leaf into our new active leaf,
-        // effectively inserting the new data into the tree.
-        prove_update(
-            cs,
-            updated_root_after_existing_leaf_update,
-            &self.new_leaf_activation.old_path,
-            self.new_leaf_activation.updated_root,
-            &self.new_leaf_activation.updated_path,
-        )?;
-
-        Ok(())
+            self.existing_leaf_update,
+            self.new_leaf_activation,
+        ) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(SynthesisError::Unsatisfiable),
+        }
     }
+}
+
+/// Generates constraints to prove a valid insertion in the merkle tree.
+pub fn prove_insertion<CS: ConstraintSystem<Scalar>>(
+    cs: &mut CS,
+    pre_insertion_root: Scalar,
+    insertion_path: &[Node],
+    new_leaf_node: LeafNode,
+    existing_leaf_update: UpdateMerkleProofCircuit,
+    new_leaf_activation: UpdateMerkleProofCircuit,
+) -> Result<Scalar, SynthesisError> {
+    // Step 1: Prove non-membership
+    // This ensures that the new leaf we're trying to insert doesn't already exist in the tree.
+    prove_non_membership(cs, pre_insertion_root, &insertion_path, new_leaf_node)?;
+
+    // Step 2: Update the existing leaf
+    // This step updates the 'next' pointer of an existing leaf to point to our new leaf.
+    let updated_root_after_existing_leaf_update = prove_update(
+        cs,
+        existing_leaf_update.old_root,
+        &existing_leaf_update.old_path,
+        existing_leaf_update.updated_root,
+        &existing_leaf_update.updated_path,
+    )?;
+
+    // Step 3: Activate the new leaf
+    // This step converts an inactive (empty) leaf into our new active leaf,
+    // effectively inserting the new data into the tree.
+    let new_root = prove_update(
+        cs,
+        updated_root_after_existing_leaf_update,
+        &new_leaf_activation.old_path,
+        new_leaf_activation.updated_root,
+        &new_leaf_activation.updated_path,
+    )?;
+
+    Ok(new_root)
 }
 
 /// Generates constraints to prove non-membership of a new leaf in the Merkle tree.

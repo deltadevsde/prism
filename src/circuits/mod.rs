@@ -93,8 +93,6 @@ impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
     type Error = anyhow::Error;
 
     fn try_from(proof: Bls12Proof) -> Result<Self> {
-        // we get a CtOption type which is afaik common in crypto libraries to prevent timing attacks
-        // we cant use the map_err function with CtOption types so we have to check if its none and can then unwrap it
         let a: G1Affine = proof.a.try_into().context("affine: a")?;
         let b: G2Affine = proof.b.try_into().context("affine: b")?;
         let c: G1Affine = proof.c.try_into().context("affine: c")?;
