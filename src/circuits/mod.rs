@@ -1,8 +1,9 @@
 use crate::error::{GeneralError, PrismError};
 use anyhow::{anyhow, Context, Result};
 use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
-use bls12_381::{Bls12, Scalar};
+use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
 use borsh::{BorshDeserialize, BorshSerialize};
+use std::fmt;
 
 pub mod hashchain;
 pub mod less_than;
@@ -34,37 +35,33 @@ impl Circuit<Scalar> for ProofVariantCircuit {
     }
 }
 
-/// G1Affine is a tuple alias of [`bls12_381::G1Affine`] for defining custom conversions.
-pub struct G1Affine(bls12_381::G1Affine);
+/// G1 represents a compressed [`bls12_381::G1Affine`]
+#[derive(BorshSerialize, BorshDeserialize, Clone)]
+pub struct G1([u8; 48]);
 
-/// G2Affine is a tuple alias of [`bls12_381::G2Affine`] for defining custom conversions.
-pub struct G2Affine(bls12_381::G2Affine);
+/// G2 represents a compressed [`bls12_381::G2Affine`]
+#[derive(BorshSerialize, BorshDeserialize, Clone)]
+pub struct G2([u8; 96]);
 
-impl TryInto<G1Affine> for [u8; 48] {
-    type Error = anyhow::Error;
-
-    fn try_into(self) -> Result<G1Affine> {
-        match bls12_381::G1Affine::from_compressed(&self).into_option() {
-            Some(affine) => Ok(G1Affine(affine)),
-            None => Err(anyhow!(
-                GeneralError::DecodingError("G1Affine".to_string(),)
-            )),
-        }
+// Debug impls for the Affines print their hex representation
+impl fmt::Debug for G1 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "G1(0x{})", hex::encode(self.0))
     }
 }
 
-impl From<G1Affine> for bls12_381::G1Affine {
-    fn from(affine: G1Affine) -> Self {
-        affine.0
+impl fmt::Debug for G2 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "G2(0x{})", hex::encode(self.0))
     }
 }
 
-impl TryInto<G2Affine> for [u8; 96] {
+impl TryFrom<G1> for bls12_381::G1Affine {
     type Error = anyhow::Error;
 
-    fn try_into(self) -> Result<G2Affine> {
-        match bls12_381::G2Affine::from_compressed(&self).into_option() {
-            Some(affine) => Ok(G2Affine(affine)),
+    fn try_from(g1: G1) -> Result<bls12_381::G1Affine> {
+        match bls12_381::G1Affine::from_compressed(&g1.0).into_option() {
+            Some(affine) => Ok(affine),
             None => Err(anyhow!(
                 GeneralError::DecodingError("G2Affine".to_string(),)
             )),
@@ -72,17 +69,24 @@ impl TryInto<G2Affine> for [u8; 96] {
     }
 }
 
-impl From<G2Affine> for bls12_381::G2Affine {
-    fn from(affine: G2Affine) -> Self {
-        affine.0
+impl TryFrom<G2> for bls12_381::G2Affine {
+    type Error = anyhow::Error;
+
+    fn try_from(g2: G2) -> Result<bls12_381::G2Affine> {
+        match bls12_381::G2Affine::from_compressed(&g2.0).into_option() {
+            Some(affine) => Ok(affine),
+            None => Err(anyhow!(
+                GeneralError::DecodingError("G2Affine".to_string(),)
+            )),
+        }
     }
 }
 
 #[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub struct Bls12Proof {
-    pub a: [u8; 48],
-    pub b: [u8; 96],
-    pub c: [u8; 48],
+    pub a: G1,
+    pub b: G2,
+    pub c: G1,
 }
 
 impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
@@ -106,38 +110,38 @@ impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
 impl From<groth16::Proof<Bls12>> for Bls12Proof {
     fn from(proof: groth16::Proof<Bls12>) -> Self {
         Bls12Proof {
-            a: proof.a.to_compressed(),
-            b: proof.b.to_compressed(),
-            c: proof.c.to_compressed(),
+            a: G1(proof.a.to_compressed()),
+            b: G2(proof.b.to_compressed()),
+            c: G1(proof.c.to_compressed()),
         }
     }
 }
 
 #[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub struct VerifyingKey {
-    pub alpha_g1: [u8; 48],
-    pub beta_g1: [u8; 48],
-    pub beta_g2: [u8; 96],
-    pub delta_g1: [u8; 48],
-    pub delta_g2: [u8; 96],
-    pub gamma_g2: [u8; 96],
-    pub ic: Vec<[u8; 48]>,
+    pub alpha_g1: G1,
+    pub beta_g1: G1,
+    pub beta_g2: G2,
+    pub delta_g1: G1,
+    pub delta_g2: G2,
+    pub gamma_g2: G2,
+    pub ic: Vec<G1>,
 }
 
 impl From<groth16::VerifyingKey<Bls12>> for VerifyingKey {
     fn from(verifying_key: groth16::VerifyingKey<Bls12>) -> Self {
         VerifyingKey {
-            alpha_g1: verifying_key.alpha_g1.to_compressed(),
-            beta_g1: verifying_key.beta_g1.to_compressed(),
-            beta_g2: verifying_key.beta_g2.to_compressed(),
-            delta_g1: verifying_key.delta_g1.to_compressed(),
-            delta_g2: verifying_key.delta_g2.to_compressed(),
-            gamma_g2: verifying_key.gamma_g2.to_compressed(),
+            alpha_g1: G1(verifying_key.alpha_g1.to_compressed()),
+            beta_g1: G1(verifying_key.beta_g1.to_compressed()),
+            beta_g2: G2(verifying_key.beta_g2.to_compressed()),
+            delta_g1: G1(verifying_key.delta_g1.to_compressed()),
+            delta_g2: G2(verifying_key.delta_g2.to_compressed()),
+            gamma_g2: G2(verifying_key.gamma_g2.to_compressed()),
             ic: verifying_key
                 .ic
                 .iter()
-                .map(|x| x.to_compressed())
-                .collect::<Vec<[u8; 48]>>(),
+                .map(|x| G1(x.to_compressed()))
+                .collect::<Vec<G1>>(),
         }
     }
 }
@@ -336,9 +340,9 @@ mod tests {
     #[test]
     fn test_deserialize_invalid_proof() {
         let invalid_proof = Bls12Proof {
-            a: [1; 48],
-            b: [2; 96],
-            c: [3; 48],
+            a: G1([1; 48]),
+            b: G2([2; 96]),
+            c: G1([3; 48]),
         };
 
         let deserialized_proof_result: Result<groth16::Proof<Bls12>> =
