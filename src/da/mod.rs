@@ -15,7 +15,7 @@ pub mod celestia;
 pub mod memory;
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
-#[derive(BorshSerialize, BorshDeserialize, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug)]
 pub struct FinalizedEpoch {
     pub height: u64,
     pub prev_commitment: Hash,

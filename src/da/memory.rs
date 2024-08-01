@@ -8,6 +8,13 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use tokio::time::{interval, Duration};
 
+#[derive(Clone, Debug)]
+pub struct Block {
+    pub height: u64,
+    pub operations: Vec<Operation>,
+    pub epochs: Vec<FinalizedEpoch>,
+}
+
 #[derive(Clone)]
 pub struct InMemoryDataAvailabilityLayer {
     blocks: Arc<RwLock<Vec<Block>>>,
@@ -15,28 +22,26 @@ pub struct InMemoryDataAvailabilityLayer {
     pending_epochs: Arc<RwLock<Vec<FinalizedEpoch>>>,
     latest_height: Arc<RwLock<u64>>,
     height_update_tx: broadcast::Sender<u64>,
+    block_update_tx: broadcast::Sender<Block>,
     block_time: u64,
 }
 
-struct Block {
-    height: u64,
-    operations: Vec<Operation>,
-    epochs: Vec<FinalizedEpoch>,
-}
-
 impl InMemoryDataAvailabilityLayer {
-    pub fn new(block_time: u64) -> (Self, broadcast::Receiver<u64>) {
-        let (tx, rx) = broadcast::channel(100);
+    pub fn new(block_time: u64) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
+        let (height_tx, height_rx) = broadcast::channel(100);
+        let (block_tx, block_rx) = broadcast::channel(100);
         (
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
                 pending_operations: Arc::new(RwLock::new(Vec::new())),
                 pending_epochs: Arc::new(RwLock::new(Vec::new())),
                 latest_height: Arc::new(RwLock::new(0)),
-                height_update_tx: tx,
+                height_update_tx: height_tx,
+                block_update_tx: block_tx,
                 block_time,
             },
-            rx,
+            height_rx,
+            block_rx,
         )
     }
 
@@ -55,11 +60,22 @@ impl InMemoryDataAvailabilityLayer {
                 operations: std::mem::take(&mut *pending_operations),
                 epochs: std::mem::take(&mut *pending_epochs),
             };
-            blocks.push(new_block);
+            debug!(
+                "new block produced at height {} with {} operations and {} snarks",
+                new_block.height,
+                new_block.operations.len(),
+                new_block.epochs.len()
+            );
+            blocks.push(new_block.clone());
 
-            // Notify subscribers of the new height
+            // Notify subscribers of the new height and block
             let _ = self.height_update_tx.send(*latest_height);
+            let _ = self.block_update_tx.send(new_block);
         }
+    }
+
+    pub fn subscribe_blocks(&self) -> broadcast::Receiver<Block> {
+        self.block_update_tx.subscribe()
     }
 }
 

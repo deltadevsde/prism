@@ -60,14 +60,16 @@ impl NodeType for Sequencer {
         self.da.start().await.context("Failed to start DA layer")?;
 
         let sync_loop = self.clone().sync_loop();
-        let da_loop = self.clone().da_loop();
+        let snark_loop = self.clone().post_snarks_loop();
+        let operation_loop = self.clone().post_operations_loop();
 
         let ws_self = self.clone();
         let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
             res = sync_loop => Ok(res.context("sync loop failed")?),
-            res = da_loop => Ok(res.context("DA loop failed")?),
+            res = snark_loop => Ok(res.context("DA loop failed")?),
+            res = operation_loop => Ok(res.context("Operation loop failed")?),
             res = ws => Ok(res.context("WebServer failed")?),
         }
     }
@@ -115,6 +117,10 @@ impl Sequencer {
                     }
                 };
 
+                if current_position == target {
+                    continue;
+                }
+
                 debug!("updated sync target to height {}", target);
                 while current_position < target {
                     trace!("processing height: {}", current_position);
@@ -156,8 +162,62 @@ impl Sequencer {
         .await
     }
 
-    // da_loop is responsible for submitting finalized epochs to the DA layer.
-    async fn da_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
+    pub async fn post_operations_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
+        info!("Starting operation posting loop");
+        let mut ticker = interval(std::time::Duration::from_secs(1)); // Adjust the interval as needed
+        let mut last_processed_height = 0;
+
+        spawn(async move {
+            loop {
+                ticker.tick().await;
+
+                // Check for new block
+                let current_height = match self.da.get_latest_height().await {
+                    Ok(height) => height,
+                    Err(e) => {
+                        error!("operation_loop: Failed to get latest height: {}", e);
+                        continue;
+                    }
+                };
+
+                // If there's a new block
+                if current_height > last_processed_height {
+                    // Get pending operations
+                    let pending_operations = {
+                        let mut ops = self.pending_operations.lock().await;
+                        std::mem::take(&mut *ops)
+                    };
+
+                    // If there are pending operations, submit them
+                    if !pending_operations.is_empty() {
+                        match self.da.submit_operations(pending_operations).await {
+                            Ok(submitted_height) => {
+                                info!(
+                                    "operation_loop: Submitted operations at height {}",
+                                    submitted_height
+                                );
+                                last_processed_height = submitted_height;
+                            }
+                            Err(e) => {
+                                error!("operation_loop: Failed to submit operations: {}", e);
+                                // TODO: Handle error (e.g., retry logic, returning operations to pending_operations)
+                            }
+                        }
+                    } else {
+                        debug!(
+                            "operation_loop: No pending operations to submit at height {}",
+                            current_height
+                        );
+                        last_processed_height = current_height;
+                    }
+                }
+            }
+        })
+        .await
+    }
+
+    // post_snarks_loop is responsible for submitting finalized epochs to the DA layer.
+    async fn post_snarks_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
         info!("starting da submission loop");
         let mut ticker = interval(DA_RETRY_INTERVAL);
         spawn(async move {
@@ -169,6 +229,11 @@ impl Sequencer {
                         continue;
                     }
                 };
+
+                // don't post to DA layer if no epochs have been finalized
+                if epochs.is_empty() {
+                    continue;
+                }
 
                 let mut retry_counter = 0;
                 loop {
@@ -322,6 +387,7 @@ impl Sequencer {
                     hashed_id
                 ))?;
 
+                debug!("updating hashchain for user id {}", id.clone());
                 self.db
                     .update_hashchain(operation, &current_chain)
                     .context(format!(
@@ -416,7 +482,7 @@ mod tests {
 
     // Helper function to create a test Sequencer instance
     async fn create_test_sequencer() -> Arc<Sequencer> {
-        let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+        let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
         let signing_key = create_signing_key();
@@ -459,7 +525,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_validate_and_queue_update() {
-        let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+        let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
         let sequencer = Arc::new(
@@ -485,7 +551,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_queued_update_gets_finalized() {
-        let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+        let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
         let signing_key = create_signing_key();
@@ -525,7 +591,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_validate_invalid_update_fails() {
-        let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+        let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
         let sequencer = Arc::new(
