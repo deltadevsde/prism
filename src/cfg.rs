@@ -1,4 +1,5 @@
 use crate::consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL};
+use crate::da::memory::InMemoryDataAvailabilityLayer;
 use crate::error::{DataAvailabilityError, GeneralError, PrismError};
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
@@ -8,9 +9,7 @@ use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
-use crate::da::{
-    celestia::CelestiaConnection, mock::LocalDataAvailabilityLayer, DataAvailabilityLayer,
-};
+use crate::da::{celestia::CelestiaConnection, DataAvailabilityLayer};
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
@@ -299,8 +298,8 @@ pub async fn initialize_da_layer(
             unreachable!() // This line should never be reached due to the return in the last iteration
         }
         DALayerOption::InMemory => {
-            Ok(Arc::new(LocalDataAvailabilityLayer::new())
-                as Arc<dyn DataAvailabilityLayer + 'static>)
+            let (da_layer, _rx) = InMemoryDataAvailabilityLayer::new(1);
+            Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
         }
         DALayerOption::None => Err(anyhow!(PrismError::ConfigError(
             "No DA Layer specified".into()
