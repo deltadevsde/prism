@@ -2681,7 +2681,9 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexed-merkle-tree"
-version = "0.6.1"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d86e7e0a70243eb602dba292003d26682c23cff528c5b3c06c002d242a26d865"
 dependencies = [
  "anyhow",
  "bls12_381",
