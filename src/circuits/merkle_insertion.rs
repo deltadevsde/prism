@@ -94,7 +94,7 @@ pub fn prove_insertion<CS: ConstraintSystem<Scalar>>(
 ) -> Result<Scalar, SynthesisError> {
     // Step 1: Prove non-membership
     // This ensures that the new leaf we're trying to insert doesn't already exist in the tree.
-    prove_non_membership(cs, pre_insertion_root, &insertion_path, new_leaf_node)?;
+    prove_non_membership(cs, pre_insertion_root, insertion_path, new_leaf_node)?;
 
     // Step 2: Update the existing leaf
     // This step updates the 'next' pointer of an existing leaf to point to our new leaf.

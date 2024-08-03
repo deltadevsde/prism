@@ -97,11 +97,7 @@ impl TryFrom<Bls12Proof> for groth16::Proof<Bls12> {
         let b: G2Affine = proof.b.try_into().context("affine: b")?;
         let c: G1Affine = proof.c.try_into().context("affine: c")?;
 
-        Ok(groth16::Proof {
-            a: a.into(),
-            b: b.into(),
-            c: c.into(),
-        })
+        Ok(groth16::Proof { a, b, c })
     }
 }
 
@@ -179,13 +175,13 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
             .collect::<Result<Vec<G1Affine>>>()?;
 
         Ok(bellman::groth16::VerifyingKey {
-            alpha_g1: alpha_g1.into(),
-            beta_g1: beta_g1.into(),
-            beta_g2: beta_g2.into(),
-            gamma_g2: gamma_g2.into(),
-            delta_g1: delta_g1.into(),
-            delta_g2: delta_g2.into(),
-            ic: ic.into_iter().map(|g1| g1.into()).collect(),
+            alpha_g1,
+            beta_g1,
+            beta_g2,
+            gamma_g2,
+            delta_g1,
+            delta_g2,
+            ic: ic.into_iter().collect(),
         })
     }
 }
