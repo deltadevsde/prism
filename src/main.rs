@@ -5,6 +5,7 @@ pub mod consts;
 pub mod da;
 pub mod error;
 mod node_types;
+mod nova;
 pub mod storage;
 mod utils;
 mod webserver;
