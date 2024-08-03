@@ -563,8 +563,6 @@ mod tests {
         let update_entry =
             create_new_account_operation(id.clone(), "test".to_string(), signing_key.clone());
 
-        println!("update_entry: {:?}", update_entry);
-
         sequencer
             .clone()
             .validate_and_queue_update(&update_entry)
