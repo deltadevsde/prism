@@ -9,7 +9,6 @@ use prism::{
     storage::{Database, RedisConnection},
     webserver::OperationInput,
 };
-use rand::rngs::OsRng;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::{sync::Arc, time::Duration};
 
@@ -47,7 +46,7 @@ async fn test_light_client_sequencer_talking() {
     std::env::set_var("RUST_LOG", "DEBUG");
     pretty_env_logger::init();
 
-    let (da_layer, mut height_rx, mut block_rx) = InMemoryDataAvailabilityLayer::new(1);
+    let (da_layer, mut height_rx, mut _block_rx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db = Arc::new(setup_db());
     let cfg = Config::default();
