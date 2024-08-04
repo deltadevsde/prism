@@ -15,7 +15,7 @@ use nova_snark::{
     traits::circuit::StepCircuit,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum UnifiedProofStep {
     /// Update proof step ensures that an existing LeafNode is updated with a new value.
     /// Cares about inputs z[0].
@@ -38,7 +38,7 @@ pub enum UnifiedProofStep {
 
 #[derive(Clone)]
 pub struct MerkleProofStepCircuit<Scalar: PrimeField> {
-    step_type: UnifiedProofStep,
+    pub step_type: UnifiedProofStep,
     old_proof: Option<MerkleProof>,
     new_proof: Option<MerkleProof>,
 
@@ -77,14 +77,14 @@ impl<Scalar: PrimeField> MerkleProofStepCircuit<Scalar> {
                         Some(insert_proof.non_membership_proof.merkle_proof.clone()),
                         None,
                         true,
-                        Some(insert_proof.non_membership_proof.missing_node),
+                        Some(insert_proof.non_membership_proof.missing_node.clone()),
                     ),
                     Self::new(
                         UnifiedProofStep::InsertUpdate,
                         Some(insert_proof.first_proof.old_proof),
                         Some(insert_proof.first_proof.new_proof),
                         false,
-                        None,
+                        Some(insert_proof.non_membership_proof.missing_node),
                     ),
                     Self::new(
                         UnifiedProofStep::InsertEnd,
@@ -166,9 +166,6 @@ pub fn recalculate_hash_as_scalar<Scalar: PrimeField>(path: &[Node]) -> Result<S
 
 impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> {
     fn arity(&self) -> usize {
-        // z[0] is the old root
-        // z[1] is the existing node's label
-        // z[2] is the missing node's label
         3
     }
 
@@ -177,42 +174,74 @@ impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> 
         cs: &mut CS,
         z: &[AllocatedNum<Scalar>],
     ) -> Result<Vec<AllocatedNum<Scalar>>, SynthesisError> {
-        // ahhhh these probably arent always filled in, need to check if they are None and handle that
-        let previous_root = &z[0];
-        let existing_node_label = &z[1];
-        let missing_node_label = &z[2];
+        println!("Step: {:?}", self.step_type);
+        println!(
+            "Input z: {:?}",
+            z.iter().map(|num| num.get_value()).collect::<Vec<_>>()
+        );
+
+        let previous_root_input = &z[0];
+        let existing_node_label_input = &z[1];
+        let missing_node_label_input = &z[2];
+
+        let old_proof = self
+            .old_proof
+            .as_ref()
+            .ok_or(SynthesisError::Unsatisfiable)?;
+
+        let mut new_proof: Option<&MerkleProof> = None;
+        if !self.is_non_membership {
+            new_proof = Some(
+                self.new_proof
+                    .as_ref()
+                    .expect("New proof is missing for non-membership proof."),
+            );
+        }
+
+        let previous_root_alloc = AllocatedNum::alloc(cs.namespace(|| "old root"), || {
+            Ok(Hash::new(old_proof.root_hash).to_scalar().unwrap())
+        })
+        .unwrap();
+
+        cs.enforce(
+            || "z_0 == old_root",
+            |lc| lc + previous_root_input.get_variable(),
+            |lc| lc + CS::one(),
+            |lc| lc + previous_root_alloc.get_variable(),
+        );
 
         let mut z_out: Vec<AllocatedNum<Scalar>> = Vec::new();
 
-        match self.step_type.clone() {
+        match self.step_type {
             UnifiedProofStep::Update => {
-                let old_proof = self.old_proof.clone().unwrap();
-                let new_proof = self.new_proof.clone().unwrap();
-
-                let vars = self.process_update(cs, &old_proof, &new_proof)?;
+                let new_proof = new_proof.ok_or(SynthesisError::Unsatisfiable)?;
+                let vars = self.process_update(cs, old_proof, new_proof)?;
                 let updated_root = vars[1].clone();
-                z_out.push(updated_root);
-                z_out.push(missing_node_label.clone());
-                z_out.push(existing_node_label.clone());
-                Ok(z_out)
+                z_out.extend_from_slice(&[
+                    updated_root,
+                    existing_node_label_input.clone(),
+                    missing_node_label_input.clone(),
+                ]);
             }
             UnifiedProofStep::InsertStart => {
-                let old_proof = self.old_proof.clone().unwrap();
                 let (non_membership_root, non_membership_path) =
-                    unpack_and_process::<Scalar>(&old_proof).unwrap();
-                let new_leaf = self.missing_node.clone().unwrap();
-                // todo: reminder. use push and pop namespace
-                // let namespace = format!("non-membership for {:?}", non_membership_root);
+                    unpack_and_process::<Scalar>(old_proof)
+                        .map_err(|_| SynthesisError::Unsatisfiable)?;
 
-                // TODO: LessThan gadget
-                let existing_leaf = non_membership_path.first().unwrap();
-                let existing_leaf_label: Scalar = Hash::new(existing_leaf.clone().get_label())
+                let new_leaf = self
+                    .missing_node
+                    .as_ref()
+                    .ok_or(SynthesisError::Unsatisfiable)?;
+
+                let existing_leaf = non_membership_path
+                    .first()
+                    .ok_or(SynthesisError::Unsatisfiable)?;
+                let existing_leaf_label: Scalar = Hash::new(existing_leaf.get_label())
                     .to_scalar()
-                    .unwrap();
-                // let existing_leaf_next: Scalar = Hash::new(existing_leaf.clone().get_next())
-                //     .to_scalar()
-                //     .unwrap();
-                let new_leaf_label: Scalar = Hash::new(new_leaf.label).to_scalar().unwrap();
+                    .map_err(|_| SynthesisError::Unsatisfiable)?;
+                let new_leaf_label: Scalar = Hash::new(new_leaf.label)
+                    .to_scalar()
+                    .map_err(|_| SynthesisError::Unsatisfiable)?;
 
                 let allocated_pre_insertion_root =
                     AllocatedNum::alloc(cs.namespace(|| "pre_insertion_root"), || {
@@ -227,9 +256,6 @@ impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> 
                     || Ok(recalculated_root),
                 )?;
 
-                // Enforce that the provided pre-insertion root matches the recalculated root.
-                // This ensures that the ordered structure of the tree is maintained in the path.
-                // (allocated_pre_insertion_root) * (1) = allocated_recalculated_root
                 cs.enforce(
                     || "pre_insertion_root_verification",
                     |lc| lc + allocated_pre_insertion_root.get_variable(),
@@ -237,63 +263,40 @@ impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> 
                     |lc| lc + allocated_recalculated_root.get_variable(),
                 );
 
-                // we don't update the root in this operation, so we pass it on
-                z_out.push(allocated_recalculated_root.clone());
-
-                // but we do need to allocate for the next Insert step functions
                 let z1 = AllocatedNum::alloc(cs.namespace(|| "z1"), || Ok(existing_leaf_label))?;
                 let z2 = AllocatedNum::alloc(cs.namespace(|| "z2"), || Ok(new_leaf_label))?;
-                z_out.push(z1);
-                z_out.push(z2);
-                Ok(z_out)
+                z_out.extend_from_slice(&[allocated_pre_insertion_root, z1, z2]);
             }
             UnifiedProofStep::InsertUpdate => {
-                let old_proof = self.old_proof.clone().unwrap();
-                let new_proof = self.new_proof.clone().unwrap();
+                let new_proof = new_proof.ok_or(SynthesisError::Unsatisfiable)?;
 
-                let old_element_hash: Scalar = Hash::new(old_proof.path.last().unwrap().get_hash())
-                    .to_scalar()
-                    .unwrap();
-                let old_element_hash_alloc =
-                    AllocatedNum::alloc(cs.namespace(|| format!("TODO")), || Ok(old_element_hash))?;
-                cs.enforce(
-                    || "z1 equality check pre-proof: NAMESPACE TODO",
-                    |lc| lc + existing_node_label.get_variable(),
-                    |lc| lc + CS::one(),
-                    |lc| lc + old_element_hash_alloc.get_variable(),
-                );
-                // todo: does the hash contain the next value? if so, we shouldnt constrain it to the new proof as below
-                let new_element_hash: Scalar = Hash::new(new_proof.path.last().unwrap().get_hash())
-                    .to_scalar()
-                    .unwrap();
-                let new_element_hash_alloc =
-                    AllocatedNum::alloc(cs.namespace(|| format!("TODO")), || Ok(new_element_hash))?;
-                cs.enforce(
-                    || "z1 equality check post-proof: NAMESPACE TODO",
-                    |lc| lc + existing_node_label.get_variable(),
-                    |lc| lc + CS::one(),
-                    |lc| lc + new_element_hash_alloc.get_variable(),
-                );
-
-                let vars = self.process_update(cs, &old_proof, &new_proof).unwrap();
+                let vars = self.process_update(cs, old_proof, new_proof)?;
                 let updated_root = vars[1].clone();
 
-                z_out.push(updated_root);
-                z_out.push(missing_node_label.clone());
-                z_out.push(existing_node_label.clone());
-                Ok(z_out)
+                z_out.extend_from_slice(&[
+                    updated_root,
+                    existing_node_label_input.clone(),
+                    missing_node_label_input.clone(),
+                ]);
             }
             UnifiedProofStep::InsertEnd => {
-                let vars = self.process_update(
-                    cs,
-                    &self.old_proof.clone().unwrap(),
-                    &self.new_proof.clone().unwrap(),
-                )?;
+                let new_proof = new_proof.ok_or(SynthesisError::Unsatisfiable)?;
+
+                let vars = self.process_update(cs, old_proof, new_proof)?;
                 let updated_root = vars[1].clone();
-                z_out.push(updated_root);
-                Ok(z_out)
+                z_out.extend_from_slice(&[
+                    updated_root,
+                    existing_node_label_input.clone(),
+                    missing_node_label_input.clone(),
+                ]);
             }
         }
+
+        println!(
+            "Output z_out: {:?}",
+            z_out.iter().map(|num| num.get_value()).collect::<Vec<_>>()
+        );
+        Ok(z_out)
     }
 }
 

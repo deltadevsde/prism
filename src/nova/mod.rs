@@ -2,7 +2,7 @@ pub mod batch;
 
 #[cfg(test)]
 mod tests {
-    use crate::nova::batch::MerkleProofStepCircuit;
+    use crate::nova::batch::{Hash, MerkleProofStepCircuit};
     use indexed_merkle_tree::{node::Node, sha256_mod, tree::IndexedMerkleTree, tree::Proof};
     use nova_snark::{
         provider::{Bn256EngineKZG, GrumpkinEngine},
@@ -40,6 +40,9 @@ mod tests {
     #[test]
     fn test_nova() {
         let mut tree = IndexedMerkleTree::new_with_size(4).unwrap();
+        let initial_commitment = Hash::new(tree.get_commitment().unwrap())
+            .to_scalar()
+            .unwrap();
 
         // create three nodes to insert
         let ryan = sha256_mod(b"Ryan");
@@ -78,41 +81,68 @@ mod tests {
         let pp = create_public_params();
         println!("Created public params.");
 
-        println!("Creating recursive snark...");
         let initial_primary_inputs = vec![
-            <E1 as Engine>::Scalar::zero(), // initial root
+            initial_commitment,
             <E1 as Engine>::Scalar::zero(), // initial existing node label
             <E1 as Engine>::Scalar::zero(), // initial missing node label
         ];
 
-        let (initial_circuit, next_steps) = circuits.split_first().unwrap();
+        let secondary_circuit = TrivialCircuit::default();
 
-        let mut recursive_snark: RecursiveSNARK<E1, E2, C1, C2> = RecursiveSNARK::new(
+        println!("Creating recursive snark...");
+        let recursive_snark_result = RecursiveSNARK::new(
             &pp,
-            initial_circuit,
-            &TrivialCircuit::default(),
+            &circuits[0],
+            &secondary_circuit,
             &initial_primary_inputs,
             &[<E2 as Engine>::Scalar::from(2u64)],
-        )
-        .unwrap();
-        println!("Created recursive snark.");
+        );
 
-        for (i, circuit) in next_steps.iter().enumerate() {
-            println!("Added proof {i} to recursive snark");
-            recursive_snark.prove_step(&pp, circuit, &TrivialCircuit::default());
-            // assert!(res.is_ok());
+        let mut z1_scalars = initial_primary_inputs;
+        let mut z2_scalars = [<E2 as Engine>::Scalar::from(2u64)];
 
-            // let res = recursive_snark.verify(
-            //     &pp,
-            //     i + 1,
-            //     &[<E1 as Engine>::Scalar::from(3u64)],
-            //     &[<E2 as Engine>::Scalar::from(2u64)],
-            // );
-            // assert!(res.is_ok());
+        match recursive_snark_result {
+            Ok(mut recursive_snark) => {
+                println!("Created recursive snark successfully.");
+
+                for (i, circuit) in circuits.iter().enumerate() {
+                    if i == 0 {
+                        continue;
+                    }
+                    println!("Step: {i}");
+                    let prove_result = recursive_snark.prove_step(&pp, circuit, &secondary_circuit);
+
+                    match prove_result {
+                        Ok(_) => {
+                            println!("Prove step {i} succeeded");
+                        }
+                        Err(e) => {
+                            println!("Prove step {i} failed with error: {:?}", e);
+                            panic!("Test failed at prove step {i}");
+                        }
+                    }
+
+                    let verify_result =
+                        recursive_snark.verify(&pp, i + 1, &z1_scalars, &z2_scalars);
+
+                    match verify_result {
+                        Ok((z1, z2)) => {
+                            z1_scalars = z1;
+                            // wow thats ugly
+                            z2_scalars = [z2[0]; 1];
+                            println!("Verify step {i} succeeded")
+                        }
+                        Err(e) => {
+                            println!("Verify step {i} failed with error: {:?}", e);
+                            panic!("Test failed at verify step {i}");
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                println!("Failed to create recursive snark. Error: {:?}", e);
+                panic!("Test failed during recursive snark creation");
+            }
         }
-
-        // Add assertions to check the final state if needed
-        // For example, you might want to check if the final root matches the expected value
-        // assert_eq!(final_root, expected_root);
     }
 }
