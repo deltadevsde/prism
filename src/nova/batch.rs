@@ -15,29 +15,6 @@ use nova_snark::{
     traits::circuit::StepCircuit,
 };
 
-// #[derive(Clone)]
-// pub enum UnifiedProofStep {
-//     Update {
-//         old_proof: MerkleProof,
-//         new_proof: MerkleProof,
-//     },
-//     InsertStart {
-//         non_membership_proof: NonMembershipProof,
-//     },
-//     /// InsertUpdate proof step ensures that:
-//     /// 1. There exists a LeafNode where existing_node.label < new_node.label < existing_node.next
-//     /// 2. The existing_node's next pointer is updated to new_node.label.
-//     /// Cares about inputs z[0] and z[2].
-//     InsertUpdate {
-//         old_proof: MerkleProof,
-//         new_proof: MerkleProof,
-//     },
-//     InsertEnd {
-//         old_proof: MerkleProof,
-//         new_proof: MerkleProof,
-//     },
-// }
-
 #[derive(Clone)]
 pub enum UnifiedProofStep {
     /// Update proof step ensures that an existing LeafNode is updated with a new value.
@@ -58,46 +35,6 @@ pub enum UnifiedProofStep {
     /// Cares about inputs z[0] and z[1].
     InsertEnd,
 }
-
-// impl UnifiedProofStep {
-//     pub fn aggregate(proofs: Vec<Proof>) -> Vec<Self> {
-//         proofs
-//             .iter()
-//             .flat_map(|p| UnifiedProofStep::from_proof(p.clone()))
-//             .collect()
-//     }
-
-//     pub fn from_insert_proof(proof: &InsertProof) -> Vec<Self> {
-//         let mut steps: Vec<UnifiedProofStep> = Vec::new();
-//         let non_membership_proof = proof.non_membership_proof.clone();
-//         steps.push(UnifiedProofStep::InsertStart {
-//             non_membership_proof: non_membership_proof.clone(),
-//         });
-//         steps.push(UnifiedProofStep::InsertUpdate {
-//             old_proof: proof.first_proof.old_proof.clone(),
-//             new_proof: proof.first_proof.new_proof.clone(),
-//         });
-//         steps.push(UnifiedProofStep::InsertEnd {
-//             old_proof: proof.second_proof.old_proof.clone(),
-//             new_proof: proof.second_proof.new_proof.clone(),
-//         });
-//         steps
-//     }
-
-//     pub fn from_update_proof(proof: &UpdateProof) -> Vec<Self> {
-//         vec![UnifiedProofStep::Update {
-//             old_proof: proof.old_proof.clone(),
-//             new_proof: proof.new_proof.clone(),
-//         }]
-//     }
-
-//     pub fn from_proof(proof: Proof) -> Vec<Self> {
-//         match proof {
-//             Proof::Insert(insert_proof) => Self::from_insert_proof(&insert_proof),
-//             Proof::Update(update_proof) => Self::from_update_proof(&update_proof),
-//         }
-//     }
-// }
 
 #[derive(Clone)]
 pub struct MerkleProofStepCircuit<Scalar: PrimeField> {
