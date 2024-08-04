@@ -6,58 +6,104 @@ use bellpepper_core::{
 use core::marker::PhantomData;
 use ff::PrimeField;
 use indexed_merkle_tree::{
-    node::LeafNode,
-    node::Node,
+    node::{LeafNode, Node},
     sha256_mod,
-    tree::{MerkleProof, NonMembershipProof},
+    tree::{InsertProof, MerkleProof, NonMembershipProof, Proof, UpdateProof},
 };
 use nova_snark::{
     provider::{Bn256EngineKZG, GrumpkinEngine},
     traits::circuit::StepCircuit,
 };
 
-type E1 = Bn256EngineKZG;
-type E2 = GrumpkinEngine;
+// #[derive(Clone)]
+// pub enum UnifiedProofStep {
+//     Update {
+//         old_proof: MerkleProof,
+//         new_proof: MerkleProof,
+//     },
+//     InsertStart {
+//         non_membership_proof: NonMembershipProof,
+//     },
+//     /// InsertUpdate proof step ensures that:
+//     /// 1. There exists a LeafNode where existing_node.label < new_node.label < existing_node.next
+//     /// 2. The existing_node's next pointer is updated to new_node.label.
+//     /// Cares about inputs z[0] and z[2].
+//     InsertUpdate {
+//         old_proof: MerkleProof,
+//         new_proof: MerkleProof,
+//     },
+//     InsertEnd {
+//         old_proof: MerkleProof,
+//         new_proof: MerkleProof,
+//     },
+// }
 
 #[derive(Clone)]
-enum UnifiedProofStep {
+pub enum UnifiedProofStep {
     /// Update proof step ensures that an existing LeafNode is updated with a new value.
     /// Cares about inputs z[0].
     // TODO: adr-003: Adding authentication circuit with poseidon hash, which is not needed in Verdict but needed here.
     // This is because Verdict assumes the downstream application verifies the hashchain themselves.
     // We need to be able to prove the validity of the hashchain though, since anybody can post an Update operation.
-    Update {
-        old_proof: MerkleProof,
-        new_proof: MerkleProof,
-    },
+    Update,
     /// InsertStart proof step ensures that a LeafNode to be inserted does not yet exist in the tree.
     /// Cares about inputs z[0].
-    InsertStart {
-        non_membership_proof: NonMembershipProof,
-        new_leaf: LeafNode,
-    },
+    InsertStart,
     /// InsertUpdate proof step ensures that:
     /// 1. There exists a LeafNode where existing_node.label < new_node.label < existing_node.next
     /// 2. The existing_node's next pointer is updated to new_node.label.
     /// Cares about inputs z[0] and z[2].
-    InsertUpdate {
-        old_proof: MerkleProof,
-        new_proof: MerkleProof,
-    },
+    InsertUpdate,
     /// InsertEnd proof step ensures that the new_node from the last step is added to the tree.
     /// Cares about inputs z[0] and z[1].
-    InsertEnd {
-        old_proof: MerkleProof,
-        new_proof: MerkleProof,
-    },
+    InsertEnd,
 }
 
+// impl UnifiedProofStep {
+//     pub fn aggregate(proofs: Vec<Proof>) -> Vec<Self> {
+//         proofs
+//             .iter()
+//             .flat_map(|p| UnifiedProofStep::from_proof(p.clone()))
+//             .collect()
+//     }
+
+//     pub fn from_insert_proof(proof: &InsertProof) -> Vec<Self> {
+//         let mut steps: Vec<UnifiedProofStep> = Vec::new();
+//         let non_membership_proof = proof.non_membership_proof.clone();
+//         steps.push(UnifiedProofStep::InsertStart {
+//             non_membership_proof: non_membership_proof.clone(),
+//         });
+//         steps.push(UnifiedProofStep::InsertUpdate {
+//             old_proof: proof.first_proof.old_proof.clone(),
+//             new_proof: proof.first_proof.new_proof.clone(),
+//         });
+//         steps.push(UnifiedProofStep::InsertEnd {
+//             old_proof: proof.second_proof.old_proof.clone(),
+//             new_proof: proof.second_proof.new_proof.clone(),
+//         });
+//         steps
+//     }
+
+//     pub fn from_update_proof(proof: &UpdateProof) -> Vec<Self> {
+//         vec![UnifiedProofStep::Update {
+//             old_proof: proof.old_proof.clone(),
+//             new_proof: proof.new_proof.clone(),
+//         }]
+//     }
+
+//     pub fn from_proof(proof: Proof) -> Vec<Self> {
+//         match proof {
+//             Proof::Insert(insert_proof) => Self::from_insert_proof(&insert_proof),
+//             Proof::Update(update_proof) => Self::from_update_proof(&update_proof),
+//         }
+//     }
+// }
+
 #[derive(Clone)]
-struct MerkleProofStepCircuit<Scalar: PrimeField> {
+pub struct MerkleProofStepCircuit<Scalar: PrimeField> {
     step_type: UnifiedProofStep,
-    old_root: Option<Scalar>,
-    new_root: Option<Scalar>,
-    proof_path: Vec<Node>,
+    old_proof: Option<MerkleProof>,
+    new_proof: Option<MerkleProof>,
 
     // Additional fields for non-membership proof
     is_non_membership: bool,
@@ -65,9 +111,69 @@ struct MerkleProofStepCircuit<Scalar: PrimeField> {
     _p: PhantomData<Scalar>,
 }
 
+impl<Scalar: PrimeField> MerkleProofStepCircuit<Scalar> {
+    pub fn new(
+        step: UnifiedProofStep,
+        old_proof: Option<MerkleProof>,
+        new_proof: Option<MerkleProof>,
+        is_non_membership: bool,
+        missing_node: Option<LeafNode>,
+    ) -> Self {
+        MerkleProofStepCircuit {
+            step_type: step,
+            old_proof,
+            new_proof,
+            is_non_membership,
+            missing_node,
+            _p: PhantomData,
+        }
+    }
+}
+
+impl<Scalar: PrimeField> MerkleProofStepCircuit<Scalar> {
+    pub fn from_proof(proof: Proof) -> Vec<Self> {
+        match proof {
+            Proof::Insert(insert_proof) => {
+                vec![
+                    Self::new(
+                        UnifiedProofStep::InsertStart,
+                        Some(insert_proof.non_membership_proof.merkle_proof.clone()),
+                        None,
+                        true,
+                        Some(insert_proof.non_membership_proof.missing_node),
+                    ),
+                    Self::new(
+                        UnifiedProofStep::InsertUpdate,
+                        Some(insert_proof.first_proof.old_proof),
+                        Some(insert_proof.first_proof.new_proof),
+                        false,
+                        None,
+                    ),
+                    Self::new(
+                        UnifiedProofStep::InsertEnd,
+                        Some(insert_proof.second_proof.old_proof),
+                        Some(insert_proof.second_proof.new_proof),
+                        false,
+                        None,
+                    ),
+                ]
+            }
+            Proof::Update(update_proof) => {
+                vec![Self::new(
+                    UnifiedProofStep::Update,
+                    Some(update_proof.old_proof),
+                    Some(update_proof.new_proof),
+                    false,
+                    None,
+                )]
+            }
+        }
+    }
+}
+
 // TODO: these are just here temporarily as I write the circuits, they need to be moved to where the circuit gets instantiated later //////////////////////
 
-struct Hash<Scalar: PrimeField> {
+pub struct Hash<Scalar: PrimeField> {
     hash: indexed_merkle_tree::Hash,
     _p: PhantomData<Scalar>,
 }
@@ -142,10 +248,10 @@ impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> 
         let mut z_out: Vec<AllocatedNum<Scalar>> = Vec::new();
 
         match self.step_type.clone() {
-            UnifiedProofStep::Update {
-                old_proof,
-                new_proof,
-            } => {
+            UnifiedProofStep::Update => {
+                let old_proof = self.old_proof.clone().unwrap();
+                let new_proof = self.new_proof.clone().unwrap();
+
                 let vars = self.process_update(cs, &old_proof, &new_proof)?;
                 let updated_root = vars[1].clone();
                 z_out.push(updated_root);
@@ -153,12 +259,11 @@ impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> 
                 z_out.push(existing_node_label.clone());
                 Ok(z_out)
             }
-            UnifiedProofStep::InsertStart {
-                non_membership_proof,
-                new_leaf,
-            } => {
+            UnifiedProofStep::InsertStart => {
+                let old_proof = self.old_proof.clone().unwrap();
                 let (non_membership_root, non_membership_path) =
-                    unpack_and_process::<Scalar>(&non_membership_proof.merkle_proof).unwrap();
+                    unpack_and_process::<Scalar>(&old_proof).unwrap();
+                let new_leaf = self.missing_node.clone().unwrap();
                 // todo: reminder. use push and pop namespace
                 // let namespace = format!("non-membership for {:?}", non_membership_root);
 
@@ -196,7 +301,7 @@ impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> 
                 );
 
                 // we don't update the root in this operation, so we pass it on
-                z_out.push(previous_root.clone());
+                z_out.push(allocated_recalculated_root.clone());
 
                 // but we do need to allocate for the next Insert step functions
                 let z1 = AllocatedNum::alloc(cs.namespace(|| "z1"), || Ok(existing_leaf_label))?;
@@ -205,10 +310,10 @@ impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> 
                 z_out.push(z2);
                 Ok(z_out)
             }
-            UnifiedProofStep::InsertUpdate {
-                old_proof,
-                new_proof,
-            } => {
+            UnifiedProofStep::InsertUpdate => {
+                let old_proof = self.old_proof.clone().unwrap();
+                let new_proof = self.new_proof.clone().unwrap();
+
                 let old_element_hash: Scalar = Hash::new(old_proof.path.last().unwrap().get_hash())
                     .to_scalar()
                     .unwrap();
@@ -241,11 +346,12 @@ impl<Scalar: PrimeField> StepCircuit<Scalar> for MerkleProofStepCircuit<Scalar> 
                 z_out.push(existing_node_label.clone());
                 Ok(z_out)
             }
-            UnifiedProofStep::InsertEnd {
-                old_proof,
-                new_proof,
-            } => {
-                let vars = self.process_update(cs, &old_proof, &new_proof)?;
+            UnifiedProofStep::InsertEnd => {
+                let vars = self.process_update(
+                    cs,
+                    &self.old_proof.clone().unwrap(),
+                    &self.new_proof.clone().unwrap(),
+                )?;
                 let updated_root = vars[1].clone();
                 z_out.push(updated_root);
                 Ok(z_out)
