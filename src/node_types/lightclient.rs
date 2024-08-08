@@ -80,13 +80,13 @@ impl LightClient {
                                 let prev_commitment = &epoch_json.prev_commitment;
                                 let current_commitment = &epoch_json.current_commitment;
 
-                                let proof = match epoch_json.proof.clone().try_into() {
-                                    Ok(proof) => proof,
-                                    Err(e) => {
-                                        error!("failed to deserialize proof, skipping a blob at height {}: {:?}", i, e);
-                                        continue;
-                                    }
-                                };
+                                // let proof = match epoch_json.proof.clone().try_into() {
+                                //     Ok(proof) => proof,
+                                //     Err(e) => {
+                                //         error!("failed to deserialize proof, skipping a blob at height {}: {:?}", i, e);
+                                //         continue;
+                                //     }
+                                // };
 
                                 // TODO(@distractedm1nd): i don't know rust yet but this seems like non-idiomatic rust -
                                 // is there not a Trait that can satisfy these properties for us?

@@ -2,6 +2,7 @@ use crate::{
     circuits::{Bls12Proof, VerifyingKey},
     common::Operation,
     error::GeneralError,
+    tree::Digest,
     utils::SignedContent,
 };
 use anyhow::Result;
@@ -18,10 +19,10 @@ pub mod memory;
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug)]
 pub struct FinalizedEpoch {
     pub height: u64,
-    pub prev_commitment: Hash,
-    pub current_commitment: Hash,
-    pub proof: Bls12Proof,
-    pub verifying_key: VerifyingKey,
+    pub prev_commitment: Digest,
+    pub current_commitment: Digest,
+    // pub proof: Bls12Proof,
+    // pub verifying_key: VerifyingKey,
     pub signature: Option<String>,
 }
 

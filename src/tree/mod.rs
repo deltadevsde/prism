@@ -2,16 +2,34 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use borsh::{from_slice, to_vec, BorshDeserialize, BorshSerialize};
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
-    storage::{Node, NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
+    storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
     KeyHash, RootHash, Sha256Jmt, SimpleHasher,
 };
+use serde::{Deserialize, Serialize};
 
-use crate::common::Hashchain;
+use crate::{common::Hashchain, storage::RedisConnection};
 
-const SPARSE_MERKLE_PLACEHOLDER_HASH: [u8; 32] = *b"SPARSE_MERKLE_PLACEHOLDER_HASH__";
+pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
+    Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
 pub type Hasher = sha2::Sha256;
+
+#[derive(
+    Debug, Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, PartialEq, Eq, Copy,
+)]
 pub struct Digest([u8; 32]);
+
+impl AsRef<[u8]> for Digest {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for Digest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_hex())
+    }
+}
 
 impl Digest {
     pub const fn new(bytes: [u8; 32]) -> Self {
@@ -25,17 +43,8 @@ impl Digest {
         Ok(Digest(bytes))
     }
 
-    #[cfg(feature = "std")]
     pub fn to_hex(&self) -> String {
         hex::encode(self.0)
-    }
-
-    #[cfg(not(feature = "std"))]
-    pub fn to_hex(&self) -> [u8; 64] {
-        let mut hex = [0u8; 64];
-        hex::encode_to_slice(self.0, &mut hex)
-            .expect("The output is exactly twice the size of the input");
-        hex
     }
 }
 
@@ -120,6 +129,8 @@ pub trait SnarkableTree {
     fn get(&self, key: KeyHash) -> Result<Result<Hashchain, NonMembershipProof>>;
 }
 
+pub type RedisKDTree<'a> = KeyDirectoryTree<'a, RedisConnection>;
+
 pub struct KeyDirectoryTree<'a, S>
 where
     S: 'a + TreeReader + TreeWriter,
@@ -141,7 +152,7 @@ where
         };
         let (_, batch) = tree
             .jmt
-            .put_value_set(vec![(KeyHash(SPARSE_MERKLE_PLACEHOLDER_HASH), None)], 0)
+            .put_value_set(vec![(KeyHash(SPARSE_MERKLE_PLACEHOLDER_HASH.0), None)], 0)
             .unwrap();
         store.write_node_batch(&batch.node_batch).unwrap();
         tree
@@ -336,7 +347,7 @@ mod tests {
     #[test]
     fn test_get_non_existing_key() {
         let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(&store);
+        let tree = KeyDirectoryTree::new(&store);
 
         let key = KeyHash::with::<Hasher>(b"non_existing_key");
         let result = tree.get(key).unwrap();
