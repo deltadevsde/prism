@@ -2,12 +2,13 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{
-    node::Node,
-    sha256_mod,
-    tree::{IndexedMerkleTree, Proof},
-    Hash,
-};
+use jmt::{storage::{TreeReader, TreeWriter}, KeyHash};
+// use indexed_merkle_tree::{
+//     node::Node,
+//     tree::{IndexedMerkleTree, Proof},
+//     Hash,
+// };
+use crate::tree::{hash, Digest, KeyDirectoryTree, Proof};
 use std::{self, str::FromStr, sync::Arc};
 use tokio::{
     sync::{
@@ -24,7 +25,7 @@ use crate::error::DataAvailabilityError;
 use crate::{
     cfg::Config,
     circuits::BatchMerkleProofCircuit,
-    common::{AccountSource, HashchainEntry, Operation},
+    common::{AccountSource, Hashchain, HashchainEntry, Operation},
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
     error::{DatabaseError, GeneralError},
@@ -33,7 +34,10 @@ use crate::{
     webserver::{OperationInput, WebServer},
 };
 
-pub struct Sequencer {
+pub struct Sequencer<'a, S>
+where
+    S: 'a + TreeReader + TreeWriter,
+{
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
     pub ws: WebServer,
@@ -48,14 +52,17 @@ pub struct Sequencer {
     // [`pending_operations`] is a buffer for operations that have not yet been
     // posted to the DA layer.
     pending_operations: Arc<Mutex<Vec<Operation>>>,
-    tree: Arc<Mutex<IndexedMerkleTree>>,
+    tree: Arc<Mutex<KeyDirectoryTree<'a, S>>>,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
     epoch_buffer_rx: Arc<Mutex<Receiver<FinalizedEpoch>>>,
 }
 
 #[async_trait]
-impl NodeType for Sequencer {
+impl<'a, S> NodeType for Sequencer<'a, S>
+where
+    S: 'a + TreeReader + TreeWriter,
+{
     async fn start(self: Arc<Self>) -> Result<()> {
         self.da.start().await.context("Failed to start DA layer")?;
 
@@ -262,7 +269,7 @@ impl Sequencer {
         .await
     }
 
-    pub async fn get_commitment(&self) -> Result<Hash> {
+    pub async fn get_commitment(&self) -> Result<Digest> {
         let tree = self.tree.lock().await;
         tree.get_commitment().context("Failed to get commitment")
     }
@@ -280,7 +287,7 @@ impl Sequencer {
                 "Failed to get commitment for previous epoch {}",
                 prev_epoch
             ))?;
-            Hash::from_hex(&hash_string).context("Failed to parse commitment")?
+            Digest::from_hex(&hash_string).context("Failed to parse commitment")?
         } else {
             self.get_commitment().await?
         };
@@ -363,12 +370,7 @@ impl Sequencer {
                     .context(format!("Failed to get hashchain for ID {}", id))?;
 
                 let mut tree = self.tree.lock().await;
-                let hashed_id = sha256_mod(id.as_bytes());
-
-                let node = tree.find_leaf_by_label(&hashed_id).context(format!(
-                    "Node with label {} not found in the tree",
-                    hashed_id
-                ))?;
+                let hashed_id = hash(id.as_bytes());
 
                 let previous_hash = current_chain.last().context("Hashchain is empty")?.hash;
 
@@ -382,12 +384,8 @@ impl Sequencer {
                     node.get_next(),
                 );
 
-                let index = tree.find_node_index(&node).context(format!(
-                    "Node with label {} not found in the tree, but has a hashchain entry",
-                    hashed_id
-                ))?;
-
                 debug!("updating hashchain for user id {}", id.clone());
+                self.tree.insert(KeyHash::with(hashed_id), )
                 self.db
                     .update_hashchain(operation, &current_chain)
                     .context(format!(
@@ -432,7 +430,7 @@ impl Sequencer {
                     ))?;
 
                 let mut tree = self.tree.lock().await;
-                let hashed_id = sha256_mod(id.as_bytes());
+                let hashed_id = hash(id.as_bytes());
 
                 let mut node =
                     Node::new_leaf(true, hashed_id, new_chain.first().unwrap().hash, Node::TAIL);

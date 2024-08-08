@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use arecibo::traits::circuit::StepCircuit;
 use bellpepper_core::{
     num::{AllocatedNum, Num},
     ConstraintSystem, SynthesisError,
@@ -9,10 +10,6 @@ use indexed_merkle_tree::{
     node::{LeafNode, Node},
     sha256_mod,
     tree::{InsertProof, MerkleProof, NonMembershipProof, Proof, UpdateProof},
-};
-use nova_snark::{
-    provider::{Bn256EngineKZG, GrumpkinEngine},
-    traits::circuit::StepCircuit,
 };
 
 #[derive(Clone, Debug)]

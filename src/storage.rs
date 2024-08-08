@@ -12,7 +12,7 @@ use std::{
 
 use crate::{
     cfg::RedisConfig,
-    common::{HashchainEntry, Operation},
+    common::{Hashchain, HashchainEntry, Operation},
     error::{DatabaseError, GeneralError, PrismError},
     utils::parse_json_to_proof,
 };
@@ -30,7 +30,7 @@ pub struct RedisConnection {
 #[automock]
 pub trait Database: Send + Sync {
     fn get_keys(&self) -> Result<Vec<String>>;
-    fn get_hashchain(&self, key: &str) -> Result<Vec<HashchainEntry>>;
+    fn get_hashchain(&self, key: &str) -> Result<Hashchain>;
     fn get_commitment(&self, epoch: &u64) -> Result<String>;
     fn get_proof(&self, id: &str) -> Result<String>;
     fn get_proofs_in_epoch(&self, epoch: &u64) -> Result<Vec<Proof>>;
@@ -105,7 +105,7 @@ impl Database for RedisConnection {
         Ok(keys.into_iter().map(|k| k.replace("main:", "")).collect())
     }
 
-    fn get_hashchain(&self, key: &str) -> Result<Vec<HashchainEntry>> {
+    fn get_hashchain(&self, key: &str) -> Result<Hashchain> {
         let mut con = self.lock_connection()?;
         let value: String = con
             .get(format!("main:{}", key))

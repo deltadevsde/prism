@@ -1,7 +1,11 @@
+use anyhow::{bail, Result};
 use borsh::{BorshDeserialize, BorshSerialize};
 use indexed_merkle_tree::{sha256_mod, Hash};
+use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+
+use crate::tree::Hasher;
 
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug, PartialEq)]
 // An [`Operation`] represents a state transition in the system.
@@ -56,7 +60,66 @@ impl Display for Operation {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
+pub struct Hashchain {
+    id: String,
+    entries: Vec<HashchainEntry>,
+}
+
+impl Hashchain {
+    pub fn new(id: String) -> Self {
+        Self {
+            id,
+            entries: Vec::new(),
+        }
+    }
+
+    pub fn push(&mut self, operation: Operation) -> Result<Hash> {
+        if let Operation::CreateAccount { .. } = operation {
+            bail!("Cannot CreateAccount on an already existing hashchain");
+        }
+        if operation.id() != self.id {
+            bail!("Operation ID does not match Hashchain ID");
+        }
+
+        let previous_hash = self
+            .entries
+            .last()
+            .map_or(Hash::new([0u8; 32]), |entry| entry.hash);
+
+        let entry = HashchainEntry::new(operation, previous_hash);
+        self.entries.push(entry.clone());
+
+        Ok(entry.hash)
+    }
+
+    // TODO: Obviously, this needs to be authenticated by an existing key.
+    pub fn add(&mut self, value: String) -> Result<Hash> {
+        let operation = Operation::Add {
+            id: self.id.clone(),
+            value,
+        };
+        self.push(operation)
+    }
+
+    pub fn revoke(&mut self, value: String) -> Result<Hash> {
+        let operation = Operation::Revoke {
+            id: self.id.clone(),
+            value,
+        };
+        self.push(operation)
+    }
+
+    pub fn get_keyhash(&self) -> KeyHash {
+        KeyHash::with::<Hasher>(self.id.clone())
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+}
+
+#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
 // A [`HashchainEntry`] represents a single entry in an account's hashchain.
 // The value in the leaf of the corresponding account's node in the IMT is the hash of the last node in the hashchain.
 pub struct HashchainEntry {
@@ -71,6 +134,7 @@ impl HashchainEntry {
             let mut data = Vec::new();
             data.extend_from_slice(operation.to_string().as_bytes());
             data.extend_from_slice(previous_hash.as_ref());
+            // TODO: replace with sha256 after JMT complete
             sha256_mod(&data)
         };
         Self {
