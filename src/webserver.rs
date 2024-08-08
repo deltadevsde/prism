@@ -1,6 +1,6 @@
 use crate::{
     cfg::WebServerConfig,
-    common::{HashchainEntry, Operation},
+    common::{Hashchain, Operation},
     error::GeneralError,
     node_types::sequencer::Sequencer,
     utils::{verify_signature, SignedContent},
@@ -92,7 +92,7 @@ pub struct UserKeyRequest {
 // TODO: Retrieve Merkle proof of current epoch
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UserKeyResponse {
-    pub hashchain: Vec<HashchainEntry>,
+    pub hashchain: Hashchain,
     // pub proof: MerkleProof
 }
 
@@ -132,7 +132,7 @@ impl WebServer {
         Self { cfg }
     }
 
-    pub async fn start(&self, session: Arc<Sequencer>) -> Result<()> {
+    pub async fn start(&self, session: Arc<Sequencer<'static>>) -> Result<()> {
         info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let app = Router::new()
             .route("/update-entry", post(update_entry))
@@ -165,7 +165,7 @@ impl WebServer {
     )
 )]
 async fn update_entry(
-    State(session): State<Arc<Sequencer>>,
+    State(session): State<Arc<Sequencer<'static>>>,
     Json(signature_with_key): Json<OperationInput>,
 ) -> impl IntoResponse {
     match session.validate_and_queue_update(&signature_with_key).await {
@@ -196,7 +196,7 @@ async fn update_entry(
     )
 )]
 async fn get_hashchain(
-    State(session): State<Arc<Sequencer>>,
+    State(session): State<Arc<Sequencer<'static>>>,
     Json(request): Json<UserKeyRequest>,
 ) -> impl IntoResponse {
     match session.db.get_hashchain(&request.id) {
@@ -219,7 +219,7 @@ async fn get_hashchain(
         (status = 500, description = "Internal server error")
     )
 )]
-async fn get_commitment(State(session): State<Arc<Sequencer>>) -> impl IntoResponse {
+async fn get_commitment(State(session): State<Arc<Sequencer<'static>>>) -> impl IntoResponse {
     match session.get_commitment().await {
         Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),

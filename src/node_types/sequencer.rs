@@ -1,13 +1,9 @@
+use crate::tree::{hash, Digest, KeyDirectoryTree, Proof, RedisKDTree};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
-use indexed_merkle_tree::{
-    node::Node,
-    sha256_mod,
-    tree::{IndexedMerkleTree, Proof},
-    Hash,
-};
+use jmt::KeyHash;
 use std::{self, str::FromStr, sync::Arc};
 use tokio::{
     sync::{
@@ -23,8 +19,7 @@ use crate::error::DataAvailabilityError;
 
 use crate::{
     cfg::Config,
-    circuits::BatchMerkleProofCircuit,
-    common::{AccountSource, HashchainEntry, Operation},
+    common::{AccountSource, Hashchain, HashchainEntry, Operation},
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
     error::{DatabaseError, GeneralError},
@@ -33,7 +28,7 @@ use crate::{
     webserver::{OperationInput, WebServer},
 };
 
-pub struct Sequencer {
+pub struct Sequencer<'a> {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
     pub ws: WebServer,
@@ -48,14 +43,14 @@ pub struct Sequencer {
     // [`pending_operations`] is a buffer for operations that have not yet been
     // posted to the DA layer.
     pending_operations: Arc<Mutex<Vec<Operation>>>,
-    tree: Arc<Mutex<IndexedMerkleTree>>,
+    tree: Arc<Mutex<RedisKDTree<'a>>>,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
     epoch_buffer_rx: Arc<Mutex<Receiver<FinalizedEpoch>>>,
 }
 
 #[async_trait]
-impl NodeType for Sequencer {
+impl<'a> NodeType for Sequencer<'a> {
     async fn start(self: Arc<Self>) -> Result<()> {
         self.da.start().await.context("Failed to start DA layer")?;
 
@@ -88,13 +83,15 @@ impl Sequencer {
 
         let start_height = cfg.celestia_config.unwrap_or_default().start_height;
 
+        let tree = KeyDirectoryTree::new(&db.clone());
+
         Ok(Sequencer {
             db,
             da,
             ws: WebServer::new(ws),
             key,
             start_height,
-            tree: Arc::new(Mutex::new(IndexedMerkleTree::new_with_size(1024).unwrap())),
+            tree,
             pending_operations: Arc::new(Mutex::new(Vec::new())),
             epoch_buffer_tx: Arc::new(tx),
             epoch_buffer_rx: Arc::new(Mutex::new(rx)),
@@ -262,7 +259,7 @@ impl Sequencer {
         .await
     }
 
-    pub async fn get_commitment(&self) -> Result<Hash> {
+    pub async fn get_commitment(&self) -> Result<Digest> {
         let tree = self.tree.lock().await;
         tree.get_commitment().context("Failed to get commitment")
     }
@@ -280,7 +277,7 @@ impl Sequencer {
                 "Failed to get commitment for previous epoch {}",
                 prev_epoch
             ))?;
-            Hash::from_hex(&hash_string).context("Failed to parse commitment")?
+            Digest::from_hex(&hash_string).context("Failed to parse commitment")?
         } else {
             self.get_commitment().await?
         };
@@ -302,22 +299,22 @@ impl Sequencer {
             .context("Failed to set new epoch")?;
         // add the commitment for the operations ran since the last epoch
         self.db
-            .add_commitment(&epoch, &current_commitment)
+            .set_commitment(&epoch, &current_commitment)
             .context("Failed to add commitment for new epoch")?;
 
-        let batch_circuit =
-            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
-                .context("Failed to create BatchMerkleProofCircuit")?;
-        let (proof, verifying_key) = batch_circuit
-            .create_and_verify_snark()
-            .context("Failed to create and verify snark")?;
+        // let batch_circuit =
+        //     BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
+        //         .context("Failed to create BatchMerkleProofCircuit")?;
+        // let (proof, verifying_key) = batch_circuit
+        //     .create_and_verify_snark()
+        //     .context("Failed to create and verify snark")?;
 
         let epoch_json = FinalizedEpoch {
             height: epoch,
             prev_commitment,
             current_commitment,
-            proof: proof.into(),
-            verifying_key: verifying_key.into(),
+            // proof: proof.into(),
+            // verifying_key: verifying_key.into(),
             signature: None,
         };
 
@@ -363,31 +360,22 @@ impl Sequencer {
                     .context(format!("Failed to get hashchain for ID {}", id))?;
 
                 let mut tree = self.tree.lock().await;
-                let hashed_id = sha256_mod(id.as_bytes());
-
-                let node = tree.find_leaf_by_label(&hashed_id).context(format!(
-                    "Node with label {} not found in the tree",
-                    hashed_id
-                ))?;
+                let hashed_id = hash(id.as_bytes());
 
                 let previous_hash = current_chain.last().context("Hashchain is empty")?.hash;
 
                 let new_chain_entry = HashchainEntry::new(operation.clone(), previous_hash);
                 current_chain.push(new_chain_entry.clone());
 
-                let updated_node = Node::new_leaf(
-                    node.is_left_sibling(),
-                    hashed_id,
-                    new_chain_entry.hash,
-                    node.get_next(),
-                );
-
-                let index = tree.find_node_index(&node).context(format!(
-                    "Node with label {} not found in the tree, but has a hashchain entry",
-                    hashed_id
-                ))?;
+                // let updated_node = Node::new_leaf(
+                //     node.is_left_sibling(),
+                //     hashed_id,
+                //     new_chain_entry.hash,
+                //     node.get_next(),
+                // );
 
                 debug!("updating hashchain for user id {}", id.clone());
+                let proof = self.tree.update(KeyHash::with(hashed_id), current_chain)?;
                 self.db
                     .update_hashchain(operation, &current_chain)
                     .context(format!(
@@ -395,9 +383,7 @@ impl Sequencer {
                         operation
                     ))?;
 
-                tree.update_node(index, updated_node)
-                    .map(Proof::Update)
-                    .context("Failed to update node in tree")
+                proof
             }
             Operation::CreateAccount { id, value, source } => {
                 // validation of account source
@@ -422,23 +408,20 @@ impl Sequencer {
                 }
 
                 debug!("creating new hashchain for user id {}", id.clone());
-                let new_chain = vec![HashchainEntry::new(operation.clone(), Node::HEAD)];
+                let chain = Hashchain::new(id.clone());
+                chain.create_account(value.into(), *source);
 
                 self.db
-                    .update_hashchain(operation, &new_chain)
+                    .update_hashchain(operation, &chain)
                     .context(format!(
                         "Failed to create hashchain for operation {:?}",
                         operation
                     ))?;
 
                 let mut tree = self.tree.lock().await;
-                let hashed_id = sha256_mod(id.as_bytes());
+                let hashed_id = hash(id.as_bytes());
 
-                let mut node =
-                    Node::new_leaf(true, hashed_id, new_chain.first().unwrap().hash, Node::TAIL);
-                tree.insert_node(&mut node)
-                    .map(Proof::Insert)
-                    .context("Failed to insert node into tree")
+                tree.insert(KeyHash::with(hashed_id), chain)
             }
         }
     }
@@ -481,7 +464,7 @@ mod tests {
     }
 
     // Helper function to create a test Sequencer instance
-    async fn create_test_sequencer() -> Arc<Sequencer> {
+    async fn create_test_sequencer() -> Arc<Sequencer<'static>> {
         let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());
@@ -580,7 +563,7 @@ mod tests {
         assert_ne!(prev_commitment, new_commitment);
 
         let hashchain = sequencer.db.get_hashchain(id.as_str());
-        let value = hashchain.unwrap().first().unwrap().operation.value();
+        let value = hashchain.unwrap().get(0).operation.value();
         assert_eq!(value, "test");
 
         teardown_db(&db);
@@ -698,7 +681,7 @@ mod tests {
 
         let hashchain = sequencer.db.get_hashchain("user@example.com").unwrap();
         assert_eq!(hashchain.len(), 2);
-        assert_eq!(hashchain[1].operation.value(), "new_value");
+        assert_eq!(hashchain.get(1).operation.value(), "new_value");
     }
 
     #[tokio::test]
@@ -726,7 +709,10 @@ mod tests {
 
         let hashchain = sequencer.db.get_hashchain("user@example.com").unwrap();
         assert_eq!(hashchain.len(), 2);
-        assert!(matches!(hashchain[1].operation, Operation::Revoke { .. }));
+        assert!(matches!(
+            hashchain.get(1).operation,
+            Operation::Revoke { .. }
+        ));
     }
 
     #[tokio::test]
