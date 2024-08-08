@@ -11,6 +11,7 @@ use prism::{
 };
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::{sync::Arc, time::Duration};
+use anyhow::{Context, Result}; // Import `Context` and `Result` from `anyhow`
 
 fn create_new_account_operation(id: String, value: String, key: &SigningKey) -> OperationInput {
     let incoming = Operation::CreateAccount {
@@ -20,7 +21,9 @@ fn create_new_account_operation(id: String, value: String, key: &SigningKey) -> 
             signature: key.sign(format!("{}{}", id, value).as_bytes()).to_string(),
         },
     };
-    let content = serde_json::to_string(&incoming).unwrap();
+    let content = serde_json::to_string(&incoming)
+        .with_context(|| "Failed to serialize operation to JSON")
+        .unwrap();
     let sig = key.sign(content.clone().as_bytes());
     OperationInput {
         operation: incoming,
@@ -32,7 +35,9 @@ fn create_new_account_operation(id: String, value: String, key: &SigningKey) -> 
 fn create_update_operation(id: String, value: String) -> OperationInput {
     let key = create_signing_key();
     let incoming = Operation::Add { id, value };
-    let content = serde_json::to_string(&incoming).unwrap();
+    let content = serde_json::to_string(&incoming)
+        .with_context(|| "Failed to serialize operation to JSON")
+        .unwrap();
     let sig = key.sign(content.clone().as_bytes());
     OperationInput {
         operation: incoming,
@@ -41,14 +46,29 @@ fn create_update_operation(id: String, value: String) -> OperationInput {
     }
 }
 
+fn setup_db() -> Result<RedisConnection> {
+    let redis_connection = RedisConnection::new(&RedisConfig::default())
+        .with_context(|| "Failed to create Redis connection")?;
+    redis_connection.flush_database()
+        .with_context(|| "Failed to flush Redis database")?;
+    Ok(redis_connection)
+}
+
+fn teardown_db(redis_connections: Arc<RedisConnection>) {
+    redis_connections.flush_database()
+        .with_context(|| "Failed to flush Redis database")
+        .unwrap();
+}
+
+
 #[tokio::test]
-async fn test_light_client_sequencer_talking() {
+async fn test_light_client_sequencer_talking() -> Result<(), anyhow::Error> {
     std::env::set_var("RUST_LOG", "DEBUG");
     pretty_env_logger::init();
 
     let (da_layer, mut height_rx, mut _block_rx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
-    let db = Arc::new(setup_db());
+    let db = Arc::new(setup_db()?);
     let cfg = Config::default();
     let signing_key = create_signing_key();
     let pubkey = engine.encode(signing_key.verifying_key().to_bytes());
@@ -60,7 +80,7 @@ async fn test_light_client_sequencer_talking() {
             cfg.clone(),
             signing_key.clone(),
         )
-        .unwrap(),
+        .with_context(|| "Failed to create sequencer")?,
     );
 
     let lightclient = Arc::new(LightClient::new(
@@ -71,11 +91,11 @@ async fn test_light_client_sequencer_talking() {
 
     let seq_1 = sequencer.clone();
     tokio::spawn(async move {
-        seq_1.start().await.unwrap();
+        seq_1.start().await.with_context(|| "Failed to start sequencer").unwrap();
     });
 
     tokio::spawn(async move {
-        lightclient.clone().start().await.unwrap();
+        lightclient.clone().start().await.with_context(|| "Failed to start light client").unwrap();
     });
 
     let seq = sequencer.clone();
@@ -95,7 +115,9 @@ async fn test_light_client_sequencer_talking() {
                     format!("key_{}", i),
                     &signing_key,
                 );
-                seq_i.validate_and_queue_update(&new_acc).await.unwrap();
+                seq_i.validate_and_queue_update(&new_acc).await
+                    .with_context(|| "Failed to validate and queue update for new account")
+                    .unwrap();
                 accounts.push(format!("{}@gmail.com", i));
                 i += 1;
             }
@@ -110,7 +132,9 @@ async fn test_light_client_sequencer_talking() {
                         account_id,
                         format!("updated_key_{}", rng.gen::<u32>()),
                     );
-                    seq_i.validate_and_queue_update(&update_op).await.unwrap();
+                    seq_i.validate_and_queue_update(&update_op).await
+                        .with_context(|| "Failed to validate and queue update for existing account")
+                        .unwrap();
                 }
             }
 
@@ -124,17 +148,6 @@ async fn test_light_client_sequencer_talking() {
         }
     }
 
-    teardown_db(db.clone())
-}
-
-// set up redis connection and flush database before each test
-fn setup_db() -> RedisConnection {
-    let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
-    redis_connection.flush_database().unwrap();
-    redis_connection
-}
-
-// flush database after each test
-fn teardown_db(redis_connections: Arc<RedisConnection>) {
-    redis_connections.flush_database().unwrap();
+    teardown_db(db.clone());
+    Ok(())
 }
