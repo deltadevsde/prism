@@ -8,6 +8,7 @@ use indexed_merkle_tree::{
 use prism::{circuits::BatchMerkleProofCircuit, utils::validate_epoch};
 use rand::Rng;
 use std::time::Duration;
+use anyhow::{Context, Result};
 
 fn create_random_test_hash() -> Hash {
     let mut rng = rand::thread_rng();
@@ -21,9 +22,11 @@ const BATCH_SIZES: [usize; 3] = [32, 64, 128];
 fn setup_tree_and_proofs(
     tree_size: usize,
     batch_size: usize,
-) -> (IndexedMerkleTree, Vec<Proof>, Hash, Hash) {
-    let mut tree = IndexedMerkleTree::new_with_size(tree_size).unwrap();
-    let prev_commitment = tree.get_commitment().unwrap();
+) -> Result<(IndexedMerkleTree, Vec<Proof>, Hash, Hash)> {
+    let mut tree = IndexedMerkleTree::new_with_size(tree_size)
+        .context("Failed to create IndexedMerkleTree")?;
+    let prev_commitment = tree.get_commitment()
+        .context("Failed to get previous commitment")?;
 
     let mut proofs = Vec::with_capacity(batch_size);
     for _ in 0..batch_size {
@@ -33,12 +36,15 @@ fn setup_tree_and_proofs(
             create_random_test_hash(),
             create_random_test_hash(),
         );
-        let proof = tree.insert_node(&mut node).unwrap();
+        let proof = tree.insert_node(&mut node)
+            .context("Failed to insert node into tree")?;
         proofs.push(Proof::Insert(proof));
     }
 
-    let current_commitment = tree.get_commitment().unwrap();
-    (tree, proofs, prev_commitment, current_commitment)
+    let current_commitment = tree.get_commitment()
+        .context("Failed to get current commitment")?;
+    
+    Ok((tree, proofs, prev_commitment, current_commitment))
 }
 
 fn bench_proof_generation(c: &mut Criterion) {
@@ -53,16 +59,21 @@ fn bench_proof_generation(c: &mut Criterion) {
                 BenchmarkId::new("tree_size_batch", format!("{}_{}", tree_size, batch_size)),
                 &(tree_size, batch_size),
                 |b, &(tree_size, batch_size)| {
-                    let (_, proofs, prev_commitment, current_commitment) =
-                        setup_tree_and_proofs(*tree_size, *batch_size);
+                    let (tree, proofs, prev_commitment, current_commitment) = setup_tree_and_proofs(*tree_size, *batch_size)
+                        .expect("Failed to set up tree and proofs");
+
                     b.iter(|| {
                         let circuit = BatchMerkleProofCircuit::new(
                             black_box(&prev_commitment),
                             black_box(&current_commitment),
                             black_box(proofs.clone()),
                         )
-                        .unwrap();
-                        let _ = circuit.create_and_verify_snark();
+                        .context("Failed to create BatchMerkleProofCircuit")
+                        .expect("Failed to create BatchMerkleProofCircuit");
+
+                        let _ = circuit.create_and_verify_snark()
+                            .context("Failed to create and verify SNARK")
+                            .expect("Failed to create and verify SNARK");
                     });
                 },
             );
@@ -83,19 +94,25 @@ fn bench_proof_verification(c: &mut Criterion) {
                 BenchmarkId::new("tree_size_batch", format!("{}_{}", tree_size, batch_size)),
                 &(tree_size, batch_size),
                 |b, &(tree_size, batch_size)| {
-                    let (_, proofs, prev_commitment, current_commitment) =
-                        setup_tree_and_proofs(*tree_size, *batch_size);
-                    let circuit =
-                        BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
-                            .unwrap();
-                    let (proof, verifying_key) = circuit.create_and_verify_snark().unwrap();
+                    let (tree, proofs, prev_commitment, current_commitment) = setup_tree_and_proofs(*tree_size, *batch_size)
+                        .expect("Failed to set up tree and proofs");
+
+                    let circuit = BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
+                        .context("Failed to create BatchMerkleProofCircuit")
+                        .expect("Failed to create BatchMerkleProofCircuit");
+
+                    let (proof, verifying_key) = circuit.create_and_verify_snark()
+                        .context("Failed to create and verify SNARK")
+                        .expect("Failed to create and verify SNARK");
+
                     b.iter(|| {
                         let _ = validate_epoch(
                             black_box(&prev_commitment),
                             black_box(&current_commitment),
                             black_box(proof.clone()),
                             black_box(verifying_key.clone()),
-                        );
+                        ).context("Failed to validate epoch")
+                        .expect("Failed to validate epoch");
                     });
                 },
             );
