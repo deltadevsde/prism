@@ -2,11 +2,11 @@ use crate::{
     common::Operation,
     da::{DataAvailabilityLayer, FinalizedEpoch},
 };
-use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use tokio::time::{interval, Duration};
+use anyhow::{Context, Result}; 
 
 #[derive(Clone, Debug)]
 pub struct Block {
@@ -45,11 +45,12 @@ impl InMemoryDataAvailabilityLayer {
         )
     }
 
-    async fn produce_blocks(self: Arc<Self>) {
+    async fn produce_blocks(self: Arc<Self>)-> Result<()> {
         let mut interval = interval(Duration::from_secs(self.block_time));
         loop {
             interval.tick().await;
-            let mut blocks = self.blocks.write().await;
+            let mut blocks = self.blocks.write().await
+                .context("Failed to acquire write lock for blocks")?;
             let mut pending_operations = self.pending_operations.write().await;
             let mut pending_epochs = self.pending_epochs.write().await;
             let mut latest_height = self.latest_height.write().await;

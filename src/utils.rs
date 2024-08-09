@@ -2,7 +2,6 @@ use crate::{
     circuits::ProofVariantCircuit,
     error::{GeneralError, PrismError, ProofError},
 };
-use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
@@ -10,10 +9,12 @@ use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
 use indexed_merkle_tree::{tree::Proof, Hash};
 use rand::rngs::OsRng;
+use anyhow::{Context, Result}; 
 
-pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::Error>> {
-    let proof: Proof = serde_json::from_str(json_str)?;
 
+pub fn parse_json_to_proof(json_str: &str) -> Result<Proof> {
+    let proof: Proof = serde_json::from_str(json_str)
+        .with_context(|| "Failed to parse JSON to Proof")?;
     Ok(proof)
 }
 
@@ -21,14 +22,17 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey> {
     // decode the public key from base64 string to bytes
     let public_key_bytes = engine
         .decode(pub_key_str)
-        .map_err(|e| GeneralError::DecodingError(format!("base64 string: {}", e)))?;
+        .map_err(|e| GeneralError::DecodingError(format!("Base64 decoding error: {}", e)))
+        .with_context(|| "Failed to decode public key from base64")?;
 
     let public_key_array: [u8; 32] = public_key_bytes
         .try_into()
-        .map_err(|_| GeneralError::ParsingError("Vec<u8> to [u8; 32]".to_string()))?;
+        .map_err(|_| GeneralError::ParsingError("Failed to convert Vec<u8> to [u8; 32]".to_string()))
+        .with_context(|| "Failed to convert public key bytes")?;
 
     Ed25519VerifyingKey::from_bytes(&public_key_array)
-        .map_err(|_| GeneralError::DecodingError("ed25519 verifying key".to_string()).into())
+        .map_err(|_| GeneralError::DecodingError("Failed to create Ed25519 verifying key".to_string()))
+        .with_context(|| "Failed to create Ed25519 verifying key from bytes")
 }
 
 pub fn create_and_verify_snark(
@@ -37,27 +41,26 @@ pub fn create_and_verify_snark(
 ) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>)> {
     let rng = &mut OsRng;
 
-    trace!("creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
-    let params =
-        groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).map_err(|e| {
-            PrismError::Proof(ProofError::ProofUnpackError(format!(
-                "generating random params: {}",
-                e
-            )))
-        })?;
+    trace!("Creating parameters with BLS12-381 pairing-friendly elliptic curve construction...");
+    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng)
+        .map_err(|e| PrismError::Proof(ProofError::ProofUnpackError(format!("Failed to generate random parameters: {}", e))))
+        .with_context(|| "Failed to generate random parameters for zkSNARK")?;
 
-    trace!("creating proof for zkSNARK...");
+    trace!("Creating proof for zkSNARK...");
     let proof = groth16::create_random_proof(circuit, &params, rng)
-        .map_err(|e| PrismError::Proof(ProofError::GenerationError(e.to_string())))?;
+        .map_err(|e| PrismError::Proof(ProofError::GenerationError(e.to_string())))
+        .with_context(|| "Failed to create random proof for zkSNARK")?;
 
-    trace!("preparing verifying key for zkSNARK...");
+    trace!("Preparing verifying key for zkSNARK...");
     let pvk = groth16::prepare_verifying_key(&params.vk);
 
     groth16::verify_proof(&pvk, &proof, &scalars)
-        .map_err(|e| PrismError::Proof(ProofError::VerificationError(e.to_string())))?;
+        .map_err(|e| PrismError::Proof(ProofError::VerificationError(e.to_string())))
+        .with_context(|| "Failed to verify zkSNARK proof")?;
 
     Ok((proof, params.vk))
 }
+
 
 pub fn validate_epoch(
     previous_commitment: &Hash,
@@ -65,7 +68,7 @@ pub fn validate_epoch(
     proof: groth16::Proof<Bls12>,
     verifying_key: VerifyingKey<Bls12>,
 ) -> Result<groth16::Proof<Bls12>, PrismError> {
-    trace!("validate_epoch: preparing verifying key for zkSNARK");
+    trace!("Validate_epoch: Preparing verifying key for zkSNARK...");
     let pvk = groth16::prepare_verifying_key(&verifying_key);
 
     let scalars: Result<Vec<Scalar>, _> = vec![
@@ -75,16 +78,14 @@ pub fn validate_epoch(
     .into_iter()
     .collect();
 
-    let scalars = scalars.map_err(|e| {
-        PrismError::General(GeneralError::ParsingError(format!(
-            "unable to parse public input parameters: {}",
-            e
-        )))
-    })?;
+    let scalars = scalars
+        .map_err(|e| PrismError::General(GeneralError::ParsingError(format!("Unable to parse public input parameters: {}", e))))
+        .with_context(|| "Failed to convert commitment hashes to scalars")?;
 
-    trace!("validate_epoch: verifying zkSNARK proof...");
+    trace!("Validate_epoch: Verifying zkSNARK proof...");
     groth16::verify_proof(&pvk, &proof, &scalars)
-        .map_err(|e| PrismError::Proof(ProofError::VerificationError(e.to_string())))?;
+        .map_err(|e| PrismError::Proof(ProofError::VerificationError(e.to_string())))
+        .with_context(|| "Failed to verify zkSNARK proof")?;
 
     Ok(proof)
 }
@@ -95,7 +96,7 @@ pub trait SignedContent {
     fn get_public_key(&self) -> Result<String>;
 }
 
-// verifies the signature of a given signable item and returns the content of the item if the signature is valid
+// Verifies the signature of a given signable item and returns the content of the item if the signature is valid
 pub fn verify_signature<T: SignedContent>(
     item: &T,
     optional_public_key: Option<String>,
@@ -106,7 +107,8 @@ pub fn verify_signature<T: SignedContent>(
     };
 
     let public_key = decode_public_key(&public_key_str)
-        .map_err(|_| PrismError::General(GeneralError::InvalidPublicKey))?;
+        .map_err(|_| PrismError::General(GeneralError::InvalidPublicKey))
+        .with_context(|| "Failed to decode public key")?;
 
     let content = item.get_plaintext()?;
     let signature = item.get_signature()?;
