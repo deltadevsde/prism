@@ -1,10 +1,9 @@
 <p align="center">
   <picture>
     <source srcset="./assets/prism-white.png" media="(prefers-color-scheme: dark)">
-    <img src="./assets/prism-dark.png" alt="Prism" width="500">
+    <img src="./assets/prism-dark.png" alt="Prism" width="350">
   </picture>
 </p>
-<br>
 
 # prism
 
