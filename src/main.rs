@@ -82,8 +82,5 @@ async fn main() -> std::io::Result<()> {
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
     
-    // if flagged{
-    //     let agent_ready = agent.stop().unwrap();
-    //     agent_ready.shutdown();
-    // }
+    // Don't need to stop Pyroscope Agent. It will automatically be flagged.
 }
