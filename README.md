@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source srcset="./assets/prism-white.png.png" media="(prefers-color-scheme: dark)">
-    <img src="./assets/prism-dark.png.png" alt="Prism" width="500">
+    <source srcset="./assets/prism-white.png" media="(prefers-color-scheme: dark)">
+    <img src="./assets/prism-dark.png" alt="Prism" width="500">
   </picture>
 </p>
 <br>
