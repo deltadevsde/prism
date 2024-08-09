@@ -17,6 +17,8 @@ use crate::cfg::{CommandLineArgs, Commands};
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
 use std::sync::Arc;
 use storage::RedisConnection;
+use pyroscope::PyroscopeAgent;
+use pyroscope_pprofrs::{PprofConfig, pprof_backend};
 
 #[macro_use]
 extern crate log;
@@ -28,6 +30,15 @@ async fn main() -> std::io::Result<()> {
     let config = load_config(args.clone())
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
+
+    let _pyroscope_guard = if args.pyroscope{
+        let agent = PyroscopeAgent::builder("http://localhost:4040", "myapp")
+            .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
+            .build()
+            .unwrap();
+
+        let agent_running = agent.start().unwrap();
+    };
     let da = initialize_da_layer(&config)
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
@@ -70,4 +81,9 @@ async fn main() -> std::io::Result<()> {
     node.start()
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+    
+    // if flagged{
+    //     let agent_ready = agent.stop().unwrap();
+    //     agent_ready.shutdown();
+    // }
 }

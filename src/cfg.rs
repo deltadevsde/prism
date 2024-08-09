@@ -51,6 +51,10 @@ pub struct CommandLineArgs {
     #[arg(short, long)]
     port: Option<u16>,
 
+    // Pyroscope Profiling
+    #[clap(long, help = "Enable Pyroscope profiling")]
+    pub pyroscope: bool,
+    
     #[arg(long)]
     verifying_key: Option<String>,
 
