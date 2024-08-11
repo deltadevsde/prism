@@ -3071,6 +3071,7 @@ name = "jmt"
 version = "0.10.0"
 dependencies = [
  "anyhow",
+ "auto_impl",
  "borsh",
  "digest 0.10.7",
  "hashbrown 0.13.2",
@@ -4374,6 +4375,7 @@ dependencies = [
  "arecibo",
  "async-redis-session",
  "async-trait",
+ "auto_impl",
  "axum",
  "base64 0.22.1",
  "bellman",

@@ -1,15 +1,16 @@
 use anyhow::{anyhow, Result};
+use auto_impl::auto_impl;
 use indexed_merkle_tree::Hash;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
 };
-use mockall::{predicate::*, *};
+use mockall::predicate::*;
 use redis::{Client, Commands, Connection};
 use std::{
     self,
     process::Command,
-    sync::{Mutex, MutexGuard},
+    sync::{Arc, Mutex, MutexGuard},
     thread::sleep,
     time::Duration,
 };
@@ -27,8 +28,8 @@ pub struct RedisConnection {
     connection: Mutex<Connection>,
 }
 
-#[automock]
-pub trait Database: Send + Sync {
+#[auto_impl(&, Box, Arc)]
+pub trait Database: Send + Sync + TreeReader + TreeWriter {
     fn get_hashchain(&self, key: &str) -> Result<Hashchain>;
     fn update_hashchain(
         &self,
@@ -38,10 +39,6 @@ pub trait Database: Send + Sync {
 
     fn get_commitment(&self, epoch: &u64) -> Result<String>;
     fn set_commitment(&self, epoch: &u64, commitment: &Hash) -> Result<()>;
-
-    // fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>>;
-    // fn get_value_option(&self, max_epoch: u64, key_hash: KeyHash) -> Result<Option<OwnedValue>>;
-    // fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()>;
 
     fn get_epoch(&self) -> Result<u64>;
     fn set_epoch(&self, epoch: &u64) -> Result<()>;
@@ -252,6 +249,7 @@ impl Database for RedisConnection {
 mod tests {
     use super::*;
     use crate::common::Operation;
+    use crate::storage::Database;
     use crate::tree::hash;
     use serde::{Deserialize, Serialize};
     use serial_test::serial;
@@ -259,7 +257,7 @@ mod tests {
     // Helper functions
 
     // set up redis connection and flush database before each test
-    fn setup() -> RedisConnection {
+    fn setup<'a>() -> RedisConnection<'a> {
         let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
         redis_connection.flush_database().unwrap();
         redis_connection

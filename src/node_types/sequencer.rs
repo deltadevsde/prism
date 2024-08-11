@@ -1,4 +1,7 @@
-use crate::tree::{hash, Digest, KeyDirectoryTree, Proof, RedisKDTree};
+use crate::{
+    storage::RedisConnection,
+    tree::{hash, Digest, KeyDirectory, KeyDirectoryTree, Proof},
+};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ed25519::Signature;
@@ -28,7 +31,7 @@ use crate::{
     webserver::{OperationInput, WebServer},
 };
 
-pub struct Sequencer<'a> {
+pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
     pub ws: WebServer,
@@ -43,14 +46,14 @@ pub struct Sequencer<'a> {
     // [`pending_operations`] is a buffer for operations that have not yet been
     // posted to the DA layer.
     pending_operations: Arc<Mutex<Vec<Operation>>>,
-    tree: Arc<Mutex<RedisKDTree<'a>>>,
+    tree: Arc<Mutex<KeyDirectoryTree<Box<dyn Database>>>>,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
     epoch_buffer_rx: Arc<Mutex<Receiver<FinalizedEpoch>>>,
 }
 
 #[async_trait]
-impl<'a> NodeType for Sequencer<'a> {
+impl NodeType for Sequencer {
     async fn start(self: Arc<Self>) -> Result<()> {
         self.da.start().await.context("Failed to start DA layer")?;
 
@@ -72,21 +75,20 @@ impl<'a> NodeType for Sequencer<'a> {
 
 impl Sequencer {
     pub fn new(
-        db: Arc<dyn Database>,
+        db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: Config,
         key: SigningKey,
     ) -> Result<Sequencer> {
         let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
-
         let ws = cfg.webserver.context("Missing webserver configuration")?;
-
         let start_height = cfg.celestia_config.unwrap_or_default().start_height;
 
-        let tree = KeyDirectoryTree::new(&db.clone());
+        // Create the KeyDirectory
+        let tree = Arc::new(Mutex::new(KeyDirectoryTree::new(db.clone())));
 
         Ok(Sequencer {
-            db,
+            db: db.clone(),
             da,
             ws: WebServer::new(ws),
             key,
@@ -100,13 +102,14 @@ impl Sequencer {
 
     // sync_loop is responsible for downloading operations from the DA layer
     async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
+        let self_clone = self.clone();
         info!("starting operation sync loop");
         let epoch_buffer = self.epoch_buffer_tx.clone();
         spawn(async move {
-            let mut current_position = self.start_height;
+            let mut current_position = self_clone.start_height;
             loop {
                 // target is updated when a new header is received
-                let target = match self.da.get_latest_height().await {
+                let target = match self_clone.da.get_latest_height().await {
                     Ok(target) => target,
                     Err(e) => {
                         error!("failed to update sync target, retrying: {:?}", e);
@@ -121,7 +124,7 @@ impl Sequencer {
                 debug!("updated sync target to height {}", target);
                 while current_position < target {
                     trace!("processing height: {}", current_position);
-                    match self.da.get_operations(current_position + 1).await {
+                    match self_clone.da.get_operations(current_position + 1).await {
                         Ok(operations) => {
                             if !operations.is_empty() {
                                 debug!(
@@ -130,7 +133,7 @@ impl Sequencer {
                                 );
                             }
 
-                            let epoch = match self.finalize_epoch(operations).await {
+                            let epoch = match self_clone.finalize_epoch(operations).await {
                                 Ok(e) => e,
                                 Err(e) => {
                                     error!("sequencer_loop: finalizing epoch: {}", e);
@@ -452,7 +455,7 @@ mod tests {
     use serial_test::serial;
 
     // set up redis connection and flush database before each test
-    fn setup_db() -> RedisConnection {
+    fn setup_db<'a>() -> RedisConnection {
         let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
         redis_connection.flush_database().unwrap();
         redis_connection
@@ -464,7 +467,7 @@ mod tests {
     }
 
     // Helper function to create a test Sequencer instance
-    async fn create_test_sequencer() -> Arc<Sequencer<'static>> {
+    async fn create_test_sequencer() -> Arc<Sequencer> {
         let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
         let db = Arc::new(setup_db());

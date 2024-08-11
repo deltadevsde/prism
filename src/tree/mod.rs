@@ -1,13 +1,15 @@
+use crate::storage::RedisConnection;
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use borsh::{from_slice, to_vec, BorshDeserialize, BorshSerialize};
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
-    KeyHash, RootHash, Sha256Jmt, SimpleHasher,
+    JellyfishMerkleTree, KeyHash, RootHash, Sha256Jmt, SimpleHasher,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
-use crate::{common::Hashchain, storage::RedisConnection};
+use crate::{common::Hashchain, storage::Database};
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
@@ -129,23 +131,23 @@ pub trait SnarkableTree {
     fn get(&self, key: KeyHash) -> Result<Result<Hashchain, NonMembershipProof>>;
 }
 
-pub type RedisKDTree<'a> = KeyDirectoryTree<'a, RedisConnection>;
-
-pub struct KeyDirectoryTree<'a, S>
+pub struct KeyDirectoryTree<S>
 where
-    S: 'a + TreeReader + TreeWriter,
+    S: TreeReader + TreeWriter,
 {
-    jmt: Sha256Jmt<'a, S>,
+    jmt: JellyfishMerkleTree<Arc<S>, Hasher>,
     pending_batch: Option<NodeBatch>,
     epoch: u64,
+    db: Arc<S>,
 }
 
-impl<'a, S> KeyDirectoryTree<'a, S>
+impl<S> KeyDirectoryTree<S>
 where
-    S: 'a + TreeReader + TreeWriter,
+    S: TreeReader + TreeWriter,
 {
-    pub fn new(store: &'a S) -> Self {
+    pub fn new(store: Arc<S>) -> Self {
         let tree = Self {
+            db: store.clone(),
             jmt: Sha256Jmt::new(store),
             pending_batch: None,
             epoch: 0,
@@ -154,7 +156,7 @@ where
             .jmt
             .put_value_set(vec![(KeyHash(SPARSE_MERKLE_PLACEHOLDER_HASH.0), None)], 0)
             .unwrap();
-        store.write_node_batch(&batch.node_batch).unwrap();
+        tree.db.write_node_batch(&batch.node_batch).unwrap();
         tree
     }
 
@@ -170,9 +172,9 @@ where
         }
     }
 
-    pub fn write_batch(&mut self, writer: &'a S) -> Result<()> {
+    pub fn write_batch(&mut self) -> Result<()> {
         if let Some(batch) = self.pending_batch.take() {
-            writer.write_node_batch(&batch)?;
+            self.db.write_node_batch(&batch)?;
         }
         Ok(())
     }
@@ -192,7 +194,7 @@ where
     }
 }
 
-impl<'a, S> SnarkableTree for KeyDirectoryTree<'a, S>
+impl<S> SnarkableTree for KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter,
 {
@@ -279,8 +281,8 @@ mod tests {
 
     #[test]
     fn test_insert_and_get() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(&store);
+        let store = Arc::new(MockTreeStore::default());
+        let mut tree = KeyDirectoryTree::new(store);
 
         let hc1 = Hashchain::new("key_1".into());
         let key = hc1.get_keyhash();
@@ -288,7 +290,7 @@ mod tests {
         let insert_proof = tree.insert(key, hc1.clone());
         assert!(insert_proof.is_ok());
 
-        tree.write_batch(&store).unwrap();
+        tree.write_batch().unwrap();
 
         let get_result = tree.get(key).unwrap().unwrap();
 
@@ -297,14 +299,14 @@ mod tests {
 
     #[test]
     fn test_insert_duplicate_key() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(&store);
+        let store = Arc::new(MockTreeStore::default());
+        let mut tree = KeyDirectoryTree::new(store);
 
         let hc1 = Hashchain::new("key_1".into());
         let key = hc1.get_keyhash();
 
         tree.insert(key, hc1.clone()).unwrap();
-        tree.write_batch(&store).unwrap();
+        tree.write_batch().unwrap();
 
         let hc2 = Hashchain::new("key_1".into());
         let result = tree.insert(key, hc2);
@@ -313,20 +315,20 @@ mod tests {
 
     #[test]
     fn test_update_existing_key() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(&store);
+        let store = Arc::new(MockTreeStore::default());
+        let mut tree = KeyDirectoryTree::new(store);
 
         let mut hc1 = Hashchain::new("key_1".into());
         let key = hc1.get_keyhash();
 
         tree.insert(key, hc1.clone()).unwrap();
-        tree.write_batch(&store).unwrap();
+        tree.write_batch().unwrap();
 
         hc1.add("new_value".into()).unwrap();
         let update_proof = tree.update(key, hc1.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
 
-        tree.write_batch(&store).unwrap();
+        tree.write_batch().unwrap();
 
         let get_result = tree.get(key).unwrap().unwrap();
         assert_eq!(get_result, hc1);
@@ -334,8 +336,8 @@ mod tests {
 
     #[test]
     fn test_update_non_existing_key() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(&store);
+        let store = Arc::new(MockTreeStore::default());
+        let mut tree = KeyDirectoryTree::new(store);
 
         let hc1 = Hashchain::new("key_1".into());
         let key = hc1.get_keyhash();
@@ -347,7 +349,7 @@ mod tests {
     #[test]
     fn test_get_non_existing_key() {
         let store = MockTreeStore::default();
-        let tree = KeyDirectoryTree::new(&store);
+        let mut tree = KeyDirectoryTree::new(store);
 
         let key = KeyHash::with::<Hasher>(b"non_existing_key");
         let result = tree.get(key).unwrap();
@@ -361,7 +363,7 @@ mod tests {
     #[test]
     fn test_multiple_inserts_and_updates() {
         let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(&store);
+        let mut tree = KeyDirectoryTree::new(store);
 
         let mut hc1 = Hashchain::new("key_1".into());
         let mut hc2 = Hashchain::new("key_2".into());
@@ -370,14 +372,14 @@ mod tests {
 
         tree.insert(key1, hc1.clone()).unwrap();
         tree.insert(key2, hc2.clone()).unwrap();
-        tree.write_batch(&store).unwrap();
+        tree.write_batch().unwrap();
 
         hc1.add("value1".into()).unwrap();
         hc2.add("value2".into()).unwrap();
 
         tree.update(key1, hc1.clone()).unwrap();
         tree.update(key2, hc2.clone()).unwrap();
-        tree.write_batch(&store).unwrap();
+        tree.write_batch().unwrap();
 
         assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
         assert_eq!(tree.get(key2).unwrap().unwrap(), hc2);
@@ -385,15 +387,15 @@ mod tests {
 
     #[test]
     fn test_root_hash_changes() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(&store);
+        let store = Arc::new(MockTreeStore::default());
+        let mut tree = KeyDirectoryTree::new(store);
 
         let hc1 = Hashchain::new("key_1".into());
         let key1 = hc1.get_keyhash();
 
         let root_before = tree.get_current_root().unwrap();
         tree.insert(key1, hc1).unwrap();
-        tree.write_batch(&store).unwrap();
+        tree.write_batch().unwrap();
         let root_after = tree.get_current_root().unwrap();
 
         assert_ne!(root_before, root_after);
@@ -401,8 +403,8 @@ mod tests {
 
     #[test]
     fn test_batch_writing() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(&store);
+        let store = Arc::new(MockTreeStore::default());
+        let mut tree = KeyDirectoryTree::new(store);
 
         let hc1 = Hashchain::new("key_1".into());
         let hc2 = Hashchain::new("key_2".into());
@@ -416,7 +418,7 @@ mod tests {
         assert!(tree.get(key1).unwrap().is_err());
         assert!(tree.get(key2).unwrap().is_err());
 
-        tree.write_batch(&store).unwrap();
+        tree.write_batch().unwrap();
 
         // After writing the batch
         assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
