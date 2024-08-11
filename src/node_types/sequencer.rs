@@ -1,6 +1,6 @@
 use crate::{
     storage::RedisConnection,
-    tree::{hash, Digest, KeyDirectory, KeyDirectoryTree, Proof},
+    tree::{hash, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree},
 };
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -368,7 +368,7 @@ impl Sequencer {
                 let previous_hash = current_chain.last().context("Hashchain is empty")?.hash;
 
                 let new_chain_entry = HashchainEntry::new(operation.clone(), previous_hash);
-                current_chain.push(new_chain_entry.clone());
+                current_chain.push(new_chain_entry.operation.clone());
 
                 // let updated_node = Node::new_leaf(
                 //     node.is_left_sibling(),
@@ -378,7 +378,8 @@ impl Sequencer {
                 // );
 
                 debug!("updating hashchain for user id {}", id.clone());
-                let proof = self.tree.update(KeyHash::with(hashed_id), current_chain)?;
+                let proof =
+                    tree.update(KeyHash::with::<Hasher>(hashed_id), current_chain.clone())?;
                 self.db
                     .update_hashchain(operation, &current_chain)
                     .context(format!(
@@ -386,7 +387,7 @@ impl Sequencer {
                         operation
                     ))?;
 
-                proof
+                Ok(Proof::Update(proof))
             }
             Operation::CreateAccount { id, value, source } => {
                 // validation of account source
@@ -401,7 +402,7 @@ impl Sequencer {
                     }
                 }?;
 
-                let hashchain: Result<Vec<HashchainEntry>> = self.db.get_hashchain(id);
+                let hashchain: Result<Hashchain> = self.db.get_hashchain(id);
                 if hashchain.is_ok() {
                     return Err(DatabaseError::NotFoundError(format!(
                         "empty slot for ID {}",
@@ -411,8 +412,8 @@ impl Sequencer {
                 }
 
                 debug!("creating new hashchain for user id {}", id.clone());
-                let chain = Hashchain::new(id.clone());
-                chain.create_account(value.into(), *source);
+                let mut chain = Hashchain::new(id.clone());
+                chain.create_account(value.into(), source.clone());
 
                 self.db
                     .update_hashchain(operation, &chain)
@@ -424,7 +425,9 @@ impl Sequencer {
                 let mut tree = self.tree.lock().await;
                 let hashed_id = hash(id.as_bytes());
 
-                tree.insert(KeyHash::with(hashed_id), chain)
+                Ok(Proof::Insert(
+                    tree.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,
+                ))
             }
         }
     }
@@ -455,14 +458,14 @@ mod tests {
     use serial_test::serial;
 
     // set up redis connection and flush database before each test
-    fn setup_db<'a>() -> RedisConnection {
+    fn setup_db() -> RedisConnection {
         let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
         redis_connection.flush_database().unwrap();
         redis_connection
     }
 
     // flush database after each test
-    fn teardown_db(redis_connections: &RedisConnection) {
+    fn teardown_db(redis_connections: Arc<Box<dyn Database>>) {
         redis_connections.flush_database().unwrap();
     }
 
@@ -470,7 +473,7 @@ mod tests {
     async fn create_test_sequencer() -> Arc<Sequencer> {
         let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
-        let db = Arc::new(setup_db());
+        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(setup_db()));
         let signing_key = create_signing_key();
         Arc::new(
             Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
@@ -513,7 +516,7 @@ mod tests {
     async fn test_validate_and_queue_update() {
         let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
-        let db = Arc::new(setup_db());
+        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(setup_db()));
         let sequencer = Arc::new(
             Sequencer::new(
                 db.clone(),
@@ -531,7 +534,7 @@ mod tests {
             .validate_and_queue_update(&update_entry)
             .await
             .unwrap();
-        teardown_db(&db);
+        teardown_db(db);
     }
 
     #[tokio::test]
@@ -539,7 +542,7 @@ mod tests {
     async fn test_queued_update_gets_finalized() {
         let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
-        let db = Arc::new(setup_db());
+        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(setup_db()));
         let signing_key = create_signing_key();
         let sequencer = Arc::new(
             Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
@@ -569,7 +572,7 @@ mod tests {
         let value = hashchain.unwrap().get(0).operation.value();
         assert_eq!(value, "test");
 
-        teardown_db(&db);
+        teardown_db(db);
     }
 
     #[tokio::test]
@@ -577,7 +580,7 @@ mod tests {
     async fn test_validate_invalid_update_fails() {
         let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
-        let db = Arc::new(setup_db());
+        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(setup_db()));
         let sequencer = Arc::new(
             Sequencer::new(
                 db.clone(),
@@ -596,7 +599,7 @@ mod tests {
 
         let res = sequencer.validate_and_queue_update(&update_entry).await;
         assert!(res.is_err());
-        teardown_db(&db);
+        teardown_db(db);
     }
 
     #[tokio::test]

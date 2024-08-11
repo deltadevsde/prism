@@ -4,6 +4,7 @@ use indexed_merkle_tree::Hash;
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+use std::ops::{Deref, DerefMut};
 
 use crate::tree::{hash, Digest, Hasher};
 
@@ -66,12 +67,61 @@ pub struct Hashchain {
     entries: Vec<HashchainEntry>,
 }
 
+impl IntoIterator for Hashchain {
+    type Item = HashchainEntry;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Hashchain {
+    type Item = &'a HashchainEntry;
+    type IntoIter = std::slice::Iter<'a, HashchainEntry>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Hashchain {
+    type Item = &'a mut HashchainEntry;
+    type IntoIter = std::slice::IterMut<'a, HashchainEntry>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.iter_mut()
+    }
+}
+
+impl Deref for Hashchain {
+    type Target = Vec<HashchainEntry>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.entries
+    }
+}
+
+impl DerefMut for Hashchain {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.entries
+    }
+}
+
 impl Hashchain {
     pub fn new(id: String) -> Self {
         Self {
             id,
             entries: Vec::new(),
         }
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, HashchainEntry> {
+        self.entries.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, HashchainEntry> {
+        self.entries.iter_mut()
     }
 
     pub fn create_account(&mut self, value: String, source: AccountSource) -> Result<Digest> {

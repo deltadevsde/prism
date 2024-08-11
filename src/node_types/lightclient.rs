@@ -90,13 +90,13 @@ impl LightClient {
 
                                 // TODO(@distractedm1nd): i don't know rust yet but this seems like non-idiomatic rust -
                                 // is there not a Trait that can satisfy these properties for us?
-                                let verifying_key = match epoch_json.verifying_key.clone().try_into() {
-                                    Ok(vk) => vk,
-                                    Err(e) => {
-                                        error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
-                                        continue;
-                                    }
-                                };
+                                // let verifying_key = match epoch_json.verifying_key.clone().try_into() {
+                                //     Ok(vk) => vk,
+                                //     Err(e) => {
+                                //         error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
+                                //         continue;
+                                //     }
+                                // };
 
                                 // if the user does not add a verifying key, we will not verify the signature,
                                 // but only log a warning on startup
@@ -105,7 +105,10 @@ impl LightClient {
                                         &epoch_json.clone(),
                                         self.verifying_key.clone(),
                                     ) {
-                                        Ok(_) => trace!("valid signature for epoch {}", epoch_json.height),
+                                        Ok(_) => trace!(
+                                            "valid signature for epoch {}",
+                                            epoch_json.height
+                                        ),
                                         Err(e) => {
                                             panic!("invalid signature in epoch {}: {:?}", i, e)
                                         }
@@ -136,6 +139,7 @@ impl LightClient {
                 ticker.tick().await; // only for testing purposes
                 current_position = target; // Update the current position to the latest target
             }
-        }).await
+        })
+        .await
     }
 }

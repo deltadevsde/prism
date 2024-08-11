@@ -19,6 +19,7 @@ use crate::{
     cfg::RedisConfig,
     common::{Hashchain, HashchainEntry, Operation},
     error::{DatabaseError, GeneralError, PrismError},
+    tree::Digest,
 };
 
 // there are different key prefixes for the different tables in the database
@@ -38,7 +39,7 @@ pub trait Database: Send + Sync + TreeReader + TreeWriter {
     ) -> Result<()>;
 
     fn get_commitment(&self, epoch: &u64) -> Result<String>;
-    fn set_commitment(&self, epoch: &u64, commitment: &Hash) -> Result<()>;
+    fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()>;
 
     fn get_epoch(&self) -> Result<u64>;
     fn set_epoch(&self, epoch: &u64) -> Result<()>;
@@ -222,7 +223,7 @@ impl Database for RedisConnection {
             })
     }
 
-    fn set_commitment(&self, epoch: &u64, commitment: &Hash) -> Result<()> {
+    fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()> {
         let mut con = self.lock_connection()?;
         con.set::<&String, &String, ()>(
             &format!("commitments:epoch_{}", epoch),
@@ -257,7 +258,7 @@ mod tests {
     // Helper functions
 
     // set up redis connection and flush database before each test
-    fn setup<'a>() -> RedisConnection<'a> {
+    fn setup() -> RedisConnection {
         let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
         redis_connection.flush_database().unwrap();
         redis_connection
