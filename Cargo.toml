@@ -73,7 +73,8 @@ jmt = { path = "../jmt", features = [
 ] } #{ version = "0.10.0", features = ["mocks"] }
 bellpepper-core = { version = "0.4.0", default-features = false }
 bellpepper = { version = "0.4.0", default-features = false }
-arecibo = { version = "0.1.1", default-features = false }
+arecibo = { path = "../arecibo" }
+itertools = "0.13.0" # zip_eq
 sha2 = "0.10.8"
 proptest = "1.5.0"
 auto_impl = "1.2.0"

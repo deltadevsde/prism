@@ -21,6 +21,18 @@ pub type Hasher = sha2::Sha256;
 )]
 pub struct Digest([u8; 32]);
 
+impl Into<RootHash> for Digest {
+    fn into(self) -> RootHash {
+        RootHash::from(self.0)
+    }
+}
+
+impl Into<Digest> for RootHash {
+    fn into(self) -> Digest {
+        Digest(self.0)
+    }
+}
+
 impl AsRef<[u8]> for Digest {
     fn as_ref(&self) -> &[u8] {
         &self.0
@@ -64,14 +76,14 @@ pub enum Proof {
 
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
 pub struct NonMembershipProof {
-    pub root: RootHash,
+    pub root: Digest,
     pub proof: SparseMerkleProof<Hasher>,
     pub key: KeyHash,
 }
 
 impl NonMembershipProof {
     pub fn verify(&self) -> Result<()> {
-        self.proof.verify_nonexistence(self.root, self.key)
+        self.proof.verify_nonexistence(self.root.into(), self.key)
     }
 }
 
@@ -79,7 +91,7 @@ impl NonMembershipProof {
 pub struct InsertProof {
     pub non_membership_proof: NonMembershipProof,
 
-    pub new_root: RootHash,
+    pub new_root: Digest,
     pub membership_proof: UpdateMerkleProof<Hasher>,
     pub value: Hashchain,
 }
@@ -93,8 +105,8 @@ impl InsertProof {
         let value = to_vec(&self.value).unwrap();
 
         self.membership_proof.clone().verify_update(
-            self.non_membership_proof.root,
-            self.new_root,
+            self.non_membership_proof.root.into(),
+            self.new_root.into(),
             vec![(self.non_membership_proof.key, Some(value))],
         );
 
@@ -104,8 +116,8 @@ impl InsertProof {
 
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
 pub struct UpdateProof {
-    pub old_root: RootHash,
-    pub new_root: RootHash,
+    pub old_root: Digest,
+    pub new_root: Digest,
 
     pub key: KeyHash,
     pub new_value: Hashchain,
@@ -118,8 +130,8 @@ impl UpdateProof {
         let new_value = to_vec(&self.new_value).unwrap();
 
         self.proof.clone().verify_update(
-            self.old_root,
-            self.new_root,
+            self.old_root.into(),
+            self.new_root.into(),
             vec![(self.key, Some(new_value))],
         )
     }
@@ -205,7 +217,7 @@ where
         let (old_value, non_membership_merkle_proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         let non_membership_proof = NonMembershipProof {
-            root: old_root,
+            root: old_root.into(),
             proof: non_membership_merkle_proof,
             key,
         };
@@ -225,7 +237,7 @@ where
         );
 
         Ok(InsertProof {
-            new_root,
+            new_root: new_root.into(),
             value,
             non_membership_proof,
             membership_proof,
@@ -266,7 +278,7 @@ where
                 Ok(Ok(deserialized_value))
             }
             None => Ok(Err(NonMembershipProof {
-                root: self.get_current_root()?,
+                root: self.get_current_root()?.into(),
                 proof,
                 key,
             })),
