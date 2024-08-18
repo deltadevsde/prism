@@ -57,6 +57,13 @@ fn convert_to_connection_error(e: redis::RedisError) -> PrismError {
     PrismError::Database(DatabaseError::ConnectionError(e.to_string()))
 }
 
+fn map_not_found_error(e: redis::RedisError, key: &str) -> PrismError {
+    match e.kind() {
+        redis::ErrorKind::TypeError => DatabaseError::NotFoundError(key.to_string()).into(),
+        _ => DatabaseError::ReadError(e.to_string()).into(),
+    }
+}
+
 impl RedisConnection {
     pub fn new(cfg: &RedisConfig) -> Result<RedisConnection> {
         let connection_string = cfg.connection_string.clone();
@@ -109,7 +116,7 @@ impl Database for RedisConnection {
         let mut con = self.lock_connection()?;
         let value: String = con
             .get(format!("main:{}", key))
-            .map_err(|_| DatabaseError::NotFoundError(format!("hashchain key {}", key)))?;
+            .map_err(|e| map_not_found_error(e, &format!("hashchain key {}", key)))?;
 
         serde_json::from_str(&value)
             .map_err(|e| anyhow!(GeneralError::ParsingError(format!("hashchain: {}", e))))
@@ -119,16 +126,16 @@ impl Database for RedisConnection {
         let mut con = self.lock_connection()?;
         let value = con
             .get::<&str, String>(&format!("commitments:epoch_{}", epoch))
-            .map_err(|_| {
-                DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
+            .map_err(|e| {
+                map_not_found_error(e, &format!("commitment from epoch_{}", epoch))
             })?;
         Ok(value.trim_matches('"').to_string())
     }
 
     fn get_proof(&self, id: &str) -> Result<String> {
         let mut con = self.lock_connection()?;
-        con.get(format!("merkle_proofs:{}", id)).map_err(|_| {
-            anyhow!(DatabaseError::NotFoundError(format!(
+        con.get(format!("merkle_proofs:{}", id)).map_err(|e| {
+            anyhow!(map_not_found_error(e, &format!(
                 "Proof with id: {}",
                 id
             )))
@@ -139,7 +146,7 @@ impl Database for RedisConnection {
         let mut con = self.lock_connection()?;
         let mut epoch_proofs: Vec<String> = con
             .keys::<&String, Vec<String>>(&format!("merkle_proofs:epoch_{}*", epoch))
-            .map_err(|_| DatabaseError::NotFoundError(format!("epoch: {}", epoch)))?;
+            .map_err(|_| DatabaseError::KeysError(format!("epoch: {}", epoch)))?;
 
         epoch_proofs.sort_by(|a, b| {
             let a_parts: Vec<&str> = a.split('_').collect();
@@ -161,8 +168,7 @@ impl Database for RedisConnection {
 
     fn get_epoch(&self) -> Result<u64> {
         let mut con = self.lock_connection()?;
-        con.get("app_state:epoch")
-            .map_err(|_| anyhow!(DatabaseError::NotFoundError("current epoch".to_string())))
+        con.get("app_state:epoch").map_err(|e| anyhow!(map_not_found_error(e, "epoch")))
     }
 
     fn set_epoch(&self, epoch: &u64) -> Result<()> {
@@ -196,7 +202,7 @@ impl Database for RedisConnection {
         let mut con = self.lock_connection()?;
         con.keys::<&str, Vec<String>>("commitments:*")
             .map_err(|_| {
-                PrismError::Database(DatabaseError::NotFoundError("Commitments".to_string()))
+                PrismError::Database(DatabaseError::KeysError("Commitments".to_string()))
             })?
             .into_iter()
             .map(|epoch| {
@@ -533,5 +539,48 @@ mod tests {
         assert_eq!(hashchain.len(), 1);
 
         teardown(&redis_connections);
+    }
+
+
+    #[test]
+    #[serial]
+    fn test_redis_not_found_error() {
+        let redis_connections = setup();
+
+        let result = redis_connections.get_epoch();
+        teardown(&redis_connections);
+        assert!(result.is_err());
+        if let Err(e) = result {
+           if let PrismError::Database(DatabaseError::NotFoundError(_)) = e.downcast_ref::<PrismError>().unwrap() {
+               assert!(true);
+               return
+           }
+        }
+
+        assert!(false)
+    }
+
+    #[test]
+    #[serial]
+    // This test shutdown the redis connection.
+    // It should be the last test using the redis connection to avoid breaking other tests.
+    fn test_redis_read_error() {
+        let redis_connections = setup();
+
+        // Here the redis server is shutdown to test the error handling
+        let mut con = redis_connections.lock_connection().unwrap();
+        redis::cmd("SHUTDOWN").query::<()>(&mut *con).expect_err("expect error shutting down redis");
+        drop(con);
+
+        let result = redis_connections.get_epoch();
+        assert!(result.is_err());
+        if let Err(e) = result {
+           if let PrismError::Database(DatabaseError::ReadError(_)) = e.downcast_ref::<PrismError>().unwrap() {
+               assert!(true);
+               return
+           }
+        }
+
+        assert!(false)
     }
 }
