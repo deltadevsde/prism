@@ -12,6 +12,16 @@ pub struct InsertCircuit<F> {
     _phantom: std::marker::PhantomData<F>,
 }
 
+impl<F: PrimeField> InsertCircuit<F> {
+    pub fn new(insertion_proof: InsertProof, rom_size: usize) -> Self {
+        Self {
+            insertion_proof,
+            rom_size,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
 impl<F> StepCircuit<F> for InsertCircuit<F>
 where
     F: PrimeField,
@@ -44,12 +54,12 @@ where
             pc,
         )?;
 
-        cs.push_namespace(|| {
-            format!(
-                "insert_proof {:?}",
-                self.insertion_proof.non_membership_proof.root
-            )
-        });
+        // cs.push_namespace(|| {
+        //     format!(
+        //         "insert_proof {:?}",
+        //         self.insertion_proof.non_membership_proof.root
+        //     )
+        // });
 
         let pre_insertion_scalar = Digest::new(self.insertion_proof.non_membership_proof.root)
             .to_scalar()
@@ -74,7 +84,7 @@ where
             .verify()
             .map_err(|_| SynthesisError::Unsatisfiable)?;
 
-        cs.pop_namespace();
+        // cs.pop_namespace();
 
         // Prepare the next state vector
         let mut z_next = vec![new_root];

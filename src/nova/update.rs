@@ -12,6 +12,16 @@ pub struct UpdateCircuit<F> {
     _phantom: std::marker::PhantomData<F>,
 }
 
+impl<F: PrimeField> UpdateCircuit<F> {
+    pub fn new(update_proof: UpdateProof, rom_size: usize) -> Self {
+        Self {
+            update_proof,
+            rom_size,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
 impl<F> StepCircuit<F> for UpdateCircuit<F>
 where
     F: PrimeField,
@@ -44,7 +54,7 @@ where
             pc,
         )?;
 
-        cs.push_namespace(|| format!("update_proof {:?}", self.update_proof.old_root));
+        // cs.push_namespace(|| format!("update_proof {:?}", self.update_proof.old_root));
 
         let pre_insertion_scalar = NovaDigest::from_root_hash(self.update_proof.old_root)
             .to_scalar()
@@ -69,7 +79,7 @@ where
             .verify()
             .map_err(|_| SynthesisError::Unsatisfiable)?;
 
-        cs.pop_namespace();
+        // cs.pop_namespace();
 
         // Prepare the next state vector
         let mut z_next = vec![new_root];
