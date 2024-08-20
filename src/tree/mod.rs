@@ -213,9 +213,10 @@ where
         }
     }
 
-    pub fn write_batch(&mut self) -> Result<()> {
+    fn write_batch(&mut self) -> Result<()> {
         if let Some(batch) = self.pending_batch.take() {
             self.db.write_node_batch(&batch)?;
+            self.epoch += 1;
         }
         Ok(())
     }
@@ -257,8 +258,9 @@ where
 
         let (new_root, membership_proof, tree_update_batch) = self
             .jmt
-            .put_value_set_with_proof(vec![(key, Some(serialized_value))], self.epoch)?;
+            .put_value_set_with_proof(vec![(key, Some(serialized_value))], self.epoch + 1)?;
         self.queue_batch(tree_update_batch);
+        self.write_batch()?;
 
         ensure!(
             membership_proof.len() == 1,
@@ -288,6 +290,7 @@ where
             self.epoch + 1,
         )?;
         self.queue_batch(tree_update_batch);
+        self.write_batch()?;
 
         Ok(UpdateProof {
             old_root,
@@ -323,7 +326,7 @@ mod tests {
     #[test]
     fn test_insert_and_get() {
         let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree = KeyDirectoryTree::new(store.clone());
 
         let hc1 = Hashchain::new("key_1".into());
         let key = hc1.get_keyhash();
@@ -335,8 +338,6 @@ mod tests {
 
         let insert_proof = tree.insert(key, hc1.clone());
         assert!(insert_proof.is_ok());
-
-        tree.write_batch().unwrap();
 
         println!("After first insert: {:?}", tree.get_commitment());
 
@@ -354,7 +355,6 @@ mod tests {
         let key = hc1.get_keyhash();
 
         tree.insert(key, hc1.clone()).unwrap();
-        tree.write_batch().unwrap();
 
         let hc2 = Hashchain::new("key_1".into());
         let result = tree.insert(key, hc2);
@@ -370,13 +370,10 @@ mod tests {
         let key = hc1.get_keyhash();
 
         tree.insert(key, hc1.clone()).unwrap();
-        tree.write_batch().unwrap();
 
         hc1.add("new_value".into()).unwrap();
         let update_proof = tree.update(key, hc1.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
-
-        tree.write_batch().unwrap();
 
         let get_result = tree.get(key).unwrap().unwrap();
         assert_eq!(get_result, hc1);
@@ -420,14 +417,12 @@ mod tests {
 
         tree.insert(key1, hc1.clone()).unwrap();
         tree.insert(key2, hc2.clone()).unwrap();
-        tree.write_batch().unwrap();
 
         hc1.add("value1".into()).unwrap();
         hc2.add("value2".into()).unwrap();
 
         tree.update(key1, hc1.clone()).unwrap();
         tree.update(key2, hc2.clone()).unwrap();
-        tree.write_batch().unwrap();
 
         assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
         assert_eq!(tree.get(key2).unwrap().unwrap(), hc2);
@@ -443,7 +438,6 @@ mod tests {
 
         let root_before = tree.get_current_root().unwrap();
         tree.insert(key1, hc1).unwrap();
-        tree.write_batch().unwrap();
         let root_after = tree.get_current_root().unwrap();
 
         assert_ne!(root_before, root_after);
@@ -461,7 +455,6 @@ mod tests {
         tree.insert(key1, hc1.clone()).unwrap();
 
         println!("Tree state after first insert: {:?}", tree.get_commitment());
-        tree.write_batch().unwrap();
         println!(
             "Tree state after first write_batch: {:?}",
             tree.get_commitment()
@@ -481,7 +474,6 @@ mod tests {
             "Tree state after second insert: {:?}",
             tree.get_commitment()
         );
-        tree.write_batch().unwrap();
         println!(
             "Tree state after second write_batch: {:?}",
             tree.get_commitment()

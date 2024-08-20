@@ -25,7 +25,7 @@ mod tests {
             .insert(key1, hc1.clone())
             .expect("Insert should succeed");
         assert!(insert_proof.verify().is_ok());
-        tree.write_batch().expect("Write batch should succeed");
+        // tree.write_batch().expect("Write batch should succeed");
 
         println!("After first insert: {:?}", tree.get_commitment());
 
@@ -44,7 +44,7 @@ mod tests {
             .update(key1, hc1_updated.clone())
             .expect("Update should succeed");
         assert!(update_proof.verify().is_ok());
-        tree.write_batch().expect("Write batch should succeed");
+        // tree.write_batch().expect("Write batch should succeed");
 
         // Test get after update
         let get_result_after_update = tree.get(key1).expect("Get should succeed");
@@ -74,7 +74,7 @@ mod tests {
         let key2 = hc2.get_keyhash();
         tree.insert(key2, hc2.clone())
             .expect("Insert should succeed");
-        tree.write_batch().expect("Write batch should succeed");
+        // tree.write_batch().expect("Write batch should succeed");
 
         let mut hc2_updated = hc2.clone();
         hc2_updated
@@ -82,7 +82,7 @@ mod tests {
             .expect("Add to hashchain should succeed");
         tree.update(key2, hc2_updated.clone())
             .expect("Update should succeed");
-        tree.write_batch().expect("Write batch should succeed");
+        // tree.write_batch().expect("Write batch should succeed");
 
         assert_eq!(tree.get(key2).unwrap().unwrap(), hc2_updated);
 
@@ -93,7 +93,7 @@ mod tests {
         let hc3 = Hashchain::new("key_3".into());
         let key3 = hc3.get_keyhash();
         tree.insert(key3, hc3).expect("Insert should succeed");
-        tree.write_batch().expect("Write batch should succeed");
+        // tree.write_batch().expect("Write batch should succeed");
         let root_after = tree
             .get_commitment()
             .expect("Get commitment should succeed");
@@ -115,7 +115,7 @@ mod tests {
         assert!(tree.get(key4).unwrap().is_err());
         assert!(tree.get(key5).unwrap().is_err());
 
-        tree.write_batch().expect("Write batch should succeed");
+        // tree.write_batch().expect("Write batch should succeed");
 
         // After writing the batch
         assert_eq!(tree.get(key4).unwrap().unwrap(), hc4);
