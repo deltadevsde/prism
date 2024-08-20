@@ -59,12 +59,16 @@ async fn main() -> std::io::Result<()> {
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
             Arc::new(
-                Sequencer::new(Arc::new(redis_connections), da, config, signing_key).map_err(
-                    |e| {
-                        error!("error initializing sequencer: {}", e);
-                        std::io::Error::new(std::io::ErrorKind::Other, e.to_string())
-                    },
-                )?,
+                Sequencer::new(
+                    Arc::new(Box::new(redis_connections)),
+                    da,
+                    config,
+                    signing_key,
+                )
+                .map_err(|e| {
+                    error!("error initializing sequencer: {}", e);
+                    std::io::Error::new(std::io::ErrorKind::Other, e.to_string())
+                })?,
             )
         }
     };

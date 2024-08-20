@@ -1,14 +1,8 @@
-use crate::tree::{InsertProof, UpdateProof};
-use crate::{
-    nova::utils::{next_rom_index_and_pc, Digest},
-    tree,
-};
+use crate::nova::utils::{next_rom_index_and_pc, Digest as NovaDigest};
+use crate::tree::UpdateProof;
 use anyhow::Result;
 use arecibo::supernova::StepCircuit;
-use bellpepper_core::{
-    num::{AllocatedNum, Num},
-    ConstraintSystem, SynthesisError,
-};
+use bellpepper_core::{num::AllocatedNum, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 
 #[derive(Clone)]
@@ -52,14 +46,14 @@ where
 
         cs.push_namespace(|| format!("update_proof {:?}", self.update_proof.old_root));
 
-        let pre_insertion_scalar = Digest::new(self.update_proof.new_root)
+        let pre_insertion_scalar = NovaDigest::from_root_hash(self.update_proof.old_root)
             .to_scalar()
             .map_err(|_| SynthesisError::Unsatisfiable);
         let pre_insertion_root =
             AllocatedNum::alloc(cs.namespace(|| "pre_insertion_root"), || {
                 pre_insertion_scalar
             })?;
-        let new_scalar = Digest::new(self.update_proof.new_root)
+        let new_scalar = NovaDigest::from_root_hash(self.update_proof.new_root)
             .to_scalar()
             .map_err(|_| SynthesisError::Unsatisfiable);
         let new_root = AllocatedNum::alloc(cs.namespace(|| "new_root"), || new_scalar)?;

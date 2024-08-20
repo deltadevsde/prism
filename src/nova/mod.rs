@@ -3,180 +3,122 @@ pub mod insert;
 pub mod update;
 pub mod utils;
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::nova::batch::{Hash, MerkleProofStepCircuit, UnifiedProofStep};
-//     use arecibo::{
-//         provider::{Bn256Engine, GrumpkinEngine},
-//         traits::circuit::StepCircuit,
-//     };
-//     use arecibo::{
-//         traits::{circuit::TrivialCircuit, snark::default_ck_hint, Engine},
-//         PublicParams, RecursiveSNARK,
-//     };
-//     use bellpepper_core::{num::AllocatedNum, test_cs::TestConstraintSystem, ConstraintSystem};
-//     use ff::PrimeField;
-//     use indexed_merkle_tree::{node::Node, sha256_mod, tree::IndexedMerkleTree, tree::Proof};
+#[cfg(test)]
+mod tests {
+    use crate::common::Hashchain;
+    use crate::tree::{Hasher, KeyDirectoryTree, SnarkableTree};
+    use jmt::mock::MockTreeStore;
+    use jmt::KeyHash;
+    use std::sync::Arc;
 
-//     type E1 = Bn256Engine;
-//     type E2 = GrumpkinEngine;
+    #[test]
+    fn test_key_directory_tree() {
+        let store = Arc::new(MockTreeStore::default());
+        let mut tree = KeyDirectoryTree::new(store);
 
-//     type C1 = MerkleProofStepCircuit<<E1 as Engine>::Scalar>;
-//     type C2 = TrivialCircuit<<E2 as Engine>::Scalar>;
+        println!("Initial tree state: {:?}", tree.get_commitment());
 
-//     fn debug_circuit(circuit: &C1, z_in: &[<E1 as Engine>::Scalar]) {
-//         let mut cs = TestConstraintSystem::<<E1 as Engine>::Scalar>::new();
+        // Test insert
+        let hc1 = Hashchain::new("key_1".into());
+        let key1 = hc1.get_keyhash();
+        let insert_proof = tree
+            .insert(key1, hc1.clone())
+            .expect("Insert should succeed");
+        assert!(insert_proof.verify().is_ok());
+        tree.write_batch().expect("Write batch should succeed");
 
-//         let z: Vec<AllocatedNum<<E1 as Engine>::Scalar>> = z_in
-//             .iter()
-//             .enumerate()
-//             .map(|(i, &value)| {
-//                 AllocatedNum::alloc(&mut cs.namespace(|| format!("input {}", i)), || Ok(value))
-//                     .expect("failed to allocate input")
-//             })
-//             .collect();
+        println!("After first insert: {:?}", tree.get_commitment());
 
-//         circuit.synthesize(&mut cs, &z).expect("synthesis failed");
+        // Test get after insert
+        // Test get after insert
+        let get_result = tree.get(key1).expect("Get should succeed");
+        println!("Get result after insert: {:?}", get_result);
+        assert_eq!(get_result.expect("Key should exist"), hc1);
 
-//         println!("Constraint System:");
-//         println!("{}", cs.pretty_print());
+        // Test update
+        let mut hc1_updated = hc1.clone();
+        hc1_updated
+            .add("new_value".into())
+            .expect("Add to hashchain should succeed");
+        let update_proof = tree
+            .update(key1, hc1_updated.clone())
+            .expect("Update should succeed");
+        assert!(update_proof.verify().is_ok());
+        tree.write_batch().expect("Write batch should succeed");
 
-//         if !cs.is_satisfied() {
-//             println!("Constraint system not satisfied!");
-//             for (i, constraint) in cs.which_is_unsatisfied().iter().enumerate() {
-//                 println!("Unsatisfied Constraint {}: {:?}", i, constraint);
-//             }
-//         } else {
-//             println!("All constraints satisfied.");
-//         }
+        // Test get after update
+        let get_result_after_update = tree.get(key1).expect("Get should succeed");
+        assert_eq!(
+            get_result_after_update.expect("Key should exist"),
+            hc1_updated
+        );
 
-//         assert!(cs.is_satisfied(), "Constraints not satisfied");
-//     }
+        // Test insert duplicate key
+        let insert_duplicate_result = tree.insert(key1, hc1.clone());
+        assert!(insert_duplicate_result.is_err());
 
-//     fn create_public_params() -> PublicParams<E1, E2, C1, C2> {
-//         let mut tree = IndexedMerkleTree::new_with_size(4).unwrap();
-//         let test_label = sha256_mod(b"test");
-//         let test_value = sha256_mod(b"value");
-//         let mut test_node = Node::new_leaf(true, test_label, test_value, Node::TAIL);
+        // Test update non-existing key
+        let non_existing_key = KeyHash::with::<Hasher>(b"non_existing_key");
+        let update_non_existing_result = tree.update(non_existing_key, hc1.clone());
+        assert!(update_non_existing_result.is_err());
 
-//         let test_proof = tree.insert_node(&mut test_node).unwrap();
-//         let test_circuit = MerkleProofStepCircuit::from_proof(Proof::Insert(test_proof))[0].clone();
+        // Test get non-existing key
+        let get_non_existing_result = tree.get(non_existing_key).expect("Get should not fail");
+        assert!(get_non_existing_result.is_err());
+        if let Err(non_membership_proof) = get_non_existing_result {
+            assert!(non_membership_proof.verify().is_ok());
+        }
 
-//         let circuit_primary = test_circuit;
-//         let circuit_secondary = TrivialCircuit::default();
+        // Test multiple inserts and updates
+        let hc2 = Hashchain::new("key_2".into());
+        let key2 = hc2.get_keyhash();
+        tree.insert(key2, hc2.clone())
+            .expect("Insert should succeed");
+        tree.write_batch().expect("Write batch should succeed");
 
-//         PublicParams::<E1, E2, C1, C2>::setup(
-//             &circuit_primary,
-//             &circuit_secondary,
-//             &*default_ck_hint(),
-//             &*default_ck_hint(),
-//         )
-//         .unwrap()
-//     }
+        let mut hc2_updated = hc2.clone();
+        hc2_updated
+            .add("value2".into())
+            .expect("Add to hashchain should succeed");
+        tree.update(key2, hc2_updated.clone())
+            .expect("Update should succeed");
+        tree.write_batch().expect("Write batch should succeed");
 
-//     #[test]
-//     fn test_nova() {
-//         let mut tree = IndexedMerkleTree::new_with_size(4).unwrap();
-//         let initial_commitment = Hash::new(tree.get_commitment().unwrap())
-//             .to_scalar()
-//             .unwrap();
+        assert_eq!(tree.get(key2).unwrap().unwrap(), hc2_updated);
 
-//         // create three nodes to insert
-//         let ryan = sha256_mod(b"Ryan");
-//         let ford = sha256_mod(b"Ford");
-//         let sebastian = sha256_mod(b"Sebastian");
-//         let pusch = sha256_mod(b"Pusch");
-//         let ethan = sha256_mod(b"Ethan");
-//         let triple_zero = sha256_mod(b"000");
+        // Test root hash changes
+        let root_before = tree
+            .get_commitment()
+            .expect("Get commitment should succeed");
+        let hc3 = Hashchain::new("key_3".into());
+        let key3 = hc3.get_keyhash();
+        tree.insert(key3, hc3).expect("Insert should succeed");
+        tree.write_batch().expect("Write batch should succeed");
+        let root_after = tree
+            .get_commitment()
+            .expect("Get commitment should succeed");
 
-//         let mut ryans_node = Node::new_leaf(true, ryan, ford, Node::TAIL);
-//         let mut sebastians_node = Node::new_leaf(true, sebastian, pusch, Node::TAIL);
-//         let mut ethans_node = Node::new_leaf(true, ethan, triple_zero, Node::TAIL);
+        assert_ne!(root_before, root_after);
 
-//         // generate proofs for the three nodes
-//         let first_insert_proof = tree.insert_node(&mut ryans_node).unwrap();
-//         let second_insert_proof = tree.insert_node(&mut sebastians_node).unwrap();
-//         let third_insert_proof = tree.insert_node(&mut ethans_node).unwrap();
+        // Test batch writing
+        let hc4 = Hashchain::new("key_4".into());
+        let hc5 = Hashchain::new("key_5".into());
+        let key4 = hc4.get_keyhash();
+        let key5 = hc5.get_keyhash();
 
-//         // create zkSNARKs for the three proofs
-//         let first_insert_zk_snark = Proof::Insert(first_insert_proof);
-//         let second_insert_zk_snark = Proof::Insert(second_insert_proof);
-//         let third_insert_zk_snark = Proof::Insert(third_insert_proof);
+        tree.insert(key4, hc4.clone())
+            .expect("Insert should succeed");
+        tree.insert(key5, hc5.clone())
+            .expect("Insert should succeed");
 
-//         let proofs = vec![
-//             first_insert_zk_snark,
-//             second_insert_zk_snark,
-//             third_insert_zk_snark,
-//         ];
+        // Before writing the batch
+        assert!(tree.get(key4).unwrap().is_err());
+        assert!(tree.get(key5).unwrap().is_err());
 
-//         let circuits: Vec<C1> = proofs
-//             .into_iter()
-//             .flat_map(MerkleProofStepCircuit::from_proof)
-//             .collect();
+        tree.write_batch().expect("Write batch should succeed");
 
-//         println!("Creating public params...");
-//         let pp = create_public_params();
-//         println!("Created public params.");
-
-//         let initial_primary_inputs = vec![
-//             initial_commitment,
-//             <E1 as Engine>::Scalar::zero(), // initial existing node label
-//             <E1 as Engine>::Scalar::zero(), // initial missing node label
-//         ];
-
-//         let secondary_circuit = TrivialCircuit::default();
-
-//         println!("Creating recursive snark...");
-//         let recursive_snark_result = RecursiveSNARK::new(
-//             &pp,
-//             &circuits[0],
-//             &secondary_circuit,
-//             &initial_primary_inputs,
-//             &[<E2 as Engine>::Scalar::from(2u64)],
-//         );
-
-//         let mut z1_scalars = initial_primary_inputs;
-//         let mut z2_scalars = [<E2 as Engine>::Scalar::from(2u64)];
-
-//         match recursive_snark_result {
-//             Ok(mut recursive_snark) => {
-//                 println!("Created recursive snark successfully.");
-
-//                 for (i, circuit) in circuits.iter().enumerate() {
-//                     println!("Step: {i}");
-
-//                     debug_circuit(circuit, &z1_scalars);
-
-//                     let prove_result = recursive_snark.prove_step(&pp, circuit, &secondary_circuit);
-
-//                     match prove_result {
-//                         Ok(_) => {
-//                             println!("Prove step {i} succeeded");
-//                         }
-//                         Err(e) => {
-//                             println!("Prove step {i} failed with error: {:?}", e);
-//                             panic!("Test failed at prove step {i}");
-//                         }
-//                     }
-
-//                     let verify_result =
-//                         recursive_snark.verify(&pp, i + 1, &z1_scalars, &z2_scalars);
-
-//                     match verify_result {
-//                         Ok(_) => {
-//                             println!("Verify step {i} succeeded")
-//                         }
-//                         Err(e) => {
-//                             println!("Verify step {i} failed with error: {:?}", e);
-//                             panic!("Test failed at verify step {i}");
-//                         }
-//                     }
-//                 }
-//             }
-//             Err(e) => {
-//                 println!("Failed to create recursive snark. Error: {:?}", e);
-//                 panic!("Test failed during recursive snark creation");
-//             }
-//         }
-//     }
-// }
+        // After writing the batch
+        assert_eq!(tree.get(key4).unwrap().unwrap(), hc4);
+        assert_eq!(tree.get(key5).unwrap().unwrap(), hc5);
+    }
+}

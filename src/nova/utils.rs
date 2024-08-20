@@ -7,6 +7,7 @@ use bellpepper_core::{
 };
 use ff::PrimeField;
 use itertools::Itertools as _;
+use jmt::RootHash;
 use std::marker::PhantomData;
 
 use crate::tree;
@@ -22,6 +23,10 @@ impl<Scalar: PrimeField> Digest<Scalar> {
             digest,
             _p: PhantomData,
         }
+    }
+
+    pub fn from_root_hash(root_hash: RootHash) -> Self {
+        Self::new(root_hash.into())
     }
 
     // uses [`PrimeField::from_u128`] for inspiration. If the field element's capacity is not enough to hold the hash,

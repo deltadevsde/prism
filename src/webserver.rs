@@ -132,7 +132,7 @@ impl WebServer {
         Self { cfg }
     }
 
-    pub async fn start(&self, session: Arc<Sequencer<'static>>) -> Result<()> {
+    pub async fn start(&self, session: Arc<Sequencer>) -> Result<()> {
         info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let app = Router::new()
             .route("/update-entry", post(update_entry))
@@ -165,7 +165,7 @@ impl WebServer {
     )
 )]
 async fn update_entry(
-    State(session): State<Arc<Sequencer<'static>>>,
+    State(session): State<Arc<Sequencer>>,
     Json(signature_with_key): Json<OperationInput>,
 ) -> impl IntoResponse {
     match session.validate_and_queue_update(&signature_with_key).await {
@@ -196,7 +196,7 @@ async fn update_entry(
     )
 )]
 async fn get_hashchain(
-    State(session): State<Arc<Sequencer<'static>>>,
+    State(session): State<Arc<Sequencer>>,
     Json(request): Json<UserKeyRequest>,
 ) -> impl IntoResponse {
     match session.db.get_hashchain(&request.id) {
@@ -219,7 +219,7 @@ async fn get_hashchain(
         (status = 500, description = "Internal server error")
     )
 )]
-async fn get_commitment(State(session): State<Arc<Sequencer<'static>>>) -> impl IntoResponse {
+async fn get_commitment(State(session): State<Arc<Sequencer>>) -> impl IntoResponse {
     match session.get_commitment().await {
         Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),

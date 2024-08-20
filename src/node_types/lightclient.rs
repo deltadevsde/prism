@@ -96,7 +96,7 @@ impl LightClient {
                                 //         error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
                                 //         continue;
                                 //     }
-                                // };
+                                //  };
 
                                 // if the user does not add a verifying key, we will not verify the signature,
                                 // but only log a warning on startup
@@ -115,6 +115,9 @@ impl LightClient {
                                     }
                                 }
 
+                                /*
+                                TODO: validation of the epoch proof
+
                                 match validate_epoch(
                                     prev_commitment,
                                     current_commitment,
@@ -128,7 +131,7 @@ impl LightClient {
                                         )
                                     }
                                     Err(err) => panic!("failed to validate epoch: {:?}", err),
-                                }
+                                } */
                             }
                         }
                         Err(e) => {

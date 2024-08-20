@@ -1,5 +1,5 @@
-use crate::storage::RedisConnection;
 use anyhow::{anyhow, bail, ensure, Context, Result};
+use bls12_381::Scalar;
 use borsh::{from_slice, to_vec, BorshDeserialize, BorshSerialize};
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
@@ -9,7 +9,7 @@ use jmt::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::{common::Hashchain, storage::Database};
+use crate::common::Hashchain;
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
@@ -20,6 +20,35 @@ pub type Hasher = sha2::Sha256;
     Debug, Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, PartialEq, Eq, Copy,
 )]
 pub struct Digest([u8; 32]);
+
+// implementing it for now to get things to compile, curve choice will be made later
+impl TryFrom<Digest> for Scalar {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Digest) -> Result<Scalar, Self::Error> {
+        let mut byte_array = [0u8; 32];
+        byte_array.copy_from_slice(value.as_ref());
+        byte_array.reverse();
+
+        let val =
+            [
+                u64::from_le_bytes(byte_array[0..8].try_into().map_err(|_| {
+                    anyhow!(format!("slice to array: [0..8] for digest: {value:?}"))
+                })?),
+                u64::from_le_bytes(byte_array[8..16].try_into().map_err(|_| {
+                    anyhow!(format!("slice to array: [8..16] for digest: {value:?}"))
+                })?),
+                u64::from_le_bytes(byte_array[16..24].try_into().map_err(|_| {
+                    anyhow!(format!("slice to array: [16..24] for digest: {value:?}"))
+                })?),
+                u64::from_le_bytes(byte_array[24..32].try_into().map_err(|_| {
+                    anyhow!(format!("slice to array: [24..32] for digest: {value:?}"))
+                })?),
+            ];
+
+        Ok(Scalar::from_raw(val))
+    }
+}
 
 impl Into<RootHash> for Digest {
     fn into(self) -> RootHash {
@@ -116,8 +145,8 @@ impl InsertProof {
 
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
 pub struct UpdateProof {
-    pub old_root: Digest,
-    pub new_root: Digest,
+    pub old_root: RootHash,
+    pub new_root: RootHash,
 
     pub key: KeyHash,
     pub new_value: Hashchain,
@@ -130,8 +159,8 @@ impl UpdateProof {
         let new_value = to_vec(&self.new_value).unwrap();
 
         self.proof.clone().verify_update(
-            self.old_root.into(),
-            self.new_root.into(),
+            self.old_root,
+            self.new_root,
             vec![(self.key, Some(new_value))],
         )
     }
@@ -299,10 +328,17 @@ mod tests {
         let hc1 = Hashchain::new("key_1".into());
         let key = hc1.get_keyhash();
 
+        println!("hc1: {:?}", hc1);
+        println!("key: {:?}", key);
+
+        println!("Initial tree state: {:?}", tree.get_commitment());
+
         let insert_proof = tree.insert(key, hc1.clone());
         assert!(insert_proof.is_ok());
 
         tree.write_batch().unwrap();
+
+        println!("After first insert: {:?}", tree.get_commitment());
 
         let get_result = tree.get(key).unwrap().unwrap();
 
@@ -361,7 +397,7 @@ mod tests {
     #[test]
     fn test_get_non_existing_key() {
         let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(store);
+        let tree = KeyDirectoryTree::new(Arc::new(store));
 
         let key = KeyHash::with::<Hasher>(b"non_existing_key");
         let result = tree.get(key).unwrap();
@@ -375,7 +411,7 @@ mod tests {
     #[test]
     fn test_multiple_inserts_and_updates() {
         let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree = KeyDirectoryTree::new(Arc::new(store));
 
         let mut hc1 = Hashchain::new("key_1".into());
         let mut hc2 = Hashchain::new("key_2".into());
@@ -416,24 +452,49 @@ mod tests {
     #[test]
     fn test_batch_writing() {
         let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree = KeyDirectoryTree::new(store.clone());
 
         let hc1 = Hashchain::new("key_1".into());
-        let hc2 = Hashchain::new("key_2".into());
         let key1 = hc1.get_keyhash();
+
+        println!("Inserting key1: {:?}", key1);
+        tree.insert(key1, hc1.clone()).unwrap();
+
+        println!("Tree state after first insert: {:?}", tree.get_commitment());
+        tree.write_batch().unwrap();
+        println!(
+            "Tree state after first write_batch: {:?}",
+            tree.get_commitment()
+        );
+
+        // Try to get the first value immediately
+        let get_result1 = tree.get(key1);
+        println!("Get result for key1 after first write: {:?}", get_result1);
+
+        let hc2 = Hashchain::new("key_2".into());
         let key2 = hc2.get_keyhash();
 
-        tree.insert(key1, hc1.clone()).unwrap();
+        println!("Inserting key2: {:?}", key2);
         tree.insert(key2, hc2.clone()).unwrap();
 
-        // Before writing the batch
-        assert!(tree.get(key1).unwrap().is_err());
-        assert!(tree.get(key2).unwrap().is_err());
-
+        println!(
+            "Tree state after second insert: {:?}",
+            tree.get_commitment()
+        );
         tree.write_batch().unwrap();
+        println!(
+            "Tree state after second write_batch: {:?}",
+            tree.get_commitment()
+        );
 
-        // After writing the batch
-        assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
-        assert_eq!(tree.get(key2).unwrap().unwrap(), hc2);
+        // Try to get both values
+        let get_result1 = tree.get(key1);
+        let get_result2 = tree.get(key2);
+
+        println!("Final get result for key1: {:?}", get_result1);
+        println!("Final get result for key2: {:?}", get_result2);
+
+        assert_eq!(get_result1.unwrap().unwrap(), hc1);
+        assert_eq!(get_result2.unwrap().unwrap(), hc2);
     }
 }

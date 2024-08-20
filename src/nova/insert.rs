@@ -1,14 +1,8 @@
+use crate::nova::utils::{next_rom_index_and_pc, Digest};
 use crate::tree::InsertProof;
-use crate::{
-    nova::utils::{next_rom_index_and_pc, Digest},
-    tree,
-};
 use anyhow::Result;
 use arecibo::supernova::StepCircuit;
-use bellpepper_core::{
-    num::{AllocatedNum, Num},
-    ConstraintSystem, SynthesisError,
-};
+use bellpepper_core::{num::AllocatedNum, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 
 #[derive(Clone)]
