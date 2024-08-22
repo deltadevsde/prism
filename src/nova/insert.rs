@@ -1,5 +1,7 @@
-use crate::nova::utils::{next_rom_index_and_pc, Digest};
-use crate::tree::InsertProof;
+use crate::{
+    nova::utils::{next_rom_index_and_pc, Digest},
+    tree::InsertProof,
+};
 use anyhow::Result;
 use arecibo::supernova::StepCircuit;
 use bellpepper_core::{num::AllocatedNum, ConstraintSystem, SynthesisError};
@@ -46,20 +48,12 @@ where
 
         let pc = pc.ok_or(SynthesisError::AssignmentMissing)?;
 
-        // Compute next ROM index and PC
         let (rom_index_next, pc_next) = next_rom_index_and_pc(
-            &mut cs.namespace(|| "next_rom_index_and_pc"),
+            &mut cs.namespace(|| "next and rom_index and pc"),
             rom_index,
             allocated_rom,
             pc,
         )?;
-
-        // cs.push_namespace(|| {
-        //     format!(
-        //         "insert_proof {:?}",
-        //         self.insertion_proof.non_membership_proof.root
-        //     )
-        // });
 
         let pre_insertion_scalar = Digest::new(self.insertion_proof.non_membership_proof.root)
             .to_scalar()
@@ -84,12 +78,9 @@ where
             .verify()
             .map_err(|_| SynthesisError::Unsatisfiable)?;
 
-        // cs.pop_namespace();
-
-        // Prepare the next state vector
         let mut z_next = vec![new_root];
         z_next.push(rom_index_next);
-        z_next.extend_from_slice(&z[2..]);
+        z_next.extend(z[2..].iter().cloned());
 
         Ok((Some(pc_next), z_next))
     }

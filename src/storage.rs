@@ -249,9 +249,7 @@ impl Database for RedisConnection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::Operation;
-    use crate::storage::Database;
-    use crate::tree::hash;
+    use crate::{common::Operation, storage::Database, tree::hash};
     use serde::{Deserialize, Serialize};
     use serial_test::serial;
 

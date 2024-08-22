@@ -1,5 +1,7 @@
-use crate::nova::utils::{next_rom_index_and_pc, Digest as NovaDigest};
-use crate::tree::UpdateProof;
+use crate::{
+    nova::utils::{next_rom_index_and_pc, Digest as NovaDigest},
+    tree::UpdateProof,
+};
 use anyhow::Result;
 use arecibo::supernova::StepCircuit;
 use bellpepper_core::{num::AllocatedNum, ConstraintSystem, SynthesisError};
@@ -46,15 +48,12 @@ where
 
         let pc = pc.ok_or(SynthesisError::AssignmentMissing)?;
 
-        // Compute next ROM index and PC
         let (rom_index_next, pc_next) = next_rom_index_and_pc(
-            &mut cs.namespace(|| "next_rom_index_and_pc"),
+            &mut cs.namespace(|| "next rom_index and pc"),
             rom_index,
             allocated_rom,
             pc,
         )?;
-
-        // cs.push_namespace(|| format!("update_proof {:?}", self.update_proof.old_root));
 
         let pre_insertion_scalar = NovaDigest::from_root_hash(self.update_proof.old_root)
             .to_scalar()
@@ -74,17 +73,14 @@ where
             |lc| lc + CS::one(),
             |lc| lc + pre_insertion_root.get_variable(),
         );
-        // TODO: bellpepper merkle proof gadget
+        // // TODO: bellpepper merkle proof gadget
         self.update_proof
             .verify()
             .map_err(|_| SynthesisError::Unsatisfiable)?;
 
-        // cs.pop_namespace();
-
-        // Prepare the next state vector
         let mut z_next = vec![new_root];
         z_next.push(rom_index_next);
-        z_next.extend_from_slice(&z[2..]);
+        z_next.extend(z[2..].iter().cloned());
 
         Ok((Some(pc_next), z_next))
     }

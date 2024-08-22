@@ -3,8 +3,10 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use indexed_merkle_tree::Hash;
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
-use std::ops::{Deref, DerefMut};
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+};
 
 use crate::tree::{hash, Digest, Hasher};
 

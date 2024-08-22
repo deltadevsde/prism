@@ -1,8 +1,11 @@
-use crate::circuits::{
-    utils::{recalculate_hash_as_scalar, unpack_and_process},
-    ProofVariantCircuit,
+use crate::{
+    circuits::{
+        utils::{recalculate_hash_as_scalar, unpack_and_process},
+        ProofVariantCircuit,
+    },
+    error::PrismError,
+    utils::create_and_verify_snark,
 };
-use crate::{error::PrismError, utils::create_and_verify_snark};
 use anyhow::Result;
 use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, Scalar};

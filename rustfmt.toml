@@ -1,1 +1,2 @@
-imports_granularity="Crate"
+merge_imports = true
+imports_granularity = "Crate"

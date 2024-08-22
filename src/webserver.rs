@@ -14,11 +14,12 @@ use axum::{
     Json, Router,
 };
 use ed25519::Signature;
-use indexed_merkle_tree::tree::{Proof, UpdateProof};
-use indexed_merkle_tree::Hash as TreeHash;
+use indexed_merkle_tree::{
+    tree::{Proof, UpdateProof},
+    Hash as TreeHash,
+};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use std::{self, str::FromStr};
+use std::{self, str::FromStr, sync::Arc};
 use tower_http::cors::CorsLayer;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;

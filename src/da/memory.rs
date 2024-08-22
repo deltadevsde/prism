@@ -5,8 +5,10 @@ use crate::{
 use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
-use tokio::time::{interval, Duration};
+use tokio::{
+    sync::{broadcast, RwLock},
+    time::{interval, Duration},
+};
 
 #[derive(Clone, Debug)]
 pub struct Block {
