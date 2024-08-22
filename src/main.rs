@@ -1,5 +1,4 @@
 mod cfg;
-pub mod circuits;
 pub mod common;
 pub mod consts;
 pub mod da;
@@ -14,9 +13,13 @@ mod webserver;
 use cfg::{initialize_da_layer, load_config};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
+use prism::nova::utils::create_pp;
 
 use crate::cfg::{CommandLineArgs, Commands};
+use anyhow::{Context, Result};
+use arecibo::{provider::PallasEngine, supernova::PublicParams};
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
+use std::io;
 use std::sync::Arc;
 use storage::RedisConnection;
 
@@ -27,13 +30,21 @@ extern crate log;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = CommandLineArgs::parse();
+
     let config = load_config(args.clone())
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+    let pp = load_or_generate_public_params(&config.public_params_path)
+        .expect("Failed to deserialize or generate public params.");
+
+    if let Commands::GeneratePublicParams {} = args.command {
+        bincode::serialize_into(io::stdout(), &pp).unwrap();
+        return Ok(());
+    }
 
     let da = initialize_da_layer(&config)
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-
     let node: Arc<dyn NodeType> = match args.command {
         Commands::LightClient {} => {
             let celestia_config = config.celestia_config.ok_or_else(|| {
@@ -71,9 +82,26 @@ async fn main() -> std::io::Result<()> {
                 })?,
             )
         }
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid node type",
+            ));
+        }
     };
 
     node.start()
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+}
+
+fn load_or_generate_public_params(path: &Option<String>) -> Result<PublicParams<PallasEngine>> {
+    if let Some(path) = path {
+        info!("Loading public params from file: {:?}", path);
+        let bytes = std::fs::read(path).context("Failed to read public params file")?;
+        bincode::deserialize(&bytes).context("Failed to deserialize public params")
+    } else {
+        warn!("No public params file provided, generating new ones. This may take a while.");
+        Ok(create_pp())
+    }
 }

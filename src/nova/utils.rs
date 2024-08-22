@@ -1,5 +1,9 @@
 // use bellpepper_core::ConstraintSystem;
+use crate::nova::batch::EpochCircuitSequence;
+use crate::tree::*;
+use crate::{common::Hashchain, nova::batch::EpochCircuit};
 use anyhow::Result;
+use arecibo::{provider::PallasEngine, supernova::PublicParams, traits::snark::default_ck_hint};
 use bellpepper_core::{
     boolean::{AllocatedBit, Boolean},
     num::AllocatedNum,
@@ -8,7 +12,9 @@ use bellpepper_core::{
 use ff::PrimeField;
 use itertools::Itertools as _;
 use jmt::RootHash;
+use jmt::{mock::MockTreeStore, KeyHash};
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 use crate::tree;
 
@@ -156,50 +162,25 @@ pub fn get_selector_vec_from_index<F: PrimeField, CS: ConstraintSystem<F>>(
     Ok(selector)
 }
 
-// pub(crate) fn prove_update<CS: ConstraintSystem<Scalar>>(
-//     cs: &mut CS,
-//     old_root: Scalar,
-//     old_path: &[Node],
-//     new_root: Scalar,
-//     new_path: &[Node],
-// ) -> Result<Scalar, SynthesisError> {
-//     let root_with_old_pointer =
-//         cs.alloc(|| "first update root with old pointer", || Ok(old_root))?;
-//     let root_with_new_pointer =
-//         cs.alloc(|| "first update root with new pointer", || Ok(new_root))?;
+pub fn create_pp() -> PublicParams<PallasEngine> {
+    type E1 = PallasEngine;
 
-//     // update the root hash for old and new path
-//     let recalculated_root_with_old_pointer =
-//         recalculate_hash_as_scalar(old_path).map_err(|_| SynthesisError::Unsatisfiable)?;
-//     let recalculated_root_with_new_pointer =
-//         recalculate_hash_as_scalar(new_path).map_err(|_| SynthesisError::Unsatisfiable)?;
+    let store = Arc::new(MockTreeStore::default());
+    let mut tree = KeyDirectoryTree::new(store);
 
-//     let allocated_recalculated_root_with_old_pointer = cs.alloc(
-//         || "recalculated first update proof old root",
-//         || Ok(recalculated_root_with_old_pointer),
-//     )?;
-//     let allocated_recalculated_root_with_new_pointer = cs.alloc(
-//         || "recalculated first update proof new root",
-//         || Ok(recalculated_root_with_new_pointer),
-//     )?;
+    let mut hc = Hashchain::new("publicparams".into());
+    let key = hc.get_keyhash();
 
-//     // Check if the resulting hash is the root hash of the old tree
-//     // allocated_recalculated_root_with_old_pointer * (1) = root_with_old_pointer
-//     cs.enforce(
-//         || "first update old root equality",
-//         |lc| lc + allocated_recalculated_root_with_old_pointer,
-//         |lc| lc + CS::one(),
-//         |lc| lc + root_with_old_pointer,
-//     );
+    let insert_proof = tree.insert(key, hc.clone()).unwrap();
 
-//     // Check that the resulting hash is the root hash of the new tree.
-//     // allocated_recalculated_root_with_new_pointer * (1) = root_with_new_pointer
-//     cs.enforce(
-//         || "first update new root equality",
-//         |lc| lc + allocated_recalculated_root_with_new_pointer,
-//         |lc| lc + CS::one(),
-//         |lc| lc + root_with_new_pointer,
-//     );
+    hc.add("test_value".into()).unwrap();
+    let update_proof = tree.update(key, hc).unwrap();
 
-//     Ok(recalculated_root_with_new_pointer)
-// }
+    let operations = vec![
+        (0, EpochCircuit::new_insert(insert_proof, 2)),
+        (1, EpochCircuit::new_update(update_proof, 2)),
+    ];
+
+    let circuit_sequence = EpochCircuitSequence::<E1>::new(operations);
+    PublicParams::setup(&circuit_sequence, &*default_ck_hint(), &*default_ck_hint())
+}

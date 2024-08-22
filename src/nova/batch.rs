@@ -8,7 +8,7 @@ use ff::PrimeField;
 use std::cell::RefCell;
 
 #[derive(Clone)]
-struct EpochCircuitSequence<E1>
+pub struct EpochCircuitSequence<E1>
 where
     E1: CurveCycleEquipped,
 {
@@ -84,7 +84,7 @@ where
 }
 
 #[derive(Clone)]
-enum EpochCircuit<F: PrimeField> {
+pub enum EpochCircuit<F: PrimeField> {
     Insert(InsertCircuit<F>),
     Update(UpdateCircuit<F>),
 }
