@@ -429,6 +429,31 @@ mod tests {
     }
 
     #[test]
+    fn test_interleaved_inserts_and_updates() {
+        let store = MockTreeStore::default();
+        let mut tree = KeyDirectoryTree::new(Arc::new(store));
+
+        let mut hc1 = Hashchain::new("key_1".into());
+        let mut hc2 = Hashchain::new("key_2".into());
+        let key1 = hc1.get_keyhash();
+        let key2 = hc2.get_keyhash();
+
+        tree.insert(key1, hc1.clone()).unwrap();
+
+        hc1.add("value1".into()).unwrap();
+        tree.update(key1, hc1.clone()).unwrap();
+
+        tree.insert(key2, hc2.clone()).unwrap();
+
+        hc2.add("value2".into()).unwrap();
+        let last_proof = tree.update(key2, hc2.clone()).unwrap();
+
+        assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
+        assert_eq!(tree.get(key2).unwrap().unwrap(), hc2);
+        assert_eq!(last_proof.new_root, tree.get_current_root().unwrap());
+    }
+
+    #[test]
     fn test_root_hash_changes() {
         let store = Arc::new(MockTreeStore::default());
         let mut tree = KeyDirectoryTree::new(store);

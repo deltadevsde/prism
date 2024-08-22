@@ -38,6 +38,11 @@ where
             update_index: RefCell::new(0),
         }
     }
+
+    pub fn reset_indices(&self) {
+        *self.insert_index.borrow_mut() = 0;
+        *self.update_index.borrow_mut() = 0;
+    }
 }
 
 impl<E1> arecibo::supernova::NonUniformCircuit<E1> for EpochCircuitSequence<E1>
@@ -171,6 +176,7 @@ mod tests {
             if !state.inserted_keys.contains(&key) {
                 let proof = state.tree.insert(key, hc).expect("Insert should succeed");
                 state.inserted_keys.insert(key);
+                println!("inserted key: {key:?}");
                 return proof;
             }
         }
@@ -193,6 +199,7 @@ mod tests {
             .collect();
         hc.add(random_string)
             .expect("Adding to hashchain should succeed");
+        println!("updated key: {key:?}");
 
         state.tree.update(key, hc).expect("Update should succeed")
     }
@@ -212,20 +219,20 @@ mod tests {
         let operations = vec![
             (
                 0,
-                EpochCircuit::new_insert(create_random_insert(&mut state, &mut rng), 2),
+                EpochCircuit::new_insert(create_random_insert(&mut state, &mut rng), 4),
             ),
             (
                 1,
-                EpochCircuit::new_update(create_random_update(&mut state, &mut rng), 2),
+                EpochCircuit::new_update(create_random_update(&mut state, &mut rng), 4),
             ),
-            // (
-            //     0,
-            //     EpochCircuit::new_insert(create_random_insert(&mut state, &mut rng), 4),
-            // ),
-            // (
-            //     1,
-            //     EpochCircuit::new_update(create_random_update(&mut state, &mut rng), 4),
-            // ),
+            (
+                0,
+                EpochCircuit::new_insert(create_random_insert(&mut state, &mut rng), 4),
+            ),
+            (
+                1,
+                EpochCircuit::new_update(create_random_update(&mut state, &mut rng), 4),
+            ),
         ];
 
         let circuit_sequence = EpochCircuitSequence::<E1>::new(operations);
@@ -244,8 +251,10 @@ mod tests {
         let z0_secondary = vec![<<Dual<E1> as Engine>::Scalar>::ONE];
 
         let mut recursive_snark_option: Option<RecursiveSNARK<E1>> = None;
-
+        circuit_sequence.reset_indices();
+        println!("ROM sequence: {:?}", circuit_sequence.rom);
         for &op_code in circuit_sequence.rom.iter() {
+            println!("Processing operation: {}", op_code);
             let primary_circuit = circuit_sequence.primary_circuit(op_code);
             let secondary_circuit = circuit_sequence.secondary_circuit();
 
