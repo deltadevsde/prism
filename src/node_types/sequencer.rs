@@ -1,5 +1,4 @@
 use crate::{
-    storage::RedisConnection,
     tree::{hash, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree},
 };
 use anyhow::{Context, Result};

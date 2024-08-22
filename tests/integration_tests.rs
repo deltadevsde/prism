@@ -1,16 +1,3 @@
-use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
-use ed25519_dalek::{Signer, SigningKey};
-use keystore_rs::create_signing_key;
-use prism::{
-    cfg::{Config, RedisConfig},
-    common::{AccountSource, Operation},
-    da::memory::InMemoryDataAvailabilityLayer,
-    node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType},
-    storage::{Database, RedisConnection},
-    webserver::OperationInput,
-};
-use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::{sync::Arc, time::Duration};
 
 // fn create_new_account_operation(id: String, value: String, key: &SigningKey) -> OperationInput {
 //     let incoming = Operation::CreateAccount {

@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use auto_impl::auto_impl;
-use indexed_merkle_tree::Hash;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
@@ -10,7 +9,7 @@ use redis::{Client, Commands, Connection};
 use std::{
     self,
     process::Command,
-    sync::{Arc, Mutex, MutexGuard},
+    sync::{Mutex, MutexGuard},
     thread::sleep,
     time::Duration,
 };

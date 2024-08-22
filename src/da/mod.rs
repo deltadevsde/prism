@@ -1,5 +1,4 @@
 use crate::{
-    circuits::{Bls12Proof, VerifyingKey},
     common::Operation,
     error::GeneralError,
     tree::Digest,
@@ -9,7 +8,6 @@ use anyhow::Result;
 use async_trait::async_trait;
 use borsh::{BorshDeserialize, BorshSerialize};
 use ed25519::Signature;
-use indexed_merkle_tree::Hash;
 use std::{self, str::FromStr};
 
 pub mod celestia;

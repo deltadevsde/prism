@@ -1,6 +1,5 @@
 use anyhow::{bail, Result};
 use borsh::{BorshDeserialize, BorshSerialize};
-use indexed_merkle_tree::Hash;
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
 use std::{

@@ -10,7 +10,7 @@ use tokio::{task::spawn, time::interval};
 use crate::{
     da::DataAvailabilityLayer,
     node_types::NodeType,
-    utils::{validate_epoch, verify_signature},
+    utils::{verify_signature},
 };
 
 pub struct LightClient {

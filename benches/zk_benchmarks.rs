@@ -5,7 +5,7 @@ use indexed_merkle_tree::{
     tree::{IndexedMerkleTree, Proof},
     Hash,
 };
-use prism::{circuits::BatchMerkleProofCircuit, utils::validate_epoch};
+use prism::{circuits::BatchMerkleProofCircuit};
 use rand::Rng;
 use std::time::Duration;
 

@@ -9,7 +9,7 @@ use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
-use indexed_merkle_tree::{tree::Proof, Hash};
+use indexed_merkle_tree::{tree::Proof};
 use rand::rngs::OsRng;
 
 pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::Error>> {
@@ -120,10 +120,10 @@ pub fn verify_signature<T: SignedContent>(
 
 #[cfg(test)]
 mod tests {
-    use crate::circuits::BatchMerkleProofCircuit;
-    use indexed_merkle_tree::tree::{IndexedMerkleTree, Proof};
+    
+    
 
-    use indexed_merkle_tree::{node::Node, sha256_mod};
+    
 
     use super::*;
 
