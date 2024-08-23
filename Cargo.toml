@@ -52,11 +52,11 @@ keystore-rs = "0.1.0"
 toml = "0.8.14"
 dirs = "5.0.1"
 anyhow = "1.0.44"
-jmt = { path = "../jmt", features = [
+jmt = { git = "https://github.com/deltadevsde/jmt", features = [
     "mocks",
 ] } #{ version = "0.10.0", features = ["mocks"] }
 bellpepper-core = { version = "0.4.0", default-features = false }
-arecibo = { path = "../arecibo" }
+arecibo = { git = "https://github.com/deltadevsde/arecibo" }
 itertools = "0.13.0" # zip_eq
 sha2 = "0.10.8"
 auto_impl = "1.2.0"
