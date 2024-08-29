@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
 use borsh::{BorshDeserialize, BorshSerialize};
+use ff::derive::bitvec::view::AsBits;
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -134,6 +135,11 @@ impl Hashchain {
         self.push(operation)
     }
 
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.last()
+            .map_or(Vec::new(), |last_entry| last_entry.to_bytes())
+    }
+
     pub fn get(&self, idx: usize) -> &HashchainEntry {
         &self.entries[idx]
     }
@@ -206,5 +212,15 @@ impl HashchainEntry {
             previous_hash,
             operation,
         }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.extend_from_slice(self.hash.as_ref());
+        bytes.extend_from_slice(self.previous_hash.as_ref());
+        bytes.extend_from_slice(self.operation.to_string().as_bytes());
+
+        bytes
     }
 }

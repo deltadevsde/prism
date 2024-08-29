@@ -52,10 +52,11 @@ keystore-rs = "0.1.0"
 toml = "0.8.14"
 dirs = "5.0.1"
 anyhow = "1.0.44"
-jmt = { git = "https://github.com/deltadevsde/jmt", features = [
+jmt = { path = "../jmt", features = [
     "mocks",
 ] } #{ version = "0.10.0", features = ["mocks"] }
 bellpepper-core = { version = "0.4.0", default-features = false }
+bellpepper = "0.4.1"
 arecibo = { git = "https://github.com/deltadevsde/arecibo" }
 itertools = "0.13.0" # zip_eq
 sha2 = "0.10.8"

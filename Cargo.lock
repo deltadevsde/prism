@@ -377,7 +377,7 @@ source = "git+https://github.com/deltadevsde/arecibo#1b6b7a772893bb6f0ce54556a0d
 dependencies = [
  "abomonation",
  "abomonation_derive_ng",
- "bellpepper",
+ "bellpepper 0.4.1 (git+https://github.com/lurk-lab/bellpepper?branch=dev)",
  "bellpepper-core",
  "bincode",
  "bitvec",
@@ -716,6 +716,17 @@ dependencies = [
  "rand_core",
  "rayon",
  "subtle",
+]
+
+[[package]]
+name = "bellpepper"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ae286c2cb403324ab644c7cc68dceb25fe52ca9429908a726d7ed272c1edf7b"
+dependencies = [
+ "bellpepper-core",
+ "byteorder",
+ "ff",
 ]
 
 [[package]]
@@ -2435,7 +2446,6 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 [[package]]
 name = "jmt"
 version = "0.10.0"
-source = "git+https://github.com/deltadevsde/jmt#dc521ef17fcba2fe96990dbd1831fcb274ebb541"
 dependencies = [
  "anyhow",
  "auto_impl",
@@ -2893,7 +2903,7 @@ source = "git+https://github.com/lurk-lab/neptune?branch=dev#b6fb1f9372be2a50c56
 dependencies = [
  "abomonation",
  "abomonation_derive_ng",
- "bellpepper",
+ "bellpepper 0.4.1 (git+https://github.com/lurk-lab/bellpepper?branch=dev)",
  "bellpepper-core",
  "blake2s_simd",
  "blstrs",
@@ -3417,6 +3427,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "bellman",
+ "bellpepper 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bellpepper-core",
  "bincode",
  "bls12_381",

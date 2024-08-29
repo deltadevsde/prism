@@ -4,6 +4,7 @@ use crate::tree::*;
 use crate::{common::Hashchain, nova::batch::EpochCircuit};
 use anyhow::Result;
 use arecibo::{provider::PallasEngine, supernova::PublicParams, traits::snark::default_ck_hint};
+use bellpepper::gadgets::sha256::sha256;
 use bellpepper_core::{
     boolean::{AllocatedBit, Boolean},
     num::AllocatedNum,
