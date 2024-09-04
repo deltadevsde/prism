@@ -5,6 +5,7 @@ use indexed_merkle_tree::{
     tree::{IndexedMerkleTree, Proof},
     Hash,
 };
+use prism::{circuits::BatchMerkleProofCircuit, utils::validate_epoch};
 use rand::Rng;
 use std::time::Duration;
 
@@ -55,13 +56,13 @@ fn bench_proof_generation(c: &mut Criterion) {
                     let (_, proofs, prev_commitment, current_commitment) =
                         setup_tree_and_proofs(*tree_size, *batch_size);
                     b.iter(|| {
-                        // let circuit = BatchMerkleProofCircuit::new(
-                        //     black_box(&prev_commitment),
-                        //     black_box(&current_commitment),
-                        //     black_box(proofs.clone()),
-                        // )
-                        // .unwrap();
-                        // let _ = circuit.create_and_verify_snark();
+                        let circuit = BatchMerkleProofCircuit::new(
+                            black_box(&prev_commitment),
+                            black_box(&current_commitment),
+                            black_box(proofs.clone()),
+                        )
+                        .unwrap();
+                        let _ = circuit.create_and_verify_snark();
                     });
                 },
             );
@@ -84,17 +85,17 @@ fn bench_proof_verification(c: &mut Criterion) {
                 |b, &(tree_size, batch_size)| {
                     let (_, proofs, prev_commitment, current_commitment) =
                         setup_tree_and_proofs(*tree_size, *batch_size);
-                    // let circuit =
-                    //     BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
-                    //         .unwrap();
-                    // let (proof, verifying_key) = circuit.create_and_verify_snark().unwrap();
+                    let circuit =
+                        BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
+                            .unwrap();
+                    let (proof, verifying_key) = circuit.create_and_verify_snark().unwrap();
                     b.iter(|| {
-                        /* let _ = validate_epoch(
+                        let _ = validate_epoch(
                             black_box(&prev_commitment),
                             black_box(&current_commitment),
                             black_box(proof.clone()),
                             black_box(verifying_key.clone()),
-                        ); */
+                        );
                     });
                 },
             );
