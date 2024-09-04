@@ -1,4 +1,5 @@
 pub mod cfg;
+mod circuits;
 pub mod common;
 pub mod consts;
 pub mod da;

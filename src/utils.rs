@@ -1,4 +1,5 @@
 use crate::{
+    circuits::ProofVariantCircuit,
     error::{GeneralError, PrismError, ProofError},
     tree::Digest,
 };
@@ -29,6 +30,34 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey> {
 
     Ed25519VerifyingKey::from_bytes(&public_key_array)
         .map_err(|_| GeneralError::DecodingError("ed25519 verifying key".to_string()).into())
+}
+
+pub fn create_and_verify_snark(
+    circuit: ProofVariantCircuit,
+    scalars: Vec<Scalar>,
+) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>)> {
+    let rng = &mut OsRng;
+
+    trace!("creating parameters with BLS12-381 pairing-friendly elliptic curve construction....");
+    let params =
+        groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng).map_err(|e| {
+            PrismError::Proof(ProofError::ProofUnpackError(format!(
+                "generating random params: {}",
+                e
+            )))
+        })?;
+
+    trace!("creating proof for zkSNARK...");
+    let proof = groth16::create_random_proof(circuit, &params, rng)
+        .map_err(|e| PrismError::Proof(ProofError::GenerationError(e.to_string())))?;
+
+    trace!("preparing verifying key for zkSNARK...");
+    let pvk = groth16::prepare_verifying_key(&params.vk);
+
+    groth16::verify_proof(&pvk, &proof, &scalars)
+        .map_err(|e| PrismError::Proof(ProofError::VerificationError(e.to_string())))?;
+
+    Ok((proof, params.vk))
 }
 
 pub fn validate_epoch(

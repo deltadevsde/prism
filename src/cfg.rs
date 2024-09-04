@@ -9,7 +9,6 @@ use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
 use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::{fs, path::Path, sync::Arc};
 
 use crate::da::{celestia::CelestiaConnection, DataAvailabilityLayer};

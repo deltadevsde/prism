@@ -10,7 +10,7 @@ use tokio::{task::spawn, time::interval};
 use crate::{
     da::DataAvailabilityLayer,
     node_types::NodeType,
-    utils::{verify_signature},
+    utils::{validate_epoch, verify_signature},
 };
 
 pub struct LightClient {
@@ -80,23 +80,23 @@ impl LightClient {
                                 let prev_commitment = &epoch_json.prev_commitment;
                                 let current_commitment = &epoch_json.current_commitment;
 
-                                // let proof = match epoch_json.proof.clone().try_into() {
-                                //     Ok(proof) => proof,
-                                //     Err(e) => {
-                                //         error!("failed to deserialize proof, skipping a blob at height {}: {:?}", i, e);
-                                //         continue;
-                                //     }
-                                // };
+                                let proof = match epoch_json.proof.clone().try_into() {
+                                    Ok(proof) => proof,
+                                    Err(e) => {
+                                        error!("failed to deserialize proof, skipping a blob at height {}: {:?}", i, e);
+                                        continue;
+                                    }
+                                };
 
                                 // TODO(@distractedm1nd): i don't know rust yet but this seems like non-idiomatic rust -
                                 // is there not a Trait that can satisfy these properties for us?
-                                // let verifying_key = match epoch_json.verifying_key.clone().try_into() {
-                                //     Ok(vk) => vk,
-                                //     Err(e) => {
-                                //         error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
-                                //         continue;
-                                //     }
-                                //  };
+                                let verifying_key = match epoch_json.verifying_key.clone().try_into() {
+                                    Ok(vk) => vk,
+                                    Err(e) => {
+                                        error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
+                                        continue;
+                                    }
+                                 };
 
                                 // if the user does not add a verifying key, we will not verify the signature,
                                 // but only log a warning on startup
@@ -115,9 +115,6 @@ impl LightClient {
                                     }
                                 }
 
-                                /*
-                                TODO: validation of the epoch proof
-
                                 match validate_epoch(
                                     prev_commitment,
                                     current_commitment,
@@ -131,7 +128,7 @@ impl LightClient {
                                         )
                                     }
                                     Err(err) => panic!("failed to validate epoch: {:?}", err),
-                                } */
+                                }
                             }
                         }
                         Err(e) => {

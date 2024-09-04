@@ -1,4 +1,5 @@
 use crate::{
+    circuits::{Bls12Proof, VerifyingKey},
     common::Operation,
     error::GeneralError,
     tree::Digest,
@@ -19,8 +20,8 @@ pub struct FinalizedEpoch {
     pub height: u64,
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
-    // pub proof: Bls12Proof,
-    // pub verifying_key: VerifyingKey,
+    pub proof: Bls12Proof,
+    pub verifying_key: VerifyingKey,
     pub signature: Option<String>,
 }
 

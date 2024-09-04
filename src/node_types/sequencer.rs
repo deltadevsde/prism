@@ -1,4 +1,5 @@
 use crate::{
+    circuits::BatchMerkleProofCircuit,
     tree::{hash, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree},
 };
 use anyhow::{Context, Result};
@@ -304,19 +305,19 @@ impl Sequencer {
             .set_commitment(&epoch, &current_commitment)
             .context("Failed to add commitment for new epoch")?;
 
-        // let batch_circuit =
-        //     BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
-        //         .context("Failed to create BatchMerkleProofCircuit")?;
-        // let (proof, verifying_key) = batch_circuit
-        //     .create_and_verify_snark()
-        //     .context("Failed to create and verify snark")?;
+        let batch_circuit =
+            BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
+                .context("Failed to create BatchMerkleProofCircuit")?;
+        let (proof, verifying_key) = batch_circuit
+            .create_and_verify_snark()
+            .context("Failed to create and verify snark")?;
 
         let epoch_json = FinalizedEpoch {
             height: epoch,
             prev_commitment,
             current_commitment,
-            // proof: proof.into(),
-            // verifying_key: verifying_key.into(),
+            proof: proof.into(),
+            verifying_key: verifying_key.into(),
             signature: None,
         };
 
