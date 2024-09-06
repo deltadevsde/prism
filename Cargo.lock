@@ -377,8 +377,8 @@ source = "git+https://github.com/deltadevsde/arecibo#1b6b7a772893bb6f0ce54556a0d
 dependencies = [
  "abomonation",
  "abomonation_derive_ng",
- "bellpepper",
- "bellpepper-core",
+ "bellpepper 0.4.1 (git+https://github.com/lurk-lab/bellpepper?branch=dev)",
+ "bellpepper-core 0.4.0",
  "bincode",
  "bitvec",
  "byteorder",
@@ -698,24 +698,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "bellman"
-version = "0.14.0"
+name = "bellpepper"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9afceed28bac7f9f5a508bca8aeeff51cdfa4770c0b967ac55c621e2ddfd6171"
+checksum = "9ae286c2cb403324ab644c7cc68dceb25fe52ca9429908a726d7ed272c1edf7b"
 dependencies = [
- "bitvec",
- "blake2s_simd",
+ "bellpepper-core 0.4.0",
  "byteorder",
- "crossbeam-channel",
  "ff",
- "group",
- "lazy_static",
- "log",
- "num_cpus",
- "pairing",
- "rand_core",
- "rayon",
- "subtle",
 ]
 
 [[package]]
@@ -723,10 +713,23 @@ name = "bellpepper"
 version = "0.4.1"
 source = "git+https://github.com/lurk-lab/bellpepper?branch=dev#d0225bf6cb2bb9abaff28ea96a3497f9829815f8"
 dependencies = [
- "bellpepper-core",
+ "bellpepper-core 0.4.0",
  "byteorder",
  "ff",
  "itertools 0.12.1",
+]
+
+[[package]]
+name = "bellpepper-core"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2c9a1b2f748c59938bc72165ebdf34efffeecee9cfbe0bb7d6b01aea21cd523"
+dependencies = [
+ "blake2s_simd",
+ "byteorder",
+ "ff",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -739,6 +742,35 @@ dependencies = [
  "byteorder",
  "ff",
  "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "bellperson"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c41bd83b8437856d267eb311de13dcd9bff9077cc5ba35c7ec886070dea8a45"
+dependencies = [
+ "bellpepper-core 0.2.1",
+ "bincode",
+ "blake2s_simd",
+ "blstrs",
+ "byteorder",
+ "crossbeam-channel",
+ "digest 0.10.7",
+ "ec-gpu",
+ "ec-gpu-gen",
+ "ff",
+ "group",
+ "log",
+ "memmap2",
+ "pairing",
+ "rand",
+ "rand_core",
+ "rayon",
+ "rustversion",
+ "serde",
+ "sha2 0.10.8",
  "thiserror",
 ]
 
@@ -874,8 +906,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7bc6d6292be3a19e6379786dac800f551e5865a5bb51ebbe3064ab80433f403"
 dependencies = [
  "ff",
- "group",
- "pairing",
  "rand_core",
  "subtle",
 ]
@@ -1677,6 +1707,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1435fa1053d8b2fbbe9be7e97eca7f33d37b28409959813daefc1446a14247f1"
 
 [[package]]
+name = "ec-gpu"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd63582de2b59ea1aa48d7c1941b5d87618d95484397521b3acdfa0e1e9f5e45"
+
+[[package]]
+name = "ec-gpu-gen"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2353854622ec1abfd22243eb958453b95f1502e2a56648bf9db49ccbfb55f01"
+dependencies = [
+ "bitvec",
+ "crossbeam-channel",
+ "ec-gpu",
+ "execute",
+ "ff",
+ "group",
+ "hex",
+ "log",
+ "num_cpus",
+ "once_cell",
+ "rayon",
+ "sha2 0.10.8",
+ "thiserror",
+ "yastl",
+]
+
+[[package]]
 name = "ed25519"
 version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1777,6 +1835,43 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 
 [[package]]
+name = "execute"
+version = "0.2.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a82608ee96ce76aeab659e9b8d3c2b787bffd223199af88c674923d861ada10"
+dependencies = [
+ "execute-command-macro",
+ "execute-command-tokens",
+ "generic-array 1.1.0",
+]
+
+[[package]]
+name = "execute-command-macro"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90dec53d547564e911dc4ff3ecb726a64cf41a6fa01a2370ebc0d95175dd08bd"
+dependencies = [
+ "execute-command-macro-impl",
+]
+
+[[package]]
+name = "execute-command-macro-impl"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce8cd46a041ad005ab9c71263f9a0ff5b529eac0fe4cc9b4a20f4f0765d8cf4b"
+dependencies = [
+ "execute-command-tokens",
+ "quote",
+ "syn 2.0.72",
+]
+
+[[package]]
+name = "execute-command-tokens"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69dc321eb6be977f44674620ca3aa21703cb20ffbe560e1ae97da08401ffbcad"
+
+[[package]]
 name = "eyre"
 version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1874,6 +1969,15 @@ checksum = "c606d892c9de11507fa0dcffc116434f94e105d0bbdc4e405b61519464c49d7b"
 dependencies = [
  "eyre",
  "paste",
+]
+
+[[package]]
+name = "flume"
+version = "0.10.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1657b4441c3403d9f7b3409e47575237dac27b1b5726df654a6ecbf92f0f7577"
+dependencies = [
+ "spin",
 ]
 
 [[package]]
@@ -2753,6 +2857,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
+name = "memmap2"
+version = "0.5.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83faa42c0a078c393f6b29d5db232d8be22776a891f8f56e5284faee4a20b327"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2893,8 +3006,8 @@ source = "git+https://github.com/lurk-lab/neptune?branch=dev#b6fb1f9372be2a50c56
 dependencies = [
  "abomonation",
  "abomonation_derive_ng",
- "bellpepper",
- "bellpepper-core",
+ "bellpepper 0.4.1 (git+https://github.com/lurk-lab/bellpepper?branch=dev)",
+ "bellpepper-core 0.4.0",
  "blake2s_simd",
  "blstrs",
  "byteorder",
@@ -3416,10 +3529,11 @@ dependencies = [
  "auto_impl",
  "axum",
  "base64 0.22.1",
- "bellman",
- "bellpepper-core",
+ "bellpepper 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bellpepper-core 0.4.0",
+ "bellperson",
  "bincode",
- "bls12_381",
+ "blstrs",
  "borsh",
  "celestia-rpc",
  "celestia-types",
@@ -3439,6 +3553,7 @@ dependencies = [
  "log",
  "mockall",
  "num",
+ "pairing",
  "pretty_env_logger",
  "rand",
  "redis",
@@ -4373,6 +4488,9 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+dependencies = [
+ "lock_api",
+]
 
 [[package]]
 name = "spki"
@@ -5306,6 +5424,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
+]
+
+[[package]]
+name = "yastl"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ca6c5a4d66c1a9ea261811cf4773c27343de7e5033e1b75ea3f297dc7db3c1a"
+dependencies = [
+ "flume",
+ "scopeguard",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, ensure, Context, Result};
-use bls12_381::Scalar;
+use blstrs::Scalar;
 use borsh::{from_slice, to_vec, BorshDeserialize, BorshSerialize};
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
@@ -26,27 +26,7 @@ impl TryFrom<Digest> for Scalar {
     type Error = anyhow::Error;
 
     fn try_from(value: Digest) -> Result<Scalar, Self::Error> {
-        let mut byte_array = [0u8; 32];
-        byte_array.copy_from_slice(value.as_ref());
-        byte_array.reverse();
-
-        let val =
-            [
-                u64::from_le_bytes(byte_array[0..8].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [0..8] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[8..16].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [8..16] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[16..24].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [16..24] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[24..32].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [24..32] for digest: {value:?}"))
-                })?),
-            ];
-
-        Ok(Scalar::from_raw(val))
+        Ok(Scalar::from_bytes_be(&value.0))
     }
 }
 
@@ -121,7 +101,7 @@ pub struct InsertProof {
     pub non_membership_proof: NonMembershipProof,
 
     pub new_root: Digest,
-    pub membership_proof: UpdateMerkleProof<Hasher>,
+    pub membership_proof: SparseMerkleProof<Hasher>,
     pub value: Hashchain,
 }
 
@@ -133,10 +113,10 @@ impl InsertProof {
 
         let value = to_vec(&self.value).unwrap();
 
-        self.membership_proof.clone().verify_update(
-            self.non_membership_proof.root.into(),
+        self.membership_proof.clone().verify_existence(
             self.new_root.into(),
-            vec![(self.non_membership_proof.key, Some(value))],
+            self.non_membership_proof.key,
+            value,
         );
 
         Ok(())
@@ -256,16 +236,14 @@ where
             bail!("Key already exists");
         }
 
-        let (new_root, membership_proof, tree_update_batch) = self
+        // the update proof just contains another nm proof
+        let (new_root, _, tree_update_batch) = self
             .jmt
             .put_value_set_with_proof(vec![(key, Some(serialized_value))], self.epoch + 1)?;
         self.queue_batch(tree_update_batch);
         self.write_batch()?;
 
-        ensure!(
-            membership_proof.len() == 1,
-            "UpdateProof does not span only a single update"
-        );
+        let (_, membership_proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         Ok(InsertProof {
             new_root: new_root.into(),

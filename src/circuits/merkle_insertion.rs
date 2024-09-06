@@ -1,19 +1,16 @@
 use crate::{
     circuits::{
-        merkle_update::prove_update,
         utils::{recalculate_hash_as_scalar, unpack_and_process},
-        LessThanCircuit, ProofVariantCircuit, UpdateMerkleProofCircuit,
+        LessThanCircuit, UpdateCircuit,
     },
     error::PrismError,
-    utils::create_and_verify_snark,
+    tree::InsertProof,
+    utils::{create_proof, verify_proof},
 };
 use anyhow::Result;
-use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
-use bls12_381::{Bls12, Scalar};
-use indexed_merkle_tree::{
-    node::{LeafNode, Node},
-    tree::InsertProof,
-};
+use bellperson::{Circuit, ConstraintSystem, SynthesisError};
+use blstrs::Scalar;
+use indexed_merkle_tree::node::{LeafNode, Node};
 
 /// Represents a circuit for proving the insertion of a new leaf into a the IMT.
 ///
@@ -22,17 +19,7 @@ use indexed_merkle_tree::{
 /// and activating the new leaf.
 #[derive(Clone)]
 pub struct InsertMerkleProofCircuit {
-    /// The root of the tree before the insertion.
-    pub pre_insertion_root: Scalar,
-    /// The path from the root to the position where the new node will be inserted,
-    /// proving that the node doesn't exist yet.
-    pub insertion_path: Vec<Node>,
-    /// The new node to be inserted.
-    pub new_leaf_node: LeafNode,
-    /// Proof for updating the existing leaf to point to the new leaf.
-    pub existing_leaf_update: UpdateMerkleProofCircuit,
-    /// Proof for activating the new leaf (converting an inactive leaf to active).
-    pub new_leaf_activation: UpdateMerkleProofCircuit,
+    pub insertion_proof: InsertProof,
 }
 
 impl InsertMerkleProofCircuit {
@@ -40,43 +27,28 @@ impl InsertMerkleProofCircuit {
         let (non_membership_root, non_membership_path) =
             unpack_and_process(&proof.non_membership_proof.merkle_proof)?;
 
-        let first_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.first_proof)?;
-        let second_merkle_circuit = UpdateMerkleProofCircuit::new(&proof.second_proof)?;
+        let first_merkle_circuit = UpdateCircuit::new(&proof.first_proof)?;
+        let second_merkle_circuit = UpdateCircuit::new(&proof.second_proof)?;
 
         Ok(InsertMerkleProofCircuit {
-            pre_insertion_root: non_membership_root,
-            insertion_path: non_membership_path.clone(),
-            new_leaf_node: proof.non_membership_proof.missing_node.clone(),
-            existing_leaf_update: first_merkle_circuit,
-            new_leaf_activation: second_merkle_circuit,
+            insertion_proof: proof,
         })
     }
 
-    pub fn create_and_verify_snark(
-        &self,
-    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>)> {
-        let scalars: Vec<Scalar> = vec![
-            self.pre_insertion_root,
-            self.existing_leaf_update.old_root,
-            self.existing_leaf_update.updated_root,
-            self.new_leaf_activation.old_root,
-            self.new_leaf_activation.updated_root,
-        ];
+    pub fn create_and_verify_snark(&self) -> Result<bool> {
+        let non_membership_proorf_sc =
+            Scalar::from_bytes(&self.insertion_proof.non_membership_proof.root).unwrap();
+        let first_proof_sc = Scalar::from_bytes(&self.insertion_proof.new_root).unwrap();
+        let scalars: Vec<Scalar> = vec![];
 
-        create_and_verify_snark(ProofVariantCircuit::Insert(self.clone()), scalars)
+        let proof = create_proof(self);
+        verify_proof(&proof, &scalars)
     }
 }
 
 impl Circuit<Scalar> for InsertMerkleProofCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        match prove_insertion(
-            cs,
-            self.pre_insertion_root,
-            &self.insertion_path,
-            self.new_leaf_node,
-            self.existing_leaf_update,
-            self.new_leaf_activation,
-        ) {
+        match prove_insertion(cs, self.insertion_proof) {
             Ok(_) => Ok(()),
             Err(_) => Err(SynthesisError::Unsatisfiable),
         }
@@ -86,19 +58,17 @@ impl Circuit<Scalar> for InsertMerkleProofCircuit {
 /// Generates constraints to prove a valid insertion in the merkle tree.
 pub fn prove_insertion<CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
-    pre_insertion_root: Scalar,
-    insertion_path: &[Node],
-    new_leaf_node: LeafNode,
-    existing_leaf_update: UpdateMerkleProofCircuit,
-    new_leaf_activation: UpdateMerkleProofCircuit,
+    insert_proof: InsertProof,
 ) -> Result<Scalar, SynthesisError> {
     // Step 1: Prove non-membership
     // This ensures that the new leaf we're trying to insert doesn't already exist in the tree.
-    prove_non_membership(cs, pre_insertion_root, insertion_path, new_leaf_node)?;
+    insert_proof.non_membership_proof.verify()?;
+
+    insert_proof.membership_proof.verify()?;
 
     // Step 2: Update the existing leaf
     // This step updates the 'next' pointer of an existing leaf to point to our new leaf.
-    let updated_root_after_existing_leaf_update = prove_update(
+    /* let updated_root_after_existing_leaf_update = prove_update(
         cs,
         existing_leaf_update.old_root,
         &existing_leaf_update.old_path,
@@ -115,9 +85,11 @@ pub fn prove_insertion<CS: ConstraintSystem<Scalar>>(
         &new_leaf_activation.old_path,
         new_leaf_activation.updated_root,
         &new_leaf_activation.updated_path,
-    )?;
+    )?; */
 
-    Ok(new_root)
+    let new_root_sc = Scalar::from_bytes(&insert_proof.new_root).unwrap();
+
+    Ok(new_root_sc)
 }
 
 /// Generates constraints to prove non-membership of a new leaf in the Merkle tree.

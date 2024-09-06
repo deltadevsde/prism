@@ -1,7 +1,7 @@
 use crate::common::HashchainEntry;
 use anyhow::Result;
-use bellman::{Circuit, ConstraintSystem, SynthesisError};
-use bls12_381::Scalar;
+use bellpepper_core::{Circuit, ConstraintSystem, SynthesisError};
+use blstrs::Scalar;
 use indexed_merkle_tree::sha256_mod;
 
 /// HashChainEntryCircuit is a circuit that verifies that a given value is present in a hashchain.

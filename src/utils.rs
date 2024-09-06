@@ -1,3 +1,5 @@
+use std::fs::File;
+
 use crate::{
     circuits::ProofVariantCircuit,
     error::{GeneralError, PrismError, ProofError},
@@ -5,8 +7,12 @@ use crate::{
 };
 use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
-use bellman::groth16::{self, VerifyingKey};
-use bls12_381::{Bls12, Scalar};
+use bellperson::{
+    groth16::{self, generate_random_parameters, Parameters, VerifyingKey},
+    Circuit,
+};
+use bincode::{deserialize, serialize};
+use blstrs::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
 use indexed_merkle_tree::tree::Proof;
@@ -32,7 +38,70 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey> {
         .map_err(|_| GeneralError::DecodingError("ed25519 verifying key".to_string()).into())
 }
 
-pub fn create_and_verify_snark(
+// for testing purposes only
+const PARAMS_FILE_PATH: &str = "circuit_params.bin";
+
+fn save_params_to_storage(params: &Parameters<Bls12>) -> Result<()> {
+    let serialized = serialize(params).context("Failed to serialize parameters")?;
+
+    let mut file = File::create(PARAMS_FILE_PATH).context("Failed to create parameters file")?;
+
+    file.write_all(&serialized)
+        .context("Failed to write parameters to file")?;
+
+    Ok(())
+}
+
+fn load_params_from_storage() -> Result<Parameters<Bls12>> {
+    let mut file = File::open(PARAMS_FILE_PATH).context("Failed to open parameters file")?;
+
+    let mut serialized = Vec::new();
+    file.read_to_end(&mut serialized)
+        .context("Failed to read parameters from file")?;
+
+    let params = deserialize(&serialized).context("Failed to deserialize parameters")?;
+
+    Ok(params)
+}
+
+fn generate_and_save_params<C>(circuit: &C) -> Result<()>
+where
+    C: Circuit<Scalar> + Clone,
+{
+    let rng = &mut OsRng;
+    let params = groth16::generate_random_parameters::<Bls12, _, _>(circuit.clone(), rng)
+        .context("Failed to generate parameters")?;
+
+    save_params_to_storage(&params).context("Failed to save parameters")?;
+
+    Ok(())
+}
+
+pub fn create_proof<C>(circuit: &C) -> Result<groth16::Proof<Bls12>>
+where
+    C: Circuit<Scalar>,
+{
+    let params = load_params_from_storage().context("Failed to load parameters")?;
+
+    let rng = &mut OsRng;
+    let proof =
+        groth16::create_random_proof(circuit, &params, rng).context("Failed to create proof")?;
+
+    Ok(proof)
+}
+
+pub fn verify_proof(proof: &groth16::Proof<Bls12>, public_inputs: &[Scalar]) -> Result<bool> {
+    let params: Parameters<Bls12> =
+        load_params_from_storage().context("Failed to load parameters")?;
+
+    let pvk = groth16::prepare_verifying_key(&params.vk);
+    let is_valid =
+        groth16::verify_proof(&pvk, proof, public_inputs).context("Failed to verify proof")?;
+
+    Ok(is_valid)
+}
+
+/* pub fn create_and_verify_snark(
     circuit: ProofVariantCircuit,
     scalars: Vec<Scalar>,
 ) -> Result<(groth16::Proof<Bls12>, VerifyingKey<Bls12>)> {
@@ -89,7 +158,7 @@ pub fn validate_epoch(
 
     Ok(proof)
 }
-
+ */
 pub trait SignedContent {
     fn get_signature(&self) -> Result<Signature>;
     fn get_plaintext(&self) -> Result<Vec<u8>>;

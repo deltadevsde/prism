@@ -1,7 +1,7 @@
 use crate::error::{GeneralError, PrismError};
 use anyhow::{anyhow, Context, Result};
-use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
-use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
+use bellpepper_core::{Circuit, ConstraintSystem, SynthesisError};
+use blstrs::Scalar;
 use borsh::{BorshDeserialize, BorshSerialize};
 use std::fmt;
 
@@ -15,11 +15,11 @@ pub mod utils;
 pub use less_than::LessThanCircuit;
 pub use merkle_batch::BatchMerkleProofCircuit;
 pub use merkle_insertion::InsertMerkleProofCircuit;
-pub use merkle_update::UpdateMerkleProofCircuit;
+pub use merkle_update::UpdateCircuit;
 
 #[derive(Clone)]
 pub enum ProofVariantCircuit {
-    Update(UpdateMerkleProofCircuit),
+    Update(UpdateCircuit),
     Insert(InsertMerkleProofCircuit),
     Batch(BatchMerkleProofCircuit),
 }

@@ -1,7 +1,9 @@
 use crate::error::ProofError;
 use anyhow::{anyhow, Result};
-use bls12_381::Scalar;
+use blstrs::Scalar;
+use ff::PrimeField;
 use indexed_merkle_tree::{node::Node, sha256_mod, tree::MerkleProof};
+use jmt::RootHash;
 
 pub fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>)> {
     if !proof.path.is_empty() {
@@ -26,4 +28,8 @@ pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar> {
         current_hash = sha256_mod(&combined);
     }
     current_hash.try_into()
+}
+
+pub fn hash_to_scalar<F: PrimeField>(hash: &RootHash) -> Scalar {
+    Scalar::from_bytes(&hash.0)
 }

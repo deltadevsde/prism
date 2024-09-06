@@ -1,73 +1,36 @@
-use crate::circuits::{
-    utils::{recalculate_hash_as_scalar, unpack_and_process},
-    ProofVariantCircuit,
-};
-use crate::{error::PrismError, utils::create_and_verify_snark};
+use crate::tree::UpdateProof;
+use crate::utils::{create_proof, verify_proof};
 use anyhow::Result;
-use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
-use bls12_381::{Bls12, Scalar};
-use indexed_merkle_tree::{node::Node, tree::UpdateProof};
+use bellpepper_core::{Circuit, ConstraintSystem, SynthesisError};
+use blstrs::Scalar;
+
+use super::utils::hash_to_scalar;
 
 #[derive(Clone)]
-pub struct UpdateMerkleProofCircuit {
-    pub old_root: Scalar,
-    pub old_path: Vec<Node>,
-    pub updated_root: Scalar,
-    pub updated_path: Vec<Node>,
+pub struct UpdateCircuit {
+    pub update_proof: UpdateProof,
 }
 
-impl UpdateMerkleProofCircuit {
-    pub fn new(proof: &UpdateProof) -> Result<UpdateMerkleProofCircuit, PrismError> {
-        let (old_root, old_path) = unpack_and_process(&proof.old_proof)?;
-        let (updated_root, updated_path) = unpack_and_process(&proof.new_proof)?;
-
-        // if old_root.is_none()
-        //     || old_path.is_none()
-        //     || updated_root.is_none()
-        //     || updated_path.is_none()
-        // {
-        //     return Err(GeneralError::MissingArgumentError);
-        // }
-
-        // // TODO: are there cases where MissingArgumentError isnt the right type?
-
-        // let old_root =
-        //     hash_to_scalar(&old_root.ok_or(GeneralError::MissingArgumentError)?.as_str())?;
-        // let updated_root = hash_to_scalar(
-        //     &updated_root
-        //         .ok_or(GeneralError::MissingArgumentError)?
-        //         .as_str(),
-        // )?;
-
-        // let old_path = old_path.ok_or(GeneralError::MissingArgumentError)?;
-        // let updated_path = updated_path.ok_or(GeneralError::MissingArgumentError)?;
-
-        Ok(UpdateMerkleProofCircuit {
-            old_root,
-            old_path: old_path.clone(),
-            updated_root,
-            updated_path: updated_path.clone(),
-        })
+impl UpdateCircuit {
+    pub fn new(proof: UpdateProof) -> Self {
+        Self {
+            update_proof: proof,
+        }
     }
 
-    pub fn create_and_verify_snark(
-        &self,
-    ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>)> {
-        let scalars: Vec<Scalar> = vec![self.old_root, self.updated_root];
+    pub fn create_and_verify_snark(&self) -> Result<bool> {
+        let old_root = Scalar::from_bytes(&self.update_proof.old_root.0).unwrap();
+        let new_root = Scalar::from_bytes(&self.update_proof.new_root.0).unwrap();
+        let scalars: Vec<Scalar> = vec![old_root, new_root];
 
-        create_and_verify_snark(ProofVariantCircuit::Update(self.clone()), scalars)
+        let proof = create_proof(self)?;
+        verify_proof(&proof, &scalars)
     }
 }
 
-impl Circuit<Scalar> for UpdateMerkleProofCircuit {
+impl Circuit<Scalar> for UpdateCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        match prove_update(
-            cs,
-            self.old_root,
-            &self.old_path,
-            self.updated_root,
-            &self.updated_path,
-        ) {
+        match prove_update(cs, self.update_proof) {
             Ok(_) => Ok(()),
             Err(_) => Err(SynthesisError::Unsatisfiable),
         }
@@ -76,18 +39,25 @@ impl Circuit<Scalar> for UpdateMerkleProofCircuit {
 
 pub(crate) fn prove_update<CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
-    old_root: Scalar,
-    old_path: &[Node],
-    new_root: Scalar,
-    new_path: &[Node],
+    update_proof: UpdateProof,
 ) -> Result<Scalar, SynthesisError> {
+    let old_root_sc = hash_to_scalar(&update_proof.old_root);
+    let new_root = hash_to_scalar(&update_proof.new_root);
+    let path = &update_proof.proof;
+
     let root_with_old_pointer =
-        cs.alloc(|| "first update root with old pointer", || Ok(old_root))?;
+        cs.alloc(|| "first update root with old pointer", || Ok(old_root_sc))?;
     let root_with_new_pointer =
         cs.alloc(|| "first update root with new pointer", || Ok(new_root))?;
 
-    // update the root hash for old and new path
-    let recalculated_root_with_old_pointer =
+    // update the root hash for old and new path+
+
+    // TODO: merkle proof gadget
+    update_proof
+        .verify()
+        .map_err(|_| SynthesisError::Unsatisfiable)?;
+
+    /* let recalculated_root_with_old_pointer =
         recalculate_hash_as_scalar(old_path).map_err(|_| SynthesisError::Unsatisfiable)?;
     let recalculated_root_with_new_pointer =
         recalculate_hash_as_scalar(new_path).map_err(|_| SynthesisError::Unsatisfiable)?;
@@ -99,13 +69,13 @@ pub(crate) fn prove_update<CS: ConstraintSystem<Scalar>>(
     let allocated_recalculated_root_with_new_pointer = cs.alloc(
         || "recalculated first update proof new root",
         || Ok(recalculated_root_with_new_pointer),
-    )?;
+    )?;*/
 
     // Check if the resulting hash is the root hash of the old tree
     // allocated_recalculated_root_with_old_pointer * (1) = root_with_old_pointer
     cs.enforce(
         || "first update old root equality",
-        |lc| lc + allocated_recalculated_root_with_old_pointer,
+        |lc| lc + root_with_old_pointer,
         |lc| lc + CS::one(),
         |lc| lc + root_with_old_pointer,
     );
@@ -114,10 +84,10 @@ pub(crate) fn prove_update<CS: ConstraintSystem<Scalar>>(
     // allocated_recalculated_root_with_new_pointer * (1) = root_with_new_pointer
     cs.enforce(
         || "first update new root equality",
-        |lc| lc + allocated_recalculated_root_with_new_pointer,
+        |lc| lc + root_with_new_pointer,
         |lc| lc + CS::one(),
         |lc| lc + root_with_new_pointer,
     );
 
-    Ok(recalculated_root_with_new_pointer)
+    Ok(root_with_new_pointer)
 }

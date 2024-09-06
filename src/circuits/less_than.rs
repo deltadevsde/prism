@@ -1,6 +1,6 @@
 use anyhow::Result;
-use bellman::{gadgets::boolean::Boolean, Circuit, ConstraintSystem, SynthesisError};
-use bls12_381::Scalar;
+use bellpepper_core::{boolean::Boolean, Circuit, ConstraintSystem, SynthesisError};
+use blstrs::Scalar;
 use ff::PrimeFieldBits;
 
 #[derive(Clone)]
