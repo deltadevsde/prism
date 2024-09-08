@@ -21,6 +21,12 @@ pub type Hasher = sha2::Sha256;
 )]
 pub struct Digest([u8; 32]);
 
+impl Digest {
+    pub fn to_bytes(&self) -> [u8; 32] {
+        return self.0;
+    }
+}
+
 // implementing it for now to get things to compile, curve choice will be made later
 impl TryFrom<Digest> for Scalar {
     type Error = anyhow::Error;
@@ -121,7 +127,7 @@ pub struct InsertProof {
     pub non_membership_proof: NonMembershipProof,
 
     pub new_root: Digest,
-    pub membership_proof: UpdateMerkleProof<Hasher>,
+    pub membership_proof: SparseMerkleProof<Hasher>,
     pub value: Hashchain,
 }
 
@@ -133,10 +139,10 @@ impl InsertProof {
 
         let value = to_vec(&self.value).unwrap();
 
-        self.membership_proof.clone().verify_update(
-            self.non_membership_proof.root.into(),
+        self.membership_proof.clone().verify_existence(
             self.new_root.into(),
-            vec![(self.non_membership_proof.key, Some(value))],
+            self.non_membership_proof.key,
+            value,
         );
 
         Ok(())
@@ -256,16 +262,14 @@ where
             bail!("Key already exists");
         }
 
-        let (new_root, membership_proof, tree_update_batch) = self
+        // the update proof just contains another nm proof
+        let (new_root, _, tree_update_batch) = self
             .jmt
             .put_value_set_with_proof(vec![(key, Some(serialized_value))], self.epoch + 1)?;
         self.queue_batch(tree_update_batch);
         self.write_batch()?;
 
-        ensure!(
-            membership_proof.len() == 1,
-            "UpdateProof does not span only a single update"
-        );
+        let (_, membership_proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         Ok(InsertProof {
             new_root: new_root.into(),

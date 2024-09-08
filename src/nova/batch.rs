@@ -4,7 +4,7 @@ use arecibo::{
     supernova::{StepCircuit, TrivialSecondaryCircuit},
     traits::{CurveCycleEquipped, Dual, Engine},
 };
-use ff::PrimeField;
+use ff::{PrimeField, PrimeFieldBits};
 use std::cell::RefCell;
 
 #[derive(Clone)]
@@ -84,12 +84,12 @@ where
 }
 
 #[derive(Clone)]
-pub enum EpochCircuit<F: PrimeField> {
+pub enum EpochCircuit<F: PrimeField + PrimeFieldBits> {
     Insert(InsertCircuit<F>),
     Update(UpdateCircuit<F>),
 }
 
-impl<F: PrimeField> EpochCircuit<F> {
+impl<F: PrimeField + PrimeFieldBits> EpochCircuit<F> {
     pub fn new_insert(insertion_proof: InsertProof, rom_size: usize) -> Self {
         Self::Insert(InsertCircuit::new(insertion_proof, rom_size))
     }
@@ -99,7 +99,7 @@ impl<F: PrimeField> EpochCircuit<F> {
     }
 }
 
-impl<F: PrimeField> StepCircuit<F> for EpochCircuit<F> {
+impl<F: PrimeField + PrimeFieldBits> StepCircuit<F> for EpochCircuit<F> {
     fn arity(&self) -> usize {
         match self {
             Self::Insert(x) => x.arity(),
