@@ -228,10 +228,72 @@ pub fn hash_node<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
             sha256(cs.namespace(|| "hash key"), &node_bits)
         }
         SparseMerkleNode::Null => {
-            allocate_bits_to_binary_number(cs, SPARSE_MERKLE_PLACEHOLDER_HASH.to_bytes().to_vec())
+            let node_bits = allocate_bits_to_binary_number(
+                cs,
+                SPARSE_MERKLE_PLACEHOLDER_HASH.to_bytes().to_vec(),
+            )?;
+            sha256(
+                cs.namespace(|| "placeholder"),
+                &[node_bits.clone(), node_bits.clone(), node_bits.clone()].concat(),
+            )?;
+            Ok(node_bits)
         }
     }
 }
+
+// pub fn verify_membership_proof<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+//     cs: &mut CS,
+//     proof: &SparseMerkleProof<Hasher>,
+//     root: &Vec<Boolean>,
+//     leaf: SparseMerkleLeafNode,
+// ) -> Result<(), SynthesisError> {
+//     dbg!(proof);
+//     let mut current = hash_node(cs, &SparseMerkleNode::Leaf(leaf))?;
+
+//     let element_key = leaf.key_hash;
+
+//     for (i, (sibling, key_bit)) in proof
+//         .siblings()
+//         .iter()
+//         .zip(
+//             element_key
+//                 .0
+//                 .iter_bits()
+//                 .rev()
+//                 .skip(256 - proof.siblings().len()),
+//         )
+//         .enumerate()
+//     {
+//         let sibling_hash = hash_node(cs, sibling)?;
+//         let separator = allocate_bits_to_binary_number(cs, INTERNAL_DOMAIN_SEPARATOR.to_vec())?;
+
+//         let mut result = Vec::new();
+//         if key_bit {
+//             result.extend_from_slice(&separator);
+//             result.extend_from_slice(&sibling_hash);
+//             result.extend_from_slice(&current);
+//         } else {
+//             result.extend_from_slice(&separator);
+//             result.extend_from_slice(&current);
+//             result.extend_from_slice(&sibling_hash);
+//         }
+
+//         current = sha256(
+//             cs.namespace(|| format!("hash node {}", i)),
+//             result.as_slice(),
+//         )?;
+//     }
+
+//     for (i, (computed_bit, given_bit)) in current.iter().zip(root.iter()).enumerate() {
+//         Boolean::enforce_equal(
+//             cs.namespace(|| format!("root bit {} should be equal", i)),
+//             computed_bit,
+//             given_bit,
+//         )?;
+//     }
+
+//     Ok(())
+// }
 
 pub fn verify_membership_proof<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
@@ -239,42 +301,58 @@ pub fn verify_membership_proof<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>
     root: &Vec<Boolean>,
     leaf: SparseMerkleLeafNode,
 ) -> Result<(), SynthesisError> {
-    let mut current = hash_node(cs, &SparseMerkleNode::Leaf(leaf))?;
+    let max_depth = 10;
+    let actual_depth = proof.siblings().len();
 
+    let mut current = hash_node(cs, &SparseMerkleNode::Leaf(leaf))?;
     let element_key = leaf.key_hash;
 
-    for (i, (sibling, key_bit)) in proof
-        .siblings()
-        .iter()
-        .zip(
-            element_key
-                .0
-                .iter_bits()
-                .rev()
-                .skip(256 - proof.siblings().len()),
-        )
-        .enumerate()
-    {
-        let sibling_hash = hash_node(cs, sibling)?;
+    for i in 0..max_depth {
+        let cs = &mut cs.namespace(|| format!("proof step {}", i));
+
+        // Allocate sibling hash (use placeholder if beyond actual proof depth)
+        let sibling_hash = if i < actual_depth {
+            hash_node(cs, &proof.siblings()[i])?
+        } else {
+            let bits = allocate_bits_to_binary_number(
+                cs,
+                SPARSE_MERKLE_PLACEHOLDER_HASH.to_bytes().to_vec(),
+            )?;
+            sha256(
+                cs.namespace(|| "placeholder"),
+                &[bits.clone(), bits.clone(), bits.clone()].concat(),
+            )?;
+            bits
+        };
+
+        // Get the key bit
+        let key_bit = if i < actual_depth {
+            element_key.0.iter_bits().rev().nth(255 - i).unwrap()
+        } else {
+            false
+        };
+
         let separator = allocate_bits_to_binary_number(cs, INTERNAL_DOMAIN_SEPARATOR.to_vec())?;
 
-        let mut result = Vec::new();
+        let mut hash_input = Vec::new();
         if key_bit {
-            result.extend_from_slice(&separator);
-            result.extend_from_slice(&sibling_hash);
-            result.extend_from_slice(&current);
+            hash_input.extend_from_slice(&separator);
+            hash_input.extend_from_slice(&sibling_hash);
+            hash_input.extend_from_slice(&current);
         } else {
-            result.extend_from_slice(&separator);
-            result.extend_from_slice(&current);
-            result.extend_from_slice(&sibling_hash);
+            hash_input.extend_from_slice(&separator);
+            hash_input.extend_from_slice(&current);
+            hash_input.extend_from_slice(&sibling_hash);
         }
 
-        current = sha256(
-            cs.namespace(|| format!("hash node {}", i)),
-            result.as_slice(),
-        )?;
+        let hashed = sha256(cs.namespace(|| "hash node"), &hash_input)?;
+
+        if i < actual_depth {
+            current = hashed;
+        }
     }
 
+    // Final equality check
     for (i, (computed_bit, given_bit)) in current.iter().zip(root.iter()).enumerate() {
         Boolean::enforce_equal(
             cs.namespace(|| format!("root bit {} should be equal", i)),
@@ -284,6 +362,72 @@ pub fn verify_membership_proof<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>
     }
 
     Ok(())
+}
+
+// Helper function to conditionally swap two vectors of Booleans
+fn conditionally_swap<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+    cs: &mut CS,
+    a: &[Boolean],
+    b: &[Boolean],
+    condition: &Boolean,
+) -> Result<(Vec<Boolean>, Vec<Boolean>), SynthesisError> {
+    let mut left = Vec::with_capacity(a.len());
+    let mut right = Vec::with_capacity(a.len());
+
+    for (i, (a_bit, b_bit)) in a.iter().zip(b.iter()).enumerate() {
+        let (left_bit, right_bit) = {
+            let and1 = Boolean::and(cs.namespace(|| "condition and a"), condition, a_bit)?;
+            let and2 = Boolean::and(
+                cs.namespace(|| "not condition a and b"),
+                &condition.not(),
+                b_bit,
+            )?;
+
+            let left = Boolean::xor(cs.namespace(|| "left xor"), &and1, &and2)?;
+
+            let and3 = Boolean::and(cs.namespace(|| "condition and b"), condition, b_bit)?;
+            let and4 = Boolean::and(
+                cs.namespace(|| "not condition and a"),
+                &condition.not(),
+                a_bit,
+            )?;
+            let right = Boolean::xor(cs.namespace(|| "right xor"), &and3, &and4)?;
+
+            (left, right)
+        };
+
+        left.push(left_bit);
+        right.push(right_bit);
+    }
+
+    Ok((left, right))
+}
+
+// Helper function to conditionally select between two vectors of Booleans
+fn conditionally_select_vector<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+    cs: &mut CS,
+    condition: &Boolean,
+    a: &[Boolean],
+    b: &[Boolean],
+) -> Result<Vec<Boolean>, SynthesisError> {
+    assert_eq!(a.len(), b.len());
+    let mut result = Vec::with_capacity(a.len());
+
+    for (i, (a_bit, b_bit)) in a.iter().zip(b.iter()).enumerate() {
+        let cs = &mut cs.namespace(|| format!("select bit {}", i));
+        let and1 = Boolean::and(cs.namespace(|| "condition and a"), condition, a_bit)?;
+        let and2 = Boolean::and(
+            cs.namespace(|| "not condition and b"),
+            &Boolean::not(condition),
+            b_bit,
+        )?;
+
+        let selected_bit = Boolean::xor(cs.namespace(|| "xor"), &and1, &and2)?;
+
+        result.push(selected_bit);
+    }
+
+    Ok(result)
 }
 
 fn boolvec_to_bytes(value: Vec<Boolean>) -> Vec<u8> {

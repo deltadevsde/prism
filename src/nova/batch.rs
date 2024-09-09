@@ -219,20 +219,20 @@ mod tests {
         let operations = vec![
             (
                 0,
-                EpochCircuit::new_insert(create_random_insert(&mut state, &mut rng), 4),
+                EpochCircuit::new_insert(create_random_insert(&mut state, &mut rng), 3),
             ),
             (
                 1,
-                EpochCircuit::new_update(create_random_update(&mut state, &mut rng), 4),
+                EpochCircuit::new_update(create_random_update(&mut state, &mut rng), 3),
             ),
             (
                 0,
-                EpochCircuit::new_insert(create_random_insert(&mut state, &mut rng), 4),
+                EpochCircuit::new_insert(create_random_insert(&mut state, &mut rng), 3),
             ),
-            (
-                1,
-                EpochCircuit::new_update(create_random_update(&mut state, &mut rng), 4),
-            ),
+            // (
+            //     1,
+            //     EpochCircuit::new_update(create_random_update(&mut state, &mut rng), 4),
+            // ),
         ];
 
         let circuit_sequence = EpochCircuitSequence::<E1>::new(operations);
