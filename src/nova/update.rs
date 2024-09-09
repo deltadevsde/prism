@@ -1,11 +1,14 @@
 use crate::{
-    nova::utils::{next_rom_index_and_pc, Digest as NovaDigest},
+    nova::utils::{
+        allocate_bits_to_binary_number, next_rom_index_and_pc, verify_membership_proof,
+        Digest as NovaDigest,
+    },
     tree::UpdateProof,
 };
 use anyhow::Result;
 use arecibo::supernova::StepCircuit;
 use bellpepper_core::{num::AllocatedNum, ConstraintSystem, SynthesisError};
-use ff::PrimeField;
+use ff::{PrimeField, PrimeFieldBits};
 
 #[derive(Clone)]
 pub struct UpdateCircuit<F> {
@@ -14,7 +17,7 @@ pub struct UpdateCircuit<F> {
     _phantom: std::marker::PhantomData<F>,
 }
 
-impl<F: PrimeField> UpdateCircuit<F> {
+impl<F: PrimeField + PrimeFieldBits> UpdateCircuit<F> {
     pub fn new(update_proof: UpdateProof, rom_size: usize) -> Self {
         Self {
             update_proof,
@@ -26,7 +29,7 @@ impl<F: PrimeField> UpdateCircuit<F> {
 
 impl<F> StepCircuit<F> for UpdateCircuit<F>
 where
-    F: PrimeField,
+    F: PrimeField + PrimeFieldBits,
 {
     fn arity(&self) -> usize {
         2 + self.rom_size // old_root + rom_index + rom[].len()
@@ -67,13 +70,26 @@ where
             .map_err(|_| SynthesisError::Unsatisfiable);
         let new_root = AllocatedNum::alloc(cs.namespace(|| "new_root"), || new_scalar)?;
 
+        // TODO: The provided merkle root is an inclusion proof of the node before the update.
+        // We actually need to create our own merkle proof by hashing the new node to verify the update
+        let old_root_bits =
+            allocate_bits_to_binary_number(cs, self.update_proof.old_root.0.to_vec())?;
+
         cs.enforce(
             || "z0 == pre_insertion_root",
             |lc| lc + old_root.get_variable(),
             |lc| lc + CS::one(),
             |lc| lc + pre_insertion_root.get_variable(),
         );
-        // // TODO: bellpepper merkle proof gadget
+
+        let update_proof = &self.update_proof.proof.proofs()[0];
+
+        let leaf = &update_proof
+            .leaf()
+            .ok_or(SynthesisError::AssignmentMissing)?;
+
+        verify_membership_proof(cs, update_proof, &old_root_bits, *leaf)?;
+
         self.update_proof
             .verify()
             .map_err(|_| SynthesisError::Unsatisfiable)?;
