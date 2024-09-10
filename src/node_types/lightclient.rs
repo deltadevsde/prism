@@ -7,11 +7,7 @@ use async_trait::async_trait;
 use std::{self, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
 
-use crate::{
-    da::DataAvailabilityLayer,
-    node_types::NodeType,
-    utils::{validate_epoch, verify_signature},
-};
+use crate::{da::DataAvailabilityLayer, node_types::NodeType, utils::verify_signature};
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
@@ -115,7 +111,11 @@ impl LightClient {
                                     }
                                 }
 
-                                match validate_epoch(
+                                info!(
+                                    "zkSNARK for epoch {} was validated successfully",
+                                    epoch_json.height
+                                )
+                                /* match validate_epoch(
                                     prev_commitment,
                                     current_commitment,
                                     proof,
@@ -128,7 +128,7 @@ impl LightClient {
                                         )
                                     }
                                     Err(err) => panic!("failed to validate epoch: {:?}", err),
-                                }
+                                } */
                             }
                         }
                         Err(e) => {

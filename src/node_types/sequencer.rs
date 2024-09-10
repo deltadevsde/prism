@@ -1,7 +1,4 @@
-use crate::{
-    circuits::BatchMerkleProofCircuit,
-    tree::{hash, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree},
-};
+use crate::tree::{hash, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ed25519::Signature;

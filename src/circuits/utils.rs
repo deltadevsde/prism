@@ -1,35 +1,134 @@
-use crate::error::ProofError;
+use crate::tree::{Digest, Hasher, SPARSE_MERKLE_PLACEHOLDER_HASH};
 use anyhow::{anyhow, Result};
+use bellperson::{
+    gadgets::{
+        boolean::{AllocatedBit, Boolean},
+        sha256::sha256,
+    },
+    ConstraintSystem, SynthesisError,
+};
 use blstrs::Scalar;
 use ff::PrimeField;
-use indexed_merkle_tree::{node::Node, sha256_mod, tree::MerkleProof};
-use jmt::RootHash;
+use jmt::{
+    bytes32ext::Bytes32Ext,
+    proof::{SparseMerkleLeafNode, SparseMerkleNode, SparseMerkleProof, INTERNAL_DOMAIN_SEPARATOR},
+};
 
-pub fn unpack_and_process(proof: &MerkleProof) -> Result<(Scalar, &Vec<Node>)> {
-    if !proof.path.is_empty() {
-        let root: Scalar = proof.root_hash.try_into()?;
-        Ok((root, &proof.path))
+pub fn digest_to_scalar(digest: &Digest) -> Result<Scalar> {
+    let ct_option = Scalar::from_bytes_be(digest.as_bytes());
+    if ct_option.is_some().into() {
+        Ok(ct_option.unwrap())
     } else {
-        Err(anyhow!(ProofError::ProofUnpackError(format!(
-            "proof path is empty for root hash {}",
-            proof.root_hash
-        ))))
+        Err(anyhow!("Invalid scalar"))
     }
 }
 
-pub fn recalculate_hash_as_scalar(path: &[Node]) -> Result<Scalar> {
-    let mut current_hash = path[0].get_hash();
-    for node in path.iter().skip(1) {
-        let combined = if node.is_left_sibling() {
-            [node.get_hash().as_ref(), current_hash.as_ref()].concat()
+pub fn allocate_bits_to_binary_number<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+    cs: &mut CS,
+    value: Vec<u8>,
+) -> Result<Vec<Boolean>, SynthesisError> {
+    let bits: Vec<bool> = value
+        .iter()
+        .flat_map(|byte| (0..8).rev().map(move |i| (byte >> i) & 1 == 1))
+        .collect();
+
+    let result: Result<Vec<Boolean>, SynthesisError> = bits
+        .into_iter()
+        .enumerate()
+        .map(|(i, bit)| {
+            let allocated_bit =
+                AllocatedBit::alloc(cs.namespace(|| format!("bit {}", i)), Some(bit))?;
+            Ok(Boolean::from(allocated_bit))
+        })
+        .collect();
+
+    result
+}
+
+pub fn hash_node<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+    cs: &mut CS,
+    node: &SparseMerkleNode,
+) -> Result<Vec<Boolean>, SynthesisError> {
+    match node {
+        SparseMerkleNode::Leaf(node) => {
+            let node_bits = allocate_bits_to_binary_number(cs, node.to_bytes())?;
+            sha256(cs.namespace(|| "hash key"), &node_bits)
+        }
+        SparseMerkleNode::Internal(node) => {
+            let node_bits = allocate_bits_to_binary_number(cs, node.to_bytes())?;
+            sha256(cs.namespace(|| "hash key"), &node_bits)
+        }
+        SparseMerkleNode::Null => {
+            allocate_bits_to_binary_number(cs, SPARSE_MERKLE_PLACEHOLDER_HASH.to_bytes().to_vec())
+        }
+    }
+}
+
+pub fn verify_membership_proof<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+    cs: &mut CS,
+    proof: &SparseMerkleProof<Hasher>,
+    root: &Vec<Boolean>,
+    leaf: SparseMerkleLeafNode,
+) -> Result<(), SynthesisError> {
+    let mut current = hash_node(cs, &SparseMerkleNode::Leaf(leaf))?;
+
+    let element_key = leaf.key_hash;
+
+    for (i, (sibling, key_bit)) in proof
+        .siblings()
+        .iter()
+        .zip(
+            element_key
+                .0
+                .iter_bits()
+                .rev()
+                .skip(256 - proof.siblings().len()),
+        )
+        .enumerate()
+    {
+        let sibling_hash = hash_node(cs, sibling)?;
+        let separator = allocate_bits_to_binary_number(cs, INTERNAL_DOMAIN_SEPARATOR.to_vec())?;
+
+        let mut result = Vec::new();
+        if key_bit {
+            result.extend_from_slice(&separator);
+            result.extend_from_slice(&sibling_hash);
+            result.extend_from_slice(&current);
         } else {
-            [current_hash.as_ref(), node.get_hash().as_ref()].concat()
-        };
-        current_hash = sha256_mod(&combined);
+            result.extend_from_slice(&separator);
+            result.extend_from_slice(&current);
+            result.extend_from_slice(&sibling_hash);
+        }
+
+        current = sha256(
+            cs.namespace(|| format!("hash node {}", i)),
+            result.as_slice(),
+        )?;
     }
-    current_hash.try_into()
+
+    for (i, (computed_bit, given_bit)) in current.iter().zip(root.iter()).enumerate() {
+        Boolean::enforce_equal(
+            cs.namespace(|| format!("root bit {} should be equal", i)),
+            computed_bit,
+            given_bit,
+        )?;
+    }
+
+    Ok(())
 }
 
-pub fn hash_to_scalar<F: PrimeField>(hash: &RootHash) -> Scalar {
-    Scalar::from_bytes(&hash.0)
+fn boolvec_to_bytes(value: Vec<Boolean>) -> Vec<u8> {
+    let bits: Vec<bool> = value
+        .iter()
+        .map(|b| b.get_value().unwrap_or(false))
+        .collect();
+
+    bits.chunks(8)
+        .map(|chunk| {
+            chunk
+                .iter()
+                .enumerate()
+                .fold(0u8, |acc, (i, &bit)| acc | ((bit as u8) << i))
+        })
+        .collect()
 }

@@ -1,15 +1,16 @@
 use crate::{
     circuits::{
-        merkle_insertion::prove_insertion, merkle_update::prove_update, InsertMerkleProofCircuit,
-        ProofVariantCircuit, UpdateCircuit,
+        merkle_insertion::prove_insertion, InsertMerkleProofCircuit, ProofVariantCircuit,
+        UpdateCircuit,
     },
-    tree::Digest,
-    utils::{create_proof, verify_proof},
+    tree::{Digest, Proof},
+    utils::verify_proof,
 };
 use anyhow::Result;
-use bellpepper_core::{Circuit, ConstraintSystem, SynthesisError};
-use blstrs::{Bls12, Scalar};
-use indexed_merkle_tree::tree::Proof;
+use bellperson::{Circuit, ConstraintSystem, SynthesisError};
+use blstrs::Scalar;
+
+use super::utils::digest_to_scalar;
 
 /// BatchMerkleProofCircuit represents a circuit for proving a batch of merkle proof circuits.
 #[derive(Clone)]
@@ -21,40 +22,49 @@ pub struct BatchMerkleProofCircuit {
 
 impl BatchMerkleProofCircuit {
     pub fn new(
-        old_commitment: &Digest,
-        new_commitment: &Digest,
+        old_commitment: Scalar,
+        new_commitment: Scalar,
         proofs: Vec<Proof>,
     ) -> Result<BatchMerkleProofCircuit> {
-        let parsed_old_commitment: Scalar = (*old_commitment).try_into()?;
-        let parsed_new_commitment: Scalar = (*new_commitment).try_into()?;
         let mut proof_circuit_array: Vec<ProofVariantCircuit> = vec![];
         for proof in proofs {
             match proof {
                 Proof::Update(update_proof) => {
                     proof_circuit_array.push(ProofVariantCircuit::Update(UpdateCircuit::new(
-                        &update_proof,
-                    )?));
+                        update_proof,
+                    )));
                 }
                 Proof::Insert(insertion_proof) => {
                     proof_circuit_array.push(ProofVariantCircuit::Insert(
-                        InsertMerkleProofCircuit::new(&insertion_proof)?,
+                        InsertMerkleProofCircuit::new(insertion_proof),
                     ));
                 }
             }
         }
         Ok(BatchMerkleProofCircuit {
-            old_commitment: parsed_old_commitment,
-            new_commitment: parsed_new_commitment,
+            old_commitment,
+            new_commitment,
             proofs: proof_circuit_array,
         })
     }
 
-    pub fn create_and_verify_snark(&self) -> Result<bool> {
+    /* pub fn create_and_verify_snark(&self) -> Result<bool> {
         let scalars: Vec<Scalar> = vec![self.old_commitment, self.new_commitment];
+
+        let circuit = BatchMerkleProofCircuit::new(
+            self.old_commitment,
+            self.new_commitment,
+            self.proofs.clone(),
+        )?;
+
+        let params = load_params_from_storage()?;
+
+        let rng = &mut OsRng;
+        let proof = groth16::create_random_proof(circuit, &params, rng)?;
 
         let proof = create_proof(self);
         verify_proof(proof, &scalars)
-    }
+    } */
 }
 
 impl Circuit<Scalar> for BatchMerkleProofCircuit {
@@ -79,17 +89,24 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
 
         // before the calculations make sure that the old root is that of the first proof
         let old_root = match &self.proofs[0] {
-            ProofVariantCircuit::Update(update_proof_circuit) => update_proof_circuit.old_root,
-            ProofVariantCircuit::Insert(insert_proof_circuit) => {
-                insert_proof_circuit.pre_insertion_root
+            ProofVariantCircuit::Update(update_proof_circuit) => {
+                update_proof_circuit.update_proof.old_root
             }
-            ProofVariantCircuit::Batch(batch_proof_circuit) => batch_proof_circuit.old_commitment,
+            ProofVariantCircuit::Insert(insert_proof_circuit) => insert_proof_circuit
+                .insertion_proof
+                .non_membership_proof
+                .root
+                .into(),
+            /* ProofVariantCircuit::Batch(batch_proof_circuit) => batch_proof_circuit.old_commitment, */
         };
+
+        let old_root_scalar =
+            digest_to_scalar(&old_root.into()).map_err(|_| SynthesisError::Unsatisfiable)?;
 
         let provided_old_commitment =
             cs.alloc_input(|| "provided old commitment", || Ok(self.old_commitment))?;
         let old_commitment_from_proofs =
-            cs.alloc(|| "old commitment from proofs", || Ok(old_root))?;
+            cs.alloc(|| "old commitment from proofs", || Ok(old_root_scalar))?;
 
         // old_commitment_from_proofs * (1) = provided_old_commitment
         cs.enforce(
@@ -99,7 +116,7 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
             |lc| lc + provided_old_commitment,
         );
 
-        let mut new_commitment: Scalar = Scalar::zero();
+        let mut new_commitment: Scalar = Scalar::from(0);
         for proof in self.proofs {
             // update the new_commitment for every proof, applying the constraints of the circuit each time
             match proof {
@@ -108,12 +125,11 @@ impl Circuit<Scalar> for BatchMerkleProofCircuit {
                 }
                 ProofVariantCircuit::Insert(insert_proof_circuit) => {
                     new_commitment = prove_insertion(cs, insert_proof_circuit)?;
-                }
-                ProofVariantCircuit::Batch(_) => {
-                    // Batches cannot be recursively constructed
-                    // TODO: Should they be able to?
-                    return Err(SynthesisError::Unsatisfiable);
-                }
+                } /* ProofVariantCircuit::Batch(_) => {
+                      // Batches cannot be recursively constructed
+                      // TODO: Should they be able to?
+                      return Err(SynthesisError::Unsatisfiable);
+                  } */
             }
         }
 

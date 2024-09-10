@@ -2539,7 +2539,6 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 [[package]]
 name = "jmt"
 version = "0.10.0"
-source = "git+https://github.com/deltadevsde/jmt#dc521ef17fcba2fe96990dbd1831fcb274ebb541"
 dependencies = [
  "anyhow",
  "auto_impl",

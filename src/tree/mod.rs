@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use blstrs::Scalar;
 use borsh::{from_slice, to_vec, BorshDeserialize, BorshSerialize};
 use jmt::{
@@ -21,12 +21,20 @@ pub type Hasher = sha2::Sha256;
 )]
 pub struct Digest([u8; 32]);
 
+impl Digest {
+    pub fn to_bytes(&self) -> [u8; 32] {
+        return self.0;
+    }
+}
+
 // implementing it for now to get things to compile, curve choice will be made later
 impl TryFrom<Digest> for Scalar {
     type Error = anyhow::Error;
 
     fn try_from(value: Digest) -> Result<Scalar, Self::Error> {
-        Ok(Scalar::from_bytes_be(&value.0))
+        Scalar::from_bytes_be(&value.0)
+            .into_option()
+            .ok_or_else(|| anyhow!("Invalid scalar value"))
     }
 }
 
@@ -68,6 +76,10 @@ impl Digest {
 
     pub fn to_hex(&self) -> String {
         hex::encode(self.0)
+    }
+
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
     }
 }
 

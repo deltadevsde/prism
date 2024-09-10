@@ -56,7 +56,7 @@ impl Circuit<Scalar> for LessThanCircuit {
         // result * (1) = 1
         cs.enforce(
             || "a < b",
-            |_| result.lc(CS::one(), Scalar::one()),
+            |_| result.lc(CS::one(), Scalar::from(1)),
             |lc| lc + CS::one(),
             |lc| lc + CS::one(),
         );

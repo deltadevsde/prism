@@ -13,7 +13,7 @@ pub struct HashChainEntryCircuit {
     pub chain: Vec<Scalar>,
 }
 
-impl HashChainEntryCircuit {
+/* impl HashChainEntryCircuit {
     pub fn create(value: &str, hashchain: Vec<HashchainEntry>) -> Result<HashChainEntryCircuit> {
         let hashed_value = sha256_mod(value.as_bytes());
         let parsed_value = hashed_value.try_into()?;
@@ -27,7 +27,7 @@ impl HashChainEntryCircuit {
             chain: parsed_hashchain,
         })
     }
-}
+} */
 
 impl Circuit<Scalar> for HashChainEntryCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {

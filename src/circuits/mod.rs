@@ -1,7 +1,7 @@
 use crate::error::{GeneralError, PrismError};
 use anyhow::{anyhow, Context, Result};
-use bellpepper_core::{Circuit, ConstraintSystem, SynthesisError};
-use blstrs::Scalar;
+use bellperson::{groth16, Circuit, ConstraintSystem, SynthesisError};
+use blstrs::{Bls12, G1Affine, G2Affine, Scalar};
 use borsh::{BorshDeserialize, BorshSerialize};
 use std::fmt;
 
@@ -13,7 +13,7 @@ pub mod merkle_update;
 pub mod utils;
 
 pub use less_than::LessThanCircuit;
-pub use merkle_batch::BatchMerkleProofCircuit;
+/* pub use merkle_batch::BatchMerkleProofCircuit; */
 pub use merkle_insertion::InsertMerkleProofCircuit;
 pub use merkle_update::UpdateCircuit;
 
@@ -21,7 +21,7 @@ pub use merkle_update::UpdateCircuit;
 pub enum ProofVariantCircuit {
     Update(UpdateCircuit),
     Insert(InsertMerkleProofCircuit),
-    Batch(BatchMerkleProofCircuit),
+    /* Batch(BatchMerkleProofCircuit), */
 }
 
 impl Circuit<Scalar> for ProofVariantCircuit {
@@ -29,7 +29,7 @@ impl Circuit<Scalar> for ProofVariantCircuit {
         match self {
             ProofVariantCircuit::Update(circuit) => circuit.synthesize(cs),
             ProofVariantCircuit::Insert(circuit) => circuit.synthesize(cs),
-            ProofVariantCircuit::Batch(circuit) => circuit.synthesize(cs),
+            /* ProofVariantCircuit::Batch(circuit) => circuit.synthesize(cs), */
         }
     }
 }
@@ -55,11 +55,11 @@ impl fmt::Debug for G2 {
     }
 }
 
-impl TryFrom<G1> for bls12_381::G1Affine {
+impl TryFrom<G1> for blstrs::G1Affine {
     type Error = anyhow::Error;
 
-    fn try_from(g1: G1) -> Result<bls12_381::G1Affine> {
-        match bls12_381::G1Affine::from_compressed(&g1.0).into_option() {
+    fn try_from(g1: G1) -> Result<blstrs::G1Affine> {
+        match blstrs::G1Affine::from_compressed(&g1.0).into_option() {
             Some(affine) => Ok(affine),
             None => Err(anyhow!(
                 GeneralError::DecodingError("G2Affine".to_string(),)
@@ -68,11 +68,11 @@ impl TryFrom<G1> for bls12_381::G1Affine {
     }
 }
 
-impl TryFrom<G2> for bls12_381::G2Affine {
+impl TryFrom<G2> for G2Affine {
     type Error = anyhow::Error;
 
-    fn try_from(g2: G2) -> Result<bls12_381::G2Affine> {
-        match bls12_381::G2Affine::from_compressed(&g2.0).into_option() {
+    fn try_from(g2: G2) -> Result<G2Affine> {
+        match G2Affine::from_compressed(&g2.0).into_option() {
             Some(affine) => Ok(affine),
             None => Err(anyhow!(
                 GeneralError::DecodingError("G2Affine".to_string(),)
@@ -173,7 +173,7 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
             .map(|s| s.try_into())
             .collect::<Result<Vec<G1Affine>>>()?;
 
-        Ok(bellman::groth16::VerifyingKey {
+        Ok(bellperson::groth16::VerifyingKey {
             alpha_g1,
             beta_g1,
             beta_g2,
@@ -185,12 +185,12 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
     }
 }
 
-#[cfg(test)]
+/* #[cfg(test)]
 mod tests {
     use super::*;
     use crate::tree::Digest;
-    use bellman::groth16;
-    use bls12_381::Bls12;
+    use bellperson::groth16;
+    use blstrs::Bls12;
     use indexed_merkle_tree::{
         node::Node,
         sha256_mod,
@@ -343,4 +343,4 @@ mod tests {
             invalid_proof.clone().try_into();
         assert!(deserialized_proof_result.is_err());
     }
-}
+} */

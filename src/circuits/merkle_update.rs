@@ -1,10 +1,12 @@
-use crate::tree::UpdateProof;
-use crate::utils::{create_proof, verify_proof};
+use crate::tree::{Digest, UpdateProof};
+use crate::utils::{load_params_from_storage, verify_proof};
 use anyhow::Result;
-use bellpepper_core::{Circuit, ConstraintSystem, SynthesisError};
+use bellperson::groth16;
+use bellperson::{Circuit, ConstraintSystem, SynthesisError};
 use blstrs::Scalar;
+use rand::rngs::OsRng;
 
-use super::utils::hash_to_scalar;
+use super::utils::{allocate_bits_to_binary_number, verify_membership_proof};
 
 #[derive(Clone)]
 pub struct UpdateCircuit {
@@ -19,75 +21,32 @@ impl UpdateCircuit {
     }
 
     pub fn create_and_verify_snark(&self) -> Result<bool> {
-        let old_root = Scalar::from_bytes(&self.update_proof.old_root.0).unwrap();
-        let new_root = Scalar::from_bytes(&self.update_proof.new_root.0).unwrap();
+        let old_root: Scalar = Digest::from(self.update_proof.old_root.into()).try_into()?;
+        let new_root: Scalar = Digest::from(self.update_proof.new_root.into()).try_into()?;
         let scalars: Vec<Scalar> = vec![old_root, new_root];
 
-        let proof = create_proof(self)?;
+        let circuit = UpdateCircuit::new(self.update_proof.clone());
+
+        let params = load_params_from_storage()?;
+
+        let rng = &mut OsRng;
+        let proof = groth16::create_random_proof(circuit, &params, rng)?;
+
         verify_proof(&proof, &scalars)
     }
 }
 
 impl Circuit<Scalar> for UpdateCircuit {
     fn synthesize<CS: ConstraintSystem<Scalar>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        match prove_update(cs, self.update_proof) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(SynthesisError::Unsatisfiable),
-        }
+        let old_root_bits =
+            allocate_bits_to_binary_number(cs, self.update_proof.old_root.0.to_vec())?;
+
+        let update_proof = &self.update_proof.proof.proofs()[0];
+
+        let leaf = update_proof.leaf().ok_or(SynthesisError::Unsatisfiable)?;
+
+        verify_membership_proof(cs, update_proof, &old_root_bits, leaf)
     }
 }
 
-pub(crate) fn prove_update<CS: ConstraintSystem<Scalar>>(
-    cs: &mut CS,
-    update_proof: UpdateProof,
-) -> Result<Scalar, SynthesisError> {
-    let old_root_sc = hash_to_scalar(&update_proof.old_root);
-    let new_root = hash_to_scalar(&update_proof.new_root);
-    let path = &update_proof.proof;
-
-    let root_with_old_pointer =
-        cs.alloc(|| "first update root with old pointer", || Ok(old_root_sc))?;
-    let root_with_new_pointer =
-        cs.alloc(|| "first update root with new pointer", || Ok(new_root))?;
-
-    // update the root hash for old and new path+
-
-    // TODO: merkle proof gadget
-    update_proof
-        .verify()
-        .map_err(|_| SynthesisError::Unsatisfiable)?;
-
-    /* let recalculated_root_with_old_pointer =
-        recalculate_hash_as_scalar(old_path).map_err(|_| SynthesisError::Unsatisfiable)?;
-    let recalculated_root_with_new_pointer =
-        recalculate_hash_as_scalar(new_path).map_err(|_| SynthesisError::Unsatisfiable)?;
-
-    let allocated_recalculated_root_with_old_pointer = cs.alloc(
-        || "recalculated first update proof old root",
-        || Ok(recalculated_root_with_old_pointer),
-    )?;
-    let allocated_recalculated_root_with_new_pointer = cs.alloc(
-        || "recalculated first update proof new root",
-        || Ok(recalculated_root_with_new_pointer),
-    )?;*/
-
-    // Check if the resulting hash is the root hash of the old tree
-    // allocated_recalculated_root_with_old_pointer * (1) = root_with_old_pointer
-    cs.enforce(
-        || "first update old root equality",
-        |lc| lc + root_with_old_pointer,
-        |lc| lc + CS::one(),
-        |lc| lc + root_with_old_pointer,
-    );
-
-    // Check that the resulting hash is the root hash of the new tree.
-    // allocated_recalculated_root_with_new_pointer * (1) = root_with_new_pointer
-    cs.enforce(
-        || "first update new root equality",
-        |lc| lc + root_with_new_pointer,
-        |lc| lc + CS::one(),
-        |lc| lc + root_with_new_pointer,
-    );
-
-    Ok(root_with_new_pointer)
-}
+// heuking zusammenarbeit
