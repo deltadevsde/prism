@@ -1,0 +1,9 @@
+[book]
+authors = ["distractedm1nd", "sebasti810"]
+language = "en"
+multilingual = false
+src = "src"
+title = "prism-doc"
+
+[preprocessor.katex]
+after = ["links"]
