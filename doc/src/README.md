@@ -44,19 +44,13 @@ Prism is web2 friendly from day 1 with WASM compatibility, allowing existing mes
 Beyond messaging apps, Prism opens doors to potential improvements in nascent technologies and challenges in today's web. We envision a system for transparent, seamless authentication, where every human, website, app or other digital property is verified on a blockchain.
 Prism's verifiable encryption standard opens up possibilities for secure communication across various digital platforms, which can enable exciting use cases like:
 
-1.  A user controlled global identity layer
-2.  Keystore Rollups - allowing users to securely store and manage their cryptographic keys across multiple chains
-3.  A sandbox environment for testing Trusted Execution Environment (TEE) trust assumptions, ensuring even the most advanced security features are bulletproof.
-4.  A new trustless, decentralized model for web certificate authority and public key infrastructure (PKI) systems.
+1. A user controlled global identity layer
+2. Keystore Rollups - allowing users to securely store and manage their cryptographic keys across multiple chains
+3. A sandbox environment for testing Trusted Execution Environment (TEE) trust assumptions, ensuring even the most advanced security features are bulletproof.
+4. A new trustless, decentralized model for web certificate authority and public key infrastructure (PKI) systems.
 
 Welcome to a new era of digital privacy, where the only person listening is the one you're talking to.
 
 ## Getting started
 
-We will introduce some basic concepts of cryptography that are essential for understanding the content. For more information and deeper explanations, we will provide links to relevant literature and texts. If you encounter errors or have suggestions for improvement, please feel free to [contact us](/contact).
-
-[See the bib](/paper)
-
-[Quickstart](/quickstart)
-
-[Architecture](/architecture)
+We will introduce some basic concepts of cryptography that are essential for understanding the content. For more information and deeper explanations, we will provide links to relevant literature and texts. If you encounter errors or have suggestions for improvement, please feel free to [open an issue](https://github.com/deltadevsde/prism/issues).

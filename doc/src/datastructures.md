@@ -27,30 +27,30 @@ Prism uses Jellyfish Merkle Trees (JMT) instead of indexed Merkle trees. JMTs ar
 
 Key features of Jellyfish Merkle Trees include:
 
-1.  Version-based Node Key: JMT uses a version-based key schema, which facilitates version-based sharding, reduces compaction overhead in LSM-tree based storage engines, and results in smaller key sizes on average.
+1. Version-based Node Key: JMT uses a version-based key schema, which facilitates version-based sharding, reduces compaction overhead in LSM-tree based storage engines, and results in smaller key sizes on average.
 
-2.  Simplified Structure: JMT has only two physical node types - Internal Node and Leaf Node.
+2. Simplified Structure: JMT has only two physical node types - Internal Node and Leaf Node.
 
-3.  Concise Proof Format: The number of sibling digests in a JMT proof is less on average than that of the same Addressable Radix Merkle Tree (ARMT) without optimizations, requiring less computation and space.
+3. Concise Proof Format: The number of sibling digests in a JMT proof is less on average than that of the same Addressable Radix Merkle Tree (ARMT) without optimizations, requiring less computation and space.
 
-4.  Efficient for Sparse Trees: JMT is particularly efficient for sparse trees, which is often the case in blockchain applications.
+4. Efficient for Sparse Trees: JMT is particularly efficient for sparse trees, which is often the case in blockchain applications.
 
-[More about Merkle trees](/quick-crypto#merkle-trees)
+[More about Merkle trees](./crypto-intro/merkle-trees.md)
 
 ## Account Creation
 
 Prism introduces a `CREATE_ACCOUNT` operation that allows for decentralized account creation. This operation supports various account sources, not just email addresses. The process works as follows:
 
-1.  Users prove ownership of a resource (e.g., a social media account, email address) using services like TLSNotary or zkEmail.
-2.  The proof is generated off-chain and then submitted as part of the `CREATE_ACCOUNT` operation.
-3.  The Prism protocol includes validity rules for each supported external protocol's proof system.
-4.  Full nodes verify the `CREATE_ACCOUNT` operation according to the corresponding proof system's ruleset before applying the state transition in the Jellyfish Merkle Tree.
+1. Users prove ownership of a resource (e.g., a social media account, email address) using services like [TLSNotary](https://tlsnotary.org/) or [zkEmail](https://prove.email/).
+2. The proof is generated off-chain and then submitted as part of the `CREATE_ACCOUNT` operation.
+3. The Prism protocol includes validity rules for each supported external protocol's proof system.
+4. Full nodes verify the `CREATE_ACCOUNT` operation according to the corresponding proof system's ruleset before applying the state transition in the Jellyfish Merkle Tree.
 
 This approach allows for:
 
--   Addition of arbitrary account sources
--   Decentralized account creation without relying on a single trusted entity
--   Flexibility for applications to use various types of accounts for registration
+- Addition of arbitrary account sources
+- Decentralized account creation without relying on a single trusted entity
+- Flexibility for applications to use various types of accounts for registration
 
 > **Note**: The `CREATE_ACCOUNT` operation enhances the security and decentralization of the account creation process in Prism. It mitigates the risks associated with centralized account creation while allowing for diverse account sources.
 

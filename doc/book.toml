@@ -3,7 +3,12 @@ authors = ["distractedm1nd", "sebasti810"]
 language = "en"
 multilingual = false
 src = "src"
-title = "prism-doc"
+title = "Prism Documentation"
 
 [preprocessor.katex]
 after = ["links"]
+
+[output.html]
+git-repository-url = "https://github.com/deltadevsde/prism"
+default-theme = "ayu"
+no-section-label = true
