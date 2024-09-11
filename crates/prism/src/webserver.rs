@@ -1,9 +1,9 @@
 use crate::{
     cfg::WebServerConfig,
-    error::GeneralError,
     node_types::sequencer::Sequencer,
     utils::{verify_signature, SignedContent},
 };
+use prism_errors::GeneralError;
 use anyhow::{Context, Result};
 use axum::{
     extract::State,

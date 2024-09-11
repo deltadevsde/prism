@@ -16,8 +16,8 @@ use std::{
 
 use crate::{
     cfg::RedisConfig,
-    error::{DatabaseError, GeneralError, PrismError},
 };
+use prism_errors::{DatabaseError, GeneralError, PrismError};
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::Operation,

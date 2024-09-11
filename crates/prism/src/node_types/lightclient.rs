@@ -1,7 +1,5 @@
-use crate::{
-    cfg::CelestiaConfig,
-    error::{DataAvailabilityError, GeneralError},
-};
+use crate::cfg::CelestiaConfig;
+use prism_errors::{DataAvailabilityError, GeneralError};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use std::{self, sync::Arc, time::Duration};

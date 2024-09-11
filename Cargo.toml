@@ -14,7 +14,13 @@ keywords = ["crypto", "key-transparency"]
 readme = "README.md"
 
 [workspace]
-members = ["crates/prism", "crates/common", "crates/nova"]
+members = [
+    "crates/prism",
+    "crates/common",
+    "crates/nova",
+    "crates/groth16",
+    "crates/errors",
+]
 resolver = "2"
 
 [workspace.dependencies]
@@ -64,6 +70,9 @@ bincode = "1.3.3"
 blake2 = "0.10.6"
 prism-common = { path = "crates/common" }
 prism-nova = { path = "crates/nova" }
+prism-errors = { path = "crates/errors" }
+prism-main = { path = "crates/prism" }
+prism-groth16 = { path = "crates/groth16" }
 
 [patch.crates-io]
 sha2-v0-9-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.9.8" }

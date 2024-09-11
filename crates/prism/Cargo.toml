@@ -43,6 +43,7 @@ jmt = { workspace = true, path = "../jmt", features = ["mocks"] }
 sha2 = { workspace = true }
 auto_impl = { workspace = true }
 prism-common = { workspace = true }
+prism-errors = { workspace = true }
 
 [patch.crates-io]
 sha2-v0-9-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.9.8" }

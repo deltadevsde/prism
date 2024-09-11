@@ -2,8 +2,8 @@ use crate::{
     cfg::CelestiaConfig,
     consts::CHANNEL_BUFFER_SIZE,
     da::{DataAvailabilityLayer, FinalizedEpoch},
-    error::{DataAvailabilityError, GeneralError},
 };
+use prism_errors::{DataAvailabilityError, GeneralError};
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use borsh::from_slice;

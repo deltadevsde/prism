@@ -1,4 +1,5 @@
-use crate::{error::GeneralError, utils::SignedContent};
+use crate::utils::SignedContent;
+use prism_errors::GeneralError;
 use anyhow::Result;
 use async_trait::async_trait;
 use borsh::{BorshDeserialize, BorshSerialize};

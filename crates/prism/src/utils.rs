@@ -1,4 +1,4 @@
-use crate::error::{GeneralError, PrismError, ProofError};
+use prism_errors::{GeneralError, PrismError, ProofError};
 use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16::{self, VerifyingKey};

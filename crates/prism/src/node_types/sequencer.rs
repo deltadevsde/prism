@@ -15,13 +15,12 @@ use tokio::{
 };
 
 #[cfg(test)]
-use crate::error::DataAvailabilityError;
+use prism_errors::DataAvailabilityError;
 
 use crate::{
     cfg::Config,
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
-    error::{DatabaseError, GeneralError},
     node_types::NodeType,
     storage::Database,
     webserver::{OperationInput, WebServer},
@@ -30,6 +29,7 @@ use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::{AccountSource, Operation},
 };
+use prism_errors::{DatabaseError, GeneralError};
 
 pub struct Sequencer {
     pub db: Arc<dyn Database>,

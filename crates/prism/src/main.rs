@@ -1,7 +1,6 @@
 mod cfg;
 pub mod consts;
 pub mod da;
-pub mod error;
 mod node_types;
 pub mod storage;
 mod utils;

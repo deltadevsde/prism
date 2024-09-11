@@ -1,8 +1,8 @@
 use crate::{
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::memory::InMemoryDataAvailabilityLayer,
-    error::{DataAvailabilityError, GeneralError, PrismError},
 };
+use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
