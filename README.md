@@ -1,3 +1,9 @@
+<p align="center">
+  <picture>
+    <source srcset="./assets/prism-white.png" media="(prefers-color-scheme: dark)">
+    <img src="./assets/prism-dark.png" alt="Prism" width="350">
+  </picture>
+</p>
 
 # prism
 
@@ -15,7 +21,8 @@ Prism is a decentralized key transparency protocol, first inspired by the paper 
 
 Prism provides the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over a data availbility layer. The system is designed to be efficient, scalable and secure, making it suitable for a wide range of applications.
 
-You can view further information about the project in our [documentation](https://prism.deltadevs.xyz).
+You can view further information about the project in our [documentation](https://prism.deltadevs.xyz). The project is undergoing rapid development. You can view the current development status [here](https://prism.deltadevs.xyz/state).
+
 
 ## Status
 
