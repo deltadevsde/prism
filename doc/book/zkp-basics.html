@@ -1,0 +1,272 @@
+<!DOCTYPE HTML>
+<html lang="en" class="ayu" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Zero Knowledge Proofs (Basics) - Prism Documentation</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "ayu";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('ayu')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item expanded "><a href="state.html">Development Status</a></li><li class="chapter-item expanded "><a href="architecture.html">Architecture</a></li><li class="chapter-item expanded "><a href="labels.html">Account Sources</a></li><li class="chapter-item expanded "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item expanded "><a href="insert-update-proofs.html">Insert and Updates</a></li><li class="chapter-item expanded "><a href="crypto-intro/intro.html">Introduction to Cryptography</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item expanded "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li></ol></li><li class="chapter-item expanded "><a href="merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item expanded "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item expanded "><a href="zkp-basics.html" class="active">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item expanded "><a href="resources.html">Resources</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="papers.html">Paper</a></li><li class="chapter-item expanded "><a href="books.html">Books</a></li><li class="chapter-item expanded "><a href="other-resources.html">Other Resources</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Prism Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/deltadevsde/prism" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="basics-of-zero-knowledge-proofs"><a class="header" href="#basics-of-zero-knowledge-proofs">Basics of Zero-Knowledge Proofs</a></h1>
+<p>In the past, informal section, we tried to approach zero-knowledge proofs via a practical example and to understand a bit of the basic concepts. In the following, we will gradually become a bit more formal and specify the ideas in this way, describing possible applications and outlining how zero-knowledge proofs (or rather zkSNAKRs) are used in our application.</p>
+<h2 id="the-first-small-definitions"><a class="header" href="#the-first-small-definitions">The first small definitions</a></h2>
+<p>So, as we have seen, a zero-knowledge proof is a cryptographic protocol in which a verifier (or group of verifiers) can check the correctness of an assertion without obtaining any information about the proof or the underlying secret. Before we start, we will take a closer look at the definition of Zero Knowledge Proofs, which is based on three fundamental properties: completeness, soundness, and zero knowledgeness.</p>
+<p><strong>Completeness</strong>: If a prover knows the secret, it can convince the verifier of it. This also means that it is always possible to prove something true.</p>
+<p><strong>Soundness</strong>: If a prover does not know the secret (i.e. a fraud), he cannot convince the verifier. This also means that with the Zero Knowledge protocol it is not possible to prove something false.</p>
+<p><strong>Zero Knowledgeness</strong>: The verifier learns nothing in the process except that the secret is true.</p>
+<h2 id="types-of-zkps"><a class="header" href="#types-of-zkps">Types of ZKPs</a></h2>
+<p>Zero Knowledge protocols have been researched since the early 1980s and are currently evolving at a breathtaking rate. For example, in our detailed explanation of Ali Baba and the 40 Thieves, we saw an interactive Zero Knowledge proof, as the reporter flipped a coin several times and then repeatedly interacted with Mick Ali by requesting a specific return path. This interaction, generally speaking, was repeated until the reporter (the verifier) was convinced of the knowledge of the proof. Also, Mick Ali could not see what the result of the coin toss was, which is a somewhat "stricter" interpretation and has been shown by <a href="https://dl.acm.org/doi/pdf/10.1145/22145.22192">Babai</a> with the so called <em>Arthur-Merlin-Games</em> to not be mandatory.</p>
+<p>In addition to interactive proofs, there are also non-interactive proofs, where there is no real communication between the prover and the verifier. The prover provides all relevant information in a single exchanged message to convince the verifier of correctness (more on this later), but of course the zero-knowledge property described above is still preserved. Moreover, science now presents a great flexibility: we are able to turn interactive proofs with public coin tosses into non-interactive proofs, and as seen earlier <a href="http://www.cs.toronto.edu/tss/files/papers/goldwasser-Sipser.pdf">Goldwasser and Sipser showed in 1986</a>, based on Babai, that we can turn interactive proofs with secret coin tosses into interactive proofs with public coin tosses. Perhaps at this point I may jokingly refer to this as a possible "transitivity of zero-knowledge protocols" <em>(which is definitely not a term in the literature, at least I have never seen this before!)</em>.</p>
+<h2 id="next-destination-zksnarks"><a class="header" href="#next-destination-zksnarks">Next destination: zkSNARKs</a></h2>
+<p>Thus, while interactive proofs in practical applications take place between a prover and one (or perhaps a few) verifiers, it is obvious that for proofs of non-interactive Zero Knowledge Proofs (NIZK) there need not be a restriction on the number of verifiers in practice, since the proof can be verified independently of the prover. This is an interesting and also relevant for our Prism use case. We go into more detail about the Zero Knowledge Proof use of Prism in the next section, but first we look at an extension of NIZKs, so-called SNARKs or zkSNARKs.</p>
+<p>The acronym zkSNARK stands for <strong>zero knowledge succinct non-interactive argument of knowledge</strong>. We look at the individual relevant components now more exactly, in the previous sections bases for it are put, which I will not repeat here in detail again.</p>
+<p>Let's start with <em>succinctness:</em> this property of proofs literally expresses that the proof should be (very) short, shorter than than the simple delivery of the secret itself to the verifier.</p>
+<p>We have already discussed <em>non-interactive</em>: there is no exchange (certainly not over several rounds) between the prover and the verifier. The prover provides everything the verifier needs for verification in a single message.</p>
+<p>Now let's look at the last part, called the <em>Argument of Knowledge</em>, for which we can use our previous knowledge to get a basic understanding.</p>
+<h3 id="proofs-arguments-and-witnesses"><a class="header" href="#proofs-arguments-and-witnesses">Proofs, Arguments and Witnesses</a></h3>
+<p>We distinguish terminologically between a <em>Proof</em> of Knowledge and an <em>Argument</em> of Knowledge. Both terms should give the verifier a certainty that soundness and completeness are valid (see above). For this purpose we have to distinguish between infinite computational power (a theoretical construct) and finite computational power (the practical, real case). A <em>proof</em> of knowledge is a cryptographic construct where even a (theoretical) prover with infinite computational power is not able to prove a false statement, or to falsely convince a verifier of secret knowledge without actually possessing that knowledge. This would be possible with infinite computational power in the construct of the <em>Argument</em> of Knowledge. If we restrict ourselves to real application cases, which are relevant for practice, no prover has infinite computational power, which is why cryptographic protocol called <em>Argument</em> of Knowledge provide sufficient security and guarantee the relevant properties completeness and soundness.</p>
+<p>Now, nevertheless, we have not yet dealt with the concept of <em>knowledge</em>, which is obviously meant to ensure the <em>knowledge</em> of the prover behind the proof. The prover must be in possession of a secret <em>knowledge</em> (often called a "witness") and use this <em>knowledge</em> in the process of creating the proof to create a valid proof. In theory, we often use a so-called <em>extractor</em> to show that the prover knows such secret <em>knowledge</em> (witness). The <em>extractor</em>, similar to the simulator paradigm, is a purely theoretical construct that has access to the prover and its procedure. If the <em>extractor</em> is able to extract the secret <em>knowledge</em> (the witness) from the creation process of the proof, then it is proven that the prover has such secret knowledge. This sounds trivial at first, but it is an important construct to prove the security properties of zkSNARKs.</p>
+<h2 id="how-prism-uses-zkps"><a class="header" href="#how-prism-uses-zkps">How Prism uses ZKPs</a></h2>
+<p>I will go into more detail about the theory behind Zero Knowledge Proofs in the elaboration over the coming months, for now let's look at what they are used for in our application.</p>
+<p>As explained earlier, epoch-based cryptographic commitments are published (for example on a blockchain, I will explain later how we use <a href="https://celestia.org">Celestia</a> for this), which contain the signed Merkle roots. Within an epoch, insert and update operations take place, causing the values within the Merkle tree and thus the Merkle root to constantly change. We use zkSNARKs in Prism to prove that we know a whole set of insert and update operations, in essence a whole set of combined Merkle proofs, that are responsible for the change in commitment from time <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6984em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> to time <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span>. In mathematical terms, we could say:</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord text"><span class="mord">Commitment</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.207em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.207em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">...</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1864em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord text"><span class="mord">Commitment</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p>
+<p>Where all operations after epoch <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6984em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> (i.e. within epoch <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span>) are of the form <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0636em;vertical-align:-0.3802em;"></span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.242em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">#epoch</span></span><span class="mord text mtight"><span class="mord mtight">#operation</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3802em;"><span></span></span></span></span></span></span></span></span></span>. We have already seen that the application-specific policy is satisfied by valid insert and update proofs. Thus, without the SNARK, everyone would have to perform all the resulting Merkle proofs (underlying the insert and update proofs) themselves, resulting in a huge computational overhead. By using SNARKs, anyone can independently (since we are talking about non-interactive protocols) efficiently verify the proof, which is publicly provided by the service (the prover in this case) and thus convince themselves of the honest behavior of the service.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="informal-zkps.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="resources.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="informal-zkps.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="resources.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="custom.js"></script>
+
+
+    </div>
+    </body>
+</html>

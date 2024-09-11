@@ -17,9 +17,9 @@ However, they do not provide a reference implementation. An implementation would
 
 Users can register a unique ID in Prism using various account sources, not just limited to email addresses. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.
 
-![Hashchain Example](./img/hashchain-example.jpeg)
+<img class="theme-dependent-image" data-light-src="./img/hashchain_light.png" data-dark-src="./img/hashchain_dark.png" alt="Theme-dependent hashchain">
 
-The image above shows an example of a hash chain. An identifier refers to this hash chain. The individual elements of the hash chain contain the operation performed and the value that is added or revoked with the operation. In addition, each element contains a previous hash value, which makes the data structure a chain, since each element points to its predecessor. The first element of the hashchain has 0000... as its previous hash, which is comparable to a genesis block of a blockchain. Each element of the hashchain is uniquely identifiable by a hash value. This is created by giving all other values of the element into a hash function H: _H(previous Hash, operation, value) = hash_
+The image above shows an example of a hashchain. An identifier refers to this hashchain. The individual elements of the hashchain contain the operation performed and the value that is added or revoked with the operation. In addition, each element contains a previous hash value, which makes the data structure a chain, since each element points to its predecessor. The first element of the hashchain has 0000... as its previous hash, which is comparable to a genesis block of a blockchain. Each element of the hashchain is uniquely identifiable by a hash value. This is created by giving all other values of the element into a hash function H: _H(previous Hash, operation, value) = hash_
 
 ## Jellyfish Merkle Trees
 

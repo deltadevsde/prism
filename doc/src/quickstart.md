@@ -2,7 +2,7 @@
 
 This guide will introduce you to the ideas behind _Prism_. We will go through the necessary cryptography and provide further links in many places to deepen the knowledge and not to completely interrupt the reading flow on the topic.
 
-> **Note**: If you have no or only little previous knowledge, you can get a short overview with partly simplified explanations [here](/explainers/crypto-intro/intro.md).
+> **Note**: If you have no or only little previous knowledge, you can get a short overview with partly simplified explanations [here](./crypto-intro/intro.md).
 
 ## What is a Key Directory?
 
