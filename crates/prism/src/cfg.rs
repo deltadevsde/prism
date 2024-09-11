@@ -9,7 +9,6 @@ use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
 use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::{fs, path::Path, sync::Arc};
 
 use crate::da::{celestia::CelestiaConnection, DataAvailabilityLayer};
@@ -18,7 +17,6 @@ use crate::da::{celestia::CelestiaConnection, DataAvailabilityLayer};
 pub enum Commands {
     LightClient,
     Sequencer,
-    GeneratePublicParams,
 }
 
 #[derive(Parser, Clone, Debug, Deserialize)]
@@ -61,10 +59,6 @@ pub struct CommandLineArgs {
     #[arg(long)]
     config_path: Option<String>,
 
-    /// Path to the bin file containing serialized PublicParams<PallasEngine>
-    #[arg(long)]
-    public_params_path: Option<String>,
-
     #[command(subcommand)]
     pub command: Commands,
 }
@@ -78,7 +72,6 @@ pub struct Config {
     pub da_layer: Option<DALayerOption>,
     pub redis_config: Option<RedisConfig>,
     pub verifying_key: Option<String>,
-    pub public_params_path: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -144,7 +137,6 @@ impl Default for Config {
             celestia_config: Some(CelestiaConfig::default()),
             redis_config: Some(RedisConfig::default()),
             verifying_key: None,
-            public_params_path: None,
         }
     }
 }
@@ -211,7 +203,6 @@ fn merge_configs(loaded: Config, default: Config) -> Config {
         celestia_config: loaded.celestia_config.or(default.celestia_config),
         da_layer: loaded.da_layer.or(default.da_layer),
         verifying_key: loaded.verifying_key.or(default.verifying_key),
-        public_params_path: loaded.public_params_path.or(default.public_params_path),
     }
 }
 
@@ -275,7 +266,6 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
         }),
         da_layer: config.da_layer,
         verifying_key: args.verifying_key.or(config.verifying_key),
-        public_params_path: args.public_params_path.or(config.public_params_path),
     }
 }
 

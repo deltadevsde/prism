@@ -1,14 +1,12 @@
-use crate::{
-    nova::utils::{
-        allocate_bits_to_binary_number, next_rom_index_and_pc, verify_membership_proof,
-        Digest as NovaDigest,
-    },
-    tree::UpdateProof,
+use crate::utils::{
+    allocate_bits_to_binary_number, next_rom_index_and_pc, verify_membership_proof,
+    Digest as NovaDigest,
 };
 use anyhow::Result;
 use arecibo::supernova::StepCircuit;
 use bellpepper_core::{num::AllocatedNum, ConstraintSystem, SynthesisError};
 use ff::{PrimeField, PrimeFieldBits};
+use prism_common::tree::UpdateProof;
 
 #[derive(Clone)]
 pub struct UpdateCircuit<F> {

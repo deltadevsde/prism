@@ -1,10 +1,10 @@
 use super::{insert::InsertCircuit, update::UpdateCircuit};
-use crate::tree::{InsertProof, UpdateProof};
 use arecibo::{
     supernova::{StepCircuit, TrivialSecondaryCircuit},
     traits::{CurveCycleEquipped, Dual, Engine},
 };
 use ff::{PrimeField, PrimeFieldBits};
+use prism_common::tree::{InsertProof, UpdateProof};
 use std::cell::RefCell;
 
 #[derive(Clone)]
@@ -136,7 +136,7 @@ impl<F: PrimeField + PrimeFieldBits> StepCircuit<F> for EpochCircuit<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{common::Hashchain, nova::utils::Digest as NovaDigest, tree::*};
+    use crate::utils::Digest as NovaDigest;
     use arecibo::{
         provider::PallasEngine,
         supernova::{NonUniformCircuit, PublicParams, RecursiveSNARK},
@@ -144,6 +144,7 @@ mod tests {
     };
     use ff::Field;
     use jmt::{mock::MockTreeStore, KeyHash};
+    use prism_common::{hashchain::Hashchain, tree::*};
     use rand::{rngs::StdRng, Rng, SeedableRng};
     use std::sync::Arc;
 

@@ -1,7 +1,5 @@
 // use bellpepper_core::ConstraintSystem;
-use crate::nova::batch::EpochCircuitSequence;
-use crate::tree::*;
-use crate::{common::Hashchain, nova::batch::EpochCircuit};
+use crate::batch::{EpochCircuit, EpochCircuitSequence};
 use anyhow::Result;
 use arecibo::{provider::PallasEngine, supernova::PublicParams, traits::snark::default_ck_hint};
 use bellpepper::gadgets::sha256::sha256;
@@ -12,18 +10,16 @@ use bellpepper_core::{
 };
 use ff::PrimeField;
 use itertools::Itertools as _;
-use jmt::bytes32ext::Bytes32Ext;
-use jmt::mock::MockTreeStore;
-use jmt::proof::{
-    SparseMerkleInternalNode, SparseMerkleLeafNode, SparseMerkleNode, SparseMerkleProof,
-    INTERNAL_DOMAIN_SEPARATOR,
+use jmt::{
+    bytes32ext::Bytes32Ext,
+    mock::MockTreeStore,
+    proof::{SparseMerkleLeafNode, SparseMerkleNode, SparseMerkleProof, INTERNAL_DOMAIN_SEPARATOR},
+    RootHash,
 };
-use jmt::RootHash;
-use sha2::Sha256;
-use std::marker::PhantomData;
-use std::sync::Arc;
+use prism_common::{hashchain::Hashchain, tree::*};
+use std::{marker::PhantomData, sync::Arc};
 
-use crate::tree;
+use prism_common::tree;
 
 pub struct Digest<Scalar: PrimeField> {
     digest: tree::Digest,

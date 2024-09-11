@@ -1,67 +1,13 @@
 use anyhow::{bail, Result};
 use borsh::{BorshDeserialize, BorshSerialize};
-use ff::derive::bitvec::view::AsBits;
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::Display,
-    ops::{Deref, DerefMut},
+use std::ops::{Deref, DerefMut};
+
+use crate::{
+    operation::{AccountSource, Operation},
+    tree::{hash, Digest, Hasher},
 };
-
-use crate::tree::{hash, Digest, Hasher};
-
-#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug, PartialEq)]
-// An [`Operation`] represents a state transition in the system.
-// In a blockchain analogy, this would be the full set of our transaction types.
-pub enum Operation {
-    // Creates a new account with the given id and value.
-    CreateAccount {
-        id: String,
-        value: String,
-        source: AccountSource,
-    },
-    // Adds a value to an existing account.
-    Add {
-        id: String,
-        value: String,
-    },
-    // Revokes a value from an existing account.
-    Revoke {
-        id: String,
-        value: String,
-    },
-}
-
-#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
-// An [`AccountSource`] represents the source of an account. See adr-002 for more information.
-pub enum AccountSource {
-    SignedBySequencer { signature: String },
-}
-
-impl Operation {
-    pub fn id(&self) -> String {
-        match self {
-            Operation::CreateAccount { id, .. } => id.clone(),
-            Operation::Add { id, .. } => id.clone(),
-            Operation::Revoke { id, .. } => id.clone(),
-        }
-    }
-
-    pub fn value(&self) -> String {
-        match self {
-            Operation::CreateAccount { value, .. } => value.clone(),
-            Operation::Add { value, .. } => value.clone(),
-            Operation::Revoke { value, .. } => value.clone(),
-        }
-    }
-}
-
-impl Display for Operation {
-    // just print the debug
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
 
 #[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Hashchain {
@@ -135,11 +81,6 @@ impl Hashchain {
         self.push(operation)
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        self.last()
-            .map_or(Vec::new(), |last_entry| last_entry.to_bytes())
-    }
-
     pub fn get(&self, idx: usize) -> &HashchainEntry {
         &self.entries[idx]
     }
@@ -184,6 +125,10 @@ impl Hashchain {
         KeyHash::with::<Hasher>(self.id.clone())
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
     pub fn len(&self) -> usize {
         self.entries.len()
     }
@@ -212,15 +157,5 @@ impl HashchainEntry {
             previous_hash,
             operation,
         }
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-
-        bytes.extend_from_slice(self.hash.as_ref());
-        bytes.extend_from_slice(self.previous_hash.as_ref());
-        bytes.extend_from_slice(self.operation.to_string().as_bytes());
-
-        bytes
     }
 }

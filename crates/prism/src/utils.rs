@@ -1,7 +1,4 @@
-use crate::{
-    error::{GeneralError, PrismError, ProofError},
-    tree::Digest,
-};
+use crate::error::{GeneralError, PrismError, ProofError};
 use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16::{self, VerifyingKey};
@@ -9,7 +6,7 @@ use bls12_381::{Bls12, Scalar};
 use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
 use indexed_merkle_tree::tree::Proof;
-use rand::rngs::OsRng;
+use prism_common::tree::Digest;
 
 pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::Error>> {
     let proof: Proof = serde_json::from_str(json_str)?;

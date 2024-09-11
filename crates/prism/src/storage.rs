@@ -16,8 +16,11 @@ use std::{
 
 use crate::{
     cfg::RedisConfig,
-    common::{Hashchain, HashchainEntry, Operation},
     error::{DatabaseError, GeneralError, PrismError},
+};
+use prism_common::{
+    hashchain::{Hashchain, HashchainEntry},
+    operation::Operation,
     tree::Digest,
 };
 
@@ -248,7 +251,8 @@ impl Database for RedisConnection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{common::Operation, storage::Database, tree::hash};
+    use crate::storage::Database;
+    use prism_common::{operation::Operation, tree::hash};
     use serde::{Deserialize, Serialize};
     use serial_test::serial;
 

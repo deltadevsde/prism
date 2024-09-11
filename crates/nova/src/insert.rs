@@ -1,14 +1,11 @@
-use crate::{
-    nova::utils::{
-        allocate_bits_to_binary_number, next_rom_index_and_pc, verify_membership_proof, Digest,
-    },
-    tree::InsertProof,
+use crate::utils::{
+    allocate_bits_to_binary_number, next_rom_index_and_pc, verify_membership_proof, Digest,
 };
 use anyhow::Result;
 use arecibo::supernova::StepCircuit;
 use bellpepper_core::{num::AllocatedNum, ConstraintSystem, SynthesisError};
 use ff::{PrimeField, PrimeFieldBits};
-use sha2::Sha256;
+use prism_common::tree::InsertProof;
 
 #[derive(Clone)]
 pub struct InsertCircuit<F> {

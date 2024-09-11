@@ -1,20 +1,20 @@
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use bls12_381::Scalar;
 use borsh::{from_slice, to_vec, BorshDeserialize, BorshSerialize};
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
-    JellyfishMerkleTree, KeyHash, RootHash, Sha256Jmt, SimpleHasher,
+    JellyfishMerkleTree, KeyHash, RootHash, SimpleHasher,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::common::Hashchain;
+use crate::hashchain::Hashchain;
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
-pub type Hasher = sha2::Sha256;
+pub type Hasher = blake2::Blake2s256;
 
 #[derive(
     Debug, Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, PartialEq, Eq, Copy,
@@ -23,7 +23,7 @@ pub struct Digest([u8; 32]);
 
 impl Digest {
     pub fn to_bytes(&self) -> [u8; 32] {
-        return self.0;
+        self.0
     }
 }
 
@@ -98,9 +98,53 @@ impl Digest {
 }
 
 pub fn hash(data: &[u8]) -> Digest {
-    let mut hasher = sha2::Sha256::new();
+    let mut hasher = blake2::Blake2s256::new();
     hasher.update(data);
     Digest(hasher.finalize())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Batch {
+    pub prev_root: Digest,
+    pub new_root: Digest,
+
+    pub proofs: Vec<Proof>,
+}
+
+impl Serialize for Proof {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let bytes = borsh::to_vec(self).map_err(serde::ser::Error::custom)?;
+        serializer.serialize_bytes(&bytes)
+    }
+}
+
+impl<'de> Deserialize<'de> for Proof {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ProofVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for ProofVisitor {
+            type Value = Proof;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a byte array containing Borsh-serialized Proof")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Proof::try_from_slice(v).map_err(serde::de::Error::custom)
+            }
+        }
+
+        deserializer.deserialize_bytes(ProofVisitor)
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
@@ -135,7 +179,7 @@ impl InsertProof {
     pub fn verify(&self) -> Result<()> {
         self.non_membership_proof
             .verify()
-            .context("Invalid NonMembershipProof");
+            .context("Invalid NonMembershipProof")?;
 
         let value = to_vec(&self.value).unwrap();
 
@@ -143,7 +187,7 @@ impl InsertProof {
             self.new_root.into(),
             self.non_membership_proof.key,
             value,
-        );
+        )?;
 
         Ok(())
     }
@@ -195,7 +239,7 @@ where
     pub fn new(store: Arc<S>) -> Self {
         let tree = Self {
             db: store.clone(),
-            jmt: Sha256Jmt::new(store),
+            jmt: JellyfishMerkleTree::<Arc<S>, Hasher>::new(store),
             pending_batch: None,
             epoch: 0,
         };
@@ -227,7 +271,7 @@ where
         Ok(())
     }
 
-    fn get_current_root(&self) -> Result<RootHash> {
+    pub fn get_current_root(&self) -> Result<RootHash> {
         self.jmt
             .get_root_hash(self.epoch)
             .map_err(|e| anyhow!("Failed to get root hash: {}", e))

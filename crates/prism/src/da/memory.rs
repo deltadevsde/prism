@@ -1,9 +1,7 @@
-use crate::{
-    common::Operation,
-    da::{DataAvailabilityLayer, FinalizedEpoch},
-};
+use crate::da::{DataAvailabilityLayer, FinalizedEpoch};
 use anyhow::Result;
 use async_trait::async_trait;
+use prism_common::operation::Operation;
 use std::sync::Arc;
 use tokio::{
     sync::{broadcast, RwLock},

@@ -1,6 +1,5 @@
 use crate::{
     cfg::WebServerConfig,
-    common::{Hashchain, Operation},
     error::GeneralError,
     node_types::sequencer::Sequencer,
     utils::{verify_signature, SignedContent},
@@ -18,6 +17,7 @@ use indexed_merkle_tree::{
     tree::{Proof, UpdateProof},
     Hash as TreeHash,
 };
+use prism_common::{hashchain::Hashchain, operation::Operation};
 use serde::{Deserialize, Serialize};
 use std::{self, str::FromStr, sync::Arc};
 use tower_http::cors::CorsLayer;

@@ -1,11 +1,9 @@
-use crate::{
-    tree::{hash, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree},
-};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::KeyHash;
+use prism_common::tree::{hash, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
 use std::{self, str::FromStr, sync::Arc};
 use tokio::{
     sync::{
@@ -21,13 +19,16 @@ use crate::error::DataAvailabilityError;
 
 use crate::{
     cfg::Config,
-    common::{AccountSource, Hashchain, HashchainEntry, Operation},
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
     error::{DatabaseError, GeneralError},
     node_types::NodeType,
     storage::Database,
     webserver::{OperationInput, WebServer},
+};
+use prism_common::{
+    hashchain::{Hashchain, HashchainEntry},
+    operation::{AccountSource, Operation},
 };
 
 pub struct Sequencer {

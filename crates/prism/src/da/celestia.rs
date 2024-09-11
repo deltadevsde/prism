@@ -1,6 +1,5 @@
 use crate::{
     cfg::CelestiaConfig,
-    common::Operation,
     consts::CHANNEL_BUFFER_SIZE,
     da::{DataAvailabilityLayer, FinalizedEpoch},
     error::{DataAvailabilityError, GeneralError},
@@ -10,6 +9,7 @@ use async_trait::async_trait;
 use borsh::from_slice;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::{blob::GasPrice, nmt::Namespace, Blob};
+use prism_common::operation::Operation;
 use std::{self, sync::Arc};
 use tokio::{
     sync::{
@@ -26,15 +26,6 @@ impl TryFrom<&Blob> for FinalizedEpoch {
         from_slice::<Self>(&value.data).context(format!(
             "Failed to decode blob into FinalizedEpoch: {value:?}"
         ))
-    }
-}
-
-impl TryFrom<&Blob> for Operation {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        from_slice::<Self>(&value.data)
-            .context(format!("Failed to decode blob into Operation: {value:?}"))
     }
 }
 
