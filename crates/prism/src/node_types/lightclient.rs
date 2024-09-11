@@ -71,8 +71,8 @@ impl LightClient {
 
                             // todo: verify adjacency to last heights, <- for this we need some sort of storage of epochs
                             for epoch_json in epoch_json_vec {
-                                let prev_commitment = &epoch_json.prev_commitment;
-                                let current_commitment = &epoch_json.current_commitment;
+                                // let prev_commitment = &epoch_json.prev_commitment;
+                                // let current_commitment = &epoch_json.current_commitment;
 
                                 // let proof = match epoch_json.proof.clone().try_into() {
                                 //     Ok(proof) => proof,

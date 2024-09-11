@@ -289,7 +289,7 @@ pub fn hash_node<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
 pub fn verify_membership_proof<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
     proof: &SparseMerkleProof<Hasher>,
-    root: &Vec<Boolean>,
+    root: Vec<Boolean>,
     leaf: SparseMerkleLeafNode,
 ) -> Result<(), SynthesisError> {
     let max_depth = 10;
@@ -355,7 +355,8 @@ pub fn verify_membership_proof<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>
     Ok(())
 }
 
-// Helper function to conditionally swap two vectors of Booleans
+/// Helper function to conditionally swap two vectors of Booleans
+#[allow(dead_code)]
 fn conditionally_swap<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
     a: &[Boolean],
@@ -365,7 +366,7 @@ fn conditionally_swap<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     let mut left = Vec::with_capacity(a.len());
     let mut right = Vec::with_capacity(a.len());
 
-    for (i, (a_bit, b_bit)) in a.iter().zip(b.iter()).enumerate() {
+    for (a_bit, b_bit) in a.iter().zip(b.iter()) {
         let (left_bit, right_bit) = {
             let and1 = Boolean::and(cs.namespace(|| "condition and a"), condition, a_bit)?;
             let and2 = Boolean::and(
@@ -394,7 +395,8 @@ fn conditionally_swap<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     Ok((left, right))
 }
 
-// Helper function to conditionally select between two vectors of Booleans
+/// Helper function to conditionally select between two vectors of Booleans
+#[allow(dead_code)]
 fn conditionally_select_vector<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     cs: &mut CS,
     condition: &Boolean,
@@ -421,6 +423,7 @@ fn conditionally_select_vector<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>
     Ok(result)
 }
 
+#[allow(dead_code)]
 fn boolvec_to_bytes(value: Vec<Boolean>) -> Vec<u8> {
     let bits: Vec<bool> = value
         .iter()

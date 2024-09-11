@@ -1,5 +1,7 @@
-use crate::utils::{create_and_verify_snark, recalculate_hash_as_scalar, unpack_and_process};
-use crate::ProofVariantCircuit;
+use crate::{
+    utils::{create_and_verify_snark, recalculate_hash_as_scalar, unpack_and_process},
+    ProofVariantCircuit,
+};
 use anyhow::Result;
 use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, Scalar};
@@ -53,7 +55,7 @@ impl UpdateMerkleProofCircuit {
     ) -> Result<(groth16::Proof<Bls12>, groth16::VerifyingKey<Bls12>)> {
         let scalars: Vec<Scalar> = vec![self.old_root, self.updated_root];
 
-        create_and_verify_snark(ProofVariantCircuit::Update(self.clone()), scalars)
+        create_and_verify_snark(ProofVariantCircuit::Update(Box::new(self.clone())), scalars)
     }
 }
 

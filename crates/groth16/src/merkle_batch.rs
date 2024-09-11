@@ -1,7 +1,6 @@
 use crate::{
-    merkle_insertion::prove_insertion, merkle_update::prove_update, InsertMerkleProofCircuit,
-    ProofVariantCircuit, UpdateMerkleProofCircuit,
-    utils::create_and_verify_snark
+    merkle_insertion::prove_insertion, merkle_update::prove_update, utils::create_and_verify_snark,
+    InsertMerkleProofCircuit, ProofVariantCircuit, UpdateMerkleProofCircuit,
 };
 use anyhow::Result;
 use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
@@ -28,14 +27,14 @@ impl BatchMerkleProofCircuit {
         for proof in proofs {
             match proof {
                 Proof::Update(update_proof) => {
-                    proof_circuit_array.push(ProofVariantCircuit::Update(
+                    proof_circuit_array.push(ProofVariantCircuit::Update(Box::new(
                         UpdateMerkleProofCircuit::new(&update_proof)?,
-                    ));
+                    )));
                 }
                 Proof::Insert(insertion_proof) => {
-                    proof_circuit_array.push(ProofVariantCircuit::Insert(
+                    proof_circuit_array.push(ProofVariantCircuit::Insert(Box::new(
                         InsertMerkleProofCircuit::new(&insertion_proof)?,
-                    ));
+                    )));
                 }
             }
         }

@@ -56,15 +56,15 @@ impl TryFrom<Digest> for Scalar {
     }
 }
 
-impl Into<RootHash> for Digest {
-    fn into(self) -> RootHash {
-        RootHash::from(self.0)
+impl From<Digest> for RootHash {
+    fn from(val: Digest) -> RootHash {
+        RootHash::from(val.0)
     }
 }
 
-impl Into<Digest> for RootHash {
-    fn into(self) -> Digest {
-        Digest(self.0)
+impl From<RootHash> for Digest {
+    fn from(val: RootHash) -> Digest {
+        Digest(val.0)
     }
 }
 

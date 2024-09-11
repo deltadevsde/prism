@@ -1,6 +1,6 @@
 use crate::{
     merkle_update::prove_update,
-    utils::{recalculate_hash_as_scalar, unpack_and_process, create_and_verify_snark},
+    utils::{create_and_verify_snark, recalculate_hash_as_scalar, unpack_and_process},
     LessThanCircuit, ProofVariantCircuit, UpdateMerkleProofCircuit,
 };
 use anyhow::Result;
@@ -60,7 +60,7 @@ impl InsertMerkleProofCircuit {
             self.new_leaf_activation.updated_root,
         ];
 
-        create_and_verify_snark(ProofVariantCircuit::Insert(self.clone()), scalars)
+        create_and_verify_snark(ProofVariantCircuit::Insert(Box::new(self.clone())), scalars)
     }
 }
 

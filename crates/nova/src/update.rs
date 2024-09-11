@@ -86,7 +86,7 @@ where
             .leaf()
             .ok_or(SynthesisError::AssignmentMissing)?;
 
-        verify_membership_proof(cs, update_proof, &old_root_bits, *leaf)?;
+        verify_membership_proof(cs, update_proof, old_root_bits, *leaf)?;
 
         self.update_proof
             .verify()

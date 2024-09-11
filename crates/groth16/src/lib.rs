@@ -22,8 +22,8 @@ pub use merkle_update::UpdateMerkleProofCircuit;
 
 #[derive(Clone)]
 pub enum ProofVariantCircuit {
-    Update(UpdateMerkleProofCircuit),
-    Insert(InsertMerkleProofCircuit),
+    Update(Box<UpdateMerkleProofCircuit>),
+    Insert(Box<InsertMerkleProofCircuit>),
     Batch(BatchMerkleProofCircuit),
 }
 

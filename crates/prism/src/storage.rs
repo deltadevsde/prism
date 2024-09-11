@@ -14,15 +14,13 @@ use std::{
     time::Duration,
 };
 
-use crate::{
-    cfg::RedisConfig,
-};
-use prism_errors::{DatabaseError, GeneralError, PrismError};
+use crate::cfg::RedisConfig;
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::Operation,
     tree::Digest,
 };
+use prism_errors::{DatabaseError, GeneralError, PrismError};
 
 // there are different key prefixes for the different tables in the database
 // app_state:key => app state (just epoch counter for now)
@@ -99,7 +97,7 @@ impl TreeReader for RedisConnection {
         let serialized_key = hex::encode(borsh::to_vec(node_key).unwrap());
         let node_data: Option<Vec<u8>> = con.get(format!("node:{}", serialized_key))?;
         match node_data {
-            None => return Ok(None),
+            None => Ok(None),
             Some(data) => {
                 let node: Node = borsh::from_slice::<Node>(&data).unwrap();
                 Ok(Some(node))

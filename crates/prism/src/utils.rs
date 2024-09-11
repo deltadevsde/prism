@@ -1,4 +1,3 @@
-use prism_errors::{GeneralError, PrismError, ProofError};
 use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16::{self, VerifyingKey};
@@ -7,7 +6,9 @@ use ed25519::Signature;
 use ed25519_dalek::{Verifier, VerifyingKey as Ed25519VerifyingKey};
 use indexed_merkle_tree::tree::Proof;
 use prism_common::tree::Digest;
+use prism_errors::{GeneralError, PrismError, ProofError};
 
+#[allow(dead_code)]
 pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::Error>> {
     let proof: Proof = serde_json::from_str(json_str)?;
 
@@ -28,6 +29,7 @@ pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey> {
         .map_err(|_| GeneralError::DecodingError("ed25519 verifying key".to_string()).into())
 }
 
+#[allow(dead_code)]
 pub fn validate_epoch(
     previous_commitment: &Digest,
     current_commitment: &Digest,

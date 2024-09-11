@@ -91,7 +91,7 @@ impl<Scalar: PrimeField + PrimeFieldBits> StepCircuit<Scalar> for InsertCircuit<
             .leaf()
             .ok_or(SynthesisError::AssignmentMissing)?;
 
-        verify_membership_proof(cs, &self.proof.membership_proof, &new_root_bits, *leaf)?;
+        verify_membership_proof(cs, &self.proof.membership_proof, new_root_bits, *leaf)?;
 
         let mut z_next = vec![new_root];
         z_next.push(rom_index_next);

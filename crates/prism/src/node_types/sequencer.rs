@@ -368,7 +368,7 @@ impl Sequencer {
                 let previous_hash = current_chain.last().context("Hashchain is empty")?.hash;
 
                 let new_chain_entry = HashchainEntry::new(operation.clone(), previous_hash);
-                current_chain.push(new_chain_entry.operation.clone());
+                current_chain.push(new_chain_entry.operation.clone())?;
 
                 // let updated_node = Node::new_leaf(
                 //     node.is_left_sibling(),
@@ -413,7 +413,7 @@ impl Sequencer {
 
                 debug!("creating new hashchain for user id {}", id.clone());
                 let mut chain = Hashchain::new(id.clone());
-                chain.create_account(value.into(), source.clone());
+                chain.create_account(value.into(), source.clone())?;
 
                 self.db
                     .update_hashchain(operation, &chain)

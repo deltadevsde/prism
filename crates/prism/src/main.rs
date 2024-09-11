@@ -66,12 +66,6 @@ async fn main() -> std::io::Result<()> {
                 })?,
             )
         }
-        _ => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Invalid node type",
-            ));
-        }
     };
 
     node.start()
