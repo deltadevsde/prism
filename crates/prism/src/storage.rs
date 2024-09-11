@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use auto_impl::auto_impl;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
@@ -94,15 +94,9 @@ impl RedisConnection {
 impl TreeReader for RedisConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
         let mut con = self.lock_connection()?;
-        let serialized_key = hex::encode(borsh::to_vec(node_key).unwrap());
-        let node_data: Option<Vec<u8>> = con.get(dbg!(format!("node:{}", serialized_key)))?;
-        match node_data {
-            None => Ok(None),
-            Some(data) => {
-                let node: Node = borsh::from_slice::<Node>(&data).unwrap();
-                Ok(Some(node))
-            }
-        }
+        let serialized_key = hex::encode(borsh::to_vec(node_key)?);
+        let node_data: Option<Vec<u8>> = con.get(format!("node:{}", serialized_key))?;
+        Ok(node_data.map(|data| borsh::from_slice(&data).unwrap()))
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
@@ -112,14 +106,14 @@ impl TreeReader for RedisConnection {
 
         for key in keys {
             let node_data: Vec<u8> = con.get(&key)?;
-            let node: Node = borsh::from_slice::<Node>(&node_data)?;
-            if let Node::Leaf(leaf) = node {
-                // let node_key = NodeKey::from_str(key.strip_prefix("node:").unwrap())?;
-                let node_key_bytes = hex::decode(key.strip_prefix("node:").unwrap()).unwrap();
-                let node_key = borsh::from_slice::<NodeKey>(node_key_bytes.as_ref()).unwrap();
-                if rightmost.is_none() || leaf.key_hash() > rightmost.as_ref().unwrap().1.key_hash()
+            let node: Node = borsh::from_slice(&node_data)?;
+            if let Node::Leaf(leaf_node) = node {
+                let node_key_bytes = hex::decode(key.strip_prefix("node:").unwrap())?;
+                let node_key: NodeKey = borsh::from_slice(&node_key_bytes)?;
+                if rightmost.is_none()
+                    || leaf_node.key_hash() > rightmost.as_ref().unwrap().1.key_hash()
                 {
-                    rightmost.replace((node_key, leaf));
+                    rightmost = Some((node_key, leaf_node));
                 }
             }
         }
@@ -133,12 +127,19 @@ impl TreeReader for RedisConnection {
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
         let mut con = self.lock_connection()?;
-        let versions: Vec<(Version, OwnedValue)> = con.zrangebyscore_withscores(
-            format!("value_history:{:?}", key_hash),
-            0,
-            max_version as f64,
-        )?;
-        Ok(versions.last().map(|(_, value)| value.clone()))
+        let value_key = format!("value_history:{}", hex::encode(key_hash.0));
+        let values: Vec<(String, f64)> =
+            con.zrevrangebyscore_withscores(&value_key, max_version as f64, 0f64)?;
+
+        if let Some((encoded_value, _)) = values.first() {
+            if encoded_value.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(hex::decode(encoded_value)?))
+            }
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -146,23 +147,37 @@ impl TreeWriter for RedisConnection {
     fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()> {
         let mut con = self.lock_connection()?;
         let mut pipe = redis::pipe();
+
         for (node_key, node) in node_batch.nodes() {
-            let serialized_key = hex::encode(borsh::to_vec(node_key).unwrap());
+            let serialized_key = hex::encode(borsh::to_vec(node_key)?);
             let node_data = borsh::to_vec(node)?;
             pipe.set(format!("node:{}", serialized_key), node_data);
         }
+
         for ((version, key_hash), value) in node_batch.values() {
-            if let Some(v) = value {
-                pipe.zadd(format!("value_history:{:?}", key_hash), v, *version as f64);
-            } else {
-                pipe.zadd(
-                    format!("value_history:{:?}", key_hash),
-                    Vec::<u8>::new(),
-                    *version as f64,
-                );
-            }
+            let value_key = format!("value_history:{}", hex::encode(key_hash.0));
+            let encoded_value = value.as_ref().map(hex::encode).unwrap_or_default();
+            pipe.zadd(&value_key, encoded_value, *version as f64);
         }
+
         pipe.execute(&mut con);
+        Ok(())
+    }
+}
+
+impl RedisConnection {
+    pub fn put_leaf(&self, node_key: NodeKey, leaf: LeafNode, value: Vec<u8>) -> Result<()> {
+        let mut con = self.lock_connection()?;
+        let serialized_key = hex::encode(borsh::to_vec(&node_key)?);
+        let node_data = borsh::to_vec(&Node::Leaf(leaf.clone()))?;
+
+        con.set_nx::<String, Vec<u8>, ()>(format!("node:{}", serialized_key), node_data)?;
+
+        // ensure!(result == Some(true), "Key {:?} already exists", node_key);
+
+        let value_key = format!("value_history:{}", hex::encode(leaf.key_hash().0));
+        con.zadd(value_key, hex::encode(&value), node_key.version() as f64)?;
+
         Ok(())
     }
 }
@@ -174,8 +189,13 @@ impl Database for RedisConnection {
             .get(format!("main:{}", key))
             .map_err(|_| DatabaseError::NotFoundError(format!("hashchain key {}", key)))?;
 
-        serde_json::from_str(&value)
-            .map_err(|e| anyhow!(GeneralError::ParsingError(format!("hashchain: {}", e))))
+        let res: Vec<HashchainEntry> = serde_json::from_str(&value)
+            .map_err(|e| anyhow!(GeneralError::ParsingError(format!("hashchain: {}", e))))?;
+
+        Ok(Hashchain {
+            id: key.to_string(),
+            entries: res,
+        })
     }
 
     fn get_commitment(&self, epoch: &u64) -> Result<String> {

@@ -370,13 +370,6 @@ impl Sequencer {
                 let new_chain_entry = HashchainEntry::new(operation.clone(), previous_hash);
                 current_chain.push(new_chain_entry.operation.clone())?;
 
-                // let updated_node = Node::new_leaf(
-                //     node.is_left_sibling(),
-                //     hashed_id,
-                //     new_chain_entry.hash,
-                //     node.get_next(),
-                // );
-
                 debug!("updating hashchain for user id {}", id.clone());
                 let proof =
                     tree.update(KeyHash::with::<Hasher>(hashed_id), current_chain.clone())?;

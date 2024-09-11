@@ -11,8 +11,8 @@ use crate::{
 
 #[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Hashchain {
-    id: String,
-    entries: Vec<HashchainEntry>,
+    pub id: String,
+    pub entries: Vec<HashchainEntry>,
 }
 
 impl IntoIterator for Hashchain {
@@ -86,9 +86,6 @@ impl Hashchain {
     }
 
     pub fn push(&mut self, operation: Operation) -> Result<Digest> {
-        if !self.is_empty() {
-            bail!("Cannot CreateAccount on an already existing hashchain");
-        }
         if operation.id() != self.id {
             bail!("Operation ID does not match Hashchain ID");
         }
