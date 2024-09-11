@@ -39,22 +39,13 @@ keystore-rs = { workspace = true }
 toml = { workspace = true }
 dirs = { workspace = true }
 anyhow = { workspace = true }
-jmt = { workspace = true, path = "../jmt", features = ["mocks"] }
+jmt = { workspace = true }
 sha2 = { workspace = true }
 auto_impl = { workspace = true }
 prism-common = { workspace = true }
 prism-errors = { workspace = true }
 prism-groth16 = { workspace = true }
 
-[patch.crates-io]
-sha2-v0-9-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.9.8" }
-sha2-v0-10-6 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.6" }
-sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.8" }
-
 [dev-dependencies]
 serial_test = "3.1.1"
 criterion = "0.5.1"
-
-# [[bench]]
-# name = "zk_benchmarks"
-# harness = false

@@ -7,53 +7,22 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-axum = { workspace = true }
 borsh = { workspace = true }
-tower-http = { workspace = true }
-utoipa = { workspace = true }
-utoipa-swagger-ui = { workspace = true }
-async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-redis = { workspace = true }
 ed25519-dalek = { workspace = true }
 ed25519 = { workspace = true }
-base64 = { workspace = true }
-tokio = { workspace = true }
 bellman = { workspace = true }
 bls12_381 = { workspace = true }
 rand = { workspace = true }
 hex = { workspace = true }
 ff = { workspace = true }
 log = { workspace = true }
-pretty_env_logger = { workspace = true }
-clap = { workspace = true }
-config = { workspace = true }
 thiserror = { workspace = true }
 indexed-merkle-tree = { workspace = true }
-dotenvy = { workspace = true }
-celestia-rpc = { workspace = true }
 celestia-types = { workspace = true }
-mockall = { workspace = true }
-keystore-rs = { workspace = true }
-toml = { workspace = true }
-dirs = { workspace = true }
 anyhow = { workspace = true }
-jmt = { workspace = true, path = "../jmt", features = ["mocks"] }
+jmt = { workspace = true }
 sha2 = { workspace = true }
-auto_impl = { workspace = true }
 prism-common = { workspace = true }
 prism-errors = { workspace = true }
-
-[patch.crates-io]
-sha2-v0-9-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.9.8" }
-sha2-v0-10-6 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.6" }
-sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.8" }
-
-[dev-dependencies]
-serial_test = "3.1.1"
-criterion = "0.5.1"
-
-# [[bench]]
-# name = "zk_benchmarks"
-# harness = false

@@ -3133,43 +3133,10 @@ name = "prism-errors"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "auto_impl",
- "axum",
- "base64 0.22.1",
- "bellman",
- "bls12_381",
- "borsh",
- "celestia-rpc",
- "celestia-types",
- "clap",
- "config",
- "criterion",
- "dirs 5.0.1",
- "dotenvy",
  "ed25519",
  "ed25519-dalek",
- "ff",
- "hex",
- "indexed-merkle-tree",
- "jmt",
- "keystore-rs",
- "log",
- "mockall",
- "pretty_env_logger",
- "prism-common",
- "rand",
- "redis",
- "serde",
- "serde_json",
- "serial_test",
  "sha2 0.10.8",
  "thiserror",
- "tokio",
- "toml",
- "tower-http",
- "utoipa",
- "utoipa-swagger-ui",
 ]
 
 [[package]]
@@ -3177,44 +3144,24 @@ name = "prism-groth16"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "auto_impl",
- "axum",
- "base64 0.22.1",
  "bellman",
  "bls12_381",
  "borsh",
- "celestia-rpc",
  "celestia-types",
- "clap",
- "config",
- "criterion",
- "dirs 5.0.1",
- "dotenvy",
  "ed25519",
  "ed25519-dalek",
  "ff",
  "hex",
  "indexed-merkle-tree",
  "jmt",
- "keystore-rs",
  "log",
- "mockall",
- "pretty_env_logger",
  "prism-common",
  "prism-errors",
  "rand",
- "redis",
  "serde",
  "serde_json",
- "serial_test",
  "sha2 0.10.8",
  "thiserror",
- "tokio",
- "toml",
- "tower-http",
- "utoipa",
- "utoipa-swagger-ui",
 ]
 
 [[package]]
@@ -5253,13 +5200,3 @@ dependencies = [
  "crossbeam-utils",
  "flate2",
 ]
-
-[[patch.unused]]
-name = "sha2"
-version = "0.10.6"
-source = "git+https://github.com/sp1-patches/RustCrypto-hashes?branch=patch-sha2-v0.10.6#e5f8b7eaaa9801503bd998932a52b65848eee234"
-
-[[patch.unused]]
-name = "sha2"
-version = "0.9.8"
-source = "git+https://github.com/sp1-patches/RustCrypto-hashes?branch=patch-sha2-v0.9.8#afdbfb09c325f8a69c01d540ec9a261e3637725d"

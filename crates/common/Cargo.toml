@@ -16,9 +16,3 @@ hex.workspace = true
 sha2.workspace = true
 blake2.workspace = true
 celestia-types.workspace = true
-
-[patch.crates-io]
-sha2-v0-9-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.9.8" }
-blake2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "blake2", branch = "master" }
-sha2-v0-10-6 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.6" }
-sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.8" }
