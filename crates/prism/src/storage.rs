@@ -162,23 +162,6 @@ impl TreeWriter for RedisConnection {
     }
 }
 
-impl RedisConnection {
-    pub fn put_leaf(&self, node_key: NodeKey, leaf: LeafNode, value: Vec<u8>) -> Result<()> {
-        let mut con = self.lock_connection()?;
-        let serialized_key = hex::encode(borsh::to_vec(&node_key)?);
-        let node_data = borsh::to_vec(&Node::Leaf(leaf.clone()))?;
-
-        con.set_nx::<String, Vec<u8>, ()>(format!("node:{}", serialized_key), node_data)?;
-
-        // ensure!(result == Some(true), "Key {:?} already exists", node_key);
-
-        let value_key = format!("value_history:{}", hex::encode(leaf.key_hash().0));
-        con.zadd(value_key, hex::encode(&value), node_key.version() as f64)?;
-
-        Ok(())
-    }
-}
-
 impl Database for RedisConnection {
     fn get_hashchain(&self, key: &str) -> Result<Hashchain> {
         let mut con = self.lock_connection()?;
