@@ -11,7 +11,7 @@
 
 ## What is Prism?
 
-Prism is a decentralized key transparency protocol, strongly inspired by the paper [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf), leveraging zkSNARKs to enable trust-minimized verification of E2EE services via WASM light clients. This eliminates the possibility for hidden backdoors in E2EE services through a user-verifiable key management system. It uses transparency dictionaries under the hood, offering a generalized solution for managing a label-value map in environments where the service maintaining the map is not completely trusted.
+Prism is a decentralized key transparency protocol, first inspired by the paper [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf), leveraging zkSNARKs to enable trust-minimized verification of E2EE services via WASM light clients. This eliminates the possibility for hidden backdoors in E2EE services through a user-verifiable key management system. It uses transparency dictionaries under the hood, offering a generalized solution for managing a label-value map in environments where the service maintaining the map is not completely trusted.
 
 Prism provides the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over a data availbility layer. The system is designed to be efficient, scalable and secure, making it suitable for a wide range of applications.
 
@@ -22,6 +22,9 @@ You can view further information about the project in our [documentation](https:
 The project is still in the early development phase, has not been audited, and is not yet suitable for use in production environments.
 
 Due to this ongoing development work, changes are still being made that may affect existing functionalities.
+
+## Circuits
+We are currently experimenting with various proof systems and have handwritten groth16 and supernova circuits to handle the epoch proofs. We are also experimenting with SP1 as an alternative, which you can find in the `prism-sp1` crate.
 
 ## Installation
 
