@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item expanded "><a href="state.html">Development Status</a></li><li class="chapter-item expanded "><a href="architecture.html">Architecture</a></li><li class="chapter-item expanded "><a href="labels.html">Account Sources</a></li><li class="chapter-item expanded "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item expanded "><a href="insert-update-proofs.html">Insert and Updates</a></li><li class="chapter-item expanded "><a href="crypto-intro/intro.html">Introduction to Cryptography</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item expanded "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li></ol></li><li class="chapter-item expanded "><a href="merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item expanded "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item expanded "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item expanded "><a href="resources.html">Resources</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="papers.html">Paper</a></li><li class="chapter-item expanded "><a href="books.html">Books</a></li><li class="chapter-item expanded "><a href="other-resources.html">Other Resources</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li></ol></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="insert-update-proofs.html">Insert and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -215,7 +215,7 @@ Prism's verifiable encryption standard opens up possibilities for secure communi
 <h1 id="quickstart"><a class="header" href="#quickstart">Quickstart</a></h1>
 <p>This guide will introduce you to the ideas behind <em>Prism</em>. We will go through the necessary cryptography and provide further links in many places to deepen the knowledge and not to completely interrupt the reading flow on the topic.</p>
 <blockquote>
-<p><strong>Note</strong>: If you have no or only little previous knowledge, you can get a short overview with partly simplified explanations <a href="/explainers/crypto-intro/intro.html">here</a>.</p>
+<p><strong>Note</strong>: If you have no or only little previous knowledge, you can get a short overview with partly simplified explanations <a href="./crypto-intro/intro.html">here</a>.</p>
 </blockquote>
 <h2 id="what-is-a-key-directory"><a class="header" href="#what-is-a-key-directory">What is a Key Directory?</a></h2>
 <p>A key directory serves as a repository or service that stores and distributes user's public keys. It store's public keys associated with users' identities, and allows users to fetch the public keys and corresponding merkle proofs to ensure they can securely send encrypted messages.</p>
@@ -275,6 +275,69 @@ Prism's verifiable encryption standard opens up possibilities for secure communi
 <li>Working towards full integration with Lumina's WASM nodes for blob submission and retrieval</li>
 </ul>
 <p><strong>Next steps:</strong> Integrate Lumina's WASM nodes and develop an SDK for seamless mobile framework integration</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="introduction-to-cryptography"><a class="header" href="#introduction-to-cryptography">Introduction to Cryptography</a></h1>
+<p>This section deals with basic concepts of cryptography and explains them from a high level. This has no profound explanations, but tries to provide a superficial, simplified basis to give the reader a general idea for the advanced concepts of Prism. Feel free to skip this introduction, as it covers general cryptographic basics of Prism and is intended to serve as a quick reference.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="symmetric-encryption"><a class="header" href="#symmetric-encryption">Symmetric encryption</a></h1>
+<p>Symmetric encryption is a method of encrypting data where the same key is used for both encryption and decryption processes. This means that both the sender and the receiver need to own / know the same secret key to securely communicate with each other.</p>
+<p>The process works as follows:</p>
+<ol>
+<li>The sender uses the secret key to encrypt the plaintext (original message) into ciphertext (encrypted message).</li>
+<li>The ciphertext is then sent to the receiver over a communication channel (eventually untrusted / public).</li>
+<li>The receiver, who knows the same secret key, uses it to decrypt the ciphertext back into the plaintext.</li>
+</ol>
+<p>Some popular symmetric encryption algorithms include Advanced Encryption Standard (AES) and Data Encryption Standard (DES). These algorithms are efficient and suitable for encrypting large amounts of data (which isn't the case for asymmetric encryption).</p>
+<p>However, there are some drawbacks to symmetric encryption. The most significant challenge is securely distributing the secret key to all involved parties. If the secret key is intercepted by an unauthorized party, the security of the encrypted data is compromised. To overcome this issue, asymmetric encryption (public-key encryption) can be used in conjunction with symmetric encryption (which is called hybrid encryption and is used in some of our examples) to securely exchange secret keys.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="asymmetric-encryption"><a class="header" href="#asymmetric-encryption">Asymmetric encryption</a></h1>
+<p>Asymmetric encryption, also known as public-key encryption, is a method of encrypting data that uses two different keys for the encryption and decryption process. These keys are known as the public key and the private key. The public key is shared openly and can be used by anyone to encrypt data, while the private key is kept secret and is used to decrypt the data.</p>
+<p>In a typical scenario, when someone wants to send a secure message to another person, they would use the recipient's public key to encrypt the message. Once the message is encrypted, it can only be decrypted by someone who has the corresponding private key, which should be the intended recipient.</p>
+<p>This encryption method provides several advantages over symmetric encryption, such as enhanced security due to the separation of encryption and decryption keys, and easier key distribution since only the public key needs to be shared. However, asymmetric encryption is generally slower than symmetric encryption due to the complexity of the algorithms involved.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="hybrid-encryption"><a class="header" href="#hybrid-encryption">Hybrid encryption</a></h1>
+<p>Hybrid encryption attempts to balance the "weaknesses" of the individual encryption methods (symmetric and asymmetric) and benefit from both advantages.</p>
+<p>As previously stated, there are two main advantages and disadvantages there: while symmetric encryption works faster and more efficiently, asymmetric encryption is considered more secure in certain use cases, as the key exchange between two participants of symmetric encryption can be considered problematic.</p>
+<p>Hybrid encryption tries to benefit from the advantages of both worlds by encrypting files or secret messages symmetrically. We now encrypt the key we used to encrypt the data with the public key of the second party to whom we want to send the encrypted data. We then send both the encrypted secret message and the encrypted key to decrypt that message. Thanks to the public-key encryption, the communication partner is now able to use its private key to decrypt the symmetric key and thus efficiently decrypt the secret message. In this way, we can provide the security of asymmetric encryption and not have to worry too much about the inefficiency of the process, since no potentially large secret documents need to be encrypted, only a key of usually fixed size.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="hash-functions"><a class="header" href="#hash-functions">Hash functions</a></h1>
+<p>A hash function can be conceptualized as a black box with an input and an output. This black box transforms an input, of arbitrary length, into a fixed-size string. One of the most widely recognized hash functions is the SHA256 hash function, which maps an input to a 256-bit string output. Hash functions must satisfy certain critical requirements:</p>
+<ul>
+<li>Hash functions should be <strong>collision resistant</strong>. That is, for each input there should be a unique output. This is theoretically impossible, as there are infinitely many potential inputs and, regardless of the number of bits used in the output, it is impossible to represent an infinite number of inputs. However, it is possible to ensure that it is computationally infeasible to create collisions in practice. For instance, if we hash the strings "Andrea" and "Andreas," the resulting outputs are as follows:<br />
+     <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="mopen">(</span><span class="mord mathnormal">A</span><span class="mord mathnormal">n</span><span class="mord mathnormal">d</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord">253387</span><span class="mord mathnormal">e</span><span class="mord">...</span><span class="mord mathnormal">ba</span><span class="mord">0</span><span class="mord mathnormal">d</span><span class="mord mathnormal">c</span><span class="mord">32</span></span></span></span><br />
+     <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="mopen">(</span><span class="mord mathnormal">A</span><span class="mord mathnormal">n</span><span class="mord mathnormal">d</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mord mathnormal">s</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">9</span><span class="mord mathnormal">ee</span><span class="mord mathnormal">a</span><span class="mord">624...27051</span><span class="mord mathnormal">c</span><span class="mord">8</span></span></span></span><br />
+Changing even one letter in the input results in an unpredictable change in the entire hash value.</li>
+<li>Hash functions are <strong>one-way functions</strong>. That is, the calculation works in only one direction. If we want to calculate the hash of "Andrea," we can compute <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="mopen">(</span><span class="mord mathnormal">A</span><span class="mord mathnormal">n</span><span class="mord mathnormal">d</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mclose">)</span></span></span></span> and obtain the result <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord">253387</span><span class="mord mathnormal">e</span><span class="mord">...</span><span class="mord mathnormal">ba</span><span class="mord">0</span><span class="mord mathnormal">d</span><span class="mord mathnormal">c</span><span class="mord">32</span></span></span></span>. However, we cannot perform the reverse calculation, so we cannot determine the input that resulted in the output value 253387e...ba0dc32. So its impossible to calculate:
+  <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0641em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">253387</span><span class="mord mathnormal">e</span><span class="mord">...</span><span class="mord mathnormal">ba</span><span class="mord">0</span><span class="mord mathnormal">d</span><span class="mord mathnormal">c</span><span class="mord">32</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">A</span><span class="mord mathnormal">n</span><span class="mord mathnormal">d</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span></span></span></span>.</li>
+<li>Hash functions are <strong>deterministic</strong>. That is, for a given input, the same hash value is produced consistently across all calculations. Therefore, the output hash value remains constant for the same input.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="merkle-trees"><a class="header" href="#merkle-trees">Merkle Trees</a></h1>
+<p>Now that we know the basic ideas of various forms of encryption as well as hash functions, we have already understood the essentials of Merkle trees. Merkle trees are frequently used in modern cryptography and often form the basis of data structures used in the areas of cryptocurrencies, blockchain and key transparency.</p>
+<p>Merkle trees take advantage of the properties of hash functions discussed above and can perform many functions in this way. There are many different variants of Merkle trees, in this case we first look at simple Merkle trees built on a binary search tree.</p>
+<p>The leaves of the tree store data that has been hashed using a hash function. Subsequently, the resulting hash values of each of two leaf nodes are also hashed again and the resulting hash forms the parent node of these two leaf nodes. The process of producing parent nodes by taking hash values from two child nodes is performed recursively until we have only one hash value, often referred to as a Merkle root or root hash.</p>
+<p>Since for the same input in hash functions always the same output comes out, therefore the hash value of the parent node depends directly on the hash values of the children. So, accordingly, the root depends on all the hash values in the tree and thus all the data (hashed as leaves) in the Merkle tree. Moreover, we know that in practice it should not be possible for two different inputs to produce the same output. In this way, the integrity of the data can be checked: we can thus quickly determine whether data within a tree has changed based only on the root, since we can be sure that the original root could only have come about through the input of that very data.</p>
+<p>But why the tree? One can come up with the idea of simply putting all the data strung together into a hash function and even then the ouput would be unique to the input. The biggest advantage lies in the fact that in this way an efficient verifiability of individual contained data is made possible. No matter how many leaves there are in the tree, all that is needed to prove a single data point is the hash value of the data point itself, plus any sibling nodes on the way to the root. The depth of the tree is always logarithmic to the number of data in the binary Merkle tree, which can be considered efficient. Here is a pictorial illustration.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="cryptographic-commitments"><a class="header" href="#cryptographic-commitments">Cryptographic commitments</a></h1>
+<p>maybe for the crypto intro</p>
+<p>We again imagine a scenario for cryptographic commtiments in which Alice and Bob interact with each other. Alice has a secret that she does not want to tell Bob. She hashes her secret and puts this secret in a safe, giving the key for the safe to Bob. This means that Alice cannot change the secret in the safe afterwards, so she is bound to it (<strong>= a cryptographic commitment scheme is binding</strong>). Bob can open the safe at a later time and see the secret, but as we have seen above, Bob cannot determine anything else from the hashed secret (<strong>= a cryptographic commitment scheme is hiding</strong>). These are the required properties of a cryptographic commitment: they should bind to a value, i.e., they should not be modifiable afterwards, and they should say nothing about the value to which one has committed.</p>
+<blockquote>
+<p>Informally speaking, a cryptographic commitment scheme enables a sender to commit itself to a value by sending a short commitment and then later reveal the value such that the commitment scheme is binding (i.e., the sender cannot reveal a value different from what it originally committed), and hiding (i.e., a commitment does not reveal anything about the committed value).</p>
+</blockquote>
+<p><img src="crypto-intro/../img/merkle-tree.jpeg" alt="Merkle Tree" /></p>
+<p>If we now consider how the root of a Merkle tree behaves from these points of view, we take another step forward. We have seen that in the tree above the hashes of the names Greta, Theo, Jana, and Torben were stored in the leaves and then hashed together in pairs upwards until only one hash remains, which then represents the root of the Merkle tree. If we replace the value of the leaf "Torben" (SHA256 value: <em>d38f...d39</em>) with the value "Johnanna" (SHA256 value: <em>4c7...7f1</em>), obviously not only the value of the leaf changes, but also all other values on the way from the leaf to the root and the root itself.</p>
+<p><img src="crypto-intro/../img/merkle-johanna-tree.jpeg" alt="Merkle Johanna Tree" /></p>
+<p>This means that we are <strong>bound</strong> by the root to the values of the individual leaves and if we only have the root, we have no idea which actual values or leaves are present in the Merkle tree, so they are <strong>hidden</strong> (binding and hiding). Long story short: the root of a Merkle tree is excellent for a cryptographic commitment.
+So now that we understand cryptographic commitments, we can look at what the proofs of membership or non-membership look like in Merkle trees.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="proof-of-membership"><a class="header" href="#proof-of-membership">Proof-of-Membership</a></h1>
+<p>We already know that the roots of the Merkle tree are in some sense a recursive computation of the hashes of the leaves. So we don't need exact knowledge about the leaves, only about their hashes. More precisely, for a membership proof (which is possible in any kind of Merkle tree, as already mentioned) we need the hashes of the sibling nodes on the way to the root.</p>
+<p><img src="crypto-intro/../img/proof-of-membership.jpeg" alt="Proof of Membership" /></p>
+<p>Here we want to prove that the value "Theo" is contained in the tree. Since we know the value and we know that the hashes are created using the SHA256 hash function, we can calculate the hash value of Theo on our own. We said that we need the non-computable sibling nodes on the way to the root, and we have no way to come up with the value "Greta" because we don't know the other leave values, just the hashes. In our proof, we need to provide the hash of the value "Greta" for a proof that the root is correct. Since we now have the hash values of "Greta" and "Theo", we can calculate the parent node of the two. Uncomputable on the other hand is now again the sibling node of the parent node of "Greta" and "Theo", which we must bring again in the proof. This node is at the same time for the tree with four leaves the last necessary node to show the correctness of the root, because we can now calculate the root with the calculated parent node of "Greta" and "Theo" as well as its sibling node. What may not look very powerful in this small example is very powerful for larger trees, because mathematically speaking we only need <em>log n</em> nodes instead of the number of nodes (n) to prove the correctness of the root of the Merkle tree.</p>
+<p><img src="crypto-intro/../img/logn-calc.jpeg" alt="Log n Calculation" /></p>
+<p>We see that in our example we actually need two leaves to prove the correctness of the root. Even if the number of leaves increases rapidly, with each further doubling only one more hash value is needed to prove the correctness of the root. This is an important and great property of Merkle trees and we can formally state:
+<em><strong>The time complexity of proof-of-membership in Merkle trees is O(log n)</strong></em>.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
 <p>We operate as a based rollup on Celestia. The SNARKs are posted to one namespace, and the operations are posted to a secondary namespace, enabling full nodes. This architecture is designed to be trust-minimized and censorship-resistant.</p>
@@ -354,19 +417,21 @@ Prism's verifiable encryption standard opens up possibilities for secure communi
 <p>The combination of append-only hashchains and Jellyfish Merkle Trees, along with the decentralized account creation process, enables Prism to maintain a transparent and verifiable record of public keys associated with user IDs from various sources.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="adherance-to-application-specific-guidelines"><a class="header" href="#adherance-to-application-specific-guidelines">Adherance to application-specific guidelines</a></h1>
-<blockquote>
-<p><strong>Note</strong>
-This documentation is outdated - it uses Indexed Merkle Trees, while we have moved on to using Jellyfish Merkle Trees. The principles are the same, but the implementation details are different. An updated documentation is coming soon.</p>
-</blockquote>
 <p>We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Since in <em>Prism</em> only insert or update operations are allowed (i.e. one can only add new email addresses or add or revoke public keys to an existing email address), the monotonic growth of the labels should be achieved if the behavior is correct.</p>
+<h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
+<p>JMT incorporates versioning, which is crucial for its operations. Each update to the tree creates a new version, allowing for efficient historical queries and updates. The version is part of the node key structure:</p>
+<pre><code class="language-bash">version || nibble path
+</code></pre>
+<p>This versioning system ensures that updates can be made efficiently without affecting previous versions of the tree.</p>
 <h2 id="proof-of-update"><a class="header" href="#proof-of-update">Proof-of-Update</a></h2>
 <p>Let's start with the proof that an update operation was executed correctly, i.e. a proof-of-update. Informally speaking, an update means that the operation list (hashchain) for an already existing identifier has been updated by one operation. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier. In any case, this means that another entry has been added to the hashchain in which the operations are stored.</p>
 <blockquote>
 <p><strong>Note</strong>
 Obviously, this means that the last hash of the hashchain, which is crucial for the label-value pair in the Merkle tree, also has a new value.</p>
 </blockquote>
-<p>The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). Because the index remains the same, the sorting we looked at in connection with the non-membership proof also remains the same. For this reason, the proof of an update operation is less complex. We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
+<p>The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). When a leaf is updated, its value changes, but its position in the tree (determined by its key, e.g. the hashed email address) remains the same. This is because the key determines the position of the leaf. We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
 To proof the update, it is sufficient if we consider the old root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf, so to say. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.</p>
+<p>In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.</p>
 <h2 id="proof-of-insert"><a class="header" href="#proof-of-insert">Proof-of-Insert</a></h2>
 <p>The insert operation comprises several steps, which we will consider individually in the following. First, again informally: what does it mean to perform an insert operation? Insert means that we add a completely new identifier - so we add a "new" email address to our dictionary. Accordingly, when we add a value to the dictionary, the structure that supports us in any reasoning changes as well, namely our indexed Merkle tree that manages the derived dictionary.</p>
 <h3 id="find-an-inactive-leaf"><a class="header" href="#find-an-inactive-leaf">Find an inactive leaf</a></h3>
@@ -391,79 +456,102 @@ As we noted earlier, the label of the new leaf was between the label and the nex
 <p><img src="./img/update-empty-leaf.jpeg" alt="Update Empty Leaf" /></p>
 <p>Thus, we note that a proof-of-insert in its constituent parts consists of a proof-of-non-membership and two successive proof-of-updates. The proof-of-non-membership is particularly important because we want to ensure that no identifier occurs more than once. This is relevant for various reasons, but not least for security reasons. This way, users of the service can be sure that they have the only correct and valid list of public keys for the owner of the identifier they want to interact with.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="introduction-to-cryptography"><a class="header" href="#introduction-to-cryptography">Introduction to Cryptography</a></h1>
-<p>This section deals with basic concepts of cryptography and explains them from a high level. This has no profound explanations, but tries to provide a superficial, simplified basis to give the reader a general idea for the advanced concepts of Prism.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="symmetric-encryption"><a class="header" href="#symmetric-encryption">Symmetric encryption</a></h1>
-<p>Symmetric encryption is a method of encrypting data where the same key is used for both encryption and decryption processes. This means that both the sender and the receiver need to own / know the same secret key to securely communicate with each other.</p>
-<p>The process works as follows:</p>
+<h1 id="jellyfish-merkle-proofs"><a class="header" href="#jellyfish-merkle-proofs">Jellyfish Merkle Proofs</a></h1>
+<p>Jellyfish Merkle Trees (JMT) are designed to support efficient membership and non-membership proofs, similar to Indexed Merkle Trees from Verdict. However, the proof format and verification process are optimized for better performance and smaller proof sizes.</p>
+<h2 id="cryptographic-commitments-1"><a class="header" href="#cryptographic-commitments-1">Cryptographic Commitments</a></h2>
+<p>The concept of cryptographic commitments of course also applies to JMTs. The root of a Jellyfish Merkle tree is a cryptographic commitment because it is both binding and hidden.</p>
+<h2 id="proof-format"><a class="header" href="#proof-format">Proof Format</a></h2>
+<p>JMT uses a simplified proof format that can represent both inclusion and exclusion proofs. The proof structure is as follows:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct Leaf {
+    HashValue address;
+    HashValue value_hash;
+};
+
+struct Proof {
+    Leaf leaf;
+    Vec&lt;HashValue&gt; siblings;
+};
+<span class="boring">}</span></code></pre></pre>
+<p>This format allows for three types of proofs:</p>
 <ol>
-<li>The sender uses the secret key to encrypt the plaintext (original message) into ciphertext (encrypted message).</li>
-<li>The ciphertext is then sent to the receiver over a communication channel (eventually untrusted / public).</li>
-<li>The receiver, who knows the same secret key, uses it to decrypt the ciphertext back into the plaintext.</li>
+<li>Proof of Inclusion</li>
+<li>Proof of Exclusion (with another leaf)</li>
+<li>Proof of Exclusion (with an empty node)</li>
 </ol>
-<p>Some popular symmetric encryption algorithms include Advanced Encryption Standard (AES) and Data Encryption Standard (DES). These algorithms are efficient and suitable for encrypting large amounts of data (which isn't the case for asymmetric encryption).</p>
-<p>However, there are some drawbacks to symmetric encryption. The most significant challenge is securely distributing the secret key to all involved parties. If the secret key is intercepted by an unauthorized party, the security of the encrypted data is compromised. To overcome this issue, asymmetric encryption (public-key encryption) can be used in conjunction with symmetric encryption (which is called hybrid encryption and is used in some of our examples) to securely exchange secret keys.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="asymmetric-encryption"><a class="header" href="#asymmetric-encryption">Asymmetric encryption</a></h1>
-<p>Asymmetric encryption, also known as public-key encryption, is a method of encrypting data that uses two different keys for the encryption and decryption process. These keys are known as the public key and the private key. The public key is shared openly and can be used by anyone to encrypt data, while the private key is kept secret and is used to decrypt the data.</p>
-<p>In a typical scenario, when someone wants to send a secure message to another person, they would use the recipient's public key to encrypt the message. Once the message is encrypted, it can only be decrypted by someone who has the corresponding private key, which should be the intended recipient.</p>
-<p>This encryption method provides several advantages over symmetric encryption, such as enhanced security due to the separation of encryption and decryption keys, and easier key distribution since only the public key needs to be shared. However, asymmetric encryption is generally slower than symmetric encryption due to the complexity of the algorithms involved.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="hybrid-encryption"><a class="header" href="#hybrid-encryption">Hybrid encryption</a></h1>
-<p>Hybrid encryption attempts to balance the "weaknesses" of the individual encryption methods (symmetric and asymmetric) and benefit from both advantages.</p>
-<p>As previously stated, there are two main advantages and disadvantages there: while symmetric encryption works faster and more efficiently, asymmetric encryption is considered more secure in certain use cases, as the key exchange between two participants of symmetric encryption can be considered problematic.</p>
-<p>Hybrid encryption tries to benefit from the advantages of both worlds by encrypting files or secret messages symmetrically. We now encrypt the key we used to encrypt the data with the public key of the second party to whom we want to send the encrypted data. We then send both the encrypted secret message and the encrypted key to decrypt that message. Thanks to the public-key encryption, the communication partner is now able to use its private key to decrypt the symmetric key and thus efficiently decrypt the secret message. In this way, we can provide the security of asymmetric encryption and not have to worry too much about the inefficiency of the process, since no potentially large secret documents need to be encrypted, only a key of usually fixed size.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="hash-functions"><a class="header" href="#hash-functions">Hash functions</a></h1>
-<p>A hash function can be conceptualized as a black box with an input and an output. This black box transforms an input, of arbitrary length, into a fixed-size string. One of the most widely recognized hash functions is the SHA256 hash function, which maps an input to a 256-bit string output. Hash functions must satisfy certain critical requirements:</p>
+<h2 id="proof-of-inclusion"><a class="header" href="#proof-of-inclusion">Proof of Inclusion</a></h2>
+<p>A proof of inclusion in JMT is similar to traditional Merkle proofs but takes advantage of the tree's structure to reduce the proof size. When proving the existence of a node, the proof includes:</p>
+<ol>
+<li>The leaf node containing the key and value hash</li>
+<li>A list of sibling hashes along the path from the leaf to the root</li>
+</ol>
+<p>The verification process involves:</p>
+<ol>
+<li>Verifying that the provided leaf matches the queried key</li>
+<li>Reconstructing the path from the leaf to the root using the provided siblings</li>
+<li>Comparing the calculated root hash with the known root hash</li>
+</ol>
+<h2 id="proof-of-exclusion"><a class="header" href="#proof-of-exclusion">Proof of Exclusion</a></h2>
+<p>JMT supports two types of exclusion proofs:</p>
+<ol>
+<li>
+<p>Exclusion proof with another leaf:</p>
 <ul>
-<li>Hash functions should be <strong>collision resistant</strong>. That is, for each input there should be a unique output. This is theoretically impossible, as there are infinitely many potential inputs and, regardless of the number of bits used in the output, it is impossible to represent an infinite number of inputs. However, it is possible to ensure that it is computationally infeasible to create collisions in practice. For instance, if we hash the strings "Andrea" and "Andreas," the resulting outputs are as follows:<br />
-     <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="mopen">(</span><span class="mord mathnormal">A</span><span class="mord mathnormal">n</span><span class="mord mathnormal">d</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord">253387</span><span class="mord mathnormal">e</span><span class="mord">...</span><span class="mord mathnormal">ba</span><span class="mord">0</span><span class="mord mathnormal">d</span><span class="mord mathnormal">c</span><span class="mord">32</span></span></span></span><br />
-     <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="mopen">(</span><span class="mord mathnormal">A</span><span class="mord mathnormal">n</span><span class="mord mathnormal">d</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mord mathnormal">s</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">9</span><span class="mord mathnormal">ee</span><span class="mord mathnormal">a</span><span class="mord">624...27051</span><span class="mord mathnormal">c</span><span class="mord">8</span></span></span></span><br />
-Changing even one letter in the input results in an unpredictable change in the entire hash value.</li>
-<li>Hash functions are <strong>one-way functions</strong>. That is, the calculation works in only one direction. If we want to calculate the hash of "Andrea," we can compute <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="mopen">(</span><span class="mord mathnormal">A</span><span class="mord mathnormal">n</span><span class="mord mathnormal">d</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mclose">)</span></span></span></span> and obtain the result <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord">253387</span><span class="mord mathnormal">e</span><span class="mord">...</span><span class="mord mathnormal">ba</span><span class="mord">0</span><span class="mord mathnormal">d</span><span class="mord mathnormal">c</span><span class="mord">32</span></span></span></span>. However, we cannot perform the reverse calculation, so we cannot determine the input that resulted in the output value 253387e...ba0dc32. So its impossible to calculate:
-  <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0641em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.08125em;">H</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">253387</span><span class="mord mathnormal">e</span><span class="mord">...</span><span class="mord mathnormal">ba</span><span class="mord">0</span><span class="mord mathnormal">d</span><span class="mord mathnormal">c</span><span class="mord">32</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">A</span><span class="mord mathnormal">n</span><span class="mord mathnormal">d</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span></span></span></span>.</li>
-<li>Hash functions are <strong>deterministic</strong>. That is, for a given input, the same hash value is produced consistently across all calculations. Therefore, the output hash value remains constant for the same input.</li>
+<li>Proves that a different leaf exists with a key that shares a common prefix with the queried key</li>
+<li>The proof includes the existing leaf and the necessary sibling hashes</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="merkle-trees"><a class="header" href="#merkle-trees">Merkle Trees</a></h1>
-<p>Now that we know the basic ideas of various forms of encryption as well as hash functions, we have already understood the essentials of Merkle trees. Merkle trees are frequently used in modern cryptography and often form the basis of data structures used in the areas of cryptocurrencies, blockchain and key transparency.</p>
-<p>Merkle trees take advantage of the properties of hash functions discussed above and can perform many functions in this way. There are many different variants of Merkle trees, in this case we first look at simple Merkle trees built on a binary search tree.</p>
-<p>The leaves of the tree store data that has been hashed using a hash function. Subsequently, the resulting hash values of each of two leaf nodes are also hashed again and the resulting hash forms the parent node of these two leaf nodes. The process of producing parent nodes by taking hash values from two child nodes is performed recursively until we have only one hash value, often referred to as a Merkle root or root hash.</p>
-<p>Since for the same input in hash functions always the same output comes out, therefore the hash value of the parent node depends directly on the hash values of the children. So, accordingly, the root depends on all the hash values in the tree and thus all the data (hashed as leaves) in the Merkle tree. Moreover, we know that in practice it should not be possible for two different inputs to produce the same output. In this way, the integrity of the data can be checked: we can thus quickly determine whether data within a tree has changed based only on the root, since we can be sure that the original root could only have come about through the input of that very data.</p>
-<p>But why the tree? One can come up with the idea of simply putting all the data strung together into a hash function and even then the ouput would be unique to the input. The biggest advantage lies in the fact that in this way an efficient verifiability of individual contained data is made possible. No matter how many leaves there are in the tree, all that is needed to prove a single data point is the hash value of the data point itself, plus any sibling nodes on the way to the root. The depth of the tree is always logarithmic to the number of data in the binary Merkle tree, which can be considered efficient. Here is a pictorial illustration.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="merkle-proofs"><a class="header" href="#merkle-proofs">Merkle Proofs</a></h1>
-<p>A distinguishing aspect of indexed Merkle trees is that they support both efficient membership proofs and non-membership proofs.</p>
-<p>We've illustrated how the individual leaves work, but we haven't yet discussed why this construction is chosen in the first place. Prism uses an IMT specifically to create membership and non-membership proofs efficiently.</p>
-<p>Such proofs are not unique to <em>indexed</em> Merkle trees. Membership proofs can also be generated with simpler Merkle trees. A sparse merkle tree, for example, has similar properties but is not used because of the increased height, which is less efficient to SNARK over.</p>
-<p>We need the next-pointer construction (which points to labels that act as sortable indexes) to be able to address leaves directly and to create proofs that certain leaves do not exist in the tree. What sounds a bit complicated now will become clearer in a moment, again with the help of an example.</p>
-<h2 id="cryptographic-commitments"><a class="header" href="#cryptographic-commitments">Cryptographic commitments</a></h2>
-<p>We again imagine a scenario for cryptographic commtiments in which Alice and Bob interact with each other. Alice has a secret that she does not want to tell Bob. She hashes her secret and puts this secret in a safe, giving the key for the safe to Bob. This means that Alice cannot change the secret in the safe afterwards, so she is bound to it (<strong>= a cryptographic commitment scheme is binding</strong>). Bob can open the safe at a later time and see the secret, but as we have seen above, Bob cannot determine anything else from the hashed secret (<strong>= a cryptographic commitment scheme is hiding</strong>). These are the required properties of a cryptographic commitment: they should bind to a value, i.e., they should not be modifiable afterwards, and they should say nothing about the value to which one has committed.</p>
-<blockquote>
-<p>Informally speaking, a cryptographic commitment scheme enables a sender to commit itself to a value by sending a short commitment and then later reveal the value such that the commitment scheme is binding (i.e., the sender cannot reveal a value different from what it originally committed), and hiding (i.e., a commitment does not reveal anything about the committed value).</p>
-</blockquote>
-<p><img src="./img/merkle-tree.jpeg" alt="Merkle Tree" /></p>
-<p>If we now consider how the root of a Merkle tree behaves from these points of view, we take another step forward. We have seen that in the tree above the hashes of the names Greta, Theo, Jana, and Torben were stored in the leaves and then hashed together in pairs upwards until only one hash remains, which then represents the root of the Merkle tree. If we replace the value of the leaf "Torben" (SHA256 value: <em>d38f...d39</em>) with the value "Johnanna" (SHA256 value: <em>4c7...7f1</em>), obviously not only the value of the leaf changes, but also all other values on the way from the leaf to the root and the root itself.</p>
-<p><img src="./img/merkle-johanna-tree.jpeg" alt="Merkle Johanna Tree" /></p>
-<p>This means that we are <strong>bound</strong> by the root to the values of the individual leaves and if we only have the root, we have no idea which actual values or leaves are present in the Merkle tree, so they are <strong>hidden</strong> (binding and hiding). Long story short: the root of a Merkle tree is excellent for a cryptographic commitment.
-So now that we understand cryptographic commitments, we can look at what the proofs of membership or non-membership look like in Merkle trees.</p>
-<h2 id="proof-of-membership"><a class="header" href="#proof-of-membership">Proof-of-Membership</a></h2>
-<p>We already know that the roots of the Merkle tree are in some sense a recursive computation of the hashes of the leaves. So we don't need exact knowledge about the leaves, only about their hashes. More precisely, for a membership proof (which is possible in any kind of Merkle tree, as already mentioned) we need the hashes of the sibling nodes on the way to the root.</p>
-<p><img src="./img/proof-of-membership.jpeg" alt="Proof of Membership" /></p>
-<p>Here we want to prove that the value "Theo" is contained in the tree. Since we know the value and we know that the hashes are created using the SHA256 hash function, we can calculate the hash value of Theo on our own. We said that we need the non-computable sibling nodes on the way to the root, and we have no way to come up with the value "Greta" because we don't know the other leave values, just the hashes. In our proof, we need to provide the hash of the value "Greta" for a proof that the root is correct. Since we now have the hash values of "Greta" and "Theo", we can calculate the parent node of the two. Uncomputable on the other hand is now again the sibling node of the parent node of "Greta" and "Theo", which we must bring again in the proof. This node is at the same time for the tree with four leaves the last necessary node to show the correctness of the root, because we can now calculate the root with the calculated parent node of "Greta" and "Theo" as well as its sibling node. What may not look very powerful in this small example is very powerful for larger trees, because mathematically speaking we only need <em>log n</em> nodes instead of the number of nodes (n) to prove the correctness of the root of the Merkle tree.</p>
-<p><img src="./img/logn-calc.jpeg" alt="Log n Calculation" /></p>
-<p>We see that in our example we actually need two leaves to prove the correctness of the root. Even if the number of leaves increases rapidly, with each further doubling only one more hash value is needed to prove the correctness of the root. This is an important and great property of Merkle trees and we can formally state:
-<em><strong>The time complexity of proof-of-membership in Merkle trees is O(log n)</strong></em>.</p>
-<h2 id="proof-of-non-membership"><a class="header" href="#proof-of-non-membership">Proof-of-Non-Membership</a></h2>
-<p>Now that we have learned about proof-of-memberships, let's look at the way we can prove that elements are not present in a Merkle tree, called proof-of-non-membership. To do this, let's take another look at the leaf structure of Verdict's Merkle trees using the familiar, simplified example.</p>
-<p><img src="./img/easy-index.jpeg" alt="Easy Index" /></p>
-<p>We recall that in Verdict the leaves consist of the hash of the quadruple <em>&lt; active, label, value, next &gt;</em>. Verdict has a label, the identifier hashed with SHA256 from the label value map, in addition to the active flag. When hashing a string with SHA256, a 256 bit or 32 byte value will come out. The 256 binary bits or 32 bytes in hexadecimal can also be converted to decimal as shown earlier in the picture using a simplified example with small numbers, in which system the sorting is familiar to us. So we know that we can turn any document, string or whatever with SHA256 into a representation of a fixed length string, namely 256 bits (32 bytes). So not only does SHA256 give us the advantage that the cryptographic commits and the values within a leaf node are always the same length, but it also gives us comparable or rather sortable numbers. Now it also makes a bit more sense why in the construction of Verdict the last node points to 64 "F"'s in hexadecimal or 256 "ones" in binary, this is, so to speak, the "highest possible number" and thus in a sense set as the "end".</p>
-<h3 id="there-is-a-different-element-sitting-in-our-seat"><a class="header" href="#there-is-a-different-element-sitting-in-our-seat">There is a different element sitting in our seat</a></h3>
-<p>So all email addresses hashed in the Merkle tree are sortable, the next pointer points to the next largest hash value, if you like to the "next largest email address". If we now want to prove that an element is not present in the Merkle tree, we first look at the hash value of the email address and we know from the paper that the values can be sorted. By this sorting we can find the place where the element or the label would find its place in <em>O(log n)</em> with the help of the binary search. However, since at this point we encounter an element whose label will be smaller than the label of the non-existent element and whose next pointer is larger, we can be sure that the element is not present in the tree due to the "Rule 2" (<em>there is an active leaf to whose label the next pointer points and there is no other active leaf in between</em>) presented earlier.</p>
-<h2 id="whats-next-1"><a class="header" href="#whats-next-1">What's next?</a></h2>
-<p>We now know how proof-of-memberships are enabled in general and how proof-of-non-memberships are enabled in the specific use case of Verdict. In the next section, we will look at what we can do with them.</p>
+</li>
+<li>
+<p>Exclusion proof with an empty node:</p>
+<ul>
+<li>Proves that an empty node exists on the path to where the queried key would be</li>
+<li>The proof includes the sibling hashes up to the empty node</li>
+</ul>
+</li>
+</ol>
+<p>The verification process for exclusion proofs involves:</p>
+<ol>
+<li>Checking if the provided leaf (if any) has a different key than the queried key</li>
+<li>Verifying that the common prefix length is correct</li>
+<li>Reconstructing the path to the root and comparing the calculated root hash with the known root hash</li>
+</ol>
+<h2 id="efficiency-improvements"><a class="header" href="#efficiency-improvements">Efficiency Improvements</a></h2>
+<p>Jellyfish Merkle Trees offer several efficiency improvements over traditional Merkle trees:</p>
+<ol>
+<li>Smaller proof sizes: By collapsing consecutive levels of empty siblings, JMT proofs are more compact.</li>
+<li>Faster verification: The simplified proof format allows for more efficient proof verification.</li>
+<li>Optimized for sparse trees: JMT is particularly efficient for sparse trees, which is common in many applications.</li>
+</ol>
+<h2 id="versioning-1"><a class="header" href="#versioning-1">Versioning</a></h2>
+<p>JMT incorporates versioning, which allows for efficient updates and historical queries. Each update to the tree creates a new version, and proofs can be generated for any specific version of the tree.
+In summary, Jellyfish Merkle Trees provide an optimized solution for generating and verifying both membership and non-membership proofs, with improvements in proof size and verification efficiency compared to traditional and indexed Merkle trees.</p>
+<h2 id="considerations-for-zero-knowledge-proofs"><a class="header" href="#considerations-for-zero-knowledge-proofs">Considerations for Zero-Knowledge Proofs</a></h2>
+<p>While JMTs offer significant advantages in terms of efficiency and proof size compared to IMTs, there are important considerations when using JMT in the context of zero-knowledge proofs:</p>
+<ol>
+<li>
+<p>Variable Proof Size: JMT can produce shorter proofs compared to IMT, which has a constant proof size. This variable size can be advantageous in many scenarios, offering improved efficiency.</p>
+</li>
+<li>
+<p>Challenges with handwritten SNARKs: Implementing JMT in handwritten SNARKs can be challenging. The variable proof size of JMT requires manual handling to keep the proof size constant within the SNARK circuit, which can be complex and potentially inefficient.</p>
+</li>
+<li>
+<p>Advantages of zkVMs: When using a zkVM, it becomes possible to leverage the shorter proofs of JMT more effectively. zkVMs can handle the variable-sized proofs without the need for manual size normalization.</p>
+</li>
+<li>
+<p>Tradeoffs:</p>
+<ul>
+<li>IMT: Provides a constant proof size that may be easier to implement in hand-written SNARKs.</li>
+<li>JMT: Provides more efficient evidence, but may require more complex handling in certain SNARKs.</li>
+</ul>
+</li>
+<li>
+<p>Implementation considerations:</p>
+<ul>
+<li>If we use zkVMs (such as SP1), JMT may still be a good, efficient choice, since we can exploit its optimized proof structure over them.</li>
+</ul>
+</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="informal-zero-knowledge-proofs"><a class="header" href="#informal-zero-knowledge-proofs">Informal Zero-Knowledge Proofs</a></h1>
 <p>Superficially considered and informally speaking, a Zero-Knowledge Proof (ZKP) is a proof where a prover demonstrates the validity of a statement to another party (the verifier) without revealing any information about the statement itself. Thus, the verifier learns nothing but the fact that the statement is true. In the following, we will briefly explore the development of ZKPs and take a closer look at the concepts behind them. Many of the later elaborated concepts are well-presented in Jean-Jacques Quisquater's "<a href="http://bitcoin-class.org/classes/zkforkids.pdf">How to explain Zero-Knowledge Protocols to your children</a>", which I will summarize and expand upon below. If everything is not entirely clear at first, that is perfectly normal. As the descriptions progress, things should become clearer.</p>
@@ -523,9 +611,8 @@ A person (or an algorithm; the prover) wants to prove to another person (or anot
 <p>Where all operations after epoch <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6984em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> (i.e. within epoch <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span>) are of the form <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0636em;vertical-align:-0.3802em;"></span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.242em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">#epoch</span></span><span class="mord text mtight"><span class="mord mtight">#operation</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3802em;"><span></span></span></span></span></span></span></span></span></span>. We have already seen that the application-specific policy is satisfied by valid insert and update proofs. Thus, without the SNARK, everyone would have to perform all the resulting Merkle proofs (underlying the insert and update proofs) themselves, resulting in a huge computational overhead. By using SNARKs, anyone can independently (since we are talking about non-interactive protocols) efficiently verify the proof, which is publicly provided by the service (the prover in this case) and thus convince themselves of the honest behavior of the service.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="resources"><a class="header" href="#resources">Resources</a></h1>
-<p>In the following chapter you will find a list of different resources that contain in-depth content on the relevant topics. The list is not exhaustive and is constantly updated.</p>
+<p>Here's a list of different resources that contain in-depth content on the relevant topics. The list is not exhaustive and is constantly updated.</p>
 <h2 id="papers"><a class="header" href="#papers">Papers</a></h2>
-<p>A listing of scientific papers that explore the topics in more depth, provide different foundations, or touch on more advanced topics.</p>
 <ul>
 <li><a href="https://eprint.iacr.org/2021/1263.pdf">Transparency Dictionaries with Succinct Proofs of Correct Operation</a></li>
 <li><a href="https://link.springer.com/chapter/10.1007/3-540-48184-2_32">A Digital Signature Based on a Conventional Encryption Function</a></li>
@@ -538,7 +625,6 @@ A person (or an algorithm; the prover) wants to prove to another person (or anot
 <li><a href="https://diem-developers-components.netlify.app/papers/jellyfish-merkle-tree/2021-01-14.pdf">Jellyfish Merkle Tree</a></li>
 </ul>
 <h2 id="books"><a class="header" href="#books">Books</a></h2>
-<p>A list of books for further reading. We will update the list continuously and are grateful for new suggestions.</p>
 <ul>
 <li><a href="https://files.boazbarak.org/crypto/lnotes_book.pdf">Barak - An intensive introduction to cryptography</a></li>
 <li><a href="http://toc.cryptobook.us/">Boneh, Shoup - A Graduate Course in Applied Cryptography</a></li>
@@ -546,43 +632,7 @@ A person (or an algorithm; the prover) wants to prove to another person (or anot
 <li><a href="https://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.pdf">Thaler - Proofs, Arguments and Zero-Knowledge</a></li>
 </ul>
 <h2 id="other-resources"><a class="header" href="#other-resources">Other Resources</a></h2>
-<p>Here's a list of other resources on the topics, such as YouTube Talks. We will continuously update the list and are grateful for suggestions.</p>
 <h3 id="talks"><a class="header" href="#talks">Talks</a></h3>
-<ul>
-<li><a href="https://www.youtube.com/watch?v=Bky_AgO-Alg">🎥 Ryan Quinn Ford - Fixing E2EE Using Celestia</a></li>
-<li><a href="https://www.youtube.com/watch?v=RvGsjnoYRRg">🎥 An Evolution of Models for Zero-Knowledge Proofs</a></li>
-<li><a href="http://bitcoin-class.org/classes/zkforkids.pdf">📝 How to Explain Zero-Knowledge Protocols to Your Children</a></li>
-<li><a href="https://www.youtube.com/watch?v=6uGimDYZPMw">🎥 Introduction to Zero Knowledge - Alon Rosen</a></li>
-<li><a href="https://www.youtube.com/watch?v=RvGsjnoYRRg">🎥 Proofs of Knowledge - Yehuda lindell</a></li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="papers-1"><a class="header" href="#papers-1">Papers</a></h1>
-<p>Here is a listing of scientific papers that explore the topics in more depth, provide different foundations, or touch on more advanced topics.</p>
-<ul>
-<li><a href="https://eprint.iacr.org/2021/1263.pdf">Transparency Dictionaries with Succinct Proofs of Correct Operation</a></li>
-<li><a href="https://link.springer.com/chapter/10.1007/3-540-48184-2_32">A Digital Signature Based on a Conventional Encryption Function</a></li>
-<li><a href="https://datatracker.ietf.org/doc/draft-laurie-rfc6962-bis/">Certificate Transparency</a></li>
-<li><a href="https://eprint.iacr.org/2014/1004.pdf">CONIKS: Bringing Key Transparency to End Users</a></li>
-<li><a href="https://eprint.iacr.org/2016/683.pdf">Efficient Sparse Merkle Trees | Caching Strategies and Secure (Non-)Membership Proofs</a></li>
-<li><a href="https://eprint.iacr.org/2021/453.pdf">Merkle²: A Low-Latency Transparency Log System</a></li>
-<li><a href="https://eprint.iacr.org/2018/721.pdf">Transparency Logs via Append-Only Authenticated Dictionaries</a></li>
-<li><a href="https://arxiv.org/pdf/1809.09044">Fraud and Data Availability Proofs: Maximising Light Client Security and Scaling Blockchains with Dishonest Majorities</a></li>
-<li><a href="https://diem-developers-components.netlify.app/papers/jellyfish-merkle-tree/2021-01-14.pdf">Jellyfish Merkle Tree</a></li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="books-1"><a class="header" href="#books-1">Books</a></h1>
-<p>Here is a list of books for further reading. We will update the list continuously and are grateful for new suggestions.</p>
-<h3 id="free-books"><a class="header" href="#free-books">Free Books</a></h3>
-<ul>
-<li><a href="https://files.boazbarak.org/crypto/lnotes_book.pdf">Barak - An intensive introduction to cryptography</a></li>
-<li><a href="http://toc.cryptobook.us/">Boneh, Shoup - A Graduate Course in Applied Cryptography</a></li>
-<li><a href="https://joyofcryptography.com/">Rosulek - The Joy of Cryptography</a></li>
-<li><a href="https://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.pdf">Thaler - Proofs, Arguments and Zero-Knowledge</a></li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="other-resources-1"><a class="header" href="#other-resources-1">Other Resources</a></h1>
-<p>Here's a list of other resources on the topics, such as YouTube Talks. We will continuously update the list and are grateful for suggestions.</p>
-<h2 id="talks-1"><a class="header" href="#talks-1">Talks</a></h2>
 <ul>
 <li><a href="https://www.youtube.com/watch?v=Bky_AgO-Alg">🎥 Ryan Quinn Ford - Fixing E2EE Using Celestia</a></li>
 <li><a href="https://www.youtube.com/watch?v=RvGsjnoYRRg">🎥 An Evolution of Models for Zero-Knowledge Proofs</a></li>

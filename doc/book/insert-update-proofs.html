@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item expanded "><a href="state.html">Development Status</a></li><li class="chapter-item expanded "><a href="architecture.html">Architecture</a></li><li class="chapter-item expanded "><a href="labels.html">Account Sources</a></li><li class="chapter-item expanded "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item expanded "><a href="insert-update-proofs.html" class="active">Insert and Updates</a></li><li class="chapter-item expanded "><a href="crypto-intro/intro.html">Introduction to Cryptography</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item expanded "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li></ol></li><li class="chapter-item expanded "><a href="merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item expanded "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item expanded "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item expanded "><a href="resources.html">Resources</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="papers.html">Paper</a></li><li class="chapter-item expanded "><a href="books.html">Books</a></li><li class="chapter-item expanded "><a href="other-resources.html">Other Resources</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li></ol></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item expanded "><a href="insert-update-proofs.html" class="active">Insert and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -178,19 +178,21 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="adherance-to-application-specific-guidelines"><a class="header" href="#adherance-to-application-specific-guidelines">Adherance to application-specific guidelines</a></h1>
-<blockquote>
-<p><strong>Note</strong>
-This documentation is outdated - it uses Indexed Merkle Trees, while we have moved on to using Jellyfish Merkle Trees. The principles are the same, but the implementation details are different. An updated documentation is coming soon.</p>
-</blockquote>
 <p>We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Since in <em>Prism</em> only insert or update operations are allowed (i.e. one can only add new email addresses or add or revoke public keys to an existing email address), the monotonic growth of the labels should be achieved if the behavior is correct.</p>
+<h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
+<p>JMT incorporates versioning, which is crucial for its operations. Each update to the tree creates a new version, allowing for efficient historical queries and updates. The version is part of the node key structure:</p>
+<pre><code class="language-bash">version || nibble path
+</code></pre>
+<p>This versioning system ensures that updates can be made efficiently without affecting previous versions of the tree.</p>
 <h2 id="proof-of-update"><a class="header" href="#proof-of-update">Proof-of-Update</a></h2>
 <p>Let's start with the proof that an update operation was executed correctly, i.e. a proof-of-update. Informally speaking, an update means that the operation list (hashchain) for an already existing identifier has been updated by one operation. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier. In any case, this means that another entry has been added to the hashchain in which the operations are stored.</p>
 <blockquote>
 <p><strong>Note</strong>
 Obviously, this means that the last hash of the hashchain, which is crucial for the label-value pair in the Merkle tree, also has a new value.</p>
 </blockquote>
-<p>The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). Because the index remains the same, the sorting we looked at in connection with the non-membership proof also remains the same. For this reason, the proof of an update operation is less complex. We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
+<p>The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). When a leaf is updated, its value changes, but its position in the tree (determined by its key, e.g. the hashed email address) remains the same. This is because the key determines the position of the leaf. We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
 To proof the update, it is sufficient if we consider the old root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf, so to say. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.</p>
+<p>In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.</p>
 <h2 id="proof-of-insert"><a class="header" href="#proof-of-insert">Proof-of-Insert</a></h2>
 <p>The insert operation comprises several steps, which we will consider individually in the following. First, again informally: what does it mean to perform an insert operation? Insert means that we add a completely new identifier - so we add a "new" email address to our dictionary. Accordingly, when we add a value to the dictionary, the structure that supports us in any reasoning changes as well, namely our indexed Merkle tree that manages the derived dictionary.</p>
 <h3 id="find-an-inactive-leaf"><a class="header" href="#find-an-inactive-leaf">Find an inactive leaf</a></h3>
@@ -223,7 +225,7 @@ As we noted earlier, the label of the new leaf was between the label and the nex
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="crypto-intro/intro.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="jellyfish-merkle-proofs.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -237,7 +239,7 @@ As we noted earlier, the label of the new leaf was between the label and the nex
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="crypto-intro/intro.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="jellyfish-merkle-proofs.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

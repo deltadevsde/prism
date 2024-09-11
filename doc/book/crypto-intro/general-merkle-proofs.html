@@ -12,21 +12,21 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -35,7 +35,7 @@
     <div id="body-container">
         <!-- Provide site root to javascript -->
         <script>
-            var path_to_root = "";
+            var path_to_root = "../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "ayu";
         </script>
 
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item expanded "><a href="state.html">Development Status</a></li><li class="chapter-item expanded "><a href="architecture.html">Architecture</a></li><li class="chapter-item expanded "><a href="labels.html">Account Sources</a></li><li class="chapter-item expanded "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item expanded "><a href="insert-update-proofs.html">Insert and Updates</a></li><li class="chapter-item expanded "><a href="crypto-intro/intro.html">Introduction to Cryptography</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item expanded "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item expanded "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li></ol></li><li class="chapter-item expanded "><a href="merkle-proofs.html" class="active">Merkle Proofs</a></li><li class="chapter-item expanded "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item expanded "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item expanded "><a href="resources.html">Resources</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="papers.html">Paper</a></li><li class="chapter-item expanded "><a href="books.html">Books</a></li><li class="chapter-item expanded "><a href="other-resources.html">Other Resources</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item "><a href="../index.html">Introduction</a></li><li class="chapter-item "><a href="../quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="../state.html">Development Status</a></li><li class="chapter-item expanded "><a href="../crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="../crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="../crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item expanded "><a href="../crypto-intro/general-merkle-proofs.html" class="active">Merkle Proofs</a></li></ol></li><li class="chapter-item "><a href="../architecture.html">Architecture</a></li><li class="chapter-item "><a href="../labels.html">Account Sources</a></li><li class="chapter-item "><a href="../datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="../insert-update-proofs.html">Insert and Updates</a></li><li class="chapter-item "><a href="../jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="../informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="../zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item "><a href="../resources.html">Resources</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -144,7 +144,7 @@
                     <h1 class="menu-title">Prism Documentation</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         <a href="https://github.com/deltadevsde/prism" title="Git repository" aria-label="Git repository">
@@ -177,46 +177,23 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="merkle-proofs"><a class="header" href="#merkle-proofs">Merkle Proofs</a></h1>
-<p>A distinguishing aspect of indexed Merkle trees is that they support both efficient membership proofs and non-membership proofs.</p>
-<p>We've illustrated how the individual leaves work, but we haven't yet discussed why this construction is chosen in the first place. Prism uses an IMT specifically to create membership and non-membership proofs efficiently.</p>
-<p>Such proofs are not unique to <em>indexed</em> Merkle trees. Membership proofs can also be generated with simpler Merkle trees. A sparse merkle tree, for example, has similar properties but is not used because of the increased height, which is less efficient to SNARK over.</p>
-<p>We need the next-pointer construction (which points to labels that act as sortable indexes) to be able to address leaves directly and to create proofs that certain leaves do not exist in the tree. What sounds a bit complicated now will become clearer in a moment, again with the help of an example.</p>
-<h2 id="cryptographic-commitments"><a class="header" href="#cryptographic-commitments">Cryptographic commitments</a></h2>
-<p>We again imagine a scenario for cryptographic commtiments in which Alice and Bob interact with each other. Alice has a secret that she does not want to tell Bob. She hashes her secret and puts this secret in a safe, giving the key for the safe to Bob. This means that Alice cannot change the secret in the safe afterwards, so she is bound to it (<strong>= a cryptographic commitment scheme is binding</strong>). Bob can open the safe at a later time and see the secret, but as we have seen above, Bob cannot determine anything else from the hashed secret (<strong>= a cryptographic commitment scheme is hiding</strong>). These are the required properties of a cryptographic commitment: they should bind to a value, i.e., they should not be modifiable afterwards, and they should say nothing about the value to which one has committed.</p>
-<blockquote>
-<p>Informally speaking, a cryptographic commitment scheme enables a sender to commit itself to a value by sending a short commitment and then later reveal the value such that the commitment scheme is binding (i.e., the sender cannot reveal a value different from what it originally committed), and hiding (i.e., a commitment does not reveal anything about the committed value).</p>
-</blockquote>
-<p><img src="./img/merkle-tree.jpeg" alt="Merkle Tree" /></p>
-<p>If we now consider how the root of a Merkle tree behaves from these points of view, we take another step forward. We have seen that in the tree above the hashes of the names Greta, Theo, Jana, and Torben were stored in the leaves and then hashed together in pairs upwards until only one hash remains, which then represents the root of the Merkle tree. If we replace the value of the leaf "Torben" (SHA256 value: <em>d38f...d39</em>) with the value "Johnanna" (SHA256 value: <em>4c7...7f1</em>), obviously not only the value of the leaf changes, but also all other values on the way from the leaf to the root and the root itself.</p>
-<p><img src="./img/merkle-johanna-tree.jpeg" alt="Merkle Johanna Tree" /></p>
-<p>This means that we are <strong>bound</strong> by the root to the values of the individual leaves and if we only have the root, we have no idea which actual values or leaves are present in the Merkle tree, so they are <strong>hidden</strong> (binding and hiding). Long story short: the root of a Merkle tree is excellent for a cryptographic commitment.
-So now that we understand cryptographic commitments, we can look at what the proofs of membership or non-membership look like in Merkle trees.</p>
-<h2 id="proof-of-membership"><a class="header" href="#proof-of-membership">Proof-of-Membership</a></h2>
+<h1 id="proof-of-membership"><a class="header" href="#proof-of-membership">Proof-of-Membership</a></h1>
 <p>We already know that the roots of the Merkle tree are in some sense a recursive computation of the hashes of the leaves. So we don't need exact knowledge about the leaves, only about their hashes. More precisely, for a membership proof (which is possible in any kind of Merkle tree, as already mentioned) we need the hashes of the sibling nodes on the way to the root.</p>
-<p><img src="./img/proof-of-membership.jpeg" alt="Proof of Membership" /></p>
+<p><img src="../img/proof-of-membership.jpeg" alt="Proof of Membership" /></p>
 <p>Here we want to prove that the value "Theo" is contained in the tree. Since we know the value and we know that the hashes are created using the SHA256 hash function, we can calculate the hash value of Theo on our own. We said that we need the non-computable sibling nodes on the way to the root, and we have no way to come up with the value "Greta" because we don't know the other leave values, just the hashes. In our proof, we need to provide the hash of the value "Greta" for a proof that the root is correct. Since we now have the hash values of "Greta" and "Theo", we can calculate the parent node of the two. Uncomputable on the other hand is now again the sibling node of the parent node of "Greta" and "Theo", which we must bring again in the proof. This node is at the same time for the tree with four leaves the last necessary node to show the correctness of the root, because we can now calculate the root with the calculated parent node of "Greta" and "Theo" as well as its sibling node. What may not look very powerful in this small example is very powerful for larger trees, because mathematically speaking we only need <em>log n</em> nodes instead of the number of nodes (n) to prove the correctness of the root of the Merkle tree.</p>
-<p><img src="./img/logn-calc.jpeg" alt="Log n Calculation" /></p>
+<p><img src="../img/logn-calc.jpeg" alt="Log n Calculation" /></p>
 <p>We see that in our example we actually need two leaves to prove the correctness of the root. Even if the number of leaves increases rapidly, with each further doubling only one more hash value is needed to prove the correctness of the root. This is an important and great property of Merkle trees and we can formally state:
 <em><strong>The time complexity of proof-of-membership in Merkle trees is O(log n)</strong></em>.</p>
-<h2 id="proof-of-non-membership"><a class="header" href="#proof-of-non-membership">Proof-of-Non-Membership</a></h2>
-<p>Now that we have learned about proof-of-memberships, let's look at the way we can prove that elements are not present in a Merkle tree, called proof-of-non-membership. To do this, let's take another look at the leaf structure of Verdict's Merkle trees using the familiar, simplified example.</p>
-<p><img src="./img/easy-index.jpeg" alt="Easy Index" /></p>
-<p>We recall that in Verdict the leaves consist of the hash of the quadruple <em>&lt; active, label, value, next &gt;</em>. Verdict has a label, the identifier hashed with SHA256 from the label value map, in addition to the active flag. When hashing a string with SHA256, a 256 bit or 32 byte value will come out. The 256 binary bits or 32 bytes in hexadecimal can also be converted to decimal as shown earlier in the picture using a simplified example with small numbers, in which system the sorting is familiar to us. So we know that we can turn any document, string or whatever with SHA256 into a representation of a fixed length string, namely 256 bits (32 bytes). So not only does SHA256 give us the advantage that the cryptographic commits and the values within a leaf node are always the same length, but it also gives us comparable or rather sortable numbers. Now it also makes a bit more sense why in the construction of Verdict the last node points to 64 "F"'s in hexadecimal or 256 "ones" in binary, this is, so to speak, the "highest possible number" and thus in a sense set as the "end".</p>
-<h3 id="there-is-a-different-element-sitting-in-our-seat"><a class="header" href="#there-is-a-different-element-sitting-in-our-seat">There is a different element sitting in our seat</a></h3>
-<p>So all email addresses hashed in the Merkle tree are sortable, the next pointer points to the next largest hash value, if you like to the "next largest email address". If we now want to prove that an element is not present in the Merkle tree, we first look at the hash value of the email address and we know from the paper that the values can be sorted. By this sorting we can find the place where the element or the label would find its place in <em>O(log n)</em> with the help of the binary search. However, since at this point we encounter an element whose label will be smaller than the label of the non-existent element and whose next pointer is larger, we can be sure that the element is not present in the tree due to the "Rule 2" (<em>there is an active leaf to whose label the next pointer points and there is no other active leaf in between</em>) presented earlier.</p>
-<h2 id="whats-next"><a class="header" href="#whats-next">What's next?</a></h2>
-<p>We now know how proof-of-memberships are enabled in general and how proof-of-non-memberships are enabled in the specific use case of Verdict. In the next section, we will look at what we can do with them.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="crypto-intro/merkle-trees.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../crypto-intro/cryptographic_commitment.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="informal-zkps.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -226,11 +203,11 @@ So now that we understand cryptographic commitments, we can look at what the pro
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="crypto-intro/merkle-trees.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../crypto-intro/cryptographic_commitment.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="informal-zkps.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -261,16 +238,16 @@ So now that we understand cryptographic commitments, we can look at what the pro
         </script>
 
 
-        <script src="elasticlunr.min.js"></script>
-        <script src="mark.min.js"></script>
-        <script src="searcher.js"></script>
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
 
-        <script src="clipboard.min.js"></script>
-        <script src="highlight.js"></script>
-        <script src="book.js"></script>
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="custom.js"></script>
+        <script src="../custom.js"></script>
 
 
     </div>

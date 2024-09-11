@@ -13,3 +13,5 @@ git-repository-url = "https://github.com/deltadevsde/prism"
 default-theme = "ayu"
 no-section-label = true
 additional-js = ["custom.js"]
+fold.enable = true
+fold.level = 0

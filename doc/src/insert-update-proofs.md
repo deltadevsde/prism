@@ -1,9 +1,16 @@
 # Adherance to application-specific guidelines
 
-> **Note**
-> This documentation is outdated - it uses Indexed Merkle Trees, while we have moved on to using Jellyfish Merkle Trees. The principles are the same, but the implementation details are different. An updated documentation is coming soon.
-
 We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Since in *Prism* only insert or update operations are allowed (i.e. one can only add new email addresses or add or revoke public keys to an existing email address), the monotonic growth of the labels should be achieved if the behavior is correct.
+
+## Versioning
+
+JMT incorporates versioning, which is crucial for its operations. Each update to the tree creates a new version, allowing for efficient historical queries and updates. The version is part of the node key structure:
+
+```bash
+version || nibble path
+```
+
+This versioning system ensures that updates can be made efficiently without affecting previous versions of the tree.
 
 ## Proof-of-Update
 
@@ -12,8 +19,10 @@ Let's start with the proof that an update operation was executed correctly, i.e.
 > **Note**
 > Obviously, this means that the last hash of the hashchain, which is crucial for the label-value pair in the Merkle tree, also has a new value.
 
-The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). Because the index remains the same, the sorting we looked at in connection with the non-membership proof also remains the same. For this reason, the proof of an update operation is less complex. We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
+The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). When a leaf is updated, its value changes, but its position in the tree (determined by its key, e.g. the hashed email address) remains the same. This is because the key determines the position of the leaf. We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
 To proof the update, it is sufficient if we consider the old root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf, so to say. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.
+
+In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.
 
 ## Proof-of-Insert
 
