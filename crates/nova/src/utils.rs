@@ -54,11 +54,6 @@ impl<Scalar: PrimeField> Digest<Scalar> {
     }
 }
 
-pub struct Hash<Scalar: PrimeField> {
-    hash: indexed_merkle_tree::Hash,
-    _p: PhantomData<Scalar>,
-}
-
 pub fn next_rom_index_and_pc<F: PrimeField, CS: ConstraintSystem<F>>(
     cs: &mut CS,
     rom_index: &AllocatedNum<F>,

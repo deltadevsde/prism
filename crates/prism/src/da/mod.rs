@@ -1,10 +1,10 @@
 use crate::utils::SignedContent;
-use prism_errors::GeneralError;
 use anyhow::Result;
 use async_trait::async_trait;
 use borsh::{BorshDeserialize, BorshSerialize};
 use ed25519::Signature;
 use prism_common::{operation::Operation, tree::Digest};
+use prism_errors::GeneralError;
 use std::{self, str::FromStr};
 
 pub mod celestia;

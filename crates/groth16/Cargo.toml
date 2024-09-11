@@ -1,5 +1,5 @@
 [package]
-name = "prism-main"
+name = "prism-groth16"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -44,7 +44,6 @@ sha2 = { workspace = true }
 auto_impl = { workspace = true }
 prism-common = { workspace = true }
 prism-errors = { workspace = true }
-prism-groth16 = { workspace = true }
 
 [patch.crates-io]
 sha2-v0-9-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.9.8" }

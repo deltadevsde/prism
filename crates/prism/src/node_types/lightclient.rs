@@ -1,15 +1,11 @@
 use crate::cfg::CelestiaConfig;
-use prism_errors::{DataAvailabilityError, GeneralError};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{self, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
 
-use crate::{
-    da::DataAvailabilityLayer,
-    node_types::NodeType,
-    utils::{verify_signature},
-};
+use crate::{da::DataAvailabilityLayer, node_types::NodeType, utils::verify_signature};
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
@@ -113,23 +109,20 @@ impl LightClient {
                                     }
                                 }
 
-                                /*
-                                TODO: validation of the epoch proof
-
-                                match validate_epoch(
-                                    prev_commitment,
-                                    current_commitment,
-                                    proof,
-                                    verifying_key,
-                                ) {
-                                    Ok(_) => {
-                                        info!(
-                                            "zkSNARK for epoch {} was validated successfully",
-                                            epoch_json.height
-                                        )
-                                    }
-                                    Err(err) => panic!("failed to validate epoch: {:?}", err),
-                                } */
+                                // match validate_epoch(
+                                //     prev_commitment,
+                                //     current_commitment,
+                                //     proof,
+                                //     verifying_key,
+                                // ) {
+                                //     Ok(_) => {
+                                //         info!(
+                                //             "zkSNARK for epoch {} was validated successfully",
+                                //             epoch_json.height
+                                //         )
+                                //     }
+                                //     Err(err) => panic!("failed to validate epoch: {:?}", err),
+                                // }
                             }
                         }
                         Err(e) => {

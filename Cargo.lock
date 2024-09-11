@@ -3248,6 +3248,7 @@ dependencies = [
  "pretty_env_logger",
  "prism-common",
  "prism-errors",
+ "prism-groth16",
  "rand",
  "redis",
  "serde",
