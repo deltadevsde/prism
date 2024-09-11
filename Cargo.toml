@@ -65,13 +65,11 @@ keystore-rs = "0.1.0"
 toml = "0.8.14"
 dirs = "5.0.1"
 anyhow = "1.0.44"
-jmt = { path = "../jmt", features = [
-    "mocks",
-] } #{ version = "0.10.0", features = ["mocks"] }
+jmt = { version = "0.10.0", features = ["mocks"] }
 bellpepper-core = { version = "0.4.0", default-features = false }
 bellpepper = "0.4.1"
-arecibo = { git = "https://github.com/deltadevsde/arecibo" }
-itertools = "0.13.0" # zip_eq
+itertools = "0.13.0"                                              # zip_eq
+arecibo = "0.2.0"
 sha2 = "0.10.8"
 auto_impl = "1.2.0"
 bincode = "1.3.3"
@@ -86,6 +84,10 @@ sp1-helper = "1.2.0"
 
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.8" }
+arecibo = { git = "https://github.com/deltadevsde/arecibo" }
+jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit", features = [
+    "mocks",
+] }
 
 # [workspace.dev-dependencies]
 # serial_test = "3.1.1"

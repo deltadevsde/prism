@@ -374,7 +374,7 @@ impl Sequencer {
                 let proof =
                     tree.update(KeyHash::with::<Hasher>(hashed_id), current_chain.clone())?;
                 self.db
-                    .update_hashchain(operation, &current_chain)
+                    .set_hashchain(operation, &current_chain)
                     .context(format!(
                         "Failed to update hashchain for operation {:?}",
                         operation
@@ -408,12 +408,10 @@ impl Sequencer {
                 let mut chain = Hashchain::new(id.clone());
                 chain.create_account(value.into(), source.clone())?;
 
-                self.db
-                    .update_hashchain(operation, &chain)
-                    .context(format!(
-                        "Failed to create hashchain for operation {:?}",
-                        operation
-                    ))?;
+                self.db.set_hashchain(operation, &chain).context(format!(
+                    "Failed to create hashchain for operation {:?}",
+                    operation
+                ))?;
 
                 let mut tree = self.tree.lock().await;
                 let hashed_id = hash(id.as_bytes());

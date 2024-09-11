@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use auto_impl::auto_impl;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
@@ -32,11 +32,8 @@ pub struct RedisConnection {
 #[auto_impl(&, Box, Arc)]
 pub trait Database: Send + Sync + TreeReader + TreeWriter {
     fn get_hashchain(&self, key: &str) -> Result<Hashchain>;
-    fn update_hashchain(
-        &self,
-        incoming_operation: &Operation,
-        value: &[HashchainEntry],
-    ) -> Result<()>;
+    fn set_hashchain(&self, incoming_operation: &Operation, value: &[HashchainEntry])
+        -> Result<()>;
 
     fn get_commitment(&self, epoch: &u64) -> Result<String>;
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()>;
@@ -220,7 +217,7 @@ impl Database for RedisConnection {
             .map_err(|_| anyhow!(DatabaseError::WriteError(format!("epoch: {}", epoch))))
     }
 
-    fn update_hashchain(
+    fn set_hashchain(
         &self,
         incoming_operation: &Operation,
         value: &[HashchainEntry],
@@ -313,7 +310,7 @@ mod tests {
         let chain_entry = create_mock_chain_entry();
 
         redis_connections
-            .update_hashchain(&incoming_operation, &[chain_entry.clone()])
+            .set_hashchain(&incoming_operation, &[chain_entry.clone()])
             .unwrap();
 
         let hashchain = redis_connections
@@ -338,7 +335,7 @@ mod tests {
         let chain_entry = create_mock_chain_entry();
 
         redis_connections
-            .update_hashchain(&incoming_operation, &[chain_entry.clone()])
+            .set_hashchain(&incoming_operation, &[chain_entry.clone()])
             .unwrap();
 
         let hashchain = redis_connections.get_hashchain("main:missing_test_key");
@@ -406,7 +403,7 @@ mod tests {
 
         let chain_entries: Vec<HashchainEntry> = vec![create_mock_chain_entry()];
 
-        match redis_connections.update_hashchain(&incoming_operation, &chain_entries) {
+        match redis_connections.set_hashchain(&incoming_operation, &chain_entries) {
             Ok(_) => (),
             Err(e) => panic!("Failed to update hashchain: {}", e),
         }

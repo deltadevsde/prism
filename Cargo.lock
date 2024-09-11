@@ -2203,6 +2203,7 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 [[package]]
 name = "jmt"
 version = "0.10.0"
+source = "git+https://github.com/deltadevsde/jmt?branch=rehashing-circuit#1cb83bc02171dc1e9b8710f9efc7faaa9fe49f09"
 dependencies = [
  "anyhow",
  "auto_impl",
