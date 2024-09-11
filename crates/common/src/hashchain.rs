@@ -86,7 +86,7 @@ impl Hashchain {
     }
 
     pub fn push(&mut self, operation: Operation) -> Result<Digest> {
-        if let Operation::CreateAccount { .. } = operation {
+        if !self.is_empty() {
             bail!("Cannot CreateAccount on an already existing hashchain");
         }
         if operation.id() != self.id {

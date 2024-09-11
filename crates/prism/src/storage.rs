@@ -95,7 +95,7 @@ impl TreeReader for RedisConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
         let mut con = self.lock_connection()?;
         let serialized_key = hex::encode(borsh::to_vec(node_key).unwrap());
-        let node_data: Option<Vec<u8>> = con.get(format!("node:{}", serialized_key))?;
+        let node_data: Option<Vec<u8>> = con.get(dbg!(format!("node:{}", serialized_key)))?;
         match node_data {
             None => Ok(None),
             Some(data) => {
@@ -146,12 +146,11 @@ impl TreeWriter for RedisConnection {
     fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()> {
         let mut con = self.lock_connection()?;
         let mut pipe = redis::pipe();
-
         for (node_key, node) in node_batch.nodes() {
+            let serialized_key = hex::encode(borsh::to_vec(node_key).unwrap());
             let node_data = borsh::to_vec(node)?;
-            pipe.set(format!("node:{:?}", node_key), node_data);
+            pipe.set(format!("node:{}", serialized_key), node_data);
         }
-
         for ((version, key_hash), value) in node_batch.values() {
             if let Some(v) = value {
                 pipe.zadd(format!("value_history:{:?}", key_hash), v, *version as f64);
@@ -163,7 +162,6 @@ impl TreeWriter for RedisConnection {
                 );
             }
         }
-
         pipe.execute(&mut con);
         Ok(())
     }
