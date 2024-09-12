@@ -12,6 +12,25 @@ version || nibble path
 
 This versioning system ensures that updates can be made efficiently without affecting previous versions of the tree.
 
+## Insertion and Updates
+
+The insert operation comprises three steps, which we will consider individually in the following. First, again informally: what does it mean to perform an insert operation? Insert means that we add a completely new identifier - so we add a "new" email address to our dictionary. Accordingly, when we add a value to the dictionary, the structure that supports us in any reasoning changes as well, namely our Jellyfish Merkle tree that manages the derived dictionary.
+
+**Find the insertion position**
+When traversing the tree to perform the lookup, the following two scenarios are possible:
+
+1. A leaf node with the same prefix of the nibble path but different keyhash value is found.
+2. An internal node is reached where the next nibble path to be visited (index n) contains an empty subtree.
+
+**Handle the current node**
+Once we have found the location, there are two possibilities: either it is an internal node or a leaf node.
+
+1. if it is an internal node: a new leaf is created and inserted as a child node in the empty index n of the internal node
+2. if it is a leaf node: two different scenarios can occur at this point, either KeyHash matches the key hash at the point where the previous nibble path led, in which case it is basically an update operation. Otherwise, the KeyHash values differ and a new leaf is created. In addition, new internal nodes are created to represent the common path, as both nodes match up to a certain nibble path that is not yet sufficiently represented in the tree. This internal node takes the place of the previous leaf node and then both the new and the old node (which was previously present at the split position) are inserted in the new internal node at the respective index.
+
+**Update ancestors version**
+The versions of all nodes that have been traversed along the way are then updated to the latest version.
+
 ## Proof-of-Update
 
 Let's start with the proof that an update operation was executed correctly, i.e. a proof-of-update. Informally speaking, an update means that the operation list (hashchain) for an already existing identifier has been updated by one operation. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier. In any case, this means that another entry has been added to the hashchain in which the operations are stored.
@@ -24,40 +43,15 @@ To proof the update, it is sufficient if we consider the old root (the cryptogra
 
 In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.
 
-## Proof-of-Insert
+## Insert Proofs
 
-The insert operation comprises several steps, which we will consider individually in the following. First, again informally: what does it mean to perform an insert operation? Insert means that we add a completely new identifier - so we add a "new" email address to our dictionary. Accordingly, when we add a value to the dictionary, the structure that supports us in any reasoning changes as well, namely our indexed Merkle tree that manages the derived dictionary.
-
-### Find an inactive leaf
-
-In the first step of the insert operation, we need to distinguish between two scenarios. Since we cannot keep an infinite number of leaves free in the Merkle tree, we had to specify a certain number of leaves at the beginning, during creation. Before initialization, all leaves were added as empty leaves according to the strut cure described above. So we first need to find an empty leaf, and depending on the state of the dictionary and the number of leaves in the Merkle tree, it may be that all leaves are occupied. If this is not the case, an inactive or empty leaf is simply selected at random and we can proceed to the second step. However, if this is the case, we must first increase the capacity in the tree, or more precisely, double it. We illustrate the doubling process with this sketch:
-
-![Doubled Tree](./img/doubled-tree.jpeg)
-
-We can see that we create a completely empty tree with the same number of leaves as the currently existing tree and calculate all hash values in it pairwise up to the root as usual. Then we have two trees of the same size, which we can join by hashing the root of the left tree with the root of the right (completely empty) tree, thus in a sense computing a common Merkle root. This way we merge the two trees and now have a new tree with doubled capacity and many empty leaves, from which we can now choose one to continue with the insert operation. Performing these calculations is no problem in so far as we know the structure of the inactive leaves (< active = 0, label = 0x000...00, value = 0x000...00, next = 0xFFF...FF >) and since all leaves are the same we can quickly calculate all hash values. For each level in the tree only one calculation is necessary. So now we have an empty leaf selected and we are looking at the label-value to be added.
+tbd
 
 ### Why uniqueness matters
 
 > Non-membership queries are important [...] as well; otherwise, the service's dictionary might contain more than one tuple for the <bob@dom.org> label, allowing the service to show different tuples to different clients. [...] Alice can safely encrypt sensitive data using the public key the service returns for Bob.
 
-We briefly recall what the unique identifier means and why this is important. The email addresses in *Prism* act as unique identifiers and in order for the service to behave correctly, it must be ensured that no email address can be inserted twice. We imagine scenarios including when the Id <bob@dom.org> appears twice or more in the dictionary:
+We briefly recall what the unique identifier means and why this is important. The email addresses in Prism act as unique identifiers and in order for the service to behave correctly, it must be ensured that no email address can be inserted twice. We imagine scenarios including when the Id <bob@dom.org> appears twice or more in the dictionary:
 Bob adds multiple keys and also revokes some of those keys. If there are several entries for <bob@dom.org>, scenarios are conceivable in which Bob adds a key to his first entry '<bob@dom.org>' and later has to revoke it because the corresponding private key was stolen by Oskar. Now it could happen that the revoke operation is entered in the hashchain of the second entry '<bob@dom.org>', in which the add operation of this key doesn't occur. Now when Alice goes through the operations in the first entry '<bob@dom.org>', she will find that the stolen key has not been revoked and she thinks that she can perform encryption with this key. Since a requirement of Verdict is that we rule out these scenarios (as best we can), accordingly we need to make use of Proofs-of-Non-Membership for this.
 
-### Update existing leaf
-
-Since the identifiers must be unique, we must first prove in this step that the label does not yet exist in the tree, for which a proof-of-non-membership is of course excellent. By this proof, we incidentally ensure that it is correctly an insert operation and that we should not have mistakenly performed an update operation. We have also now, through the proof-of-non-membership, identified the leaf node in the current tree, the place includes where the new value must be inserted, we'll call this leaf B' for now. Since the next pointer of B' points to a label, which is greater than the value of the label we want to add, we now need to update the value of the next pointer of B' to the new label.
-
-![Update Pointer](./img/update-pointer.jpeg)
-
-This is an update operation of an existing leaf as we already know it (we only updated the next value instead of the value, but this also results in a change of the hash of the leaf, since this hash depends on all values), so we prove this step with a proof-of-update.
-
-### Update empty leaf
-
-In the last step, we deal again with the inactive leaf that was previously made out. We update the leaf as follows, from:
-*< active = 0, label = 0x000...00, value = 0x000...00, next = 0xFFF...FF >* to
-*< active = 1, label = new-label, value = new-value, next = old-next-pointer from B' >*
-As we noted earlier, the label of the new leaf was between the label and the next pointer of leaf B'. Since we updated the next pointer of B' to label l of the new leaf, we need to set the next pointer of the new leaf to the previously valid value of B'. Since at this point we are now dealing with an update operation of a previously inactive leaf, we again perform a proof-of-update to prove the correctness of this step.
-
-![Update Empty Leaf](./img/update-empty-leaf.jpeg)
-
-Thus, we note that a proof-of-insert in its constituent parts consists of a proof-of-non-membership and two successive proof-of-updates. The proof-of-non-membership is particularly important because we want to ensure that no identifier occurs more than once. This is relevant for various reasons, but not least for security reasons. This way, users of the service can be sure that they have the only correct and valid list of public keys for the owner of the identifier they want to interact with.
+TODO: uniqueness still matters but should it be discussed somewhere here?
