@@ -1,6 +1,7 @@
 use crate::cfg::CelestiaConfig;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use prism_common::tree::Digest;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
@@ -99,7 +100,27 @@ impl LightClient {
                                     }
                                 }
 
-                                // TODO: compare commitment to epoch_json.proof.public_values
+                                let prev_commitment = &epoch_json.prev_commitment;
+                                let current_commitment = &epoch_json.current_commitment;
+
+                                let mut public_values = epoch_json.proof.public_values.clone();
+                                let proof_prev_commitment: Digest = public_values.read();
+                                let proof_current_commitment: Digest = public_values.read();
+
+                                if prev_commitment != &proof_prev_commitment
+                                    || current_commitment != &proof_current_commitment
+                                {
+                                    error!(
+                                        "Commitment mismatch: 
+                                        prev_commitment: {:?}, proof_prev_commitment: {:?},
+                                        current_commitment: {:?}, proof_current_commitment: {:?}",
+                                        prev_commitment,
+                                        proof_prev_commitment,
+                                        current_commitment,
+                                        proof_current_commitment
+                                    );
+                                    panic!("Commitment mismatch in epoch {}", epoch_json.height);
+                                }
 
                                 match self.client.verify(&epoch_json.proof, &self.verifying_key) {
                                     Ok(_) => {

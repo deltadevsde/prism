@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use bellman::{groth16, Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
-use borsh::{BorshDeserialize, BorshSerialize};
 use prism_errors::{GeneralError, PrismError};
 use std::fmt;
 
@@ -38,11 +37,11 @@ impl Circuit<Scalar> for ProofVariantCircuit {
 }
 
 /// G1 represents a compressed [`bls12_381::G1Affine`]
-#[derive(BorshSerialize, BorshDeserialize, Clone)]
+#[derive(Clone)]
 pub struct G1([u8; 48]);
 
 /// G2 represents a compressed [`bls12_381::G2Affine`]
-#[derive(BorshSerialize, BorshDeserialize, Clone)]
+#[derive(Clone)]
 pub struct G2([u8; 96]);
 
 // Debug impls for the Affines print their hex representation
@@ -84,7 +83,7 @@ impl TryFrom<G2> for bls12_381::G2Affine {
     }
 }
 
-#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct Bls12Proof {
     pub a: G1,
     pub b: G2,
@@ -113,7 +112,7 @@ impl From<groth16::Proof<Bls12>> for Bls12Proof {
     }
 }
 
-#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct VerifyingKey {
     pub alpha_g1: G1,
     pub beta_g1: G1,

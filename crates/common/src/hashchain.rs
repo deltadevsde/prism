@@ -1,5 +1,4 @@
 use anyhow::{bail, Result};
-use borsh::{BorshDeserialize, BorshSerialize};
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
@@ -9,7 +8,7 @@ use crate::{
     tree::{hash, Digest, Hasher},
 };
 
-#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Hashchain {
     pub id: String,
     pub entries: Vec<HashchainEntry>,
@@ -129,9 +128,17 @@ impl Hashchain {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+
+    pub fn serialize(&self) -> Result<Vec<u8>> {
+        bincode::serialize(self).map_err(anyhow::Error::from)
+    }
+
+    pub fn deserialize(data: &[u8]) -> Result<Self> {
+        bincode::deserialize(data).map_err(anyhow::Error::from)
+    }
 }
 
-#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 // A [`HashchainEntry`] represents a single entry in an account's hashchain.
 // The value in the leaf of the corresponding account's node in the IMT is the hash of the last node in the hashchain.
 pub struct HashchainEntry {
@@ -154,5 +161,13 @@ impl HashchainEntry {
             previous_hash,
             operation,
         }
+    }
+
+    pub fn serialize(&self) -> Result<Vec<u8>> {
+        bincode::serialize(self).map_err(anyhow::Error::from)
+    }
+
+    pub fn deserialize(data: &[u8]) -> Result<Self> {
+        bincode::deserialize(data).map_err(anyhow::Error::from)
     }
 }

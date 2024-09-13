@@ -1,6 +1,6 @@
 use anyhow::{anyhow, bail, Context, Result};
+use bincode;
 use bls12_381::Scalar;
-use borsh::{from_slice, to_vec, BorshDeserialize, BorshSerialize};
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
@@ -22,9 +22,7 @@ pub fn hash(data: &[u8]) -> Digest {
     Digest(hasher.finalize())
 }
 
-#[derive(
-    Debug, Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, PartialEq, Eq, Copy,
-)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub struct Digest([u8; 32]);
 
 impl Digest {
@@ -116,7 +114,7 @@ impl Serialize for Proof {
     where
         S: serde::Serializer,
     {
-        let bytes = borsh::to_vec(self).map_err(serde::ser::Error::custom)?;
+        let bytes = bincode::serialize(self).map_err(serde::ser::Error::custom)?;
         serializer.serialize_bytes(&bytes)
     }
 }
@@ -132,14 +130,14 @@ impl<'de> Deserialize<'de> for Proof {
             type Value = Proof;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a byte array containing Borsh-serialized Proof")
+                formatter.write_str("a byte array containing serialized Proof")
             }
 
             fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
-                Proof::try_from_slice(v).map_err(serde::de::Error::custom)
+                bincode::deserialize(v).map_err(serde::de::Error::custom)
             }
         }
 
@@ -147,13 +145,13 @@ impl<'de> Deserialize<'de> for Proof {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub enum Proof {
     Update(UpdateProof),
     Insert(InsertProof),
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone)]
 pub struct NonMembershipProof {
     pub root: Digest,
     pub proof: SparseMerkleProof<Hasher>,
@@ -166,7 +164,7 @@ impl NonMembershipProof {
     }
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone)]
 pub struct InsertProof {
     pub non_membership_proof: NonMembershipProof,
 
@@ -181,7 +179,7 @@ impl InsertProof {
             .verify()
             .context("Invalid NonMembershipProof")?;
 
-        let value = to_vec(&self.value).unwrap();
+        let value = bincode::serialize(&self.value).unwrap();
 
         self.membership_proof.clone().verify_existence(
             self.new_root.into(),
@@ -193,7 +191,7 @@ impl InsertProof {
     }
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone)]
 pub struct UpdateProof {
     pub old_root: RootHash,
     pub new_root: RootHash,
@@ -206,7 +204,7 @@ pub struct UpdateProof {
 
 impl UpdateProof {
     pub fn verify(&self) -> Result<()> {
-        let new_value = to_vec(&self.new_value).unwrap();
+        let new_value = bincode::serialize(&self.new_value).unwrap();
 
         self.proof.clone().verify_update(
             self.old_root,
@@ -278,11 +276,12 @@ where
     }
 
     fn serialize_value(value: &Hashchain) -> Result<Vec<u8>> {
-        to_vec(value).map_err(|e| anyhow!("Failed to serialize value: {}", e))
+        bincode::serialize(value).map_err(|e| anyhow!("Failed to serialize value: {}", e))
     }
 
     fn deserialize_value(bytes: &[u8]) -> Result<Hashchain> {
-        from_slice::<Hashchain>(bytes).map_err(|e| anyhow!("Failed to deserialize value: {}", e))
+        bincode::deserialize::<Hashchain>(bytes)
+            .map_err(|e| anyhow!("Failed to deserialize value: {}", e))
     }
 }
 

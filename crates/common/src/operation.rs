@@ -1,10 +1,9 @@
 use anyhow::{Context, Result};
-use borsh::{BorshDeserialize, BorshSerialize};
 use celestia_types::Blob;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 // An [`Operation`] represents a state transition in the system.
 // In a blockchain analogy, this would be the full set of our transaction types.
 pub enum Operation {
@@ -26,7 +25,7 @@ pub enum Operation {
     },
 }
 
-#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 // An [`AccountSource`] represents the source of an account. See adr-002 for more information.
 pub enum AccountSource {
     SignedBySequencer { signature: String },
@@ -61,7 +60,7 @@ impl TryFrom<&Blob> for Operation {
     type Error = anyhow::Error;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        borsh::from_slice::<Self>(&value.data)
+        bincode::deserialize(&value.data)
             .context(format!("Failed to decode blob into Operation: {value:?}"))
     }
 }

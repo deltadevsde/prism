@@ -340,7 +340,7 @@ impl Sequencer {
         };
 
         let serialized_epoch_json_without_signature =
-            borsh::to_vec(&epoch_json).context("Failed to serialize epoch json")?;
+            bincode::serialize(&epoch_json).context("Failed to serialize epoch json")?;
         let signature = self
             .key
             .sign(serialized_epoch_json_without_signature.as_slice())
@@ -669,6 +669,36 @@ mod tests {
 
         assert_eq!(epoch2.height, 1);
         assert_eq!(epoch2.prev_commitment, epoch1.current_commitment);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_commitment_verification() {
+        let sequencer = create_test_sequencer().await;
+
+        // First epoch
+        let operations1 = vec![
+            create_new_account_operation(
+                "user1@example.com".to_string(),
+                "value1".to_string(),
+                sequencer.key.clone(),
+            )
+            .operation,
+        ];
+        let epoch1 = sequencer.finalize_epoch(operations1).await.unwrap();
+
+        let mut public_values = epoch1.proof.public_values.clone();
+        let proof_prev_commitment: Digest = dbg!(public_values.read());
+        let proof_current_commitment: Digest = dbg!(public_values.read());
+
+        assert_eq!(
+            &epoch1.prev_commitment, &proof_prev_commitment,
+            "Previous commitment mismatch"
+        );
+        assert_eq!(
+            &epoch1.current_commitment, &proof_current_commitment,
+            "Current commitment mismatch"
+        );
     }
 
     #[tokio::test]
