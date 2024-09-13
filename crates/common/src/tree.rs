@@ -14,7 +14,13 @@ use crate::hashchain::Hashchain;
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
-pub type Hasher = blake2::Blake2s256;
+pub type Hasher = sha2::Sha256;
+
+pub fn hash(data: &[u8]) -> Digest {
+    let mut hasher = Hasher::new();
+    hasher.update(data);
+    Digest(hasher.finalize())
+}
 
 #[derive(
     Debug, Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, PartialEq, Eq, Copy,
@@ -95,12 +101,6 @@ impl Digest {
     pub fn to_hex(&self) -> String {
         hex::encode(self.0)
     }
-}
-
-pub fn hash(data: &[u8]) -> Digest {
-    let mut hasher = blake2::Blake2s256::new();
-    hasher.update(data);
-    Digest(hasher.finalize())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -294,7 +294,6 @@ where
         let serialized_value = Self::serialize_value(&value)?;
 
         let old_root = self.get_current_root()?;
-        println!("key: {:?}", key);
         let (old_value, non_membership_merkle_proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         let non_membership_proof = NonMembershipProof {

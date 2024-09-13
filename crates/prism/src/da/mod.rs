@@ -5,6 +5,8 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use ed25519::Signature;
 use prism_common::{operation::Operation, tree::Digest};
 use prism_errors::GeneralError;
+use serde::{Deserialize, Serialize};
+use sp1_sdk::SP1ProofWithPublicValues;
 use std::{self, str::FromStr};
 
 pub mod celestia;
@@ -16,8 +18,7 @@ pub struct FinalizedEpoch {
     pub height: u64,
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
-    // pub proof: Bls12Proof,
-    // pub verifying_key: VerifyingKey,
+    pub proof: SP1ProofWithPublicValues,
     pub signature: Option<String>,
 }
 

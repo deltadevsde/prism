@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::KeyHash;
-use prism_common::tree::{hash, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
+use prism_common::tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
 use std::{self, str::FromStr, sync::Arc};
 use tokio::{
     sync::{
@@ -13,6 +13,8 @@ use tokio::{
     task::spawn,
     time::interval,
 };
+
+use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 #[cfg(test)]
 use prism_errors::DataAvailabilityError;
@@ -31,6 +33,8 @@ use prism_common::{
 };
 use prism_errors::{DatabaseError, GeneralError};
 
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
+
 pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
@@ -47,6 +51,10 @@ pub struct Sequencer {
     // posted to the DA layer.
     pending_operations: Arc<Mutex<Vec<Operation>>>,
     tree: Arc<Mutex<KeyDirectoryTree<Box<dyn Database>>>>,
+    prover_client: Arc<Mutex<ProverClient>>,
+
+    proving_key: SP1ProvingKey,
+    verifying_key: SP1VerifyingKey,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
     epoch_buffer_rx: Arc<Mutex<Receiver<FinalizedEpoch>>>,
@@ -86,13 +94,19 @@ impl Sequencer {
 
         // Create the KeyDirectory
         let tree = Arc::new(Mutex::new(KeyDirectoryTree::new(db.clone())));
+        let prover_client = ProverClient::new();
+
+        let (pk, vk) = prover_client.setup(PRISM_ELF);
 
         Ok(Sequencer {
             db: db.clone(),
             da,
             ws: WebServer::new(ws),
+            proving_key: pk,
+            verifying_key: vk,
             key,
             start_height,
+            prover_client: Arc::new(Mutex::new(prover_client)),
             tree,
             pending_operations: Arc::new(Mutex::new(Vec::new())),
             epoch_buffer_tx: Arc::new(tx),
@@ -305,19 +319,23 @@ impl Sequencer {
             .set_commitment(&epoch, &current_commitment)
             .context("Failed to add commitment for new epoch")?;
 
-        // let batch_circuit =
-        //     BatchMerkleProofCircuit::new(&prev_commitment, &current_commitment, proofs)
-        //         .context("Failed to create BatchMerkleProofCircuit")?;
-        // let (proof, verifying_key) = batch_circuit
-        //     .create_and_verify_snark()
-        //     .context("Failed to create and verify snark")?;
+        let batch = Batch {
+            prev_root: prev_commitment,
+            new_root: current_commitment,
+            proofs,
+        };
+
+        let mut stdin = SP1Stdin::new();
+        stdin.write(&batch);
+
+        let client = self.prover_client.lock().await;
+        let proof = client.prove(&self.proving_key, stdin).plonk().run()?;
 
         let epoch_json = FinalizedEpoch {
             height: epoch,
             prev_commitment,
             current_commitment,
-            // proof: proof.into(),
-            // verifying_key: verifying_key.into(),
+            proof,
             signature: None,
         };
 

@@ -45,6 +45,7 @@ auto_impl = { workspace = true }
 prism-common = { workspace = true }
 prism-errors = { workspace = true }
 prism-groth16 = { workspace = true }
+sp1-sdk = { workspace = true }
 
 [dev-dependencies]
 serial_test = "3.1.1"
