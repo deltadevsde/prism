@@ -23,7 +23,7 @@ The image above shows an example of a hashchain. An identifier refers to this ha
 
 ## Jellyfish Merkle Trees
 
-Prism uses Jellyfish Merkle Trees (JMT) instead of indexed Merkle trees. JMTs are a space-and-computation-efficient sparse Merkle tree optimized for Log-Structured Merge-tree (LSM-tree) based key-value storage.
+Prism uses [Jellyfish Merkle Trees](https://developers.diem.com/papers/jellyfish-merkle-tree/2021-01-14.pdf) (JMT) instead of indexed Merkle trees. JMTs are a space-and-computation-efficient sparse Merkle tree optimized for Log-Structured Merge-tree (LSM-tree) based key-value storage.
 
 Key features of Jellyfish Merkle Trees include:
 

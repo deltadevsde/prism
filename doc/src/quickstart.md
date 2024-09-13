@@ -22,7 +22,7 @@ From a high level, _Prism_ is simply a trust-minimized service that manages data
 
 ## A practical application
 
-Prism originiated as a toy implementation of a paper from [Tzialla et al.](https://eprint.iacr.org/2021/1263.pdf), from which it has significantly diverged. In this paper, _"Keypal"_ is described as a concrete application example, which serves as a POC of an application that could run on _Prism_. _Prism_ can be thought of as a service that manages a two-column table. The first column stores unique identifiers, which we will simplify to just e-mail addresses in this documentation, and the corresponding column on the right stores a hashchain of values. For most Prism applications, the values stored in this hashchain are the public keys associated with the identifier.
+Prism originiated as a toy implementation of a paper from [Tzialla et al.](https://eprint.iacr.org/2021/1263.pdf), from which it has significantly diverged. In this documentation, _"Keypal"_ is described as a concrete application example, which serves as a POC of an application that could run on _Prism_. _Prism_ can be thought of as a service that manages a two-column table. The first column stores unique identifiers, which we will simplify to just e-mail addresses in this documentation, and the corresponding column on the right stores a hashchain of values. For most Prism applications, the values stored in this hashchain are the public keys associated with the identifier.
 
 ## What's next?
 
