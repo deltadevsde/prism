@@ -1,0 +1,18 @@
+[package]
+name = "prism-common"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+bls12_381.workspace = true
+borsh.workspace = true
+jmt.workspace = true
+serde.workspace = true
+hex.workspace = true
+sha2.workspace = true
+blake2.workspace = true
+celestia-types.workspace = true
