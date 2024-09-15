@@ -54,6 +54,8 @@ pub struct Sequencer {
     prover_client: Arc<Mutex<ProverClient>>,
 
     proving_key: SP1ProvingKey,
+    // fix clippy warning, keep verifying_key for future use
+    #[allow(dead_code)]
     verifying_key: SP1VerifyingKey,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,

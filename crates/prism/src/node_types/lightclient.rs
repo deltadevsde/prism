@@ -80,8 +80,8 @@ impl LightClient {
 
                             // todo: verify adjacency to last heights, <- for this we need some sort of storage of epochs
                             for epoch_json in epoch_json_vec {
-                                let prev_commitment = &epoch_json.prev_commitment;
-                                let current_commitment = &epoch_json.current_commitment;
+                                let _prev_commitment = &epoch_json.prev_commitment;
+                                let _current_commitment = &epoch_json.current_commitment;
 
                                 // if the user does not add a verifying key, we will not verify the signature,
                                 // but only log a warning on startup
