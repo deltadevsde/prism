@@ -2,6 +2,7 @@
 
 * [Introduction](README.md)
 * [Prism Quickstart](quickstart.md)
+* [Rollup Construction](rollup.md)
 * [Datastructures](datastructures.md)
 * [Account Sources](labels.md)
 * [Inserts and Updates](insert-update-proofs.md)
