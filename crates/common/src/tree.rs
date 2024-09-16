@@ -6,7 +6,7 @@ use jmt::{
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
     JellyfishMerkleTree, KeyHash, RootHash, SimpleHasher,
 };
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::hashchain::Hashchain;
@@ -14,7 +14,57 @@ use crate::hashchain::Hashchain;
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
-pub type Hasher = sha2::Sha256;
+#[derive(Debug, Clone, Default)]
+pub struct Hasher(sha2::Sha256);
+
+impl Serialize for Hasher {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_tuple_struct("Sha256Wrapper", 0)?.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Hasher {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Sha256WrapperVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for Sha256WrapperVisitor {
+            type Value = Hasher;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a Sha256Wrapper")
+            }
+
+            fn visit_seq<A>(self, _seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                Ok(Hasher::default())
+            }
+        }
+
+        deserializer.deserialize_tuple_struct("Sha256Wrapper", 0, Sha256WrapperVisitor)
+    }
+}
+
+impl SimpleHasher for Hasher {
+    fn new() -> Self {
+        Self(sha2::Sha256::new())
+    }
+
+    fn update(&mut self, data: &[u8]) {
+        self.0.update(data);
+    }
+
+    fn finalize(self) -> [u8; 32] {
+        self.0.finalize()
+    }
+}
 
 pub fn hash(data: &[u8]) -> Digest {
     let mut hasher = Hasher::new();
@@ -109,49 +159,13 @@ pub struct Batch {
     pub proofs: Vec<Proof>,
 }
 
-impl Serialize for Proof {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = bincode::serialize(self).map_err(serde::ser::Error::custom)?;
-        serializer.serialize_bytes(&bytes)
-    }
-}
-
-impl<'de> Deserialize<'de> for Proof {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct ProofVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for ProofVisitor {
-            type Value = Proof;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a byte array containing serialized Proof")
-            }
-
-            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                bincode::deserialize(v).map_err(serde::de::Error::custom)
-            }
-        }
-
-        deserializer.deserialize_bytes(ProofVisitor)
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Proof {
     Update(UpdateProof),
     Insert(InsertProof),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NonMembershipProof {
     pub root: Digest,
     pub proof: SparseMerkleProof<Hasher>,
@@ -164,7 +178,7 @@ impl NonMembershipProof {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InsertProof {
     pub non_membership_proof: NonMembershipProof,
 
@@ -191,7 +205,7 @@ impl InsertProof {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateProof {
     pub old_root: RootHash,
     pub new_root: RootHash,

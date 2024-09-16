@@ -331,7 +331,7 @@ impl Sequencer {
         stdin.write(&batch);
 
         let client = self.prover_client.lock().await;
-        let proof = client.prove(&self.proving_key, stdin).plonk().run()?;
+        let proof = client.prove(&self.proving_key, stdin).run()?;
 
         let epoch_json = FinalizedEpoch {
             height: epoch,
