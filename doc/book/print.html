@@ -435,15 +435,15 @@ struct Proof {
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="state-of-prism"><a class="header" href="#state-of-prism">State of Prism</a></h1>
 <p>This post is an overview on the current development status of Prism as of Aug 26th 2024. We will do our best to keep it routinely updated.</p>
-<h2 id="1-snark-implementation"><a class="header" href="#1-snark-implementation">1. SNARK Implementation</a></h2>
-<p>Our current circuit implementations serves as a functional prototype, allowing us to ship an initial Proof of Concept. These circuits are missing critical components and constraints. We're actively enhancing this system by:</p>
+<h2 id="1-circuits"><a class="header" href="#1-circuits">1. Circuits</a></h2>
+<p>Our current circuit implementations serve as a functional prototype, allowing us to ship an initial Proof of Concept. These circuits are missing critical components and constraints. In the repo you will find our groth16 and supernova circuits, as well as our SP1 program. We're actively enhancing this system by:</p>
 <ul>
-<li>Rewriting circuits using bellpepper for increased flexibility in proving systems</li>
-<li>Adapting circuits for Supernova compatibility to leverage folding schemes and move to a trusted ZK setup</li>
-<li>Developing additional core circuits to ensure comprehensive security in our permissionless rollup construction</li>
-<li>Exploring zkVM solutions (e.g., Risc0, Jolt) for Celestia state awareness and WASM verification in light clients</li>
+<li>Rewriting original groth16 circuits using bellpepper for increased flexibility in proving systems</li>
+<li>Finishing Supernova circuits to leverage folding schemes and move to a trusted ZK setup</li>
+<li>Developing additional core circuits (related to Celestia state and hashchain verification) to eliminate further trust assumptions</li>
+<li>Exploring zkVM solutions (e.g., Risc0, Jolt, SP1) for Celestia state awareness and harnessing JMT proof optimizations without compromise</li>
 </ul>
-<p><strong>Next steps:</strong> Complete Nova rewrite and integrate a zkVM solution</p>
+<p><strong>Next steps:</strong> Complete Nova rewrite and zkVM PoC</p>
 <h2 id="2-rollup-status"><a class="header" href="#2-rollup-status">2. Rollup Status</a></h2>
 <p>We've made significant progress in rollup implementation:</p>
 <ul>
@@ -460,12 +460,13 @@ struct Proof {
 </ul>
 <p><strong>Next steps:</strong> Expand API methods based on developer feedback and use case requirements</p>
 <h2 id="4-state-tree-optimization"><a class="header" href="#4-state-tree-optimization">4. State Tree Optimization</a></h2>
-<p>Our current state tree implementation, while functional, presents opportunities for enhancement:</p>
+<p>Since our last update, we have migrated fully to using a Jellyfish Merkle Tree. While functional, there are many opportunities for enhancement:</p>
 <ul>
-<li>Evaluating optimizations for our <code>indexed-merkle-tree</code> crate</li>
-<li>Considering alternatives such as jellyfish merkle trees or NOSM for improved efficiency</li>
+<li>Evaluating lower level proof verification optimizations to reduce cycle count in SP1</li>
+<li>Upstreaming our changes or publishing our fork as a crate if not reconcilable</li>
+<li>Implementing a LSM datastore, moving away from the Redis PoC</li>
 </ul>
-<p><strong>Next steps:</strong> Determine optimal tree implementation and proceed with enhancements</p>
+<p><strong>Next steps:</strong> Analyze SP1 cycles during proof verification, implement LSM-backed datastore</p>
 <h2 id="5-wasm-compatibility"><a class="header" href="#5-wasm-compatibility">5. WASM Compatibility</a></h2>
 <p>We're making strides in WASM compatibility to ensure widespread accessibility:</p>
 <ul>
