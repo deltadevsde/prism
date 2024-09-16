@@ -8,10 +8,13 @@ title = "Prism Documentation"
 [preprocessor.katex]
 after = ["links"]
 
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
 [output.html]
 git-repository-url = "https://github.com/deltadevsde/prism"
 default-theme = "ayu"
 no-section-label = true
-additional-js = ["custom.js"]
+additional-js = ["custom.js", "mermaid.min.js", "mermaid-init.js"]
 fold.enable = true
 fold.level = 0

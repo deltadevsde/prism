@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li></ol></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="insert-update-proofs.html">Insert and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
+                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item "><a href="insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -213,7 +213,7 @@ Prism's verifiable encryption standard opens up possibilities for secure communi
 <p>We will introduce some basic concepts of cryptography that are essential for understanding the content. For more information and deeper explanations, we will provide links to relevant literature and texts. If you encounter errors or have suggestions for improvement, please feel free to <a href="https://github.com/deltadevsde/prism/issues">open an issue</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="quickstart"><a class="header" href="#quickstart">Quickstart</a></h1>
-<p>This guide will introduce you to the ideas behind <em>Prism</em>. We will go through the necessary cryptography and provide further links in many places to deepen the knowledge and not to completely interrupt the reading flow on the topic.</p>
+<p>This guide will introduce you to the ideas behind Prism.</p>
 <blockquote>
 <p><strong>Note</strong>: If you have no or only little previous knowledge, you can get a short overview with partly simplified explanations <a href="./crypto-intro/intro.html">here</a>.</p>
 </blockquote>
@@ -223,17 +223,131 @@ Prism's verifiable encryption standard opens up possibilities for secure communi
 <h2 id="what-is-key-transparency"><a class="header" href="#what-is-key-transparency">What is Key Transparency?</a></h2>
 <p>Key transparency is a security system designed to make the distribution and management of a key directory auditable and verifiable. Signal has no key transparency solution. Other E2EE applications who do have key transparency solutions (Keybase, Whatsapp), have various strong trust assumptions that cancel out the verifiability of these systems. Furthermore, all current E2EE chat applications with key transparency solutions do not actually implement auditing or verifying from the chat client.</p>
 <p>We provide the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over Celestia. These WASM light clients are integrated into chat clients to have a direct connection to the DA layer without trusting an RPC.</p>
-<h2 id="what-is-prism"><a class="header" href="#what-is-prism">What is <em>Prism</em>?</a></h2>
-<p>From a high level, <em>Prism</em> is simply a trust-minimized service that manages data - more precisely, a label-value-map - that produces evidence that it has acted correctly and honestly. Correct and honest here refer to application-specific policies by which it purports to act. In the following, we are in principle dealing with a system that does not need to be trusted because it is provably honest. Incidentally, the proofs save us some computational effort, but we will come to that later.</p>
+<h2 id="what-is-prism"><a class="header" href="#what-is-prism">What is Prism?</a></h2>
+<p>From a high level, Prism is simply a trust-minimized service that manages data - more precisely, a label-value-map - that produces evidence that it has acted correctly and honestly. Correct and honest here refer to application-specific policies by which it purports to act.</p>
 <h2 id="a-practical-application"><a class="header" href="#a-practical-application">A practical application</a></h2>
-<p>Prism originiated as a toy implementation of a paper from <a href="https://eprint.iacr.org/2021/1263.pdf">Tzialla et al.</a>, from which it has significantly diverged. In this documentation, <em>"Keypal"</em> is described as a concrete application example, which serves as a POC of an application that could run on <em>Prism</em>. <em>Prism</em> can be thought of as a service that manages a two-column table. The first column stores unique identifiers, which we will simplify to just e-mail addresses in this documentation, and the corresponding column on the right stores a hashchain of values. For most Prism applications, the values stored in this hashchain are the public keys associated with the identifier.</p>
-<h2 id="whats-next"><a class="header" href="#whats-next">What's next?</a></h2>
-<p>Great, we now have an overview of the basic function of <em>Prism</em>. The fact that we don't understand any details yet and that everything will only make more sense later, we have to accept for the moment. Here's a quick overview of what we'll look at next:</p>
+<p>Prism originiated as a toy implementation of a paper from <a href="https://eprint.iacr.org/2021/1263.pdf">Tzialla et al.</a>, from which it has significantly diverged. In this documentation, <em>"Keypal"</em> is described as a concrete application example, which serves as a POC of an application that could run on Prism. Prism can be thought of as a service that simply manages a two-column table. The first column stores unique identifiers, which we will simplify to just e-mail addresses in this documentation, and the corresponding column on the right stores a hashchain of values. For most Prism applications, the values stored in this hashchain are the public keys associated with the identifier.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
+<p>We operate as a based rollup on Celestia. The SNARKs are posted to one namespace, and the operations are posted to a secondary namespace, enabling full nodes. This architecture is designed to be trust-minimized and censorship-resistant.</p>
+<p>The sequencer is a partially unprivileged sequencer: while anybody can post update operations to the base layer, account creations must be signed by the sequencer. This is a temporary measure discussed in <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">adr-003 (Service Registration)</a>.</p>
+<p>Light nodes verify the state by downloading and verifying the SNARKs posted to Celestia. There is currently no P2P overlay for the Prism network.</p>
+<ol>
+<li>An epoch is defined by the valid operations posted to the namespace in the previous Celestia block.</li>
+<li>Services can replicate the state by running a full node, to serve their own stack and not rely on the liveness of the sequencer.</li>
+<li>Enables future prover decentralization (perhaps with a prover marketplace).</li>
+<li>Censorship resistance (updates can be posted directly to the DA layer).</li>
+</ol>
+<pre class="mermaid">graph TD
+    User[User] --&gt;|interacts with| ChatApp[Chat Application]
+    subgraph ChatApp[Chat Application]
+        LuminaPrism[Lumina+Prism]
+    end
+    LuminaPrism --&gt;|uses| ServiceAPI[Service API]
+    LuminaPrism --&gt;|downloads + verifies SNARK| Celestia
+
+    subgraph ChatServiceInfra[Chat Service Infrastructure]
+        ChatServer[Chat Service Server]
+        PrismNode[Prism Full Node]
+    end
+
+    ServiceAPI --&gt;|requests keys and merkle proofs| ChatServiceInfra
+    ServiceAPI --&gt;|verifies merkle proofs against commitment in SNARK| ChatServiceInfra
+
+    ChatServer --&gt;|uploads key updates| Celestia
+
+    Celestia --&gt;|gives key updates from last celestia block| Sequencer
+    Sequencer[Sequencer/Prover] --&gt;|posts snark to celestia| Celestia
+</pre>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="prism-datastructures"><a class="header" href="#prism-datastructures">Prism Datastructures</a></h1>
+<p>We will now look at the basic data structures of Prism and how they are used. Following this, we can understand how these data structures enable us to track provably correct behavior. The main data structures we introduce here are <a href="datastructures.html#append-only-hashchains">append-only hashchains</a> and <a href="datastructures.html#jellyfish-merkle-trees">Jellyfish Merkle Trees</a>.</p>
+<h2 id="append-only-hashchains"><a class="header" href="#append-only-hashchains">Append-only hashchains</a></h2>
+<p><a href="https://eprint.iacr.org/2021/1263.pdf">Verdict</a> provides a good introductory definition of append-only hashchains:</p>
+<blockquote>
+<p>In Verdict's transparency dictionary, the value associated with a label is an append-only hashchain of operations, where nodes store raw operations requested on the label, as well as the cryptographic hash of the previous node in the chain. For example, in the context of key transparency, a hashchain records two types of operations: (1) adding a new key; and (2) revoking an existing key [...]</p>
+</blockquote>
+<p>However, they do not provide a reference implementation. An implementation would conceivably include the following values:</p>
 <ul>
-<li><a href="./datastructures.html">Let's understand the data structures</a></li>
-<li><a href="./merkle-proofs.html">Ready for the first little proofs?</a></li>
-<li><a href="./zkp-basics.html">Zero knowledge to save time and resources</a></li>
+<li><strong>hash</strong>: the following three elements are hashed in a hash function and the value is stored in this field</li>
+<li><strong>previous hash</strong>: a unique reference to the previous entry in the list, which depends on the contents of the entry as it contains the hashed values.</li>
+<li><strong>operation</strong>: The executed operation, in our concrete application case ADD and REVOKE operations can be executed.</li>
+<li><strong>value</strong>: Since we are still dealing with public keys, we need to know which keys are added or revoked in order to generate a list of valid, unrevoked keys from the operations.</li>
 </ul>
+<p>Users can register a unique ID in Prism using various account sources, not just limited to email addresses. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.</p>
+<img class="theme-dependent-image" data-light-src="./img/hashchain_light.png" data-dark-src="./img/hashchain_dark.png" alt="Theme-dependent hashchain">
+<p>The image above shows an example of a hashchain. An identifier refers to this hashchain. The individual elements of the hashchain contain the operation performed and the value that is added or revoked with the operation. In addition, each element contains a previous hash value, which makes the data structure a chain, since each element points to its predecessor. The first element of the hashchain has 0000... as its previous hash, which is comparable to a genesis block of a blockchain. Each element of the hashchain is uniquely identifiable by a hash value. This is created by giving all other values of the element into a hash function H: <em>H(previous Hash, operation, value) = hash</em></p>
+<h2 id="jellyfish-merkle-trees"><a class="header" href="#jellyfish-merkle-trees">Jellyfish Merkle Trees</a></h2>
+<p>Prism uses <a href="https://developers.diem.com/papers/jellyfish-merkle-tree/2021-01-14.pdf">Jellyfish Merkle Trees</a> (JMT) instead of indexed Merkle trees. JMTs are a space-and-computation-efficient sparse Merkle tree optimized for Log-Structured Merge-tree (LSM-tree) based key-value storage.</p>
+<p>Key features of Jellyfish Merkle Trees include:</p>
+<ol>
+<li>
+<p>Version-based Node Key: JMT uses a version-based key schema, which facilitates version-based sharding, reduces compaction overhead in LSM-tree based storage engines, and results in smaller key sizes on average.</p>
+</li>
+<li>
+<p>Simplified Structure: JMT has only two physical node types - Internal Node and Leaf Node.</p>
+</li>
+<li>
+<p>Concise Proof Format: The number of sibling digests in a JMT proof is less on average than that of the same Addressable Radix Merkle Tree (ARMT) without optimizations, requiring less computation and space.</p>
+</li>
+<li>
+<p>Efficient for Sparse Trees: JMT is particularly efficient for sparse trees, which is often the case in blockchain applications.</p>
+</li>
+</ol>
+<p><a href="./crypto-intro/merkle-trees.html">More about Merkle trees</a></p>
+<h2 id="service-registration"><a class="header" href="#service-registration">Service Registration</a></h2>
+<p>Prism introduces a <code>REGISTER_SERVICE</code> operation that allows for creating novel account sources. You can read more about it <a href="./labels.html">here</a>.</p>
+<h2 id="account-creation"><a class="header" href="#account-creation">Account Creation</a></h2>
+<p>Prism introduces a <code>CREATE_ACCOUNT</code> operation that allows for decentralized account creation. This operation supports various account sources, not just email addresses. The process works as follows:</p>
+<ol>
+<li>Users prove ownership of a resource (e.g., a social media account, email address) using services like <a href="https://tlsnotary.org/">TLSNotary</a> or <a href="https://prove.email/">zkEmail</a>.</li>
+<li>The proof is generated off-chain and then submitted as part of the <code>CREATE_ACCOUNT</code> operation.</li>
+<li>The Prism protocol includes validity rules for each supported external protocol's proof system.</li>
+<li>Full nodes verify the <code>CREATE_ACCOUNT</code> operation according to the corresponding proof system's ruleset before applying the state transition in the Jellyfish Merkle Tree.</li>
+</ol>
+<p>This approach allows for:</p>
+<ul>
+<li>Addition of arbitrary account sources</li>
+<li>Decentralized account creation without relying on a single trusted entity</li>
+<li>Flexibility for applications to use various types of accounts for registration</li>
+</ul>
+<blockquote>
+<p><strong>Note</strong>: The <code>CREATE_ACCOUNT</code> operation enhances the security and decentralization of the account creation process in Prism. It mitigates the risks associated with centralized account creation while allowing for diverse account sources.</p>
+</blockquote>
+<p>The combination of append-only hashchains and Jellyfish Merkle Trees, along with the decentralized account creation process, enables Prism to maintain a transparent and verifiable record of public keys associated with user IDs from various sources.</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="accounts-on-prism"><a class="header" href="#accounts-on-prism">Accounts on Prism</a></h1>
+<p>Once a new user is added to the JMT, we know that all updates to a hashchain are valid by construction - updates must be signed by an already existing key in the hashchain. But who gets to add the first key for a user? Why should we trust that the first key added actually comes from the user?</p>
+<h2 id="high-level-overview"><a class="header" href="#high-level-overview">High Level Overview</a></h2>
+<p>The entries in the transparency dictionary are indexed by labels. These labels are arbitrary strings, and in the majority of the documentation we simplify the type of label to an email address.</p>
+<p>But to add a new email address/phone number for a user, the owner of that resource must be able to prove that they own it. This is done by means of a centralized service that verifies resource ownership. Once a user has verified ownership of an email address, the sequencer adds an entry to the hashchain.</p>
+<p>We must move away from this, as it is both not scalable and not trust-minimized. We will register services such as <a href="https://prove.email/">zkEmail</a> and <a href="https://tlsnotary.org/">TLSNotary</a> to provide resource ownership proofs. This will allow us to move to a trust-minimized system where the user can add their own account to the state directly by posting to the DA layer.</p>
+<p>See more in <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-002-create-account-op.md">adr-002 (Account Sources)</a> and <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">adr-003 (Service Registration)</a>.</p>
+<h2 id="account-creation-and-service-registration"><a class="header" href="#account-creation-and-service-registration">Account Creation and Service Registration</a></h2>
+<p>In the current design, account creation is managed through <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">registered services</a>. Here's how it works:</p>
+<ol>
+<li>Services must be registered in the system via a <code>RegisterService</code> operation.</li>
+<li>Initially, service registration will be permissioned, requiring a signature from the prover/sequencer.</li>
+<li>Each service defines a specific challenge that must be completed to create an account. This could be either a signature check or providing a groth16 proof.</li>
+<li>Users create accounts by completing the service-specific challenge.</li>
+</ol>
+<p>This approach allows for flexibility while maintaining control over account creation. It also paves the way for more decentralized account creation methods in the future.</p>
+<h2 id="other-considerations"><a class="header" href="#other-considerations">Other Considerations</a></h2>
+<p>If all labels were stored in plaintext, services would be vulnerable to enumeration attacks. A simple protection against this is to hash identifiers, meaning users must know the ID plaintext before resolving the user's hashchain. However, this is not a strong attack prevention, as hash functions are publically known.</p>
+<p>For this reason, we distinguish between the notion of public  and private services.</p>
+<ol>
+<li>Private services would have labels run through a VRF -- completely preventing enumeration attacks, but requiring centralized (albeit publically verifiable) identity resolution.</li>
+<li>Public services simply hash their labels pre-insertion.</li>
+</ol>
+<h2 id="future-developments"><a class="header" href="#future-developments">Future Developments</a></h2>
+<p>As the system evolves, we plan to implement the following improvements:</p>
+<ol>
+<li>Permissionless Service Registration: Once we're confident in state growth benchmarks, we may remove the signature requirement for service registration, allowing anyone to register a service.</li>
+<li>Resource Pricing: If state growth becomes an issue, we may introduce a credit system for account creation. Services would deposit funds (via a Celestia transaction) to obtain credits for creating accounts.</li>
+<li>Native Shielded Pool: While not currently implemented, there are considerations for adding operations to support a native shielded pool in the future.</li>
+</ol>
+<h2 id="protocols"><a class="header" href="#protocols">Protocols</a></h2>
+<p>This construction allows for some interesting application-layer protocols that can be added. For example, we are adding a transaction type for registering a service. These services register with a public key or groth16 verifying key and service identifier. Then, a validity rule is added for full nodes that new entries to the JMT, if preceded by the service identifier, must be signed by the service provider's keypair or provide a valid groth16 proof for the corresponding verifying key.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="state-of-prism"><a class="header" href="#state-of-prism">State of Prism</a></h1>
 <p>This post is an overview on the current development status of Prism as of Aug 26th 2024. We will do our best to keep it routinely updated.</p>
@@ -275,6 +389,125 @@ Prism's verifiable encryption standard opens up possibilities for secure communi
 <li>Working towards full integration with Lumina's WASM nodes for blob submission and retrieval</li>
 </ul>
 <p><strong>Next steps:</strong> Integrate Lumina's WASM nodes and develop an SDK for seamless mobile framework integration</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="adherance-to-application-specific-guidelines"><a class="header" href="#adherance-to-application-specific-guidelines">Adherance to application-specific guidelines</a></h1>
+<p>We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Since in <em>Prism</em> only insert or update operations are allowed (i.e. one can only add new email addresses or add or revoke public keys to an existing email address), the monotonic growth of the labels should be achieved if the behavior is correct.</p>
+<h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
+<p>JMT incorporates versioning, which is crucial for its operations. Each update to the tree creates a new version, allowing for efficient historical queries and updates. The version is part of the node key structure:</p>
+<pre><code class="language-bash">version || nibble path
+</code></pre>
+<p>This versioning system ensures that updates can be made efficiently without affecting previous versions of the tree.</p>
+<h2 id="insertion-and-updates"><a class="header" href="#insertion-and-updates">Insertion and Updates</a></h2>
+<p>The insert operation comprises three steps, which we will consider individually in the following. First, again informally: what does it mean to perform an insert operation? Insert means that we add a completely new identifier - so we add a "new" email address to our dictionary. Accordingly, when we add a value to the dictionary, the structure that supports us in any reasoning changes as well, namely our Jellyfish Merkle tree that manages the derived dictionary.</p>
+<p><strong>Find the insertion position</strong>
+When traversing the tree to perform the lookup, the following two scenarios are possible:</p>
+<ol>
+<li>A leaf node with the same prefix of the nibble path but different keyhash value is found.</li>
+<li>An internal node is reached where the next nibble path to be visited (index n) contains an empty subtree.</li>
+</ol>
+<p><strong>Handle the current node</strong>
+Once we have found the location, there are two possibilities: either it is an internal node or a leaf node.</p>
+<ol>
+<li>if it is an internal node: a new leaf is created and inserted as a child node in the empty index n of the internal node</li>
+<li>if it is a leaf node: two different scenarios can occur at this point, either KeyHash matches the key hash at the point where the previous nibble path led, in which case it is basically an update operation. Otherwise, the KeyHash values differ and a new leaf is created. In addition, new internal nodes are created to represent the common path, as both nodes match up to a certain nibble path that is not yet sufficiently represented in the tree. This internal node takes the place of the previous leaf node and then both the new and the old node (which was previously present at the split position) are inserted in the new internal node at the respective index.</li>
+</ol>
+<p><strong>Update ancestors version</strong>
+The versions of all nodes that have been traversed along the way are then updated to the latest version.</p>
+<h2 id="proof-of-update"><a class="header" href="#proof-of-update">Proof-of-Update</a></h2>
+<p>The proof that an update operation was executed correctly, i.e. a proof-of-update, means that the operation list (hashchain) for an already existing identifier has been updated by one operation correctly. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier. In any case, this means that another entry has been added to the hashchain in which the operations are stored.</p>
+<blockquote>
+<p><strong>Note</strong>
+Obviously, this means that the last hash of the hashchain, which is crucial for the label-value pair in the Merkle tree, also has a new value.</p>
+</blockquote>
+<p>The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
+To proof the update, it is sufficient if we consider the old root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf, so to say. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.</p>
+<p>In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.</p>
+<h2 id="insert-proofs"><a class="header" href="#insert-proofs">Insert Proofs</a></h2>
+<p>The insertion proof consists</p>
+<h3 id="why-uniqueness-matters"><a class="header" href="#why-uniqueness-matters">Why uniqueness matters</a></h3>
+<blockquote>
+<p>Non-membership queries are important [...] as well; otherwise, the service's dictionary might contain more than one tuple for the <a href="mailto:bob@dom.org">bob@dom.org</a> label, allowing the service to show different tuples to different clients. [...] Alice can safely encrypt sensitive data using the public key the service returns for Bob.</p>
+</blockquote>
+<p>We briefly recall what the unique identifier means and why this is important. The email addresses in Prism act as unique identifiers and in order for the service to behave correctly, it must be ensured that no email address can be inserted twice. We imagine scenarios including when the Id <a href="mailto:bob@dom.org">bob@dom.org</a> appears twice or more in the dictionary:
+Bob adds multiple keys and also revokes some of those keys. If there are several entries for <a href="mailto:bob@dom.org">bob@dom.org</a>, scenarios are conceivable in which Bob adds a key to his first entry '<a href="mailto:bob@dom.org">bob@dom.org</a>' and later has to revoke it because the corresponding private key was stolen by Oskar. Now it could happen that the revoke operation is entered in the hashchain of the second entry '<a href="mailto:bob@dom.org">bob@dom.org</a>', in which the add operation of this key doesn't occur. Now when Alice goes through the operations in the first entry '<a href="mailto:bob@dom.org">bob@dom.org</a>', she will find that the stolen key has not been revoked and she thinks that she can perform encryption with this key. Since a requirement of Verdict is that we rule out these scenarios (as best we can), accordingly we need to make use of Proofs-of-Non-Membership for this.</p>
+<p>TODO: uniqueness still matters but should it be discussed somewhere here?</p>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="jellyfish-merkle-proofs"><a class="header" href="#jellyfish-merkle-proofs">Jellyfish Merkle Proofs</a></h1>
+<p>Jellyfish Merkle Trees (JMT) are designed to support efficient membership and non-membership proofs, similar to Indexed Merkle Trees from Verdict. However, the proof format and verification process are optimized for better performance and smaller proof sizes.</p>
+<h2 id="proof-format"><a class="header" href="#proof-format">Proof Format</a></h2>
+<p>JMT uses a simplified proof format that can represent both inclusion and exclusion proofs. The proof structure is as follows:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct Leaf {
+    HashValue address;
+    HashValue value_hash;
+};
+
+struct Proof {
+    Leaf leaf;
+    Vec&lt;HashValue&gt; siblings;
+};
+<span class="boring">}</span></code></pre></pre>
+<p>This format allows for three types of proofs:</p>
+<ol>
+<li>Proof of Inclusion</li>
+<li>Proof of Exclusion (with another leaf)</li>
+<li>Proof of Exclusion (with an empty node)</li>
+</ol>
+<h2 id="proof-of-inclusion"><a class="header" href="#proof-of-inclusion">Proof of Inclusion</a></h2>
+<p>A proof of inclusion in JMT is similar to traditional Merkle proofs but takes advantage of the tree's structure to reduce the proof size. When proving the existence of a node, the proof includes:</p>
+<ol>
+<li>The leaf node containing the key and value hash</li>
+<li>A list of sibling hashes along the path from the leaf to the root</li>
+</ol>
+<p>The verification process involves:</p>
+<ol>
+<li>Verifying that the provided leaf matches the queried key</li>
+<li>Reconstructing the path from the leaf to the root using the provided siblings</li>
+<li>Comparing the calculated root hash with the known root hash</li>
+</ol>
+<h2 id="proof-of-exclusion"><a class="header" href="#proof-of-exclusion">Proof of Exclusion</a></h2>
+<p>JMT supports two types of exclusion proofs:</p>
+<ol>
+<li>
+<p>Exclusion proof with another leaf:</p>
+<ul>
+<li>Proves that a different leaf exists with a key that shares a common prefix with the queried key</li>
+<li>The proof includes the existing leaf and the necessary sibling hashes</li>
+</ul>
+</li>
+<li>
+<p>Exclusion proof with an empty node:</p>
+<ul>
+<li>Proves that an empty node exists on the path to where the queried key would be</li>
+<li>The proof includes the sibling hashes up to the empty node</li>
+</ul>
+</li>
+</ol>
+<p>The verification process for exclusion proofs involves:</p>
+<ol>
+<li>Checking if the provided leaf (if any) has a different key than the queried key</li>
+<li>Verifying that the common prefix length is correct</li>
+<li>Reconstructing the path to the root and comparing the calculated root hash with the known root hash</li>
+</ol>
+<h2 id="efficiency-improvements"><a class="header" href="#efficiency-improvements">Efficiency Improvements</a></h2>
+<p>Jellyfish Merkle Trees offer several efficiency improvements over traditional Merkle trees:</p>
+<ol>
+<li>Smaller proof sizes: By collapsing consecutive levels of empty siblings, JMT proofs are more compact.</li>
+<li>Faster verification: The simplified proof format allows for more efficient proof verification.</li>
+<li>Optimized for sparse trees: JMT is particularly efficient for sparse trees, which is common in many applications.</li>
+<li>Optimized for LSM backed storage: features version-based key that circumvents heavy I/O brought about by the randomness of a pervading hash-based key.</li>
+</ol>
+<h2 id="versioning-1"><a class="header" href="#versioning-1">Versioning</a></h2>
+<p>JMT incorporates versioning, which allows for efficient updates and historical queries. Each update to the tree creates a new version, and proofs can be generated for any specific version of the tree.</p>
+<p>In summary, Jellyfish Merkle Trees provide an optimized solution for generating and verifying both membership and non-membership proofs, with improvements in proof size and verification efficiency compared to traditional and indexed Merkle trees.</p>
+<h2 id="considerations-for-zero-knowledge-proofs"><a class="header" href="#considerations-for-zero-knowledge-proofs">Considerations for Zero-Knowledge Proofs</a></h2>
+<p>While JMTs offer significant advantages in terms of efficiency and proof size compared to IMTs, there are important considerations when using JMT in the context of zero-knowledge proofs:</p>
+<ol>
+<li>Variable Proof Size: JMT produces shorter proofs compared to IMT, which has a constant proof size. JMT proofs have <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">Θ</span><span class="mopen">(</span><span class="mop">lo<span style="margin-right:0.01389em;">g</span></span><span class="mopen">(</span><span class="mord text"><span class="mord">number of existent leaves</span></span><span class="mclose">))</span></span></span></span> sibling digests, compared to the constant size of <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> for the IMT.</li>
+<li>Challenges with handwritten SNARKs: Implementing JMT in handwritten SNARKs can be challenging. The variable proof size of JMT requires manual handling to keep the proof size constant within the SNARK circuit, which is complex and extremely inefficient.</li>
+<li>Advantages of zkVMs: When using a zkVM, it becomes possible to leverage the shorter proofs of JMT more effectively. zkVMs can handle the variable-sized proofs without the need for manual size normalization.</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="introduction-to-cryptography"><a class="header" href="#introduction-to-cryptography">Introduction to Cryptography</a></h1>
 <p>This section deals with basic concepts of cryptography and explains them from a high level. This has no profound explanations, but tries to provide a superficial, simplified basis to give the reader a general idea for the advanced concepts of Prism. Feel free to skip this introduction, as it covers general cryptographic basics of Prism and is intended to serve as a quick reference.</p>
@@ -338,222 +571,6 @@ So now that we understand cryptographic commitments, we can look at what the pro
 <p><img src="crypto-intro/../img/logn-calc.jpeg" alt="Log n Calculation" /></p>
 <p>We see that in our example we actually need two leaves to prove the correctness of the root. Even if the number of leaves increases rapidly, with each further doubling only one more hash value is needed to prove the correctness of the root. This is an important and great property of Merkle trees and we can formally state:
 <em><strong>The time complexity of proof-of-membership in Merkle trees is O(log n)</strong></em>.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
-<p>We operate as a based rollup on Celestia. The SNARKs are posted to one namespace, and the operations are posted to a secondary namespace, enabling full nodes. This architecture is designed to be trust-minimized and censorship-resistant.</p>
-<p>The sequencer is a partially unprivileged sequencer: while anybody can post update operations to the base layer, account creations must be signed by the sequencer. This is a temporary measure discussed in <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-002-create-account-op.md">adr-002 (Account Sources)</a>.</p>
-<p>Light nodes verify the state by downloading and verifying the SNARKs posted to Celestia. There is currently no P2P overlay for the Prism network.</p>
-<ol>
-<li>An epoch is defined by the valid operations posted to the namespace in the previous Celestia block.</li>
-<li>Services can replicate the state by running a full node, to serve their own stack and not rely on the liveness of the sequencer.</li>
-<li>Enables future prover decentralization (perhaps with a prover marketplace).</li>
-<li>Censorship resistance (updates can be posted directly to the DA layer).
-<img src="/stage2.svg" alt="" /></li>
-</ol>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="accounts-on-prism"><a class="header" href="#accounts-on-prism">Accounts on Prism</a></h1>
-<p>Using Prism, we run into an interesting problem:</p>
-<p>Once a new user is added to the JMT, we know that all updates to a hashchain are valid by construction - updates must be signed by an already existing key in the hashchain. But who gets to add the first key for a user? Why should we trust that the first key added actually comes from the user?</p>
-<h2 id="labels"><a class="header" href="#labels">Labels</a></h2>
-<p>The entries in the transparency dictionary are indexed by labels. These labels are arbitrary strings, and in the majority of the documentation we simplify the type of label to an email address.</p>
-<p>But to add a new email address for a user, the owner of that email address must be able to prove that they own it. In Stage 1 of the architecture, this is done by means of a centralized service that verifies resource ownership. Once a user has verified ownership of an email address, the sequencer adds an entry to the hashchain.</p>
-<p>We must move away from this, as it is both not scalable and not trust-minimized. In Stage 2, we will use services such as <a href="https://prove.email/">zkEmail</a> and <a href="https://tlsnotary.org/">TLSNotary</a> to provide resource ownership proofs that can be verified by any client. This will allow us to move to a trust-minimized system where the user can add their own account to the state directly by posting to the DA layer.</p>
-<p>See more in <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-002-create-account-op.md">adr-002 (Account Sources)</a>.</p>
-<h2 id="protocols"><a class="header" href="#protocols">Protocols</a></h2>
-<p>This construction allows for some interesting application-layer protocols that can be added. For example, in the future we may add a transaction type for registering a service. These services register with a public key and service identifier. Then, a validity rule is added for full nodes that new entries to the JMT, if preceded by the service identifier, must be signed by the service provider's keypair.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="prism-datastructures"><a class="header" href="#prism-datastructures">Prism Datastructures</a></h1>
-<p>We will now look at the basic data structures of Prism and how they are used. Following this, we can understand how these data structures enable us to track provably correct behavior. The main data structures we introduce here are <a href="datastructures.html#append-only-hashchains">append-only hashchains</a> and <a href="datastructures.html#jellyfish-merkle-trees">Jellyfish Merkle Trees</a>.</p>
-<h2 id="append-only-hashchains"><a class="header" href="#append-only-hashchains">Append-only hashchains</a></h2>
-<p><a href="https://eprint.iacr.org/2021/1263.pdf">Verdict</a> provides a good introductory definition of append-only hashchains:</p>
-<blockquote>
-<p>In Verdict's transparency dictionary, the value associated with a label is an append-only hashchain of operations, where nodes store raw operations requested on the label, as well as the cryptographic hash of the previous node in the chain. For example, in the context of key transparency, a hashchain records two types of operations: (1) adding a new key; and (2) revoking an existing key [...]</p>
-</blockquote>
-<p>However, they do not provide a reference implementation. An implementation would conceivably include the following values:</p>
-<ul>
-<li><strong>hash</strong>: the following three elements are hashed in a hash function and the value is stored in this field</li>
-<li><strong>previous hash</strong>: a unique reference to the previous entry in the list, which depends on the contents of the entry as it contains the hashed values.</li>
-<li><strong>operation</strong>: The executed operation, in our concrete application case ADD and REVOKE operations can be executed.</li>
-<li><strong>value</strong>: Since we are still dealing with public keys, we need to know which keys are added or revoked in order to generate a list of valid, unrevoked keys from the operations.</li>
-</ul>
-<p>Users can register a unique ID in Prism using various account sources, not just limited to email addresses. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.</p>
-<img class="theme-dependent-image" data-light-src="./img/hashchain_light.png" data-dark-src="./img/hashchain_dark.png" alt="Theme-dependent hashchain">
-<p>The image above shows an example of a hashchain. An identifier refers to this hashchain. The individual elements of the hashchain contain the operation performed and the value that is added or revoked with the operation. In addition, each element contains a previous hash value, which makes the data structure a chain, since each element points to its predecessor. The first element of the hashchain has 0000... as its previous hash, which is comparable to a genesis block of a blockchain. Each element of the hashchain is uniquely identifiable by a hash value. This is created by giving all other values of the element into a hash function H: <em>H(previous Hash, operation, value) = hash</em></p>
-<h2 id="jellyfish-merkle-trees"><a class="header" href="#jellyfish-merkle-trees">Jellyfish Merkle Trees</a></h2>
-<p>Prism uses <a href="https://developers.diem.com/papers/jellyfish-merkle-tree/2021-01-14.pdf">Jellyfish Merkle Trees</a> (JMT) instead of indexed Merkle trees. JMTs are a space-and-computation-efficient sparse Merkle tree optimized for Log-Structured Merge-tree (LSM-tree) based key-value storage.</p>
-<p>Key features of Jellyfish Merkle Trees include:</p>
-<ol>
-<li>
-<p>Version-based Node Key: JMT uses a version-based key schema, which facilitates version-based sharding, reduces compaction overhead in LSM-tree based storage engines, and results in smaller key sizes on average.</p>
-</li>
-<li>
-<p>Simplified Structure: JMT has only two physical node types - Internal Node and Leaf Node.</p>
-</li>
-<li>
-<p>Concise Proof Format: The number of sibling digests in a JMT proof is less on average than that of the same Addressable Radix Merkle Tree (ARMT) without optimizations, requiring less computation and space.</p>
-</li>
-<li>
-<p>Efficient for Sparse Trees: JMT is particularly efficient for sparse trees, which is often the case in blockchain applications.</p>
-</li>
-</ol>
-<p><a href="./crypto-intro/merkle-trees.html">More about Merkle trees</a></p>
-<h2 id="account-creation"><a class="header" href="#account-creation">Account Creation</a></h2>
-<p>Prism introduces a <code>CREATE_ACCOUNT</code> operation that allows for decentralized account creation. This operation supports various account sources, not just email addresses. The process works as follows:</p>
-<ol>
-<li>Users prove ownership of a resource (e.g., a social media account, email address) using services like <a href="https://tlsnotary.org/">TLSNotary</a> or <a href="https://prove.email/">zkEmail</a>.</li>
-<li>The proof is generated off-chain and then submitted as part of the <code>CREATE_ACCOUNT</code> operation.</li>
-<li>The Prism protocol includes validity rules for each supported external protocol's proof system.</li>
-<li>Full nodes verify the <code>CREATE_ACCOUNT</code> operation according to the corresponding proof system's ruleset before applying the state transition in the Jellyfish Merkle Tree.</li>
-</ol>
-<p>This approach allows for:</p>
-<ul>
-<li>Addition of arbitrary account sources</li>
-<li>Decentralized account creation without relying on a single trusted entity</li>
-<li>Flexibility for applications to use various types of accounts for registration</li>
-</ul>
-<blockquote>
-<p><strong>Note</strong>: The <code>CREATE_ACCOUNT</code> operation enhances the security and decentralization of the account creation process in Prism. It mitigates the risks associated with centralized account creation while allowing for diverse account sources.</p>
-</blockquote>
-<p>The combination of append-only hashchains and Jellyfish Merkle Trees, along with the decentralized account creation process, enables Prism to maintain a transparent and verifiable record of public keys associated with user IDs from various sources.</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="adherance-to-application-specific-guidelines"><a class="header" href="#adherance-to-application-specific-guidelines">Adherance to application-specific guidelines</a></h1>
-<p>We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Since in <em>Prism</em> only insert or update operations are allowed (i.e. one can only add new email addresses or add or revoke public keys to an existing email address), the monotonic growth of the labels should be achieved if the behavior is correct.</p>
-<h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
-<p>JMT incorporates versioning, which is crucial for its operations. Each update to the tree creates a new version, allowing for efficient historical queries and updates. The version is part of the node key structure:</p>
-<pre><code class="language-bash">version || nibble path
-</code></pre>
-<p>This versioning system ensures that updates can be made efficiently without affecting previous versions of the tree.</p>
-<h2 id="insertion-and-updates"><a class="header" href="#insertion-and-updates">Insertion and Updates</a></h2>
-<p>The insert operation comprises three steps, which we will consider individually in the following. First, again informally: what does it mean to perform an insert operation? Insert means that we add a completely new identifier - so we add a "new" email address to our dictionary. Accordingly, when we add a value to the dictionary, the structure that supports us in any reasoning changes as well, namely our Jellyfish Merkle tree that manages the derived dictionary.</p>
-<p><strong>Find the insertion position</strong>
-When traversing the tree to perform the lookup, the following two scenarios are possible:</p>
-<ol>
-<li>A leaf node with the same prefix of the nibble path but different keyhash value is found.</li>
-<li>An internal node is reached where the next nibble path to be visited (index n) contains an empty subtree.</li>
-</ol>
-<p><strong>Handle the current node</strong>
-Once we have found the location, there are two possibilities: either it is an internal node or a leaf node.</p>
-<ol>
-<li>if it is an internal node: a new leaf is created and inserted as a child node in the empty index n of the internal node</li>
-<li>if it is a leaf node: two different scenarios can occur at this point, either KeyHash matches the key hash at the point where the previous nibble path led, in which case it is basically an update operation. Otherwise, the KeyHash values differ and a new leaf is created. In addition, new internal nodes are created to represent the common path, as both nodes match up to a certain nibble path that is not yet sufficiently represented in the tree. This internal node takes the place of the previous leaf node and then both the new and the old node (which was previously present at the split position) are inserted in the new internal node at the respective index.</li>
-</ol>
-<p><strong>Update ancestors version</strong>
-The versions of all nodes that have been traversed along the way are then updated to the latest version.</p>
-<h2 id="proof-of-update"><a class="header" href="#proof-of-update">Proof-of-Update</a></h2>
-<p>The proof that an update operation was executed correctly, i.e. a proof-of-update, means that the operation list (hashchain) for an already existing identifier has been updated by one operation correctly. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier. In any case, this means that another entry has been added to the hashchain in which the operations are stored.</p>
-<blockquote>
-<p><strong>Note</strong>
-Obviously, this means that the last hash of the hashchain, which is crucial for the label-value pair in the Merkle tree, also has a new value.</p>
-</blockquote>
-<p>The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
-To proof the update, it is sufficient if we consider the old root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf, so to say. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.</p>
-<p>In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.</p>
-<h2 id="insert-proofs"><a class="header" href="#insert-proofs">Insert Proofs</a></h2>
-<p>The insertion proof consists</p>
-<h3 id="why-uniqueness-matters"><a class="header" href="#why-uniqueness-matters">Why uniqueness matters</a></h3>
-<blockquote>
-<p>Non-membership queries are important [...] as well; otherwise, the service's dictionary might contain more than one tuple for the <a href="mailto:bob@dom.org">bob@dom.org</a> label, allowing the service to show different tuples to different clients. [...] Alice can safely encrypt sensitive data using the public key the service returns for Bob.</p>
-</blockquote>
-<p>We briefly recall what the unique identifier means and why this is important. The email addresses in Prism act as unique identifiers and in order for the service to behave correctly, it must be ensured that no email address can be inserted twice. We imagine scenarios including when the Id <a href="mailto:bob@dom.org">bob@dom.org</a> appears twice or more in the dictionary:
-Bob adds multiple keys and also revokes some of those keys. If there are several entries for <a href="mailto:bob@dom.org">bob@dom.org</a>, scenarios are conceivable in which Bob adds a key to his first entry '<a href="mailto:bob@dom.org">bob@dom.org</a>' and later has to revoke it because the corresponding private key was stolen by Oskar. Now it could happen that the revoke operation is entered in the hashchain of the second entry '<a href="mailto:bob@dom.org">bob@dom.org</a>', in which the add operation of this key doesn't occur. Now when Alice goes through the operations in the first entry '<a href="mailto:bob@dom.org">bob@dom.org</a>', she will find that the stolen key has not been revoked and she thinks that she can perform encryption with this key. Since a requirement of Verdict is that we rule out these scenarios (as best we can), accordingly we need to make use of Proofs-of-Non-Membership for this.</p>
-<p>TODO: uniqueness still matters but should it be discussed somewhere here?</p>
-<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="jellyfish-merkle-proofs"><a class="header" href="#jellyfish-merkle-proofs">Jellyfish Merkle Proofs</a></h1>
-<p>Jellyfish Merkle Trees (JMT) are designed to support efficient membership and non-membership proofs, similar to Indexed Merkle Trees from Verdict. However, the proof format and verification process are optimized for better performance and smaller proof sizes.</p>
-<h2 id="cryptographic-commitments-1"><a class="header" href="#cryptographic-commitments-1">Cryptographic Commitments</a></h2>
-<p>The concept of cryptographic commitments of course also applies to JMTs. The root of a Jellyfish Merkle tree is a cryptographic commitment because it is both binding and hidden.</p>
-<h2 id="proof-format"><a class="header" href="#proof-format">Proof Format</a></h2>
-<p>JMT uses a simplified proof format that can represent both inclusion and exclusion proofs. The proof structure is as follows:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>struct Leaf {
-    HashValue address;
-    HashValue value_hash;
-};
-
-struct Proof {
-    Leaf leaf;
-    Vec&lt;HashValue&gt; siblings;
-};
-<span class="boring">}</span></code></pre></pre>
-<p>This format allows for three types of proofs:</p>
-<ol>
-<li>Proof of Inclusion</li>
-<li>Proof of Exclusion (with another leaf)</li>
-<li>Proof of Exclusion (with an empty node)</li>
-</ol>
-<h2 id="proof-of-inclusion"><a class="header" href="#proof-of-inclusion">Proof of Inclusion</a></h2>
-<p>A proof of inclusion in JMT is similar to traditional Merkle proofs but takes advantage of the tree's structure to reduce the proof size. When proving the existence of a node, the proof includes:</p>
-<ol>
-<li>The leaf node containing the key and value hash</li>
-<li>A list of sibling hashes along the path from the leaf to the root</li>
-</ol>
-<p>The verification process involves:</p>
-<ol>
-<li>Verifying that the provided leaf matches the queried key</li>
-<li>Reconstructing the path from the leaf to the root using the provided siblings</li>
-<li>Comparing the calculated root hash with the known root hash</li>
-</ol>
-<h2 id="proof-of-exclusion"><a class="header" href="#proof-of-exclusion">Proof of Exclusion</a></h2>
-<p>JMT supports two types of exclusion proofs:</p>
-<ol>
-<li>
-<p>Exclusion proof with another leaf:</p>
-<ul>
-<li>Proves that a different leaf exists with a key that shares a common prefix with the queried key</li>
-<li>The proof includes the existing leaf and the necessary sibling hashes</li>
-</ul>
-</li>
-<li>
-<p>Exclusion proof with an empty node:</p>
-<ul>
-<li>Proves that an empty node exists on the path to where the queried key would be</li>
-<li>The proof includes the sibling hashes up to the empty node</li>
-</ul>
-</li>
-</ol>
-<p>The verification process for exclusion proofs involves:</p>
-<ol>
-<li>Checking if the provided leaf (if any) has a different key than the queried key</li>
-<li>Verifying that the common prefix length is correct</li>
-<li>Reconstructing the path to the root and comparing the calculated root hash with the known root hash</li>
-</ol>
-<h2 id="efficiency-improvements"><a class="header" href="#efficiency-improvements">Efficiency Improvements</a></h2>
-<p>Jellyfish Merkle Trees offer several efficiency improvements over traditional Merkle trees:</p>
-<ol>
-<li>Smaller proof sizes: By collapsing consecutive levels of empty siblings, JMT proofs are more compact.</li>
-<li>Faster verification: The simplified proof format allows for more efficient proof verification.</li>
-<li>Optimized for sparse trees: JMT is particularly efficient for sparse trees, which is common in many applications.</li>
-</ol>
-<h2 id="versioning-1"><a class="header" href="#versioning-1">Versioning</a></h2>
-<p>JMT incorporates versioning, which allows for efficient updates and historical queries. Each update to the tree creates a new version, and proofs can be generated for any specific version of the tree.
-In summary, Jellyfish Merkle Trees provide an optimized solution for generating and verifying both membership and non-membership proofs, with improvements in proof size and verification efficiency compared to traditional and indexed Merkle trees.</p>
-<h2 id="considerations-for-zero-knowledge-proofs"><a class="header" href="#considerations-for-zero-knowledge-proofs">Considerations for Zero-Knowledge Proofs</a></h2>
-<p>While JMTs offer significant advantages in terms of efficiency and proof size compared to IMTs, there are important considerations when using JMT in the context of zero-knowledge proofs:</p>
-<ol>
-<li>
-<p>Variable Proof Size: JMT can produce shorter proofs compared to IMT, which has a constant proof size. This variable size can be advantageous in many scenarios, offering improved efficiency.</p>
-</li>
-<li>
-<p>Challenges with handwritten SNARKs: Implementing JMT in handwritten SNARKs can be challenging. The variable proof size of JMT requires manual handling to keep the proof size constant within the SNARK circuit, which can be complex and potentially inefficient.</p>
-</li>
-<li>
-<p>Advantages of zkVMs: When using a zkVM, it becomes possible to leverage the shorter proofs of JMT more effectively. zkVMs can handle the variable-sized proofs without the need for manual size normalization.</p>
-</li>
-<li>
-<p>Tradeoffs:</p>
-<ul>
-<li>IMT: Provides a constant proof size that may be easier to implement in hand-written SNARKs.</li>
-<li>JMT: Provides more efficient evidence, but may require more complex handling in certain SNARKs.</li>
-</ul>
-</li>
-<li>
-<p>Implementation considerations:</p>
-<ul>
-<li>If we use zkVMs (such as SP1), JMT may still be a good, efficient choice, since we can exploit its optimized proof structure over them.</li>
-</ul>
-</li>
-</ol>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="informal-zero-knowledge-proofs"><a class="header" href="#informal-zero-knowledge-proofs">Informal Zero-Knowledge Proofs</a></h1>
 <p>Superficially considered and informally speaking, a Zero-Knowledge Proof (ZKP) is a proof where a prover demonstrates the validity of a statement to another party (the verifier) without revealing any information about the statement itself. Thus, the verifier learns nothing but the fact that the statement is true. In the following, we will briefly explore the development of ZKPs and take a closer look at the concepts behind them. Many of the later elaborated concepts are well-presented in Jean-Jacques Quisquater's "<a href="http://bitcoin-class.org/classes/zkforkids.pdf">How to explain Zero-Knowledge Protocols to your children</a>", which I will summarize and expand upon below. If everything is not entirely clear at first, that is perfectly normal. As the descriptions progress, things should become clearer.</p>
@@ -694,6 +711,8 @@ A person (or an algorithm; the prover) wants to prove to another person (or anot
 
         <!-- Custom JS scripts -->
         <script src="custom.js"></script>
+        <script src="mermaid.min.js"></script>
+        <script src="mermaid-init.js"></script>
 
         <script>
         window.addEventListener('load', function() {

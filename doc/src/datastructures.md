@@ -37,6 +37,10 @@ Key features of Jellyfish Merkle Trees include:
 
 [More about Merkle trees](./crypto-intro/merkle-trees.md)
 
+## Service Registration
+
+Prism introduces a `REGISTER_SERVICE` operation that allows for creating novel account sources. You can read more about it [here](./labels.md).
+
 ## Account Creation
 
 Prism introduces a `CREATE_ACCOUNT` operation that allows for decentralized account creation. This operation supports various account sources, not just email addresses. The process works as follows:

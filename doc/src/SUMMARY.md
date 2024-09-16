@@ -1,8 +1,17 @@
-# Summary
+# Introduction
 
 * [Introduction](README.md)
 * [Prism Quickstart](quickstart.md)
+* [Architecture](architecture.md)
+* [Datastructures](datastructures.md)
+* [Account Sources](labels.md)
 * [Development Status](state.md)
+
+-----------
+# Prerequites
+
+* [Inserts and Updates](insert-update-proofs.md)
+* [Jellyfish Merkle Proofs](jellyfish-merkle-proofs.md)
 * [Introduction to Cryptography](./crypto-intro/intro.md)
   * [Symmetric Encryption](./crypto-intro/symmetric.md)
   * [Asymmetric Encryption](./crypto-intro/asymmetric.md)
@@ -11,11 +20,6 @@
   * [Merkle Trees](./crypto-intro/merkle-trees.md)
   * [Cryptographic Commitments](./crypto-intro/cryptographic_commitment.md)
   * [Merkle Proofs](./crypto-intro/general-merkle-proofs.md)
-* [Architecture](architecture.md)
-* [Account Sources](labels.md)
-* [Datastructures](datastructures.md)
-* [Insert and Updates](insert-update-proofs.md)
-* [Jellyfish Merkle Proofs](jellyfish-merkle-proofs.md)
-* [Zero Knowledge Proofs (Informal)](informal-zkps.md)
-* [Zero Knowledge Proofs (Basics)](zkp-basics.md)
+  * [Zero Knowledge Proofs (Informal)](informal-zkps.md)
+  * [Zero Knowledge Proofs (Basics)](zkp-basics.md)
 * [Resources](resources.md)

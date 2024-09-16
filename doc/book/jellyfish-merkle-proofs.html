@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li></ol></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="insert-update-proofs.html">Insert and Updates</a></li><li class="chapter-item expanded "><a href="jellyfish-merkle-proofs.html" class="active">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
+                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item "><a href="insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item expanded "><a href="jellyfish-merkle-proofs.html" class="active">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -179,8 +179,6 @@
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="jellyfish-merkle-proofs"><a class="header" href="#jellyfish-merkle-proofs">Jellyfish Merkle Proofs</a></h1>
 <p>Jellyfish Merkle Trees (JMT) are designed to support efficient membership and non-membership proofs, similar to Indexed Merkle Trees from Verdict. However, the proof format and verification process are optimized for better performance and smaller proof sizes.</p>
-<h2 id="cryptographic-commitments"><a class="header" href="#cryptographic-commitments">Cryptographic Commitments</a></h2>
-<p>The concept of cryptographic commitments of course also applies to JMTs. The root of a Jellyfish Merkle tree is a cryptographic commitment because it is both binding and hidden.</p>
 <h2 id="proof-format"><a class="header" href="#proof-format">Proof Format</a></h2>
 <p>JMT uses a simplified proof format that can represent both inclusion and exclusion proofs. The proof structure is as follows:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -243,35 +241,17 @@ struct Proof {
 <li>Smaller proof sizes: By collapsing consecutive levels of empty siblings, JMT proofs are more compact.</li>
 <li>Faster verification: The simplified proof format allows for more efficient proof verification.</li>
 <li>Optimized for sparse trees: JMT is particularly efficient for sparse trees, which is common in many applications.</li>
+<li>Optimized for LSM backed storage: features version-based key that circumvents heavy I/O brought about by the randomness of a pervading hash-based key.</li>
 </ol>
 <h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
-<p>JMT incorporates versioning, which allows for efficient updates and historical queries. Each update to the tree creates a new version, and proofs can be generated for any specific version of the tree.
-In summary, Jellyfish Merkle Trees provide an optimized solution for generating and verifying both membership and non-membership proofs, with improvements in proof size and verification efficiency compared to traditional and indexed Merkle trees.</p>
+<p>JMT incorporates versioning, which allows for efficient updates and historical queries. Each update to the tree creates a new version, and proofs can be generated for any specific version of the tree.</p>
+<p>In summary, Jellyfish Merkle Trees provide an optimized solution for generating and verifying both membership and non-membership proofs, with improvements in proof size and verification efficiency compared to traditional and indexed Merkle trees.</p>
 <h2 id="considerations-for-zero-knowledge-proofs"><a class="header" href="#considerations-for-zero-knowledge-proofs">Considerations for Zero-Knowledge Proofs</a></h2>
 <p>While JMTs offer significant advantages in terms of efficiency and proof size compared to IMTs, there are important considerations when using JMT in the context of zero-knowledge proofs:</p>
 <ol>
-<li>
-<p>Variable Proof Size: JMT can produce shorter proofs compared to IMT, which has a constant proof size. This variable size can be advantageous in many scenarios, offering improved efficiency.</p>
-</li>
-<li>
-<p>Challenges with handwritten SNARKs: Implementing JMT in handwritten SNARKs can be challenging. The variable proof size of JMT requires manual handling to keep the proof size constant within the SNARK circuit, which can be complex and potentially inefficient.</p>
-</li>
-<li>
-<p>Advantages of zkVMs: When using a zkVM, it becomes possible to leverage the shorter proofs of JMT more effectively. zkVMs can handle the variable-sized proofs without the need for manual size normalization.</p>
-</li>
-<li>
-<p>Tradeoffs:</p>
-<ul>
-<li>IMT: Provides a constant proof size that may be easier to implement in hand-written SNARKs.</li>
-<li>JMT: Provides more efficient evidence, but may require more complex handling in certain SNARKs.</li>
-</ul>
-</li>
-<li>
-<p>Implementation considerations:</p>
-<ul>
-<li>If we use zkVMs (such as SP1), JMT may still be a good, efficient choice, since we can exploit its optimized proof structure over them.</li>
-</ul>
-</li>
+<li>Variable Proof Size: JMT produces shorter proofs compared to IMT, which has a constant proof size. JMT proofs have <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">Θ</span><span class="mopen">(</span><span class="mop">lo<span style="margin-right:0.01389em;">g</span></span><span class="mopen">(</span><span class="mord text"><span class="mord">number of existent leaves</span></span><span class="mclose">))</span></span></span></span> sibling digests, compared to the constant size of <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> for the IMT.</li>
+<li>Challenges with handwritten SNARKs: Implementing JMT in handwritten SNARKs can be challenging. The variable proof size of JMT requires manual handling to keep the proof size constant within the SNARK circuit, which is complex and extremely inefficient.</li>
+<li>Advantages of zkVMs: When using a zkVM, it becomes possible to leverage the shorter proofs of JMT more effectively. zkVMs can handle the variable-sized proofs without the need for manual size normalization.</li>
 </ol>
 
                     </main>
@@ -282,7 +262,7 @@ In summary, Jellyfish Merkle Trees provide an optimized solution for generating 
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="informal-zkps.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="crypto-intro/intro.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -296,7 +276,7 @@ In summary, Jellyfish Merkle Trees provide an optimized solution for generating 
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="informal-zkps.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="crypto-intro/intro.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -337,6 +317,8 @@ In summary, Jellyfish Merkle Trees provide an optimized solution for generating 
 
         <!-- Custom JS scripts -->
         <script src="custom.js"></script>
+        <script src="mermaid.min.js"></script>
+        <script src="mermaid-init.js"></script>
 
 
     </div>
