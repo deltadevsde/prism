@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html" class="active">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item "><a href="insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html" class="active">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -177,39 +177,25 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="prism-a-publicly-verifiable-key-transparency-solution"><a class="header" href="#prism-a-publicly-verifiable-key-transparency-solution">Prism: A Publicly Verifiable Key-Transparency Solution</a></h1>
 <p><img src="./img/prism_banner.png" alt="Prism Banner" /></p>
-<p>We're excited to announce Prism, the first truly-private messaging platform and an authentication layer for all digital communications. Prism doesn't only enable private chats, it gives users control over their digital identities, and increases security in everyday interactions on the internet.</p>
-<p>Prism removes the need for trust in any server or app, giving users the certainty they're interacting with the right person, app, or website through transparent authentication.</p>
-<h2 id="the-encryption-myth"><a class="header" href="#the-encryption-myth">The Encryption Myth</a></h2>
-<p>Despite being end-to-end encrypted (an essential security feature in every communication protocol), Signal, WhatsApp, iMessage, are not as secure as we've been led to believe.
-At its core, E2EE allows gated access for the sender and receiver to read messages inside a conversation, while anyone else, including the app provider, is locked out (in principle, at least).</p>
-<p>But E2EE isn't perfect. It hinges on the trust assumption you're communicating with the person you think is on the other side - a foundation for backdoors and hacks.</p>
-<h2 id="the-trust-assumption-virus"><a class="header" href="#the-trust-assumption-virus">The 'Trust-Assumption' Virus</a></h2>
-<p>Each of these apps uses its own key directory, which typically relies on a single authority to establish channels and ensure the integrity of all communications inside the protocol.</p>
-<p>Signal, an example hailed as the gold standard of private communication, can't read users' messages due to end-to-end encryption, but lacks cryptographic guarantees and verifiability through its key management method. This tradeoff creates a potential vulnerability as the integrity of the key exchange can be compromised (through a hack, or compliance with government intervention) without users' knowledge.</p>
-<p>Specifically, it makes these systems vulnerable to a 'man-in-the-middle attack' (MITM) - in which an unverified 3rd party intercepts a conversation without either party being aware, by sending messages inside a chat and pretending to be the person on the other side. In case you wonder how close it is to reality - back in 2016, the UK government proposed <a href="https://theconversation.com/u-k-proposal-to-bcc-law-enforcement-on-messaging-apps-threatens-global-privacy-118142">GHOST</a>, a protocol designed to integrate with popular messaging apps, designed to achieve the same goal of a MITM attack.</p>
-<p>In the physical world, you have control over your identity. You choose what to share, when to share it, and with whom. Online? Your identity is fragmented across dozens of services, each with its own agenda. You're not the user; you're the product. Your digital self is bought, sold, and manipulated without your knowledge or consent. Governments around the world are leveraging the digital revolution to create unprecedented systems of mass surveillance. From China's "Great Firewall" to the NSA's global data collection programs, our online activities are under constant scrutiny. The line between public and private has been blurred beyond recognition.</p>
-<h2 id="the-achilles-heel-of-e2ee"><a class="header" href="#the-achilles-heel-of-e2ee">The achilles heel of E2EE</a></h2>
-<p>To escape criticism around key transparency, Signal and iMessage have introduced their own solutions to allow users to verify their contacts by scanning a QR code or comparing numbers from their screen in person or via a phone call.</p>
-<p>While this sounds straightforward, in reality, only <a href="https://www.usenix.org/conference/soups2017/technical-sessions/presentation/vaziripour">14%</a> of users manage to navigate this on their own. Even with guidance, it takes an average of over 7 minutes to complete, with most users still not fully grasping its purpose.</p>
-<p>It's proven - self authentication is a broken user experience.</p>
-<h2 id="introducing-prism-a-new-era-for-private-communication"><a class="header" href="#introducing-prism-a-new-era-for-private-communication">Introducing Prism: A New Era for Private Communication</a></h2>
-<p>Prism introduces a new standard in key transparency through open-source, verifiable computation.</p>
-<p>The Prism tech stack provides robust verifiable encryption through the best of web3. At its core, it leverages zkSNARKs as proofs for key certifications, allowing succinct and verifiable authentication. Prism proofs are posted directly on <a href="https://celestia.org">Celestia</a>'s decentralized data availability layer, guaranteeing data accessibility and integrity. Light nodes play a crucial role in Prism by verifying proofs at scale, allowing for efficient verification across the network.</p>
-<p>Prism is web2 friendly from day 1 with WASM compatibility, allowing existing messaging applications to upgrade their key transparency easily.</p>
-<h2 id="why-you-should-care"><a class="header" href="#why-you-should-care">Why you should care</a></h2>
-<p>Beyond messaging apps, Prism opens doors to potential improvements in nascent technologies and challenges in today's web. We envision a system for transparent, seamless authentication, where every human, website, app or other digital property is verified on a blockchain.
-Prism's verifiable encryption standard opens up possibilities for secure communication across various digital platforms, which can enable exciting use cases like:</p>
-<ol>
-<li>A user controlled global identity layer</li>
-<li>Keystore Rollups - allowing users to securely store and manage their cryptographic keys across multiple chains</li>
-<li>A sandbox environment for testing Trusted Execution Environment (TEE) trust assumptions, ensuring even the most advanced security features are bulletproof.</li>
-<li>A new trustless, decentralized model for web certificate authority and public key infrastructure (PKI) systems.</li>
-</ol>
-<p>Welcome to a new era of digital privacy, where the only person listening is the one you're talking to.</p>
-<h2 id="getting-started"><a class="header" href="#getting-started">Getting started</a></h2>
-<p>We will introduce some basic concepts of cryptography that are essential for understanding the content. For more information and deeper explanations, we will provide links to relevant literature and texts. If you encounter errors or have suggestions for improvement, please feel free to <a href="https://github.com/deltadevsde/prism/issues">open an issue</a>.</p>
+<p>Prism is a new verifiable authentication standard for private messaging and any systems relying on PKI.</p>
+<p>With <a href="https://celestia.org">Celestia</a> underneath, Prism enables users to <em>instantly and directly</em> verify their encrypted chats and other services from any device, replacing trusted intermediaries with embedded light nodes.</p>
+<p>Next to messaging, we envison many other use cases:</p>
+<ul>
+<li>A shared global identity layer</li>
+<li>Universal keystore rollups</li>
+<li>Decentralized password managers</li>
+<li>New TEE remote attestation protocols</li>
+<li>Advancements to CA and PKI systems</li>
+<li>Dark Rollups</li>
+</ul>
+<p>This website serves to provide documentation for the current iteration of the protocol, context for open problems that are being discussed, and general information regarding the status of the project.</p>
+<p>If you're interested in being a part of the project,</p>
+<ul>
+<li>join our <a href="https://discord.gg/eNTVVHYSw7">Discord</a></li>
+<li>follow us on <a href="https://x.com/prism_xyz">Twitter</a></li>
+<li>pick up an issue on <a href="https://github.com/deltadevsde/prism">Github</a></li>
+</ul>
 
                     </main>
 

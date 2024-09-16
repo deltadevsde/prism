@@ -2,16 +2,16 @@
 
 * [Introduction](README.md)
 * [Prism Quickstart](quickstart.md)
-* [Architecture](architecture.md)
 * [Datastructures](datastructures.md)
 * [Account Sources](labels.md)
+* [Inserts and Updates](insert-update-proofs.md)
+* [Jellyfish Merkle Proofs](jellyfish-merkle-proofs.md)
 * [Development Status](state.md)
+* [Architecture](architecture.md)
 
 -----------
 # Prerequites
 
-* [Inserts and Updates](insert-update-proofs.md)
-* [Jellyfish Merkle Proofs](jellyfish-merkle-proofs.md)
 * [Introduction to Cryptography](./crypto-intro/intro.md)
   * [Symmetric Encryption](./crypto-intro/symmetric.md)
   * [Asymmetric Encryption](./crypto-intro/asymmetric.md)
