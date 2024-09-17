@@ -54,8 +54,6 @@ pub struct Sequencer {
     prover_client: Arc<Mutex<ProverClient>>,
 
     proving_key: SP1ProvingKey,
-    // fix clippy warning, keep verifying_key for future use
-    #[allow(dead_code)]
     verifying_key: SP1VerifyingKey,
 
     epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
@@ -331,7 +329,17 @@ impl Sequencer {
         stdin.write(&batch);
 
         let client = self.prover_client.lock().await;
+
+        info!("generating proof for epoch height {}", epoch);
+        #[cfg(not(feature = "plonk"))]
         let proof = client.prove(&self.proving_key, stdin).run()?;
+
+        #[cfg(feature = "plonk")]
+        let proof = client.prove(&self.proving_key, stdin).plonk().run()?;
+        info!("successfully generated proof for epoch height {}", epoch);
+
+        client.verify(&proof, &self.verifying_key)?;
+        info!("verified proof for epoch height {}", epoch);
 
         let epoch_json = FinalizedEpoch {
             height: epoch,

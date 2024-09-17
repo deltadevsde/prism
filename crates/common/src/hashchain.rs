@@ -128,14 +128,6 @@ impl Hashchain {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
-
-    pub fn serialize(&self) -> Result<Vec<u8>> {
-        bincode::serialize(self).map_err(anyhow::Error::from)
-    }
-
-    pub fn deserialize(data: &[u8]) -> Result<Self> {
-        bincode::deserialize(data).map_err(anyhow::Error::from)
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -161,13 +153,5 @@ impl HashchainEntry {
             previous_hash,
             operation,
         }
-    }
-
-    pub fn serialize(&self) -> Result<Vec<u8>> {
-        bincode::serialize(self).map_err(anyhow::Error::from)
-    }
-
-    pub fn deserialize(data: &[u8]) -> Result<Self> {
-        bincode::deserialize(data).map_err(anyhow::Error::from)
     }
 }
