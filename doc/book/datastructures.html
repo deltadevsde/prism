@@ -178,8 +178,9 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="prism-datastructures"><a class="header" href="#prism-datastructures">Prism Datastructures</a></h1>
-<p>We will now look at the basic data structures of Prism and how they are used. Following this, we can understand how these data structures enable us to track provably correct behavior. The main data structures we introduce here are <a href="#append-only-hashchains">append-only hashchains</a> and <a href="#jellyfish-merkle-trees">Jellyfish Merkle Trees</a>.</p>
+<p>The main data structures we introduce here are <a href="#append-only-hashchains">append-only hashchains</a> and <a href="#jellyfish-merkle-trees">Jellyfish Merkle Trees</a>.</p>
 <h2 id="append-only-hashchains"><a class="header" href="#append-only-hashchains">Append-only hashchains</a></h2>
+<p>In Prism, Hashchains are the values stored in the leaves of the key directory.</p>
 <p><a href="https://eprint.iacr.org/2021/1263.pdf">Verdict</a> provides a good introductory definition of append-only hashchains:</p>
 <blockquote>
 <p>In Verdict's transparency dictionary, the value associated with a label is an append-only hashchain of operations, where nodes store raw operations requested on the label, as well as the cryptographic hash of the previous node in the chain. For example, in the context of key transparency, a hashchain records two types of operations: (1) adding a new key; and (2) revoking an existing key [...]</p>
@@ -188,10 +189,10 @@
 <ul>
 <li><strong>hash</strong>: the following three elements are hashed in a hash function and the value is stored in this field</li>
 <li><strong>previous hash</strong>: a unique reference to the previous entry in the list, which depends on the contents of the entry as it contains the hashed values.</li>
-<li><strong>operation</strong>: The executed operation, in our concrete application case ADD and REVOKE operations can be executed.</li>
+<li><strong>operation</strong>: The executed operation, or "transaction type". For the traditional key transparency use case, these operations are <code>ADD</code> and <code>REVOKE</code>.</li>
 <li><strong>value</strong>: Since we are still dealing with public keys, we need to know which keys are added or revoked in order to generate a list of valid, unrevoked keys from the operations.</li>
 </ul>
-<p>Users can register a unique ID in Prism using various account sources, not just limited to email addresses. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.</p>
+<p>Users can register a unique ID in Prism using various <a href="./labels.html">account sources</a>. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.</p>
 <img class="theme-dependent-image" data-light-src="./img/hashchain_light.png" data-dark-src="./img/hashchain_dark.png" alt="Theme-dependent hashchain">
 <p>The image above shows an example of a hashchain. An identifier refers to this hashchain. The individual elements of the hashchain contain the operation performed and the value that is added or revoked with the operation. In addition, each element contains a previous hash value, which makes the data structure a chain, since each element points to its predecessor. The first element of the hashchain has 0000... as its previous hash, which is comparable to a genesis block of a blockchain. Each element of the hashchain is uniquely identifiable by a hash value. This is created by giving all other values of the element into a hash function H: <em>H(previous Hash, operation, value) = hash</em></p>
 <h2 id="jellyfish-merkle-trees"><a class="header" href="#jellyfish-merkle-trees">Jellyfish Merkle Trees</a></h2>

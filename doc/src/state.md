@@ -1,6 +1,6 @@
 # State of Prism
 
-This post is an overview on the current development status of Prism as of Aug 26th 2024. We will do our best to keep it routinely updated.
+This post is an overview on the current development status of Prism as of Sep 17th 2024. We will do our best to keep it routinely updated.
 
 ## 1. Circuits
 

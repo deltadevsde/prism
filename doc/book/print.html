@@ -259,8 +259,9 @@
 <p>This integration with Celestia not only bolsters Prism's scalability and security but also establishes a robust framework for end-to-end encrypted communication systems that rely on a decentralized key directory.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="prism-datastructures"><a class="header" href="#prism-datastructures">Prism Datastructures</a></h1>
-<p>We will now look at the basic data structures of Prism and how they are used. Following this, we can understand how these data structures enable us to track provably correct behavior. The main data structures we introduce here are <a href="datastructures.html#append-only-hashchains">append-only hashchains</a> and <a href="datastructures.html#jellyfish-merkle-trees">Jellyfish Merkle Trees</a>.</p>
+<p>The main data structures we introduce here are <a href="datastructures.html#append-only-hashchains">append-only hashchains</a> and <a href="datastructures.html#jellyfish-merkle-trees">Jellyfish Merkle Trees</a>.</p>
 <h2 id="append-only-hashchains"><a class="header" href="#append-only-hashchains">Append-only hashchains</a></h2>
+<p>In Prism, Hashchains are the values stored in the leaves of the key directory.</p>
 <p><a href="https://eprint.iacr.org/2021/1263.pdf">Verdict</a> provides a good introductory definition of append-only hashchains:</p>
 <blockquote>
 <p>In Verdict's transparency dictionary, the value associated with a label is an append-only hashchain of operations, where nodes store raw operations requested on the label, as well as the cryptographic hash of the previous node in the chain. For example, in the context of key transparency, a hashchain records two types of operations: (1) adding a new key; and (2) revoking an existing key [...]</p>
@@ -269,10 +270,10 @@
 <ul>
 <li><strong>hash</strong>: the following three elements are hashed in a hash function and the value is stored in this field</li>
 <li><strong>previous hash</strong>: a unique reference to the previous entry in the list, which depends on the contents of the entry as it contains the hashed values.</li>
-<li><strong>operation</strong>: The executed operation, in our concrete application case ADD and REVOKE operations can be executed.</li>
+<li><strong>operation</strong>: The executed operation, or "transaction type". For the traditional key transparency use case, these operations are <code>ADD</code> and <code>REVOKE</code>.</li>
 <li><strong>value</strong>: Since we are still dealing with public keys, we need to know which keys are added or revoked in order to generate a list of valid, unrevoked keys from the operations.</li>
 </ul>
-<p>Users can register a unique ID in Prism using various account sources, not just limited to email addresses. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.</p>
+<p>Users can register a unique ID in Prism using various <a href="./labels.html">account sources</a>. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.</p>
 <img class="theme-dependent-image" data-light-src="./img/hashchain_light.png" data-dark-src="./img/hashchain_dark.png" alt="Theme-dependent hashchain">
 <p>The image above shows an example of a hashchain. An identifier refers to this hashchain. The individual elements of the hashchain contain the operation performed and the value that is added or revoked with the operation. In addition, each element contains a previous hash value, which makes the data structure a chain, since each element points to its predecessor. The first element of the hashchain has 0000... as its previous hash, which is comparable to a genesis block of a blockchain. Each element of the hashchain is uniquely identifiable by a hash value. This is created by giving all other values of the element into a hash function H: <em>H(previous Hash, operation, value) = hash</em></p>
 <h2 id="jellyfish-merkle-trees"><a class="header" href="#jellyfish-merkle-trees">Jellyfish Merkle Trees</a></h2>
@@ -348,7 +349,7 @@
 <p>This construction allows for some interesting application-layer protocols that can be added. For example, we are adding a transaction type for registering a service. These services register with a public key or groth16 verifying key and service identifier. Then, a validity rule is added for full nodes that new entries to the JMT, if preceded by the service identifier, must be signed by the service provider's keypair or provide a valid groth16 proof for the corresponding verifying key.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="adherance-to-application-specific-guidelines"><a class="header" href="#adherance-to-application-specific-guidelines">Adherance to application-specific guidelines</a></h1>
-<p>We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Since in <em>Prism</em> only insert or update operations are allowed (i.e. one can only add new email addresses or add or revoke public keys to an existing email address), the monotonic growth of the labels should be achieved if the behavior is correct.</p>
+<p>We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Because Prism uses append-only hashchains, and all state transition circuits do not allow for label removal, the monotonic growth of the labels is ensured by the epoch proofs.</p>
 <h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
 <p>JMT incorporates versioning, which is crucial for its operations. Each update to the tree creates a new version, allowing for efficient historical queries and updates. The version is part of the node key structure:</p>
 <pre><code class="language-bash">version || nibble path
@@ -380,13 +381,6 @@ Obviously, this means that the last hash of the hashchain, which is crucial for 
 To proof the update, it is sufficient if we consider the old root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf, so to say. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.</p>
 <p>In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.</p>
 <h2 id="proof-of-insert"><a class="header" href="#proof-of-insert">Proof-of-Insert</a></h2>
-<h3 id="why-uniqueness-matters"><a class="header" href="#why-uniqueness-matters">Why uniqueness matters</a></h3>
-<blockquote>
-<p>Non-membership queries are important [...] as well; otherwise, the service's dictionary might contain more than one tuple for the <a href="mailto:bob@dom.org">bob@dom.org</a> label, allowing the service to show different tuples to different clients. [...] Alice can safely encrypt sensitive data using the public key the service returns for Bob.</p>
-</blockquote>
-<p>We briefly recall what the unique identifier means and why this is important. The email addresses in Prism act as unique identifiers and in order for the service to behave correctly, it must be ensured that no email address can be inserted twice. We imagine scenarios including when the Id <a href="mailto:bob@dom.org">bob@dom.org</a> appears twice or more in the dictionary:
-Bob adds multiple keys and also revokes some of those keys. If there are several entries for <a href="mailto:bob@dom.org">bob@dom.org</a>, scenarios are conceivable in which Bob adds a key to his first entry '<a href="mailto:bob@dom.org">bob@dom.org</a>' and later has to revoke it because the corresponding private key was stolen by Oskar. Now it could happen that the revoke operation is entered in the hashchain of the second entry '<a href="mailto:bob@dom.org">bob@dom.org</a>', in which the add operation of this key doesn't occur. Now when Alice goes through the operations in the first entry '<a href="mailto:bob@dom.org">bob@dom.org</a>', she will find that the stolen key has not been revoked and she thinks that she can perform encryption with this key. Since a requirement of Verdict is that we rule out these scenarios (as best we can), accordingly we need to make use of Proofs-of-Non-Membership for this.</p>
-<h3 id="proof-of-correct-insert-operation"><a class="header" href="#proof-of-correct-insert-operation">Proof of correct insert operation</a></h3>
 <p>Insertion proofs consist of the inserted key, a non-membership proof of the node in the current tree, a membership proof of the new node in the JMT, and the updated merkle root.</p>
 <p>The non-inclusion proof has two variants for different cases:</p>
 <ol>
@@ -474,7 +468,7 @@ struct Proof {
 </ol>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="state-of-prism"><a class="header" href="#state-of-prism">State of Prism</a></h1>
-<p>This post is an overview on the current development status of Prism as of Aug 26th 2024. We will do our best to keep it routinely updated.</p>
+<p>This post is an overview on the current development status of Prism as of Sep 17th 2024. We will do our best to keep it routinely updated.</p>
 <h2 id="1-circuits"><a class="header" href="#1-circuits">1. Circuits</a></h2>
 <p>Our current circuit implementations serve as a functional prototype, allowing us to ship an initial Proof of Concept. These circuits are missing critical components and constraints. In the repo you will find our groth16 and supernova circuits, as well as our SP1 program. We're actively enhancing this system by:</p>
 <ul>

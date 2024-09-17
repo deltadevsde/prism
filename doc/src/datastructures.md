@@ -1,8 +1,10 @@
 # Prism Datastructures
 
-We will now look at the basic data structures of Prism and how they are used. Following this, we can understand how these data structures enable us to track provably correct behavior. The main data structures we introduce here are [append-only hashchains](#append-only-hashchains) and [Jellyfish Merkle Trees](#jellyfish-merkle-trees).
+The main data structures we introduce here are [append-only hashchains](#append-only-hashchains) and [Jellyfish Merkle Trees](#jellyfish-merkle-trees).
 
 ## Append-only hashchains
+
+In Prism, Hashchains are the values stored in the leaves of the key directory.
 
 [Verdict](https://eprint.iacr.org/2021/1263.pdf) provides a good introductory definition of append-only hashchains:
 
@@ -12,10 +14,10 @@ However, they do not provide a reference implementation. An implementation would
 
 - **hash**: the following three elements are hashed in a hash function and the value is stored in this field
 - **previous hash**: a unique reference to the previous entry in the list, which depends on the contents of the entry as it contains the hashed values.
-- **operation**: The executed operation, in our concrete application case ADD and REVOKE operations can be executed.
+- **operation**: The executed operation, or "transaction type". For the traditional key transparency use case, these operations are `ADD` and `REVOKE`.
 - **value**: Since we are still dealing with public keys, we need to know which keys are added or revoked in order to generate a list of valid, unrevoked keys from the operations.
 
-Users can register a unique ID in Prism using various account sources, not just limited to email addresses. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.
+Users can register a unique ID in Prism using various [account sources](./labels.md). Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.
 
 <img class="theme-dependent-image" data-light-src="./img/hashchain_light.png" data-dark-src="./img/hashchain_dark.png" alt="Theme-dependent hashchain">
 

@@ -1,6 +1,6 @@
 # Adherance to application-specific guidelines
 
-We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Since in *Prism* only insert or update operations are allowed (i.e. one can only add new email addresses or add or revoke public keys to an existing email address), the monotonic growth of the labels should be achieved if the behavior is correct.
+We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Because Prism uses append-only hashchains, and all state transition circuits do not allow for label removal, the monotonic growth of the labels is ensured by the epoch proofs.
 
 ## Versioning
 
@@ -44,15 +44,6 @@ To proof the update, it is sufficient if we consider the old root (the cryptogra
 In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.
 
 ## Proof-of-Insert
-
-### Why uniqueness matters
-
-> Non-membership queries are important [...] as well; otherwise, the service's dictionary might contain more than one tuple for the <bob@dom.org> label, allowing the service to show different tuples to different clients. [...] Alice can safely encrypt sensitive data using the public key the service returns for Bob.
-
-We briefly recall what the unique identifier means and why this is important. The email addresses in Prism act as unique identifiers and in order for the service to behave correctly, it must be ensured that no email address can be inserted twice. We imagine scenarios including when the Id <bob@dom.org> appears twice or more in the dictionary:
-Bob adds multiple keys and also revokes some of those keys. If there are several entries for <bob@dom.org>, scenarios are conceivable in which Bob adds a key to his first entry '<bob@dom.org>' and later has to revoke it because the corresponding private key was stolen by Oskar. Now it could happen that the revoke operation is entered in the hashchain of the second entry '<bob@dom.org>', in which the add operation of this key doesn't occur. Now when Alice goes through the operations in the first entry '<bob@dom.org>', she will find that the stolen key has not been revoked and she thinks that she can perform encryption with this key. Since a requirement of Verdict is that we rule out these scenarios (as best we can), accordingly we need to make use of Proofs-of-Non-Membership for this.
-
-### Proof of correct insert operation
 
 Insertion proofs consist of the inserted key, a non-membership proof of the node in the current tree, a membership proof of the new node in the JMT, and the updated merkle root.
 
