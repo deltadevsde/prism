@@ -1,12 +1,12 @@
 use anyhow::{anyhow, bail, Context, Result};
+use bincode;
 use bls12_381::Scalar;
-use borsh::{from_slice, to_vec, BorshDeserialize, BorshSerialize};
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
     JellyfishMerkleTree, KeyHash, RootHash, SimpleHasher,
 };
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::hashchain::Hashchain;
@@ -14,11 +14,65 @@ use crate::hashchain::Hashchain;
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
-pub type Hasher = blake2::Blake2s256;
+#[derive(Debug, Clone, Default)]
+pub struct Hasher(sha2::Sha256);
 
-#[derive(
-    Debug, Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, PartialEq, Eq, Copy,
-)]
+impl Serialize for Hasher {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_tuple_struct("Sha256Wrapper", 0)?.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Hasher {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Sha256WrapperVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for Sha256WrapperVisitor {
+            type Value = Hasher;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a Sha256Wrapper")
+            }
+
+            fn visit_seq<A>(self, _seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                Ok(Hasher::default())
+            }
+        }
+
+        deserializer.deserialize_tuple_struct("Sha256Wrapper", 0, Sha256WrapperVisitor)
+    }
+}
+
+impl SimpleHasher for Hasher {
+    fn new() -> Self {
+        Self(sha2::Sha256::new())
+    }
+
+    fn update(&mut self, data: &[u8]) {
+        self.0.update(data);
+    }
+
+    fn finalize(self) -> [u8; 32] {
+        self.0.finalize()
+    }
+}
+
+pub fn hash(data: &[u8]) -> Digest {
+    let mut hasher = Hasher::new();
+    hasher.update(data);
+    Digest(hasher.finalize())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub struct Digest([u8; 32]);
 
 impl Digest {
@@ -97,12 +151,6 @@ impl Digest {
     }
 }
 
-pub fn hash(data: &[u8]) -> Digest {
-    let mut hasher = blake2::Blake2s256::new();
-    hasher.update(data);
-    Digest(hasher.finalize())
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Batch {
     pub prev_root: Digest,
@@ -111,49 +159,13 @@ pub struct Batch {
     pub proofs: Vec<Proof>,
 }
 
-impl Serialize for Proof {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let bytes = borsh::to_vec(self).map_err(serde::ser::Error::custom)?;
-        serializer.serialize_bytes(&bytes)
-    }
-}
-
-impl<'de> Deserialize<'de> for Proof {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct ProofVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for ProofVisitor {
-            type Value = Proof;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a byte array containing Borsh-serialized Proof")
-            }
-
-            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Proof::try_from_slice(v).map_err(serde::de::Error::custom)
-            }
-        }
-
-        deserializer.deserialize_bytes(ProofVisitor)
-    }
-}
-
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Proof {
     Update(UpdateProof),
     Insert(InsertProof),
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NonMembershipProof {
     pub root: Digest,
     pub proof: SparseMerkleProof<Hasher>,
@@ -166,7 +178,7 @@ impl NonMembershipProof {
     }
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InsertProof {
     pub non_membership_proof: NonMembershipProof,
 
@@ -181,7 +193,7 @@ impl InsertProof {
             .verify()
             .context("Invalid NonMembershipProof")?;
 
-        let value = to_vec(&self.value).unwrap();
+        let value = bincode::serialize(&self.value).unwrap();
 
         self.membership_proof.clone().verify_existence(
             self.new_root.into(),
@@ -193,7 +205,7 @@ impl InsertProof {
     }
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateProof {
     pub old_root: RootHash,
     pub new_root: RootHash,
@@ -206,7 +218,7 @@ pub struct UpdateProof {
 
 impl UpdateProof {
     pub fn verify(&self) -> Result<()> {
-        let new_value = to_vec(&self.new_value).unwrap();
+        let new_value = bincode::serialize(&self.new_value).unwrap();
 
         self.proof.clone().verify_update(
             self.old_root,
@@ -278,11 +290,12 @@ where
     }
 
     fn serialize_value(value: &Hashchain) -> Result<Vec<u8>> {
-        to_vec(value).map_err(|e| anyhow!("Failed to serialize value: {}", e))
+        bincode::serialize(value).map_err(|e| anyhow!("Failed to serialize value: {}", e))
     }
 
     fn deserialize_value(bytes: &[u8]) -> Result<Hashchain> {
-        from_slice::<Hashchain>(bytes).map_err(|e| anyhow!("Failed to deserialize value: {}", e))
+        bincode::deserialize::<Hashchain>(bytes)
+            .map_err(|e| anyhow!("Failed to deserialize value: {}", e))
     }
 }
 
@@ -294,7 +307,6 @@ where
         let serialized_value = Self::serialize_value(&value)?;
 
         let old_root = self.get_current_root()?;
-        println!("key: {:?}", key);
         let (old_value, non_membership_merkle_proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         let non_membership_proof = NonMembershipProof {

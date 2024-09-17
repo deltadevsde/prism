@@ -18,6 +18,8 @@ use storage::RedisConnection;
 #[macro_use]
 extern crate log;
 
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
+
 /// The main function that initializes and runs a prism client.
 #[tokio::main()]
 async fn main() -> std::io::Result<()> {

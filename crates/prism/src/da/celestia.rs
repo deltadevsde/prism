@@ -3,13 +3,12 @@ use crate::{
     consts::CHANNEL_BUFFER_SIZE,
     da::{DataAvailabilityLayer, FinalizedEpoch},
 };
-use prism_errors::{DataAvailabilityError, GeneralError};
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
-use borsh::from_slice;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::{blob::GasPrice, nmt::Namespace, Blob};
 use prism_common::operation::Operation;
+use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{self, sync::Arc};
 use tokio::{
     sync::{
@@ -19,11 +18,13 @@ use tokio::{
     task::spawn,
 };
 
+use bincode;
+
 impl TryFrom<&Blob> for FinalizedEpoch {
     type Error = anyhow::Error;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        from_slice::<Self>(&value.data).context(format!(
+        bincode::deserialize(&value.data).context(format!(
             "Failed to decode blob into FinalizedEpoch: {value:?}"
         ))
     }
@@ -140,7 +141,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
         let blobs: Result<Vec<Blob>, DataAvailabilityError> = epochs
             .iter()
             .map(|epoch| {
-                let data = borsh::to_vec(epoch).map_err(|e| {
+                let data = bincode::serialize(epoch).map_err(|e| {
                     DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
                         "serializing epoch {}: {}",
                         epoch.height, e
@@ -199,7 +200,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
         let blobs: Result<Vec<Blob>, _> = operations
             .iter()
             .map(|operation| {
-                let data = borsh::to_vec(operation)
+                let data = bincode::serialize(operation)
                     .context(format!("Failed to serialize operation {}", operation))
                     .map_err(|e| {
                         DataAvailabilityError::GeneralError(GeneralError::ParsingError(

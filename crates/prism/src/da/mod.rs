@@ -1,23 +1,24 @@
 use crate::utils::SignedContent;
 use anyhow::Result;
 use async_trait::async_trait;
-use borsh::{BorshDeserialize, BorshSerialize};
+use bincode;
 use ed25519::Signature;
 use prism_common::{operation::Operation, tree::Digest};
 use prism_errors::GeneralError;
+use serde::{Deserialize, Serialize};
+use sp1_sdk::SP1ProofWithPublicValues;
 use std::{self, str::FromStr};
 
 pub mod celestia;
 pub mod memory;
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FinalizedEpoch {
     pub height: u64,
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
-    // pub proof: Bls12Proof,
-    // pub verifying_key: VerifyingKey,
+    pub proof: SP1ProofWithPublicValues,
     pub signature: Option<String>,
 }
 
@@ -33,7 +34,7 @@ impl SignedContent for FinalizedEpoch {
     fn get_plaintext(&self) -> Result<Vec<u8>> {
         let mut copy = self.clone();
         copy.signature = None;
-        borsh::to_vec(&copy).map_err(|e| GeneralError::EncodingError(e.to_string()).into())
+        bincode::serialize(&copy).map_err(|e| GeneralError::EncodingError(e.to_string()).into())
     }
 
     fn get_public_key(&self) -> Result<String> {

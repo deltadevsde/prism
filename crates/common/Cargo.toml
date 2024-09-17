@@ -14,5 +14,5 @@ jmt.workspace = true
 serde.workspace = true
 hex.workspace = true
 sha2.workspace = true
-blake2.workspace = true
 celestia-types.workspace = true
+bincode.workspace = true

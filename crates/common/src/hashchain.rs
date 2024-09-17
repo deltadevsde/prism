@@ -1,5 +1,4 @@
 use anyhow::{bail, Result};
-use borsh::{BorshDeserialize, BorshSerialize};
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
@@ -9,7 +8,7 @@ use crate::{
     tree::{hash, Digest, Hasher},
 };
 
-#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Hashchain {
     pub id: String,
     pub entries: Vec<HashchainEntry>,
@@ -131,7 +130,7 @@ impl Hashchain {
     }
 }
 
-#[derive(Clone, BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 // A [`HashchainEntry`] represents a single entry in an account's hashchain.
 // The value in the leaf of the corresponding account's node in the IMT is the hash of the last node in the hashchain.
 pub struct HashchainEntry {

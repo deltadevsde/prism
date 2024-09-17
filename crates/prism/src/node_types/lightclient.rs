@@ -1,17 +1,22 @@
 use crate::cfg::CelestiaConfig;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use prism_common::tree::Digest;
 use prism_errors::{DataAvailabilityError, GeneralError};
+use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
 
 use crate::{da::DataAvailabilityLayer, node_types::NodeType, utils::verify_signature};
 
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
+
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
-    // verifying_key is the [`VerifyingKey`] used to verify epochs from the prover/sequencer
-    pub verifying_key: Option<String>,
-    start_height: u64,
+    pub sequencer_pubkey: Option<String>,
+    pub client: ProverClient,
+    pub verifying_key: SP1VerifyingKey,
+    pub start_height: u64,
 }
 
 #[async_trait]
@@ -35,11 +40,15 @@ impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: CelestiaConfig,
-        sequencer_pub_key: Option<String>,
+        sequencer_pubkey: Option<String>,
     ) -> LightClient {
+        let client = ProverClient::new();
+        let (_, verifying_key) = client.setup(PRISM_ELF);
         LightClient {
             da,
-            verifying_key: sequencer_pub_key,
+            verifying_key,
+            client,
+            sequencer_pubkey,
             start_height: cfg.start_height,
         }
     }
@@ -71,33 +80,15 @@ impl LightClient {
 
                             // todo: verify adjacency to last heights, <- for this we need some sort of storage of epochs
                             for epoch_json in epoch_json_vec {
-                                // let prev_commitment = &epoch_json.prev_commitment;
-                                // let current_commitment = &epoch_json.current_commitment;
-
-                                // let proof = match epoch_json.proof.clone().try_into() {
-                                //     Ok(proof) => proof,
-                                //     Err(e) => {
-                                //         error!("failed to deserialize proof, skipping a blob at height {}: {:?}", i, e);
-                                //         continue;
-                                //     }
-                                // };
-
-                                // TODO(@distractedm1nd): i don't know rust yet but this seems like non-idiomatic rust -
-                                // is there not a Trait that can satisfy these properties for us?
-                                // let verifying_key = match epoch_json.verifying_key.clone().try_into() {
-                                //     Ok(vk) => vk,
-                                //     Err(e) => {
-                                //         error!("failed to deserialize verifying key, skipping a blob at height {}: {:?}", i, e);
-                                //         continue;
-                                //     }
-                                //  };
+                                let _prev_commitment = &epoch_json.prev_commitment;
+                                let _current_commitment = &epoch_json.current_commitment;
 
                                 // if the user does not add a verifying key, we will not verify the signature,
                                 // but only log a warning on startup
-                                if self.verifying_key.is_some() {
+                                if self.sequencer_pubkey.is_some() {
                                     match verify_signature(
                                         &epoch_json.clone(),
-                                        self.verifying_key.clone(),
+                                        self.sequencer_pubkey.clone(),
                                     ) {
                                         Ok(_) => trace!(
                                             "valid signature for epoch {}",
@@ -109,20 +100,40 @@ impl LightClient {
                                     }
                                 }
 
-                                // match validate_epoch(
-                                //     prev_commitment,
-                                //     current_commitment,
-                                //     proof,
-                                //     verifying_key,
-                                // ) {
-                                //     Ok(_) => {
-                                //         info!(
-                                //             "zkSNARK for epoch {} was validated successfully",
-                                //             epoch_json.height
-                                //         )
-                                //     }
-                                //     Err(err) => panic!("failed to validate epoch: {:?}", err),
-                                // }
+                                let prev_commitment = &epoch_json.prev_commitment;
+                                let current_commitment = &epoch_json.current_commitment;
+
+                                let mut public_values = epoch_json.proof.public_values.clone();
+                                let proof_prev_commitment: Digest = public_values.read();
+                                let proof_current_commitment: Digest = public_values.read();
+
+                                if prev_commitment != &proof_prev_commitment
+                                    || current_commitment != &proof_current_commitment
+                                {
+                                    error!(
+                                        "Commitment mismatch: 
+                                        prev_commitment: {:?}, proof_prev_commitment: {:?},
+                                        current_commitment: {:?}, proof_current_commitment: {:?}",
+                                        prev_commitment,
+                                        proof_prev_commitment,
+                                        current_commitment,
+                                        proof_current_commitment
+                                    );
+                                    panic!("Commitment mismatch in epoch {}", epoch_json.height);
+                                }
+
+                                match self.client.verify(&epoch_json.proof, &self.verifying_key) {
+                                    Ok(_) => {
+                                        info!(
+                                            "zkSNARK for epoch {} was validated successfully",
+                                            epoch_json.height
+                                        )
+                                    }
+                                    Err(err) => panic!(
+                                        "failed to validate epoch at height {}: {:?}",
+                                        epoch_json.height, err
+                                    ),
+                                }
                             }
                         }
                         Err(e) => {
