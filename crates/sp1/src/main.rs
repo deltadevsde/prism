@@ -7,6 +7,8 @@ pub fn main() {
     println!("cycle-tracker-start: setup");
     let batch = sp1_zkvm::io::read::<Batch>();
     let mut current = batch.prev_root;
+    sp1_zkvm::io::commit_slice(&current.to_bytes());
+
     println!("cycle-tracker-end: setup");
 
     println!("cycle-tracker-start: proof-iteration");

@@ -690,8 +690,8 @@ mod tests {
         let epoch1 = sequencer.finalize_epoch(operations1).await.unwrap();
 
         let mut public_values = epoch1.proof.public_values.clone();
-        let proof_prev_commitment: Digest = dbg!(public_values.read());
-        let proof_current_commitment: Digest = dbg!(public_values.read());
+        let proof_prev_commitment: Digest = public_values.read();
+        let proof_current_commitment: Digest = public_values.read();
 
         assert_eq!(
             &epoch1.prev_commitment, &proof_prev_commitment,
