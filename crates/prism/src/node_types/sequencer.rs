@@ -5,24 +5,12 @@ use ed25519_dalek::{Signer, SigningKey};
 use jmt::KeyHash;
 use prism_common::tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
 use std::{self, collections::VecDeque, str::FromStr, sync::Arc};
-use tokio::{
-    sync::{
-        broadcast,
-        mpsc::{channel, Receiver, Sender},
-        Mutex,
-    },
-    task::spawn,
-    time::interval,
-};
+use tokio::sync::{broadcast, Mutex};
 
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
-#[cfg(test)]
-use prism_errors::DataAvailabilityError;
-
 use crate::{
     cfg::Config,
-    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
     node_types::NodeType,
     storage::Database,
@@ -118,7 +106,14 @@ impl Sequencer {
     }
 
     async fn sync_range(&self, start_height: u64, end_height: u64) -> Result<()> {
-        let saved_epoch = self.db.get_epoch()?;
+        let saved_epoch = match self.db.get_epoch() {
+            Ok(epoch) => epoch,
+            Err(_) => {
+                debug!("no existing epoch state found, setting epoch to 0");
+                self.db.set_epoch(&0)?;
+                0
+            }
+        };
         let mut current_epoch: u64 = 0;
         let mut buffered_operations: VecDeque<Vec<Operation>> = VecDeque::new();
         let mut current_height = start_height;
@@ -311,13 +306,17 @@ impl Sequencer {
         let proofs = self.execute_block(operations, tree).await?;
 
         let new_commitment = tree.get_commitment()?;
-        self.db.set_commitment(&height, &new_commitment);
 
         let finalized_epoch = self
             .prove_epoch(height, prev_commitment, new_commitment, proofs)
             .await?;
 
         self.da.submit_snark(finalized_epoch).await?;
+
+        self.db.set_commitment(&height, &new_commitment)?;
+        self.db
+            .set_epoch(&height)
+            .context("Failed to set new epoch")?;
         Ok(())
     }
 

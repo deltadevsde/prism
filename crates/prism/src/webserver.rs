@@ -3,7 +3,6 @@ use crate::{
     node_types::sequencer::Sequencer,
     utils::{verify_signature, SignedContent},
 };
-use prism_errors::GeneralError;
 use anyhow::{Context, Result};
 use axum::{
     extract::State,
@@ -18,6 +17,7 @@ use indexed_merkle_tree::{
     Hash as TreeHash,
 };
 use prism_common::{hashchain::Hashchain, operation::Operation};
+use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use std::{self, str::FromStr, sync::Arc};
 use tower_http::cors::CorsLayer;

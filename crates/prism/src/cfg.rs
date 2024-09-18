@@ -2,12 +2,12 @@ use crate::{
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::memory::InMemoryDataAvailabilityLayer,
 };
-use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
 use dotenvy::dotenv;
+use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
