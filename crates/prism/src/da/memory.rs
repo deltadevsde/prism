@@ -2,7 +2,7 @@ use crate::da::{DataAvailabilityLayer, FinalizedEpoch};
 use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::operation::Operation;
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 use tokio::{
     sync::{broadcast, RwLock},
     time::{interval, Duration},
@@ -12,14 +12,14 @@ use tokio::{
 pub struct Block {
     pub height: u64,
     pub operations: Vec<Operation>,
-    pub epochs: Vec<FinalizedEpoch>,
+    pub epoch: Option<FinalizedEpoch>,
 }
 
 #[derive(Clone)]
 pub struct InMemoryDataAvailabilityLayer {
     blocks: Arc<RwLock<Vec<Block>>>,
     pending_operations: Arc<RwLock<Vec<Operation>>>,
-    pending_epochs: Arc<RwLock<Vec<FinalizedEpoch>>>,
+    pending_epochs: Arc<RwLock<VecDeque<FinalizedEpoch>>>,
     latest_height: Arc<RwLock<u64>>,
     height_update_tx: broadcast::Sender<u64>,
     block_update_tx: broadcast::Sender<Block>,
@@ -34,7 +34,7 @@ impl InMemoryDataAvailabilityLayer {
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
                 pending_operations: Arc::new(RwLock::new(Vec::new())),
-                pending_epochs: Arc::new(RwLock::new(Vec::new())),
+                pending_epochs: Arc::new(RwLock::new(VecDeque::new())),
                 latest_height: Arc::new(RwLock::new(0)),
                 height_update_tx: height_tx,
                 block_update_tx: block_tx,
@@ -58,13 +58,12 @@ impl InMemoryDataAvailabilityLayer {
             let new_block = Block {
                 height: *latest_height,
                 operations: std::mem::take(&mut *pending_operations),
-                epochs: std::mem::take(&mut *pending_epochs),
+                epoch: pending_epochs.pop_front(),
             };
             debug!(
-                "new block produced at height {} with {} operations and {} snarks",
+                "new block produced at height {} with {} operations",
                 new_block.height,
                 new_block.operations.len(),
-                new_block.epochs.len()
             );
             blocks.push(new_block.clone());
 
@@ -81,6 +80,10 @@ impl InMemoryDataAvailabilityLayer {
 
 #[async_trait]
 impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
+        self.height_update_tx.subscribe()
+    }
+
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(*self.latest_height.read().await)
     }
@@ -89,18 +92,18 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         self.get_latest_height().await
     }
 
-    async fn get_snarks(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
+    async fn get_snark(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
         let blocks = self.blocks.read().await;
         Ok(blocks
             .iter()
             .find(|block| block.height == height)
-            .map(|block| block.epochs.clone())
+            .map(|block| block.epoch.clone())
             .unwrap_or_default())
     }
 
-    async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> Result<u64> {
+    async fn submit_snark(&self, epoch: FinalizedEpoch) -> Result<u64> {
         let mut pending_epochs = self.pending_epochs.write().await;
-        pending_epochs.extend(epochs);
+        pending_epochs.push_back(epoch);
         self.get_latest_height().await
     }
 

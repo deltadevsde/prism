@@ -72,68 +72,74 @@ impl LightClient {
                 debug!("updated sync target to height {}", target);
                 for i in current_position..target {
                     trace!("processing height: {}", i);
-                    match self.da.get_snarks(i + 1).await {
-                        Ok(epoch_json_vec) => {
-                            if !epoch_json_vec.is_empty() {
-                                debug!("light client: got epochs at height {}", i + 1);
+                    match self.da.get_snark(i + 1).await {
+                        Ok(epoch_json) => {
+                            if epoch_json.is_none() {
+                                continue;
                             }
 
+                            let finalized_epoch = epoch_json.unwrap();
+                            debug!("light client: got epochs at height {}", i + 1);
+
                             // todo: verify adjacency to last heights, <- for this we need some sort of storage of epochs
-                            for epoch_json in epoch_json_vec {
-                                let _prev_commitment = &epoch_json.prev_commitment;
-                                let _current_commitment = &epoch_json.current_commitment;
+                            let _prev_commitment = &finalized_epoch.prev_commitment;
+                            let _current_commitment = &finalized_epoch.current_commitment;
 
-                                // if the user does not add a verifying key, we will not verify the signature,
-                                // but only log a warning on startup
-                                if self.sequencer_pubkey.is_some() {
-                                    match verify_signature(
-                                        &epoch_json.clone(),
-                                        self.sequencer_pubkey.clone(),
-                                    ) {
-                                        Ok(_) => trace!(
-                                            "valid signature for epoch {}",
-                                            epoch_json.height
-                                        ),
-                                        Err(e) => {
-                                            panic!("invalid signature in epoch {}: {:?}", i, e)
-                                        }
-                                    }
-                                }
-
-                                let prev_commitment = &epoch_json.prev_commitment;
-                                let current_commitment = &epoch_json.current_commitment;
-
-                                let mut public_values = epoch_json.proof.public_values.clone();
-                                let proof_prev_commitment: Digest = public_values.read();
-                                let proof_current_commitment: Digest = public_values.read();
-
-                                if prev_commitment != &proof_prev_commitment
-                                    || current_commitment != &proof_current_commitment
-                                {
-                                    error!(
-                                        "Commitment mismatch: 
-                                        prev_commitment: {:?}, proof_prev_commitment: {:?},
-                                        current_commitment: {:?}, proof_current_commitment: {:?}",
-                                        prev_commitment,
-                                        proof_prev_commitment,
-                                        current_commitment,
-                                        proof_current_commitment
-                                    );
-                                    panic!("Commitment mismatch in epoch {}", epoch_json.height);
-                                }
-
-                                match self.client.verify(&epoch_json.proof, &self.verifying_key) {
+                            // if the user does not add a verifying key, we will not verify the signature,
+                            // but only log a warning on startup
+                            if self.sequencer_pubkey.is_some() {
+                                match verify_signature(
+                                    &finalized_epoch.clone(),
+                                    self.sequencer_pubkey.clone(),
+                                ) {
                                     Ok(_) => {
-                                        info!(
-                                            "zkSNARK for epoch {} was validated successfully",
-                                            epoch_json.height
+                                        trace!(
+                                            "valid signature for epoch {}",
+                                            finalized_epoch.height
                                         )
                                     }
-                                    Err(err) => panic!(
-                                        "failed to validate epoch at height {}: {:?}",
-                                        epoch_json.height, err
-                                    ),
+                                    Err(e) => {
+                                        panic!("invalid signature in epoch {}: {:?}", i, e)
+                                    }
                                 }
+                            }
+
+                            let prev_commitment = &finalized_epoch.prev_commitment;
+                            let current_commitment = &finalized_epoch.current_commitment;
+
+                            let mut public_values = finalized_epoch.proof.public_values.clone();
+                            let proof_prev_commitment: Digest = public_values.read();
+                            let proof_current_commitment: Digest = public_values.read();
+
+                            if prev_commitment != &proof_prev_commitment
+                                || current_commitment != &proof_current_commitment
+                            {
+                                error!(
+                                    "Commitment mismatch:
+                                        prev_commitment: {:?}, proof_prev_commitment: {:?},
+                                        current_commitment: {:?}, proof_current_commitment: {:?}",
+                                    prev_commitment,
+                                    proof_prev_commitment,
+                                    current_commitment,
+                                    proof_current_commitment
+                                );
+                                panic!("Commitment mismatch in epoch {}", finalized_epoch.height);
+                            }
+
+                            match self
+                                .client
+                                .verify(&finalized_epoch.proof, &self.verifying_key)
+                            {
+                                Ok(_) => {
+                                    info!(
+                                        "zkSNARK for epoch {} was validated successfully",
+                                        finalized_epoch.height
+                                    )
+                                }
+                                Err(err) => panic!(
+                                    "failed to validate epoch at height {}: {:?}",
+                                    finalized_epoch.height, err
+                                ),
                             }
                         }
                         Err(e) => {
