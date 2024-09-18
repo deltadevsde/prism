@@ -64,12 +64,14 @@ impl NodeType for Sequencer {
         self.da.start().await.context("Failed to start DA layer")?;
 
         let main_loop = self.clone().main_loop();
+        let batch_poster = self.clone().post_batch_loop();
 
         let ws_self = self.clone();
         let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
             res = main_loop => Ok(res.context("main loop failed")?),
+            res = batch_poster => Ok(res.context("batch poster failed")?),
             res = ws => Ok(res.context("WebServer failed")?),
         }
     }
@@ -140,6 +142,41 @@ impl Sequencer {
         }
 
         Ok(())
+    }
+
+    async fn post_batch_loop(self: Arc<Self>) -> Result<()> {
+        let mut height_rx = self.da.subscribe_to_heights();
+
+        loop {
+            let height = height_rx.recv().await?;
+
+            // Get pending operations
+            let pending_operations = {
+                let mut ops = self.pending_operations.lock().await;
+                std::mem::take(&mut *ops)
+            };
+
+            // If there are pending operations, submit them
+            if !pending_operations.is_empty() {
+                match self.da.submit_operations(pending_operations).await {
+                    Ok(submitted_height) => {
+                        info!(
+                            "operation_loop: Submitted operations at height {}",
+                            submitted_height
+                        );
+                    }
+                    Err(e) => {
+                        error!("operation_loop: Failed to submit operations: {}", e);
+                        // TODO: Handle error (e.g., retry logic, returning operations to pending_operations)
+                    }
+                }
+            } else {
+                debug!(
+                    "operation_loop: No pending operations to submit at height {}",
+                    height
+                );
+            }
+        }
     }
 
     async fn real_time_sync(&self, mut height_rx: broadcast::Receiver<u64>) -> Result<()> {
