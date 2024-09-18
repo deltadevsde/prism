@@ -51,8 +51,8 @@ impl SignedContent for FinalizedEpoch {
 pub trait DataAvailabilityLayer: Send + Sync {
     async fn get_latest_height(&self) -> Result<u64>;
     async fn initialize_sync_target(&self) -> Result<u64>;
-    async fn get_snark(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
-    async fn submit_snark(&self, epoch: FinalizedEpoch) -> Result<u64>;
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
+    async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64>;
     async fn get_operations(&self, height: u64) -> Result<Vec<Operation>>;
     async fn submit_operations(&self, operations: Vec<Operation>) -> Result<u64>;
     async fn start(&self) -> Result<()>;

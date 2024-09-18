@@ -1,9 +1,8 @@
 use crate::{
     cfg::CelestiaConfig,
-    consts::CHANNEL_BUFFER_SIZE,
     da::{DataAvailabilityLayer, FinalizedEpoch},
 };
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::{blob::GasPrice, nmt::Namespace, Blob};
@@ -99,7 +98,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
         Ok(height)
     }
 
-    async fn get_snark(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
 
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
@@ -128,7 +127,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    async fn submit_snark(&self, epoch: FinalizedEpoch) -> Result<u64> {
+    async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
         debug!("posting {}th epoch to da layer", epoch.height);
 
         let data = bincode::serialize(&epoch).map_err(|e| {

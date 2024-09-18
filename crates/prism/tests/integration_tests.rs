@@ -6,13 +6,12 @@ use keystore_rs::create_signing_key;
 use prism_common::operation::{AccountSource, Operation};
 use prism_main::{
     cfg::{Config, RedisConfig},
-    da::{memory::InMemoryDataAvailabilityLayer, DataAvailabilityLayer},
+    da::memory::InMemoryDataAvailabilityLayer,
     node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType},
     storage::{Database, RedisConnection},
     webserver::OperationInput,
 };
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use serde_json;
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
 

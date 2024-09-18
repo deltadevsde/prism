@@ -92,7 +92,7 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         self.get_latest_height().await
     }
 
-    async fn get_snark(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
         let blocks = self.blocks.read().await;
         Ok(blocks
             .iter()
@@ -101,7 +101,7 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
             .unwrap_or_default())
     }
 
-    async fn submit_snark(&self, epoch: FinalizedEpoch) -> Result<u64> {
+    async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
         let mut pending_epochs = self.pending_epochs.write().await;
         pending_epochs.push_back(epoch);
         self.get_latest_height().await

@@ -14,7 +14,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{cfg::RedisConfig, da::FinalizedEpoch};
+use crate::cfg::RedisConfig;
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::Operation,

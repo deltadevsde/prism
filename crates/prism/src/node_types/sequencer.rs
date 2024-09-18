@@ -4,7 +4,7 @@ use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::KeyHash;
 use prism_common::tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
-use std::{self, collections::VecDeque, str::FromStr, sync::Arc, thread::current};
+use std::{self, collections::VecDeque, str::FromStr, sync::Arc};
 use tokio::sync::{broadcast, Mutex};
 
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
@@ -121,7 +121,7 @@ impl Sequencer {
         while current_height < end_height {
             let height = current_height + 1;
             let operations = self.da.get_operations(height).await?;
-            let epoch_result = self.da.get_snark(height).await?;
+            let epoch_result = self.da.get_finalized_epoch(height).await?;
 
             self.process_height(
                 height,
@@ -188,7 +188,7 @@ impl Sequencer {
         loop {
             let height = height_rx.recv().await?;
             let operations = self.da.get_operations(height).await?;
-            let epoch_result = self.da.get_snark(height).await?;
+            let epoch_result = self.da.get_finalized_epoch(height).await?;
 
             self.process_height(
                 height,
@@ -320,7 +320,7 @@ impl Sequencer {
             .prove_epoch(height, prev_commitment, new_commitment, proofs)
             .await?;
 
-        self.da.submit_snark(finalized_epoch).await?;
+        self.da.submit_finalized_epoch(finalized_epoch).await?;
 
         self.db.set_commitment(&height, &new_commitment)?;
         self.db.set_epoch(&height)?;
