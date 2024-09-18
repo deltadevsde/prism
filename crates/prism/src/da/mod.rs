@@ -8,6 +8,7 @@ use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;
 use std::{self, str::FromStr};
+use tokio::sync::broadcast;
 
 pub mod celestia;
 pub mod memory;
@@ -50,9 +51,10 @@ impl SignedContent for FinalizedEpoch {
 pub trait DataAvailabilityLayer: Send + Sync {
     async fn get_latest_height(&self) -> Result<u64>;
     async fn initialize_sync_target(&self) -> Result<u64>;
-    async fn get_snarks(&self, height: u64) -> Result<Vec<FinalizedEpoch>>;
-    async fn submit_snarks(&self, epoch: Vec<FinalizedEpoch>) -> Result<u64>;
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
+    async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64>;
     async fn get_operations(&self, height: u64) -> Result<Vec<Operation>>;
     async fn submit_operations(&self, operations: Vec<Operation>) -> Result<u64>;
     async fn start(&self) -> Result<()>;
+    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64>;
 }

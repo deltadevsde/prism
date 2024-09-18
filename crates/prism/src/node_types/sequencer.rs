@@ -1,27 +1,16 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::KeyHash;
 use prism_common::tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
-use std::{self, str::FromStr, sync::Arc};
-use tokio::{
-    sync::{
-        mpsc::{channel, Receiver, Sender},
-        Mutex,
-    },
-    task::spawn,
-    time::interval,
-};
+use std::{self, collections::VecDeque, str::FromStr, sync::Arc};
+use tokio::sync::{broadcast, Mutex};
 
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
-#[cfg(test)]
-use prism_errors::DataAvailabilityError;
-
 use crate::{
     cfg::Config,
-    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
     node_types::NodeType,
     storage::Database,
@@ -55,9 +44,6 @@ pub struct Sequencer {
 
     proving_key: SP1ProvingKey,
     verifying_key: SP1VerifyingKey,
-
-    epoch_buffer_tx: Arc<Sender<FinalizedEpoch>>,
-    epoch_buffer_rx: Arc<Mutex<Receiver<FinalizedEpoch>>>,
 }
 
 #[async_trait]
@@ -65,17 +51,15 @@ impl NodeType for Sequencer {
     async fn start(self: Arc<Self>) -> Result<()> {
         self.da.start().await.context("Failed to start DA layer")?;
 
-        let sync_loop = self.clone().sync_loop();
-        let snark_loop = self.clone().post_snarks_loop();
-        let operation_loop = self.clone().post_operations_loop();
+        let main_loop = self.clone().main_loop();
+        let batch_poster = self.clone().post_batch_loop();
 
         let ws_self = self.clone();
         let ws = ws_self.ws.start(self.clone());
 
         tokio::select! {
-            res = sync_loop => Ok(res.context("sync loop failed")?),
-            res = snark_loop => Ok(res.context("DA loop failed")?),
-            res = operation_loop => Ok(res.context("Operation loop failed")?),
+            res = main_loop => Ok(res.context("main loop failed")?),
+            res = batch_poster => Ok(res.context("batch poster failed")?),
             res = ws => Ok(res.context("WebServer failed")?),
         }
     }
@@ -88,7 +72,6 @@ impl Sequencer {
         cfg: Config,
         key: SigningKey,
     ) -> Result<Sequencer> {
-        let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
         let ws = cfg.webserver.context("Missing webserver configuration")?;
         let start_height = cfg.celestia_config.unwrap_or_default().start_height;
 
@@ -109,219 +92,254 @@ impl Sequencer {
             prover_client: Arc::new(Mutex::new(prover_client)),
             tree,
             pending_operations: Arc::new(Mutex::new(Vec::new())),
-            epoch_buffer_tx: Arc::new(tx),
-            epoch_buffer_rx: Arc::new(Mutex::new(rx)),
         })
     }
 
-    // sync_loop is responsible for downloading operations from the DA layer
-    async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
-        let self_clone = self.clone();
-        info!("starting operation sync loop");
-        let epoch_buffer = self.epoch_buffer_tx.clone();
-        spawn(async move {
-            let mut current_position = self_clone.start_height;
-            loop {
-                // target is updated when a new header is received
-                let target = match self_clone.da.get_latest_height().await {
-                    Ok(target) => target,
-                    Err(e) => {
-                        error!("failed to update sync target, retrying: {:?}", e);
-                        continue;
-                    }
-                };
+    async fn main_loop(self: Arc<Self>) -> Result<()> {
+        let mut height_rx = self.da.subscribe_to_heights();
+        let current_height = height_rx.recv().await?;
+        let historical_sync_height = current_height - 1;
 
-                if current_position == target {
-                    continue;
-                }
+        self.sync_range(self.start_height, historical_sync_height)
+            .await?;
+        self.real_time_sync(height_rx).await
+    }
 
-                debug!("updated sync target to height {}", target);
-                while current_position < target {
-                    trace!("processing height: {}", current_position);
-                    match self_clone.da.get_operations(current_position + 1).await {
-                        Ok(operations) => {
-                            if !operations.is_empty() {
-                                debug!(
-                                    "sequencer: got operations at height {}",
-                                    current_position + 1
-                                );
-                            }
-
-                            let epoch = match self_clone.finalize_epoch(operations).await {
-                                Ok(e) => e,
-                                Err(e) => {
-                                    error!("sequencer_loop: finalizing epoch: {}", e);
-                                    continue;
-                                }
-                            };
-
-                            info!("sequencer_loop: finalized epoch {}", epoch.height);
-                            match epoch_buffer.send(epoch).await {
-                                Ok(_) => {
-                                    current_position += 1;
-                                }
-                                Err(e) => {
-                                    error!("sequencer_loop: sending epoch to buffer: {}", e);
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            debug!("light client: getting epoch: {}", e)
-                        }
-                    };
-                }
-                current_position = target; // Update the current position to the latest target
+    async fn sync_range(&self, start_height: u64, end_height: u64) -> Result<()> {
+        let saved_epoch = match self.db.get_epoch() {
+            Ok(epoch) => epoch,
+            Err(_) => {
+                debug!("no existing epoch state found, setting epoch to 0");
+                self.db.set_epoch(&0)?;
+                0
             }
-        })
-        .await
-    }
-
-    pub async fn post_operations_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
-        info!("Starting operation posting loop");
-        let mut ticker = interval(std::time::Duration::from_secs(1)); // Adjust the interval as needed
-        let mut last_processed_height = 0;
-
-        spawn(async move {
-            loop {
-                ticker.tick().await;
-
-                // Check for new block
-                let current_height = match self.da.get_latest_height().await {
-                    Ok(height) => height,
-                    Err(e) => {
-                        error!("operation_loop: Failed to get latest height: {}", e);
-                        continue;
-                    }
-                };
-
-                // If there's a new block
-                if current_height > last_processed_height {
-                    // Get pending operations
-                    let pending_operations = {
-                        let mut ops = self.pending_operations.lock().await;
-                        std::mem::take(&mut *ops)
-                    };
-
-                    // If there are pending operations, submit them
-                    if !pending_operations.is_empty() {
-                        match self.da.submit_operations(pending_operations).await {
-                            Ok(submitted_height) => {
-                                info!(
-                                    "operation_loop: Submitted operations at height {}",
-                                    submitted_height
-                                );
-                                last_processed_height = submitted_height;
-                            }
-                            Err(e) => {
-                                error!("operation_loop: Failed to submit operations: {}", e);
-                                // TODO: Handle error (e.g., retry logic, returning operations to pending_operations)
-                            }
-                        }
-                    } else {
-                        debug!(
-                            "operation_loop: No pending operations to submit at height {}",
-                            current_height
-                        );
-                        last_processed_height = current_height;
-                    }
-                }
-            }
-        })
-        .await
-    }
-
-    // post_snarks_loop is responsible for submitting finalized epochs to the DA layer.
-    async fn post_snarks_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
-        info!("starting da submission loop");
-        let mut ticker = interval(DA_RETRY_INTERVAL);
-        spawn(async move {
-            loop {
-                let epochs = match self.receive_finalized_epochs().await {
-                    Ok(epochs) => epochs,
-                    Err(e) => {
-                        error!("da_loop: getting finalized epochs: {}", e);
-                        continue;
-                    }
-                };
-
-                // don't post to DA layer if no epochs have been finalized
-                if epochs.is_empty() {
-                    continue;
-                }
-
-                let mut retry_counter = 0;
-                loop {
-                    if retry_counter > DA_RETRY_COUNT {
-                        // todo: graceful shutdown
-                        panic!("da_loop: too many retries, giving up");
-                    }
-                    match self.da.submit_snarks(epochs.clone()).await {
-                        Ok(height) => {
-                            info!("da_loop: submitted epoch at height {}", height);
-                            break;
-                        }
-                        Err(e) => {
-                            // code = NotFound means the account is not funded
-                            if e.to_string().contains("rpc error: code = NotFound") {
-                                panic!("da_loop: celestia account not funded, causing: {}", e);
-                            }
-                            error!("da_loop: submitting epoch: {}", e);
-                            retry_counter += 1;
-                        }
-                    };
-                    ticker.tick().await;
-                }
-            }
-        })
-        .await
-    }
-
-    pub async fn get_commitment(&self) -> Result<Digest> {
-        let tree = self.tree.lock().await;
-        tree.get_commitment().context("Failed to get commitment")
-    }
-
-    // finalize_epoch is responsible for finalizing the pending epoch and returning the epoch json to be posted on the DA layer.
-    pub async fn finalize_epoch(&self, operations: Vec<Operation>) -> Result<FinalizedEpoch> {
-        let epoch = match self.db.get_epoch() {
-            Ok(epoch) => epoch + 1,
-            Err(_) => 0,
         };
+        let mut current_epoch: u64 = 0;
+        let mut buffered_operations: VecDeque<Vec<Operation>> = VecDeque::new();
+        let mut current_height = start_height;
 
-        let prev_commitment = if epoch > 0 {
-            let prev_epoch = epoch - 1;
-            let hash_string = self.db.get_commitment(&prev_epoch).context(format!(
-                "Failed to get commitment for previous epoch {}",
-                prev_epoch
-            ))?;
-            Digest::from_hex(&hash_string).context("Failed to parse commitment")?
-        } else {
-            self.get_commitment().await?
-        };
+        while current_height < end_height {
+            let height = current_height + 1;
+            let operations = self.da.get_operations(height).await?;
+            let epoch_result = self.da.get_finalized_epoch(height).await?;
 
-        let mut proofs = Vec::new();
-        for entry in operations.iter() {
-            let proof = self.process_operation(entry).await?;
-            proofs.push(proof);
+            self.process_height(
+                height,
+                operations,
+                epoch_result,
+                &mut current_epoch,
+                &mut buffered_operations,
+                saved_epoch,
+            )
+            .await?;
+
+            current_height += 1;
         }
 
-        let current_commitment = {
-            let tree = self.tree.lock().await;
-            tree.get_commitment()
-                .context("Failed to get current commitment")?
-        };
+        info!(
+            "finished historical sync from height {} to {}",
+            start_height, end_height
+        );
+        Ok(())
+    }
 
-        self.db
-            .set_epoch(&epoch)
-            .context("Failed to set new epoch")?;
-        // add the commitment for the operations ran since the last epoch
-        self.db
-            .set_commitment(&epoch, &current_commitment)
-            .context("Failed to add commitment for new epoch")?;
+    async fn post_batch_loop(self: Arc<Self>) -> Result<()> {
+        let mut height_rx = self.da.subscribe_to_heights();
 
+        loop {
+            let height = height_rx.recv().await?;
+            debug!("received height {}", height);
+
+            // Get pending operations
+            let pending_operations = {
+                let mut ops = self.pending_operations.lock().await;
+                std::mem::take(&mut *ops)
+            };
+
+            let op_count = pending_operations.len();
+
+            // If there are pending operations, submit them
+            if !pending_operations.clone().is_empty() {
+                match self.da.submit_operations(pending_operations).await {
+                    Ok(submitted_height) => {
+                        info!(
+                            "post_batch_loop: submitted {} operations at height {}",
+                            op_count, submitted_height
+                        );
+                    }
+                    Err(e) => {
+                        error!("post_batch_loop: Failed to submit operations: {}", e);
+                    }
+                }
+            } else {
+                debug!(
+                    "post_batch_loop: No pending operations to submit at height {}",
+                    height
+                );
+            }
+        }
+    }
+
+    async fn real_time_sync(&self, mut height_rx: broadcast::Receiver<u64>) -> Result<()> {
+        let saved_epoch = self.db.get_epoch()?;
+        let mut current_epoch: u64 = saved_epoch;
+        let mut buffered_operations: VecDeque<Vec<Operation>> = VecDeque::new();
+
+        loop {
+            let height = height_rx.recv().await?;
+            let operations = self.da.get_operations(height).await?;
+            let epoch_result = self.da.get_finalized_epoch(height).await?;
+
+            self.process_height(
+                height,
+                operations,
+                epoch_result,
+                &mut current_epoch,
+                &mut buffered_operations,
+                saved_epoch,
+            )
+            .await?;
+        }
+    }
+
+    async fn process_height(
+        &self,
+        height: u64,
+        operations: Vec<Operation>,
+        epoch_result: Option<FinalizedEpoch>,
+        current_epoch: &mut u64,
+        buffered_operations: &mut VecDeque<Vec<Operation>>,
+        saved_epoch: u64,
+    ) -> Result<()> {
+        let mut tree = self.tree.lock().await;
+        let prev_commitment = tree.get_commitment()?;
+
+        debug!(
+            "processing height {}, saved_epoch: {}, current_epoch: {}",
+            height, saved_epoch, current_epoch
+        );
+
+        if !operations.is_empty() {
+            buffered_operations.push_back(operations);
+        }
+
+        if !buffered_operations.is_empty() && height > saved_epoch {
+            let all_ops: Vec<Operation> = buffered_operations.drain(..).flatten().collect();
+            *current_epoch = height;
+            self.finalize_new_epoch(*current_epoch, all_ops, &mut tree)
+                .await?;
+        } else if let Some(epoch) = epoch_result {
+            self.process_existing_epoch(
+                epoch,
+                current_epoch,
+                buffered_operations,
+                &mut tree,
+                prev_commitment,
+                height,
+            )
+            .await?;
+        } else {
+            debug!("No operations to process at height {}", height);
+        }
+
+        Ok(())
+    }
+
+    async fn process_existing_epoch(
+        &self,
+        epoch: FinalizedEpoch,
+        current_epoch: &mut u64,
+        buffered_operations: &mut VecDeque<Vec<Operation>>,
+        tree: &mut KeyDirectoryTree<Box<dyn Database>>,
+        prev_commitment: Digest,
+        height: u64,
+    ) -> Result<()> {
+        if epoch.height != *current_epoch {
+            return Err(anyhow!(
+                "Epoch height mismatch: expected {}, got {}",
+                current_epoch,
+                epoch.height
+            ));
+        }
+        if epoch.prev_commitment != prev_commitment {
+            return Err(anyhow!("Commitment mismatch at epoch {}", current_epoch));
+        }
+
+        while let Some(buffered_ops) = buffered_operations.pop_front() {
+            self.execute_block(buffered_ops, tree).await?;
+        }
+
+        let new_commitment = tree.get_commitment()?;
+        if epoch.current_commitment != new_commitment {
+            return Err(anyhow!("Commitment mismatch at epoch {}", current_epoch));
+        }
+
+        debug!(
+            "Processed height {}. New commitment: {:?}",
+            height, new_commitment
+        );
+        *current_epoch += 1;
+        Ok(())
+    }
+
+    async fn execute_block(
+        &self,
+        operations: Vec<Operation>,
+        tree: &mut KeyDirectoryTree<Box<dyn Database>>,
+    ) -> Result<Vec<Proof>> {
+        debug!("executing block with {} operations", operations.len());
+
+        let mut proofs = Vec::new();
+
+        for operation in operations {
+            match self.process_operation(&operation, tree).await {
+                Ok(proof) => proofs.push(proof),
+                Err(e) => {
+                    // Log the error and continue with the next operation
+                    warn!("Failed to process operation: {:?}. Error: {}", operation, e);
+                }
+            }
+        }
+
+        Ok(proofs)
+    }
+
+    async fn finalize_new_epoch(
+        &self,
+        height: u64,
+        operations: Vec<Operation>,
+        tree: &mut KeyDirectoryTree<Box<dyn Database>>,
+    ) -> Result<()> {
+        let prev_commitment = tree.get_commitment()?;
+
+        let proofs = self.execute_block(operations, tree).await?;
+
+        let new_commitment = tree.get_commitment()?;
+
+        let finalized_epoch = self
+            .prove_epoch(height, prev_commitment, new_commitment, proofs)
+            .await?;
+
+        self.da.submit_finalized_epoch(finalized_epoch).await?;
+
+        self.db.set_commitment(&height, &new_commitment)?;
+        self.db.set_epoch(&height)?;
+
+        info!("Finalized new epoch at height {}", height);
+
+        Ok(())
+    }
+
+    async fn prove_epoch(
+        &self,
+        height: u64,
+        prev_commitment: Digest,
+        new_commitment: Digest,
+        proofs: Vec<Proof>,
+    ) -> Result<FinalizedEpoch> {
         let batch = Batch {
             prev_root: prev_commitment,
-            new_root: current_commitment,
+            new_root: new_commitment,
             proofs,
         };
 
@@ -330,21 +348,21 @@ impl Sequencer {
 
         let client = self.prover_client.lock().await;
 
-        info!("generating proof for epoch height {}", epoch);
+        info!("generating proof for epoch height {}", height);
         #[cfg(not(feature = "plonk"))]
         let proof = client.prove(&self.proving_key, stdin).run()?;
 
         #[cfg(feature = "plonk")]
         let proof = client.prove(&self.proving_key, stdin).plonk().run()?;
-        info!("successfully generated proof for epoch height {}", epoch);
+        info!("successfully generated proof for epoch height {}", height);
 
         client.verify(&proof, &self.verifying_key)?;
-        info!("verified proof for epoch height {}", epoch);
+        info!("verified proof for epoch height {}", height);
 
         let epoch_json = FinalizedEpoch {
-            height: epoch,
+            height,
             prev_commitment,
-            current_commitment,
+            current_commitment: new_commitment,
             proof,
             signature: None,
         };
@@ -360,28 +378,17 @@ impl Sequencer {
         Ok(epoch_json_with_signature)
     }
 
-    // receive_finalized_epochs empties the epoch buffer into a vector and returns it.
-    async fn receive_finalized_epochs(&self) -> Result<Vec<FinalizedEpoch>> {
-        let mut epochs = Vec::new();
-        let mut receiver = self.epoch_buffer_rx.lock().await;
-
-        while let Ok(epoch) = receiver.try_recv() {
-            epochs.push(epoch);
-        }
-
-        Ok(epochs)
-    }
-
-    #[cfg(test)]
-    pub async fn send_finalized_epoch(&self, epoch: &FinalizedEpoch) -> Result<()> {
-        self.epoch_buffer_tx
-            .send(epoch.clone())
-            .await
-            .map_err(|_| DataAvailabilityError::ChannelClosed.into())
+    pub async fn get_commitment(&self) -> Result<Digest> {
+        let tree = self.tree.lock().await;
+        tree.get_commitment().context("Failed to get commitment")
     }
 
     /// Updates the state from an already verified pending operation.
-    async fn process_operation(&self, operation: &Operation) -> Result<Proof> {
+    async fn process_operation(
+        &self,
+        operation: &Operation,
+        tree: &mut KeyDirectoryTree<Box<dyn Database>>,
+    ) -> Result<Proof> {
         match operation {
             Operation::Add { id, .. } | Operation::Revoke { id, .. } => {
                 // verify that the hashchain already exists
@@ -390,7 +397,6 @@ impl Sequencer {
                     .get_hashchain(id)
                     .context(format!("Failed to get hashchain for ID {}", id))?;
 
-                let mut tree = self.tree.lock().await;
                 let hashed_id = hash(id.as_bytes());
 
                 let previous_hash = current_chain.last().context("Hashchain is empty")?.hash;
@@ -441,7 +447,6 @@ impl Sequencer {
                     operation
                 ))?;
 
-                let mut tree = self.tree.lock().await;
                 let hashed_id = hash(id.as_bytes());
 
                 Ok(Proof::Insert(
@@ -463,7 +468,6 @@ impl Sequencer {
         Ok(())
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -476,16 +480,16 @@ mod tests {
     use keystore_rs::create_signing_key;
     use serial_test::serial;
 
-    // set up redis connection and flush database before each test
+    // Helper function to set up redis connection and flush database before each test
     fn setup_db() -> RedisConnection {
         let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
         redis_connection.flush_database().unwrap();
         redis_connection
     }
 
-    // flush database after each test
-    fn teardown_db(redis_connections: Arc<Box<dyn Database>>) {
-        redis_connections.flush_database().unwrap();
+    // Helper function to flush database after each test
+    fn teardown_db(redis_connection: Arc<dyn Database>) {
+        redis_connection.flush_database().unwrap();
     }
 
     // Helper function to create a test Sequencer instance
@@ -499,7 +503,7 @@ mod tests {
         )
     }
 
-    fn create_new_account_operation(id: String, value: String, key: SigningKey) -> OperationInput {
+    fn create_new_account_operation(id: String, value: String, key: &SigningKey) -> OperationInput {
         let incoming = Operation::CreateAccount {
             id: id.clone(),
             value: value.clone(),
@@ -533,43 +537,10 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_validate_and_queue_update() {
-        let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
-        let da_layer = Arc::new(da_layer);
-        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(setup_db()));
-        let sequencer = Arc::new(
-            Sequencer::new(
-                db.clone(),
-                da_layer,
-                Config::default(),
-                create_signing_key(),
-            )
-            .unwrap(),
-        );
+        let sequencer = create_test_sequencer().await;
 
         let update_entry =
-            create_update_operation("test@deltadevs.xyz".to_string(), "test".to_string());
-
-        sequencer
-            .validate_and_queue_update(&update_entry)
-            .await
-            .unwrap();
-        teardown_db(db);
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_queued_update_gets_finalized() {
-        let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
-        let da_layer = Arc::new(da_layer);
-        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(setup_db()));
-        let signing_key = create_signing_key();
-        let sequencer = Arc::new(
-            Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
-        );
-
-        let id = "test@deltadevs.xyz".to_string();
-        let update_entry =
-            create_new_account_operation(id.clone(), "test".to_string(), signing_key.clone());
+            create_update_operation("test@example.com".to_string(), "test".to_string());
 
         sequencer
             .clone()
@@ -577,277 +548,120 @@ mod tests {
             .await
             .unwrap();
 
-        // hashchain doesn't exist yet, because operation is only queued
-        let hashchain = sequencer.db.get_hashchain(id.as_str());
-        assert!(hashchain.is_err());
+        let pending_ops = sequencer.pending_operations.lock().await;
+        assert_eq!(pending_ops.len(), 1);
 
-        let pending_operations = sequencer.pending_operations.lock().await.clone();
-        let prev_commitment = sequencer.get_commitment().await.unwrap();
-        sequencer.finalize_epoch(pending_operations).await.unwrap();
-        let new_commitment = sequencer.get_commitment().await.unwrap();
-        assert_ne!(prev_commitment, new_commitment);
-
-        let hashchain = sequencer.db.get_hashchain(id.as_str());
-        let value = hashchain.unwrap().get(0).operation.value();
-        assert_eq!(value, "test");
-
-        teardown_db(db);
+        teardown_db(sequencer.db.clone());
     }
 
     #[tokio::test]
     #[serial]
-    async fn test_validate_invalid_update_fails() {
-        let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
-        let da_layer = Arc::new(da_layer);
-        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(setup_db()));
-        let sequencer = Arc::new(
-            Sequencer::new(
-                db.clone(),
-                da_layer,
-                Config::default(),
-                create_signing_key(),
-            )
-            .unwrap(),
-        );
-
-        let mut update_entry =
-            create_update_operation("test@deltadevs.xyz".to_string(), "test".to_string());
-        let second_signer =
-            create_update_operation("abcd".to_string(), "test".to_string()).public_key;
-        update_entry.public_key = second_signer;
-
-        let res = sequencer.validate_and_queue_update(&update_entry).await;
-        assert!(res.is_err());
-        teardown_db(db);
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_finalize_epoch_first_epoch() {
+    async fn test_process_operation() {
         let sequencer = create_test_sequencer().await;
-        let operations = vec![
-            create_new_account_operation(
-                "user1@example.com".to_string(),
-                "value1".to_string(),
-                sequencer.key.clone(),
-            )
-            .operation,
-            create_new_account_operation(
-                "user2@example.com".to_string(),
-                "value2".to_string(),
-                sequencer.key.clone(),
-            )
-            .operation,
-        ];
+        let mut tree = sequencer.tree.lock().await;
 
-        let prev_commitment = sequencer.get_commitment().await.unwrap();
-        let epoch = sequencer.finalize_epoch(operations).await.unwrap();
-        assert_eq!(epoch.height, 0);
-        assert_eq!(epoch.prev_commitment, prev_commitment);
-        assert_eq!(
-            epoch.current_commitment,
-            sequencer.get_commitment().await.unwrap()
-        );
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_finalize_epoch_multiple_epochs() {
-        let sequencer = create_test_sequencer().await;
-
-        // First epoch
-        let operations1 = vec![
-            create_new_account_operation(
-                "user1@example.com".to_string(),
-                "value1".to_string(),
-                sequencer.key.clone(),
-            )
-            .operation,
-        ];
-        let epoch1 = sequencer.finalize_epoch(operations1).await.unwrap();
-
-        // Second epoch
-        let operations2 = vec![
-            create_new_account_operation(
-                "user2@example.com".to_string(),
-                "value2".to_string(),
-                sequencer.key.clone(),
-            )
-            .operation,
-        ];
-        let epoch2 = sequencer.finalize_epoch(operations2).await.unwrap();
-
-        assert_eq!(epoch2.height, 1);
-        assert_eq!(epoch2.prev_commitment, epoch1.current_commitment);
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_commitment_verification() {
-        let sequencer = create_test_sequencer().await;
-
-        // First epoch
-        let operations1 = vec![
-            create_new_account_operation(
-                "user1@example.com".to_string(),
-                "value1".to_string(),
-                sequencer.key.clone(),
-            )
-            .operation,
-        ];
-        let epoch1 = sequencer.finalize_epoch(operations1).await.unwrap();
-
-        let mut public_values = epoch1.proof.public_values.clone();
-        let proof_prev_commitment: Digest = public_values.read();
-        let proof_current_commitment: Digest = public_values.read();
-
-        assert_eq!(
-            &epoch1.prev_commitment, &proof_prev_commitment,
-            "Previous commitment mismatch"
-        );
-        assert_eq!(
-            &epoch1.current_commitment, &proof_current_commitment,
-            "Current commitment mismatch"
-        );
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_process_operation_add() {
-        let sequencer = create_test_sequencer().await;
-
-        // First, create an account
+        // Test CreateAccount operation
         let create_op = create_new_account_operation(
             "user@example.com".to_string(),
             "initial".to_string(),
-            sequencer.key.clone(),
+            &sequencer.key,
         )
         .operation;
-        sequencer.process_operation(&create_op).await.unwrap();
+        let proof = sequencer
+            .process_operation(&create_op, &mut tree)
+            .await
+            .unwrap();
+        assert!(matches!(proof, Proof::Insert(_)));
 
-        // Then, add a new value
+        // Test Add operation
         let add_op = Operation::Add {
             id: "user@example.com".to_string(),
             value: "new_value".to_string(),
         };
-        let proof = sequencer.process_operation(&add_op).await.unwrap();
-
+        let proof = sequencer
+            .process_operation(&add_op, &mut tree)
+            .await
+            .unwrap();
         assert!(matches!(proof, Proof::Update(_)));
 
-        let hashchain = sequencer.db.get_hashchain("user@example.com").unwrap();
-        assert_eq!(hashchain.len(), 2);
-        assert_eq!(hashchain.get(1).operation.value(), "new_value");
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_process_operation_revoke() {
-        let sequencer = create_test_sequencer().await;
-
-        // First, create an account
-        let create_op = create_new_account_operation(
-            "user@example.com".to_string(),
-            "initial".to_string(),
-            sequencer.key.clone(),
-        )
-        .operation;
-        sequencer.process_operation(&create_op).await.unwrap();
-
-        // Then, revoke a value
+        // Test Revoke operation
         let revoke_op = Operation::Revoke {
             id: "user@example.com".to_string(),
             value: "initial".to_string(),
         };
-        let proof = sequencer.process_operation(&revoke_op).await.unwrap();
-
+        let proof = sequencer
+            .process_operation(&revoke_op, &mut tree)
+            .await
+            .unwrap();
         assert!(matches!(proof, Proof::Update(_)));
 
-        let hashchain = sequencer.db.get_hashchain("user@example.com").unwrap();
-        assert_eq!(hashchain.len(), 2);
-        assert!(matches!(
-            hashchain.get(1).operation,
-            Operation::Revoke { .. }
-        ));
+        teardown_db(sequencer.db.clone());
     }
 
     #[tokio::test]
     #[serial]
-    async fn test_process_operation_create_account_duplicate() {
+    async fn test_execute_block() {
         let sequencer = create_test_sequencer().await;
+        let mut tree = sequencer.tree.lock().await;
 
-        // Create an account
-        let create_op = create_new_account_operation(
-            "user@example.com".to_string(),
-            "initial".to_string(),
-            sequencer.key.clone(),
-        )
-        .operation;
-        sequencer.process_operation(&create_op).await.unwrap();
+        let operations = vec![
+            create_new_account_operation(
+                "user1@example.com".to_string(),
+                "value1".to_string(),
+                &sequencer.key,
+            )
+            .operation,
+            create_new_account_operation(
+                "user2@example.com".to_string(),
+                "value2".to_string(),
+                &sequencer.key,
+            )
+            .operation,
+            Operation::Add {
+                id: "user1@example.com".to_string(),
+                value: "new_value1".to_string(),
+            },
+        ];
 
-        // Try to create the same account again
-        let result = sequencer.process_operation(&create_op).await;
-        assert!(result.is_err());
+        let proofs = sequencer
+            .execute_block(operations, &mut tree)
+            .await
+            .unwrap();
+        assert_eq!(proofs.len(), 3);
+
+        teardown_db(sequencer.db.clone());
     }
 
     #[tokio::test]
     #[serial]
-    async fn test_receive_finalized_epochs() {
+    async fn test_finalize_new_epoch() {
         let sequencer = create_test_sequencer().await;
+        let mut tree = sequencer.tree.lock().await;
 
-        // Create some realistic operations
-        let op1 = create_new_account_operation(
-            "user1@example.com".to_string(),
-            "value1".to_string(),
-            sequencer.key.clone(),
-        )
-        .operation;
-        let op2 = create_new_account_operation(
-            "user2@example.com".to_string(),
-            "value2".to_string(),
-            sequencer.key.clone(),
-        )
-        .operation;
-        let op3 = Operation::Add {
-            id: "user1@example.com".to_string(),
-            value: "new_value1".to_string(),
-        };
+        let operations = vec![
+            create_new_account_operation(
+                "user1@example.com".to_string(),
+                "value1".to_string(),
+                &sequencer.key,
+            )
+            .operation,
+            create_new_account_operation(
+                "user2@example.com".to_string(),
+                "value2".to_string(),
+                &sequencer.key,
+            )
+            .operation,
+        ];
 
-        // Create FinalizedEpoch instances
-        let epoch1 = sequencer.finalize_epoch(vec![op1]).await.unwrap();
-        let epoch2 = sequencer.finalize_epoch(vec![op2, op3]).await.unwrap();
+        let prev_commitment = tree.get_commitment().unwrap();
+        sequencer
+            .finalize_new_epoch(0, operations, &mut tree)
+            .await
+            .unwrap();
 
-        // Send the epochs to the sequencer
-        sequencer.send_finalized_epoch(&epoch1).await.unwrap();
-        sequencer.send_finalized_epoch(&epoch2).await.unwrap();
+        let new_commitment = tree.get_commitment().unwrap();
+        assert_ne!(prev_commitment, new_commitment);
 
-        // Receive and verify the epochs
-        let received_epochs = sequencer.receive_finalized_epochs().await.unwrap();
-        assert_eq!(received_epochs.len(), 2);
-
-        // Verify first epoch
-        assert_eq!(received_epochs[0].height, epoch1.height);
-        assert_eq!(received_epochs[0].prev_commitment, epoch1.prev_commitment);
-        assert_eq!(
-            received_epochs[0].current_commitment,
-            epoch1.current_commitment
-        );
-
-        // Verify second epoch
-        assert_eq!(received_epochs[1].height, epoch2.height);
-        assert_eq!(received_epochs[1].prev_commitment, epoch2.prev_commitment);
-        assert_eq!(
-            received_epochs[1].current_commitment,
-            epoch2.current_commitment
-        );
-
-        // Verify that the epochs are connected
-        assert_eq!(
-            received_epochs[1].prev_commitment,
-            received_epochs[0].current_commitment
-        );
-
-        // Verify that the buffer is now empty
-        let empty_epochs = sequencer.receive_finalized_epochs().await.unwrap();
-        assert!(empty_epochs.is_empty());
+        teardown_db(sequencer.db.clone());
     }
 }
