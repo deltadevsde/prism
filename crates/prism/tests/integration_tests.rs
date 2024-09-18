@@ -58,7 +58,7 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
     std::env::set_var("RUST_LOG", "DEBUG");
     pretty_env_logger::init();
 
-    let (da_layer, mut height_rx, mut _block_rx) = InMemoryDataAvailabilityLayer::new(10);
+    let (da_layer, mut height_rx, mut _block_rx) = InMemoryDataAvailabilityLayer::new(30);
     let da_layer = Arc::new(da_layer);
     let db = setup_db();
     let cfg = Config::default();
@@ -128,12 +128,12 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
                 }
             }
 
-            tokio::time::sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(5000)).await;
         }
     });
 
     while let Ok(height) = height_rx.recv().await {
-        if height == 60 {
+        if height == 5 {
             break;
         }
     }

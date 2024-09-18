@@ -4,7 +4,7 @@ use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::KeyHash;
 use prism_common::tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
-use std::{self, collections::VecDeque, str::FromStr, sync::Arc};
+use std::{self, collections::VecDeque, str::FromStr, sync::Arc, thread::current};
 use tokio::sync::{broadcast, Mutex};
 
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
@@ -136,6 +136,10 @@ impl Sequencer {
             current_height += 1;
         }
 
+        info!(
+            "finished historical sync from height {} to {}",
+            start_height, end_height
+        );
         Ok(())
     }
 
@@ -144,6 +148,7 @@ impl Sequencer {
 
         loop {
             let height = height_rx.recv().await?;
+            debug!("received height {}", height);
 
             // Get pending operations
             let pending_operations = {
@@ -151,23 +156,24 @@ impl Sequencer {
                 std::mem::take(&mut *ops)
             };
 
+            let op_count = pending_operations.len();
+
             // If there are pending operations, submit them
-            if !pending_operations.is_empty() {
+            if !pending_operations.clone().is_empty() {
                 match self.da.submit_operations(pending_operations).await {
                     Ok(submitted_height) => {
                         info!(
-                            "operation_loop: Submitted operations at height {}",
-                            submitted_height
+                            "post_batch_loop: submitted {} operations at height {}",
+                            op_count, submitted_height
                         );
                     }
                     Err(e) => {
-                        error!("operation_loop: Failed to submit operations: {}", e);
-                        // TODO: Handle error (e.g., retry logic, returning operations to pending_operations)
+                        error!("post_batch_loop: Failed to submit operations: {}", e);
                     }
                 }
             } else {
                 debug!(
-                    "operation_loop: No pending operations to submit at height {}",
+                    "post_batch_loop: No pending operations to submit at height {}",
                     height
                 );
             }
@@ -208,14 +214,21 @@ impl Sequencer {
         let mut tree = self.tree.lock().await;
         let prev_commitment = tree.get_commitment()?;
 
-        // once current_epoch > saved_epoch, the sequencer must create and post new FinalizedEpochs
-        if *current_epoch > saved_epoch {
+        debug!(
+            "processing height {}, saved_epoch: {}, current_epoch: {}",
+            height, saved_epoch, current_epoch
+        );
+
+        if !operations.is_empty() {
+            buffered_operations.push_back(operations);
+        }
+
+        if !buffered_operations.is_empty() && height > saved_epoch {
             let all_ops: Vec<Operation> = buffered_operations.drain(..).flatten().collect();
+            *current_epoch = height;
             self.finalize_new_epoch(*current_epoch, all_ops, &mut tree)
                 .await?;
-        }
-        // we haven't fully synced yet, the FinalizedEpoch is in the block
-        else if let Some(epoch) = epoch_result {
+        } else if let Some(epoch) = epoch_result {
             self.process_existing_epoch(
                 epoch,
                 current_epoch,
@@ -225,14 +238,8 @@ impl Sequencer {
                 height,
             )
             .await?;
-        }
-        // there was no FinalizedEpoch in this block, so buffer its operations until we come across the next one
-        else {
-            buffered_operations.push_back(operations);
-            warn!(
-                "Epoch JSON not found for height {}. Operations buffered.",
-                height
-            );
+        } else {
+            debug!("No operations to process at height {}", height);
         }
 
         Ok(())
@@ -280,6 +287,8 @@ impl Sequencer {
         operations: Vec<Operation>,
         tree: &mut KeyDirectoryTree<Box<dyn Database>>,
     ) -> Result<Vec<Proof>> {
+        debug!("executing block with {} operations", operations.len());
+
         let mut proofs = Vec::new();
 
         for operation in operations {
@@ -314,9 +323,10 @@ impl Sequencer {
         self.da.submit_snark(finalized_epoch).await?;
 
         self.db.set_commitment(&height, &new_commitment)?;
-        self.db
-            .set_epoch(&height)
-            .context("Failed to set new epoch")?;
+        self.db.set_epoch(&height)?;
+
+        info!("Finalized new epoch at height {}", height);
+
         Ok(())
     }
 
