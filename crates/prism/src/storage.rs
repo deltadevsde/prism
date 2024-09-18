@@ -248,7 +248,14 @@ impl Database for RedisConnection {
 mod tests {
     use super::*;
     use crate::storage::Database;
-    use prism_common::{operation::Operation, tree::hash};
+    use prism_common::{
+        operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle},
+        test_utils::{
+            create_add_key_operation_with_test_value, create_mock_chain_entry,
+            create_mock_signature, create_mock_signing_key,
+        },
+        tree::hash,
+    };
     use serde::{Deserialize, Serialize};
     use serial_test::serial;
 
@@ -266,32 +273,15 @@ mod tests {
         redis_connections.flush_database().unwrap();
     }
 
-    fn create_mock_chain_entry() -> HashchainEntry {
-        HashchainEntry {
-            hash: hash(b"test_hash"),
-            previous_hash: hash(b"test_previous_hash"),
-            operation: Operation::Add {
-                id: "test_id".to_string(),
-                value: "test_value".to_string(),
-            },
-        }
-    }
-
-    fn create_add_operation_with_test_value(id: &str) -> Operation {
-        Operation::Add {
-            id: id.to_string(),
-            value: "test_value".to_string(),
-        }
-    }
-
     #[test]
     #[serial]
     fn test_get_hashchain() {
         let redis_connections = setup();
+        let signing_key = create_mock_signing_key();
 
-        let incoming_operation = create_add_operation_with_test_value("main:test_key");
-        let chain_entry = create_mock_chain_entry();
-
+        let incoming_operation =
+            create_add_key_operation_with_test_value("main:test_key", &signing_key);
+        let chain_entry = create_mock_chain_entry(&signing_key);
         redis_connections
             .set_hashchain(&incoming_operation, &[chain_entry.clone()])
             .unwrap();
@@ -313,9 +303,11 @@ mod tests {
     #[serial]
     fn test_try_getting_hashchain_for_missing_key() {
         let redis_connections = setup();
+        let signing_key = create_mock_signing_key();
 
-        let incoming_operation = create_add_operation_with_test_value("main:test_key");
-        let chain_entry = create_mock_chain_entry();
+        let incoming_operation =
+            create_add_key_operation_with_test_value("main:test_key", &signing_key);
+        let chain_entry = create_mock_chain_entry(&signing_key);
 
         redis_connections
             .set_hashchain(&incoming_operation, &[chain_entry.clone()])
@@ -345,10 +337,14 @@ mod tests {
         let wrong_chain_entry = InvalidChainEntry {
             hash_val: "wrong".to_string(),
             previous_hash: "formatted".to_string(),
-            operation: Operation::Add {
+            operation: Operation::AddKey(KeyOperationArgs {
                 id: "test".to_string(),
-                value: "entry".to_string(),
-            },
+                value: PublicKey::Ed25519(vec![]),
+                signature: SignatureBundle {
+                    key_idx: 0,
+                    signature: vec![],
+                },
+            }),
         };
 
         let value = serde_json::to_string(&vec![wrong_chain_entry.clone()]).unwrap();
@@ -378,13 +374,15 @@ mod tests {
     */
     fn test_update_hashchain() {
         let redis_connections = setup();
+        let signing_key = create_mock_signing_key();
 
-        let incoming_operation = Operation::Add {
-            id: "test_key".to_string(),
-            value: "test_value".to_string(),
-        };
+        let incoming_operation = Operation::AddKey(KeyOperationArgs {
+            id: "test_id".to_string(),
+            value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
+            signature: create_mock_signature(&signing_key, b"test_id"),
+        });
 
-        let chain_entries: Vec<HashchainEntry> = vec![create_mock_chain_entry()];
+        let chain_entries: Vec<HashchainEntry> = vec![create_mock_chain_entry(&signing_key)];
 
         match redis_connections.set_hashchain(&incoming_operation, &chain_entries) {
             Ok(_) => (),

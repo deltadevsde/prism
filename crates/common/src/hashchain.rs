@@ -1,10 +1,16 @@
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
-use std::ops::{Deref, DerefMut};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::{Deref, DerefMut},
+};
 
 use crate::{
-    operation::{AccountSource, Operation},
+    operation::{
+        CreateAccountArgs, KeyOperationArgs, Operation, PublicKey, ServiceChallengeInput,
+        SignatureBundle,
+    },
     tree::{hash, Digest, Hasher},
 };
 
@@ -63,6 +69,56 @@ impl Hashchain {
         }
     }
 
+    pub fn get_key_at_index(&self, idx: usize) -> Result<PublicKey> {
+        let hc_entry: Option<&HashchainEntry> = self.entries.get(idx);
+
+        if let Some(entry) = hc_entry {
+            match entry.operation.get_public_key() {
+                Some(key) => {
+                    if !self.is_key_revoked(key.clone()) {
+                        return Ok(key);
+                    }
+                    bail!("Key at index {idx} exists but is revoked");
+                }
+                None => {
+                    bail!("Key at index {idx} does not exist");
+                }
+            }
+        }
+        Err(anyhow!("No hashchain entry found at idx {idx}"))
+    }
+
+    pub fn get_valid_keys(&self) -> HashSet<PublicKey> {
+        let mut valid_keys: HashSet<PublicKey> = HashSet::new();
+
+        for entry in self.entries.clone() {
+            match &entry.operation {
+                Operation::CreateAccount(args) => {
+                    valid_keys.insert(args.value.clone());
+                }
+                Operation::AddKey(args) => {
+                    valid_keys.insert(args.value.clone());
+                }
+                Operation::RevokeKey(args) => {
+                    valid_keys.remove(&args.value.clone());
+                }
+            }
+        }
+        valid_keys
+    }
+
+    pub fn is_key_revoked(&self, key: PublicKey) -> bool {
+        self.iter()
+            .rev()
+            .find_map(|entry| match entry.operation.clone() {
+                Operation::RevokeKey(args) if args.value == key => Some(true),
+                Operation::AddKey(args) if args.value == key => Some(false),
+                Operation::CreateAccount(args) if args.value == key => Some(true),
+                _ => None,
+            })
+            .unwrap_or(false)
+    }
+
     pub fn iter(&self) -> std::slice::Iter<'_, HashchainEntry> {
         self.entries.iter()
     }
@@ -71,12 +127,18 @@ impl Hashchain {
         self.entries.iter_mut()
     }
 
-    pub fn create_account(&mut self, value: String, source: AccountSource) -> Result<Digest> {
-        let operation = Operation::CreateAccount {
+    pub fn create_account(
+        &mut self,
+        value: PublicKey,
+        service_id: String,
+        challenge: ServiceChallengeInput,
+    ) -> Result<Digest> {
+        let operation = Operation::CreateAccount(CreateAccountArgs {
             id: self.id.clone(),
             value,
-            source,
-        };
+            service_id,
+            challenge,
+        });
         self.push(operation)
     }
 
@@ -101,19 +163,21 @@ impl Hashchain {
     }
 
     // TODO: Obviously, this needs to be authenticated by an existing key.
-    pub fn add(&mut self, value: String) -> Result<Digest> {
-        let operation = Operation::Add {
+    pub fn add(&mut self, value: PublicKey, signature: SignatureBundle) -> Result<Digest> {
+        let operation = Operation::AddKey(KeyOperationArgs {
             id: self.id.clone(),
             value,
-        };
+            signature,
+        });
         self.push(operation)
     }
 
-    pub fn revoke(&mut self, value: String) -> Result<Digest> {
-        let operation = Operation::Revoke {
+    pub fn revoke(&mut self, value: PublicKey, signature: SignatureBundle) -> Result<Digest> {
+        let operation = Operation::RevokeKey(KeyOperationArgs {
             id: self.id.clone(),
             value,
-        };
+            signature,
+        });
         self.push(operation)
     }
 

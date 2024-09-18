@@ -3,7 +3,11 @@ use async_trait::async_trait;
 use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::KeyHash;
-use prism_common::tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree};
+
+use prism_common::{
+    operation::{CreateAccountArgs, KeyOperationArgs},
+    tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree},
+};
 use std::{self, collections::VecDeque, str::FromStr, sync::Arc};
 use tokio::sync::{broadcast, Mutex};
 
@@ -390,7 +394,16 @@ impl Sequencer {
         tree: &mut KeyDirectoryTree<Box<dyn Database>>,
     ) -> Result<Proof> {
         match operation {
-            Operation::Add { id, .. } | Operation::Revoke { id, .. } => {
+            Operation::AddKey(KeyOperationArgs {
+                id,
+                value,
+                signature,
+            })
+            | Operation::RevokeKey(KeyOperationArgs {
+                id,
+                value,
+                signature,
+            }) => {
                 // verify that the hashchain already exists
                 let mut current_chain = self
                     .db
@@ -416,9 +429,14 @@ impl Sequencer {
 
                 Ok(Proof::Update(proof))
             }
-            Operation::CreateAccount { id, value, source } => {
+            Operation::CreateAccount(CreateAccountArgs {
+                id,
+                value,
+                service_id,
+                challenge,
+            }) => {
                 // validation of account source
-                match source {
+                match challenge {
                     // TODO: use Signature, not String
                     AccountSource::SignedBySequencer { signature } => {
                         let sig = Signature::from_str(signature)
@@ -478,6 +496,8 @@ mod tests {
     };
     use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
     use keystore_rs::create_signing_key;
+    use prism_common::operation::PublicKey;
+    use prism_common::test_utils::TestTreeState;
     use serial_test::serial;
 
     // Helper function to set up redis connection and flush database before each test
@@ -503,44 +523,54 @@ mod tests {
         )
     }
 
-    fn create_new_account_operation(id: String, value: String, key: &SigningKey) -> OperationInput {
-        let incoming = Operation::CreateAccount {
-            id: id.clone(),
-            value: value.clone(),
-            source: AccountSource::SignedBySequencer {
-                signature: key.sign(format!("{}{}", id, value).as_bytes()).to_string(),
-            },
-        };
-        let content = serde_json::to_string(&incoming).unwrap();
-        let sig = key.sign(content.clone().as_bytes());
+    // fn create_new_account_operation(id: String, value: String, key: &SigningKey) -> OperationInput {
+    //     let incoming = Operation::CreateAccount {
+    //         id: id.clone(),
+    //         value: value.clone(),
+    //         source: AccountSource::SignedBySequencer {
+    //             signature: key.sign(format!("{}{}", id, value).as_bytes()).to_string(),
+    //         },
+    //     };
+    //     let content = serde_json::to_string(&incoming).unwrap();
+    //     let sig = key.sign(content.clone().as_bytes());
 
-        OperationInput {
-            operation: incoming,
-            signed_operation: sig.to_string(),
-            public_key: engine.encode(key.verifying_key().to_bytes()),
-        }
-    }
+    //     OperationInput {
+    //         operation: incoming,
+    //         signed_operation: sig.to_string(),
+    //         public_key: engine.encode(key.verifying_key().to_bytes()),
+    //     }
+    // }
 
-    fn create_update_operation(id: String, value: String) -> OperationInput {
-        let key = create_signing_key();
-        let incoming = Operation::Add { id, value };
-        let content = serde_json::to_string(&incoming).unwrap();
-        let sig = key.sign(content.clone().as_bytes());
+    // fn create_update_operation(id: String, value: PublicKey) -> OperationInput {
+    //     let key = create_signing_key();
+    //     let incoming = Operation::AddKey(KeyOperationArgs {
+    //         id: id.clone(),
+    //         value: value.clone(),
+    //         signature: unimplemented!("signature"),
+    //     });
+    //     let content = serde_json::to_string(&incoming).unwrap();
+    //     let sig = key.sign(content.clone().as_bytes());
 
-        OperationInput {
-            operation: incoming,
-            signed_operation: sig.to_string(),
-            public_key: engine.encode(key.verifying_key().to_bytes()),
-        }
-    }
+    //     OperationInput {
+    //         operation: incoming,
+    //         signed_operation: sig.to_string(),
+    //         public_key: engine.encode(key.verifying_key().to_bytes()),
+    //     }
+    // }
 
     #[tokio::test]
     #[serial]
     async fn test_validate_and_queue_update() {
+        let test_tree = TestTreeState::default();
         let sequencer = create_test_sequencer().await;
 
         let update_entry =
             create_update_operation("test@example.com".to_string(), "test".to_string());
+
+        let (keyhash, hashchain) = test_tree.create_account();
+        let update_key = OperationInput {
+
+        }
 
         sequencer
             .clone()
@@ -573,22 +603,27 @@ mod tests {
             .unwrap();
         assert!(matches!(proof, Proof::Insert(_)));
 
-        // Test Add operation
-        let add_op = Operation::Add {
+        let pub_key = create_signing_key().verifying_key().to_bytes().to_vec();
+
+        // Then, add a new value
+        let add_op = Operation::AddKey(KeyOperationArgs {
             id: "user@example.com".to_string(),
-            value: "new_value".to_string(),
-        };
+            value: PublicKey::Ed25519(pub_key),
+            signature: unimplemented!("signature"),
+        });
         let proof = sequencer
             .process_operation(&add_op, &mut tree)
             .await
             .unwrap();
+
         assert!(matches!(proof, Proof::Update(_)));
 
         // Test Revoke operation
-        let revoke_op = Operation::Revoke {
+        let revoke_op = Operation::RevokeKey(KeyOperationArgs {
             id: "user@example.com".to_string(),
-            value: "initial".to_string(),
-        };
+            value: "new_value".to_string(),
+            signature: unimplemented!("signature"),
+        });
         let proof = sequencer
             .process_operation(&revoke_op, &mut tree)
             .await

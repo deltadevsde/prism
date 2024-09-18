@@ -3,48 +3,81 @@ use celestia_types::Blob;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
+/// Represents a public key supported by the system.
+pub enum PublicKey {
+    Secp256k1(Vec<u8>),  // Bitcoin, Ethereum
+    Ed25519(Vec<u8>),    // Cosmos, OpenSSH, GnuPG
+    Curve25519(Vec<u8>), // Signal, Tor
+}
+
+impl PublicKey {
+    pub fn as_bytes(&self) -> &[u8] {
+        match self {
+            PublicKey::Secp256k1(bytes) => bytes,
+            PublicKey::Ed25519(bytes) => bytes,
+            PublicKey::Curve25519(bytes) => bytes,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+/// Represents a signature bundle, which includes the index of the key
+/// in the user's hashchain and the associated signature.
+pub struct SignatureBundle {
+    pub key_idx: u64,       // Index of the key in the hashchain
+    pub signature: Vec<u8>, // The actual signature
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+/// Input required to complete a challenge for account creation.
+pub enum ServiceChallengeInput {
+    Signed(Vec<u8>), // Signature bytes
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 // An [`Operation`] represents a state transition in the system.
 // In a blockchain analogy, this would be the full set of our transaction types.
 pub enum Operation {
     // Creates a new account with the given id and value.
-    CreateAccount {
-        id: String,
-        value: String,
-        source: AccountSource,
-    },
+    CreateAccount(CreateAccountArgs),
     // Adds a value to an existing account.
-    Add {
-        id: String,
-        value: String,
-    },
+    AddKey(KeyOperationArgs),
     // Revokes a value from an existing account.
-    Revoke {
-        id: String,
-        value: String,
-    },
+    RevokeKey(KeyOperationArgs),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-// An [`AccountSource`] represents the source of an account. See adr-002 for more information.
-pub enum AccountSource {
-    SignedBySequencer { signature: String },
+/// Arguments for creating an account with a service.
+pub struct CreateAccountArgs {
+    pub id: String,                       // Account ID
+    pub value: PublicKey,                 // Public Key
+    pub service_id: String,               // Associated service ID
+    pub challenge: ServiceChallengeInput, // Challenge input for verification
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+/// Common structure for operations involving keys (adding or revoking).
+pub struct KeyOperationArgs {
+    pub id: String,                 // Account ID
+    pub value: PublicKey,           // Public key being added or revoked
+    pub signature: SignatureBundle, // Signature to authorize the action
 }
 
 impl Operation {
     pub fn id(&self) -> String {
         match self {
-            Operation::CreateAccount { id, .. } => id.clone(),
-            Operation::Add { id, .. } => id.clone(),
-            Operation::Revoke { id, .. } => id.clone(),
+            Operation::CreateAccount(args) => args.id.clone(),
+            Operation::AddKey(args) => args.id.clone(),
+            Operation::RevokeKey(args) => args.id.clone(),
         }
     }
 
-    pub fn value(&self) -> String {
+    pub fn get_public_key(&self) -> Option<PublicKey> {
         match self {
-            Operation::CreateAccount { value, .. } => value.clone(),
-            Operation::Add { value, .. } => value.clone(),
-            Operation::Revoke { value, .. } => value.clone(),
+            Operation::AddKey(args) => Some(args.value.clone()),
+            Operation::RevokeKey(args) => Some(args.value.clone()),
+            Operation::CreateAccount(args) => Some(args.value.clone()),
         }
     }
 }

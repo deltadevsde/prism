@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use bls12_381::Scalar;
 use indexed_merkle_tree::sha256_mod;
@@ -19,7 +19,12 @@ impl HashChainEntryCircuit {
         let parsed_value = hashed_value.try_into()?;
         let mut parsed_hashchain: Vec<Scalar> = vec![];
         for entry in hashchain {
-            let hashed_entry_value = sha256_mod(entry.operation.value().as_bytes());
+            let public_key_value = entry
+                .operation
+                .get_public_key()
+                .ok_or_else(|| anyhow!("Missing public key value in hashchain entry"))?;
+
+            let hashed_entry_value = sha256_mod(public_key_value.as_bytes());
             parsed_hashchain.push(hashed_entry_value.try_into()?)
         }
         Ok(HashChainEntryCircuit {

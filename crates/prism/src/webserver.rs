@@ -16,7 +16,10 @@ use indexed_merkle_tree::{
     tree::{Proof, UpdateProof},
     Hash as TreeHash,
 };
-use prism_common::{hashchain::Hashchain, operation::Operation};
+use prism_common::{
+    hashchain::Hashchain,
+    operation::{CreateAccountArgs, KeyOperationArgs, Operation, ServiceChallengeInput},
+};
 use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use std::{self, str::FromStr, sync::Arc};
@@ -46,32 +49,57 @@ pub struct OperationInput {
 
 impl OperationInput {
     pub fn validate(&self) -> Result<()> {
-        match self.operation.clone() {
-            Operation::Add { id, value }
-            | Operation::Revoke { id, value }
-            // we ignore account source as this must be done using internal sequencer data, so inside process_operation
-            | Operation::CreateAccount { id, value, .. } => {
-                // basic validation
+        match &self.operation {
+            Operation::AddKey(KeyOperationArgs {
+                id,
+                value,
+                signature,
+            })
+            | Operation::RevokeKey(KeyOperationArgs {
+                id,
+                value,
+                signature,
+            }) => {
                 if id.is_empty() {
                     return Err(
                         GeneralError::MissingArgumentError("id is empty".to_string()).into(),
                     );
                 }
-                if value.is_empty() {
+
+                if signature.signature.is_empty() {
+                    return Err(GeneralError::MissingArgumentError(
+                        "signature is empty".to_string(),
+                    )
+                    .into());
+                }
+
+                verify_signature(self, None).context("Failed to verify signature")?;
+
+                Ok(())
+            }
+            Operation::CreateAccount(CreateAccountArgs {
+                id,
+                value,
+                service_id: _, // talk to Ryan about service_id
+                challenge,
+            }) => {
+                if id.is_empty() {
                     return Err(
-                        GeneralError::MissingArgumentError("value is empty".to_string()).into(),
+                        GeneralError::MissingArgumentError("id is empty".to_string()).into(),
                     );
                 }
 
-                // signature validation
-                let signed_content = verify_signature(self, None)
-                    .context("Failed to verify signature")?;
-
-
-                // parsing validation
-                let json_string = String::from_utf8_lossy(&signed_content);
-                serde_json::from_str::<Operation>(&json_string)
-                    .context("Failed to parse signed content as Operation")?;
+                match challenge {
+                    ServiceChallengeInput::Signed(signature) => {
+                        if signature.is_empty() {
+                            return Err(GeneralError::MissingArgumentError(
+                                "challenge data is empty".to_string(),
+                            )
+                            .into());
+                        }
+                        verify_signature(self, None).context("Failed to verify signature")?;
+                    }
+                }
 
                 Ok(())
             }
