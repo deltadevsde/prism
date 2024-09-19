@@ -1,8 +1,9 @@
 use anyhow::{anyhow, bail, Result};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     ops::{Deref, DerefMut},
 };
 
@@ -165,22 +166,71 @@ impl Hashchain {
     }
 
     // TODO: Obviously, this needs to be authenticated by an existing key.
-    pub fn add(&mut self, value: PublicKey, signature: SignatureBundle) -> Result<Digest> {
-        let operation = Operation::AddKey(KeyOperationArgs {
+    pub fn add(&mut self, value: PublicKey, signature_bundle: SignatureBundle) -> Result<Digest> {
+        self.perform_operation(Operation::AddKey, value, signature_bundle)
+    }
+
+    pub fn revoke(
+        &mut self,
+        value: PublicKey,
+        signature_bundle: SignatureBundle,
+    ) -> Result<Digest> {
+        self.perform_operation(Operation::RevokeKey, value, signature_bundle)
+    }
+
+    fn perform_operation(
+        &mut self,
+        operation_type: fn(KeyOperationArgs) -> Operation,
+        value: PublicKey,
+        signature_bundle: SignatureBundle,
+    ) -> Result<Digest> {
+        let signing_key = self.get_key_at_index(signature_bundle.key_idx as usize)?;
+
+        if self.is_key_revoked(signing_key.clone()) {
+            bail!("The signing key is revoked");
+        }
+
+        let operation_to_sign = operation_type(KeyOperationArgs {
+            id: self.id.clone(),
+            value: value.clone(),
+            signature: SignatureBundle {
+                key_idx: signature_bundle.key_idx,
+                signature: Vec::new(),
+            },
+        });
+
+        let message = bincode::serialize(&operation_to_sign)?;
+        self.verify_signature(
+            &signing_key,
+            &message,
+            signature_bundle.signature.as_slice(),
+        )?;
+
+        let operation = operation_type(KeyOperationArgs {
             id: self.id.clone(),
             value,
-            signature,
+            signature: signature_bundle,
         });
         self.push(operation)
     }
 
-    pub fn revoke(&mut self, value: PublicKey, signature: SignatureBundle) -> Result<Digest> {
-        let operation = Operation::RevokeKey(KeyOperationArgs {
-            id: self.id.clone(),
-            value,
-            signature,
-        });
-        self.push(operation)
+    fn verify_signature(
+        &self,
+        public_key: &PublicKey,
+        message: &[u8],
+        signature: &[u8],
+    ) -> Result<()> {
+        match public_key {
+            PublicKey::Ed25519(key_bytes) => {
+                let verifying_key = VerifyingKey::from_bytes(key_bytes.as_slice().try_into()?)?;
+                let signature = Signature::from_slice(signature)?;
+                verifying_key
+                    .verify(message, &signature)
+                    .map_err(|e| anyhow::anyhow!("Signature verification failed: {}", e))
+            }
+            // pot. cases for other key types in the future here
+            _ => bail!("Unsupported key type for verification"),
+        }
     }
 
     pub fn get_keyhash(&self) -> KeyHash {

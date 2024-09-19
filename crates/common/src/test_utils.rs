@@ -1,7 +1,7 @@
 use crate::{
     hashchain::{Hashchain, HashchainEntry},
     operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle},
-    tree::{hash, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
+    tree::{hash, Digest, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
 use ed25519_dalek::{Signer, SigningKey};
@@ -132,18 +132,14 @@ pub fn create_mock_hashchain(id: &str) -> Hashchain {
     hc
 }
 
-pub fn create_mock_chain_entry(signing_key: &SigningKey) -> HashchainEntry {
+pub fn create_mock_chain_entry(signing_key: &SigningKey, previous_hash: Digest) -> HashchainEntry {
     let operation = Operation::AddKey(KeyOperationArgs {
         id: "test_id".to_string(),
         value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
         signature: create_mock_signature(signing_key, b"test_id"),
     });
 
-    HashchainEntry {
-        hash: hash(b"test_hash"),
-        previous_hash: hash(b"test_previous_hash"),
-        operation,
-    }
+    HashchainEntry::new(operation, previous_hash)
 }
 
 pub fn create_add_key_operation_with_test_value(id: &str, signing_key: &SigningKey) -> Operation {
