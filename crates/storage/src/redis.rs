@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use auto_impl::auto_impl;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
@@ -14,14 +13,29 @@ use std::{
     time::Duration,
 };
 
-use prism_main::cfg::RedisConfig;
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::Operation,
     tree::Digest,
 };
 use prism_errors::{DatabaseError, GeneralError, PrismError};
+use serde::{Serialize, Deserialize};
 
+use crate::database::{Database, convert_to_connection_error};
+use log::debug;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RedisConfig {
+    pub connection_string: String,
+}
+
+impl Default for RedisConfig {
+    fn default() -> Self {
+        RedisConfig {
+            connection_string: "redis://127.0.0.1/".to_string(),
+        }
+    }
+}
 
 // there are different key prefixes for the different tables in the database
 // app_state:key => app state (just epoch counter for now)
@@ -30,9 +44,8 @@ pub struct RedisConnection {
     connection: Mutex<Connection>,
 }
 
-
 impl RedisConnection {
-    pub fn new(cfg: &RedisConfig) -> RedisConnection {
+    pub fn new(cfg: &RedisConfig) -> Result<RedisConnection> {
         let connection_string = cfg.connection_string.clone();
         let try_client =
             Client::open(connection_string.clone()).map_err(convert_to_connection_error)?;
@@ -55,9 +68,9 @@ impl RedisConnection {
             .get_connection()
             .map_err(convert_to_connection_error)?;
 
-        RedisConnection {
+        Ok(RedisConnection {
             connection: Mutex::new(connection),
-        }
+        })
     }
     // looks like we need lifetime annotations here, because we are returning a MutexGuard:
     // 'a is a generic lifetime and &'a Mutex<T> should make sure, that the MutexGuard is not dropped before the Mutex itself...
@@ -69,7 +82,6 @@ impl RedisConnection {
             .map_err(|_| anyhow!(DatabaseError::LockError))
     }
 }
-
 
 impl TreeReader for RedisConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
@@ -226,7 +238,6 @@ impl Database for RedisConnection {
             .map_err(|_| anyhow!(DatabaseError::DeleteError("all entries".to_string())))
     }
 }
-
 
 #[cfg(test)]
 mod tests {

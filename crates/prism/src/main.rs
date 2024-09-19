@@ -2,7 +2,6 @@ mod cfg;
 pub mod consts;
 pub mod da;
 mod node_types;
-pub mod storage;
 mod utils;
 mod webserver;
 
@@ -13,7 +12,7 @@ use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use crate::cfg::{CommandLineArgs, Commands};
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
 use std::sync::Arc;
-use storage::RedisConnection;
+use prism_storage::RedisConnection;
 
 #[macro_use]
 extern crate log;

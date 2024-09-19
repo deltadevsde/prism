@@ -24,9 +24,10 @@ use crate::{
     consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     da::{DataAvailabilityLayer, FinalizedEpoch},
     node_types::NodeType,
-    storage::Database,
     webserver::{OperationInput, WebServer},
 };
+
+use prism_storage::Database;
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::{AccountSource, Operation},
@@ -470,8 +471,8 @@ mod tests {
     use crate::{
         cfg::{Config, RedisConfig},
         da::memory::InMemoryDataAvailabilityLayer,
-        storage::RedisConnection,
     };
+    use prism_storage::RedisConnection;
     use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
     use keystore_rs::create_signing_key;
     use serial_test::serial;

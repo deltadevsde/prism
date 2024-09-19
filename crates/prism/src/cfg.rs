@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
 use crate::da::{celestia::CelestiaConnection, DataAvailabilityLayer};
+use prism_storage::RedisConfig;
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
@@ -97,18 +98,6 @@ impl Default for WebServerConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RedisConfig {
-    pub connection_string: String,
-}
-
-impl Default for RedisConfig {
-    fn default() -> Self {
-        RedisConfig {
-            connection_string: "redis://127.0.0.1/".to_string(),
-        }
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CelestiaConfig {

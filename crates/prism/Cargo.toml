@@ -49,6 +49,7 @@ jmt = { workspace = true }
 sha2 = { workspace = true }
 auto_impl = { workspace = true }
 prism-common = { workspace = true }
+prism-storage = { workspace = true }
 prism-errors = { workspace = true }
 prism-groth16 = { workspace = true }
 sp1-sdk = { workspace = true }
