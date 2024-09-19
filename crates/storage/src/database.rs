@@ -1,5 +1,5 @@
-use auto_impl::auto_impl;
 use anyhow::Result;
+use auto_impl::auto_impl;
 use jmt::storage::{TreeReader, TreeWriter};
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},

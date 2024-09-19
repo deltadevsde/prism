@@ -19,9 +19,9 @@ use prism_common::{
     tree::Digest,
 };
 use prism_errors::{DatabaseError, GeneralError, PrismError};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::database::{Database, convert_to_connection_error};
+use crate::database::{convert_to_connection_error, Database};
 use log::debug;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
