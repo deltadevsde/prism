@@ -1,16 +1,20 @@
 use crate::{
     hashchain::{Hashchain, HashchainEntry},
     operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle},
-    tree::{hash, Digest, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
+    tree::{Digest, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::{mock::MockTreeStore, KeyHash};
 use rand::{rngs::StdRng, Rng};
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 pub struct TestTreeState {
     pub tree: KeyDirectoryTree<MockTreeStore>,
+    pub signing_keys: HashMap<String, SigningKey>,
     inserted_keys: HashSet<KeyHash>,
 }
 
@@ -20,7 +24,9 @@ impl TestTreeState {
     }
 
     pub fn create_account(&mut self, key: String) -> (KeyHash, Hashchain) {
-        let hc = create_mock_hashchain(key.as_str());
+        let signing_key = create_mock_signing_key();
+        self.signing_keys.insert(key.clone(), signing_key.clone());
+        let hc = create_mock_hashchain(key.as_str(), &signing_key);
         let key = hc.get_keyhash();
 
         (key, hc)
@@ -54,6 +60,7 @@ impl Default for TestTreeState {
         Self {
             tree,
             inserted_keys: HashSet::new(),
+            signing_keys: HashMap::new(),
         }
     }
 }
@@ -116,11 +123,10 @@ pub fn create_mock_signing_key() -> SigningKey {
     SigningKey::generate(&mut rand::thread_rng())
 }
 
-pub fn create_mock_hashchain(id: &str) -> Hashchain {
+pub fn create_mock_hashchain(id: &str, signing_key: &SigningKey) -> Hashchain {
     let mut hc = Hashchain::new(id.to_string());
-    let signing_key = create_mock_signing_key();
     let public_key = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
-    let signature = create_mock_signature(&signing_key, id.as_bytes());
+    let signature = create_mock_signature(signing_key, id.as_bytes());
 
     let op = Operation::AddKey(KeyOperationArgs {
         id: id.to_string(),

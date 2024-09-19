@@ -220,17 +220,14 @@ impl Hashchain {
         message: &[u8],
         signature: &[u8],
     ) -> Result<()> {
-        match public_key {
-            PublicKey::Ed25519(key_bytes) => {
-                let verifying_key = VerifyingKey::from_bytes(key_bytes.as_slice().try_into()?)?;
-                let signature = Signature::from_slice(signature)?;
-                verifying_key
-                    .verify(message, &signature)
-                    .map_err(|e| anyhow::anyhow!("Signature verification failed: {}", e))
-            }
-            // pot. cases for other key types in the future here
-            _ => bail!("Unsupported key type for verification"),
-        }
+        let PublicKey::Ed25519(key_bytes) = public_key;
+
+        let verifying_key = VerifyingKey::from_bytes(key_bytes.as_slice().try_into()?)?;
+        let signature = Signature::from_slice(signature)?;
+
+        verifying_key
+            .verify(message, &signature)
+            .map_err(|e| anyhow::anyhow!("Signature verification failed: {}", e))
     }
 
     pub fn get_keyhash(&self) -> KeyHash {

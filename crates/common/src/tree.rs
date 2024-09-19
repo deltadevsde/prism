@@ -382,10 +382,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::operation::PublicKey;
+    use crate::operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle};
     use crate::test_utils::{
-        create_mock_hashchain, create_mock_signature, create_mock_signing_key,
+        create_mock_hashchain, create_mock_signature, create_mock_signing_key, TestTreeState,
     };
+    use ed25519_dalek::Signer;
     use jmt::mock::MockTreeStore;
 
     #[test]
@@ -393,7 +394,7 @@ mod tests {
         let store = Arc::new(MockTreeStore::default());
         let mut tree = KeyDirectoryTree::new(store.clone());
 
-        let hc1 = create_mock_hashchain("key_1");
+        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
         let key = hc1.get_keyhash();
 
         println!("hc1: {:?}", hc1);
@@ -416,12 +417,12 @@ mod tests {
         let store = Arc::new(MockTreeStore::default());
         let mut tree = KeyDirectoryTree::new(store);
 
-        let hc1 = create_mock_hashchain("key_1");
+        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
         let key = hc1.get_keyhash();
 
         tree.insert(key, hc1.clone()).unwrap();
 
-        let hc2 = create_mock_hashchain("key_1");
+        let hc2 = create_mock_hashchain("key_1", &create_mock_signing_key());
         let result = tree.insert(key, hc2);
         assert!(result.is_err());
     }
@@ -431,7 +432,7 @@ mod tests {
         let store = Arc::new(MockTreeStore::default());
         let mut tree = KeyDirectoryTree::new(store);
 
-        let mut hc1 = create_mock_hashchain("key_1");
+        let mut hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
         let key = hc1.get_keyhash();
 
         tree.insert(key, hc1.clone()).unwrap();
@@ -453,7 +454,7 @@ mod tests {
         let store = Arc::new(MockTreeStore::default());
         let mut tree = KeyDirectoryTree::new(store);
 
-        let hc1 = create_mock_hashchain("key_1");
+        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
         let key = hc1.get_keyhash();
 
         let result = tree.update(key, hc1);
@@ -479,8 +480,8 @@ mod tests {
         let store = MockTreeStore::default();
         let mut tree = KeyDirectoryTree::new(Arc::new(store));
 
-        let mut hc1 = create_mock_hashchain("key_1");
-        let mut hc2 = create_mock_hashchain("key_2");
+        let mut hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
+        let mut hc2 = create_mock_hashchain("key_2", &create_mock_signing_key());
         let key1 = hc1.get_keyhash();
         let key2 = hc2.get_keyhash();
 
@@ -506,34 +507,91 @@ mod tests {
 
     #[test]
     fn test_interleaved_inserts_and_updates() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(Arc::new(store));
+        let mut test_tree = TestTreeState::default();
 
-        let mut hc1 = create_mock_hashchain("key_1");
-        let mut hc2 = create_mock_hashchain("key_2");
-        let key1 = hc1.get_keyhash();
-        let key2 = hc2.get_keyhash();
+        let mut initial_account_1 = test_tree.create_account("key_1".to_string());
+        let mut initial_account_2 = test_tree.create_account("key_2".to_string());
 
-        tree.insert(key1, hc1.clone()).unwrap();
+        let key1 = initial_account_1.0;
+        let key2 = initial_account_2.0;
 
-        let signing_key1 = create_mock_signing_key();
-        let pub_key1 = PublicKey::Ed25519(signing_key1.verifying_key().to_bytes().to_vec());
-        let signature1 = create_mock_signature(&create_mock_signing_key(), pub_key1.as_bytes());
-        hc1.add(pub_key1, signature1).unwrap();
-        tree.update(key1, hc1.clone()).unwrap();
+        test_tree
+            .insert_account(key1, initial_account_1.1.clone())
+            .unwrap();
 
-        tree.insert(key2, hc2.clone()).unwrap();
+        let signing_key_to_add1 = create_mock_signing_key();
+        let pub_key1 = PublicKey::Ed25519(signing_key_to_add1.verifying_key().to_bytes().to_vec());
+        let operation_to_sign = Operation::AddKey(KeyOperationArgs {
+            id: "key_1".to_string(),
+            value: pub_key1.clone(),
+            signature: SignatureBundle {
+                key_idx: 0,
+                signature: Vec::new(),
+            },
+        });
 
-        let signing_key2 = create_mock_signing_key();
-        let pub_key2 = PublicKey::Ed25519(signing_key2.verifying_key().to_bytes().to_vec());
-        let signature2 = create_mock_signature(&create_mock_signing_key(), pub_key2.as_bytes());
+        let message = bincode::serialize(&operation_to_sign).unwrap();
+        let signature1 = SignatureBundle {
+            key_idx: 0,
+            signature: test_tree
+                .signing_keys
+                .get("key_1")
+                .unwrap()
+                .sign(&message)
+                .to_vec(),
+        };
 
-        hc2.add(pub_key2, signature2).unwrap();
-        let last_proof = tree.update(key2, hc2.clone()).unwrap();
+        initial_account_1.1.add(pub_key1, signature1).unwrap();
+        test_tree
+            .tree
+            .update(key1, initial_account_1.1.clone())
+            .unwrap();
 
-        assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
-        assert_eq!(tree.get(key2).unwrap().unwrap(), hc2);
-        assert_eq!(last_proof.new_root, tree.get_current_root().unwrap());
+        test_tree
+            .insert_account(key2, initial_account_2.1.clone())
+            .unwrap();
+
+        let signing_key_to_add2 = create_mock_signing_key();
+        let pub_key2 = PublicKey::Ed25519(signing_key_to_add2.verifying_key().to_bytes().to_vec());
+        let operation_to_sign = Operation::AddKey(KeyOperationArgs {
+            id: "key_2".to_string(),
+            value: pub_key2.clone(),
+            signature: SignatureBundle {
+                key_idx: 0,
+                signature: Vec::new(),
+            },
+        });
+
+        let message = bincode::serialize(&operation_to_sign).unwrap();
+        let signature2 = SignatureBundle {
+            key_idx: 0,
+            signature: test_tree
+                .signing_keys
+                .get("key_2")
+                .unwrap()
+                .sign(&message)
+                .to_vec(),
+        };
+
+        initial_account_2.1.add(pub_key2, signature2).unwrap();
+
+        let last_proof = test_tree
+            .tree
+            .update(key2, initial_account_2.1.clone())
+            .unwrap();
+
+        assert_eq!(
+            test_tree.tree.get(key1).unwrap().unwrap(),
+            initial_account_1.1
+        );
+        assert_eq!(
+            test_tree.tree.get(key2).unwrap().unwrap(),
+            initial_account_2.1
+        );
+        assert_eq!(
+            last_proof.new_root,
+            test_tree.tree.get_current_root().unwrap()
+        );
     }
 
     #[test]
@@ -541,7 +599,7 @@ mod tests {
         let store = Arc::new(MockTreeStore::default());
         let mut tree = KeyDirectoryTree::new(store);
 
-        let hc1 = create_mock_hashchain("key_1");
+        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
         let key1 = hc1.get_keyhash();
 
         let root_before = tree.get_current_root().unwrap();
@@ -556,7 +614,7 @@ mod tests {
         let store = Arc::new(MockTreeStore::default());
         let mut tree = KeyDirectoryTree::new(store.clone());
 
-        let hc1 = create_mock_hashchain("key_1");
+        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
         let key1 = hc1.get_keyhash();
 
         println!("Inserting key1: {:?}", key1);
@@ -572,7 +630,7 @@ mod tests {
         let get_result1 = tree.get(key1);
         println!("Get result for key1 after first write: {:?}", get_result1);
 
-        let hc2 = create_mock_hashchain("key_2");
+        let hc2 = create_mock_hashchain("key_2", &create_mock_signing_key());
         let key2 = hc2.get_keyhash();
 
         println!("Inserting key2: {:?}", key2);
