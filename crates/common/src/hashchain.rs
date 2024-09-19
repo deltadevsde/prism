@@ -130,11 +130,13 @@ impl Hashchain {
     pub fn create_account(
         &mut self,
         value: PublicKey,
+        signature: Vec<u8>,
         service_id: String,
         challenge: ServiceChallengeInput,
     ) -> Result<Digest> {
         let operation = Operation::CreateAccount(CreateAccountArgs {
             id: self.id.clone(),
+            signature,
             value,
             service_id,
             challenge,

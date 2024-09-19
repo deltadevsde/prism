@@ -60,34 +60,6 @@ pub fn validate_epoch(
     Ok(proof)
 }
 
-pub trait SignedContent {
-    fn get_signature(&self) -> Result<Signature>;
-    fn get_plaintext(&self) -> Result<Vec<u8>>;
-    fn get_public_key(&self) -> Result<String>;
-}
-
-// verifies the signature of a given signable item and returns the content of the item if the signature is valid
-pub fn verify_signature<T: SignedContent>(
-    item: &T,
-    optional_public_key: Option<String>,
-) -> Result<Vec<u8>> {
-    let public_key_str = match optional_public_key {
-        Some(key) => key,
-        None => item.get_public_key()?,
-    };
-
-    let public_key = decode_public_key(&public_key_str)
-        .map_err(|_| PrismError::General(GeneralError::InvalidPublicKey))?;
-
-    let content = item.get_plaintext()?;
-    let signature = item.get_signature()?;
-
-    match public_key.verify(content.as_slice(), &signature) {
-        Ok(_) => Ok(content),
-        Err(e) => Err(GeneralError::InvalidSignature(e).into()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
 

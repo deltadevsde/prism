@@ -1,12 +1,13 @@
-use crate::hashchain::{Hashchain, HashchainEntry};
-use crate::operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle};
-use crate::tree::{hash, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof};
+use crate::{
+    hashchain::{Hashchain, HashchainEntry},
+    operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle},
+    tree::{hash, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
+};
 use anyhow::{anyhow, Result};
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::{mock::MockTreeStore, KeyHash};
 use rand::{rngs::StdRng, Rng};
-use std::collections::HashSet;
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 pub struct TestTreeState {
     pub tree: KeyDirectoryTree<MockTreeStore>,
@@ -147,15 +148,6 @@ pub fn create_mock_chain_entry(signing_key: &SigningKey) -> HashchainEntry {
 
 pub fn create_add_key_operation_with_test_value(id: &str, signing_key: &SigningKey) -> Operation {
     Operation::AddKey(KeyOperationArgs {
-        id: id.to_string(),
-        value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
-        signature: create_mock_signature(signing_key, id.as_bytes()),
-    })
-}
-
-pub fn random_create_account(id: &str) -> Operation::CreateAccount {
-    let signing_key = create_mock_signing_key();
-    Operation::CreateAccount(CreateAccountArgs {
         id: id.to_string(),
         value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
         signature: create_mock_signature(signing_key, id.as_bytes()),

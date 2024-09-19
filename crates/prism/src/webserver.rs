@@ -41,70 +41,7 @@ pub struct EpochData {
 
 #[derive(Deserialize, Debug, ToSchema)]
 pub struct OperationInput {
-    // TODO: pretty sure we don't need operation if we have signed operation
     pub operation: Operation,
-    pub signed_operation: String,
-    pub public_key: String,
-}
-
-impl OperationInput {
-    pub fn validate(&self) -> Result<()> {
-        match &self.operation {
-            Operation::AddKey(KeyOperationArgs {
-                id,
-                value,
-                signature,
-            })
-            | Operation::RevokeKey(KeyOperationArgs {
-                id,
-                value,
-                signature,
-            }) => {
-                if id.is_empty() {
-                    return Err(
-                        GeneralError::MissingArgumentError("id is empty".to_string()).into(),
-                    );
-                }
-
-                if signature.signature.is_empty() {
-                    return Err(GeneralError::MissingArgumentError(
-                        "signature is empty".to_string(),
-                    )
-                    .into());
-                }
-
-                verify_signature(self, None).context("Failed to verify signature")?;
-
-                Ok(())
-            }
-            Operation::CreateAccount(CreateAccountArgs {
-                id,
-                value,
-                service_id: _, // talk to Ryan about service_id
-                challenge,
-            }) => {
-                if id.is_empty() {
-                    return Err(
-                        GeneralError::MissingArgumentError("id is empty".to_string()).into(),
-                    );
-                }
-
-                match challenge {
-                    ServiceChallengeInput::Signed(signature) => {
-                        if signature.is_empty() {
-                            return Err(GeneralError::MissingArgumentError(
-                                "challenge data is empty".to_string(),
-                            )
-                            .into());
-                        }
-                        verify_signature(self, None).context("Failed to verify signature")?;
-                    }
-                }
-
-                Ok(())
-            }
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -138,23 +75,6 @@ pub struct UserKeyResponse {
     ))
 )]
 struct ApiDoc;
-
-impl SignedContent for OperationInput {
-    fn get_signature(&self) -> Result<Signature> {
-        Signature::from_str(self.signed_operation.as_str())
-            .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
-    }
-
-    fn get_plaintext(&self) -> Result<Vec<u8>> {
-        serde_json::to_string(&self.operation)
-            .map_err(|e| GeneralError::DecodingError(e.to_string()).into())
-            .map(|s| s.into_bytes())
-    }
-
-    fn get_public_key(&self) -> Result<String> {
-        Ok(self.public_key.clone())
-    }
-}
 
 impl WebServer {
     pub fn new(cfg: WebServerConfig) -> Self {
@@ -195,9 +115,12 @@ impl WebServer {
 )]
 async fn update_entry(
     State(session): State<Arc<Sequencer>>,
-    Json(signature_with_key): Json<OperationInput>,
+    Json(operation_input): Json<OperationInput>,
 ) -> impl IntoResponse {
-    match session.validate_and_queue_update(&signature_with_key).await {
+    match session
+        .validate_and_queue_update(&operation_input.operation)
+        .await
+    {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",

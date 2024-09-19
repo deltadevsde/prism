@@ -7,6 +7,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+prism-errors.workspace = true
 anyhow.workspace = true
 bls12_381.workspace = true
 borsh.workspace = true
@@ -17,4 +18,6 @@ sha2.workspace = true
 celestia-types.workspace = true
 bincode.workspace = true
 ed25519-dalek.workspace = true
+ed25519.workspace = true
+base64.workspace = true
 rand.workspace = true

@@ -1,22 +1,24 @@
 use anyhow::{Context, Result};
+use bincode;
 use celestia_types::Blob;
+use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::{self, fmt::Display, str::FromStr};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 /// Represents a public key supported by the system.
 pub enum PublicKey {
-    Secp256k1(Vec<u8>),  // Bitcoin, Ethereum
-    Ed25519(Vec<u8>),    // Cosmos, OpenSSH, GnuPG
-    Curve25519(Vec<u8>), // Signal, Tor
+    // Secp256k1(Vec<u8>),  // Bitcoin, Ethereum
+    Ed25519(Vec<u8>), // Cosmos, OpenSSH, GnuPG
+                      // Curve25519(Vec<u8>), // Signal, Tor
 }
 
 impl PublicKey {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
-            PublicKey::Secp256k1(bytes) => bytes,
+            // PublicKey::Secp256k1(bytes) => bytes,
             PublicKey::Ed25519(bytes) => bytes,
-            PublicKey::Curve25519(bytes) => bytes,
+            // PublicKey::Curve25519(bytes) => bytes,
         }
     }
 }
@@ -50,8 +52,9 @@ pub enum Operation {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Arguments for creating an account with a service.
 pub struct CreateAccountArgs {
-    pub id: String,                       // Account ID
-    pub value: PublicKey,                 // Public Key
+    pub id: String,       // Account ID
+    pub value: PublicKey, // Public Key
+    pub signature: Vec<u8>,
     pub service_id: String,               // Associated service ID
     pub challenge: ServiceChallengeInput, // Challenge input for verification
 }
@@ -78,6 +81,65 @@ impl Operation {
             Operation::AddKey(args) => Some(args.value.clone()),
             Operation::RevokeKey(args) => Some(args.value.clone()),
             Operation::CreateAccount(args) => Some(args.value.clone()),
+        }
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        match &self {
+            Operation::AddKey(KeyOperationArgs {
+                id,
+                value,
+                signature,
+            })
+            | Operation::RevokeKey(KeyOperationArgs {
+                id,
+                value,
+                signature,
+            }) => {
+                if id.is_empty() {
+                    return Err(
+                        GeneralError::MissingArgumentError("id is empty".to_string()).into(),
+                    );
+                }
+
+                if signature.signature.is_empty() {
+                    return Err(GeneralError::MissingArgumentError(
+                        "signature is empty".to_string(),
+                    )
+                    .into());
+                }
+
+                // verify_signature(self, None).context("Failed to verify signature")?;
+
+                Ok(())
+            }
+            Operation::CreateAccount(CreateAccountArgs {
+                id,
+                value,
+                signature,
+                service_id: _,
+                challenge,
+            }) => {
+                if id.is_empty() {
+                    return Err(
+                        GeneralError::MissingArgumentError("id is empty".to_string()).into(),
+                    );
+                }
+
+                match challenge {
+                    ServiceChallengeInput::Signed(signature) => {
+                        if signature.is_empty() {
+                            return Err(GeneralError::MissingArgumentError(
+                                "challenge data is empty".to_string(),
+                            )
+                            .into());
+                        }
+                        // verify_signature(self, None).context("Failed to verify signature")?;
+                    }
+                }
+
+                Ok(())
+            }
         }
     }
 }
