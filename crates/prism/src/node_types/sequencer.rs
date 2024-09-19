@@ -518,12 +518,7 @@ mod tests {
         })
     }
 
-    fn add_key(
-        id: &str,
-        key_idx: u64,
-        new_key: PublicKey,
-        signing_key: SigningKey,
-    ) -> OperationInput {
+    fn add_key(id: &str, key_idx: u64, new_key: PublicKey, signing_key: SigningKey) -> Operation {
         let operation_without_signature = Operation::AddKey(KeyOperationArgs {
             id: id.to_string(),
             value: new_key.clone(),
@@ -601,11 +596,11 @@ mod tests {
         let sequencer = create_test_sequencer().await;
 
         let signing_key = create_mock_signing_key();
-        let (_, op_input) = create_random_user("test@example.com", signing_key);
+        let op = create_random_user("test@example.com", signing_key);
 
         sequencer
             .clone()
-            .validate_and_queue_update(&op_input)
+            .validate_and_queue_update(&op)
             .await
             .unwrap();
 
@@ -623,7 +618,7 @@ mod tests {
 
         let signing_key = create_mock_signing_key();
         let original_pubkey = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
-        let (create_account_op, _) = create_random_user("test@example.com", signing_key.clone());
+        let create_account_op = create_random_user("test@example.com", signing_key.clone());
 
         let proof = sequencer
             .process_operation(&create_account_op, &mut tree)
@@ -633,7 +628,7 @@ mod tests {
 
         let new_key = create_mock_signing_key();
         let pubkey = PublicKey::Ed25519(new_key.verifying_key().to_bytes().to_vec());
-        let (add_key_op, _) = add_key("test@example.com", 0, pubkey, signing_key);
+        let add_key_op = add_key("test@example.com", 0, pubkey, signing_key);
 
         let proof = sequencer
             .process_operation(&add_key_op, &mut tree)
@@ -643,7 +638,7 @@ mod tests {
         assert!(matches!(proof, Proof::Update(_)));
 
         // Revoke original key
-        let (revoke_op, _) = revoke_key("test@example.com", 1, original_pubkey, new_key);
+        let revoke_op = revoke_key("test@example.com", 1, original_pubkey, new_key);
         let proof = sequencer
             .process_operation(&revoke_op, &mut tree)
             .await
@@ -668,9 +663,9 @@ mod tests {
                 .to_vec(),
         );
         let operations = vec![
-            create_random_user("user1@example.com", signing_key_1.clone()).0,
-            create_random_user("user2@example.com", signing_key_2).0,
-            add_key("user1@example.com", 0, new_key, signing_key_1).0,
+            create_random_user("user1@example.com", signing_key_1.clone()),
+            create_random_user("user2@example.com", signing_key_2),
+            add_key("user1@example.com", 0, new_key, signing_key_1),
         ];
 
         let proofs = sequencer
@@ -697,9 +692,9 @@ mod tests {
                 .to_vec(),
         );
         let operations = vec![
-            create_random_user("user1@example.com", signing_key_1.clone()).0,
-            create_random_user("user2@example.com", signing_key_2).0,
-            add_key("user1@example.com", 0, new_key, signing_key_1).0,
+            create_random_user("user1@example.com", signing_key_1.clone()),
+            create_random_user("user2@example.com", signing_key_2),
+            add_key("user1@example.com", 0, new_key, signing_key_1),
         ];
 
         let prev_commitment = tree.get_commitment().unwrap();
