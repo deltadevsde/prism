@@ -300,7 +300,7 @@ pub async fn initialize_da_layer(
             unreachable!() // This line should never be reached due to the return in the last iteration
         }
         DALayerOption::InMemory => {
-            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(1);
+            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
             Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
         }
         DALayerOption::None => Err(anyhow!(PrismError::ConfigError(

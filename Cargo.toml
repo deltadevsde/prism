@@ -21,6 +21,7 @@ members = [
     "crates/groth16",
     "crates/errors",
     "crates/sp1",
+    "crates/storage",
 ]
 default-members = [
     "crates/prism",
@@ -28,6 +29,7 @@ default-members = [
     "crates/nova",
     "crates/groth16",
     "crates/errors",
+    "crates/storage",
 ]
 resolver = "2"
 

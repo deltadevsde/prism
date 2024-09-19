@@ -1,0 +1,26 @@
+[package]
+name = "prism-storage"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+readme.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+redis = { workspace = true }
+mockall = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+anyhow = { workspace = true }
+jmt = { workspace = true }
+pretty_env_logger = { workspace = true }
+config = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+prism-main = { workspace = true }

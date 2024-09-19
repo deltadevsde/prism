@@ -14,13 +14,14 @@ use std::{
     time::Duration,
 };
 
-use crate::cfg::RedisConfig;
+use prism_main::cfg::RedisConfig;
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::Operation,
     tree::Digest,
 };
 use prism_errors::{DatabaseError, GeneralError, PrismError};
+
 
 // there are different key prefixes for the different tables in the database
 // app_state:key => app state (just epoch counter for now)
@@ -29,28 +30,9 @@ pub struct RedisConnection {
     connection: Mutex<Connection>,
 }
 
-#[auto_impl(&, Box, Arc)]
-pub trait Database: Send + Sync + TreeReader + TreeWriter {
-    fn get_hashchain(&self, key: &str) -> Result<Hashchain>;
-    fn set_hashchain(&self, incoming_operation: &Operation, value: &[HashchainEntry])
-        -> Result<()>;
-
-    fn get_commitment(&self, epoch: &u64) -> Result<String>;
-    fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()>;
-
-    fn get_epoch(&self) -> Result<u64>;
-    fn set_epoch(&self, epoch: &u64) -> Result<()>;
-
-    #[cfg(test)]
-    fn flush_database(&self) -> Result<()>;
-}
-
-fn convert_to_connection_error(e: redis::RedisError) -> PrismError {
-    PrismError::Database(DatabaseError::ConnectionError(e.to_string()))
-}
 
 impl RedisConnection {
-    pub fn new(cfg: &RedisConfig) -> Result<RedisConnection> {
+    pub fn new(cfg: &RedisConfig) -> RedisConnection {
         let connection_string = cfg.connection_string.clone();
         let try_client =
             Client::open(connection_string.clone()).map_err(convert_to_connection_error)?;
@@ -73,9 +55,9 @@ impl RedisConnection {
             .get_connection()
             .map_err(convert_to_connection_error)?;
 
-        Ok(RedisConnection {
+        RedisConnection {
             connection: Mutex::new(connection),
-        })
+        }
     }
     // looks like we need lifetime annotations here, because we are returning a MutexGuard:
     // 'a is a generic lifetime and &'a Mutex<T> should make sure, that the MutexGuard is not dropped before the Mutex itself...
@@ -87,6 +69,7 @@ impl RedisConnection {
             .map_err(|_| anyhow!(DatabaseError::LockError))
     }
 }
+
 
 impl TreeReader for RedisConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
@@ -243,6 +226,7 @@ impl Database for RedisConnection {
             .map_err(|_| anyhow!(DatabaseError::DeleteError("all entries".to_string())))
     }
 }
+
 
 #[cfg(test)]
 mod tests {
