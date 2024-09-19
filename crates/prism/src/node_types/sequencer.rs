@@ -429,26 +429,13 @@ impl Sequencer {
 
                 Ok(Proof::Update(proof))
             }
-            Operation::CreateAccount(CreateAccountArgs {
-                id,
-                value,
-                signature,
-                service_id,
-                challenge,
-            }) => {
-                // validation of account source
-                match challenge {
-                    // TODO: use Signature, not String
-                    AccountSource::SignedBySequencer { signature } => {
-                        let sig = Signature::from_str(signature)
-                            .context("Failed to parse sequencer's signature")?;
-                        self.key
-                            .verify(format!("{}{:?}", id, value).as_bytes(), &sig)
-                            .map_err(GeneralError::InvalidSignature)
-                    }
-                }?;
+            Operation::CreateAccount(args) => {
+                let id = args.id.clone();
+                match &args.challenge {
+                    ServiceChallengeInput::Signed(_) => debug!("Signature verification for service challenge gate not yet implemented. Skipping verification.")
+                };
 
-                let hashchain: Result<Hashchain> = self.db.get_hashchain(id);
+                let hashchain: Result<Hashchain> = self.db.get_hashchain(id.as_str());
                 if hashchain.is_ok() {
                     return Err(DatabaseError::NotFoundError(format!(
                         "empty slot for ID {}",
@@ -457,13 +444,13 @@ impl Sequencer {
                     .into());
                 }
 
-                debug!("creating new hashchain for user id {}", id.clone());
-                let mut chain = Hashchain::new(id.clone());
-                // TODO: Challenge is a placeholder rn
+                debug!("creating new hashchain for user id {}", args.id);
+                let mut chain = Hashchain::new(id);
                 chain.create_account(
-                    *value,
-                    *signature,
-                    *service_id,
+                    args.value.clone(),
+                    args.signature.clone(),
+                    args.service_id.clone(),
+                    // TODO: Challenge is a placeholder rn
                     ServiceChallengeInput::Signed(Vec::new()),
                 )?;
 
@@ -472,7 +459,7 @@ impl Sequencer {
                     operation
                 ))?;
 
-                let hashed_id = hash(id.as_bytes());
+                let hashed_id = hash(args.id.as_bytes());
 
                 Ok(Proof::Insert(
                     tree.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,

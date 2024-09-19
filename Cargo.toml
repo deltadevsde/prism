@@ -22,13 +22,7 @@ members = [
     "crates/errors",
     "crates/sp1",
 ]
-default-members = [
-    "crates/prism",
-    "crates/common",
-    "crates/nova",
-    "crates/groth16",
-    "crates/errors",
-]
+default-members = ["crates/prism", "crates/common", "crates/errors"]
 resolver = "2"
 
 [workspace.dependencies]

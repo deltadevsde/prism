@@ -7,7 +7,8 @@ use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};
 
-use crate::{da::DataAvailabilityLayer, node_types::NodeType, utils::verify_signature};
+use crate::{da::DataAvailabilityLayer, node_types::NodeType};
+use prism_common::signed_content::verify_signature;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 

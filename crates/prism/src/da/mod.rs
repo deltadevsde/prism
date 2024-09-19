@@ -1,9 +1,8 @@
-use crate::utils::SignedContent;
 use anyhow::Result;
 use async_trait::async_trait;
 use bincode;
 use ed25519::Signature;
-use prism_common::{operation::Operation, tree::Digest};
+use prism_common::{operation::Operation, signed_content::SignedContent, tree::Digest};
 use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;

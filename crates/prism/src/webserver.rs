@@ -1,8 +1,4 @@
-use crate::{
-    cfg::WebServerConfig,
-    node_types::sequencer::Sequencer,
-    utils::{verify_signature, SignedContent},
-};
+use crate::{cfg::WebServerConfig, node_types::sequencer::Sequencer};
 use anyhow::{Context, Result};
 use axum::{
     extract::State,
@@ -11,18 +7,13 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use ed25519::Signature;
 use indexed_merkle_tree::{
     tree::{Proof, UpdateProof},
     Hash as TreeHash,
 };
-use prism_common::{
-    hashchain::Hashchain,
-    operation::{CreateAccountArgs, KeyOperationArgs, Operation, ServiceChallengeInput},
-};
-use prism_errors::GeneralError;
+use prism_common::{hashchain::Hashchain, operation::Operation};
 use serde::{Deserialize, Serialize};
-use std::{self, str::FromStr, sync::Arc};
+use std::{self, sync::Arc};
 use tower_http::cors::CorsLayer;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
