@@ -18,18 +18,26 @@ pub struct TestTreeState {
     inserted_keys: HashSet<KeyHash>,
 }
 
+pub struct TestAccount {
+    pub key_hash: KeyHash,
+    pub hashchain: Hashchain,
+}
+
 impl TestTreeState {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn create_account(&mut self, key: String) -> (KeyHash, Hashchain) {
+    pub fn create_account(&mut self, key: String) -> TestAccount {
         let signing_key = create_mock_signing_key();
         self.signing_keys.insert(key.clone(), signing_key.clone());
-        let hc = create_mock_hashchain(key.as_str(), &signing_key);
-        let key = hc.get_keyhash();
+        let hashchain = create_mock_hashchain(key.as_str(), &signing_key);
+        let key_hash = hashchain.get_keyhash();
 
-        (key, hc)
+        TestAccount {
+            key_hash,
+            hashchain,
+        }
     }
 
     pub fn insert_account(&mut self, key: KeyHash, hc: Hashchain) -> Result<InsertProof> {
@@ -50,6 +58,43 @@ impl TestTreeState {
 
         let proof = self.tree.update(key, hc).expect("Update should succeed");
         Ok(proof)
+    }
+
+    pub fn add_key_to_account(
+        &mut self,
+        account: &mut TestAccount,
+    ) -> Result<(), anyhow::Error> {
+        let signing_key_to_add = create_mock_signing_key();
+        let pub_key = PublicKey::Ed25519(signing_key_to_add.verifying_key().to_bytes().to_vec());
+        let operation_to_sign = Operation::AddKey(KeyOperationArgs {
+            id: account.hashchain.id.clone(),
+            value: pub_key.clone(),
+            signature: SignatureBundle {
+                key_idx: 0,
+                signature: Vec::new(),
+            },
+        });
+    
+        let message = bincode::serialize(&operation_to_sign)?;
+        let signature = SignatureBundle {
+            key_idx: 0,
+            signature: self
+                .signing_keys
+                .get(&account.hashchain.id)
+                .unwrap()
+                .sign(&message)
+                .to_vec(),
+        };
+    
+        let operation = Operation::AddKey(KeyOperationArgs {
+            id: account.hashchain.id.clone(),
+            value: pub_key,
+            signature
+        });
+    
+        account.hashchain.add(operation);
+    
+        Ok(())
     }
 }
 
@@ -98,13 +143,33 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
     let verifying_key = signing_key.verifying_key();
     let public_key = PublicKey::Ed25519(verifying_key.to_bytes().to_vec());
 
-    let random_string: String = (0..10)
-        .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
-        .collect();
+    let operation_to_sign = Operation::AddKey(KeyOperationArgs {
+        id: hc.id.clone(),
+        value: public_key.clone(),
+        signature: SignatureBundle {
+            key_idx: 0,
+            signature: Vec::new(),
+        },
+    });
 
-    let signature = create_mock_signature(&signing_key, random_string.as_bytes());
+    let message = bincode::serialize(&operation_to_sign).unwrap();
+    let signature = state
+        .signing_keys
+        .get(&hc.id)
+        .ok_or_else(|| anyhow::anyhow!("Signing key not found for hashchain"))
+        .unwrap()
+        .sign(&message);
 
-    hc.add(public_key, signature)
+    let final_operation = Operation::AddKey(KeyOperationArgs {
+        id: hc.id.clone(),
+        value: public_key,
+        signature: SignatureBundle {
+            key_idx: 0,
+            signature: signature.to_bytes().to_vec(),
+        },
+    });
+
+    hc.add(final_operation)
         .expect("Adding to hashchain should succeed");
     println!("updated key: {key:?}");
 
@@ -155,3 +220,5 @@ pub fn create_add_key_operation_with_test_value(id: &str, signing_key: &SigningK
         signature: create_mock_signature(signing_key, id.as_bytes()),
     })
 }
+
+

@@ -1,9 +1,11 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use bincode;
 use celestia_types::Blob;
 use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display, str::FromStr};
+
+use crate::hashchain::Hashchain;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 /// Represents a public key supported by the system.
@@ -81,6 +83,29 @@ impl Operation {
             Operation::AddKey(args) => Some(args.value.clone()),
             Operation::RevokeKey(args) => Some(args.value.clone()),
             Operation::CreateAccount(args) => Some(args.value.clone()),
+        }
+    }
+
+    pub fn without_signature(&self) -> Self {
+        match self {
+            Operation::AddKey(args) => Operation::AddKey(KeyOperationArgs {
+                id: args.id.clone(),
+                value: args.value.clone(),
+                signature: SignatureBundle {
+                    key_idx: args.signature.key_idx,
+                    signature: Vec::new(),
+                },
+            }),
+            Operation::RevokeKey(args) => Operation::RevokeKey(KeyOperationArgs {
+                id: args.id.clone(),
+                value: args.value.clone(),
+                signature: SignatureBundle {
+                    key_idx: args.signature.key_idx,
+                    signature: Vec::new(),
+                },
+            }),
+            // TODO: create account
+            _ => panic!("Unsupported operation type"),
         }
     }
 

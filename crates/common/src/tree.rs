@@ -384,90 +384,65 @@ mod tests {
     use super::*;
     use crate::operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle};
     use crate::test_utils::{
-        create_mock_hashchain, create_mock_signature, create_mock_signing_key, TestTreeState,
+        create_add_key_operation_with_test_value, create_mock_hashchain, create_mock_signing_key, TestTreeState
     };
+    use crate::tree;
     use ed25519_dalek::Signer;
     use jmt::mock::MockTreeStore;
 
     #[test]
     fn test_insert_and_get() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store.clone());
+        let mut tree_state = TestTreeState::default();
+        let account = tree_state.create_account("key_1".to_string());
 
-        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
-        let key = hc1.get_keyhash();
+        let insert_proof = tree_state.insert_account(account.key_hash, account.hashchain.clone()).unwrap();
+        assert!(insert_proof.verify().is_ok());
 
-        println!("hc1: {:?}", hc1);
-        println!("key: {:?}", key);
-
-        println!("Initial tree state: {:?}", tree.get_commitment());
-
-        let insert_proof = tree.insert(key, hc1.clone());
-        assert!(insert_proof.is_ok());
-
-        println!("After first insert: {:?}", tree.get_commitment());
-
-        let get_result = tree.get(key).unwrap().unwrap();
-
-        assert_eq!(get_result, hc1);
+        let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
+        assert_eq!(get_result, account.hashchain);
     }
 
     #[test]
     fn test_insert_duplicate_key() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree_state = TestTreeState::default();
+        let account = tree_state.create_account("key_1".to_string());
 
-        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
-        let key = hc1.get_keyhash();
+        tree_state.insert_account(account.key_hash, account.hashchain.clone()).unwrap();
 
-        tree.insert(key, hc1.clone()).unwrap();
-
-        let hc2 = create_mock_hashchain("key_1", &create_mock_signing_key());
-        let result = tree.insert(key, hc2);
+        let result = tree_state.insert_account(account.key_hash, account.hashchain.clone());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_update_existing_key() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree_state = TestTreeState::default();
 
-        let mut hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
-        let key = hc1.get_keyhash();
+        let mut account = tree_state.create_account("key_1".to_string());
+        tree_state.insert_account(account.key_hash, account.hashchain.clone()).unwrap();
+        tree_state.add_key_to_account(&mut account).unwrap();
 
-        tree.insert(key, hc1.clone()).unwrap();
-
-        let signing_key = create_mock_signing_key();
-        let public_key = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
-        let signature = create_mock_signature(&create_mock_signing_key(), public_key.as_bytes());
-
-        hc1.add(public_key, signature).unwrap();
-        let update_proof = tree.update(key, hc1.clone()).unwrap();
+        let update_proof = tree_state.update_account(account.key_hash, account.hashchain.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
 
-        let get_result = tree.get(key).unwrap().unwrap();
-        assert_eq!(get_result, hc1);
+        let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
+        assert_eq!(get_result, account.hashchain);
     }
 
     #[test]
     fn test_update_non_existing_key() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree_state = TestTreeState::default();
+        let account = tree_state.create_account("key_1".to_string());
 
-        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
-        let key = hc1.get_keyhash();
-
-        let result = tree.update(key, hc1);
+        let result = tree_state.update_account(account.key_hash, account.hashchain);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_get_non_existing_key() {
-        let store = MockTreeStore::default();
-        let tree = KeyDirectoryTree::new(Arc::new(store));
-
+        let tree_state = TestTreeState::default();
         let key = KeyHash::with::<Hasher>(b"non_existing_key");
-        let result = tree.get(key).unwrap();
+
+        let result = tree_state.tree.get(key).unwrap();
         assert!(result.is_err());
 
         if let Err(non_membership_proof) = result {
@@ -477,116 +452,75 @@ mod tests {
 
     #[test]
     fn test_multiple_inserts_and_updates() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(Arc::new(store));
+        let mut tree_state = TestTreeState::default();
 
-        let mut hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
-        let mut hc2 = create_mock_hashchain("key_2", &create_mock_signing_key());
-        let key1 = hc1.get_keyhash();
-        let key2 = hc2.get_keyhash();
+        let mut account1 = tree_state.create_account("key_1".to_string());
+        let mut account2 = tree_state.create_account("key_2".to_string());
 
-        tree.insert(key1, hc1.clone()).unwrap();
-        tree.insert(key2, hc2.clone()).unwrap();
+        tree_state
+            .insert_account(account1.key_hash, account1.hashchain.clone())
+            .unwrap();
+        tree_state
+            .insert_account(account2.key_hash, account2.hashchain.clone())
+            .unwrap();
 
-        let signing_key1 = create_mock_signing_key();
-        let pub_key1 = PublicKey::Ed25519(signing_key1.verifying_key().to_bytes().to_vec());
-        let signature1 = create_mock_signature(&create_mock_signing_key(), pub_key1.as_bytes());
-        hc1.add(pub_key1, signature1).unwrap();
+        tree_state.add_key_to_account(&mut account1);
+        tree_state.add_key_to_account(&mut account2);
 
-        let signing_key2 = create_mock_signing_key();
-        let pub_key2 = PublicKey::Ed25519(signing_key2.verifying_key().to_bytes().to_vec());
-        let signature2 = create_mock_signature(&create_mock_signing_key(), pub_key2.as_bytes());
-        hc2.add(pub_key2, signature2).unwrap();
+        tree_state
+            .tree
+            .update(account1.key_hash, account1.hashchain.clone())
+            .unwrap();
+        tree_state
+            .tree
+            .update(account2.key_hash, account2.hashchain.clone())
+            .unwrap();
 
-        tree.update(key1, hc1.clone()).unwrap();
-        tree.update(key2, hc2.clone()).unwrap();
+        let tree_hashchain1 = tree_state.tree.get(account1.key_hash).unwrap().unwrap();
+        let tree_hashchain2 = tree_state.tree.get(account2.key_hash).unwrap().unwrap();
 
-        assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
-        assert_eq!(tree.get(key2).unwrap().unwrap(), hc2);
+        assert_eq!(tree_hashchain1, account1.hashchain);
+        assert_eq!(tree_hashchain2, account2.hashchain);
     }
 
     #[test]
     fn test_interleaved_inserts_and_updates() {
         let mut test_tree = TestTreeState::default();
 
-        let mut initial_account_1 = test_tree.create_account("key_1".to_string());
-        let mut initial_account_2 = test_tree.create_account("key_2".to_string());
+        let mut account_1 = test_tree.create_account("key_1".to_string());
+        let mut account_2 = test_tree.create_account("key_2".to_string());
 
-        let key1 = initial_account_1.0;
-        let key2 = initial_account_2.0;
+        let key_hash1 = account_1.key_hash;
+        let key_hash2 = account_2.key_hash;
 
         test_tree
-            .insert_account(key1, initial_account_1.1.clone())
+            .insert_account(account_1.key_hash, account_1.hashchain.clone())
             .unwrap();
 
-        let signing_key_to_add1 = create_mock_signing_key();
-        let pub_key1 = PublicKey::Ed25519(signing_key_to_add1.verifying_key().to_bytes().to_vec());
-        let operation_to_sign = Operation::AddKey(KeyOperationArgs {
-            id: "key_1".to_string(),
-            value: pub_key1.clone(),
-            signature: SignatureBundle {
-                key_idx: 0,
-                signature: Vec::new(),
-            },
-        });
-
-        let message = bincode::serialize(&operation_to_sign).unwrap();
-        let signature1 = SignatureBundle {
-            key_idx: 0,
-            signature: test_tree
-                .signing_keys
-                .get("key_1")
-                .unwrap()
-                .sign(&message)
-                .to_vec(),
-        };
-
-        initial_account_1.1.add(pub_key1, signature1).unwrap();
+        test_tree.add_key_to_account(&mut account_1);
         test_tree
             .tree
-            .update(key1, initial_account_1.1.clone())
+            .update(key_hash1, account_1.hashchain.clone())
             .unwrap();
 
         test_tree
-            .insert_account(key2, initial_account_2.1.clone())
+            .insert_account(key_hash2, account_2.hashchain.clone())
             .unwrap();
 
-        let signing_key_to_add2 = create_mock_signing_key();
-        let pub_key2 = PublicKey::Ed25519(signing_key_to_add2.verifying_key().to_bytes().to_vec());
-        let operation_to_sign = Operation::AddKey(KeyOperationArgs {
-            id: "key_2".to_string(),
-            value: pub_key2.clone(),
-            signature: SignatureBundle {
-                key_idx: 0,
-                signature: Vec::new(),
-            },
-        });
-
-        let message = bincode::serialize(&operation_to_sign).unwrap();
-        let signature2 = SignatureBundle {
-            key_idx: 0,
-            signature: test_tree
-                .signing_keys
-                .get("key_2")
-                .unwrap()
-                .sign(&message)
-                .to_vec(),
-        };
-
-        initial_account_2.1.add(pub_key2, signature2).unwrap();
+        test_tree.add_key_to_account(&mut account_2);
 
         let last_proof = test_tree
             .tree
-            .update(key2, initial_account_2.1.clone())
+            .update(key_hash2, account_2.hashchain.clone())
             .unwrap();
 
         assert_eq!(
-            test_tree.tree.get(key1).unwrap().unwrap(),
-            initial_account_1.1
+            test_tree.tree.get(key_hash1).unwrap().unwrap(),
+            account_1.hashchain
         );
         assert_eq!(
-            test_tree.tree.get(key2).unwrap().unwrap(),
-            initial_account_2.1
+            test_tree.tree.get(key_hash2).unwrap().unwrap(),
+            account_2.hashchain
         );
         assert_eq!(
             last_proof.new_root,
@@ -596,63 +530,55 @@ mod tests {
 
     #[test]
     fn test_root_hash_changes() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree_state = TestTreeState::default();
+        let account = tree_state.create_account("key_1".to_string());
 
-        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
-        let key1 = hc1.get_keyhash();
-
-        let root_before = tree.get_current_root().unwrap();
-        tree.insert(key1, hc1).unwrap();
-        let root_after = tree.get_current_root().unwrap();
+        let root_before = tree_state.tree.get_current_root().unwrap();
+        tree_state.tree.insert(account.key_hash, account.hashchain).unwrap();
+        let root_after = tree_state.tree.get_current_root().unwrap();
 
         assert_ne!(root_before, root_after);
     }
 
     #[test]
     fn test_batch_writing() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store.clone());
+        let mut tree_state = TestTreeState::default();
+        let account1 = tree_state.create_account("key_1".to_string());
+        let account2 = tree_state.create_account("key_2".to_string());
 
-        let hc1 = create_mock_hashchain("key_1", &create_mock_signing_key());
-        let key1 = hc1.get_keyhash();
+        println!("Inserting key1: {:?}", account1.key_hash);
+        tree_state.insert_account(account1.key_hash, account1.hashchain.clone()).unwrap();
 
-        println!("Inserting key1: {:?}", key1);
-        tree.insert(key1, hc1.clone()).unwrap();
-
-        println!("Tree state after first insert: {:?}", tree.get_commitment());
+        println!("Tree state after first insert: {:?}", tree_state.tree.get_commitment());
         println!(
             "Tree state after first write_batch: {:?}",
-            tree.get_commitment()
+            tree_state.tree.get_commitment()
         );
 
         // Try to get the first value immediately
-        let get_result1 = tree.get(key1);
+        let get_result1 = tree_state.tree.get(account1.key_hash);
         println!("Get result for key1 after first write: {:?}", get_result1);
 
-        let hc2 = create_mock_hashchain("key_2", &create_mock_signing_key());
-        let key2 = hc2.get_keyhash();
-
-        println!("Inserting key2: {:?}", key2);
-        tree.insert(key2, hc2.clone()).unwrap();
+        println!("Inserting key2: {:?}", account2.key_hash);
+        tree_state.insert_account(account2.key_hash, account2.hashchain.clone()).unwrap();
 
         println!(
             "Tree state after second insert: {:?}",
-            tree.get_commitment()
+            tree_state.tree.get_commitment()
         );
         println!(
             "Tree state after second write_batch: {:?}",
-            tree.get_commitment()
+            tree_state.tree.get_commitment()
         );
 
         // Try to get both values
-        let get_result1 = tree.get(key1);
-        let get_result2 = tree.get(key2);
+        let get_result1 = tree_state.tree.get(account1.key_hash);
+        let get_result2 = tree_state.tree.get(account2.key_hash);
 
         println!("Final get result for key1: {:?}", get_result1);
         println!("Final get result for key2: {:?}", get_result2);
 
-        assert_eq!(get_result1.unwrap().unwrap(), hc1);
-        assert_eq!(get_result2.unwrap().unwrap(), hc2);
+        assert_eq!(get_result1.unwrap().unwrap(), account1.hashchain);
+        assert_eq!(get_result2.unwrap().unwrap(), account2.hashchain);
     }
 }

@@ -165,56 +165,37 @@ impl Hashchain {
         Ok(entry.hash)
     }
 
-    // TODO: Obviously, this needs to be authenticated by an existing key.
-    pub fn add(&mut self, value: PublicKey, signature_bundle: SignatureBundle) -> Result<Digest> {
-        self.perform_operation(Operation::AddKey, value, signature_bundle)
+    pub fn add(&mut self, operation: Operation) -> Result<Digest> {
+        self.perform_operation(operation)
     }
 
-    pub fn revoke(
-        &mut self,
-        value: PublicKey,
-        signature_bundle: SignatureBundle,
-    ) -> Result<Digest> {
-        self.perform_operation(Operation::RevokeKey, value, signature_bundle)
+    pub fn revoke(&mut self, operation: Operation) -> Result<Digest> {
+        self.perform_operation(operation)
     }
 
-    fn perform_operation(
-        &mut self,
-        operation_type: fn(KeyOperationArgs) -> Operation,
-        value: PublicKey,
-        signature_bundle: SignatureBundle,
-    ) -> Result<Digest> {
-        let signing_key = self.get_key_at_index(signature_bundle.key_idx as usize)?;
-
-        if self.is_key_revoked(signing_key.clone()) {
-            bail!("The signing key is revoked");
-        }
-
-        let operation_to_sign = operation_type(KeyOperationArgs {
-            id: self.id.clone(),
-            value: value.clone(),
-            signature: SignatureBundle {
-                key_idx: signature_bundle.key_idx,
-                signature: Vec::new(),
-            },
-        });
-
-        let message = bincode::serialize(&operation_to_sign)?;
-        self.verify_signature(
-            &signing_key,
-            &message,
-            signature_bundle.signature.as_slice(),
-        )?;
-
-        let operation = operation_type(KeyOperationArgs {
-            id: self.id.clone(),
-            value,
-            signature: signature_bundle,
-        });
+    fn perform_operation(&mut self, operation: Operation) -> Result<Digest> {
+        self.validate_operation(&operation)?;
         self.push(operation)
     }
 
-    fn verify_signature(
+    fn validate_operation(&self, operation: &Operation) -> Result<()> {
+        match operation {
+            Operation::AddKey(args) | Operation::RevokeKey(args) => {
+                let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
+
+                if self.is_key_revoked(signing_key.clone()) {
+                    bail!("The signing key is revoked");
+                }
+
+                let message = bincode::serialize(&operation.without_signature())?;
+                self.verify_signature(&signing_key, &message, &args.signature.signature)
+            }
+            // TODO
+            Operation::CreateAccount(_) => unimplemented!()
+        }
+    }
+
+    pub fn verify_signature(
         &self,
         public_key: &PublicKey,
         message: &[u8],
