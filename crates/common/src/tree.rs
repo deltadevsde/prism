@@ -382,20 +382,16 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle};
     use crate::test_utils::{
         create_add_key_operation_with_test_value, create_mock_hashchain, create_mock_signing_key, TestTreeState
     };
-    use crate::tree;
-    use ed25519_dalek::Signer;
-    use jmt::mock::MockTreeStore;
 
     #[test]
     fn test_insert_and_get() {
         let mut tree_state = TestTreeState::default();
         let account = tree_state.create_account("key_1".to_string());
 
-        let insert_proof = tree_state.insert_account(account.key_hash, account.hashchain.clone()).unwrap();
+        let insert_proof = tree_state.insert_account(account.clone()).unwrap();
         assert!(insert_proof.verify().is_ok());
 
         let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
@@ -407,9 +403,9 @@ mod tests {
         let mut tree_state = TestTreeState::default();
         let account = tree_state.create_account("key_1".to_string());
 
-        tree_state.insert_account(account.key_hash, account.hashchain.clone()).unwrap();
+        tree_state.insert_account(account.clone()).unwrap();
 
-        let result = tree_state.insert_account(account.key_hash, account.hashchain.clone());
+        let result = tree_state.insert_account(account.clone());
         assert!(result.is_err());
     }
 
@@ -418,10 +414,10 @@ mod tests {
         let mut tree_state = TestTreeState::default();
 
         let mut account = tree_state.create_account("key_1".to_string());
-        tree_state.insert_account(account.key_hash, account.hashchain.clone()).unwrap();
+        tree_state.insert_account(account.clone()).unwrap();
         tree_state.add_key_to_account(&mut account).unwrap();
 
-        let update_proof = tree_state.update_account(account.key_hash, account.hashchain.clone()).unwrap();
+        let update_proof = tree_state.update_account(account.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
 
         let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
@@ -433,7 +429,7 @@ mod tests {
         let mut tree_state = TestTreeState::default();
         let account = tree_state.create_account("key_1".to_string());
 
-        let result = tree_state.update_account(account.key_hash, account.hashchain);
+        let result = tree_state.update_account(account);
         assert!(result.is_err());
     }
 
@@ -458,23 +454,17 @@ mod tests {
         let mut account2 = tree_state.create_account("key_2".to_string());
 
         tree_state
-            .insert_account(account1.key_hash, account1.hashchain.clone())
+            .insert_account(account1.clone())
             .unwrap();
         tree_state
-            .insert_account(account2.key_hash, account2.hashchain.clone())
+            .insert_account(account2.clone())
             .unwrap();
 
-        tree_state.add_key_to_account(&mut account1);
-        tree_state.add_key_to_account(&mut account2);
+        tree_state.add_key_to_account(&mut account1).unwrap();
+        tree_state.add_key_to_account(&mut account2).unwrap();
 
-        tree_state
-            .tree
-            .update(account1.key_hash, account1.hashchain.clone())
-            .unwrap();
-        tree_state
-            .tree
-            .update(account2.key_hash, account2.hashchain.clone())
-            .unwrap();
+        tree_state.update_account(account1.clone()).unwrap();
+        tree_state.update_account(account2.clone()).unwrap();
 
         let tree_hashchain1 = tree_state.tree.get(account1.key_hash).unwrap().unwrap();
         let tree_hashchain2 = tree_state.tree.get(account2.key_hash).unwrap().unwrap();
@@ -490,36 +480,23 @@ mod tests {
         let mut account_1 = test_tree.create_account("key_1".to_string());
         let mut account_2 = test_tree.create_account("key_2".to_string());
 
-        let key_hash1 = account_1.key_hash;
-        let key_hash2 = account_2.key_hash;
+        test_tree.insert_account(account_1.clone()).unwrap();
 
-        test_tree
-            .insert_account(account_1.key_hash, account_1.hashchain.clone())
-            .unwrap();
+        test_tree.add_key_to_account(&mut account_1).unwrap();
+        test_tree.update_account(account_1.clone()).unwrap();
 
-        test_tree.add_key_to_account(&mut account_1);
-        test_tree
-            .tree
-            .update(key_hash1, account_1.hashchain.clone())
-            .unwrap();
+        test_tree.insert_account(account_1.clone()).unwrap();
 
-        test_tree
-            .insert_account(key_hash2, account_2.hashchain.clone())
-            .unwrap();
+        test_tree.add_key_to_account(&mut account_2).unwrap();
 
-        test_tree.add_key_to_account(&mut account_2);
-
-        let last_proof = test_tree
-            .tree
-            .update(key_hash2, account_2.hashchain.clone())
-            .unwrap();
+        let last_proof = test_tree.update_account(account_2.clone()).unwrap();
 
         assert_eq!(
-            test_tree.tree.get(key_hash1).unwrap().unwrap(),
+            test_tree.tree.get(account_1.key_hash).unwrap().unwrap(),
             account_1.hashchain
         );
         assert_eq!(
-            test_tree.tree.get(key_hash2).unwrap().unwrap(),
+            test_tree.tree.get(account_2.key_hash).unwrap().unwrap(),
             account_2.hashchain
         );
         assert_eq!(
@@ -547,7 +524,7 @@ mod tests {
         let account2 = tree_state.create_account("key_2".to_string());
 
         println!("Inserting key1: {:?}", account1.key_hash);
-        tree_state.insert_account(account1.key_hash, account1.hashchain.clone()).unwrap();
+        tree_state.insert_account(account1.clone()).unwrap();
 
         println!("Tree state after first insert: {:?}", tree_state.tree.get_commitment());
         println!(
@@ -560,7 +537,7 @@ mod tests {
         println!("Get result for key1 after first write: {:?}", get_result1);
 
         println!("Inserting key2: {:?}", account2.key_hash);
-        tree_state.insert_account(account2.key_hash, account2.hashchain.clone()).unwrap();
+        tree_state.insert_account(account2.clone()).unwrap();
 
         println!(
             "Tree state after second insert: {:?}",

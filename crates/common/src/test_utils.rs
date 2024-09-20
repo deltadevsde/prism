@@ -18,6 +18,7 @@ pub struct TestTreeState {
     inserted_keys: HashSet<KeyHash>,
 }
 
+#[derive(Clone)]
 pub struct TestAccount {
     pub key_hash: KeyHash,
     pub hashchain: Hashchain,
@@ -40,23 +41,23 @@ impl TestTreeState {
         }
     }
 
-    pub fn insert_account(&mut self, key: KeyHash, hc: Hashchain) -> Result<InsertProof> {
-        if self.inserted_keys.contains(&key) {
-            return Err(anyhow!("{:?} already contained in tree", key));
+    pub fn insert_account(&mut self, account: TestAccount) -> Result<InsertProof> {
+        if self.inserted_keys.contains(&account.key_hash) {
+            return Err(anyhow!("{:?} already contained in tree", account.key_hash));
         }
 
-        let proof = self.tree.insert(key, hc).expect("Insert should succeed");
-        self.inserted_keys.insert(key);
+        let proof = self.tree.insert(account.key_hash, account.hashchain).expect("Insert should succeed");
+        self.inserted_keys.insert(account.key_hash);
 
         Ok(proof)
     }
 
-    pub fn update_account(&mut self, key: KeyHash, hc: Hashchain) -> Result<UpdateProof> {
-        if !self.inserted_keys.contains(&key) {
-            return Err(anyhow!("{:?} not found in tree", key));
+    pub fn update_account(&mut self, account: TestAccount) -> Result<UpdateProof> {
+        if !self.inserted_keys.contains(&account.key_hash) {
+            return Err(anyhow!("{:?} not found in tree", account.key_hash));
         }
 
-        let proof = self.tree.update(key, hc).expect("Update should succeed");
+        let proof = self.tree.update(account.key_hash, account.hashchain).expect("Update should succeed");
         Ok(proof)
     }
 
