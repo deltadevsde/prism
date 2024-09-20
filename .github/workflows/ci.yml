@@ -61,7 +61,7 @@ jobs:
         shell: bash
 
       - name: Run non-integration tests
-        run: cargo test --release -- --skip integration_tests
+        run: cargo test --release -- --skip test_light_client_sequencer_talking
 
   integration-test:
     runs-on: ubuntu-latest
@@ -120,6 +120,11 @@ jobs:
                 "cache-from": ["type=gha,scope=bridge-1"],
                 "cache-to": ["type=gha,mode=max,scope=bridge-1"],
                 "output": ["type=docker"]
+              },
+              "light-0": {
+                "cache-from": ["type=gha,scope=light-0"],
+                "cache-to": ["type=gha,mode=max,scope=light-0"],
+                "output": ["type=docker"]
               }
             }
           }
@@ -153,6 +158,19 @@ jobs:
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@nightly
 
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ hashFiles('**/Cargo.lock') }}
+            cargo-
+
       - name: Install cargo-udeps
         uses: taiki-e/cache-cargo-install-action@v1
         with:
@@ -179,8 +197,24 @@ jobs:
           rustup toolchain install ${{ matrix.rust.version }} --profile ${{ matrix.rust.profile }}
           rustup default ${{ matrix.rust.version }}
 
-      - name: Install protoc
-        run: sudo apt-get install protobuf-compiler
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
+        with:
+          version: "23.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ hashFiles('**/Cargo.lock') }}
+            cargo-
 
       - name: Add clippy component if not stable
         if: matrix.rust.version != 'stable'
