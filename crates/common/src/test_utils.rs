@@ -4,7 +4,7 @@ use crate::{
     tree::{Digest, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
-use ed25519_dalek::{Signature, Signer, SigningKey};
+use ed25519_dalek::{Signer, SigningKey};
 use jmt::{mock::MockTreeStore, KeyHash};
 use rand::{rngs::StdRng, Rng};
 use std::{

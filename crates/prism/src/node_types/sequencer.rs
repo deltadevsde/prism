@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use ed25519_dalek::{Signer, SigningKey};
+use ed25519_dalek::SigningKey;
 use jmt::KeyHash;
 
 use prism_common::{
@@ -362,7 +362,7 @@ impl Sequencer {
         client.verify(&proof, &self.verifying_key)?;
         info!("verified proof for epoch height {}", height);
 
-        let epoch_json = FinalizedEpoch {
+        let mut epoch_json = FinalizedEpoch {
             height,
             prev_commitment,
             current_commitment: new_commitment,
@@ -370,15 +370,8 @@ impl Sequencer {
             signature: None,
         };
 
-        let serialized_epoch_json_without_signature =
-            bincode::serialize(&epoch_json).context("Failed to serialize epoch json")?;
-        let signature = self
-            .key
-            .sign(serialized_epoch_json_without_signature.as_slice())
-            .to_string();
-        let mut epoch_json_with_signature = epoch_json;
-        epoch_json_with_signature.signature = Some(signature.clone());
-        Ok(epoch_json_with_signature)
+        epoch_json.insert_signature(&self.key);
+        Ok(epoch_json)
     }
 
     pub async fn get_commitment(&self) -> Result<Digest> {
@@ -480,6 +473,7 @@ mod tests {
         da::memory::InMemoryDataAvailabilityLayer,
         storage::RedisConnection,
     };
+    use ed25519_dalek::Signer;
     use keystore_rs::create_signing_key;
     use prism_common::{
         operation::{CreateAccountArgs, PublicKey, ServiceChallengeInput, SignatureBundle},

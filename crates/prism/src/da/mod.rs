@@ -1,13 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use bincode;
-use ed25519_consensus::Signature;
-use hex;
-use prism_common::{operation::Operation, signed_content::SignedContent, tree::Digest};
-use prism_errors::GeneralError;
+use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
+use prism_common::{operation::Operation, tree::Digest};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;
-use std::{self, str::FromStr};
 use tokio::sync::broadcast; // Added import for hex
 
 pub mod celestia;
@@ -23,30 +20,40 @@ pub struct FinalizedEpoch {
     pub signature: Option<String>,
 }
 
-impl SignedContent for FinalizedEpoch {
-    fn get_signature(&self) -> Result<Signature> {
-        match &self.signature {
-            Some(signature) => {
-                let bytes = hex::decode(signature)?;
-                Signature::try_from(bytes.as_slice())
-                    .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
-            }
-            None => Err(GeneralError::MissingArgumentError("signature".to_string()).into()),
+impl FinalizedEpoch {
+    pub fn insert_signature(&mut self, key: &SigningKey) {
+        let plaintext = bincode::serialize(&self).unwrap();
+        let signature = key.sign(&plaintext);
+        self.signature = Some(hex::encode(signature.to_bytes()));
+    }
+
+    pub fn verify_signature(&self, vk: VerifyingKey) -> Result<()> {
+        let epoch_without_signature = FinalizedEpoch {
+            height: self.height,
+            prev_commitment: self.prev_commitment,
+            current_commitment: self.current_commitment,
+            proof: self.proof.clone(),
+            signature: None,
+        };
+
+        let message = bincode::serialize(&epoch_without_signature).unwrap();
+
+        if self.signature.is_none() {
+            return Err(anyhow::anyhow!("No signature present"));
         }
-    }
 
-    fn get_plaintext(&self) -> Result<Vec<u8>> {
-        let mut copy = self.clone();
-        copy.signature = None;
-        bincode::serialize(&copy).map_err(|e| GeneralError::EncodingError(e.to_string()).into())
-    }
+        let signature_bytes = hex::decode(self.signature.as_ref().unwrap()).unwrap();
+        if signature_bytes.len() != 64 {
+            return Err(anyhow::anyhow!("Invalid signature length"));
+        }
 
-    fn get_public_key(&self) -> Result<String> {
-        //TODO(@distractedm1nd): the below comment isn't good enough of an argument to not return the public key, it should be fixed
+        let signature: Signature = signature_bytes
+            .as_slice()
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
 
-        // for epoch json the public key to verify is the one from the sequencer which should be already be public and known from every light client
-        // so if we use this function there should be an error
-        Err(GeneralError::MissingArgumentError("public key".to_string()).into())
+        vk.verify_strict(&message, &signature).unwrap();
+        Ok(())
     }
 }
 

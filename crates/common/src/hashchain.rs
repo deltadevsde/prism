@@ -73,10 +73,7 @@ impl Hashchain {
         if let Some(entry) = hc_entry {
             match entry.operation.get_public_key() {
                 Some(key) => {
-                    if !self.is_key_revoked(key.clone()) {
-                        return Ok(key);
-                    }
-                    bail!("Key at index {idx} exists but is revoked");
+                    return Ok(key);
                 }
                 None => {
                     bail!("Key at index {idx} does not exist");

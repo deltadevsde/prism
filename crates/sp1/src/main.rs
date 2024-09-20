@@ -20,13 +20,22 @@ pub fn main() {
                 assert!(p.verify().is_ok());
                 println!("cycle-tracker-end: update");
 
+                // todo: @sebastian fix error handling
                 if let Some(new_entry) = p.new_value.last() {
                     let message =
                         dbg!(bincode::serialize(&new_entry.operation.without_signature()).unwrap());
                     let signature_bundle = new_entry.operation.get_signature_bundle().unwrap();
-                    let public_key = dbg!(new_entry.operation.get_public_key().unwrap());
+
+                    let public_key = p
+                        .new_value
+                        .get_key_at_index(
+                            new_entry.operation.get_signature_bundle().unwrap().key_idx as usize,
+                        )
+                        .unwrap();
+
+                    // let public_key = dbg!(new_entry.operation.get_public_key().unwrap());
                     p.new_value
-                        .verify_signature(&public_key, &message, &dbg!(signature_bundle.signature))
+                        .verify_signature(&public_key, &message, &signature_bundle.signature)
                         .unwrap();
                 }
 

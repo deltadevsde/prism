@@ -1706,14 +1706,12 @@ dependencies = [
 [[package]]
 name = "curve25519-dalek-ng"
 version = "4.1.1"
-source = "git+https://github.com/sp1-patches/curve25519-dalek-ng.git?branch=patch-v4.1.1#8dd77b20f3e78965a0cc57070a04465b9d52c49e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c359b7249347e46fb28804470d071c921156ad62b3eef5d34e2ba867533dec8"
 dependencies = [
- "anyhow",
  "byteorder",
- "cfg-if",
  "digest 0.9.0",
  "rand_core",
- "sp1-lib",
  "subtle-ng",
  "zeroize",
 ]
@@ -2051,14 +2049,13 @@ dependencies = [
 [[package]]
 name = "ed25519-consensus"
 version = "2.1.0"
-source = "git+https://github.com/sp1-patches/ed25519-consensus?branch=patch-v2.1.0#2b2c4b43344bc4daf5b1326f367f2d9d661eeabb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c8465edc8ee7436ffea81d21a019b16676ee3db267aa8d5a8d729581ecf998b"
 dependencies = [
  "curve25519-dalek-ng",
  "hex",
  "rand_core",
- "serde",
  "sha2 0.9.9",
- "thiserror",
  "zeroize",
 ]
 
@@ -5078,12 +5075,10 @@ name = "prism-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "base64 0.22.1",
  "bincode",
  "bls12_381 0.8.0",
  "borsh",
  "celestia-types",
- "ed25519-consensus",
  "ed25519-dalek",
  "hex",
  "jmt",
@@ -5098,9 +5093,7 @@ name = "prism-errors"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "ed25519-consensus",
  "ed25519-dalek",
- "sha2 0.10.8",
  "thiserror",
 ]
 
@@ -5113,7 +5106,6 @@ dependencies = [
  "bls12_381 0.8.0",
  "borsh",
  "celestia-types",
- "ed25519-consensus",
  "ed25519-dalek",
  "ff 0.13.0",
  "hex",
@@ -5149,7 +5141,6 @@ dependencies = [
  "criterion",
  "dirs 5.0.1",
  "dotenvy",
- "ed25519-consensus",
  "ed25519-dalek",
  "ff 0.13.0",
  "hex",
@@ -5190,7 +5181,6 @@ dependencies = [
  "bls12_381 0.8.0",
  "borsh",
  "celestia-types",
- "ed25519-consensus",
  "ed25519-dalek",
  "ff 0.13.0",
  "hex",
@@ -5211,7 +5201,6 @@ name = "prism-sp1"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "ed25519-consensus",
  "ed25519-dalek",
  "prism-common",
  "secp256k1",
