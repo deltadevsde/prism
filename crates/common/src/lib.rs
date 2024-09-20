@@ -3,5 +3,5 @@ pub mod operation;
 pub mod signed_content;
 pub mod tree;
 
-// todo: add testing feature for use across crates, so we dont have to expose it
+#[cfg(feature = "test_utils")]
 pub mod test_utils;

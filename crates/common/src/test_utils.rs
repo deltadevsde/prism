@@ -4,7 +4,7 @@ use crate::{
     tree::{Digest, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
-use ed25519_dalek::{Signer, SigningKey};
+use ed25519_dalek::{Signature, Signer, SigningKey};
 use jmt::{mock::MockTreeStore, KeyHash};
 use rand::{rngs::StdRng, Rng};
 use std::{
@@ -46,7 +46,10 @@ impl TestTreeState {
             return Err(anyhow!("{:?} already contained in tree", account.key_hash));
         }
 
-        let proof = self.tree.insert(account.key_hash, account.hashchain).expect("Insert should succeed");
+        let proof = self
+            .tree
+            .insert(account.key_hash, account.hashchain)
+            .expect("Insert should succeed");
         self.inserted_keys.insert(account.key_hash);
 
         Ok(proof)
@@ -57,14 +60,14 @@ impl TestTreeState {
             return Err(anyhow!("{:?} not found in tree", account.key_hash));
         }
 
-        let proof = self.tree.update(account.key_hash, account.hashchain).expect("Update should succeed");
+        let proof = self
+            .tree
+            .update(account.key_hash, account.hashchain)
+            .expect("Update should succeed");
         Ok(proof)
     }
 
-    pub fn add_key_to_account(
-        &mut self,
-        account: &mut TestAccount,
-    ) -> Result<(), anyhow::Error> {
+    pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {
         let signing_key_to_add = create_mock_signing_key();
         let pub_key = PublicKey::Ed25519(signing_key_to_add.verifying_key().to_bytes().to_vec());
         let operation_to_sign = Operation::AddKey(KeyOperationArgs {
@@ -75,7 +78,7 @@ impl TestTreeState {
                 signature: Vec::new(),
             },
         });
-    
+
         let message = bincode::serialize(&operation_to_sign)?;
         let signature = SignatureBundle {
             key_idx: 0,
@@ -86,15 +89,15 @@ impl TestTreeState {
                 .sign(&message)
                 .to_vec(),
         };
-    
+
         let operation = Operation::AddKey(KeyOperationArgs {
             id: account.hashchain.id.clone(),
             value: pub_key,
-            signature
+            signature,
         });
-    
-        account.hashchain.add(operation);
-    
+
+        account.hashchain.add(operation).unwrap();
+
         Ok(())
     }
 }
@@ -221,5 +224,3 @@ pub fn create_add_key_operation_with_test_value(id: &str, signing_key: &SigningK
         signature: create_mock_signature(signing_key, id.as_bytes()),
     })
 }
-
-

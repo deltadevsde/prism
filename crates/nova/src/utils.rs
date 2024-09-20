@@ -12,12 +12,11 @@ use ff::PrimeField;
 use itertools::Itertools as _;
 use jmt::{
     bytes32ext::Bytes32Ext,
-    mock::MockTreeStore,
     proof::{SparseMerkleLeafNode, SparseMerkleNode, SparseMerkleProof, INTERNAL_DOMAIN_SEPARATOR},
     RootHash,
 };
-use prism_common::{hashchain::Hashchain, test_utils::TestTreeState, tree::*};
-use std::{marker::PhantomData, sync::Arc};
+use prism_common::{test_utils::TestTreeState, tree::*};
+use std::marker::PhantomData;
 
 use prism_common::tree;
 
@@ -166,7 +165,10 @@ pub fn create_pp() -> PublicParams<PallasEngine> {
     let mut test_tree = TestTreeState::default();
     let mut account = test_tree.create_account("publicparams".to_string());
 
-    let insert_proof = test_tree.tree.insert(account.key_hash, account.hashchain.clone()).unwrap();
+    let insert_proof = test_tree
+        .tree
+        .insert(account.key_hash, account.hashchain.clone())
+        .unwrap();
 
     test_tree.add_key_to_account(&mut account).unwrap();
 

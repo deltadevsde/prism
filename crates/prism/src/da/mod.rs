@@ -1,13 +1,14 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use bincode;
-use ed25519::Signature;
+use ed25519_consensus::Signature;
+use hex;
 use prism_common::{operation::Operation, signed_content::SignedContent, tree::Digest};
 use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;
 use std::{self, str::FromStr};
-use tokio::sync::broadcast;
+use tokio::sync::broadcast; // Added import for hex
 
 pub mod celestia;
 pub mod memory;
@@ -25,8 +26,11 @@ pub struct FinalizedEpoch {
 impl SignedContent for FinalizedEpoch {
     fn get_signature(&self) -> Result<Signature> {
         match &self.signature {
-            Some(signature) => Signature::from_str(signature)
-                .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into()),
+            Some(signature) => {
+                let bytes = hex::decode(signature)?;
+                Signature::try_from(bytes.as_slice())
+                    .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
+            }
             None => Err(GeneralError::MissingArgumentError("signature".to_string()).into()),
         }
     }

@@ -8,10 +8,7 @@ use std::{
 };
 
 use crate::{
-    operation::{
-        CreateAccountArgs, KeyOperationArgs, Operation, PublicKey, ServiceChallengeInput,
-        SignatureBundle,
-    },
+    operation::{CreateAccountArgs, Operation, PublicKey, ServiceChallengeInput},
     tree::{hash, Digest, Hasher},
 };
 
@@ -191,7 +188,7 @@ impl Hashchain {
                 self.verify_signature(&signing_key, &message, &args.signature.signature)
             }
             // TODO
-            Operation::CreateAccount(_) => unimplemented!()
+            Operation::CreateAccount(_) => unimplemented!(),
         }
     }
 

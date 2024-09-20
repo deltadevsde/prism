@@ -379,12 +379,10 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "test_utils"))]
 mod tests {
     use super::*;
-    use crate::test_utils::{
-        create_add_key_operation_with_test_value, create_mock_hashchain, create_mock_signing_key, TestTreeState
-    };
+    use crate::test_utils::TestTreeState;
 
     #[test]
     fn test_insert_and_get() {
@@ -453,12 +451,8 @@ mod tests {
         let mut account1 = tree_state.create_account("key_1".to_string());
         let mut account2 = tree_state.create_account("key_2".to_string());
 
-        tree_state
-            .insert_account(account1.clone())
-            .unwrap();
-        tree_state
-            .insert_account(account2.clone())
-            .unwrap();
+        tree_state.insert_account(account1.clone()).unwrap();
+        tree_state.insert_account(account2.clone()).unwrap();
 
         tree_state.add_key_to_account(&mut account1).unwrap();
         tree_state.add_key_to_account(&mut account2).unwrap();
@@ -511,7 +505,10 @@ mod tests {
         let account = tree_state.create_account("key_1".to_string());
 
         let root_before = tree_state.tree.get_current_root().unwrap();
-        tree_state.tree.insert(account.key_hash, account.hashchain).unwrap();
+        tree_state
+            .tree
+            .insert(account.key_hash, account.hashchain)
+            .unwrap();
         let root_after = tree_state.tree.get_current_root().unwrap();
 
         assert_ne!(root_before, root_after);
@@ -526,7 +523,10 @@ mod tests {
         println!("Inserting key1: {:?}", account1.key_hash);
         tree_state.insert_account(account1.clone()).unwrap();
 
-        println!("Tree state after first insert: {:?}", tree_state.tree.get_commitment());
+        println!(
+            "Tree state after first insert: {:?}",
+            tree_state.tree.get_commitment()
+        );
         println!(
             "Tree state after first write_batch: {:?}",
             tree_state.tree.get_commitment()

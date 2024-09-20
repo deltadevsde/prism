@@ -18,6 +18,10 @@ sha2.workspace = true
 celestia-types.workspace = true
 bincode.workspace = true
 ed25519-dalek.workspace = true
-ed25519.workspace = true
+ed25519-consensus.workspace = true
 base64.workspace = true
 rand.workspace = true
+
+[features]
+default = []
+test_utils = []

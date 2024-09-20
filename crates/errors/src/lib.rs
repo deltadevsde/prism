@@ -1,5 +1,5 @@
 use anyhow::Error as AnyhowError;
-use ed25519_dalek::SignatureError;
+use ed25519_consensus::Error as SignatureError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

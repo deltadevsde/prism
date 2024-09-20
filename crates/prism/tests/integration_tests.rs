@@ -1,7 +1,7 @@
 // #![cfg(test)]
 
 // use anyhow::Result;
-// use ed25519_dalek::{Signer, SigningKey};
+// use curve25519_dalek::{Signer, SigningKey};
 // use keystore_rs::create_signing_key;
 // use prism_common::operation::{AccountSource, Operation};
 // use prism_main::{

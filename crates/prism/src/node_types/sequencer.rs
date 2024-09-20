@@ -1,14 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use ed25519::Signature;
 use ed25519_dalek::{Signer, SigningKey};
 use jmt::KeyHash;
 
 use prism_common::{
-    operation::{CreateAccountArgs, KeyOperationArgs, ServiceChallengeInput},
+    operation::{KeyOperationArgs, ServiceChallengeInput},
     tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree},
 };
-use std::{self, collections::VecDeque, str::FromStr, sync::Arc};
+use std::{self, collections::VecDeque, sync::Arc};
 use tokio::sync::{broadcast, Mutex};
 
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
@@ -24,7 +23,7 @@ use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::Operation,
 };
-use prism_errors::{DatabaseError, GeneralError};
+use prism_errors::DatabaseError;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -394,16 +393,8 @@ impl Sequencer {
         tree: &mut KeyDirectoryTree<Box<dyn Database>>,
     ) -> Result<Proof> {
         match operation {
-            Operation::AddKey(KeyOperationArgs {
-                id,
-                value,
-                signature,
-            })
-            | Operation::RevokeKey(KeyOperationArgs {
-                id,
-                value,
-                signature,
-            }) => {
+            Operation::AddKey(KeyOperationArgs { id, .. })
+            | Operation::RevokeKey(KeyOperationArgs { id, .. }) => {
                 // verify that the hashchain already exists
                 let mut current_chain = self
                     .db
@@ -480,6 +471,7 @@ impl Sequencer {
         Ok(())
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -487,11 +479,10 @@ mod tests {
         cfg::{Config, RedisConfig},
         da::memory::InMemoryDataAvailabilityLayer,
         storage::RedisConnection,
-        webserver::OperationInput,
     };
     use keystore_rs::create_signing_key;
     use prism_common::{
-        operation::{PublicKey, ServiceChallengeInput, SignatureBundle},
+        operation::{CreateAccountArgs, PublicKey, ServiceChallengeInput, SignatureBundle},
         test_utils::create_mock_signing_key,
     };
     use serial_test::serial;
@@ -523,18 +514,20 @@ mod tests {
             id: id.to_string(),
             value: new_key.clone(),
             signature: SignatureBundle {
-                key_idx,
+                key_idx: 0,
                 signature: Vec::new(),
             },
         });
 
         Operation::AddKey(KeyOperationArgs {
             id: id.to_string(),
-            value: new_key,
+            value: dbg!(new_key),
             signature: SignatureBundle {
                 key_idx,
                 signature: signing_key
-                    .sign(&bincode::serialize(&operation_without_signature).unwrap())
+                    .sign(&dbg!(
+                        bincode::serialize(&operation_without_signature).unwrap()
+                    ))
                     .to_vec(),
             },
         })

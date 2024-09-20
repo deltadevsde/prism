@@ -1,11 +1,9 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use bincode;
 use celestia_types::Blob;
 use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
-use std::{self, fmt::Display, str::FromStr};
-
-use crate::hashchain::Hashchain;
+use std::{self, fmt::Display};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 /// Represents a public key supported by the system.
@@ -86,6 +84,17 @@ impl Operation {
         }
     }
 
+    pub fn get_signature_bundle(&self) -> Option<SignatureBundle> {
+        match self {
+            Operation::AddKey(args) => Some(args.signature.clone()),
+            Operation::RevokeKey(args) => Some(args.signature.clone()),
+            Operation::CreateAccount(args) => Some(SignatureBundle {
+                key_idx: 0,
+                signature: args.signature.clone(),
+            }),
+        }
+    }
+
     pub fn without_signature(&self) -> Self {
         match self {
             Operation::AddKey(args) => Operation::AddKey(KeyOperationArgs {
@@ -104,23 +113,20 @@ impl Operation {
                     signature: Vec::new(),
                 },
             }),
-            // TODO: create account
-            _ => panic!("Unsupported operation type"),
+            Operation::CreateAccount(args) => Operation::CreateAccount(CreateAccountArgs {
+                id: args.id.clone(),
+                value: args.value.clone(),
+                signature: Vec::new(),
+                service_id: args.service_id.clone(),
+                challenge: args.challenge.clone(),
+            }),
         }
     }
 
     pub fn validate(&self) -> Result<()> {
         match &self {
-            Operation::AddKey(KeyOperationArgs {
-                id,
-                value,
-                signature,
-            })
-            | Operation::RevokeKey(KeyOperationArgs {
-                id,
-                value,
-                signature,
-            }) => {
+            Operation::AddKey(KeyOperationArgs { id, signature, .. })
+            | Operation::RevokeKey(KeyOperationArgs { id, signature, .. }) => {
                 if id.is_empty() {
                     return Err(
                         GeneralError::MissingArgumentError("id is empty".to_string()).into(),
@@ -138,13 +144,7 @@ impl Operation {
 
                 Ok(())
             }
-            Operation::CreateAccount(CreateAccountArgs {
-                id,
-                value,
-                signature,
-                service_id: _,
-                challenge,
-            }) => {
+            Operation::CreateAccount(CreateAccountArgs { id, challenge, .. }) => {
                 if id.is_empty() {
                     return Err(
                         GeneralError::MissingArgumentError("id is empty".to_string()).into(),
