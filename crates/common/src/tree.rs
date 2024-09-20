@@ -485,7 +485,7 @@ mod tests {
         test_tree.add_key_to_account(&mut account_1).unwrap();
         test_tree.update_account(account_1.clone()).unwrap();
 
-        test_tree.insert_account(account_1.clone()).unwrap();
+        test_tree.insert_account(account_2.clone()).unwrap();
 
         test_tree.add_key_to_account(&mut account_2).unwrap();
 
