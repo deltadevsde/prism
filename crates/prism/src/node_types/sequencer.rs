@@ -21,18 +21,20 @@ use prism_errors::DataAvailabilityError;
 
 use crate::{
     cfg::Config,
-    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    da::{DataAvailabilityLayer, FinalizedEpoch},
     node_types::NodeType,
     webserver::{OperationInput, WebServer},
 };
+use prism_da::{
+    consts::{CHANNEL_BUFFER_SIZE, DA_RETRY_COUNT, DA_RETRY_INTERVAL},
+    DataAvailabilityLayer, FinalizedEpoch,
+};
 
-use prism_storage::Database;
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     operation::{AccountSource, Operation},
 };
 use prism_errors::{DatabaseError, GeneralError};
+use prism_storage::Database;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -472,9 +474,9 @@ mod tests {
         cfg::{Config, RedisConfig},
         da::memory::InMemoryDataAvailabilityLayer,
     };
-    use prism_storage::RedisConnection;
     use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
     use keystore_rs::create_signing_key;
+    use prism_storage::RedisConnection;
     use serial_test::serial;
 
     // set up redis connection and flush database before each test

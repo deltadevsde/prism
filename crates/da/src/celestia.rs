@@ -1,14 +1,15 @@
 use crate::{
     consts::CHANNEL_BUFFER_SIZE,
-    da::{DataAvailabilityLayer, FinalizedEpoch},
+    {DataAvailabilityLayer, FinalizedEpoch},
 };
-use prism_config::CelestiaConfig;
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::{blob::GasPrice, nmt::Namespace, Blob};
+use log::{debug, trace, warn};
 use prism_common::operation::Operation;
 use prism_errors::{DataAvailabilityError, GeneralError};
+use serde::{Deserialize, Serialize};
 use std::{self, sync::Arc};
 use tokio::{
     sync::{
@@ -17,7 +18,6 @@ use tokio::{
     },
     task::spawn,
 };
-use log::{debug, warn, error};
 
 use bincode;
 
@@ -28,6 +28,25 @@ impl TryFrom<&Blob> for FinalizedEpoch {
         bincode::deserialize(&value.data).context(format!(
             "Failed to decode blob into FinalizedEpoch: {value:?}"
         ))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CelestiaConfig {
+    pub connection_string: String,
+    pub start_height: u64,
+    pub snark_namespace_id: String,
+    pub operation_namespace_id: Option<String>,
+}
+
+impl Default for CelestiaConfig {
+    fn default() -> Self {
+        CelestiaConfig {
+            connection_string: "ws://localhost:26658".to_string(),
+            start_height: 0,
+            snark_namespace_id: "00000000000000de1008".to_string(),
+            operation_namespace_id: Some("00000000000000de1009".to_string()),
+        }
     }
 }
 

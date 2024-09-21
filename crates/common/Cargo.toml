@@ -16,3 +16,4 @@ hex.workspace = true
 sha2.workspace = true
 celestia-types.workspace = true
 bincode.workspace = true
+ed25519.workspace = true

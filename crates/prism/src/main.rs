@@ -1,20 +1,19 @@
+mod cfg;
 mod node_types;
 mod utils;
 mod webserver;
 
-use prism_config::{initialize_da_layer, load_config, CommandLineArgs, Commands};
+use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
-use std::sync::Arc;
 use prism_storage::RedisConnection;
+use std::sync::Arc;
 
 #[macro_use]
 extern crate log;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
-
-
 
 /// The main function that initializes and runs a prism client.
 #[tokio::main()]

@@ -1,9 +1,4 @@
-use crate::{
-    cfg::WebServerConfig,
-    node_types::sequencer::Sequencer,
-    utils::{verify_signature, SignedContent},
-};
-use prism_errors::GeneralError;
+use crate::{cfg::WebServerConfig, node_types::sequencer::Sequencer, utils::verify_signature};
 use anyhow::{Context, Result};
 use axum::{
     extract::State,
@@ -17,7 +12,9 @@ use indexed_merkle_tree::{
     tree::{Proof, UpdateProof},
     Hash as TreeHash,
 };
+use prism_common::signedcontent::SignedContent;
 use prism_common::{hashchain::Hashchain, operation::Operation};
+use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use std::{self, str::FromStr, sync::Arc};
 use tower_http::cors::CorsLayer;

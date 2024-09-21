@@ -1,13 +1,13 @@
-use crate::cfg::CelestiaConfig;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use prism_common::tree::Digest;
+use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::{task::spawn, time::interval};
 
-use crate::{da::DataAvailabilityLayer, node_types::NodeType, utils::verify_signature};
+use crate::{node_types::NodeType, utils::verify_signature};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 

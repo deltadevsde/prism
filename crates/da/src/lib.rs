@@ -1,4 +1,4 @@
-use crate::utils::SignedContent;
+use prism_common::signedcontent::SignedContent;
 use anyhow::Result;
 use async_trait::async_trait;
 use bincode;
@@ -10,8 +10,8 @@ use sp1_sdk::SP1ProofWithPublicValues;
 use std::{self, str::FromStr};
 
 pub mod celestia;
-pub mod memory;
 pub mod consts;
+pub mod memory;
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]

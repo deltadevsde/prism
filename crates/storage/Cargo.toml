@@ -26,6 +26,5 @@ config = { workspace = true }
 thiserror = { workspace = true }
 prism-errors = { workspace = true }
 prism-common = { workspace = true }
-prism-config = { workspace = true }
 auto_impl = {workspace = true}
-
+rocksdb = {workspace = true}

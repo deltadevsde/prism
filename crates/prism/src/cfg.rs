@@ -1,17 +1,20 @@
-use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
 use dotenvy::dotenv;
+use log::{error, warn};
+use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
+use prism_storage::RedisConfig;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
-use log::{error, warn};
 
-
-use prism_da::{celestia::CelestiaConnection, DataAvailabilityLayer,
+use prism_da::{
+    celestia::CelestiaConfig,
+    celestia::CelestiaConnection,
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    da::memory::InMemoryDataAvailabilityLayer,
+    memory::InMemoryDataAvailabilityLayer,
+    DataAvailabilityLayer,
 };
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
@@ -94,39 +97,6 @@ impl Default for WebServerConfig {
         WebServerConfig {
             host: "127.0.0.1".to_string(),
             port: 8089,
-        }
-    }
-}
-
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RedisConfig {
-    pub connection_string: String,
-}
-
-impl Default for RedisConfig {
-    fn default() -> Self {
-        RedisConfig {
-            connection_string: "redis://127.0.0.1/".to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CelestiaConfig {
-    pub connection_string: String,
-    pub start_height: u64,
-    pub snark_namespace_id: String,
-    pub operation_namespace_id: Option<String>,
-}
-
-impl Default for CelestiaConfig {
-    fn default() -> Self {
-        CelestiaConfig {
-            connection_string: "ws://localhost:26658".to_string(),
-            start_height: 0,
-            snark_namespace_id: "00000000000000de1008".to_string(),
-            operation_namespace_id: Some("00000000000000de1009".to_string()),
         }
     }
 }

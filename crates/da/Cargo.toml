@@ -50,5 +50,4 @@ auto_impl = { workspace = true }
 prism-common = { workspace = true }
 prism-errors = { workspace = true }
 prism-groth16 = { workspace = true }
-prism-config = { workspace = true }
 sp1-sdk = { workspace = true }
