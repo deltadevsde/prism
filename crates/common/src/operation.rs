@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use bincode;
 use celestia_types::Blob;
+use ed25519_dalek::{Signer, SigningKey};
 use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
@@ -9,15 +10,15 @@ use std::{self, fmt::Display};
 /// Represents a public key supported by the system.
 pub enum PublicKey {
     // Secp256k1(Vec<u8>),  // Bitcoin, Ethereum
+    // Curve25519(Vec<u8>), // Signal, Tor
     Ed25519(Vec<u8>), // Cosmos, OpenSSH, GnuPG
-                      // Curve25519(Vec<u8>), // Signal, Tor
 }
 
 impl PublicKey {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
-            // PublicKey::Secp256k1(bytes) => bytes,
             PublicKey::Ed25519(bytes) => bytes,
+            // PublicKey::Secp256k1(bytes) => bytes,
             // PublicKey::Curve25519(bytes) => bytes,
         }
     }
@@ -95,6 +96,20 @@ impl Operation {
         }
     }
 
+    pub fn insert_signature(&mut self, signing_key: &SigningKey) {
+        let serialized = bincode::serialize(self).expect("Failed to serialize operation");
+        let signature = signing_key.sign(&serialized);
+
+        match self {
+            Operation::CreateAccount(args) => {
+                args.signature = signature.to_bytes().to_vec();
+            }
+            Operation::AddKey(args) | Operation::RevokeKey(args) => {
+                args.signature.signature = signature.to_bytes().to_vec();
+            }
+        }
+    }
+
     pub fn without_signature(&self) -> Self {
         match self {
             Operation::AddKey(args) => Operation::AddKey(KeyOperationArgs {
@@ -140,28 +155,25 @@ impl Operation {
                     .into());
                 }
 
-                // verify_signature(self, None).context("Failed to verify signature")?;
-
                 Ok(())
             }
-            Operation::CreateAccount(CreateAccountArgs { id, challenge, .. }) => {
+            Operation::CreateAccount(CreateAccountArgs { id, .. }) => {
                 if id.is_empty() {
                     return Err(
                         GeneralError::MissingArgumentError("id is empty".to_string()).into(),
                     );
                 }
 
-                match challenge {
-                    ServiceChallengeInput::Signed(signature) => {
-                        if signature.is_empty() {
-                            return Err(GeneralError::MissingArgumentError(
-                                "challenge data is empty".to_string(),
-                            )
-                            .into());
-                        }
-                        // verify_signature(self, None).context("Failed to verify signature")?;
-                    }
-                }
+                // match challenge {
+                //     ServiceChallengeInput::Signed(signature) => {
+                //         if signature.is_empty() {
+                //             return Err(GeneralError::MissingArgumentError(
+                //                 "challenge data is empty".to_string(),
+                //             )
+                //             .into());
+                //         }
+                //     }
+                // }
 
                 Ok(())
             }

@@ -381,8 +381,25 @@ impl Sequencer {
         self: Arc<Self>,
         incoming_operation: &Operation,
     ) -> Result<()> {
-        // TODO: this is only basic validation. The validation over if an entry can be added to the hashchain or not is done in the process_operation function
+        // basic validation, does not include signature checks
         incoming_operation.validate()?;
+
+        // validate operation against existing hashchain if necessary, including signature checks
+        match incoming_operation {
+            Operation::CreateAccount(_) => (),
+            Operation::AddKey(_) | Operation::RevokeKey(_) => {
+                let hc = self.get_hashchain(&incoming_operation.id()).await?;
+                if let Ok(mut hc) = hc {
+                    hc.perform_operation(incoming_operation.clone())?;
+                } else {
+                    return Err(anyhow!(
+                        "Hashchain not found for id: {}",
+                        incoming_operation.id()
+                    ));
+                }
+            }
+        };
+
         let mut pending = self.pending_operations.write().await;
         pending.push(incoming_operation.clone());
         Ok(())
@@ -397,7 +414,6 @@ mod tests {
         da::memory::InMemoryDataAvailabilityLayer,
         storage::RedisConnection,
     };
-    use ed25519_dalek::Signer;
     use keystore_rs::create_signing_key;
     use prism_common::{
         operation::{
@@ -408,47 +424,30 @@ mod tests {
     use serial_test::serial;
 
     fn create_random_user(id: &str, signing_key: SigningKey) -> Operation {
-        let operation_without_signature = Operation::CreateAccount(CreateAccountArgs {
+        let mut op = Operation::CreateAccount(CreateAccountArgs {
             id: id.to_string(),
             value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
             service_id: "test_service".to_string(),
             signature: Vec::new(),
-            // TODO: Fix challenge, just a placeholder rn
-            challenge: ServiceChallengeInput::Signed(vec![0x0]),
+            challenge: ServiceChallengeInput::Signed(vec![]),
         });
 
-        Operation::CreateAccount(CreateAccountArgs {
-            id: id.to_string(),
-            value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
-            service_id: "test_service".to_string(),
-            signature: signing_key
-                .sign(&bincode::serialize(&operation_without_signature).unwrap())
-                .to_vec(),
-            // TODO: Fix challenge, just a placeholder rn
-            challenge: ServiceChallengeInput::Signed(vec![0x0]),
-        })
+        op.insert_signature(&signing_key);
+        op
     }
 
     fn add_key(id: &str, key_idx: u64, new_key: PublicKey, signing_key: SigningKey) -> Operation {
-        let operation_without_signature = Operation::AddKey(KeyOperationArgs {
+        let mut op = Operation::AddKey(KeyOperationArgs {
             id: id.to_string(),
             value: new_key.clone(),
             signature: SignatureBundle {
-                key_idx: 0,
+                key_idx,
                 signature: Vec::new(),
             },
         });
 
-        Operation::AddKey(KeyOperationArgs {
-            id: id.to_string(),
-            value: new_key,
-            signature: SignatureBundle {
-                key_idx,
-                signature: signing_key
-                    .sign(&bincode::serialize(&operation_without_signature).unwrap())
-                    .to_vec(),
-            },
-        })
+        op.insert_signature(&signing_key);
+        op
     }
 
     fn revoke_key(
@@ -457,7 +456,7 @@ mod tests {
         key_to_revoke: PublicKey,
         signing_key: SigningKey,
     ) -> Operation {
-        let operation_without_signature = Operation::RevokeKey(KeyOperationArgs {
+        let mut op = Operation::RevokeKey(KeyOperationArgs {
             id: id.to_string(),
             value: key_to_revoke.clone(),
             signature: SignatureBundle {
@@ -465,17 +464,8 @@ mod tests {
                 signature: Vec::new(),
             },
         });
-
-        Operation::RevokeKey(KeyOperationArgs {
-            id: id.to_string(),
-            value: key_to_revoke,
-            signature: SignatureBundle {
-                key_idx,
-                signature: signing_key
-                    .sign(&bincode::serialize(&operation_without_signature).unwrap())
-                    .to_vec(),
-            },
-        })
+        op.insert_signature(&signing_key);
+        op
     }
 
     // Helper function to set up redis connection and flush database before each test

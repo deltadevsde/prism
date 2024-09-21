@@ -67,6 +67,63 @@ impl Hashchain {
         }
     }
 
+    pub fn validate(&self) -> Result<()> {
+        let mut valid_keys: HashSet<PublicKey> = HashSet::new();
+
+        for (index, entry) in self.entries.iter().enumerate() {
+            self.validate_entry(index, entry, &valid_keys)?;
+            self.update_valid_keys(&entry.operation, &mut valid_keys);
+        }
+
+        Ok(())
+    }
+
+    fn validate_entry(
+        &self,
+        index: usize,
+        entry: &HashchainEntry,
+        valid_keys: &HashSet<PublicKey>,
+    ) -> Result<()> {
+        match &entry.operation {
+            Operation::CreateAccount(args) => {
+                if index != 0 {
+                    bail!("CreateAccount operation must be the first entry");
+                }
+                self.verify_signature(
+                    &args.value,
+                    &bincode::serialize(&entry.operation.without_signature())?,
+                    &args.signature,
+                )?;
+            }
+            Operation::AddKey(args) | Operation::RevokeKey(args) => {
+                let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
+                if !valid_keys.contains(&signing_key) {
+                    bail!("Operation signed with revoked or non-existent key");
+                }
+                self.verify_signature(
+                    &signing_key,
+                    &bincode::serialize(&entry.operation.without_signature())?,
+                    &args.signature.signature,
+                )?;
+            }
+        }
+        Ok(())
+    }
+
+    fn update_valid_keys(&self, operation: &Operation, valid_keys: &mut HashSet<PublicKey>) {
+        match operation {
+            Operation::CreateAccount(args) => {
+                valid_keys.insert(args.value.clone());
+            }
+            Operation::AddKey(args) => {
+                valid_keys.insert(args.value.clone());
+            }
+            Operation::RevokeKey(args) => {
+                valid_keys.remove(&args.value);
+            }
+        }
+    }
+
     pub fn get_key_at_index(&self, idx: usize) -> Result<PublicKey> {
         let hc_entry: Option<&HashchainEntry> = self.entries.get(idx);
 
@@ -160,11 +217,11 @@ impl Hashchain {
     }
 
     pub fn perform_operation(&mut self, operation: Operation) -> Result<HashchainEntry> {
-        self.validate_operation(&operation)?;
+        self.validate_new_operation(&operation)?;
         self.push(operation)
     }
 
-    fn validate_operation(&self, operation: &Operation) -> Result<()> {
+    fn validate_new_operation(&self, operation: &Operation) -> Result<()> {
         match operation {
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
                 let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
@@ -176,10 +233,9 @@ impl Hashchain {
                 let message = bincode::serialize(&operation.without_signature())?;
                 self.verify_signature(&signing_key, &message, &args.signature.signature)
             }
-            // TODO
-            Operation::CreateAccount(_) => {
-                println!("oopsie");
-                Ok(())
+            Operation::CreateAccount(args) => {
+                let message = bincode::serialize(&operation.without_signature())?;
+                self.verify_signature(&args.value, &message, &args.signature)
             }
         }
     }
@@ -228,7 +284,6 @@ impl HashchainEntry {
             let mut data = Vec::new();
             data.extend_from_slice(operation.to_string().as_bytes());
             data.extend_from_slice(previous_hash.as_ref());
-            // TODO: replace with sha256 after JMT complete
             hash(&data)
         };
         Self {

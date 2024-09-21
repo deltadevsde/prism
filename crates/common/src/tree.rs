@@ -205,6 +205,8 @@ impl InsertProof {
             value,
         )?;
 
+        self.value.validate()?;
+
         Ok(())
     }
 }
@@ -222,13 +224,15 @@ pub struct UpdateProof {
 
 impl UpdateProof {
     pub fn verify(&self) -> Result<()> {
-        let new_value = bincode::serialize(&self.new_value).unwrap();
+        let new_value = bincode::serialize(&self.new_value)?;
 
         self.proof.clone().verify_update(
             self.old_root,
             self.new_root,
             vec![(self.key, Some(new_value))],
-        )
+        )?;
+
+        self.new_value.validate()
     }
 }
 
@@ -354,8 +358,7 @@ where
                     value.clone(),
                     signature.clone(),
                     service_id.clone(),
-                    // TODO: Challenge is a placeholder rn
-                    ServiceChallengeInput::Signed(Vec::new()),
+                    challenge.clone(),
                 )?;
 
                 Ok(Proof::Insert(
