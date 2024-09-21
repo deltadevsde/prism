@@ -128,7 +128,7 @@ impl Hashchain {
         signature: Vec<u8>,
         service_id: String,
         challenge: ServiceChallengeInput,
-    ) -> Result<Digest> {
+    ) -> Result<HashchainEntry> {
         let operation = Operation::CreateAccount(CreateAccountArgs {
             id: self.id.clone(),
             signature,
@@ -143,7 +143,7 @@ impl Hashchain {
         &self.entries[idx]
     }
 
-    pub fn push(&mut self, operation: Operation) -> Result<Digest> {
+    fn push(&mut self, operation: Operation) -> Result<HashchainEntry> {
         if operation.id() != self.id {
             bail!("Operation ID does not match Hashchain ID");
         }
@@ -156,18 +156,10 @@ impl Hashchain {
         let entry = HashchainEntry::new(operation, previous_hash);
         self.entries.push(entry.clone());
 
-        Ok(entry.hash)
+        Ok(entry)
     }
 
-    pub fn add(&mut self, operation: Operation) -> Result<Digest> {
-        self.perform_operation(operation)
-    }
-
-    pub fn revoke(&mut self, operation: Operation) -> Result<Digest> {
-        self.perform_operation(operation)
-    }
-
-    fn perform_operation(&mut self, operation: Operation) -> Result<Digest> {
+    pub fn perform_operation(&mut self, operation: Operation) -> Result<HashchainEntry> {
         self.validate_operation(&operation)?;
         self.push(operation)
     }
@@ -185,7 +177,10 @@ impl Hashchain {
                 self.verify_signature(&signing_key, &message, &args.signature.signature)
             }
             // TODO
-            Operation::CreateAccount(_) => unimplemented!(),
+            Operation::CreateAccount(_) => {
+                println!("oopsie");
+                Ok(())
+            }
         }
     }
 

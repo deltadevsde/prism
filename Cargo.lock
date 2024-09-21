@@ -5082,6 +5082,7 @@ dependencies = [
  "ed25519-dalek",
  "hex",
  "jmt",
+ "log",
  "prism-errors",
  "rand",
  "serde",

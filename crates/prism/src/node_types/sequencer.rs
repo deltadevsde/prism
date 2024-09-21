@@ -1,11 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use ed25519_dalek::SigningKey;
-use jmt::KeyHash;
 
+use jmt::KeyHash;
 use prism_common::{
-    operation::{KeyOperationArgs, ServiceChallengeInput},
-    tree::{hash, Batch, Digest, Hasher, KeyDirectoryTree, Proof, SnarkableTree},
+    hashchain::Hashchain,
+    tree::{
+        hash, Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree,
+    },
 };
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::sync::{broadcast, Mutex};
@@ -19,11 +21,7 @@ use crate::{
     storage::Database,
     webserver::WebServer,
 };
-use prism_common::{
-    hashchain::{Hashchain, HashchainEntry},
-    operation::Operation,
-};
-use prism_errors::DatabaseError;
+use prism_common::operation::Operation;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -78,7 +76,6 @@ impl Sequencer {
         let ws = cfg.webserver.context("Missing webserver configuration")?;
         let start_height = cfg.celestia_config.unwrap_or_default().start_height;
 
-        // Create the KeyDirectory
         let tree = Arc::new(Mutex::new(KeyDirectoryTree::new(db.clone())));
         let prover_client = ProverClient::new();
 
@@ -214,8 +211,7 @@ impl Sequencer {
         buffered_operations: &mut VecDeque<Vec<Operation>>,
         saved_epoch: u64,
     ) -> Result<()> {
-        let mut tree = self.tree.lock().await;
-        let prev_commitment = tree.get_commitment()?;
+        let prev_commitment = self.get_commitment().await?;
 
         debug!(
             "processing height {}, saved_epoch: {}, current_epoch: {}",
@@ -229,14 +225,12 @@ impl Sequencer {
         if !buffered_operations.is_empty() && height > saved_epoch {
             let all_ops: Vec<Operation> = buffered_operations.drain(..).flatten().collect();
             *current_epoch = height;
-            self.finalize_new_epoch(*current_epoch, all_ops, &mut tree)
-                .await?;
+            self.finalize_new_epoch(*current_epoch, all_ops).await?;
         } else if let Some(epoch) = epoch_result {
             self.process_existing_epoch(
                 epoch,
                 current_epoch,
                 buffered_operations,
-                &mut tree,
                 prev_commitment,
                 height,
             )
@@ -253,7 +247,6 @@ impl Sequencer {
         epoch: FinalizedEpoch,
         current_epoch: &mut u64,
         buffered_operations: &mut VecDeque<Vec<Operation>>,
-        tree: &mut KeyDirectoryTree<Box<dyn Database>>,
         prev_commitment: Digest,
         height: u64,
     ) -> Result<()> {
@@ -269,10 +262,10 @@ impl Sequencer {
         }
 
         while let Some(buffered_ops) = buffered_operations.pop_front() {
-            self.execute_block(buffered_ops, tree).await?;
+            self.execute_block(buffered_ops).await?;
         }
 
-        let new_commitment = tree.get_commitment()?;
+        let new_commitment = self.get_commitment().await?;
         if epoch.current_commitment != new_commitment {
             return Err(anyhow!("Commitment mismatch at epoch {}", current_epoch));
         }
@@ -285,17 +278,13 @@ impl Sequencer {
         Ok(())
     }
 
-    async fn execute_block(
-        &self,
-        operations: Vec<Operation>,
-        tree: &mut KeyDirectoryTree<Box<dyn Database>>,
-    ) -> Result<Vec<Proof>> {
+    async fn execute_block(&self, operations: Vec<Operation>) -> Result<Vec<Proof>> {
         debug!("executing block with {} operations", operations.len());
 
         let mut proofs = Vec::new();
 
         for operation in operations {
-            match self.process_operation(&operation, tree).await {
+            match self.process_operation(&operation).await {
                 Ok(proof) => proofs.push(proof),
                 Err(e) => {
                     // Log the error and continue with the next operation
@@ -307,17 +296,12 @@ impl Sequencer {
         Ok(proofs)
     }
 
-    async fn finalize_new_epoch(
-        &self,
-        height: u64,
-        operations: Vec<Operation>,
-        tree: &mut KeyDirectoryTree<Box<dyn Database>>,
-    ) -> Result<()> {
-        let prev_commitment = tree.get_commitment()?;
+    async fn finalize_new_epoch(&self, height: u64, operations: Vec<Operation>) -> Result<()> {
+        let prev_commitment = self.get_commitment().await?;
 
-        let proofs = self.execute_block(operations, tree).await?;
+        let proofs = self.execute_block(operations).await?;
 
-        let new_commitment = tree.get_commitment()?;
+        let new_commitment = self.get_commitment().await?;
 
         let finalized_epoch = self
             .prove_epoch(height, prev_commitment, new_commitment, proofs)
@@ -379,77 +363,21 @@ impl Sequencer {
         tree.get_commitment().context("Failed to get commitment")
     }
 
-    /// Updates the state from an already verified pending operation.
-    async fn process_operation(
+    pub async fn get_hashchain(
         &self,
-        operation: &Operation,
-        tree: &mut KeyDirectoryTree<Box<dyn Database>>,
-    ) -> Result<Proof> {
-        match operation {
-            Operation::AddKey(KeyOperationArgs { id, .. })
-            | Operation::RevokeKey(KeyOperationArgs { id, .. }) => {
-                // verify that the hashchain already exists
-                let mut current_chain = self
-                    .db
-                    .get_hashchain(id)
-                    .context(format!("Failed to get hashchain for ID {}", id))?;
+        id: &String,
+    ) -> Result<Result<Hashchain, NonMembershipProof>> {
+        let tree = self.tree.lock().await;
+        let hashed_id = hash(id.as_bytes());
+        let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
-                let hashed_id = hash(id.as_bytes());
+        tree.get(key_hash)
+    }
 
-                let previous_hash = current_chain.last().context("Hashchain is empty")?.hash;
-
-                let new_chain_entry = HashchainEntry::new(operation.clone(), previous_hash);
-                current_chain.push(new_chain_entry.operation.clone())?;
-
-                debug!("updating hashchain for user id {}", id.clone());
-                let proof =
-                    tree.update(KeyHash::with::<Hasher>(hashed_id), current_chain.clone())?;
-                self.db
-                    .set_hashchain(operation, &current_chain)
-                    .context(format!(
-                        "Failed to update hashchain for operation {:?}",
-                        operation
-                    ))?;
-
-                Ok(Proof::Update(proof))
-            }
-            Operation::CreateAccount(args) => {
-                let id = args.id.clone();
-                match &args.challenge {
-                    ServiceChallengeInput::Signed(_) => debug!("Signature verification for service challenge gate not yet implemented. Skipping verification.")
-                };
-
-                let hashchain: Result<Hashchain> = self.db.get_hashchain(id.as_str());
-                if hashchain.is_ok() {
-                    return Err(DatabaseError::NotFoundError(format!(
-                        "empty slot for ID {}",
-                        id.clone()
-                    ))
-                    .into());
-                }
-
-                debug!("creating new hashchain for user id {}", args.id);
-                let mut chain = Hashchain::new(id);
-                chain.create_account(
-                    args.value.clone(),
-                    args.signature.clone(),
-                    args.service_id.clone(),
-                    // TODO: Challenge is a placeholder rn
-                    ServiceChallengeInput::Signed(Vec::new()),
-                )?;
-
-                self.db.set_hashchain(operation, &chain).context(format!(
-                    "Failed to create hashchain for operation {:?}",
-                    operation
-                ))?;
-
-                let hashed_id = hash(args.id.as_bytes());
-
-                Ok(Proof::Insert(
-                    tree.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,
-                ))
-            }
-        }
+    /// Updates the state from an already verified pending operation.
+    async fn process_operation(&self, operation: &Operation) -> Result<Proof> {
+        let mut tree = self.tree.lock().await;
+        tree.process_operation(operation)
     }
 
     /// Adds an operation to be posted to the DA layer and applied in the next epoch.
@@ -476,7 +404,9 @@ mod tests {
     use ed25519_dalek::Signer;
     use keystore_rs::create_signing_key;
     use prism_common::{
-        operation::{CreateAccountArgs, PublicKey, ServiceChallengeInput, SignatureBundle},
+        operation::{
+            CreateAccountArgs, KeyOperationArgs, PublicKey, ServiceChallengeInput, SignatureBundle,
+        },
         test_utils::create_mock_signing_key,
     };
     use serial_test::serial;
@@ -601,14 +531,13 @@ mod tests {
     #[serial]
     async fn test_process_operation() {
         let sequencer = create_test_sequencer().await;
-        let mut tree = sequencer.tree.lock().await;
 
         let signing_key = create_mock_signing_key();
         let original_pubkey = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
         let create_account_op = create_random_user("test@example.com", signing_key.clone());
 
         let proof = sequencer
-            .process_operation(&create_account_op, &mut tree)
+            .process_operation(&create_account_op)
             .await
             .unwrap();
         assert!(matches!(proof, Proof::Insert(_)));
@@ -617,19 +546,13 @@ mod tests {
         let pubkey = PublicKey::Ed25519(new_key.verifying_key().to_bytes().to_vec());
         let add_key_op = add_key("test@example.com", 0, pubkey, signing_key);
 
-        let proof = sequencer
-            .process_operation(&add_key_op, &mut tree)
-            .await
-            .unwrap();
+        let proof = sequencer.process_operation(&add_key_op).await.unwrap();
 
         assert!(matches!(proof, Proof::Update(_)));
 
         // Revoke original key
         let revoke_op = revoke_key("test@example.com", 1, original_pubkey, new_key);
-        let proof = sequencer
-            .process_operation(&revoke_op, &mut tree)
-            .await
-            .unwrap();
+        let proof = sequencer.process_operation(&revoke_op).await.unwrap();
         assert!(matches!(proof, Proof::Update(_)));
 
         teardown_db(sequencer.db.clone());
@@ -639,7 +562,6 @@ mod tests {
     #[serial]
     async fn test_execute_block() {
         let sequencer = create_test_sequencer().await;
-        let mut tree = sequencer.tree.lock().await;
 
         let signing_key_1 = create_mock_signing_key();
         let signing_key_2 = create_mock_signing_key();
@@ -655,10 +577,7 @@ mod tests {
             add_key("user1@example.com", 0, new_key, signing_key_1),
         ];
 
-        let proofs = sequencer
-            .execute_block(operations, &mut tree)
-            .await
-            .unwrap();
+        let proofs = sequencer.execute_block(operations).await.unwrap();
         assert_eq!(proofs.len(), 3);
 
         teardown_db(sequencer.db.clone());
@@ -668,7 +587,7 @@ mod tests {
     #[serial]
     async fn test_finalize_new_epoch() {
         let sequencer = create_test_sequencer().await;
-        let mut tree = sequencer.tree.lock().await;
+        let tree = sequencer.tree.lock().await;
 
         let signing_key_1 = create_mock_signing_key();
         let signing_key_2 = create_mock_signing_key();
@@ -685,10 +604,7 @@ mod tests {
         ];
 
         let prev_commitment = tree.get_commitment().unwrap();
-        sequencer
-            .finalize_new_epoch(0, operations, &mut tree)
-            .await
-            .unwrap();
+        sequencer.finalize_new_epoch(0, operations).await.unwrap();
 
         let new_commitment = tree.get_commitment().unwrap();
         assert_ne!(prev_commitment, new_commitment);

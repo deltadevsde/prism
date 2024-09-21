@@ -15,12 +15,8 @@ use std::{
 };
 
 use crate::cfg::RedisConfig;
-use prism_common::{
-    hashchain::{Hashchain, HashchainEntry},
-    operation::Operation,
-    tree::Digest,
-};
-use prism_errors::{DatabaseError, GeneralError, PrismError};
+use prism_common::tree::Digest;
+use prism_errors::{DatabaseError, PrismError};
 
 // there are different key prefixes for the different tables in the database
 // app_state:key => app state (just epoch counter for now)
@@ -31,10 +27,6 @@ pub struct RedisConnection {
 
 #[auto_impl(&, Box, Arc)]
 pub trait Database: Send + Sync + TreeReader + TreeWriter {
-    fn get_hashchain(&self, key: &str) -> Result<Hashchain>;
-    fn set_hashchain(&self, incoming_operation: &Operation, value: &[HashchainEntry])
-        -> Result<()>;
-
     fn get_commitment(&self, epoch: &u64) -> Result<String>;
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()>;
 
@@ -163,21 +155,6 @@ impl TreeWriter for RedisConnection {
 }
 
 impl Database for RedisConnection {
-    fn get_hashchain(&self, key: &str) -> Result<Hashchain> {
-        let mut con = self.lock_connection()?;
-        let value: String = con
-            .get(format!("main:{}", key))
-            .map_err(|_| DatabaseError::NotFoundError(format!("hashchain key {}", key)))?;
-
-        let res: Vec<HashchainEntry> = serde_json::from_str(&value)
-            .map_err(|e| anyhow!(GeneralError::ParsingError(format!("hashchain: {}", e))))?;
-
-        Ok(Hashchain {
-            id: key.to_string(),
-            entries: res,
-        })
-    }
-
     fn get_commitment(&self, epoch: &u64) -> Result<String> {
         let mut con = self.lock_connection()?;
         let value = con
@@ -198,27 +175,6 @@ impl Database for RedisConnection {
         let mut con = self.lock_connection()?;
         con.set::<&str, &u64, ()>("app_state:epoch", epoch)
             .map_err(|_| anyhow!(DatabaseError::WriteError(format!("epoch: {}", epoch))))
-    }
-
-    fn set_hashchain(
-        &self,
-        incoming_operation: &Operation,
-        value: &[HashchainEntry],
-    ) -> Result<()> {
-        let mut con = self.lock_connection()?;
-        let value = serde_json::to_string(&value).map_err(|_| {
-            PrismError::General(GeneralError::ParsingError(
-                "hashchain to string".to_string(),
-            ))
-        })?;
-        let id = incoming_operation.id();
-        con.set::<&str, String, ()>(&format!("main:{}", id), value)
-            .map_err(|_| {
-                anyhow!(DatabaseError::WriteError(format!(
-                    "hashchain update for key: {}",
-                    id
-                )))
-            })
     }
 
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()> {
@@ -243,158 +199,3 @@ impl Database for RedisConnection {
             .map_err(|_| anyhow!(DatabaseError::DeleteError("all entries".to_string())))
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::storage::Database;
-//     use prism_common::{
-//         operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle},
-//         test_utils::{
-//             create_add_key_operation_with_test_value, create_mock_chain_entry,
-//             create_mock_signature, create_mock_signing_key,
-//         },
-//         tree::hash,
-//     };
-//     use serde::{Deserialize, Serialize};
-//     use serial_test::serial;
-
-//     // Helper functions
-
-//     // set up redis connection and flush database before each test
-//     fn setup() -> RedisConnection {
-//         let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
-//         redis_connection.flush_database().unwrap();
-//         redis_connection
-//     }
-
-//     // flush database after each test
-//     fn teardown(redis_connections: &RedisConnection) {
-//         redis_connections.flush_database().unwrap();
-//     }
-
-//     #[test]
-//     #[serial]
-//     fn test_get_hashchain() {
-//         let redis_connections = setup();
-//         let signing_key = create_mock_signing_key();
-
-//         let incoming_operation =
-//             create_add_key_operation_with_test_value("main:test_key", &signing_key);
-//         let chain_entry = create_mock_chain_entry(&signing_key);
-//         redis_connections
-//             .set_hashchain(&incoming_operation, &[chain_entry.clone()])
-//             .unwrap();
-
-//         let hashchain = redis_connections
-//             .get_hashchain(&incoming_operation.id())
-//             .unwrap();
-
-//         let first = hashchain.get(0);
-
-//         assert_eq!(first.hash, chain_entry.hash);
-//         assert_eq!(first.previous_hash, chain_entry.previous_hash);
-//         assert_eq!(first.operation, chain_entry.operation);
-
-//         teardown(&redis_connections);
-//     }
-
-//     #[test]
-//     #[serial]
-//     fn test_try_getting_hashchain_for_missing_key() {
-//         let redis_connections = setup();
-//         let signing_key = create_mock_signing_key();
-
-//         let incoming_operation =
-//             create_add_key_operation_with_test_value("main:test_key", &signing_key);
-//         let chain_entry = create_mock_chain_entry(&signing_key);
-
-//         redis_connections
-//             .set_hashchain(&incoming_operation, &[chain_entry.clone()])
-//             .unwrap();
-
-//         let hashchain = redis_connections.get_hashchain("main:missing_test_key");
-//         println!("{:?}", hashchain);
-//         assert!(hashchain.is_err());
-
-//         teardown(&redis_connections);
-//     }
-
-//     #[test]
-//     #[serial]
-//     fn test_try_getting_wrong_formatted_hashchain_value() {
-//         let redis_connection = setup();
-
-//         let mut con = redis_connection.lock_connection().unwrap();
-
-//         #[derive(Serialize, Deserialize, Clone)]
-//         struct InvalidChainEntry {
-//             pub hash_val: String, // instead of just "hash"
-//             pub previous_hash: String,
-//             pub operation: Operation,
-//         }
-
-//         let wrong_chain_entry = InvalidChainEntry {
-//             hash_val: "wrong".to_string(),
-//             previous_hash: "formatted".to_string(),
-//             operation: Operation::AddKey(KeyOperationArgs {
-//                 id: "test".to_string(),
-//                 value: PublicKey::Ed25519(vec![]),
-//                 signature: SignatureBundle {
-//                     key_idx: 0,
-//                     signature: vec![],
-//                 },
-//             }),
-//         };
-
-//         let value = serde_json::to_string(&vec![wrong_chain_entry.clone()]).unwrap();
-
-//         con.set::<&String, String, String>(
-//             &"main:key_to_wrong_formatted_chain_entry".to_string(),
-//             value,
-//         )
-//         .unwrap();
-
-//         drop(con); // drop the lock on the connection bc get_hashchain also needs a lock on the connection
-
-//         let hashchain = redis_connection.get_hashchain("main:key_to_wrong_formatted_chain_entry");
-
-//         assert!(hashchain.is_err());
-
-//         teardown(&redis_connection);
-//     }
-
-//     #[test]
-//     #[serial]
-//     /*
-//         TODO: In the test writing, it is noticeable that things may either not have been named correctly here, or need to be reconsidered. The update_hashchain function receives an IncomingEntry and a Vec<ChainEntry> as parameters.
-//         The Vec<ChainEntry> is the current state of the hashchain, the IncomingEntry is the new entry to be added. is to be added. Now, in hindsight, I would have expected that within the function the new hashchain would be created,
-//         or else just a value to a key-value pair is created. But neither is the case, instead there are two more update() functions outside of RedisConnections, which then creates the new hashchain is created. This needs to be discussed again with @distractedm1nd :)
-//         What should happen at the database level? Should the new hashchain be created? Or should only a new value be added to a key-value pair?
-//     */
-//     fn test_update_hashchain() {
-//         let redis_connections = setup();
-//         let signing_key = create_mock_signing_key();
-
-//         let incoming_operation = Operation::AddKey(KeyOperationArgs {
-//             id: "test_id".to_string(),
-//             value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
-//             signature: create_mock_signature(&signing_key, b"test_id"),
-//         });
-
-//         let chain_entries: Vec<HashchainEntry> = vec![create_mock_chain_entry(&signing_key)];
-
-//         match redis_connections.set_hashchain(&incoming_operation, &chain_entries) {
-//             Ok(_) => (),
-//             Err(e) => panic!("Failed to update hashchain: {}", e),
-//         }
-
-//         let hashchain = redis_connections
-//             .get_hashchain(&incoming_operation.id())
-//             .unwrap();
-//         assert_eq!(hashchain.get(0).hash, hash(b"test_hash"));
-//         assert_eq!(hashchain.len(), 1);
-
-//         teardown(&redis_connections);
-//     }
-// }

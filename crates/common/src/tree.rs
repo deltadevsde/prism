@@ -6,10 +6,14 @@ use jmt::{
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
     JellyfishMerkleTree, KeyHash, RootHash, SimpleHasher,
 };
+use prism_errors::DatabaseError;
 use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::hashchain::Hashchain;
+use crate::{
+    hashchain::Hashchain,
+    operation::{CreateAccountArgs, KeyOperationArgs, Operation, ServiceChallengeInput},
+};
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
@@ -229,6 +233,7 @@ impl UpdateProof {
 }
 
 pub trait SnarkableTree {
+    fn process_operation(&mut self, operation: &Operation) -> Result<Proof>;
     fn insert(&mut self, key: KeyHash, value: Hashchain) -> Result<InsertProof>;
     fn update(&mut self, key: KeyHash, value: Hashchain) -> Result<UpdateProof>;
     fn get(&self, key: KeyHash) -> Result<Result<Hashchain, NonMembershipProof>>;
@@ -303,6 +308,63 @@ impl<S> SnarkableTree for KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter,
 {
+    fn process_operation(&mut self, operation: &Operation) -> Result<Proof> {
+        match operation {
+            Operation::AddKey(KeyOperationArgs { id, .. })
+            | Operation::RevokeKey(KeyOperationArgs { id, .. }) => {
+                let hashed_id = hash(id.as_bytes());
+                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+
+                let mut current_chain = self
+                    .get(key_hash)?
+                    .map_err(|_| anyhow!("Failed to get hashchain for ID {}", id))?;
+
+                current_chain.perform_operation(operation.clone())?;
+
+                debug!("updating hashchain for user id {}", id.clone());
+                let proof = self.update(key_hash, current_chain.clone())?;
+
+                Ok(Proof::Update(proof))
+            }
+            Operation::CreateAccount(CreateAccountArgs {
+                id,
+                value,
+                signature,
+                service_id,
+                challenge,
+            }) => {
+                let hashed_id = hash(id.as_bytes());
+                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+
+                match &challenge {
+                    ServiceChallengeInput::Signed(_) => debug!("Signature verification for service challenge gate not yet implemented. Skipping verification.")
+                };
+
+                // hashchain should not already exist
+                if self.get(key_hash)?.is_ok() {
+                    bail!(DatabaseError::NotFoundError(format!(
+                        "empty slot for ID {}",
+                        id
+                    )));
+                }
+
+                debug!("creating new hashchain for user id {}", id);
+                let mut chain = Hashchain::new(id.clone());
+                chain.create_account(
+                    value.clone(),
+                    signature.clone(),
+                    service_id.clone(),
+                    // TODO: Challenge is a placeholder rn
+                    ServiceChallengeInput::Signed(Vec::new()),
+                )?;
+
+                Ok(Proof::Insert(
+                    self.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,
+                ))
+            }
+        }
+    }
+
     fn insert(&mut self, key: KeyHash, value: Hashchain) -> Result<InsertProof> {
         let serialized_value = Self::serialize_value(&value)?;
 

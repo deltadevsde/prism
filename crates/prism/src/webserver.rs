@@ -142,8 +142,13 @@ async fn get_hashchain(
     State(session): State<Arc<Sequencer>>,
     Json(request): Json<UserKeyRequest>,
 ) -> impl IntoResponse {
-    match session.db.get_hashchain(&request.id) {
-        Ok(hashchain) => (StatusCode::OK, Json(UserKeyResponse { hashchain })).into_response(),
+    match session.get_hashchain(&request.id).await {
+        Ok(hashchain_or_proof) => match hashchain_or_proof {
+            Ok(hashchain) => (StatusCode::OK, Json(UserKeyResponse { hashchain })).into_response(),
+            Err(non_inclusion_proof) => {
+                (StatusCode::BAD_REQUEST, Json(non_inclusion_proof)).into_response()
+            }
+        },
         Err(err) => (
             StatusCode::BAD_REQUEST,
             format!("Couldn't get hashchain: {}", err),

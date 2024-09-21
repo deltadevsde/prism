@@ -23,7 +23,7 @@ pub fn main() {
                 // todo: @sebastian fix error handling
                 if let Some(new_entry) = p.new_value.last() {
                     let message =
-                        dbg!(bincode::serialize(&new_entry.operation.without_signature()).unwrap());
+                        bincode::serialize(&new_entry.operation.without_signature()).unwrap();
                     let signature_bundle = new_entry.operation.get_signature_bundle().unwrap();
 
                     let public_key = p
@@ -33,7 +33,6 @@ pub fn main() {
                         )
                         .unwrap();
 
-                    // let public_key = dbg!(new_entry.operation.get_public_key().unwrap());
                     p.new_value
                         .verify_signature(&public_key, &message, &signature_bundle.signature)
                         .unwrap();

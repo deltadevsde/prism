@@ -1,6 +1,9 @@
 use crate::{
     hashchain::{Hashchain, HashchainEntry},
-    operation::{KeyOperationArgs, Operation, PublicKey, SignatureBundle},
+    operation::{
+        CreateAccountArgs, KeyOperationArgs, Operation, PublicKey, ServiceChallengeInput,
+        SignatureBundle,
+    },
     tree::{Digest, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
@@ -96,8 +99,7 @@ impl TestTreeState {
             signature,
         });
 
-        account.hashchain.add(operation).unwrap();
-
+        account.hashchain.perform_operation(operation).unwrap();
         Ok(())
     }
 }
@@ -173,7 +175,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         },
     });
 
-    hc.add(final_operation)
+    hc.perform_operation(final_operation)
         .expect("Adding to hashchain should succeed");
     println!("updated key: {key:?}");
 
@@ -197,13 +199,15 @@ pub fn create_mock_hashchain(id: &str, signing_key: &SigningKey) -> Hashchain {
     let public_key = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
     let signature = create_mock_signature(signing_key, id.as_bytes());
 
-    let op = Operation::AddKey(KeyOperationArgs {
+    let op = Operation::CreateAccount(CreateAccountArgs {
         id: id.to_string(),
         value: public_key.clone(),
-        signature,
+        signature: signature.signature,
+        service_id: "test".to_string(),
+        challenge: ServiceChallengeInput::Signed(Vec::new()),
     });
 
-    hc.push(op).unwrap();
+    hc.perform_operation(op).unwrap();
     hc
 }
 
