@@ -22,6 +22,7 @@ members = [
     "crates/errors",
     "crates/sp1",
     "crates/storage",
+    "crates/config",
 ]
 default-members = [
     "crates/prism",
@@ -30,6 +31,7 @@ default-members = [
     "crates/groth16",
     "crates/errors",
     "crates/storage",
+    "crates/config",
 ]
 resolver = "2"
 
@@ -80,12 +82,14 @@ bincode = "1.3.3"
 sp1-zkvm = { version = "1.2.0" }
 sp1-sdk = { version = "1.2.0" }
 prism-common = { path = "crates/common" }
+prism-config = { path = "crates/config" }
 prism-storage = { path = "crates/storage" }
 prism-nova = { path = "crates/nova" }
 prism-errors = { path = "crates/errors" }
 prism-main = { path = "crates/prism" }
 prism-groth16 = { path = "crates/groth16" }
-rocksdb = "0.21.0"
+rocksdb = {version = "0.21.0", features = ["multi-threaded-cf"]}
+
 
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.8" }

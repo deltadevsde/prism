@@ -100,6 +100,19 @@ impl Default for WebServerConfig {
 
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RedisConfig {
+    pub connection_string: String,
+}
+
+impl Default for RedisConfig {
+    fn default() -> Self {
+        RedisConfig {
+            connection_string: "redis://127.0.0.1/".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CelestiaConfig {
     pub connection_string: String,
     pub start_height: u64,

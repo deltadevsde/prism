@@ -19,23 +19,11 @@ use prism_common::{
     tree::Digest,
 };
 use prism_errors::{DatabaseError, GeneralError, PrismError};
-use serde::{Deserialize, Serialize};
+use prism_config::RedisConfig;
 
 use crate::database::{convert_to_connection_error, Database};
 use log::debug;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RedisConfig {
-    pub connection_string: String,
-}
-
-impl Default for RedisConfig {
-    fn default() -> Self {
-        RedisConfig {
-            connection_string: "redis://127.0.0.1/".to_string(),
-        }
-    }
-}
 
 // there are different key prefixes for the different tables in the database
 // app_state:key => app state (just epoch counter for now)
