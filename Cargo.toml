@@ -23,6 +23,7 @@ members = [
     "crates/sp1",
     "crates/storage",
     "crates/config",
+    "crates/da",
 ]
 default-members = [
     "crates/prism",
@@ -85,6 +86,7 @@ prism-common = { path = "crates/common" }
 prism-config = { path = "crates/config" }
 prism-storage = { path = "crates/storage" }
 prism-nova = { path = "crates/nova" }
+prism-da = { path = "crates/da" }
 prism-errors = { path = "crates/errors" }
 prism-main = { path = "crates/prism" }
 prism-groth16 = { path = "crates/groth16" }

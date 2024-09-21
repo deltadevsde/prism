@@ -1,8 +1,8 @@
 use crate::{
-    cfg::CelestiaConfig,
     consts::CHANNEL_BUFFER_SIZE,
     da::{DataAvailabilityLayer, FinalizedEpoch},
 };
+use prism_config::CelestiaConfig;
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
@@ -17,6 +17,7 @@ use tokio::{
     },
     task::spawn,
 };
+use log::{debug, warn, error};
 
 use bincode;
 

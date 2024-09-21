@@ -1,15 +1,10 @@
-mod cfg;
-pub mod consts;
-pub mod da;
 mod node_types;
 mod utils;
 mod webserver;
 
-use cfg::{initialize_da_layer, load_config};
+use prism_config::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-
-use crate::cfg::{CommandLineArgs, Commands};
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
 use std::sync::Arc;
 use prism_storage::RedisConnection;

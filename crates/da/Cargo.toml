@@ -1,5 +1,5 @@
 [package]
-name = "prism-config"
+name = "prism-da"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -49,6 +49,6 @@ sha2 = { workspace = true }
 auto_impl = { workspace = true }
 prism-common = { workspace = true }
 prism-errors = { workspace = true }
-prism-da = { workspace = true }
 prism-groth16 = { workspace = true }
+prism-config = { workspace = true }
 sp1-sdk = { workspace = true }

@@ -1,7 +1,3 @@
-use crate::{
-    consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    da::memory::InMemoryDataAvailabilityLayer,
-};
 use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
@@ -10,9 +6,13 @@ use dirs::home_dir;
 use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
+use log::{error, warn};
 
-use crate::da::{celestia::CelestiaConnection, DataAvailabilityLayer};
-use prism_storage::RedisConfig;
+
+use prism_da::{celestia::CelestiaConnection, DataAvailabilityLayer,
+    consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
+    da::memory::InMemoryDataAvailabilityLayer,
+};
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {

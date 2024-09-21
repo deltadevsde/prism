@@ -1,48 +1,45 @@
 use crate::Database;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
 };
-use rocksdb::{Options, DB};
+use prism_common::hashchain::{HashchainEntry, Hashchain};
+use prism_errors::{DatabaseError, GeneralError};
+use rocksdb::{DBWithThreadMode, Error, MultiThreaded, DB};
 
-struct RocksDBConnection {
-    pub connection: String,
+type RocksDB = DBWithThreadMode<MultiThreaded>;
+
+pub struct RocksDBConnection {
+    connection: RocksDB,
 }
 
 impl RocksDBConnection {
-    fn new() -> Result<RocksDBConnection> {
-        Ok(Self { connection: () })
-    }
-}
+    pub fn new() -> Result<RocksDBConnection, Error> {
+        let path = "";
+        let db = DB::open_default(path)?;
 
-impl TreeWriter for RocksDBConnection {
-    fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()> {
-        todo!()
-    }
-}
-
-impl TreeReader for RocksDBConnection {
-    fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        todo!()
-    }
-
-    fn get_value_option(
-        &self,
-        max_version: Version,
-        key_hash: KeyHash,
-    ) -> Result<Option<OwnedValue>> {
-        todo!()
-    }
-
-    fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
-        todo!()
+        Ok(Self { connection: db })
     }
 }
 
 impl Database for RocksDBConnection {
     fn get_hashchain(&self, key: &str) -> anyhow::Result<prism_common::hashchain::Hashchain> {
-        todo!()
+        let value = match self.connection.get(key.as_bytes().to_vec()) {
+            Ok(Some(value)) => Ok(String::from_utf8(value)?),
+            Ok(None) => Err(DatabaseError::NotFoundError(format!("hashchain key: {}", key))),
+            Err(e) => Err(DatabaseError::ReadError(e.to_string()))
+        };
+
+        let res: Vec<HashchainEntry> = serde_json::from_str(&value?)
+            .map_err(|e| {
+                anyhow!(GeneralError::ParsingError(format!("hashchain: {}", e)))
+            })?;
+
+        Ok(Hashchain {
+            id: key.to_string(),
+            entries: res
+        })
     }
 
     fn set_hashchain(
@@ -72,8 +69,28 @@ impl Database for RocksDBConnection {
     fn set_epoch(&self, epoch: &u64) -> anyhow::Result<()> {
         todo!()
     }
+}
 
-    fn flush_database(&self) -> anyhow::Result<()> {
+impl TreeWriter for RocksDBConnection {
+    fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()> {
+        todo!()
+    }
+}
+
+impl TreeReader for RocksDBConnection {
+    fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
+        todo!()
+    }
+
+    fn get_value_option(
+        &self,
+        max_version: Version,
+        key_hash: KeyHash,
+    ) -> Result<Option<OwnedValue>> {
+        todo!()
+    }
+
+    fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
         todo!()
     }
 }

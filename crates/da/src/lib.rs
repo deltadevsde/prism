@@ -11,6 +11,7 @@ use std::{self, str::FromStr};
 
 pub mod celestia;
 pub mod memory;
+pub mod consts;
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
