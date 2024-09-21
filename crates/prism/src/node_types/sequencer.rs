@@ -445,13 +445,11 @@ mod tests {
 
         Operation::AddKey(KeyOperationArgs {
             id: id.to_string(),
-            value: dbg!(new_key),
+            value: new_key,
             signature: SignatureBundle {
                 key_idx,
                 signature: signing_key
-                    .sign(&dbg!(
-                        bincode::serialize(&operation_without_signature).unwrap()
-                    ))
+                    .sign(&bincode::serialize(&operation_without_signature).unwrap())
                     .to_vec(),
             },
         })

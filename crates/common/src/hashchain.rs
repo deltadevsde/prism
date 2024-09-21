@@ -108,7 +108,7 @@ impl Hashchain {
             .find_map(|entry| match entry.operation.clone() {
                 Operation::RevokeKey(args) if args.value == key => Some(true),
                 Operation::AddKey(args) if args.value == key => Some(false),
-                Operation::CreateAccount(args) if args.value == key => Some(true),
+                Operation::CreateAccount(args) if args.value == key => Some(false),
                 _ => None,
             })
             .unwrap_or(false)

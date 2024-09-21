@@ -475,8 +475,11 @@ mod tests {
 
         let mut account = tree_state.create_account("key_1".to_string());
         tree_state.insert_account(account.clone()).unwrap();
+
+        // Add a new key
         tree_state.add_key_to_account(&mut account).unwrap();
 
+        // Update the account using the correct key index
         let update_proof = tree_state.update_account(account.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
 
@@ -519,6 +522,7 @@ mod tests {
         tree_state.add_key_to_account(&mut account1).unwrap();
         tree_state.add_key_to_account(&mut account2).unwrap();
 
+        // Update accounts using the correct key indices
         tree_state.update_account(account1.clone()).unwrap();
         tree_state.update_account(account2.clone()).unwrap();
 
@@ -539,12 +543,14 @@ mod tests {
         test_tree.insert_account(account_1.clone()).unwrap();
 
         test_tree.add_key_to_account(&mut account_1).unwrap();
+        // Update account_1 using the correct key index
         test_tree.update_account(account_1.clone()).unwrap();
 
         test_tree.insert_account(account_2.clone()).unwrap();
 
         test_tree.add_key_to_account(&mut account_2).unwrap();
 
+        // Update account_2 using the correct key index
         let last_proof = test_tree.update_account(account_2.clone()).unwrap();
 
         assert_eq!(
