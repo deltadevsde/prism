@@ -197,7 +197,7 @@ impl InsertProof {
             .verify()
             .context("Invalid NonMembershipProof")?;
 
-        let value = bincode::serialize(&self.value).unwrap();
+        let value = bincode::serialize(&self.value)?;
 
         self.membership_proof.clone().verify_existence(
             self.new_root.into(),

@@ -96,18 +96,17 @@ impl Operation {
         }
     }
 
-    pub fn insert_signature(&mut self, signing_key: &SigningKey) {
-        let serialized = bincode::serialize(self).expect("Failed to serialize operation");
+    pub fn insert_signature(&mut self, signing_key: &SigningKey) -> Result<()> {
+        let serialized = bincode::serialize(self).context("Failed to serialize operation")?;
         let signature = signing_key.sign(&serialized);
 
         match self {
-            Operation::CreateAccount(args) => {
-                args.signature = signature.to_bytes().to_vec();
-            }
+            Operation::CreateAccount(args) => args.signature = signature.to_bytes().to_vec(),
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
-                args.signature.signature = signature.to_bytes().to_vec();
+                args.signature.signature = signature.to_bytes().to_vec()
             }
         }
+        Ok(())
     }
 
     pub fn without_signature(&self) -> Self {

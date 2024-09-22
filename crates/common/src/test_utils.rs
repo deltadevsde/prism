@@ -127,7 +127,6 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
         if !state.inserted_keys.contains(&key) {
             let proof = state.tree.insert(key, hc).expect("Insert should succeed");
             state.inserted_keys.insert(key);
-            println!("inserted key: {key:?}");
             return proof;
         }
     }
@@ -164,11 +163,12 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         .ok_or_else(|| anyhow::anyhow!("Signing key not found for hashchain"))
         .unwrap();
 
-    operation.insert_signature(signer);
+    operation
+        .insert_signature(signer)
+        .expect("Inserting signature into operation should succeed");
 
     hc.perform_operation(operation)
         .expect("Adding to hashchain should succeed");
-    println!("updated key: {key:?}");
 
     state.tree.update(key, hc).expect("Update should succeed")
 }
@@ -197,7 +197,8 @@ pub fn create_mock_hashchain(id: &str, signing_key: &SigningKey) -> Hashchain {
         challenge: ServiceChallengeInput::Signed(Vec::new()),
     });
 
-    op.insert_signature(signing_key);
+    op.insert_signature(signing_key)
+        .expect("Inserting signature into operation should succeed");
 
     hc.perform_operation(op).unwrap();
     hc
@@ -223,7 +224,8 @@ pub fn create_add_key_operation_with_test_value(id: &str, signing_key: &SigningK
         },
     });
 
-    op.insert_signature(signing_key);
+    op.insert_signature(signing_key)
+        .expect("Inserting signature into operation should succeed");
 
     op
 }

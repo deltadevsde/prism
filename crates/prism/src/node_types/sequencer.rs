@@ -432,7 +432,8 @@ mod tests {
             challenge: ServiceChallengeInput::Signed(vec![]),
         });
 
-        op.insert_signature(&signing_key);
+        op.insert_signature(&signing_key)
+            .expect("Inserting signature into operation should succeed");
         op
     }
 
@@ -446,7 +447,8 @@ mod tests {
             },
         });
 
-        op.insert_signature(&signing_key);
+        op.insert_signature(&signing_key)
+            .expect("Inserting signature into operation should succeed");
         op
     }
 
@@ -464,7 +466,8 @@ mod tests {
                 signature: Vec::new(),
             },
         });
-        op.insert_signature(&signing_key);
+        op.insert_signature(&signing_key)
+            .expect("Inserting signature into operation should succeed");
         op
     }
 

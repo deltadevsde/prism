@@ -5,7 +5,7 @@ use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use prism_common::{operation::Operation, tree::Digest};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;
-use tokio::sync::broadcast; // Added import for hex
+use tokio::sync::broadcast;
 
 pub mod celestia;
 pub mod memory;
@@ -36,13 +36,17 @@ impl FinalizedEpoch {
             signature: None,
         };
 
-        let message = bincode::serialize(&epoch_without_signature).unwrap();
+        let message = bincode::serialize(&epoch_without_signature)
+            .map_err(|e| anyhow::anyhow!("Failed to serialize epoch: {}", e))?;
 
-        if self.signature.is_none() {
-            return Err(anyhow::anyhow!("No signature present"));
-        }
+        let signature = self
+            .signature
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("No signature present"))?;
 
-        let signature_bytes = hex::decode(self.signature.as_ref().unwrap()).unwrap();
+        let signature_bytes = hex::decode(signature)
+            .map_err(|e| anyhow::anyhow!("Failed to decode signature: {}", e))?;
+
         if signature_bytes.len() != 64 {
             return Err(anyhow::anyhow!("Invalid signature length"));
         }
@@ -52,7 +56,8 @@ impl FinalizedEpoch {
             .try_into()
             .map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
 
-        vk.verify_strict(&message, &signature).unwrap();
+        vk.verify_strict(&message, &signature)
+            .map_err(|e| anyhow::anyhow!("Signature verification failed: {}", e))?;
         Ok(())
     }
 }
