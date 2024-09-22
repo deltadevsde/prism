@@ -1,5 +1,5 @@
 use crate::Database;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
