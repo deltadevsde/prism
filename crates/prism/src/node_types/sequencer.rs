@@ -22,7 +22,7 @@ use prism_common::{
         hash, Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree,
     },
 };
-use prism_errors::{DataAvailabilityError, DatabaseError, GeneralError};
+use prism_errors::DataAvailabilityError;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
