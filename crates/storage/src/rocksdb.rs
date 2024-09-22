@@ -1,11 +1,9 @@
 use crate::Database;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
 };
-use prism_common::hashchain::{HashchainEntry, Hashchain};
-use prism_errors::{DatabaseError, GeneralError};
 use rocksdb::{DBWithThreadMode, Error, MultiThreaded, DB};
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
@@ -24,32 +22,6 @@ impl RocksDBConnection {
 }
 
 impl Database for RocksDBConnection {
-    fn get_hashchain(&self, key: &str) -> anyhow::Result<prism_common::hashchain::Hashchain> {
-        let value = match self.connection.get(key.as_bytes().to_vec()) {
-            Ok(Some(value)) => Ok(String::from_utf8(value)?),
-            Ok(None) => Err(DatabaseError::NotFoundError(format!("hashchain key: {}", key))),
-            Err(e) => Err(DatabaseError::ReadError(e.to_string()))
-        };
-
-        let res: Vec<HashchainEntry> = serde_json::from_str(&value?)
-            .map_err(|e| {
-                anyhow!(GeneralError::ParsingError(format!("hashchain: {}", e)))
-            })?;
-
-        Ok(Hashchain {
-            id: key.to_string(),
-            entries: res
-        })
-    }
-
-    fn set_hashchain(
-        &self,
-        incoming_operation: &prism_common::operation::Operation,
-        value: &[prism_common::hashchain::HashchainEntry],
-    ) -> anyhow::Result<()> {
-        todo!()
-    }
-
     fn get_commitment(&self, epoch: &u64) -> anyhow::Result<String> {
         todo!()
     }

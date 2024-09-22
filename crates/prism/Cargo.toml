@@ -10,6 +10,7 @@ repository.workspace = true
 [features]
 default = []
 plonk = []
+test_utils = []
 
 [dependencies]
 axum = { workspace = true }
@@ -22,7 +23,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 redis = { workspace = true }
 ed25519-dalek = { workspace = true }
-ed25519 = { workspace = true }
 base64 = { workspace = true }
 tokio = { workspace = true }
 bellman = { workspace = true }
@@ -48,7 +48,7 @@ anyhow = { workspace = true }
 jmt = { workspace = true }
 sha2 = { workspace = true }
 auto_impl = { workspace = true }
-prism-common = { workspace = true }
+prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage = { workspace = true }
 prism-errors = { workspace = true }
 prism-da = { workspace = true }
@@ -58,3 +58,8 @@ sp1-sdk = { workspace = true }
 [dev-dependencies]
 serial_test = "3.1.1"
 criterion = "0.5.1"
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
+harness = true

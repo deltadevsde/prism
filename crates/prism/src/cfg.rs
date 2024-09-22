@@ -5,13 +5,12 @@ use dirs::home_dir;
 use dotenvy::dotenv;
 use log::{error, warn};
 use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
-use prism_storage::RedisConfig;
+use prism_storage::redis::RedisConfig;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
 use prism_da::{
-    celestia::CelestiaConfig,
-    celestia::CelestiaConnection,
+    celestia::{CelestiaConfig, CelestiaConnection},
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
     DataAvailabilityLayer,

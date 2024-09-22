@@ -1,23 +1,21 @@
-use crate::{
-    consts::CHANNEL_BUFFER_SIZE,
-    {DataAvailabilityLayer, FinalizedEpoch},
-};
-use anyhow::{anyhow, bail, Context, Result};
+use crate::{DataAvailabilityLayer, FinalizedEpoch};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::{blob::GasPrice, nmt::Namespace, Blob};
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
 use prism_common::operation::Operation;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use serde::{Deserialize, Serialize};
-use std::{self, sync::Arc};
-use tokio::{
+use std::{
+    self,
     sync::{
-        mpsc::{channel, Receiver, Sender},
-        Mutex,
+        atomic::{AtomicU64, Ordering},
+        Arc,
     },
-    task::spawn,
 };
+
+use tokio::{sync::broadcast, task::spawn};
 
 use bincode;
 
@@ -55,14 +53,12 @@ pub struct CelestiaConnection {
     pub snark_namespace: Namespace,
     pub operation_namespace: Namespace,
 
-    sync_target_tx: Arc<Sender<u64>>,
-    sync_target_rx: Arc<Mutex<Receiver<u64>>>,
+    height_update_tx: broadcast::Sender<u64>,
+    sync_target: Arc<AtomicU64>,
 }
 
 impl CelestiaConnection {
     pub async fn new(config: &CelestiaConfig, auth_token: Option<&str>) -> Result<Self> {
-        let (tx, rx) = channel(CHANNEL_BUFFER_SIZE);
-
         let client = Client::new(&config.connection_string, auth_token)
             .await
             .context("Failed to initialize websocket connection")
@@ -81,12 +77,14 @@ impl CelestiaConnection {
             None => snark_namespace,
         };
 
+        let (height_update_tx, _) = broadcast::channel(100);
+
         Ok(CelestiaConnection {
             client,
             snark_namespace,
             operation_namespace,
-            sync_target_tx: Arc::new(tx),
-            sync_target_rx: Arc::new(Mutex::new(rx)),
+            height_update_tx,
+            sync_target: Arc::new(AtomicU64::new(0)),
         })
     }
 }
@@ -106,41 +104,38 @@ fn create_namespace(namespace_hex: &str) -> Result<Namespace> {
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
     async fn get_latest_height(&self) -> Result<u64> {
-        match self.sync_target_rx.lock().await.recv().await {
-            Some(height) => Ok(height),
-            None => Err(anyhow!(DataAvailabilityError::ChannelReceiveError)),
-        }
+        Ok(self.sync_target.load(Ordering::Relaxed))
     }
 
     async fn initialize_sync_target(&self) -> Result<u64> {
-        HeaderClient::header_network_head(&self.client)
+        let height = HeaderClient::header_network_head(&self.client)
             .await
             .context("Failed to get network head from DA layer")
-            .map(|extended_header| extended_header.header.height.value())
+            .map(|extended_header| extended_header.header.height.value())?;
+
+        self.sync_target.store(height, Ordering::Relaxed);
+        Ok(height)
     }
 
-    async fn get_snarks(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
+
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
-            Ok(blobs) => {
-                let mut epochs = Vec::new();
-                for blob in blobs.iter() {
-                    match FinalizedEpoch::try_from(blob) {
-                        Ok(epoch_json) => epochs.push(epoch_json),
-                        Err(_) => {
-                            GeneralError::ParsingError(format!(
-                                "marshalling blob from height {} to epoch json: {:?}",
-                                height, &blob
-                            ));
-                        }
-                    }
-                }
-                Ok(epochs)
-            }
+            Ok(blobs) => blobs
+                .into_iter()
+                .next()
+                .map(|blob| {
+                    FinalizedEpoch::try_from(&blob).map_err(|_| {
+                        anyhow!(GeneralError::ParsingError(format!(
+                            "marshalling blob from height {} to epoch json: {:?}",
+                            height, &blob
+                        )))
+                    })
+                })
+                .transpose(),
             Err(err) => {
-                // todo: this is a hack to handle a retarded error from cel-node that will be fixed in v0.15.0
                 if err.to_string().contains("blob: not found") {
-                    Ok(vec![])
+                    Ok(None)
                 } else {
                     Err(anyhow!(DataAvailabilityError::DataRetrievalError(
                         height,
@@ -151,38 +146,22 @@ impl DataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    async fn submit_snarks(&self, epochs: Vec<FinalizedEpoch>) -> Result<u64> {
-        if epochs.is_empty() {
-            bail!("no epochs provided for submission");
-        }
+    async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
+        debug!("posting {}th epoch to da layer", epoch.height);
 
-        debug!("posting {} epochs to da layer", epochs.len());
+        let data = bincode::serialize(&epoch).map_err(|e| {
+            DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
+                "serializing epoch {}: {}",
+                epoch.height, e
+            )))
+        })?;
 
-        let blobs: Result<Vec<Blob>, DataAvailabilityError> = epochs
-            .iter()
-            .map(|epoch| {
-                let data = bincode::serialize(epoch).map_err(|e| {
-                    DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
-                        "serializing epoch {}: {}",
-                        epoch.height, e
-                    )))
-                })?;
-                Blob::new(self.snark_namespace, data).map_err(|e| {
-                    DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(
-                        e.to_string(),
-                    ))
-                })
-            })
-            .collect();
-
-        let blobs = blobs?;
-
-        for (i, blob) in blobs.iter().enumerate() {
-            trace!("blob {}: {:?}", i, blob);
-        }
+        let blob = Blob::new(self.snark_namespace, data).map_err(|e| {
+            DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
+        })?;
 
         self.client
-            .blob_submit(&blobs, GasPrice::from(-1.0))
+            .blob_submit(&[blob], GasPrice::from(-1.0))
             .await
             .map_err(|e| anyhow!(DataAvailabilityError::SubmissionError(e.to_string())))
     }
@@ -250,35 +229,29 @@ impl DataAvailabilityLayer for CelestiaConnection {
             .map_err(|e| anyhow!(DataAvailabilityError::SubmissionError(e.to_string())))
     }
 
+    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
+        self.height_update_tx.subscribe()
+    }
+
     async fn start(&self) -> Result<()> {
         let mut header_sub = HeaderClient::header_subscribe(&self.client)
             .await
-            .context("Failed to subscribe to headers from DA layer")
-            .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
+            .context("Failed to subscribe to headers from DA layer")?;
 
-        let synctarget_buffer = self.sync_target_tx.clone();
+        let sync_target = self.sync_target.clone();
+        let height_update_tx = self.height_update_tx.clone();
+
         spawn(async move {
             while let Some(extended_header_result) = header_sub.next().await {
                 match extended_header_result {
                     Ok(extended_header) => {
                         let height = extended_header.header.height.value();
-                        match synctarget_buffer.send(height).await {
-                            Ok(_) => {
-                                debug!("sent sync target update for height {}", height);
-                            }
-                            Err(_) => {
-                                DataAvailabilityError::SyncTargetError(format!(
-                                    "sending sync target update message for height {}",
-                                    height
-                                ));
-                            }
-                        }
+                        sync_target.store(height, Ordering::Relaxed);
+                        let _ = height_update_tx.send(height);
+                        debug!("updated sync target for height {}", height);
                     }
                     Err(e) => {
-                        DataAvailabilityError::NetworkError(format!(
-                            "retrieving header from da layer: {}",
-                            e
-                        ));
+                        error!("Error retrieving header from DA layer: {}", e);
                     }
                 }
             }

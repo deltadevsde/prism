@@ -1,4 +1,9 @@
 pub mod hashchain;
 pub mod operation;
 pub mod tree;
-pub mod signedcontent;
+
+#[macro_use]
+extern crate log;
+
+#[cfg(feature = "test_utils")]
+pub mod test_utils;

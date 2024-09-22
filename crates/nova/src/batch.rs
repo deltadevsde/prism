@@ -143,67 +143,8 @@ mod tests {
         traits::snark::default_ck_hint,
     };
     use ff::Field;
-    use jmt::{mock::MockTreeStore, KeyHash};
-    use prism_common::{hashchain::Hashchain, tree::*};
-    use rand::{rngs::StdRng, Rng, SeedableRng};
-    use std::sync::Arc;
-
-    use std::collections::HashSet;
-
-    struct TestTreeState {
-        pub tree: KeyDirectoryTree<MockTreeStore>,
-        inserted_keys: HashSet<KeyHash>,
-    }
-
-    impl TestTreeState {
-        fn new() -> Self {
-            let store = Arc::new(MockTreeStore::default());
-            let tree = KeyDirectoryTree::new(store);
-            Self {
-                tree,
-                inserted_keys: HashSet::new(),
-            }
-        }
-    }
-
-    fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> InsertProof {
-        loop {
-            let random_string: String = (0..10)
-                .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
-                .collect();
-            let hc = Hashchain::new(random_string);
-            let key = hc.get_keyhash();
-
-            if !state.inserted_keys.contains(&key) {
-                let proof = state.tree.insert(key, hc).expect("Insert should succeed");
-                state.inserted_keys.insert(key);
-                println!("inserted key: {key:?}");
-                return proof;
-            }
-        }
-    }
-
-    fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> UpdateProof {
-        if state.inserted_keys.is_empty() {
-            panic!("No keys have been inserted yet. Cannot perform update.");
-        }
-
-        let key = *state
-            .inserted_keys
-            .iter()
-            .nth(rng.gen_range(0..state.inserted_keys.len()))
-            .unwrap();
-        let mut hc = state.tree.get(key).unwrap().unwrap();
-
-        let random_string: String = (0..10)
-            .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
-            .collect();
-        hc.add(random_string)
-            .expect("Adding to hashchain should succeed");
-        println!("updated key: {key:?}");
-
-        state.tree.update(key, hc).expect("Update should succeed")
-    }
+    use prism_common::test_utils::{create_random_insert, create_random_update, TestTreeState};
+    use rand::{rngs::StdRng, SeedableRng};
 
     // ignored because proving in CI is slow
     #[ignore]
