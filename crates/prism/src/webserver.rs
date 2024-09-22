@@ -1,8 +1,4 @@
-use crate::{
-    cfg::WebServerConfig,
-    node_types::sequencer::Sequencer,
-    utils::{verify_signature, SignedContent},
-};
+use crate::{cfg::WebServerConfig, node_types::sequencer::Sequencer};
 use anyhow::{Context, Result};
 use axum::{
     extract::State,
@@ -11,15 +7,13 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use ed25519::Signature;
 use indexed_merkle_tree::{
     tree::{Proof, UpdateProof},
     Hash as TreeHash,
 };
 use prism_common::{hashchain::Hashchain, operation::Operation};
-use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
-use std::{self, str::FromStr, sync::Arc};
+use std::{self, sync::Arc};
 use tower_http::cors::CorsLayer;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
@@ -38,45 +32,7 @@ pub struct EpochData {
 
 #[derive(Deserialize, Debug, ToSchema)]
 pub struct OperationInput {
-    // TODO: pretty sure we don't need operation if we have signed operation
     pub operation: Operation,
-    pub signed_operation: String,
-    pub public_key: String,
-}
-
-impl OperationInput {
-    pub fn validate(&self) -> Result<()> {
-        match self.operation.clone() {
-            Operation::Add { id, value }
-            | Operation::Revoke { id, value }
-            // we ignore account source as this must be done using internal sequencer data, so inside process_operation
-            | Operation::CreateAccount { id, value, .. } => {
-                // basic validation
-                if id.is_empty() {
-                    return Err(
-                        GeneralError::MissingArgumentError("id is empty".to_string()).into(),
-                    );
-                }
-                if value.is_empty() {
-                    return Err(
-                        GeneralError::MissingArgumentError("value is empty".to_string()).into(),
-                    );
-                }
-
-                // signature validation
-                let signed_content = verify_signature(self, None)
-                    .context("Failed to verify signature")?;
-
-
-                // parsing validation
-                let json_string = String::from_utf8_lossy(&signed_content);
-                serde_json::from_str::<Operation>(&json_string)
-                    .context("Failed to parse signed content as Operation")?;
-
-                Ok(())
-            }
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -110,23 +66,6 @@ pub struct UserKeyResponse {
     ))
 )]
 struct ApiDoc;
-
-impl SignedContent for OperationInput {
-    fn get_signature(&self) -> Result<Signature> {
-        Signature::from_str(self.signed_operation.as_str())
-            .map_err(|e| GeneralError::ParsingError(format!("signature: {}", e)).into())
-    }
-
-    fn get_plaintext(&self) -> Result<Vec<u8>> {
-        serde_json::to_string(&self.operation)
-            .map_err(|e| GeneralError::DecodingError(e.to_string()).into())
-            .map(|s| s.into_bytes())
-    }
-
-    fn get_public_key(&self) -> Result<String> {
-        Ok(self.public_key.clone())
-    }
-}
 
 impl WebServer {
     pub fn new(cfg: WebServerConfig) -> Self {
@@ -167,9 +106,12 @@ impl WebServer {
 )]
 async fn update_entry(
     State(session): State<Arc<Sequencer>>,
-    Json(signature_with_key): Json<OperationInput>,
+    Json(operation_input): Json<OperationInput>,
 ) -> impl IntoResponse {
-    match session.validate_and_queue_update(&signature_with_key).await {
+    match session
+        .validate_and_queue_update(&operation_input.operation)
+        .await
+    {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",
@@ -200,8 +142,13 @@ async fn get_hashchain(
     State(session): State<Arc<Sequencer>>,
     Json(request): Json<UserKeyRequest>,
 ) -> impl IntoResponse {
-    match session.db.get_hashchain(&request.id) {
-        Ok(hashchain) => (StatusCode::OK, Json(UserKeyResponse { hashchain })).into_response(),
+    match session.get_hashchain(&request.id).await {
+        Ok(hashchain_or_proof) => match hashchain_or_proof {
+            Ok(hashchain) => (StatusCode::OK, Json(UserKeyResponse { hashchain })).into_response(),
+            Err(non_inclusion_proof) => {
+                (StatusCode::BAD_REQUEST, Json(non_inclusion_proof)).into_response()
+            }
+        },
         Err(err) => (
             StatusCode::BAD_REQUEST,
             format!("Couldn't get hashchain: {}", err),

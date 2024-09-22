@@ -1,5 +1,4 @@
 use anyhow::Error as AnyhowError;
-use ed25519_dalek::SignatureError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -33,8 +32,6 @@ pub enum GeneralError {
     MissingArgumentError(String),
     #[error("invalid public key")]
     InvalidPublicKey,
-    #[error(transparent)]
-    InvalidSignature(#[from] SignatureError),
     #[error("starting webserver")]
     WebserverError,
     #[error("initializing service: {0}")]

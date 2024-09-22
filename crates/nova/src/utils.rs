@@ -12,12 +12,11 @@ use ff::PrimeField;
 use itertools::Itertools as _;
 use jmt::{
     bytes32ext::Bytes32Ext,
-    mock::MockTreeStore,
     proof::{SparseMerkleLeafNode, SparseMerkleNode, SparseMerkleProof, INTERNAL_DOMAIN_SEPARATOR},
     RootHash,
 };
-use prism_common::{hashchain::Hashchain, tree::*};
-use std::{marker::PhantomData, sync::Arc};
+use prism_common::{test_utils::TestTreeState, tree::*};
+use std::marker::PhantomData;
 
 use prism_common::tree;
 
@@ -163,16 +162,17 @@ pub fn get_selector_vec_from_index<F: PrimeField, CS: ConstraintSystem<F>>(
 pub fn create_pp() -> PublicParams<PallasEngine> {
     type E1 = PallasEngine;
 
-    let store = Arc::new(MockTreeStore::default());
-    let mut tree = KeyDirectoryTree::new(store);
+    let mut test_tree = TestTreeState::default();
+    let mut account = test_tree.create_account("publicparams".to_string());
 
-    let mut hc = Hashchain::new("publicparams".into());
-    let key = hc.get_keyhash();
+    let insert_proof = test_tree
+        .tree
+        .insert(account.key_hash, account.hashchain.clone())
+        .unwrap();
 
-    let insert_proof = tree.insert(key, hc.clone()).unwrap();
+    test_tree.add_key_to_account(&mut account).unwrap();
 
-    hc.add("test_value".into()).unwrap();
-    let update_proof = tree.update(key, hc).unwrap();
+    let update_proof = test_tree.update_account(account).unwrap();
 
     let operations = vec![
         (0, EpochCircuit::new_insert(insert_proof, 2)),

@@ -1,19 +1,20 @@
 use crate::cfg::CelestiaConfig;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use ed25519_dalek::VerifyingKey;
 use prism_common::tree::Digest;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};
 
-use crate::{da::DataAvailabilityLayer, node_types::NodeType, utils::verify_signature};
+use crate::{da::DataAvailabilityLayer, node_types::NodeType};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
-    pub sequencer_pubkey: Option<String>,
+    pub sequencer_pubkey: Option<VerifyingKey>,
     pub client: ProverClient,
     pub verifying_key: SP1VerifyingKey,
     pub start_height: u64,
@@ -44,6 +45,12 @@ impl LightClient {
     ) -> LightClient {
         let client = ProverClient::new();
         let (_, verifying_key) = client.setup(PRISM_ELF);
+
+        let sequencer_pubkey = sequencer_pubkey.map(|s| {
+            // TODO: Graceful error handling
+            VerifyingKey::from_bytes(&hex::decode(s).unwrap().try_into().unwrap()).unwrap()
+        });
+
         LightClient {
             da,
             verifying_key,
@@ -72,7 +79,7 @@ impl LightClient {
 
                                     // Signature verification
                                     if let Some(pubkey) = &self.sequencer_pubkey {
-                                        match verify_signature(&finalized_epoch, Some(pubkey.clone())) {
+                                        match finalized_epoch.verify_signature(*pubkey) {
                                             Ok(_) => trace!("valid signature for epoch {}", finalized_epoch.height),
                                             Err(e) => panic!("invalid signature in epoch {}: {:?}", i, e),
                                         }

@@ -6,10 +6,14 @@ use jmt::{
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
     JellyfishMerkleTree, KeyHash, RootHash, SimpleHasher,
 };
+use prism_errors::DatabaseError;
 use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::hashchain::Hashchain;
+use crate::{
+    hashchain::Hashchain,
+    operation::{CreateAccountArgs, KeyOperationArgs, Operation, ServiceChallengeInput},
+};
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
@@ -193,13 +197,15 @@ impl InsertProof {
             .verify()
             .context("Invalid NonMembershipProof")?;
 
-        let value = bincode::serialize(&self.value).unwrap();
+        let value = bincode::serialize(&self.value)?;
 
         self.membership_proof.clone().verify_existence(
             self.new_root.into(),
             self.non_membership_proof.key,
             value,
         )?;
+
+        self.value.validate()?;
 
         Ok(())
     }
@@ -218,17 +224,20 @@ pub struct UpdateProof {
 
 impl UpdateProof {
     pub fn verify(&self) -> Result<()> {
-        let new_value = bincode::serialize(&self.new_value).unwrap();
+        let new_value = bincode::serialize(&self.new_value)?;
 
         self.proof.clone().verify_update(
             self.old_root,
             self.new_root,
             vec![(self.key, Some(new_value))],
-        )
+        )?;
+
+        self.new_value.validate()
     }
 }
 
 pub trait SnarkableTree {
+    fn process_operation(&mut self, operation: &Operation) -> Result<Proof>;
     fn insert(&mut self, key: KeyHash, value: Hashchain) -> Result<InsertProof>;
     fn update(&mut self, key: KeyHash, value: Hashchain) -> Result<UpdateProof>;
     fn get(&self, key: KeyHash) -> Result<Result<Hashchain, NonMembershipProof>>;
@@ -303,6 +312,62 @@ impl<S> SnarkableTree for KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter,
 {
+    fn process_operation(&mut self, operation: &Operation) -> Result<Proof> {
+        match operation {
+            Operation::AddKey(KeyOperationArgs { id, .. })
+            | Operation::RevokeKey(KeyOperationArgs { id, .. }) => {
+                let hashed_id = hash(id.as_bytes());
+                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+
+                let mut current_chain = self
+                    .get(key_hash)?
+                    .map_err(|_| anyhow!("Failed to get hashchain for ID {}", id))?;
+
+                current_chain.perform_operation(operation.clone())?;
+
+                debug!("updating hashchain for user id {}", id.clone());
+                let proof = self.update(key_hash, current_chain.clone())?;
+
+                Ok(Proof::Update(proof))
+            }
+            Operation::CreateAccount(CreateAccountArgs {
+                id,
+                value,
+                signature,
+                service_id,
+                challenge,
+            }) => {
+                let hashed_id = hash(id.as_bytes());
+                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+
+                match &challenge {
+                    ServiceChallengeInput::Signed(_) => debug!("Signature verification for service challenge gate not yet implemented. Skipping verification.")
+                };
+
+                // hashchain should not already exist
+                if self.get(key_hash)?.is_ok() {
+                    bail!(DatabaseError::NotFoundError(format!(
+                        "empty slot for ID {}",
+                        id
+                    )));
+                }
+
+                debug!("creating new hashchain for user id {}", id);
+                let mut chain = Hashchain::new(id.clone());
+                chain.create_account(
+                    value.clone(),
+                    signature.clone(),
+                    service_id.clone(),
+                    challenge.clone(),
+                )?;
+
+                Ok(Proof::Insert(
+                    self.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,
+                ))
+            }
+        }
+    }
+
     fn insert(&mut self, key: KeyHash, value: Hashchain) -> Result<InsertProof> {
         let serialized_value = Self::serialize_value(&value)?;
 
@@ -379,86 +444,67 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "test_utils"))]
 mod tests {
     use super::*;
-    use jmt::mock::MockTreeStore;
+    use crate::test_utils::TestTreeState;
 
     #[test]
     fn test_insert_and_get() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store.clone());
+        let mut tree_state = TestTreeState::default();
+        let account = tree_state.create_account("key_1".to_string());
 
-        let hc1 = Hashchain::new("key_1".into());
-        let key = hc1.get_keyhash();
+        let insert_proof = tree_state.insert_account(account.clone()).unwrap();
+        assert!(insert_proof.verify().is_ok());
 
-        println!("hc1: {:?}", hc1);
-        println!("key: {:?}", key);
-
-        println!("Initial tree state: {:?}", tree.get_commitment());
-
-        let insert_proof = tree.insert(key, hc1.clone());
-        assert!(insert_proof.is_ok());
-
-        println!("After first insert: {:?}", tree.get_commitment());
-
-        let get_result = tree.get(key).unwrap().unwrap();
-
-        assert_eq!(get_result, hc1);
+        let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
+        assert_eq!(get_result, account.hashchain);
     }
 
     #[test]
     fn test_insert_duplicate_key() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree_state = TestTreeState::default();
+        let account = tree_state.create_account("key_1".to_string());
 
-        let hc1 = Hashchain::new("key_1".into());
-        let key = hc1.get_keyhash();
+        tree_state.insert_account(account.clone()).unwrap();
 
-        tree.insert(key, hc1.clone()).unwrap();
-
-        let hc2 = Hashchain::new("key_1".into());
-        let result = tree.insert(key, hc2);
+        let result = tree_state.insert_account(account.clone());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_update_existing_key() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree_state = TestTreeState::default();
 
-        let mut hc1 = Hashchain::new("key_1".into());
-        let key = hc1.get_keyhash();
+        let mut account = tree_state.create_account("key_1".to_string());
+        tree_state.insert_account(account.clone()).unwrap();
 
-        tree.insert(key, hc1.clone()).unwrap();
+        // Add a new key
+        tree_state.add_key_to_account(&mut account).unwrap();
 
-        hc1.add("new_value".into()).unwrap();
-        let update_proof = tree.update(key, hc1.clone()).unwrap();
+        // Update the account using the correct key index
+        let update_proof = tree_state.update_account(account.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
 
-        let get_result = tree.get(key).unwrap().unwrap();
-        assert_eq!(get_result, hc1);
+        let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
+        assert_eq!(get_result, account.hashchain);
     }
 
     #[test]
     fn test_update_non_existing_key() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree_state = TestTreeState::default();
+        let account = tree_state.create_account("key_1".to_string());
 
-        let hc1 = Hashchain::new("key_1".into());
-        let key = hc1.get_keyhash();
-
-        let result = tree.update(key, hc1);
+        let result = tree_state.update_account(account);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_get_non_existing_key() {
-        let store = MockTreeStore::default();
-        let tree = KeyDirectoryTree::new(Arc::new(store));
-
+        let tree_state = TestTreeState::default();
         let key = KeyHash::with::<Hasher>(b"non_existing_key");
-        let result = tree.get(key).unwrap();
+
+        let result = tree_state.tree.get(key).unwrap();
         assert!(result.is_err());
 
         if let Err(non_membership_proof) = result {
@@ -468,111 +514,119 @@ mod tests {
 
     #[test]
     fn test_multiple_inserts_and_updates() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(Arc::new(store));
+        let mut tree_state = TestTreeState::default();
 
-        let mut hc1 = Hashchain::new("key_1".into());
-        let mut hc2 = Hashchain::new("key_2".into());
-        let key1 = hc1.get_keyhash();
-        let key2 = hc2.get_keyhash();
+        let mut account1 = tree_state.create_account("key_1".to_string());
+        let mut account2 = tree_state.create_account("key_2".to_string());
 
-        tree.insert(key1, hc1.clone()).unwrap();
-        tree.insert(key2, hc2.clone()).unwrap();
+        tree_state.insert_account(account1.clone()).unwrap();
+        tree_state.insert_account(account2.clone()).unwrap();
 
-        hc1.add("value1".into()).unwrap();
-        hc2.add("value2".into()).unwrap();
+        tree_state.add_key_to_account(&mut account1).unwrap();
+        tree_state.add_key_to_account(&mut account2).unwrap();
 
-        tree.update(key1, hc1.clone()).unwrap();
-        tree.update(key2, hc2.clone()).unwrap();
+        // Update accounts using the correct key indices
+        tree_state.update_account(account1.clone()).unwrap();
+        tree_state.update_account(account2.clone()).unwrap();
 
-        assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
-        assert_eq!(tree.get(key2).unwrap().unwrap(), hc2);
+        let tree_hashchain1 = tree_state.tree.get(account1.key_hash).unwrap().unwrap();
+        let tree_hashchain2 = tree_state.tree.get(account2.key_hash).unwrap().unwrap();
+
+        assert_eq!(tree_hashchain1, account1.hashchain);
+        assert_eq!(tree_hashchain2, account2.hashchain);
     }
 
     #[test]
     fn test_interleaved_inserts_and_updates() {
-        let store = MockTreeStore::default();
-        let mut tree = KeyDirectoryTree::new(Arc::new(store));
+        let mut test_tree = TestTreeState::default();
 
-        let mut hc1 = Hashchain::new("key_1".into());
-        let mut hc2 = Hashchain::new("key_2".into());
-        let key1 = hc1.get_keyhash();
-        let key2 = hc2.get_keyhash();
+        let mut account_1 = test_tree.create_account("key_1".to_string());
+        let mut account_2 = test_tree.create_account("key_2".to_string());
 
-        tree.insert(key1, hc1.clone()).unwrap();
+        test_tree.insert_account(account_1.clone()).unwrap();
 
-        hc1.add("value1".into()).unwrap();
-        tree.update(key1, hc1.clone()).unwrap();
+        test_tree.add_key_to_account(&mut account_1).unwrap();
+        // Update account_1 using the correct key index
+        test_tree.update_account(account_1.clone()).unwrap();
 
-        tree.insert(key2, hc2.clone()).unwrap();
+        test_tree.insert_account(account_2.clone()).unwrap();
 
-        hc2.add("value2".into()).unwrap();
-        let last_proof = tree.update(key2, hc2.clone()).unwrap();
+        test_tree.add_key_to_account(&mut account_2).unwrap();
 
-        assert_eq!(tree.get(key1).unwrap().unwrap(), hc1);
-        assert_eq!(tree.get(key2).unwrap().unwrap(), hc2);
-        assert_eq!(last_proof.new_root, tree.get_current_root().unwrap());
+        // Update account_2 using the correct key index
+        let last_proof = test_tree.update_account(account_2.clone()).unwrap();
+
+        assert_eq!(
+            test_tree.tree.get(account_1.key_hash).unwrap().unwrap(),
+            account_1.hashchain
+        );
+        assert_eq!(
+            test_tree.tree.get(account_2.key_hash).unwrap().unwrap(),
+            account_2.hashchain
+        );
+        assert_eq!(
+            last_proof.new_root,
+            test_tree.tree.get_current_root().unwrap()
+        );
     }
 
     #[test]
     fn test_root_hash_changes() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store);
+        let mut tree_state = TestTreeState::default();
+        let account = tree_state.create_account("key_1".to_string());
 
-        let hc1 = Hashchain::new("key_1".into());
-        let key1 = hc1.get_keyhash();
-
-        let root_before = tree.get_current_root().unwrap();
-        tree.insert(key1, hc1).unwrap();
-        let root_after = tree.get_current_root().unwrap();
+        let root_before = tree_state.tree.get_current_root().unwrap();
+        tree_state
+            .tree
+            .insert(account.key_hash, account.hashchain)
+            .unwrap();
+        let root_after = tree_state.tree.get_current_root().unwrap();
 
         assert_ne!(root_before, root_after);
     }
 
     #[test]
     fn test_batch_writing() {
-        let store = Arc::new(MockTreeStore::default());
-        let mut tree = KeyDirectoryTree::new(store.clone());
+        let mut tree_state = TestTreeState::default();
+        let account1 = tree_state.create_account("key_1".to_string());
+        let account2 = tree_state.create_account("key_2".to_string());
 
-        let hc1 = Hashchain::new("key_1".into());
-        let key1 = hc1.get_keyhash();
+        println!("Inserting key1: {:?}", account1.key_hash);
+        tree_state.insert_account(account1.clone()).unwrap();
 
-        println!("Inserting key1: {:?}", key1);
-        tree.insert(key1, hc1.clone()).unwrap();
-
-        println!("Tree state after first insert: {:?}", tree.get_commitment());
+        println!(
+            "Tree state after first insert: {:?}",
+            tree_state.tree.get_commitment()
+        );
         println!(
             "Tree state after first write_batch: {:?}",
-            tree.get_commitment()
+            tree_state.tree.get_commitment()
         );
 
         // Try to get the first value immediately
-        let get_result1 = tree.get(key1);
+        let get_result1 = tree_state.tree.get(account1.key_hash);
         println!("Get result for key1 after first write: {:?}", get_result1);
 
-        let hc2 = Hashchain::new("key_2".into());
-        let key2 = hc2.get_keyhash();
-
-        println!("Inserting key2: {:?}", key2);
-        tree.insert(key2, hc2.clone()).unwrap();
+        println!("Inserting key2: {:?}", account2.key_hash);
+        tree_state.insert_account(account2.clone()).unwrap();
 
         println!(
             "Tree state after second insert: {:?}",
-            tree.get_commitment()
+            tree_state.tree.get_commitment()
         );
         println!(
             "Tree state after second write_batch: {:?}",
-            tree.get_commitment()
+            tree_state.tree.get_commitment()
         );
 
         // Try to get both values
-        let get_result1 = tree.get(key1);
-        let get_result2 = tree.get(key2);
+        let get_result1 = tree_state.tree.get(account1.key_hash);
+        let get_result2 = tree_state.tree.get(account2.key_hash);
 
         println!("Final get result for key1: {:?}", get_result1);
         println!("Final get result for key2: {:?}", get_result2);
 
-        assert_eq!(get_result1.unwrap().unwrap(), hc1);
-        assert_eq!(get_result2.unwrap().unwrap(), hc2);
+        assert_eq!(get_result1.unwrap().unwrap(), account1.hashchain);
+        assert_eq!(get_result2.unwrap().unwrap(), account2.hashchain);
     }
 }
