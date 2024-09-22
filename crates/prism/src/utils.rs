@@ -1,25 +1,9 @@
 use anyhow::Result;
-use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bellman::groth16::{self, VerifyingKey};
 use bls12_381::{Bls12, Scalar};
-use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
 use indexed_merkle_tree::tree::Proof;
 use prism_common::tree::Digest;
 use prism_errors::{GeneralError, PrismError, ProofError};
-
-pub fn decode_public_key(pub_key_str: &String) -> Result<Ed25519VerifyingKey> {
-    // decode the public key from base64 string to bytes
-    let public_key_bytes = engine
-        .decode(pub_key_str)
-        .map_err(|e| GeneralError::DecodingError(format!("base64 string: {}", e)))?;
-
-    let public_key_array: [u8; 32] = public_key_bytes
-        .try_into()
-        .map_err(|_| GeneralError::ParsingError("Vec<u8> to [u8; 32]".to_string()))?;
-
-    Ed25519VerifyingKey::from_bytes(&public_key_array)
-        .map_err(|_| GeneralError::DecodingError("ed25519 verifying key".to_string()).into())
-}
 
 #[allow(dead_code)]
 pub fn parse_json_to_proof(json_str: &str) -> Result<Proof, Box<dyn std::error::Error>> {

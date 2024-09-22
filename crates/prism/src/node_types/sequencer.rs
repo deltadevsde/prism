@@ -12,12 +12,11 @@ use prism_common::{
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 
-use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
-
 use crate::{cfg::Config, node_types::NodeType, webserver::WebServer};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_storage::Database;
+use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
