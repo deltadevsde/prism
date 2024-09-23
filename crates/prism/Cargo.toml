@@ -14,7 +14,6 @@ test_utils = []
 
 [dependencies]
 axum = { workspace = true }
-borsh = { workspace = true }
 tower-http = { workspace = true }
 utoipa = { workspace = true }
 utoipa-swagger-ui = { workspace = true }
@@ -28,31 +27,24 @@ tokio = { workspace = true }
 bellman = { workspace = true }
 bincode = { workspace = true }
 bls12_381 = { workspace = true }
-rand = { workspace = true }
 hex = { workspace = true }
-ff = { workspace = true }
 log = { workspace = true }
 pretty_env_logger = { workspace = true }
 clap = { workspace = true }
 config = { workspace = true }
-thiserror = { workspace = true }
 indexed-merkle-tree = { workspace = true }
 dotenvy = { workspace = true }
-celestia-rpc = { workspace = true }
-celestia-types = { workspace = true }
 mockall = { workspace = true }
 keystore-rs = { workspace = true }
 toml = { workspace = true }
 dirs = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
-sha2 = { workspace = true }
 auto_impl = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage = { workspace = true }
 prism-errors = { workspace = true }
 prism-da = { workspace = true }
-prism-groth16 = { workspace = true }
 sp1-sdk = { workspace = true }
 
 [dev-dependencies]

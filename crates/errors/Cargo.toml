@@ -7,6 +7,5 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-ed25519-dalek = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }

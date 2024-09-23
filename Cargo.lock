@@ -1929,21 +1929,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ecdsa"
-version = "0.16.9"
-source = "git+https://github.com/sp1-patches/signatures?branch=patch-ecdsa-v0.16.9#de1b108e8140dcb86ecf56f1215ac4b7fab6fcd8"
-dependencies = [
- "anyhow",
- "cfg-if",
- "digest 0.10.7",
- "elliptic-curve",
- "hex-literal",
- "signature",
- "sp1-lib",
- "spki",
-]
-
-[[package]]
 name = "ed25519"
 version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3553,7 +3538,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6e3919bbaa2945715f0bb6d3934a173d1e9a59ac23767fbaaef277265a7411b"
 dependencies = [
  "cfg-if",
- "ecdsa 0.16.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ecdsa",
  "elliptic-curve",
  "once_cell",
  "sha2 0.10.8",
@@ -4945,7 +4930,6 @@ dependencies = [
  "anyhow",
  "bincode",
  "bls12_381 0.8.0",
- "borsh",
  "celestia-types",
  "ed25519-dalek",
  "hex",
@@ -4963,43 +4947,17 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "auto_impl",
- "axum 0.6.20",
- "base64 0.22.1",
- "bellman",
  "bincode",
- "bls12_381 0.8.0",
- "borsh",
  "celestia-rpc",
  "celestia-types",
- "clap",
- "config",
- "dirs 5.0.1",
- "dotenvy",
  "ed25519-dalek",
- "ff 0.13.0",
  "hex",
- "indexed-merkle-tree",
- "jmt",
- "keystore-rs",
  "log",
- "mockall",
- "pretty_env_logger",
  "prism-common",
  "prism-errors",
- "prism-groth16",
- "rand",
- "redis",
  "serde",
- "serde_json",
- "sha2 0.10.8",
  "sp1-sdk",
- "thiserror",
  "tokio",
- "toml",
- "tower-http",
- "utoipa",
- "utoipa-swagger-ui",
 ]
 
 [[package]]
@@ -5007,31 +4965,6 @@ name = "prism-errors"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "ed25519-dalek",
- "thiserror",
-]
-
-[[package]]
-name = "prism-groth16"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bellman",
- "bls12_381 0.8.0",
- "borsh",
- "celestia-types",
- "ed25519-dalek",
- "ff 0.13.0",
- "hex",
- "indexed-merkle-tree",
- "jmt",
- "log",
- "prism-common",
- "prism-errors",
- "rand",
- "serde",
- "serde_json",
- "sha2 0.10.8",
  "thiserror",
 ]
 
@@ -5047,16 +4980,12 @@ dependencies = [
  "bellman",
  "bincode",
  "bls12_381 0.8.0",
- "borsh",
- "celestia-rpc",
- "celestia-types",
  "clap",
  "config",
  "criterion",
  "dirs 5.0.1",
  "dotenvy",
  "ed25519-dalek",
- "ff 0.13.0",
  "hex",
  "indexed-merkle-tree",
  "jmt",
@@ -5067,16 +4996,12 @@ dependencies = [
  "prism-common",
  "prism-da",
  "prism-errors",
- "prism-groth16",
  "prism-storage",
- "rand",
  "redis",
  "serde",
  "serde_json",
  "serial_test",
- "sha2 0.10.8",
  "sp1-sdk",
- "thiserror",
  "tokio",
  "toml",
  "tower-http",
@@ -5088,10 +5013,7 @@ dependencies = [
 name = "prism-sp1"
 version = "0.1.0"
 dependencies = [
- "bincode",
- "ed25519-dalek",
  "prism-common",
- "secp256k1",
  "sp1-zkvm",
 ]
 
@@ -5102,21 +5024,16 @@ dependencies = [
  "anyhow",
  "auto_impl",
  "bincode",
- "config",
  "hex",
  "jmt",
  "log",
  "mockall",
- "pretty_env_logger",
  "prism-common",
  "prism-errors",
  "redis",
  "rocksdb",
  "serde",
- "serde_json",
  "tempfile",
- "thiserror",
- "tokio",
 ]
 
 [[package]]
@@ -6027,26 +5944,6 @@ dependencies = [
  "pkcs8",
  "subtle",
  "zeroize",
-]
-
-[[package]]
-name = "secp256k1"
-version = "0.29.0"
-source = "git+https://github.com/sp1-patches/rust-secp256k1?branch=patch-secp256k1-v0.29.0#1da89f39f21f1e4ed4f9f869169a59bbe81edc71"
-dependencies = [
- "cfg-if",
- "ecdsa 0.16.9 (git+https://github.com/sp1-patches/signatures?branch=patch-ecdsa-v0.16.9)",
- "elliptic-curve",
- "k256",
- "secp256k1-sys",
-]
-
-[[package]]
-name = "secp256k1-sys"
-version = "0.10.0"
-source = "git+https://github.com/sp1-patches/rust-secp256k1?branch=patch-secp256k1-v0.29.0#1da89f39f21f1e4ed4f9f869169a59bbe81edc71"
-dependencies = [
- "cc",
 ]
 
 [[package]]
@@ -8321,3 +8218,8 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "secp256k1"
+version = "0.29.0"
+source = "git+https://github.com/sp1-patches/rust-secp256k1?branch=patch-secp256k1-v0.29.0#1da89f39f21f1e4ed4f9f869169a59bbe81edc71"

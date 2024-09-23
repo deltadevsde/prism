@@ -12,18 +12,13 @@ readme.workspace = true
 
 [dependencies]
 serde = { workspace = true }
-serde_json = { workspace = true }
 redis = { workspace = true }
 mockall = { workspace = true }
-tokio = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
 bincode = { workspace = true }
 hex = { workspace = true }
 jmt = { workspace = true }
-pretty_env_logger = { workspace = true }
-config = { workspace = true }
-thiserror = { workspace = true }
 prism-errors = { workspace = true }
 prism-common = { workspace = true }
 auto_impl = { workspace = true }

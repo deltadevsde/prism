@@ -7,25 +7,13 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-borsh = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-base64 = { workspace = true }
 num = { workspace = true }
-bls12_381 = { workspace = true }
 rand = { workspace = true }
-hex = { workspace = true }
 ff = { workspace = true }
-thiserror = { workspace = true }
-indexed-merkle-tree = { workspace = true }
-celestia-types = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
 bellpepper-core = { workspace = true }
 bellpepper = { workspace = true }
 arecibo = { workspace = true }
 itertools = { workspace = true }
-sha2 = { workspace = true }
-bincode = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
-ed25519-dalek = { workspace = true }
