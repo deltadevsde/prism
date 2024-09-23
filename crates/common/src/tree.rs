@@ -8,6 +8,7 @@ use jmt::{
 };
 use prism_errors::DatabaseError;
 use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
+use std::convert::{From, Into};
 use std::sync::Arc;
 
 use crate::{
@@ -70,17 +71,19 @@ impl SimpleHasher for Hasher {
     }
 }
 
-pub fn hash(data: &[u8]) -> Digest {
-    let mut hasher = Hasher::new();
-    hasher.update(data);
-    Digest(hasher.finalize())
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub struct Digest([u8; 32]);
 
-impl Digest {
-    pub fn to_bytes(&self) -> [u8; 32] {
+impl From<&[u8]> for Digest {
+    fn from(data: &[u8]) -> Self {
+        let mut hasher = Hasher::new();
+        hasher.update(data);
+        Self(hasher.finalize())
+    }
+}
+
+impl Into<[u8; 32]> for &Digest {
+    fn into(self) -> [u8; 32] {
         self.0
     }
 }
@@ -316,7 +319,7 @@ where
         match operation {
             Operation::AddKey(KeyOperationArgs { id, .. })
             | Operation::RevokeKey(KeyOperationArgs { id, .. }) => {
-                let hashed_id = hash(id.as_bytes());
+                let hashed_id: Digest = id.as_bytes().into();
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 let mut current_chain = self
@@ -337,7 +340,7 @@ where
                 service_id,
                 challenge,
             }) => {
-                let hashed_id = hash(id.as_bytes());
+                let hashed_id: Digest = id.as_bytes().into();
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 match &challenge {

@@ -6,7 +6,7 @@ use jmt::KeyHash;
 use prism_common::{
     hashchain::Hashchain,
     tree::{
-        hash, Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree,
+         Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree,
     },
 };
 use std::{self, collections::VecDeque, sync::Arc};
@@ -359,7 +359,7 @@ impl Sequencer {
         id: &String,
     ) -> Result<Result<Hashchain, NonMembershipProof>> {
         let tree = self.tree.read().await;
-        let hashed_id = hash(id.as_bytes());
+        let hashed_id: Digest = id.as_bytes().into();
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
         tree.get(key_hash)

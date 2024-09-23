@@ -36,9 +36,9 @@ impl Database for RocksDBConnection {
         epoch: &u64,
         commitment: &prism_common::tree::Digest,
     ) -> anyhow::Result<()> {
-        Ok(self.connection.put(
+        Ok(self.connection.put::<&[u8], [u8; 32]>(
             format!("commitments:epoch_{}", epoch).as_bytes(),
-            commitment.to_bytes(),
+            commitment.into(),
         )?)
     }
 
@@ -48,16 +48,18 @@ impl Database for RocksDBConnection {
             .get(b"app_state:epoch")?
             .ok_or_else(|| DatabaseError::NotFoundError("current epoch".to_string()))?;
 
-        Ok(u64::from_be_bytes(
-            res.try_into()
-                .map_err(|e| DatabaseError::ReadError(e.to_string()))?,
-        ))
+        Ok(u64::from_be_bytes(res.try_into().unwrap()))
     }
 
     fn set_epoch(&self, epoch: &u64) -> anyhow::Result<()> {
         Ok(self
             .connection
             .put(b"app_state:epoch", epoch.to_be_bytes())?)
+    }
+
+    #[cfg(test)]
+    fn flush_database(&self) -> Result<()> {
+        todo!()
     }
 }
 
@@ -82,5 +84,64 @@ impl TreeReader for RocksDBConnection {
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prism_common::tree::Digest;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_get_commitment() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
+
+        let epoch = 1;
+        let commitment = "some_commitment";
+        db.set_commitment(&epoch, &Digest::from(commitment.as_bytes()))
+            .unwrap();
+
+        let result = db.get_commitment(&epoch).unwrap();
+        assert_eq!(result, commitment.to_string());
+    }
+
+    #[test]
+    fn test_set_commitment() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
+
+        let epoch = 1;
+        let commitment = "some_commitment";
+        db.set_commitment(&epoch, &Digest::from(commitment.as_bytes()))
+            .unwrap();
+
+        let result = db.get_commitment(&epoch).unwrap();
+        assert_eq!(result, commitment.to_string());
+    }
+
+    #[test]
+    fn test_get_epoch() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
+
+        let epoch = 1;
+        db.set_epoch(&epoch).unwrap();
+
+        let result = db.get_epoch().unwrap();
+        assert_eq!(result, epoch);
+    }
+
+    #[test]
+    fn test_set_epoch() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
+
+        let epoch = 1;
+        db.set_epoch(&epoch).unwrap();
+
+        let result = db.get_epoch().unwrap();
+        assert_eq!(result, epoch);
     }
 }

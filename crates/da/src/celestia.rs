@@ -16,8 +16,6 @@ use std::{
 };
 use tokio::{sync::broadcast, task::spawn};
 
-use tokio::{sync::broadcast, task::spawn};
-
 use bincode;
 
 impl TryFrom<&Blob> for FinalizedEpoch {
