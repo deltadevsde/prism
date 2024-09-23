@@ -65,7 +65,7 @@ impl TestTreeState {
 
         let proof = self
             .tree
-            .update(account.key_hash, account.hashchain)
+            .update(account.key_hash, account.hashchain.last().unwrap().clone())
             .expect("Update should succeed");
         Ok(proof)
     }
@@ -121,12 +121,14 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
         let random_string: String = (0..10)
             .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
             .collect();
-        let hc = Hashchain::new(random_string);
+        let sk = create_mock_signing_key();
+        let hc = create_mock_hashchain(random_string.as_str(), &sk); //Hashchain::new(random_string);
         let key = hc.get_keyhash();
 
         if !state.inserted_keys.contains(&key) {
             let proof = state.tree.insert(key, hc).expect("Insert should succeed");
             state.inserted_keys.insert(key);
+            state.signing_keys.insert(random_string, sk);
             return proof;
         }
     }
@@ -170,7 +172,10 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
     hc.perform_operation(operation)
         .expect("Adding to hashchain should succeed");
 
-    state.tree.update(key, hc).expect("Update should succeed")
+    state
+        .tree
+        .update(key, hc.last().unwrap().clone())
+        .expect("Update should succeed")
 }
 
 pub fn create_mock_signature(signing_key: &SigningKey, message: &[u8]) -> SignatureBundle {

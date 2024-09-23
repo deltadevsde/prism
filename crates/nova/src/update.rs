@@ -80,7 +80,7 @@ where
             |lc| lc + pre_insertion_root.get_variable(),
         );
 
-        let update_proof = &self.update_proof.proof.proofs()[0];
+        let update_proof = &self.update_proof.update_proof.proofs()[0];
 
         let leaf = &update_proof
             .leaf()
