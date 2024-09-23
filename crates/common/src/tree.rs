@@ -82,9 +82,9 @@ impl From<&[u8]> for Digest {
     }
 }
 
-impl Into<[u8; 32]> for &Digest {
-    fn into(self) -> [u8; 32] {
-        self.0
+impl From<&Digest> for [u8; 32] {
+    fn from(value: &Digest) -> Self {
+        value.0
     }
 }
 
