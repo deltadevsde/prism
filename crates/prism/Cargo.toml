@@ -52,6 +52,10 @@ prism-common = { workspace = true, features = ["test_utils"] }
 prism-errors = { workspace = true }
 prism-groth16 = { workspace = true }
 sp1-sdk = { workspace = true }
+p3-bn254-fr = "0.2.0"
+num-bigint = "0.4"
+gnark-bn254-verifier = { git = "https://github.com/distractedm1nd/gnark-bn254-verifier", branch = "uncompressed-groth16" }
+p3-field = "0.2.0"
 
 [dev-dependencies]
 serial_test = "3.1.1"

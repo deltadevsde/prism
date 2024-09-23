@@ -2,20 +2,24 @@ use crate::cfg::CelestiaConfig;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ed25519_dalek::VerifyingKey;
+use gnark_bn254_verifier::Fr;
+use num_bigint::BigUint;
+use p3_bn254_fr::Bn254Fr;
+use p3_field::PrimeField;
 use prism_common::tree::Digest;
 use prism_errors::{DataAvailabilityError, GeneralError};
-use sp1_sdk::{ProverClient, SP1VerifyingKey};
-use std::{self, sync::Arc};
+use sp1_sdk::{HashableKey, ProverClient, SP1Proof, SP1VerifyingKey};
+use std::{self, str::FromStr, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};
 
 use crate::{da::DataAvailabilityLayer, node_types::NodeType};
 
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
+pub const PRISM_VK: &[u8] = include_bytes!("../../../../elf/program_vk.bin");
+pub const SP1_VK: &[u8] = include_bytes!("../../../../elf/groth16_vk.bin");
 
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
     pub sequencer_pubkey: Option<VerifyingKey>,
-    pub client: ProverClient,
     pub verifying_key: SP1VerifyingKey,
     pub start_height: u64,
 }
@@ -43,8 +47,7 @@ impl LightClient {
         cfg: CelestiaConfig,
         sequencer_pubkey: Option<String>,
     ) -> LightClient {
-        let client = ProverClient::new();
-        let (_, verifying_key) = client.setup(PRISM_ELF);
+        let verifying_key: SP1VerifyingKey = bincode::deserialize(PRISM_VK).unwrap();
 
         let sequencer_pubkey = sequencer_pubkey.map(|s| {
             // TODO: Graceful error handling
@@ -54,7 +57,6 @@ impl LightClient {
         LightClient {
             da,
             verifying_key,
-            client,
             sequencer_pubkey,
             start_height: cfg.start_height,
         }
@@ -106,6 +108,24 @@ impl LightClient {
                                     }
 
                                     // SNARK verification
+                                    if let SP1Proof::Groth16(groth16_proof) = finalized_epoch.proof.proof {
+                                        let raw_proof = hex::decode(&groth16_proof.encoded_proof).unwrap();
+
+                                        let expected_vk_hash = self.verifying_key.hash_bn254().as_canonical_biguint();
+                                        let vkey_hash = BigUint::from_str(&groth16_proof.public_inputs[0]).unwrap();
+                                        let committed_values_digest =
+                                            BigUint::from_str(&groth16_proof.public_inputs[1]).unwrap();
+
+                                        let pub_inputs = &[Fr::from(vkey_hash), Fr::from(committed_values_digest)];
+
+                                        let res = gnark_bn254_verifier::verify(
+                                            &raw_proof,
+                                            &SP1_VK,
+                                            pub_inputs,
+                                            gnark_bn254_verifier::ProvingSystem::Groth16,
+                                        );
+                                    }
+
                                     match self.client.verify(&finalized_epoch.proof, &self.verifying_key) {
                                         Ok(_) => info!("zkSNARK for epoch {} was validated successfully", finalized_epoch.height),
                                         Err(err) => panic!("failed to validate epoch at height {}: {:?}", finalized_epoch.height, err),

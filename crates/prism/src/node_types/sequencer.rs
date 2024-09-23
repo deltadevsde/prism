@@ -80,6 +80,18 @@ impl Sequencer {
         let prover_client = ProverClient::new();
 
         let (pk, vk) = prover_client.setup(PRISM_ELF);
+        let serialized_vk = bincode::serialize(&vk).expect("Failed to serialize verifying key");
+        if std::path::Path::new("/Users/distractedm1nd/Programming/Prism/prism/elf/program_vk.bin")
+            .exists()
+        {
+            warn!("File elf/program_vk.bin already exists. Skipping write.");
+        } else {
+            std::fs::write(
+                "/Users/distractedm1nd/Programming/Prism/prism/elf/program_vk.bin",
+                serialized_vk,
+            )
+            .expect("Failed to write verifying key to file");
+        }
 
         Ok(Sequencer {
             db: db.clone(),
