@@ -11,7 +11,7 @@ use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::{
-    hashchain::Hashchain,
+    hashchain::{Hashchain, HashchainEntry},
     operation::{CreateAccountArgs, KeyOperationArgs, Operation, ServiceChallengeInput},
 };
 
@@ -205,7 +205,7 @@ impl InsertProof {
             value,
         )?;
 
-        self.value.validate()?;
+        self.value.verify_last_entry()?;
 
         Ok(())
     }
@@ -217,29 +217,43 @@ pub struct UpdateProof {
     pub new_root: RootHash,
 
     pub key: KeyHash,
-    pub new_value: Hashchain,
+    pub old_value: Hashchain,
+    pub new_entry: HashchainEntry,
 
-    pub proof: UpdateMerkleProof<Hasher>,
+    /// Inclusion proof of [`old_value`]
+    pub inclusion_proof: SparseMerkleProof<Hasher>,
+    /// Update proof for [`key`] to be updated with [`new_entry`]
+    pub update_proof: UpdateMerkleProof<Hasher>,
 }
 
 impl UpdateProof {
     pub fn verify(&self) -> Result<()> {
-        let new_value = bincode::serialize(&self.new_value)?;
+        // Verify existence of old value.
+        // Otherwise, any arbitrary hashchain could be set
+        let old_value = bincode::serialize(&self.old_value)?;
+        self.inclusion_proof
+            .verify_existence(self.old_root, self.key, old_value)?;
 
-        self.proof.clone().verify_update(
+        // Append the new entry and verify it's validity
+        let new_hashchain = self.old_value.insert_unsafe(self.new_entry.clone());
+        new_hashchain.verify_last_entry()?;
+
+        // Ensure the update proof corresponds to the new hashchain value
+        let new_value = bincode::serialize(&new_hashchain)?;
+        self.update_proof.clone().verify_update(
             self.old_root,
             self.new_root,
             vec![(self.key, Some(new_value))],
         )?;
 
-        self.new_value.validate()
+        Ok(())
     }
 }
 
 pub trait SnarkableTree {
     fn process_operation(&mut self, operation: &Operation) -> Result<Proof>;
     fn insert(&mut self, key: KeyHash, value: Hashchain) -> Result<InsertProof>;
-    fn update(&mut self, key: KeyHash, value: Hashchain) -> Result<UpdateProof>;
+    fn update(&mut self, key: KeyHash, value: HashchainEntry) -> Result<UpdateProof>;
     fn get(&self, key: KeyHash) -> Result<Result<Hashchain, NonMembershipProof>>;
 }
 
@@ -323,10 +337,10 @@ where
                     .get(key_hash)?
                     .map_err(|_| anyhow!("Failed to get hashchain for ID {}", id))?;
 
-                current_chain.perform_operation(operation.clone())?;
+                let new_entry = current_chain.perform_operation(operation.clone())?;
 
                 debug!("updating hashchain for user id {}", id.clone());
-                let proof = self.update(key_hash, current_chain.clone())?;
+                let proof = self.update(key_hash, new_entry.clone())?;
 
                 Ok(Proof::Update(proof))
             }
@@ -401,17 +415,21 @@ where
         })
     }
 
-    fn update(&mut self, key: KeyHash, value: Hashchain) -> Result<UpdateProof> {
-        let serialized_value = Self::serialize_value(&value)?;
-
+    fn update(&mut self, key: KeyHash, new_entry: HashchainEntry) -> Result<UpdateProof> {
         let old_root = self.get_current_root()?;
-        let (old_value, _) = self.jmt.get_with_proof(key, self.epoch)?;
+        let (old_value, inclusion_proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         if old_value.is_none() {
             bail!("Key does not exist");
         }
 
-        let (new_root, proof, tree_update_batch) = self.jmt.put_value_set_with_proof(
+        let old_value: Hashchain = bincode::deserialize(old_value.unwrap().as_slice())?;
+        let new_hashchain = old_value.insert_unsafe(new_entry.clone());
+        new_hashchain.verify_last_entry()?;
+
+        let serialized_value = Self::serialize_value(&new_hashchain)?;
+
+        let (new_root, update_proof, tree_update_batch) = self.jmt.put_value_set_with_proof(
             vec![(key, Some(serialized_value.clone()))],
             self.epoch + 1,
         )?;
@@ -421,9 +439,11 @@ where
         Ok(UpdateProof {
             old_root,
             new_root,
+            inclusion_proof,
+            old_value,
             key,
-            new_value: value,
-            proof,
+            new_entry,
+            update_proof,
         })
     }
 

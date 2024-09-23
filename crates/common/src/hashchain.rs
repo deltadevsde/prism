@@ -67,77 +67,77 @@ impl Hashchain {
         }
     }
 
-    pub fn validate(&self) -> Result<()> {
-        let mut valid_keys: HashSet<PublicKey> = HashSet::new();
-
-        for (index, entry) in self.entries.iter().enumerate() {
-            self.validate_entry(index, entry, &valid_keys)?;
-            self.update_valid_keys(&entry.operation, &mut valid_keys);
+    pub fn verify_last_entry(&self) -> Result<()> {
+        if self.entries.is_empty() {
+            return Ok(());
         }
 
-        Ok(())
-    }
+        let mut valid_keys: HashSet<PublicKey> = HashSet::new();
 
-    fn validate_entry(
-        &self,
-        index: usize,
-        entry: &HashchainEntry,
-        valid_keys: &HashSet<PublicKey>,
-    ) -> Result<()> {
-        match &entry.operation {
+        for (index, entry) in self.entries.iter().enumerate().take(self.entries.len() - 1) {
+            match &entry.operation {
+                Operation::CreateAccount(args) => {
+                    if index != 0 {
+                        bail!("CreateAccount operation must be the first entry");
+                    }
+                    valid_keys.insert(args.value.clone());
+                }
+                Operation::AddKey(args) => {
+                    valid_keys.insert(args.value.clone());
+                }
+                Operation::RevokeKey(args) => {
+                    valid_keys.remove(&args.value);
+                }
+            }
+        }
+
+        let last_entry = self.entries.last().unwrap();
+        let last_index = self.entries.len() - 1;
+        if last_index > 0 {
+            let prev_entry = &self.entries[last_index - 1];
+            if last_entry.previous_hash != prev_entry.hash {
+                bail!("Previous hash mismatch for the last entry");
+            }
+        }
+
+        match &last_entry.operation {
             Operation::CreateAccount(args) => {
-                if index != 0 {
+                if last_index != 0 {
                     bail!("CreateAccount operation must be the first entry");
                 }
                 self.verify_signature(
                     &args.value,
-                    &bincode::serialize(&entry.operation.without_signature())?,
+                    &bincode::serialize(&last_entry.operation.without_signature())?,
                     &args.signature,
                 )?;
             }
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
                 let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
-                if !valid_keys.contains(&signing_key) {
-                    bail!("Operation signed with revoked or non-existent key");
+                if !valid_keys.contains(signing_key) {
+                    bail!("Last operation signed with revoked or non-existent key");
                 }
                 self.verify_signature(
-                    &signing_key,
-                    &bincode::serialize(&entry.operation.without_signature())?,
+                    signing_key,
+                    &bincode::serialize(&last_entry.operation.without_signature())?,
                     &args.signature.signature,
                 )?;
             }
         }
+
         Ok(())
     }
 
-    fn update_valid_keys(&self, operation: &Operation, valid_keys: &mut HashSet<PublicKey>) {
-        match operation {
-            Operation::CreateAccount(args) => {
-                valid_keys.insert(args.value.clone());
-            }
-            Operation::AddKey(args) => {
-                valid_keys.insert(args.value.clone());
-            }
-            Operation::RevokeKey(args) => {
-                valid_keys.remove(&args.value);
-            }
-        }
+    pub(crate) fn insert_unsafe(&self, new_entry: HashchainEntry) -> Hashchain {
+        let mut new = self.clone();
+        new.entries.push(new_entry);
+        new
     }
 
-    pub fn get_key_at_index(&self, idx: usize) -> Result<PublicKey> {
-        let hc_entry: Option<&HashchainEntry> = self.entries.get(idx);
-
-        if let Some(entry) = hc_entry {
-            match entry.operation.get_public_key() {
-                Some(key) => {
-                    return Ok(key);
-                }
-                None => {
-                    bail!("Key at index {idx} does not exist");
-                }
-            }
-        }
-        Err(anyhow!("No hashchain entry found at idx {idx}"))
+    pub fn get_key_at_index(&self, idx: usize) -> Result<&PublicKey> {
+        self.entries
+            .get(idx)
+            .and_then(|entry| entry.operation.get_public_key())
+            .ok_or_else(|| anyhow!("No valid public key found at index {}", idx))
     }
 
     pub fn get_valid_keys(&self) -> HashSet<PublicKey> {
@@ -231,7 +231,7 @@ impl Hashchain {
                 }
 
                 let message = bincode::serialize(&operation.without_signature())?;
-                self.verify_signature(&signing_key, &message, &args.signature.signature)
+                self.verify_signature(signing_key, &message, &args.signature.signature)
             }
             Operation::CreateAccount(args) => {
                 let message = bincode::serialize(&operation.without_signature())?;
