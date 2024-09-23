@@ -45,7 +45,7 @@ async fn main() -> std::io::Result<()> {
 
             let sequencer_pubkey = config.verifying_key.and_then(|s| {
                 engine
-                    .decode(&s)
+                    .decode(s)
                     .map_err(|e| error!("Failed to decode base64 string: {}", e))
                     .ok()
                     .and_then(|bytes| {

@@ -4974,7 +4974,6 @@ name = "prism-errors"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "ed25519-dalek",
  "thiserror",
 ]
 
