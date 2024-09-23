@@ -2,8 +2,7 @@ use crate::{DataAvailabilityLayer, FinalizedEpoch};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
-use celestia_types::{blob::GasPrice, nmt::Namespace, Blob};
-use log::{debug, error, trace, warn};
+use celestia_types::{nmt::Namespace, Blob, TxConfig};
 use prism_common::operation::Operation;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use serde::{Deserialize, Serialize};
@@ -15,6 +14,7 @@ use std::{
     },
 };
 use tokio::{sync::broadcast, task::spawn};
+use log::{trace, debug, warn, error};
 
 use bincode;
 
@@ -120,18 +120,21 @@ impl DataAvailabilityLayer for CelestiaConnection {
         trace!("searching for epoch on da layer at height {}", height);
 
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
-            Ok(blobs) => blobs
-                .into_iter()
-                .next()
-                .map(|blob| {
-                    FinalizedEpoch::try_from(&blob).map_err(|_| {
-                        anyhow!(GeneralError::ParsingError(format!(
-                            "marshalling blob from height {} to epoch json: {:?}",
-                            height, &blob
-                        )))
+            Ok(maybe_blobs) => match maybe_blobs {
+                Some(blobs) => blobs
+                    .into_iter()
+                    .next()
+                    .map(|blob| {
+                        FinalizedEpoch::try_from(&blob).map_err(|_| {
+                            anyhow!(GeneralError::ParsingError(format!(
+                                "marshalling blob from height {} to epoch json: {:?}",
+                                height, &blob
+                            )))
+                        })
                     })
-                })
-                .transpose(),
+                    .transpose(),
+                None => Ok(None),
+            },
             Err(err) => {
                 if err.to_string().contains("blob: not found") {
                     Ok(None)
@@ -160,21 +163,27 @@ impl DataAvailabilityLayer for CelestiaConnection {
         })?;
 
         self.client
-            .blob_submit(&[blob], GasPrice::from(-1.0))
+            .blob_submit(&[blob], TxConfig::default())
             .await
             .map_err(|e| anyhow!(DataAvailabilityError::SubmissionError(e.to_string())))
     }
 
     async fn get_operations(&self, height: u64) -> Result<Vec<Operation>> {
         trace!("searching for operations on da layer at height {}", height);
-        let blobs = BlobClient::blob_get_all(&self.client, height, &[self.operation_namespace])
-            .await
-            .map_err(|e| {
-                anyhow!(DataAvailabilityError::DataRetrievalError(
-                    height,
-                    e.to_string()
-                ))
-            })?;
+        let maybe_blobs =
+            BlobClient::blob_get_all(&self.client, height, &[self.operation_namespace])
+                .await
+                .map_err(|e| {
+                    anyhow!(DataAvailabilityError::DataRetrievalError(
+                        height,
+                        e.to_string()
+                    ))
+                })?;
+
+        let blobs = match maybe_blobs {
+            Some(blobs) => blobs,
+            None => return Ok(vec![]),
+        };
 
         let operations = blobs
             .iter()
@@ -223,7 +232,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
         }
 
         self.client
-            .blob_submit(&blobs, GasPrice::from(-1.0))
+            .blob_submit(&blobs, TxConfig::default())
             .await
             .map_err(|e| anyhow!(DataAvailabilityError::SubmissionError(e.to_string())))
     }
@@ -246,6 +255,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                     Ok(extended_header) => {
                         let height = extended_header.header.height.value();
                         sync_target.store(height, Ordering::Relaxed);
+                        // todo: correct error handling
                         let _ = height_update_tx.send(height);
                         debug!("updated sync target for height {}", height);
                     }

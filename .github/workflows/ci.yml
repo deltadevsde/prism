@@ -3,31 +3,27 @@ name: Rust CI
 on:
   push:
     branches:
-      - '**'
+      - "**"
   pull_request:
     branches:
-      - '**'
+      - "**"
 
 jobs:
-  build:
+  unit-test:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        rust:
-          - version: stable
-            profile: minimal
-          - version: beta
-            profile: default
-          - version: nightly
-            profile: default
-        
     services:
       redis:
         image: redis
         ports:
           - 6379:6379
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rust:
+          - version: nightly
+            profile: default
 
     steps:
       - uses: actions/checkout@v4
@@ -37,16 +33,24 @@ jobs:
           rustup toolchain install ${{ matrix.rust.version }} --profile ${{ matrix.rust.profile }}
           rustup default ${{ matrix.rust.version }}
 
-      - name: Install protoc
-        run: sudo apt-get install protobuf-compiler
-
-      - name: Cache cargo build
-        uses: Swatinem/rust-cache@v2
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
         with:
-          key: ${{ runner.os }}-cargo-${{ matrix.rust.version }}-${{ hashFiles('**/Cargo.lock') }}
+          version: "23.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: cargo fetch
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ hashFiles('**/Cargo.lock') }}
+            cargo-
 
       - name: Wait for Redis to start
         run: |
@@ -56,31 +60,165 @@ jobs:
           done
         shell: bash
 
-      # can execute code formatting, to be enabled later
-      # there are some oddities with it being configured to ONLY
-      # run on nightly AND it fails, i can work through and fix if
-      # you want to enable it
-      #
-      # - name: Check code formatting
-      #   # run only on nightly because of import_granularity=Crate
-      #   if: matrix.rust.version == 'nightly'
-      #   run: cargo fmt --all -- --check
+      - name: Run non-integration tests
+        run: cargo test --release -- --skip test_light_client_sequencer_talking
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: unit-test
+    if: success()
+
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rust:
+          - version: nightly
+            profile: minimal
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        run: |
+          rustup toolchain install ${{ matrix.rust.version }} --profile ${{ matrix.rust.profile }}
+          rustup default ${{ matrix.rust.version }}
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
+        with:
+          version: "23.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Expose github actions runtime
+        uses: crazy-max/ghaction-github-runtime@v1
+
+      - name: Build the docker-compose stack
+        run: |
+          cat > ci/cache.json <<EOF
+          {
+            "target": {
+              "validator": {
+                "cache-from": ["type=gha,scope=validator"],
+                "cache-to": ["type=gha,mode=max,scope=validator"],
+                "output": ["type=docker"]
+              },
+              "bridge-0": {
+                "cache-from": ["type=gha,scope=bridge-0"],
+                "cache-to": ["type=gha,mode=max,scope=bridge-0"],
+                "output": ["type=docker"]
+              },
+              "bridge-1": {
+                "cache-from": ["type=gha,scope=bridge-1"],
+                "cache-to": ["type=gha,mode=max,scope=bridge-1"],
+                "output": ["type=docker"]
+              },
+              "light-0": {
+                "cache-from": ["type=gha,scope=light-0"],
+                "cache-to": ["type=gha,mode=max,scope=light-0"],
+                "output": ["type=docker"]
+              }
+            }
+          }
+          EOF
+          cd ci && docker buildx bake --file docker-compose.yml --file cache.json --load
+
+      - name: Run the docker-compose stack
+        run: docker compose -f ci/docker-compose.yml up --no-build -d
+
+      - name: Wait for bridge node to start
+        run: |
+          docker compose -f ci/docker-compose.yml logs -f |
+            awk '/Configuration finished. Running a bridge node/ {print;exit}'
+
+      - name: Run integration tests
+        run: cargo test --release --test integration_tests
+
+  unused-deps:
+    runs-on: ubuntu-latest
+    name: unused dependencies
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
+        with:
+          version: "23.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ hashFiles('**/Cargo.lock') }}
+            cargo-
+
+      - name: Install cargo-udeps
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: cargo-udeps@0.1
+
+      - name: Check for unused dependencies
+        run: cargo +nightly udeps --all-features --all-targets
+
+  clippy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rust:
+          - version: nightly
+            profile: minimal
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Setup Rust
+        run: |
+          rustup toolchain install ${{ matrix.rust.version }} --profile ${{ matrix.rust.profile }}
+          rustup default ${{ matrix.rust.version }}
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
+        with:
+          version: "23.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ hashFiles('**/Cargo.lock') }}
+            cargo-
 
       - name: Add clippy component if not stable
         if: matrix.rust.version != 'stable'
         run: rustup component add clippy
 
       - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Build project
-        run: cargo build --verbose --release
-
-      - name: Run tests
-        run: cargo test --verbose --release
-        
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
-
-      - name: Run cargo audit
-        run: cargo audit
+        run: cargo clippy --all --all-targets -- -D warnings

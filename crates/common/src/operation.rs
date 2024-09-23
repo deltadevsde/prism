@@ -77,11 +77,11 @@ impl Operation {
         }
     }
 
-    pub fn get_public_key(&self) -> Option<PublicKey> {
+    pub fn get_public_key(&self) -> Option<&PublicKey> {
         match self {
-            Operation::AddKey(args) => Some(args.value.clone()),
-            Operation::RevokeKey(args) => Some(args.value.clone()),
-            Operation::CreateAccount(args) => Some(args.value.clone()),
+            Operation::AddKey(args) => Some(&args.value),
+            Operation::RevokeKey(args) => Some(&args.value),
+            Operation::CreateAccount(args) => Some(&args.value),
         }
     }
 
