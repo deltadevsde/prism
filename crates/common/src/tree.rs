@@ -82,16 +82,6 @@ impl Digest {
     }
 }
 
-// serializer and deserializer for rocksdb
-// converts from bytearrays into digests
-// padds it with zero if it is too small
-impl <const N: usize> From<[u8; N]> for Digest {
-    fn from(value: [u8; N]) -> Self {
-        let mut digest = [0u8; 32];
-        digest[..N].copy_from_slice(&value);
-        Self(digest)
-    }
-}
 
 
 // implementing it for now to get things to compile, curve choice will be made later
