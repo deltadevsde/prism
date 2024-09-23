@@ -3,12 +3,6 @@ use async_trait::async_trait;
 use ed25519_dalek::SigningKey;
 
 use jmt::KeyHash;
-use prism_common::{
-    hashchain::Hashchain,
-    tree::{
-        hash, Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree,
-    },
-};
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 
@@ -21,7 +15,14 @@ use crate::{
     storage::Database,
     webserver::WebServer,
 };
-use prism_common::operation::Operation;
+use prism_common::{
+    hashchain::Hashchain,
+    operation::Operation,
+    tree::{
+        hash, Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree,
+    },
+};
+use prism_errors::DataAvailabilityError;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -50,7 +51,11 @@ pub struct Sequencer {
 #[async_trait]
 impl NodeType for Sequencer {
     async fn start(self: Arc<Self>) -> Result<()> {
-        self.da.start().await.context("Failed to start DA layer")?;
+        self.da
+            .start()
+            .await
+            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))
+            .context("Failed to start DataAvailabilityLayer")?;
 
         let main_loop = self.clone().main_loop();
         let batch_poster = self.clone().post_batch_loop();

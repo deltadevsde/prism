@@ -50,12 +50,10 @@ sha2 = { workspace = true }
 auto_impl = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-errors = { workspace = true }
-prism-groth16 = { workspace = true }
 sp1-sdk = { workspace = true }
 
 [dev-dependencies]
 serial_test = "3.1.1"
-criterion = "0.5.1"
 
 [[test]]
 name = "integration_tests"

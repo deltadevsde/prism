@@ -41,15 +41,10 @@ impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: CelestiaConfig,
-        sequencer_pubkey: Option<String>,
+        sequencer_pubkey: Option<VerifyingKey>,
     ) -> LightClient {
         let client = ProverClient::new();
         let (_, verifying_key) = client.setup(PRISM_ELF);
-
-        let sequencer_pubkey = sequencer_pubkey.map(|s| {
-            // TODO: Graceful error handling
-            VerifyingKey::from_bytes(&hex::decode(s).unwrap().try_into().unwrap()).unwrap()
-        });
 
         LightClient {
             da,
