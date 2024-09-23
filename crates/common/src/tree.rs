@@ -87,6 +87,7 @@ impl Digest {
 // padds it with zero if it is too small
 impl <const N: usize> From<[u8; N]> for Digest {
     fn from(value: [u8; N]) -> Self {
+        assert!(N <= 32, "Input array must not exceed 32 bytes");
         let mut digest = [0u8; 32];
         digest[..N].copy_from_slice(&value);
         Self(digest)
