@@ -6,13 +6,12 @@ use prism_errors::{DatabaseError, PrismError};
 
 #[auto_impl(&, Box, Arc)]
 pub trait Database: Send + Sync + TreeReader + TreeWriter {
-    fn get_commitment(&self, epoch: &u64) -> Result<String>;
+    fn get_commitment(&self, epoch: &u64) -> Result<Digest>;
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()>;
 
     fn get_epoch(&self) -> Result<u64>;
     fn set_epoch(&self, epoch: &u64) -> Result<()>;
 
-    #[cfg(test)]
     fn flush_database(&self) -> Result<()>;
 }
 

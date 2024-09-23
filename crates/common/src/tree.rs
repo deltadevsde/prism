@@ -72,21 +72,27 @@ impl SimpleHasher for Hasher {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
-pub struct Digest([u8; 32]);
+pub struct Digest(pub [u8; 32]);
 
-impl From<&[u8]> for Digest {
-    fn from(data: &[u8]) -> Self {
+impl Digest {
+    pub fn hash(data: impl AsRef<[u8]>) -> Self {
         let mut hasher = Hasher::new();
-        hasher.update(data);
+        hasher.update(data.as_ref());
         Self(hasher.finalize())
     }
 }
 
-impl From<&Digest> for [u8; 32] {
-    fn from(value: &Digest) -> Self {
-        value.0
+// serializer and deserializer for rocksdb
+// converts from bytearrays into digests
+// padds it with zero if it is too small
+impl <const N: usize> From<[u8; N]> for Digest {
+    fn from(value: [u8; N]) -> Self {
+        let mut digest = [0u8; 32];
+        digest[..N].copy_from_slice(&value);
+        Self(digest)
     }
 }
+
 
 // implementing it for now to get things to compile, curve choice will be made later
 impl TryFrom<Digest> for Scalar {
@@ -319,7 +325,7 @@ where
         match operation {
             Operation::AddKey(KeyOperationArgs { id, .. })
             | Operation::RevokeKey(KeyOperationArgs { id, .. }) => {
-                let hashed_id: Digest = id.as_bytes().into();
+                let hashed_id = Digest::hash(id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 let mut current_chain = self
@@ -340,7 +346,7 @@ where
                 service_id,
                 challenge,
             }) => {
-                let hashed_id: Digest = id.as_bytes().into();
+                let hashed_id = Digest::hash(id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 match &challenge {

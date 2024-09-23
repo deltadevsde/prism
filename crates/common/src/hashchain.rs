@@ -283,7 +283,7 @@ impl HashchainEntry {
         let mut data = Vec::new();
         data.extend_from_slice(operation.to_string().as_bytes());
         data.extend_from_slice(previous_hash.as_ref());
-        let hash: Digest = data.as_slice().into();
+        let hash = Digest::hash(data);
 
         Self {
             hash,

@@ -154,14 +154,17 @@ impl TreeWriter for RedisConnection {
 }
 
 impl Database for RedisConnection {
-    fn get_commitment(&self, epoch: &u64) -> Result<String> {
+    fn get_commitment(&self, epoch: &u64) -> Result<Digest> {
         let mut con = self.lock_connection()?;
-        let value = con
+        let redis_value = con
             .get::<&str, String>(&format!("commitments:epoch_{}", epoch))
             .map_err(|_| {
                 DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
             })?;
-        Ok(value.trim_matches('"').to_string())
+
+        // storing hashes into
+        let value = redis_value.trim_matches('"').as_bytes();
+        Ok(Digest(value.try_into().unwrap()))
     }
 
     fn get_epoch(&self) -> Result<u64> {
@@ -178,19 +181,15 @@ impl Database for RedisConnection {
 
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()> {
         let mut con = self.lock_connection()?;
-        con.set::<&String, &String, ()>(
-            &format!("commitments:epoch_{}", epoch),
-            &commitment.to_string(),
-        )
-        .map_err(|_| {
-            anyhow!(DatabaseError::WriteError(format!(
-                "commitment for epoch: {}",
-                epoch
-            )))
-        })
+        con.set::<&String, &[u8; 32], ()>(&format!("commitments:epoch_{}", epoch), &commitment.0)
+            .map_err(|_| {
+                anyhow!(DatabaseError::WriteError(format!(
+                    "commitment for epoch: {}",
+                    epoch
+                )))
+            })
     }
 
-    #[cfg(test)]
     fn flush_database(&self) -> Result<()> {
         let mut conn = self.lock_connection()?;
         redis::cmd("FLUSHALL")

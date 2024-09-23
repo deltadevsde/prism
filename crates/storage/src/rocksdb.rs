@@ -4,41 +4,46 @@ use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
 };
+use prism_common::tree::Digest;
 use prism_errors::DatabaseError;
-use rocksdb::{DBWithThreadMode, Error, MultiThreaded, DB};
+use rocksdb::{DBWithThreadMode, MultiThreaded, Options, DB};
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
 pub struct RocksDBConnection {
     connection: RocksDB,
+    path: String,
 }
 
 impl RocksDBConnection {
-    pub fn new(path: &str) -> Result<RocksDBConnection, Error> {
+    pub fn new(path: &str) -> Result<RocksDBConnection> {
         let db = DB::open_default(path)?;
 
-        Ok(Self { connection: db })
+        Ok(Self {
+            connection: db,
+            path: path.to_string(),
+        })
     }
 }
 
 impl Database for RocksDBConnection {
-    fn get_commitment(&self, epoch: &u64) -> anyhow::Result<String> {
+    fn get_commitment(&self, epoch: &u64) -> anyhow::Result<Digest> {
         let key = format!("commitments:epoch_{}", epoch);
-        let value = self.connection.get(key.as_bytes())?.ok_or_else(|| {
+        let raw_bytes = self.connection.get(key.as_bytes())?.ok_or_else(|| {
             DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
         })?;
 
-        Ok(String::from_utf8(value)?)
+        let value: [u8; 32] = raw_bytes
+            .try_into()
+            .expect("commitment digest should always be 32 bytes");
+
+        Ok(Digest(value))
     }
 
-    fn set_commitment(
-        &self,
-        epoch: &u64,
-        commitment: &prism_common::tree::Digest,
-    ) -> anyhow::Result<()> {
+    fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> anyhow::Result<()> {
         Ok(self.connection.put::<&[u8], [u8; 32]>(
             format!("commitments:epoch_{}", epoch).as_bytes(),
-            commitment.into(),
+            commitment.0,
         )?)
     }
 
@@ -57,9 +62,8 @@ impl Database for RocksDBConnection {
             .put(b"app_state:epoch", epoch.to_be_bytes())?)
     }
 
-    #[cfg(test)]
     fn flush_database(&self) -> Result<()> {
-        todo!()
+        Ok(DB::destroy(&Options::default(), &self.path)?)
     }
 }
 
@@ -99,12 +103,11 @@ mod tests {
         let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
 
         let epoch = 1;
-        let commitment = "some_commitment";
-        db.set_commitment(&epoch, &Digest::from(commitment.as_bytes()))
-            .unwrap();
+        let commitment = Digest::from([0u8; 32]);
+        db.set_commitment(&epoch, &commitment).unwrap();
 
         let result = db.get_commitment(&epoch).unwrap();
-        assert_eq!(result, commitment.to_string());
+        assert_eq!(result, commitment);
     }
 
     #[test]
@@ -113,12 +116,11 @@ mod tests {
         let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
 
         let epoch = 1;
-        let commitment = "some_commitment";
-        db.set_commitment(&epoch, &Digest::from(commitment.as_bytes()))
-            .unwrap();
+        let commitment = Digest::from([0u8; 32]);
+        db.set_commitment(&epoch, &commitment).unwrap();
 
         let result = db.get_commitment(&epoch).unwrap();
-        assert_eq!(result, commitment.to_string());
+        assert_eq!(result, commitment);
     }
 
     #[test]
