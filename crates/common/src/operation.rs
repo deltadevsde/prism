@@ -41,6 +41,12 @@ impl PublicKey {
     }
 }
 
+impl From<SigningKey> for PublicKey {
+    fn from(sk: SigningKey) -> Self {
+        PublicKey::Ed25519(sk.verifying_key().to_bytes().to_vec())
+    }
+}
+
 impl From<VerifyingKey> for PublicKey {
     fn from(vk: VerifyingKey) -> Self {
         PublicKey::Ed25519(vk.to_bytes().to_vec())
@@ -59,12 +65,21 @@ impl TryFrom<String> for PublicKey {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 /// Represents a signature bundle, which includes the index of the key
 /// in the user's hashchain and the associated signature.
 pub struct SignatureBundle {
     pub key_idx: u64,       // Index of the key in the hashchain
     pub signature: Vec<u8>, // The actual signature
+}
+
+impl SignatureBundle {
+    pub fn empty_with_idx(idx: u64) -> Self {
+        SignatureBundle {
+            key_idx: idx,
+            signature: vec![],
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -109,6 +124,12 @@ pub enum ServiceChallenge {
     Signed(PublicKey),
 }
 
+impl From<SigningKey> for ServiceChallenge {
+    fn from(sk: SigningKey) -> Self {
+        ServiceChallenge::Signed(PublicKey::Ed25519(sk.verifying_key().as_bytes().to_vec()))
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Common structure for operations involving keys (adding or revoking).
 pub struct KeyOperationArgs {
@@ -118,6 +139,90 @@ pub struct KeyOperationArgs {
 }
 
 impl Operation {
+    pub fn new_create_account(
+        id: String,
+        signing_key: &SigningKey,
+        service_id: String,
+        service_signer: &SigningKey,
+    ) -> Result<Self> {
+        let mut op = Operation::CreateAccount(CreateAccountArgs {
+            id: id.to_string(),
+            value: signing_key.clone().verifying_key().into(),
+            service_id,
+            challenge: ServiceChallengeInput::Signed(Vec::new()),
+            signature: Vec::new(),
+        });
+
+        op.insert_signature(signing_key)
+            .expect("Inserting signature into operation should succeed");
+
+        let msg = bincode::serialize(&op).unwrap();
+        let service_challenge = service_signer.sign(&msg);
+
+        match op {
+            Operation::CreateAccount(ref mut args) => {
+                args.challenge =
+                    ServiceChallengeInput::Signed(service_challenge.to_bytes().to_vec());
+            }
+            _ => panic!("Operation should be CreateAccount"),
+        };
+        Ok(op)
+    }
+
+    pub fn new_register_service(id: String, creation_gate: ServiceChallenge) -> Self {
+        Operation::RegisterService(RegisterServiceArgs { id, creation_gate })
+    }
+
+    pub fn new_add_key(
+        id: String,
+        value: PublicKey,
+        signing_key: &SigningKey,
+        key_idx: u64,
+    ) -> Result<Self> {
+        let op_to_sign = Operation::AddKey(KeyOperationArgs {
+            id: id.clone(),
+            value: value.clone(),
+            signature: SignatureBundle::empty_with_idx(key_idx),
+        });
+
+        let message = bincode::serialize(&op_to_sign)?;
+        let signature = SignatureBundle {
+            key_idx,
+            signature: signing_key.sign(&message).to_vec(),
+        };
+
+        Ok(Operation::AddKey(KeyOperationArgs {
+            id,
+            value,
+            signature,
+        }))
+    }
+
+    pub fn new_revoke_key(
+        id: String,
+        value: PublicKey,
+        signing_key: &SigningKey,
+        key_idx: u64,
+    ) -> Result<Self> {
+        let op_to_sign = Operation::RevokeKey(KeyOperationArgs {
+            id: id.clone(),
+            value: value.clone(),
+            signature: SignatureBundle::empty_with_idx(key_idx),
+        });
+
+        let message = bincode::serialize(&op_to_sign)?;
+        let signature = SignatureBundle {
+            key_idx,
+            signature: signing_key.sign(&message).to_vec(),
+        };
+
+        Ok(Operation::RevokeKey(KeyOperationArgs {
+            id,
+            value,
+            signature,
+        }))
+    }
+
     pub fn id(&self) -> String {
         match self {
             Operation::CreateAccount(args) => args.id.clone(),
@@ -138,11 +243,7 @@ impl Operation {
         match self {
             Operation::AddKey(args) => Some(args.signature.clone()),
             Operation::RevokeKey(args) => Some(args.signature.clone()),
-            Operation::CreateAccount(args) => Some(SignatureBundle {
-                key_idx: 0,
-                signature: args.signature.clone(),
-            }),
-            Operation::RegisterService(_) => None,
+            Operation::RegisterService(_) | Operation::CreateAccount(_) => None,
         }
     }
 
@@ -202,6 +303,22 @@ impl Operation {
                 id: args.id.clone(),
                 creation_gate: args.creation_gate.clone(),
             }),
+        }
+    }
+
+    pub fn verify_user_signature(&self, pubkey: PublicKey) -> Result<()> {
+        match self {
+            Operation::RegisterService(_) => Ok(()),
+            Operation::CreateAccount(args) => {
+                let message = bincode::serialize(&self.without_signature().without_challenge())
+                    .context("User signature failed")?;
+                args.value.verify_signature(&message, &args.signature)
+            }
+            Operation::AddKey(args) | Operation::RevokeKey(args) => {
+                let message = bincode::serialize(&self.without_signature())
+                    .context("User signature failed")?;
+                pubkey.verify_signature(&message, &args.signature.signature)
+            }
         }
     }
 

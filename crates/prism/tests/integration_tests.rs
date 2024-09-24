@@ -25,7 +25,7 @@ use tokio::{spawn, time::Duration};
 fn create_random_user(id: &str, signing_key: SigningKey) -> Operation {
     let mut op = Operation::CreateAccount(CreateAccountArgs {
         id: id.to_string(),
-        value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
+        value: signing_key.clone().into(),
         service_id: "test_service".to_string(),
         signature: Vec::new(),
         challenge: ServiceChallengeInput::Signed(vec![]),
