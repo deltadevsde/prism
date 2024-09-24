@@ -411,92 +411,11 @@ impl Sequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::ed25519::signature::Signer;
     use keystore_rs::create_signing_key;
-    use prism_common::{
-        operation::{
-            CreateAccountArgs, KeyOperationArgs, PublicKey, RegisterServiceArgs, ServiceChallenge,
-            ServiceChallengeInput, SignatureBundle,
-        },
-        test_utils::create_mock_signing_key,
-    };
+    use prism_common::{operation::PublicKey, test_utils::create_mock_signing_key};
     use prism_da::memory::InMemoryDataAvailabilityLayer;
     use prism_storage::{redis::RedisConfig, RedisConnection};
     use serial_test::serial;
-
-    fn create_service(id: &str, signing_key: SigningKey) -> Operation {
-        Operation::RegisterService(RegisterServiceArgs {
-            id: id.to_string(),
-            creation_gate: ServiceChallenge::Signed(PublicKey::Ed25519(
-                signing_key.verifying_key().to_bytes().to_vec(),
-            )),
-        })
-    }
-
-    fn create_random_user(
-        id: &str,
-        signing_key: SigningKey,
-        service_id: &str,
-        service_sk: SigningKey,
-    ) -> Operation {
-        let mut op = Operation::CreateAccount(CreateAccountArgs {
-            id: id.to_string(),
-            value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
-            service_id: service_id.to_string(),
-            challenge: ServiceChallengeInput::Signed(vec![]),
-            signature: Vec::new(),
-        });
-
-        op.insert_signature(&signing_key)
-            .expect("Inserting signature into operation should succeed");
-
-        let msg = bincode::serialize(&op).unwrap();
-        let service_challenge = service_sk.sign(&msg);
-
-        match &mut op {
-            Operation::CreateAccount(ref mut args) => {
-                args.challenge =
-                    ServiceChallengeInput::Signed(service_challenge.to_bytes().to_vec());
-            }
-            _ => panic!("Operation should be CreateAccount"),
-        }
-
-        op
-    }
-
-    fn add_key(id: &str, key_idx: u64, new_key: PublicKey, signing_key: SigningKey) -> Operation {
-        let mut op = Operation::AddKey(KeyOperationArgs {
-            id: id.to_string(),
-            value: new_key.clone(),
-            signature: SignatureBundle {
-                key_idx,
-                signature: Vec::new(),
-            },
-        });
-
-        op.insert_signature(&signing_key)
-            .expect("Inserting signature into operation should succeed");
-        op
-    }
-
-    fn revoke_key(
-        id: &str,
-        key_idx: u64,
-        key_to_revoke: PublicKey,
-        signing_key: SigningKey,
-    ) -> Operation {
-        let mut op = Operation::RevokeKey(KeyOperationArgs {
-            id: id.to_string(),
-            value: key_to_revoke.clone(),
-            signature: SignatureBundle {
-                key_idx,
-                signature: Vec::new(),
-            },
-        });
-        op.insert_signature(&signing_key)
-            .expect("Inserting signature into operation should succeed");
-        op
-    }
 
     // Helper function to set up redis connection and flush database before each test
     fn setup_db() -> RedisConnection {
@@ -527,7 +446,8 @@ mod tests {
         let sequencer = create_test_sequencer().await;
 
         let service_key = create_mock_signing_key();
-        let op = create_service("service_id", service_key.clone());
+        let op =
+            Operation::new_register_service("service_id".to_string(), service_key.clone().into());
 
         sequencer
             .clone()
@@ -553,16 +473,18 @@ mod tests {
         let sequencer = create_test_sequencer().await;
 
         let signing_key = create_mock_signing_key();
-        let original_pubkey = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
+        let original_pubkey = signing_key.clone().into();
         let service_key = create_mock_signing_key();
 
-        let register_service_op = create_service("service_id", service_key.clone());
-        let create_account_op = create_random_user(
-            "test@example.com",
-            signing_key.clone(),
-            "service_id",
-            service_key.clone(),
-        );
+        let register_service_op =
+            Operation::new_register_service("service_id".to_string(), service_key.clone().into());
+        let create_account_op = Operation::new_create_account(
+            "test@example.com".to_string(),
+            &signing_key,
+            "service_id".to_string(),
+            &service_key,
+        )
+        .unwrap();
 
         let proof = sequencer
             .process_operation(&register_service_op)
@@ -577,15 +499,19 @@ mod tests {
         assert!(matches!(proof, Proof::Insert(_)));
 
         let new_key = create_mock_signing_key();
-        let pubkey = PublicKey::Ed25519(new_key.verifying_key().to_bytes().to_vec());
-        let add_key_op = add_key("test@example.com", 0, pubkey, signing_key);
+        let pubkey = new_key.clone().into();
+        let add_key_op =
+            Operation::new_add_key("test@example.com".to_string(), pubkey, &signing_key, 0)
+                .unwrap();
 
         let proof = sequencer.process_operation(&add_key_op).await.unwrap();
 
         assert!(matches!(proof, Proof::Update(_)));
 
         // Revoke original key
-        let revoke_op = revoke_key("test@example.com", 1, original_pubkey, new_key);
+        let revoke_op =
+            Operation::new_revoke_key("test@example.com".to_string(), original_pubkey, &new_key, 1)
+                .unwrap();
         let proof = sequencer.process_operation(&revoke_op).await.unwrap();
         assert!(matches!(proof, Proof::Update(_)));
 
@@ -599,29 +525,27 @@ mod tests {
 
         let signing_key_1 = create_mock_signing_key();
         let signing_key_2 = create_mock_signing_key();
-        let new_key = PublicKey::Ed25519(
-            create_mock_signing_key()
-                .verifying_key()
-                .to_bytes()
-                .to_vec(),
-        );
+        let new_key = create_mock_signing_key().into();
         let service_key = create_mock_signing_key();
 
         let operations = vec![
-            create_service("service_id", service_key.clone()),
-            create_random_user(
-                "user1@example.com",
-                signing_key_1.clone(),
-                "service_id",
-                service_key.clone(),
-            ),
-            create_random_user(
-                "user2@example.com",
-                signing_key_2,
-                "service_id",
-                service_key.clone(),
-            ),
-            add_key("user1@example.com", 0, new_key, signing_key_1),
+            Operation::new_register_service("service_id".to_string(), service_key.clone().into()),
+            Operation::new_create_account(
+                "user1@example.com".to_string(),
+                &signing_key_1,
+                "service_id".to_string(),
+                &service_key,
+            )
+            .unwrap(),
+            Operation::new_create_account(
+                "user2@example.com".to_string(),
+                &signing_key_2,
+                "service_id".to_string(),
+                &service_key,
+            )
+            .unwrap(),
+            Operation::new_add_key("user1@example.com".to_string(), new_key, &signing_key_1, 0)
+                .unwrap(),
         ];
 
         let proofs = sequencer.execute_block(operations).await.unwrap();
@@ -646,20 +570,23 @@ mod tests {
         let service_key = create_mock_signing_key();
 
         let operations = vec![
-            create_service("service_id", service_key.clone()),
-            create_random_user(
-                "user1@example.com",
-                signing_key_1.clone(),
-                "service_id",
-                service_key.clone(),
-            ),
-            create_random_user(
-                "user2@example.com",
-                signing_key_2,
-                "service_id",
-                service_key.clone(),
-            ),
-            add_key("user1@example.com", 0, new_key, signing_key_1),
+            Operation::new_register_service("service_id".to_string(), service_key.clone().into()),
+            Operation::new_create_account(
+                "user1@example.com".to_string(),
+                &signing_key_1,
+                "service_id".to_string(),
+                &service_key,
+            )
+            .unwrap(),
+            Operation::new_create_account(
+                "user2@example.com".to_string(),
+                &signing_key_2,
+                "service_id".to_string(),
+                &service_key,
+            )
+            .unwrap(),
+            Operation::new_add_key("user1@example.com".to_string(), new_key, &signing_key_1, 0)
+                .unwrap(),
         ];
 
         let prev_commitment = sequencer.get_commitment().await.unwrap();

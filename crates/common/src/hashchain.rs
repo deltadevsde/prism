@@ -62,7 +62,42 @@ impl DerefMut for Hashchain {
 }
 
 impl Hashchain {
-    pub fn new(id: String) -> Self {
+    pub fn from_operation(operation: Operation) -> Result<Self> {
+        let mut hc = Hashchain::empty(operation.id());
+        hc.perform_operation(operation)?;
+        Ok(hc)
+    }
+
+    pub fn create_account(
+        id: String,
+        value: PublicKey,
+        signature: Vec<u8>,
+        service_id: String,
+        challenge: ServiceChallengeInput,
+    ) -> Result<Hashchain> {
+        let mut hc = Hashchain::empty(id.clone());
+        let operation = Operation::CreateAccount(CreateAccountArgs {
+            id,
+            signature,
+            value,
+            service_id,
+            challenge,
+        });
+        hc.perform_operation(operation)?;
+        Ok(hc)
+    }
+
+    pub fn register_service(id: String, challenge: ServiceChallenge) -> Result<Hashchain> {
+        let mut hc = Hashchain::empty(id.clone());
+        let operation = Operation::RegisterService(RegisterServiceArgs {
+            id,
+            creation_gate: challenge,
+        });
+        hc.perform_operation(operation)?;
+        Ok(hc)
+    }
+
+    pub fn empty(id: String) -> Self {
         Self {
             id,
             entries: Vec::new(),
@@ -193,31 +228,6 @@ impl Hashchain {
         self.entries.iter_mut()
     }
 
-    pub fn register_service(&mut self, challenge: ServiceChallenge) -> Result<HashchainEntry> {
-        let operation = Operation::RegisterService(RegisterServiceArgs {
-            id: self.id.clone(),
-            creation_gate: challenge,
-        });
-        self.push(operation)
-    }
-
-    pub fn create_account(
-        &mut self,
-        value: PublicKey,
-        signature: Vec<u8>,
-        service_id: String,
-        challenge: ServiceChallengeInput,
-    ) -> Result<HashchainEntry> {
-        let operation = Operation::CreateAccount(CreateAccountArgs {
-            id: self.id.clone(),
-            signature,
-            value,
-            service_id,
-            challenge,
-        });
-        self.push(operation)
-    }
-
     pub fn get(&self, idx: usize) -> &HashchainEntry {
         &self.entries[idx]
     }
@@ -243,6 +253,7 @@ impl Hashchain {
         self.push(operation)
     }
 
+    /// Verifies the structure and signature of a new operation without checking if the key is revoked.
     fn validate_new_operation(&self, operation: &Operation) -> Result<()> {
         match operation {
             Operation::RegisterService(_) => {
@@ -258,13 +269,13 @@ impl Hashchain {
                     bail!("The signing key is revoked");
                 }
 
-                let message = bincode::serialize(&operation.without_signature())?;
-                signing_key.verify_signature(&message, &args.signature.signature)
+                operation.verify_user_signature(signing_key.clone())
             }
             Operation::CreateAccount(args) => {
-                let message =
-                    bincode::serialize(&operation.without_signature().without_challenge())?;
-                args.value.verify_signature(&message, &args.signature)
+                if !self.entries.is_empty() {
+                    bail!("RegisterService operation must be the first entry");
+                }
+                operation.verify_user_signature(args.value.clone())
             }
         }
     }

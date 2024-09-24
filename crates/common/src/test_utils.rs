@@ -1,13 +1,10 @@
 use crate::{
-    hashchain::{Hashchain, HashchainEntry},
-    operation::{
-        CreateAccountArgs, KeyOperationArgs, Operation, PublicKey, ServiceChallenge,
-        ServiceChallengeInput, SignatureBundle,
-    },
-    tree::{Digest, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
+    hashchain::Hashchain,
+    operation::{Operation, PublicKey, ServiceChallenge},
+    tree::{InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
-use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
+use ed25519_dalek::{SigningKey, VerifyingKey};
 use jmt::{mock::MockTreeStore, KeyHash};
 use rand::{rngs::StdRng, Rng};
 use std::{
@@ -44,12 +41,11 @@ impl TestTreeState {
     pub fn register_service(&mut self, service_id: String) -> Service {
         let service_key = create_mock_signing_key();
 
-        let mut hashchain = Hashchain::new(service_id.clone());
-        hashchain
-            .register_service(ServiceChallenge::Signed(PublicKey::Ed25519(
-                service_key.as_bytes().to_vec(),
-            )))
-            .unwrap();
+        let hashchain = Hashchain::register_service(
+            service_id.clone(),
+            ServiceChallenge::from(service_key.clone()),
+        )
+        .unwrap();
 
         let key_hash = hashchain.get_keyhash();
 
@@ -104,34 +100,15 @@ impl TestTreeState {
 
     pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {
         let signing_key_to_add = create_mock_signing_key();
-        let pub_key = PublicKey::Ed25519(signing_key_to_add.verifying_key().to_bytes().to_vec());
-        let operation_to_sign = Operation::AddKey(KeyOperationArgs {
-            id: account.hashchain.id.clone(),
-            value: pub_key.clone(),
-            signature: SignatureBundle {
-                key_idx: 0,
-                signature: Vec::new(),
-            },
-        });
+        let pub_key: PublicKey = signing_key_to_add.into();
+        let op = Operation::new_add_key(
+            account.hashchain.id.clone(),
+            pub_key.clone(),
+            self.signing_keys.get(&account.hashchain.id).unwrap(),
+            0,
+        )?;
 
-        let message = bincode::serialize(&operation_to_sign)?;
-        let signature = SignatureBundle {
-            key_idx: 0,
-            signature: self
-                .signing_keys
-                .get(&account.hashchain.id)
-                .unwrap()
-                .sign(&message)
-                .to_vec(),
-        };
-
-        let operation = Operation::AddKey(KeyOperationArgs {
-            id: account.hashchain.id.clone(),
-            value: pub_key,
-            signature,
-        });
-
-        account.hashchain.perform_operation(operation).unwrap();
+        account.hashchain.perform_operation(op).unwrap();
         Ok(())
     }
 }
@@ -190,25 +167,13 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
     let verifying_key = signing_key.verifying_key();
     let public_key = PublicKey::Ed25519(verifying_key.to_bytes().to_vec());
 
-    let mut operation = Operation::AddKey(KeyOperationArgs {
-        id: hc.id.clone(),
-        value: public_key.clone(),
-        signature: SignatureBundle {
-            key_idx: 0,
-            signature: Vec::new(),
-        },
-    });
-
     let signer = state
         .signing_keys
         .get(&hc.id)
         .ok_or_else(|| anyhow::anyhow!("Signing key not found for hashchain"))
         .unwrap();
 
-    operation
-        .insert_signature(signer)
-        .expect("Inserting signature into operation should succeed");
-
+    let operation = Operation::new_add_key(hc.id.clone(), public_key.clone(), signer, 0).unwrap();
     hc.perform_operation(operation)
         .expect("Adding to hashchain should succeed");
 
@@ -218,69 +183,12 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         .expect("Update should succeed")
 }
 
-pub fn create_mock_signature(signing_key: &SigningKey, message: &[u8]) -> SignatureBundle {
-    let signature = signing_key.sign(message);
-    SignatureBundle {
-        key_idx: 0,
-        signature: signature.to_bytes().to_vec(),
-    }
-}
-
 pub fn create_mock_signing_key() -> SigningKey {
     SigningKey::generate(&mut rand::thread_rng())
 }
 
 pub fn create_new_hashchain(id: &str, signing_key: &SigningKey, service: Service) -> Hashchain {
-    let mut hc = Hashchain::new(id.to_string());
-    let public_key = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
-
-    let mut op = Operation::CreateAccount(CreateAccountArgs {
-        id: id.to_string(),
-        value: public_key.clone(),
-        service_id: service.id,
-        challenge: ServiceChallengeInput::Signed(Vec::new()),
-        signature: Vec::new(),
-    });
-
-    op.insert_signature(signing_key)
-        .expect("Inserting signature into operation should succeed");
-
-    let msg = bincode::serialize(&op).unwrap();
-    let service_challenge = service.sk.sign(&msg);
-
-    match op {
-        Operation::CreateAccount(ref mut args) => {
-            args.challenge = ServiceChallengeInput::Signed(service_challenge.to_bytes().to_vec());
-        }
-        _ => panic!("Operation should be CreateAccount"),
-    }
-
-    hc.perform_operation(op).unwrap();
-    hc
-}
-
-pub fn create_mock_chain_entry(signing_key: &SigningKey, previous_hash: Digest) -> HashchainEntry {
-    let operation = Operation::AddKey(KeyOperationArgs {
-        id: "test_id".to_string(),
-        value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
-        signature: create_mock_signature(signing_key, b"test_id"),
-    });
-
-    HashchainEntry::new(operation, previous_hash)
-}
-
-pub fn create_add_key_operation_with_test_value(id: &str, signing_key: &SigningKey) -> Operation {
-    let mut op = Operation::AddKey(KeyOperationArgs {
-        id: id.to_string(),
-        value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
-        signature: SignatureBundle {
-            key_idx: 0,
-            signature: Vec::new(),
-        },
-    });
-
-    op.insert_signature(signing_key)
-        .expect("Inserting signature into operation should succeed");
-
-    op
+    let op = Operation::new_create_account(id.to_string(), signing_key, service.id, &service.sk)
+        .unwrap();
+    Hashchain::from_operation(op.clone()).unwrap()
 }

@@ -394,13 +394,14 @@ where
 
                 let ServiceChallenge::Signed(service_pubkey) = creation_gate;
 
-                let mut new_account_chain = Hashchain::new(id.clone());
-                let new_account_entry = new_account_chain.create_account(
+                let new_account_chain = Hashchain::create_account(
+                    id.clone(),
                     value.clone(),
                     signature.clone(),
                     service_id.clone(),
                     challenge.clone(),
                 )?;
+                let new_account_entry = new_account_chain.last().unwrap();
 
                 let ServiceChallengeInput::Signed(challenge_signature) = &challenge;
                 service_pubkey.verify_signature(
@@ -439,8 +440,7 @@ where
                 }
 
                 debug!("creating new hashchain for service id {}", id);
-                let mut chain = Hashchain::new(id.clone());
-                chain.register_service(creation_gate.clone())?;
+                let chain = Hashchain::register_service(id.clone(), creation_gate.clone())?;
 
                 Ok(Proof::Insert(
                     self.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,

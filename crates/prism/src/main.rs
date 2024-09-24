@@ -38,16 +38,12 @@ async fn main() -> std::io::Result<()> {
                 )
             })?;
 
-            let sequencer_pubkey: Option<PublicKey> =
-                config.verifying_key.and_then(|s| s.try_into().ok());
-
-            let sequencer_vk: Option<VerifyingKey> = match sequencer_pubkey {
-                Some(pk) => {
-                    let vk = VerifyingKey::from_bytes(pk.as_bytes().try_into().unwrap()).unwrap();
-                    Some(vk)
-                }
-                None => None,
-            };
+            let sequencer_vk = config
+                .verifying_key
+                .and_then(|s| s.try_into().ok())
+                .and_then(|pk: PublicKey| {
+                    VerifyingKey::from_bytes(pk.as_bytes().try_into().unwrap()).ok()
+                });
 
             Arc::new(LightClient::new(da, celestia_config, sequencer_vk))
         }
