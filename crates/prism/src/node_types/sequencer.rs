@@ -343,11 +343,11 @@ impl Sequencer {
         let client = self.prover_client.read().await;
 
         info!("generating proof for epoch height {}", height);
-        #[cfg(not(feature = "plonk"))]
+        #[cfg(not(feature = "groth16"))]
         let proof = client.prove(&self.proving_key, stdin).run()?;
 
-        #[cfg(feature = "plonk")]
-        let proof = client.prove(&self.proving_key, stdin).plonk().run()?;
+        #[cfg(feature = "groth16")]
+        let proof = client.prove(&self.proving_key, stdin).groth16().run()?;
         info!("successfully generated proof for epoch height {}", height);
 
         client.verify(&proof, &self.verifying_key)?;
