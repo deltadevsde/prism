@@ -7,11 +7,11 @@ use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;
 use ed25519_dalek::VerifyingKey;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
+use prism_common::operation::PublicKey;
+
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
 use prism_storage::RedisConnection;
 use std::sync::Arc;
-
-use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 
 #[macro_use]
 extern crate log;
@@ -38,25 +38,18 @@ async fn main() -> std::io::Result<()> {
                 )
             })?;
 
-            let sequencer_pubkey = config.verifying_key.and_then(|s| {
-                engine
-                    .decode(s)
-                    .map_err(|e| error!("Failed to decode base64 string: {}", e))
-                    .ok()
-                    .and_then(|bytes| {
-                        bytes
-                            .try_into()
-                            .map_err(|e| error!("Failed to convert bytes into [u8; 32]: {:?}", e))
-                            .ok()
-                    })
-                    .and_then(|array| {
-                        VerifyingKey::from_bytes(&array)
-                            .map_err(|e| error!("Failed to create VerifyingKey: {}", e))
-                            .ok()
-                    })
-            });
+            let sequencer_pubkey: Option<PublicKey> =
+                config.verifying_key.and_then(|s| s.try_into().ok());
 
-            Arc::new(LightClient::new(da, celestia_config, sequencer_pubkey))
+            let sequencer_vk: Option<VerifyingKey> = match sequencer_pubkey {
+                Some(pk) => {
+                    let vk = VerifyingKey::from_bytes(pk.as_bytes().try_into().unwrap()).unwrap();
+                    Some(vk)
+                }
+                None => None,
+            };
+
+            Arc::new(LightClient::new(da, celestia_config, sequencer_vk))
         }
         Commands::Sequencer {} => {
             let redis_config = config.clone().redis_config.ok_or_else(|| {

@@ -163,7 +163,17 @@ pub fn create_pp() -> PublicParams<PallasEngine> {
     type E1 = PallasEngine;
 
     let mut test_tree = TestTreeState::default();
-    let mut account = test_tree.create_account("publicparams".to_string());
+
+    let service = test_tree.register_service("service_1".to_string());
+    let mut account = test_tree.create_account("publicparams".to_string(), service.clone());
+
+    test_tree
+        .tree
+        .insert(
+            service.registration.key_hash,
+            service.registration.hashchain.clone(),
+        )
+        .unwrap();
 
     let insert_proof = test_tree
         .tree

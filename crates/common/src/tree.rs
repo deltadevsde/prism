@@ -8,12 +8,17 @@ use jmt::{
 };
 use prism_errors::DatabaseError;
 use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
-use std::convert::{From, Into};
-use std::sync::Arc;
+use std::{
+    convert::{From, Into},
+    sync::Arc,
+};
 
 use crate::{
     hashchain::{Hashchain, HashchainEntry},
-    operation::{CreateAccountArgs, KeyOperationArgs, Operation, ServiceChallengeInput},
+    operation::{
+        CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs, ServiceChallenge,
+        ServiceChallengeInput,
+    },
 };
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
@@ -85,7 +90,7 @@ impl Digest {
 // serializer and deserializer for rocksdb
 // converts from bytearrays into digests
 // padds it with zero if it is too small
-impl <const N: usize> From<[u8; N]> for Digest {
+impl<const N: usize> From<[u8; N]> for Digest {
     fn from(value: [u8; N]) -> Self {
         assert!(N <= 32, "Input array must not exceed 32 bytes");
         let mut digest = [0u8; 32];
@@ -93,7 +98,6 @@ impl <const N: usize> From<[u8; N]> for Digest {
         Self(digest)
     }
 }
-
 
 // implementing it for now to get things to compile, curve choice will be made later
 impl TryFrom<Digest> for Scalar {
@@ -362,11 +366,69 @@ where
                 challenge,
             }) => {
                 let hashed_id = Digest::hash(id);
-                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+                let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
 
-                match &challenge {
-                    ServiceChallengeInput::Signed(_) => debug!("Signature verification for service challenge gate not yet implemented. Skipping verification.")
+                // Verify that the account doesn't already exist
+                if self.get(account_key_hash)?.is_ok() {
+                    bail!(DatabaseError::NotFoundError(format!(
+                        "Account already exists for ID {}",
+                        id
+                    )));
+                }
+
+                let service_key_hash = KeyHash::with::<Hasher>(Digest::hash(service_id.as_bytes()));
+                let service_hashchain = self.get(service_key_hash)?.map_err(|_| {
+                    anyhow!("Failed to get hashchain for service ID {}", service_id)
+                })?;
+
+                let service_last_entry = service_hashchain.last().ok_or(anyhow!(
+                    "Service hashchain is empty, could not retrieve challenge key"
+                ))?;
+
+                let creation_gate = match &service_last_entry.operation {
+                    Operation::RegisterService(args) => &args.creation_gate,
+                    _ => {
+                        bail!("Service hashchain's last entry was not a RegisterService operation")
+                    }
                 };
+
+                let ServiceChallenge::Signed(service_pubkey) = creation_gate;
+
+                let mut new_account_chain = Hashchain::new(id.clone());
+                let new_account_entry = new_account_chain.create_account(
+                    value.clone(),
+                    signature.clone(),
+                    service_id.clone(),
+                    challenge.clone(),
+                )?;
+
+                let ServiceChallengeInput::Signed(challenge_signature) = &challenge;
+                service_pubkey.verify_signature(
+                    &bincode::serialize(&new_account_entry.operation.without_challenge())?,
+                    challenge_signature,
+                )?;
+
+                value.verify_signature(
+                    &bincode::serialize(
+                        &new_account_entry
+                            .operation
+                            .without_challenge()
+                            .without_signature(),
+                    )?,
+                    signature,
+                )?;
+
+                debug!("Creating new hashchain for user ID {}", id);
+
+                Ok(Proof::Insert(
+                    self.insert(account_key_hash, new_account_chain)?,
+                ))
+            }
+            Operation::RegisterService(RegisterServiceArgs {
+                id, creation_gate, ..
+            }) => {
+                let hashed_id = Digest::hash(id);
+                let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 // hashchain should not already exist
                 if self.get(key_hash)?.is_ok() {
@@ -376,14 +438,9 @@ where
                     )));
                 }
 
-                debug!("creating new hashchain for user id {}", id);
+                debug!("creating new hashchain for service id {}", id);
                 let mut chain = Hashchain::new(id.clone());
-                chain.create_account(
-                    value.clone(),
-                    signature.clone(),
-                    service_id.clone(),
-                    challenge.clone(),
-                )?;
+                chain.register_service(creation_gate.clone())?;
 
                 Ok(Proof::Insert(
                     self.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,
@@ -482,7 +539,13 @@ mod tests {
     #[test]
     fn test_insert_and_get() {
         let mut tree_state = TestTreeState::default();
-        let account = tree_state.create_account("key_1".to_string());
+        let service = tree_state.register_service("service_1".to_string());
+        let account = tree_state.create_account("key_1".to_string(), service.clone());
+
+        let insert_proof = tree_state
+            .insert_account(service.registration.clone())
+            .unwrap();
+        assert!(insert_proof.verify().is_ok());
 
         let insert_proof = tree_state.insert_account(account.clone()).unwrap();
         assert!(insert_proof.verify().is_ok());
@@ -494,7 +557,13 @@ mod tests {
     #[test]
     fn test_insert_duplicate_key() {
         let mut tree_state = TestTreeState::default();
-        let account = tree_state.create_account("key_1".to_string());
+        let service = tree_state.register_service("service_1".to_string());
+        let account = tree_state.create_account("key_1".to_string(), service.clone());
+
+        let insert_proof = tree_state
+            .insert_account(service.registration.clone())
+            .unwrap();
+        assert!(insert_proof.verify().is_ok());
 
         tree_state.insert_account(account.clone()).unwrap();
 
@@ -506,7 +575,11 @@ mod tests {
     fn test_update_existing_key() {
         let mut tree_state = TestTreeState::default();
 
-        let mut account = tree_state.create_account("key_1".to_string());
+        let service = tree_state.register_service("service_1".to_string());
+        let mut account = tree_state.create_account("key_1".to_string(), service.clone());
+        tree_state
+            .insert_account(service.registration.clone())
+            .unwrap();
         tree_state.insert_account(account.clone()).unwrap();
 
         // Add a new key
@@ -523,7 +596,11 @@ mod tests {
     #[test]
     fn test_update_non_existing_key() {
         let mut tree_state = TestTreeState::default();
-        let account = tree_state.create_account("key_1".to_string());
+        let service = tree_state.register_service("service_1".to_string());
+        let account = tree_state.create_account("key_1".to_string(), service.clone());
+        tree_state
+            .insert_account(service.registration.clone())
+            .unwrap();
 
         let result = tree_state.update_account(account);
         assert!(result.is_err());
@@ -546,8 +623,11 @@ mod tests {
     fn test_multiple_inserts_and_updates() {
         let mut tree_state = TestTreeState::default();
 
-        let mut account1 = tree_state.create_account("key_1".to_string());
-        let mut account2 = tree_state.create_account("key_2".to_string());
+        let service = tree_state.register_service("service_1".to_string());
+        let mut account1 = tree_state.create_account("key_1".to_string(), service.clone());
+        let mut account2 = tree_state.create_account("key_2".to_string(), service.clone());
+
+        tree_state.insert_account(service.registration).unwrap();
 
         tree_state.insert_account(account1.clone()).unwrap();
         tree_state.insert_account(account2.clone()).unwrap();
@@ -570,8 +650,11 @@ mod tests {
     fn test_interleaved_inserts_and_updates() {
         let mut test_tree = TestTreeState::default();
 
-        let mut account_1 = test_tree.create_account("key_1".to_string());
-        let mut account_2 = test_tree.create_account("key_2".to_string());
+        let service = test_tree.register_service("service_1".to_string());
+        let mut account_1 = test_tree.create_account("key_1".to_string(), service.clone());
+        let mut account_2 = test_tree.create_account("key_2".to_string(), service.clone());
+
+        test_tree.insert_account(service.registration).unwrap();
 
         test_tree.insert_account(account_1.clone()).unwrap();
 
@@ -603,7 +686,10 @@ mod tests {
     #[test]
     fn test_root_hash_changes() {
         let mut tree_state = TestTreeState::default();
-        let account = tree_state.create_account("key_1".to_string());
+        let service = tree_state.register_service("service_1".to_string());
+        let account = tree_state.create_account("key_1".to_string(), service.clone());
+
+        tree_state.insert_account(service.registration).unwrap();
 
         let root_before = tree_state.tree.get_current_root().unwrap();
         tree_state
@@ -618,8 +704,11 @@ mod tests {
     #[test]
     fn test_batch_writing() {
         let mut tree_state = TestTreeState::default();
-        let account1 = tree_state.create_account("key_1".to_string());
-        let account2 = tree_state.create_account("key_2".to_string());
+        let service = tree_state.register_service("service_1".to_string());
+
+        let account1 = tree_state.create_account("key_1".to_string(), service.clone());
+        let account2 = tree_state.create_account("key_2".to_string(), service.clone());
+        tree_state.insert_account(service.registration).unwrap();
 
         println!("Inserting key1: {:?}", account1.key_hash);
         tree_state.insert_account(account1.clone()).unwrap();

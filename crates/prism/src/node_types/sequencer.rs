@@ -387,6 +387,7 @@ impl Sequencer {
 
         // validate operation against existing hashchain if necessary, including signature checks
         match incoming_operation {
+            Operation::RegisterService(_) => (),
             Operation::CreateAccount(_) => (),
             Operation::AddKey(_) | Operation::RevokeKey(_) => {
                 let hc = self.get_hashchain(&incoming_operation.id()).await?;
@@ -410,11 +411,12 @@ impl Sequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cfg::Config;
+    use ed25519_dalek::ed25519::signature::Signer;
     use keystore_rs::create_signing_key;
     use prism_common::{
         operation::{
-            CreateAccountArgs, KeyOperationArgs, PublicKey, ServiceChallengeInput, SignatureBundle,
+            CreateAccountArgs, KeyOperationArgs, PublicKey, RegisterServiceArgs, ServiceChallenge,
+            ServiceChallengeInput, SignatureBundle,
         },
         test_utils::create_mock_signing_key,
     };
@@ -422,17 +424,43 @@ mod tests {
     use prism_storage::{redis::RedisConfig, RedisConnection};
     use serial_test::serial;
 
-    fn create_random_user(id: &str, signing_key: SigningKey) -> Operation {
+    fn create_service(id: &str, signing_key: SigningKey) -> Operation {
+        Operation::RegisterService(RegisterServiceArgs {
+            id: id.to_string(),
+            creation_gate: ServiceChallenge::Signed(PublicKey::Ed25519(
+                signing_key.verifying_key().to_bytes().to_vec(),
+            )),
+        })
+    }
+
+    fn create_random_user(
+        id: &str,
+        signing_key: SigningKey,
+        service_id: &str,
+        service_sk: SigningKey,
+    ) -> Operation {
         let mut op = Operation::CreateAccount(CreateAccountArgs {
             id: id.to_string(),
             value: PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec()),
-            service_id: "test_service".to_string(),
-            signature: Vec::new(),
+            service_id: service_id.to_string(),
             challenge: ServiceChallengeInput::Signed(vec![]),
+            signature: Vec::new(),
         });
 
         op.insert_signature(&signing_key)
             .expect("Inserting signature into operation should succeed");
+
+        let msg = bincode::serialize(&op).unwrap();
+        let service_challenge = service_sk.sign(&msg);
+
+        match &mut op {
+            Operation::CreateAccount(ref mut args) => {
+                args.challenge =
+                    ServiceChallengeInput::Signed(service_challenge.to_bytes().to_vec());
+            }
+            _ => panic!("Operation should be CreateAccount"),
+        }
+
         op
     }
 
@@ -492,13 +520,20 @@ mod tests {
             Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
         )
     }
+
     #[tokio::test]
     #[serial]
     async fn test_validate_and_queue_update() {
         let sequencer = create_test_sequencer().await;
 
-        let signing_key = create_mock_signing_key();
-        let op = create_random_user("test@example.com", signing_key);
+        let service_key = create_mock_signing_key();
+        let op = create_service("service_id", service_key.clone());
+
+        sequencer
+            .clone()
+            .validate_and_queue_update(&op)
+            .await
+            .unwrap();
 
         sequencer
             .clone()
@@ -507,10 +542,11 @@ mod tests {
             .unwrap();
 
         let pending_ops = sequencer.pending_operations.read().await;
-        assert_eq!(pending_ops.len(), 1);
+        assert_eq!(pending_ops.len(), 2);
 
         teardown_db(sequencer.db.clone());
     }
+
     #[tokio::test]
     #[serial]
     async fn test_process_operation() {
@@ -518,7 +554,21 @@ mod tests {
 
         let signing_key = create_mock_signing_key();
         let original_pubkey = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
-        let create_account_op = create_random_user("test@example.com", signing_key.clone());
+        let service_key = create_mock_signing_key();
+
+        let register_service_op = create_service("service_id", service_key.clone());
+        let create_account_op = create_random_user(
+            "test@example.com",
+            signing_key.clone(),
+            "service_id",
+            service_key.clone(),
+        );
+
+        let proof = sequencer
+            .process_operation(&register_service_op)
+            .await
+            .unwrap();
+        assert!(matches!(proof, Proof::Insert(_)));
 
         let proof = sequencer
             .process_operation(&create_account_op)
@@ -541,6 +591,7 @@ mod tests {
 
         teardown_db(sequencer.db.clone());
     }
+
     #[tokio::test]
     #[serial]
     async fn test_execute_block() {
@@ -554,17 +605,31 @@ mod tests {
                 .to_bytes()
                 .to_vec(),
         );
+        let service_key = create_mock_signing_key();
+
         let operations = vec![
-            create_random_user("user1@example.com", signing_key_1.clone()),
-            create_random_user("user2@example.com", signing_key_2),
+            create_service("service_id", service_key.clone()),
+            create_random_user(
+                "user1@example.com",
+                signing_key_1.clone(),
+                "service_id",
+                service_key.clone(),
+            ),
+            create_random_user(
+                "user2@example.com",
+                signing_key_2,
+                "service_id",
+                service_key.clone(),
+            ),
             add_key("user1@example.com", 0, new_key, signing_key_1),
         ];
 
         let proofs = sequencer.execute_block(operations).await.unwrap();
-        assert_eq!(proofs.len(), 3);
+        assert_eq!(proofs.len(), 4);
 
         teardown_db(sequencer.db.clone());
     }
+
     #[tokio::test]
     #[serial]
     async fn test_finalize_new_epoch() {
@@ -578,9 +643,22 @@ mod tests {
                 .to_bytes()
                 .to_vec(),
         );
+        let service_key = create_mock_signing_key();
+
         let operations = vec![
-            create_random_user("user1@example.com", signing_key_1.clone()),
-            create_random_user("user2@example.com", signing_key_2),
+            create_service("service_id", service_key.clone()),
+            create_random_user(
+                "user1@example.com",
+                signing_key_1.clone(),
+                "service_id",
+                service_key.clone(),
+            ),
+            create_random_user(
+                "user2@example.com",
+                signing_key_2,
+                "service_id",
+                service_key.clone(),
+            ),
             add_key("user1@example.com", 0, new_key, signing_key_1),
         ];
 

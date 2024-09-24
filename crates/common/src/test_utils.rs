@@ -1,13 +1,13 @@
 use crate::{
     hashchain::{Hashchain, HashchainEntry},
     operation::{
-        CreateAccountArgs, KeyOperationArgs, Operation, PublicKey, ServiceChallengeInput,
-        SignatureBundle,
+        CreateAccountArgs, KeyOperationArgs, Operation, PublicKey, ServiceChallenge,
+        ServiceChallengeInput, SignatureBundle,
     },
     tree::{Digest, InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
-use ed25519_dalek::{Signer, SigningKey};
+use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use jmt::{mock::MockTreeStore, KeyHash};
 use rand::{rngs::StdRng, Rng};
 use std::{
@@ -19,6 +19,7 @@ pub struct TestTreeState {
     pub tree: KeyDirectoryTree<MockTreeStore>,
     pub signing_keys: HashMap<String, SigningKey>,
     inserted_keys: HashSet<KeyHash>,
+    pub services: HashMap<String, Service>,
 }
 
 #[derive(Clone)]
@@ -27,15 +28,46 @@ pub struct TestAccount {
     pub hashchain: Hashchain,
 }
 
+#[derive(Clone)]
+pub struct Service {
+    pub id: String,
+    pub sk: SigningKey,
+    pub vk: VerifyingKey,
+    pub registration: TestAccount,
+}
+
 impl TestTreeState {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn create_account(&mut self, key: String) -> TestAccount {
+    pub fn register_service(&mut self, service_id: String) -> Service {
+        let service_key = create_mock_signing_key();
+
+        let mut hashchain = Hashchain::new(service_id.clone());
+        hashchain
+            .register_service(ServiceChallenge::Signed(PublicKey::Ed25519(
+                service_key.as_bytes().to_vec(),
+            )))
+            .unwrap();
+
+        let key_hash = hashchain.get_keyhash();
+
+        Service {
+            id: service_id,
+            sk: service_key.clone(),
+            vk: service_key.verifying_key(),
+            registration: TestAccount {
+                key_hash,
+                hashchain,
+            },
+        }
+    }
+
+    pub fn create_account(&mut self, key: String, service: Service) -> TestAccount {
         let signing_key = create_mock_signing_key();
         self.signing_keys.insert(key.clone(), signing_key.clone());
-        let hashchain = create_mock_hashchain(key.as_str(), &signing_key);
+        let hashchain = create_new_hashchain(key.as_str(), &signing_key, service);
         let key_hash = hashchain.get_keyhash();
 
         TestAccount {
@@ -112,6 +144,7 @@ impl Default for TestTreeState {
             tree,
             inserted_keys: HashSet::new(),
             signing_keys: HashMap::new(),
+            services: HashMap::new(),
         }
     }
 }
@@ -122,7 +155,14 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
             .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
             .collect();
         let sk = create_mock_signing_key();
-        let hc = create_mock_hashchain(random_string.as_str(), &sk); //Hashchain::new(random_string);
+
+        let (_, service) = state
+            .services
+            .iter()
+            .nth(rng.gen_range(0..state.services.len()))
+            .unwrap();
+
+        let hc = create_new_hashchain(random_string.as_str(), &sk, service.clone()); //Hashchain::new(random_string);
         let key = hc.get_keyhash();
 
         if !state.inserted_keys.contains(&key) {
@@ -190,20 +230,30 @@ pub fn create_mock_signing_key() -> SigningKey {
     SigningKey::generate(&mut rand::thread_rng())
 }
 
-pub fn create_mock_hashchain(id: &str, signing_key: &SigningKey) -> Hashchain {
+pub fn create_new_hashchain(id: &str, signing_key: &SigningKey, service: Service) -> Hashchain {
     let mut hc = Hashchain::new(id.to_string());
     let public_key = PublicKey::Ed25519(signing_key.verifying_key().to_bytes().to_vec());
 
     let mut op = Operation::CreateAccount(CreateAccountArgs {
         id: id.to_string(),
         value: public_key.clone(),
-        signature: Vec::new(),
-        service_id: "test".to_string(),
+        service_id: service.id,
         challenge: ServiceChallengeInput::Signed(Vec::new()),
+        signature: Vec::new(),
     });
 
     op.insert_signature(signing_key)
         .expect("Inserting signature into operation should succeed");
+
+    let msg = bincode::serialize(&op).unwrap();
+    let service_challenge = service.sk.sign(&msg);
+
+    match op {
+        Operation::CreateAccount(ref mut args) => {
+            args.challenge = ServiceChallengeInput::Signed(service_challenge.to_bytes().to_vec());
+        }
+        _ => panic!("Operation should be CreateAccount"),
+    }
 
     hc.perform_operation(op).unwrap();
     hc
