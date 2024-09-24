@@ -1,7 +1,8 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
+use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bincode;
 use celestia_types::Blob;
-use ed25519_dalek::{Signer, SigningKey};
+use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
@@ -21,6 +22,40 @@ impl PublicKey {
             // PublicKey::Secp256k1(bytes) => bytes,
             // PublicKey::Curve25519(bytes) => bytes,
         }
+    }
+
+    pub fn verify_signature(&self, message: &[u8], signature: &[u8]) -> Result<()> {
+        match self {
+            PublicKey::Ed25519(bytes) => {
+                if signature.len() != 64 {
+                    return Err(anyhow!("Invalid signature length"));
+                }
+
+                let vk = VerifyingKey::from_bytes(bytes.as_slice().try_into()?)
+                    .map_err(|e| anyhow!(e))?;
+                let signature = Signature::from_bytes(signature.try_into()?);
+                vk.verify_strict(message, &signature)
+                    .map_err(|e| anyhow!(e))
+            }
+        }
+    }
+}
+
+impl From<VerifyingKey> for PublicKey {
+    fn from(vk: VerifyingKey) -> Self {
+        PublicKey::Ed25519(vk.to_bytes().to_vec())
+    }
+}
+
+impl TryFrom<String> for PublicKey {
+    type Error = anyhow::Error;
+
+    fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
+        let bytes = engine
+            .decode(&s)
+            .map_err(|e| anyhow!("Failed to decode base64 string: {}", e))?;
+
+        Ok(PublicKey::Ed25519(bytes.to_vec()))
     }
 }
 
@@ -48,6 +83,8 @@ pub enum Operation {
     AddKey(KeyOperationArgs),
     // Revokes a value from an existing account.
     RevokeKey(KeyOperationArgs),
+    // Registers a new service with the given id.
+    RegisterService(RegisterServiceArgs),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -58,6 +95,18 @@ pub struct CreateAccountArgs {
     pub signature: Vec<u8>,
     pub service_id: String,               // Associated service ID
     pub challenge: ServiceChallengeInput, // Challenge input for verification
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+/// Arguments for registering a new service.
+pub struct RegisterServiceArgs {
+    pub id: String,                      // Service ID
+    pub creation_gate: ServiceChallenge, // Challenge gate for access control
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub enum ServiceChallenge {
+    Signed(PublicKey),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -72,16 +121,16 @@ impl Operation {
     pub fn id(&self) -> String {
         match self {
             Operation::CreateAccount(args) => args.id.clone(),
-            Operation::AddKey(args) => args.id.clone(),
-            Operation::RevokeKey(args) => args.id.clone(),
+            Operation::AddKey(args) | Operation::RevokeKey(args) => args.id.clone(),
+            Operation::RegisterService(args) => args.id.clone(),
         }
     }
 
     pub fn get_public_key(&self) -> Option<&PublicKey> {
         match self {
-            Operation::AddKey(args) => Some(&args.value),
-            Operation::RevokeKey(args) => Some(&args.value),
+            Operation::RevokeKey(args) | Operation::AddKey(args) => Some(&args.value),
             Operation::CreateAccount(args) => Some(&args.value),
+            Operation::RegisterService(_) => None,
         }
     }
 
@@ -93,6 +142,7 @@ impl Operation {
                 key_idx: 0,
                 signature: args.signature.clone(),
             }),
+            Operation::RegisterService(_) => None,
         }
     }
 
@@ -105,8 +155,22 @@ impl Operation {
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
                 args.signature.signature = signature.to_bytes().to_vec()
             }
+            _ => unimplemented!("RegisterService sequencer gating not yet implemented"),
         }
         Ok(())
+    }
+
+    pub fn without_challenge(&self) -> Self {
+        match self {
+            Operation::CreateAccount(args) => Operation::CreateAccount(CreateAccountArgs {
+                id: args.id.clone(),
+                value: args.value.clone(),
+                signature: args.signature.clone(),
+                service_id: args.service_id.clone(),
+                challenge: ServiceChallengeInput::Signed(Vec::new()),
+            }),
+            _ => self.clone(),
+        }
     }
 
     pub fn without_signature(&self) -> Self {
@@ -134,6 +198,10 @@ impl Operation {
                 service_id: args.service_id.clone(),
                 challenge: args.challenge.clone(),
             }),
+            Operation::RegisterService(args) => Operation::RegisterService(RegisterServiceArgs {
+                id: args.id.clone(),
+                creation_gate: args.creation_gate.clone(),
+            }),
         }
     }
 
@@ -156,26 +224,27 @@ impl Operation {
 
                 Ok(())
             }
-            Operation::CreateAccount(CreateAccountArgs { id, .. }) => {
+            Operation::CreateAccount(CreateAccountArgs { id, challenge, .. }) => {
                 if id.is_empty() {
                     return Err(
                         GeneralError::MissingArgumentError("id is empty".to_string()).into(),
                     );
                 }
 
-                // match challenge {
-                //     ServiceChallengeInput::Signed(signature) => {
-                //         if signature.is_empty() {
-                //             return Err(GeneralError::MissingArgumentError(
-                //                 "challenge data is empty".to_string(),
-                //             )
-                //             .into());
-                //         }
-                //     }
-                // }
+                match challenge {
+                    ServiceChallengeInput::Signed(signature) => {
+                        if signature.is_empty() {
+                            return Err(GeneralError::MissingArgumentError(
+                                "challenge data is empty".to_string(),
+                            )
+                            .into());
+                        }
+                    }
+                }
 
                 Ok(())
             }
+            Operation::RegisterService(_) => Ok(()),
         }
     }
 }

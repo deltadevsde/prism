@@ -1,5 +1,4 @@
 use anyhow::{anyhow, bail, Result};
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use jmt::KeyHash;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -8,7 +7,10 @@ use std::{
 };
 
 use crate::{
-    operation::{CreateAccountArgs, Operation, PublicKey, ServiceChallengeInput},
+    operation::{
+        CreateAccountArgs, Operation, PublicKey, RegisterServiceArgs, ServiceChallenge,
+        ServiceChallengeInput,
+    },
     tree::{Digest, Hasher},
 };
 
@@ -76,6 +78,11 @@ impl Hashchain {
 
         for (index, entry) in self.entries.iter().enumerate().take(self.entries.len() - 1) {
             match &entry.operation {
+                Operation::RegisterService(_) => {
+                    if index != 0 {
+                        bail!("RegisterService operation must be the first entry");
+                    }
+                }
                 Operation::CreateAccount(args) => {
                     if index != 0 {
                         bail!("CreateAccount operation must be the first entry");
@@ -101,13 +108,20 @@ impl Hashchain {
         }
 
         match &last_entry.operation {
+            // TODO: RegisterService should not be permissionless at first, until we have state bloat metrics
+            Operation::RegisterService(_) => {
+                if last_index != 0 {
+                    bail!("RegisterService operation must be the first entry");
+                }
+            }
             Operation::CreateAccount(args) => {
                 if last_index != 0 {
                     bail!("CreateAccount operation must be the first entry");
                 }
-                self.verify_signature(
-                    &args.value,
-                    &bincode::serialize(&last_entry.operation.without_signature())?,
+                args.value.verify_signature(
+                    &bincode::serialize(
+                        &last_entry.operation.without_signature().without_challenge(),
+                    )?,
                     &args.signature,
                 )?;
             }
@@ -116,8 +130,7 @@ impl Hashchain {
                 if !valid_keys.contains(signing_key) {
                     bail!("Last operation signed with revoked or non-existent key");
                 }
-                self.verify_signature(
-                    signing_key,
+                signing_key.verify_signature(
                     &bincode::serialize(&last_entry.operation.without_signature())?,
                     &args.signature.signature,
                 )?;
@@ -145,6 +158,7 @@ impl Hashchain {
 
         for entry in self.entries.clone() {
             match &entry.operation {
+                Operation::RegisterService(_) => {}
                 Operation::CreateAccount(args) => {
                     valid_keys.insert(args.value.clone());
                 }
@@ -177,6 +191,14 @@ impl Hashchain {
 
     pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, HashchainEntry> {
         self.entries.iter_mut()
+    }
+
+    pub fn register_service(&mut self, challenge: ServiceChallenge) -> Result<HashchainEntry> {
+        let operation = Operation::RegisterService(RegisterServiceArgs {
+            id: self.id.clone(),
+            creation_gate: challenge,
+        });
+        self.push(operation)
     }
 
     pub fn create_account(
@@ -223,6 +245,12 @@ impl Hashchain {
 
     fn validate_new_operation(&self, operation: &Operation) -> Result<()> {
         match operation {
+            Operation::RegisterService(_) => {
+                if !self.entries.is_empty() {
+                    bail!("RegisterService operation must be the first entry");
+                }
+                Ok(())
+            }
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
                 let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
 
@@ -231,29 +259,14 @@ impl Hashchain {
                 }
 
                 let message = bincode::serialize(&operation.without_signature())?;
-                self.verify_signature(signing_key, &message, &args.signature.signature)
+                signing_key.verify_signature(&message, &args.signature.signature)
             }
             Operation::CreateAccount(args) => {
-                let message = bincode::serialize(&operation.without_signature())?;
-                self.verify_signature(&args.value, &message, &args.signature)
+                let message =
+                    bincode::serialize(&operation.without_signature().without_challenge())?;
+                args.value.verify_signature(&message, &args.signature)
             }
         }
-    }
-
-    pub fn verify_signature(
-        &self,
-        public_key: &PublicKey,
-        message: &[u8],
-        signature: &[u8],
-    ) -> Result<()> {
-        let PublicKey::Ed25519(key_bytes) = public_key;
-
-        let verifying_key = VerifyingKey::from_bytes(key_bytes.as_slice().try_into()?)?;
-        let signature = Signature::from_slice(signature)?;
-
-        verifying_key
-            .verify(message, &signature)
-            .map_err(|e| anyhow::anyhow!("Signature verification failed: {}", e))
     }
 
     pub fn get_keyhash(&self) -> KeyHash {
