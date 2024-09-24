@@ -85,6 +85,7 @@ secp256k1 = { git = "https://github.com/sp1-patches/rust-secp256k1", branch = "p
 [workspace.features]
 default = []
 test_utils = []
+mock_prover = []
 
 # [workspace.dev-dependencies]
 # serial_test = "3.1.1"

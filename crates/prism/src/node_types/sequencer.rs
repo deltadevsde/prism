@@ -82,7 +82,11 @@ impl Sequencer {
         let start_height = cfg.celestia_config.unwrap_or_default().start_height;
 
         let tree = Arc::new(RwLock::new(KeyDirectoryTree::new(db.clone())));
-        let prover_client = ProverClient::new();
+
+        #[cfg(feature = "mock_prover")]
+        let prover_client = ProverClient::mock();
+        #[cfg(not(feature = "mock_prover"))]
+        let prover_client = ProverClient::local();
 
         let (pk, vk) = prover_client.setup(PRISM_ELF);
 

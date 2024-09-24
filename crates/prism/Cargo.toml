@@ -11,6 +11,7 @@ repository.workspace = true
 default = []
 plonk = []
 test_utils = []
+mock_prover = []
 
 [dependencies]
 axum = { workspace = true }
