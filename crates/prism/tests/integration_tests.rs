@@ -159,7 +159,7 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
     let mut rx = lc_da_layer.clone().subscribe_to_heights();
     while let Ok(height) = rx.recv().await {
         debug!("received height {}", height);
-        if height == 100 {
+        if height >= 100 {
             break;
         }
     }
