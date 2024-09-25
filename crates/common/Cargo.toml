@@ -10,7 +10,6 @@ repository.workspace = true
 prism-errors.workspace = true
 anyhow.workspace = true
 bls12_381.workspace = true
-borsh.workspace = true
 jmt.workspace = true
 serde.workspace = true
 hex.workspace = true

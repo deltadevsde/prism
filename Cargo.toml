@@ -14,15 +14,22 @@ keywords = ["crypto", "key-transparency"]
 readme = "README.md"
 
 [workspace]
+default-members = [
+    "crates/prism",
+    "crates/common",
+    "crates/errors",
+    "crates/storage",
+    "crates/da",
+]
+
 members = [
     "crates/prism",
     "crates/common",
-    "crates/nova",
-    "crates/groth16",
     "crates/errors",
     "crates/sp1",
+    "crates/storage",
+    "crates/da",
 ]
-default-members = ["crates/prism", "crates/common", "crates/errors"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -72,10 +79,14 @@ secp256k1 = "0.29.0"
 sp1-zkvm = { version = "1.2.0" }
 sp1-sdk = { version = "1.2.0" }
 prism-common = { path = "crates/common" }
+prism-storage = { path = "crates/storage" }
 prism-nova = { path = "crates/nova" }
+prism-da = { path = "crates/da" }
 prism-errors = { path = "crates/errors" }
 prism-main = { path = "crates/prism" }
 prism-groth16 = { path = "crates/groth16" }
+rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
+
 
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.8" }

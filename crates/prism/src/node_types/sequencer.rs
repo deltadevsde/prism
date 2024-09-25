@@ -1,28 +1,20 @@
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use ed25519_dalek::SigningKey;
-
 use jmt::KeyHash;
+use prism_common::{
+    hashchain::Hashchain,
+    tree::{Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree},
+};
+use prism_errors::DataAvailabilityError;
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 
+use crate::{cfg::Config, node_types::NodeType, webserver::WebServer};
+use prism_common::operation::Operation;
+use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
+use prism_storage::Database;
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
-
-use crate::{
-    cfg::Config,
-    da::{DataAvailabilityLayer, FinalizedEpoch},
-    node_types::NodeType,
-    storage::Database,
-    webserver::WebServer,
-};
-use prism_common::{
-    hashchain::Hashchain,
-    operation::Operation,
-    tree::{
-        hash, Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree,
-    },
-};
-use prism_errors::DataAvailabilityError;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -373,7 +365,7 @@ impl Sequencer {
         id: &String,
     ) -> Result<Result<Hashchain, NonMembershipProof>> {
         let tree = self.tree.read().await;
-        let hashed_id = hash(id.as_bytes());
+        let hashed_id = Digest::hash(id);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
         tree.get(key_hash)
@@ -418,11 +410,7 @@ impl Sequencer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        cfg::{Config, RedisConfig},
-        da::memory::InMemoryDataAvailabilityLayer,
-        storage::RedisConnection,
-    };
+    use crate::cfg::Config;
     use keystore_rs::create_signing_key;
     use prism_common::{
         operation::{
@@ -430,6 +418,8 @@ mod tests {
         },
         test_utils::create_mock_signing_key,
     };
+    use prism_da::memory::InMemoryDataAvailabilityLayer;
+    use prism_storage::{redis::RedisConfig, RedisConnection};
     use serial_test::serial;
 
     fn create_random_user(id: &str, signing_key: SigningKey) -> Operation {
