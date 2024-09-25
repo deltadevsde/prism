@@ -9,8 +9,9 @@ repository.workspace = true
 
 [features]
 default = []
-plonk = []
+groth16 = []
 test_utils = []
+mock_prover = []
 
 [dependencies]
 axum = { workspace = true }
