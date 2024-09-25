@@ -61,7 +61,7 @@ jobs:
         shell: bash
 
       - name: Run non-integration tests
-        run: cargo test --release -- --skip test_light_client_sequencer_talking
+        run: cargo test --release --features mock_prover -- --skip test_light_client_sequencer_talking
 
   integration-test:
     runs-on: ubuntu-latest
@@ -140,7 +140,7 @@ jobs:
             awk '/Configuration finished. Running a bridge node/ {print;exit}'
 
       - name: Run integration tests
-        run: cargo test --release --test integration_tests
+        run: cargo test --release --features mock_prover --test integration_tests
 
   unused-deps:
     runs-on: ubuntu-latest

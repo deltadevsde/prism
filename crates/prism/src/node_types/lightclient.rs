@@ -42,7 +42,10 @@ impl LightClient {
         cfg: CelestiaConfig,
         sequencer_pubkey: Option<VerifyingKey>,
     ) -> LightClient {
-        let client = ProverClient::new();
+        #[cfg(feature = "mock_prover")]
+        let client = ProverClient::mock();
+        #[cfg(not(feature = "mock_prover"))]
+        let client = ProverClient::local();
         let (_, verifying_key) = client.setup(PRISM_ELF);
 
         LightClient {
