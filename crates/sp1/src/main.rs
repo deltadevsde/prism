@@ -6,7 +6,7 @@ use prism_common::tree::{Batch, Digest, Proof};
 pub fn main() {
     let batch = sp1_zkvm::io::read::<Batch>();
     let mut current = batch.prev_root;
-    sp1_zkvm::io::commit_slice(&current.to_bytes());
+    sp1_zkvm::io::commit_slice(&current.0);
 
     for proof in batch.proofs.iter() {
         match proof {
@@ -22,5 +22,5 @@ pub fn main() {
             }
         }
     }
-    sp1_zkvm::io::commit_slice(&current.to_bytes());
+    sp1_zkvm::io::commit_slice(&current.0);
 }

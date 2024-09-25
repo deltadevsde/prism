@@ -68,20 +68,20 @@ impl Database for RocksDBConnection {
 }
 
 impl TreeWriter for RocksDBConnection {
-    fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()> {
+    fn write_node_batch(&self, _node_batch: &NodeBatch) -> Result<()> {
         todo!()
     }
 }
 
 impl TreeReader for RocksDBConnection {
-    fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
+    fn get_node_option(&self, _node_key: &NodeKey) -> Result<Option<Node>> {
         todo!()
     }
 
     fn get_value_option(
         &self,
-        max_version: Version,
-        key_hash: KeyHash,
+        _max_version: Version,
+        _key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
         todo!()
     }
