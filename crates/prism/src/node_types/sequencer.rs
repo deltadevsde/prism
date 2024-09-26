@@ -417,26 +417,13 @@ mod tests {
     use keystore_rs::create_signing_key;
     use prism_common::{operation::PublicKey, test_utils::create_mock_signing_key};
     use prism_da::memory::InMemoryDataAvailabilityLayer;
-    use prism_storage::{redis::RedisConfig, RedisConnection};
-    use serial_test::serial;
-
-    // Helper function to set up redis connection and flush database before each test
-    fn setup_db() -> RedisConnection {
-        let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
-        redis_connection.flush_database().unwrap();
-        redis_connection
-    }
-
-    // Helper function to flush database after each test
-    fn teardown_db(redis_connection: Arc<dyn Database>) {
-        redis_connection.flush_database().unwrap();
-    }
+    use prism_storage::inmemory::InMemoryDatabase;
 
     // Helper function to create a test Sequencer instance
     async fn create_test_sequencer() -> Arc<Sequencer> {
         let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
-        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(setup_db()));
+        let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
         let signing_key = create_signing_key();
         Arc::new(
             Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
@@ -444,7 +431,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
     async fn test_validate_and_queue_update() {
         let sequencer = create_test_sequencer().await;
 
@@ -466,12 +452,9 @@ mod tests {
 
         let pending_ops = sequencer.pending_operations.read().await;
         assert_eq!(pending_ops.len(), 2);
-
-        teardown_db(sequencer.db.clone());
     }
 
     #[tokio::test]
-    #[serial]
     async fn test_process_operation() {
         let sequencer = create_test_sequencer().await;
 
@@ -517,12 +500,9 @@ mod tests {
                 .unwrap();
         let proof = sequencer.process_operation(&revoke_op).await.unwrap();
         assert!(matches!(proof, Proof::Update(_)));
-
-        teardown_db(sequencer.db.clone());
     }
 
     #[tokio::test]
-    #[serial]
     async fn test_execute_block_with_invalid_tx() {
         let sequencer = create_test_sequencer().await;
 
@@ -569,12 +549,9 @@ mod tests {
 
         let proofs = sequencer.execute_block(operations).await.unwrap();
         assert_eq!(proofs.len(), 4);
-
-        teardown_db(sequencer.db.clone());
     }
 
     #[tokio::test]
-    #[serial]
     async fn test_execute_block() {
         let sequencer = create_test_sequencer().await;
 
@@ -605,12 +582,9 @@ mod tests {
 
         let proofs = sequencer.execute_block(operations).await.unwrap();
         assert_eq!(proofs.len(), 4);
-
-        teardown_db(sequencer.db.clone());
     }
 
     #[tokio::test]
-    #[serial]
     async fn test_finalize_new_epoch() {
         let sequencer = create_test_sequencer().await;
 
@@ -649,7 +623,5 @@ mod tests {
 
         let new_commitment = sequencer.get_commitment().await.unwrap();
         assert_ne!(prev_commitment, new_commitment);
-
-        teardown_db(sequencer.db.clone());
     }
 }
