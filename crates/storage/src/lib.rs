@@ -1,4 +1,5 @@
 pub mod database;
+pub mod inmemory;
 pub mod redis;
 pub mod rocksdb;
 

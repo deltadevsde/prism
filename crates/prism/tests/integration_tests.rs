@@ -17,7 +17,7 @@ use prism_main::{
     cfg::Config,
     node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType},
 };
-use prism_storage::{redis::RedisConfig, Database, RedisConnection};
+use prism_storage::{inmemory::InMemoryDatabase, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{spawn, time::Duration};
@@ -52,8 +52,7 @@ fn add_key(id: &str, key_idx: u64, new_key: PublicKey, signing_key: SigningKey) 
 }
 
 fn setup_db() -> Arc<Box<dyn Database>> {
-    let redis_connection = RedisConnection::new(&RedisConfig::default()).unwrap();
-    Arc::new(Box::new(redis_connection) as Box<dyn Database>)
+    Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>)
 }
 
 #[tokio::test]
