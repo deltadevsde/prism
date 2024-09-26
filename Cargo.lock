@@ -4881,7 +4881,6 @@ dependencies = [
  "redis",
  "serde",
  "serde_json",
- "serial_test",
  "sp1-sdk",
  "tokio",
  "toml",

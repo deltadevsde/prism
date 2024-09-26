@@ -170,7 +170,7 @@ jobs:
             profile: minimal
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
 
       - name: Setup Rust
         run: |
@@ -201,4 +201,4 @@ jobs:
         run: rustup component add clippy
 
       - name: Run clippy
-        run: cargo clippy --all --all-targets -- -D warnings
+        run: cargo clippy --locked --all --all-targets -- -D warnings
