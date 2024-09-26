@@ -58,7 +58,7 @@ impl TryFrom<String> for PublicKey {
 
     fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
         let bytes = engine
-            .decode(&s)
+            .decode(s)
             .map_err(|e| anyhow!("Failed to decode base64 string: {}", e))?;
 
         Ok(PublicKey::Ed25519(bytes.to_vec()))
