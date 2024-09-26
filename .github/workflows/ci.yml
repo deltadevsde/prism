@@ -46,12 +46,10 @@ jobs:
             cargo-
 
       - name: Run non-integration tests
-        run: cargo test --release --features mock_prover -- --skip test_light_client_sequencer_talking
+        run: cargo test --lib --release --features mock_prover -- --skip test_light_client_sequencer_talking
 
   integration-test:
     runs-on: ubuntu-latest
-    needs: unit-test
-    if: success()
 
     strategy:
       fail-fast: false
