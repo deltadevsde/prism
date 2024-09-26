@@ -534,7 +534,7 @@ where
 #[cfg(all(test, feature = "test_utils"))]
 mod tests {
     use super::*;
-    use crate::test_utils::TestTreeState;
+    use crate::test_utils::{create_mock_signing_key, TestTreeState};
 
     #[test]
     fn test_insert_and_get() {
@@ -552,6 +552,35 @@ mod tests {
 
         let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
         assert_eq!(get_result, account.hashchain);
+    }
+
+    #[test]
+    fn test_insert_for_nonexistent_service_fails() {
+        let mut tree_state = TestTreeState::default();
+        let service = tree_state.register_service("service_1".to_string());
+        let account = tree_state.create_account("key_1".to_string(), service.clone());
+
+        let insert_proof = tree_state.insert_account(account.clone());
+        assert!(insert_proof.is_err());
+    }
+
+    #[test]
+    fn test_insert_with_invalid_service_challenge_fails() {
+        let mut tree_state = TestTreeState::default();
+        let service = tree_state.register_service("service_1".to_string());
+
+        let mut falsified_service = service.clone();
+        falsified_service.sk = create_mock_signing_key();
+
+        let account = tree_state.create_account("key_1".to_string(), falsified_service.clone());
+
+        let insert_proof = tree_state
+            .insert_account(service.registration.clone())
+            .unwrap();
+        assert!(insert_proof.verify().is_ok());
+
+        let insert_proof = tree_state.insert_account(account.clone());
+        assert!(insert_proof.is_err());
     }
 
     #[test]
