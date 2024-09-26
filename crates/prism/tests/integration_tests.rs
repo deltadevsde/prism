@@ -2,7 +2,6 @@
 
 #[macro_use]
 extern crate log;
-
 use anyhow::Result;
 use ed25519_dalek::SigningKey;
 use keystore_rs::create_signing_key;
@@ -10,12 +9,15 @@ use prism_common::operation::{
     CreateAccountArgs, KeyOperationArgs, Operation, PublicKey, ServiceChallengeInput,
     SignatureBundle,
 };
-use prism_main::{
-    cfg::{CelestiaConfig, Config, RedisConfig},
-    da::{celestia::CelestiaConnection, DataAvailabilityLayer},
-    node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType},
-    storage::{Database, RedisConnection},
+use prism_da::{
+    celestia::{CelestiaConfig, CelestiaConnection},
+    DataAvailabilityLayer,
 };
+use prism_main::{
+    cfg::Config,
+    node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType},
+};
+use prism_storage::{redis::RedisConfig, Database, RedisConnection};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{spawn, time::Duration};

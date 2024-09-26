@@ -1,20 +1,15 @@
 mod cfg;
-pub mod consts;
-pub mod da;
 mod node_types;
-pub mod storage;
 mod utils;
 mod webserver;
 
-use cfg::{initialize_da_layer, load_config};
+use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;
 use ed25519_dalek::VerifyingKey;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-
-use crate::cfg::{CommandLineArgs, Commands};
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
+use prism_storage::RedisConnection;
 use std::sync::Arc;
-use storage::RedisConnection;
 
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 

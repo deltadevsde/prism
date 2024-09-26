@@ -1,6 +1,7 @@
-use crate::da::{DataAvailabilityLayer, FinalizedEpoch};
+use crate::{DataAvailabilityLayer, FinalizedEpoch};
 use anyhow::Result;
 use async_trait::async_trait;
+use log::debug;
 use prism_common::operation::Operation;
 use std::{collections::VecDeque, sync::Arc};
 use tokio::{

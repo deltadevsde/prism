@@ -9,7 +9,7 @@ use std::{
 
 use crate::{
     operation::{CreateAccountArgs, Operation, PublicKey, ServiceChallengeInput},
-    tree::{hash, Digest, Hasher},
+    tree::{Digest, Hasher},
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -280,12 +280,11 @@ pub struct HashchainEntry {
 
 impl HashchainEntry {
     pub fn new(operation: Operation, previous_hash: Digest) -> Self {
-        let hash = {
-            let mut data = Vec::new();
-            data.extend_from_slice(operation.to_string().as_bytes());
-            data.extend_from_slice(previous_hash.as_ref());
-            hash(&data)
-        };
+        let mut data = Vec::new();
+        data.extend_from_slice(operation.to_string().as_bytes());
+        data.extend_from_slice(previous_hash.as_ref());
+        let hash = Digest::hash(data);
+
         Self {
             hash,
             previous_hash,
