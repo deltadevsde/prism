@@ -120,7 +120,7 @@ jobs:
             awk '/Configuration finished. Running a bridge node/ {print;exit}'
 
       - name: Run integration tests
-        run: cargo test --release --features mock_prover --test integration_tests
+        run: cargo test --lib --release --features mock_prover --test integration_tests
 
   unused-deps:
     runs-on: ubuntu-latest
