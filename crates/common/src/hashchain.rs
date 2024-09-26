@@ -281,7 +281,7 @@ impl Hashchain {
     }
 
     pub fn get_keyhash(&self) -> KeyHash {
-        KeyHash::with::<Hasher>(self.id.clone())
+        KeyHash::with::<Hasher>(Digest::hash(self.id.clone()))
     }
 
     pub fn is_empty(&self) -> bool {

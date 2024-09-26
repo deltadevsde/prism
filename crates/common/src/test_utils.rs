@@ -1,7 +1,7 @@
 use crate::{
     hashchain::Hashchain,
     operation::{Operation, PublicKey, ServiceChallenge},
-    tree::{InsertProof, KeyDirectoryTree, SnarkableTree, UpdateProof},
+    tree::{InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
 use ed25519_dalek::{SigningKey, VerifyingKey};
@@ -79,11 +79,12 @@ impl TestTreeState {
 
         let proof = self
             .tree
-            .insert(account.key_hash, account.hashchain)
-            .expect("Insert should succeed");
-        self.inserted_keys.insert(account.key_hash);
-
-        Ok(proof)
+            .process_operation(&account.hashchain.last().unwrap().operation)?;
+        if let Proof::Insert(insert_proof) = proof {
+            self.inserted_keys.insert(account.key_hash);
+            return Ok(insert_proof);
+        }
+        Err(anyhow!("Insert proof not returned"))
     }
 
     pub fn update_account(&mut self, account: TestAccount) -> Result<UpdateProof> {
@@ -93,9 +94,11 @@ impl TestTreeState {
 
         let proof = self
             .tree
-            .update(account.key_hash, account.hashchain.last().unwrap().clone())
-            .expect("Update should succeed");
-        Ok(proof)
+            .process_operation(&account.hashchain.last().unwrap().operation)?;
+        if let Proof::Update(update_proof) = proof {
+            return Ok(update_proof);
+        }
+        Err(anyhow!("Update proof not returned"))
     }
 
     pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {

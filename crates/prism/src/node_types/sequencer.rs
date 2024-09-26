@@ -317,6 +317,7 @@ impl Sequencer {
 
         Ok(())
     }
+
     async fn prove_epoch(
         &self,
         height: u64,
@@ -356,10 +357,12 @@ impl Sequencer {
         epoch_json.insert_signature(&self.key);
         Ok(epoch_json)
     }
+
     pub async fn get_commitment(&self) -> Result<Digest> {
         let tree = self.tree.read().await;
         tree.get_commitment().context("Failed to get commitment")
     }
+
     pub async fn get_hashchain(
         &self,
         id: &String,
@@ -514,6 +517,58 @@ mod tests {
                 .unwrap();
         let proof = sequencer.process_operation(&revoke_op).await.unwrap();
         assert!(matches!(proof, Proof::Update(_)));
+
+        teardown_db(sequencer.db.clone());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_execute_block_with_invalid_tx() {
+        let sequencer = create_test_sequencer().await;
+
+        let signing_key_1 = create_mock_signing_key();
+        let signing_key_2 = create_mock_signing_key();
+        let signing_key_3 = create_mock_signing_key();
+        let service_key = create_mock_signing_key();
+
+        let operations = vec![
+            Operation::new_register_service("service_id".to_string(), service_key.clone().into()),
+            Operation::new_create_account(
+                "user1@example.com".to_string(),
+                &signing_key_1,
+                "service_id".to_string(),
+                &service_key,
+            )
+            .unwrap(),
+            // add signing_key_2, so it will be index = 1
+            Operation::new_add_key(
+                "user1@example.com".to_string(),
+                signing_key_2.verifying_key().into(),
+                &signing_key_1,
+                0,
+            )
+            .unwrap(),
+            // try revoking signing_key_2
+            Operation::new_revoke_key(
+                "user1@example.com".to_string(),
+                signing_key_2.verifying_key().into(),
+                &signing_key_1,
+                0,
+            )
+            .unwrap(),
+            // and adding in same block.
+            // both of these operations are valid individually, but when processed together it will fail.
+            Operation::new_add_key(
+                "user1@example.com".to_string(),
+                signing_key_3.verifying_key().into(),
+                &signing_key_2,
+                1,
+            )
+            .unwrap(),
+        ];
+
+        let proofs = sequencer.execute_block(operations).await.unwrap();
+        assert_eq!(proofs.len(), 4);
 
         teardown_db(sequencer.db.clone());
     }
