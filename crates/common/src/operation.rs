@@ -2,58 +2,95 @@ use anyhow::{anyhow, Context, Result};
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use bincode;
 use celestia_types::Blob;
-use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
+use ed25519_dalek::{
+    Signature as Ed25519Signature, Signer as Ed25519Signer, SigningKey as Ed25519SigningKey,
+    VerifyingKey as Ed25519VerifyingKey,
+};
+use jmt::SimpleHasher;
+use lazy_static::lazy_static;
 use prism_errors::GeneralError;
+use secp256k1::{
+    ecdsa::Signature as Secp256k1Signature, Message as Secp256k1Message,
+    PublicKey as Secp256k1VerifyingKey, Secp256k1, SecretKey as Secp256k1SigningKey,
+};
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
-/// Represents a public key supported by the system.
-pub enum PublicKey {
-    // Secp256k1(Vec<u8>),  // Bitcoin, Ethereum
-    // Curve25519(Vec<u8>), // Signal, Tor
-    Ed25519(Vec<u8>), // Cosmos, OpenSSH, GnuPG
+use crate::tree::Hasher;
+
+lazy_static! {
+    static ref SECP: Secp256k1<secp256k1::All> = Secp256k1::new();
 }
 
-impl PublicKey {
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
+/// Represents a public key supported by the system.
+pub enum VerifyingKey {
+    Secp256k1(Vec<u8>), // Bitcoin, Ethereum
+    Ed25519(Vec<u8>),   // Cosmos, OpenSSH, GnuPG
+                        // Curve25519(Vec<u8>), // Signal, Tor
+}
+
+impl VerifyingKey {
     pub fn as_bytes(&self) -> &[u8] {
         match self {
-            PublicKey::Ed25519(bytes) => bytes,
-            // PublicKey::Secp256k1(bytes) => bytes,
+            VerifyingKey::Ed25519(bytes) => bytes,
+            VerifyingKey::Secp256k1(bytes) => bytes,
             // PublicKey::Curve25519(bytes) => bytes,
         }
     }
 
     pub fn verify_signature(&self, message: &[u8], signature: &[u8]) -> Result<()> {
+        if signature.len() != 64 {
+            return Err(anyhow!("Invalid signature length"));
+        }
         match self {
-            PublicKey::Ed25519(bytes) => {
-                if signature.len() != 64 {
-                    return Err(anyhow!("Invalid signature length"));
-                }
-
-                let vk = VerifyingKey::from_bytes(bytes.as_slice().try_into()?)
+            VerifyingKey::Ed25519(bytes) => {
+                let vk = Ed25519VerifyingKey::from_bytes(bytes.as_slice().try_into()?)
                     .map_err(|e| anyhow!(e))?;
-                let signature = Signature::from_bytes(signature.try_into()?);
+                let signature = Ed25519Signature::from_bytes(signature.try_into()?);
                 vk.verify_strict(message, &signature)
                     .map_err(|e| anyhow!(e))
+            }
+            VerifyingKey::Secp256k1(bytes) => {
+                let mut hasher = Hasher::new();
+                hasher.update(message);
+                let hashed_message = hasher.finalize();
+                let vk = Secp256k1VerifyingKey::from_slice(bytes.as_slice())?;
+                let message = Secp256k1Message::from_digest(hashed_message);
+                let signature = Secp256k1Signature::from_compact(signature)?;
+
+                vk.verify(&SECP, &message, &signature)
+                    .map_err(|e| anyhow!("Failed to verify signature: {}", e))
             }
         }
     }
 }
 
-impl From<SigningKey> for PublicKey {
-    fn from(sk: SigningKey) -> Self {
-        PublicKey::Ed25519(sk.verifying_key().to_bytes().to_vec())
+impl From<Ed25519SigningKey> for VerifyingKey {
+    fn from(sk: Ed25519SigningKey) -> Self {
+        VerifyingKey::Ed25519(sk.verifying_key().to_bytes().to_vec())
     }
 }
 
-impl From<VerifyingKey> for PublicKey {
-    fn from(vk: VerifyingKey) -> Self {
-        PublicKey::Ed25519(vk.to_bytes().to_vec())
+impl From<Ed25519VerifyingKey> for VerifyingKey {
+    fn from(vk: Ed25519VerifyingKey) -> Self {
+        VerifyingKey::Ed25519(vk.to_bytes().to_vec())
     }
 }
 
-impl TryFrom<String> for PublicKey {
+impl From<Secp256k1SigningKey> for VerifyingKey {
+    fn from(sk: Secp256k1SigningKey) -> Self {
+        sk.public_key(&SECP).into()
+    }
+}
+
+impl From<Secp256k1VerifyingKey> for VerifyingKey {
+    fn from(vk: Secp256k1VerifyingKey) -> Self {
+        VerifyingKey::Secp256k1(vk.serialize().to_vec())
+    }
+}
+
+impl TryFrom<String> for VerifyingKey {
     type Error = anyhow::Error;
 
     fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
@@ -61,7 +98,7 @@ impl TryFrom<String> for PublicKey {
             .decode(s)
             .map_err(|e| anyhow!("Failed to decode base64 string: {}", e))?;
 
-        Ok(PublicKey::Ed25519(bytes.to_vec()))
+        Ok(VerifyingKey::Ed25519(bytes.to_vec()))
     }
 }
 
@@ -105,8 +142,8 @@ pub enum Operation {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Arguments for creating an account with a service.
 pub struct CreateAccountArgs {
-    pub id: String,       // Account ID
-    pub value: PublicKey, // Public Key
+    pub id: String,          // Account ID
+    pub value: VerifyingKey, // Public Key
     pub signature: Vec<u8>,
     pub service_id: String,               // Associated service ID
     pub challenge: ServiceChallengeInput, // Challenge input for verification
@@ -121,12 +158,12 @@ pub struct RegisterServiceArgs {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ServiceChallenge {
-    Signed(PublicKey),
+    Signed(VerifyingKey),
 }
 
 impl From<SigningKey> for ServiceChallenge {
     fn from(sk: SigningKey) -> Self {
-        ServiceChallenge::Signed(PublicKey::Ed25519(sk.verifying_key().as_bytes().to_vec()))
+        ServiceChallenge::Signed(sk.verifying_key())
     }
 }
 
@@ -134,8 +171,37 @@ impl From<SigningKey> for ServiceChallenge {
 /// Common structure for operations involving keys (adding or revoking).
 pub struct KeyOperationArgs {
     pub id: String,                 // Account ID
-    pub value: PublicKey,           // Public key being added or revoked
+    pub value: VerifyingKey,        // Public key being added or revoked
     pub signature: SignatureBundle, // Signature to authorize the action
+}
+
+#[derive(Clone)]
+pub enum SigningKey {
+    Ed25519(Ed25519SigningKey),
+    Secp256k1(Secp256k1SigningKey),
+}
+
+impl SigningKey {
+    pub fn sign(&self, message: &[u8]) -> Vec<u8> {
+        match self {
+            SigningKey::Ed25519(sk) => sk.sign(message).to_bytes().to_vec(),
+            SigningKey::Secp256k1(sk) => {
+                let mut hasher = Hasher::new();
+                hasher.update(message);
+                let hashed_message = hasher.finalize();
+                let message = Secp256k1Message::from_digest(hashed_message);
+                let signature = SECP.sign_ecdsa(&message, sk);
+                signature.serialize_compact().to_vec()
+            }
+        }
+    }
+
+    pub fn verifying_key(&self) -> VerifyingKey {
+        match self {
+            SigningKey::Ed25519(sk) => sk.verifying_key().into(),
+            SigningKey::Secp256k1(sk) => sk.public_key(&SECP).into(),
+        }
+    }
 }
 
 impl Operation {
@@ -147,7 +213,7 @@ impl Operation {
     ) -> Result<Self> {
         let mut op = Operation::CreateAccount(CreateAccountArgs {
             id: id.to_string(),
-            value: signing_key.clone().verifying_key().into(),
+            value: signing_key.clone().verifying_key(),
             service_id,
             challenge: ServiceChallengeInput::Signed(Vec::new()),
             signature: Vec::new(),
@@ -161,8 +227,7 @@ impl Operation {
 
         match op {
             Operation::CreateAccount(ref mut args) => {
-                args.challenge =
-                    ServiceChallengeInput::Signed(service_challenge.to_bytes().to_vec());
+                args.challenge = ServiceChallengeInput::Signed(service_challenge);
             }
             _ => panic!("Operation should be CreateAccount"),
         };
@@ -175,7 +240,7 @@ impl Operation {
 
     pub fn new_add_key(
         id: String,
-        value: PublicKey,
+        value: VerifyingKey,
         signing_key: &SigningKey,
         key_idx: u64,
     ) -> Result<Self> {
@@ -200,7 +265,7 @@ impl Operation {
 
     pub fn new_revoke_key(
         id: String,
-        value: PublicKey,
+        value: VerifyingKey,
         signing_key: &SigningKey,
         key_idx: u64,
     ) -> Result<Self> {
@@ -231,7 +296,7 @@ impl Operation {
         }
     }
 
-    pub fn get_public_key(&self) -> Option<&PublicKey> {
+    pub fn get_public_key(&self) -> Option<&VerifyingKey> {
         match self {
             Operation::RevokeKey(args) | Operation::AddKey(args) => Some(&args.value),
             Operation::CreateAccount(args) => Some(&args.value),
@@ -252,9 +317,9 @@ impl Operation {
         let signature = signing_key.sign(&serialized);
 
         match self {
-            Operation::CreateAccount(args) => args.signature = signature.to_bytes().to_vec(),
+            Operation::CreateAccount(args) => args.signature = signature,
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
-                args.signature.signature = signature.to_bytes().to_vec()
+                args.signature.signature = signature
             }
             _ => unimplemented!("RegisterService sequencer gating not yet implemented"),
         }
@@ -306,7 +371,7 @@ impl Operation {
         }
     }
 
-    pub fn verify_user_signature(&self, pubkey: PublicKey) -> Result<()> {
+    pub fn verify_user_signature(&self, pubkey: VerifyingKey) -> Result<()> {
         match self {
             Operation::RegisterService(_) => Ok(()),
             Operation::CreateAccount(args) => {

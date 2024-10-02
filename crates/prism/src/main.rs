@@ -5,9 +5,9 @@ mod webserver;
 
 use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;
-use ed25519_dalek::VerifyingKey;
+use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-use prism_common::operation::PublicKey;
+use prism_common::operation::VerifyingKey;
 
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
 use prism_storage::RedisConnection;
@@ -41,8 +41,8 @@ async fn main() -> std::io::Result<()> {
             let sequencer_vk = config
                 .verifying_key
                 .and_then(|s| s.try_into().ok())
-                .and_then(|pk: PublicKey| {
-                    VerifyingKey::from_bytes(pk.as_bytes().try_into().unwrap()).ok()
+                .and_then(|vk: VerifyingKey| {
+                    Ed25519VerifyingKey::from_bytes(vk.as_bytes().try_into().unwrap()).ok()
                 });
 
             Arc::new(LightClient::new(da, celestia_config, sequencer_vk))

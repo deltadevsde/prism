@@ -1,12 +1,18 @@
 use crate::{
     hashchain::Hashchain,
-    operation::{Operation, PublicKey, ServiceChallenge},
+    operation::{Operation, ServiceChallenge, SigningKey, VerifyingKey},
     tree::{InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
-use ed25519_dalek::{SigningKey, VerifyingKey};
+#[cfg(not(feature = "secp256k1"))]
+use ed25519_dalek::SigningKey as Ed25519SigningKey;
 use jmt::{mock::MockTreeStore, KeyHash};
-use rand::{rngs::StdRng, Rng};
+use rand::{
+    rngs::{OsRng, StdRng},
+    Rng,
+};
+#[cfg(feature = "secp256k1")]
+use secp256k1::SecretKey as Secp256k1SigningKey;
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
@@ -103,7 +109,7 @@ impl TestTreeState {
 
     pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {
         let signing_key_to_add = create_mock_signing_key();
-        let pub_key: PublicKey = signing_key_to_add.into();
+        let pub_key = signing_key_to_add.verifying_key();
         let op = Operation::new_add_key(
             account.hashchain.id.clone(),
             pub_key.clone(),
@@ -166,9 +172,8 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         .unwrap();
     let mut hc = state.tree.get(key).unwrap().unwrap();
 
-    let signing_key = SigningKey::generate(rng);
+    let signing_key = create_mock_signing_key();
     let verifying_key = signing_key.verifying_key();
-    let public_key = PublicKey::Ed25519(verifying_key.to_bytes().to_vec());
 
     let signer = state
         .signing_keys
@@ -176,7 +181,8 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         .ok_or_else(|| anyhow::anyhow!("Signing key not found for hashchain"))
         .unwrap();
 
-    let operation = Operation::new_add_key(hc.id.clone(), public_key.clone(), signer, 0).unwrap();
+    let operation =
+        Operation::new_add_key(hc.id.clone(), verifying_key.clone(), signer, 0).unwrap();
     hc.perform_operation(operation)
         .expect("Adding to hashchain should succeed");
 
@@ -186,8 +192,14 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         .expect("Update should succeed")
 }
 
+#[cfg(not(feature = "secp256k1"))]
 pub fn create_mock_signing_key() -> SigningKey {
-    SigningKey::generate(&mut rand::thread_rng())
+    SigningKey::Ed25519(Ed25519SigningKey::generate(&mut OsRng))
+}
+
+#[cfg(feature = "secp256k1")]
+pub fn create_mock_signing_key() -> SigningKey {
+    SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng))
 }
 
 pub fn create_new_hashchain(id: &str, signing_key: &SigningKey, service: Service) -> Hashchain {
