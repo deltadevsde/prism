@@ -3,11 +3,13 @@
 #[macro_use]
 extern crate log;
 use anyhow::Result;
-use ed25519_dalek::SigningKey;
 use keystore_rs::create_signing_key;
-use prism_common::operation::{
-    CreateAccountArgs, KeyOperationArgs, Operation, PublicKey, ServiceChallengeInput,
-    SignatureBundle,
+use prism_common::{
+    operation::{
+        CreateAccountArgs, KeyOperationArgs, Operation, ServiceChallengeInput, SignatureBundle,
+        SigningKey, VerifyingKey,
+    },
+    test_utils::create_mock_signing_key,
 };
 use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
@@ -25,7 +27,7 @@ use tokio::{spawn, time::Duration};
 fn create_random_user(id: &str, signing_key: SigningKey) -> Operation {
     let mut op = Operation::CreateAccount(CreateAccountArgs {
         id: id.to_string(),
-        value: signing_key.clone().into(),
+        value: signing_key.verifying_key(),
         service_id: "test_service".to_string(),
         signature: Vec::new(),
         challenge: ServiceChallengeInput::Signed(vec![]),
@@ -36,7 +38,7 @@ fn create_random_user(id: &str, signing_key: SigningKey) -> Operation {
     op
 }
 
-fn add_key(id: &str, key_idx: u64, new_key: PublicKey, signing_key: SigningKey) -> Operation {
+fn add_key(id: &str, key_idx: u64, new_key: VerifyingKey, signing_key: SigningKey) -> Operation {
     let mut op = Operation::AddKey(KeyOperationArgs {
         id: id.to_string(),
         value: new_key.clone(),
@@ -113,7 +115,7 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
             // Create 1 to 3 new accounts
             let num_new_accounts = rng.gen_range(1..=3);
             for _ in 0..num_new_accounts {
-                let new_key = create_signing_key();
+                let new_key = create_mock_signing_key();
                 let new_acc =
                     create_random_user(format!("{}@gmail.com", i).as_str(), new_key.clone());
                 sequencer
@@ -138,7 +140,7 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
                     let signing_key = signing_keys.last().unwrap();
                     let new_key = create_signing_key();
                     let new_public_key =
-                        PublicKey::Ed25519(new_key.verifying_key().to_bytes().to_vec());
+                        VerifyingKey::Ed25519(new_key.verifying_key().to_bytes().to_vec());
                     let update_op = add_key(
                         account_id,
                         (signing_keys.len() - 1) as u64,

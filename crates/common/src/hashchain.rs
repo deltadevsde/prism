@@ -8,8 +8,8 @@ use std::{
 
 use crate::{
     operation::{
-        CreateAccountArgs, Operation, PublicKey, RegisterServiceArgs, ServiceChallenge,
-        ServiceChallengeInput,
+        CreateAccountArgs, Operation, RegisterServiceArgs, ServiceChallenge, ServiceChallengeInput,
+        VerifyingKey,
     },
     tree::{Digest, Hasher},
 };
@@ -70,7 +70,7 @@ impl Hashchain {
 
     pub fn create_account(
         id: String,
-        value: PublicKey,
+        value: VerifyingKey,
         signature: Vec<u8>,
         service_id: String,
         challenge: ServiceChallengeInput,
@@ -109,7 +109,7 @@ impl Hashchain {
             return Ok(());
         }
 
-        let mut valid_keys: HashSet<PublicKey> = HashSet::new();
+        let mut valid_keys: HashSet<VerifyingKey> = HashSet::new();
 
         for (index, entry) in self.entries.iter().enumerate().take(self.entries.len() - 1) {
             match &entry.operation {
@@ -181,15 +181,15 @@ impl Hashchain {
         new
     }
 
-    pub fn get_key_at_index(&self, idx: usize) -> Result<&PublicKey> {
+    pub fn get_key_at_index(&self, idx: usize) -> Result<&VerifyingKey> {
         self.entries
             .get(idx)
             .and_then(|entry| entry.operation.get_public_key())
             .ok_or_else(|| anyhow!("No valid public key found at index {}", idx))
     }
 
-    pub fn get_valid_keys(&self) -> HashSet<PublicKey> {
-        let mut valid_keys: HashSet<PublicKey> = HashSet::new();
+    pub fn get_valid_keys(&self) -> HashSet<VerifyingKey> {
+        let mut valid_keys: HashSet<VerifyingKey> = HashSet::new();
 
         for entry in self.entries.clone() {
             match &entry.operation {
@@ -208,7 +208,7 @@ impl Hashchain {
         valid_keys
     }
 
-    pub fn is_key_revoked(&self, key: PublicKey) -> bool {
+    pub fn is_key_revoked(&self, key: VerifyingKey) -> bool {
         self.iter()
             .rev()
             .find_map(|entry| match entry.operation.clone() {

@@ -415,7 +415,7 @@ impl Sequencer {
 mod tests {
     use super::*;
     use keystore_rs::create_signing_key;
-    use prism_common::{operation::PublicKey, test_utils::create_mock_signing_key};
+    use prism_common::test_utils::create_mock_signing_key;
     use prism_da::memory::InMemoryDataAvailabilityLayer;
     use prism_storage::inmemory::InMemoryDatabase;
 
@@ -459,7 +459,7 @@ mod tests {
         let sequencer = create_test_sequencer().await;
 
         let signing_key = create_mock_signing_key();
-        let original_pubkey = signing_key.clone().into();
+        let original_pubkey = signing_key.verifying_key();
         let service_key = create_mock_signing_key();
 
         let register_service_op =
@@ -485,7 +485,7 @@ mod tests {
         assert!(matches!(proof, Proof::Insert(_)));
 
         let new_key = create_mock_signing_key();
-        let pubkey = new_key.clone().into();
+        let pubkey = new_key.verifying_key();
         let add_key_op =
             Operation::new_add_key("test@example.com".to_string(), pubkey, &signing_key, 0)
                 .unwrap();
@@ -523,7 +523,7 @@ mod tests {
             // add signing_key_2, so it will be index = 1
             Operation::new_add_key(
                 "user1@example.com".to_string(),
-                signing_key_2.verifying_key().into(),
+                signing_key_2.verifying_key(),
                 &signing_key_1,
                 0,
             )
@@ -531,7 +531,7 @@ mod tests {
             // try revoking signing_key_2
             Operation::new_revoke_key(
                 "user1@example.com".to_string(),
-                signing_key_2.verifying_key().into(),
+                signing_key_2.verifying_key(),
                 &signing_key_1,
                 0,
             )
@@ -540,7 +540,7 @@ mod tests {
             // both of these operations are valid individually, but when processed together it will fail.
             Operation::new_add_key(
                 "user1@example.com".to_string(),
-                signing_key_3.verifying_key().into(),
+                signing_key_3.verifying_key(),
                 &signing_key_2,
                 1,
             )
@@ -557,7 +557,7 @@ mod tests {
 
         let signing_key_1 = create_mock_signing_key();
         let signing_key_2 = create_mock_signing_key();
-        let new_key = create_mock_signing_key().into();
+        let new_key = create_mock_signing_key().verifying_key();
         let service_key = create_mock_signing_key();
 
         let operations = vec![
@@ -590,12 +590,7 @@ mod tests {
 
         let signing_key_1 = create_mock_signing_key();
         let signing_key_2 = create_mock_signing_key();
-        let new_key = PublicKey::Ed25519(
-            create_mock_signing_key()
-                .verifying_key()
-                .to_bytes()
-                .to_vec(),
-        );
+        let new_key = create_mock_signing_key().verifying_key();
         let service_key = create_mock_signing_key();
 
         let operations = vec![
