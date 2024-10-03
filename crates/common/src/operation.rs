@@ -27,11 +27,6 @@ lazy_static! {
 pub enum VerifyingKey {
     Secp256k1(Vec<u8>), // Bitcoin, Ethereum
     Ed25519(Vec<u8>),   // Cosmos, OpenSSH, GnuPG
-                        /*  Curve25519(Vec<u8>), // Signal, Tor
-                        the "Curve25519" crate (curve25519-dalek) provides low lvel group operations on curve25519.
-                        The key exchange algortihm is called X25519 ("montgommery form"), and the signature algorithm is called ed25519 ("edward form" of the curve, which is already impelmented).
-                        However: Signal, as mentioned above, has implemented something called XEdDSA, an extended signature algorithm that allows
-                        the same Curve25519 keypair to be used both for key exchange and signatures, this property could be updated (but no patched crate yet, afaik)*/
 }
 
 impl VerifyingKey {
