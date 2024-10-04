@@ -167,6 +167,10 @@ impl Digest {
     pub fn to_hex(&self) -> String {
         hex::encode(self.0)
     }
+
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.0
+    }
 }
 
 #[derive(Serialize, Deserialize)]
