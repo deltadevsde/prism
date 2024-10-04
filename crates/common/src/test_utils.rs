@@ -109,10 +109,10 @@ impl TestTreeState {
 
     pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {
         let signing_key_to_add = create_mock_signing_key();
-        let pub_key = signing_key_to_add.verifying_key();
+        let key_to_add = signing_key_to_add.verifying_key();
         let op = Operation::new_add_key(
             account.hashchain.id.clone(),
-            pub_key.clone(),
+            key_to_add.clone(),
             self.signing_keys.get(&account.hashchain.id).unwrap(),
             0,
         )?;

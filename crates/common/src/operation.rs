@@ -6,7 +6,6 @@ use ed25519_dalek::{
     Signature as Ed25519Signature, Signer as Ed25519Signer, SigningKey as Ed25519SigningKey,
     VerifyingKey as Ed25519VerifyingKey,
 };
-use jmt::SimpleHasher;
 use lazy_static::lazy_static;
 use prism_errors::GeneralError;
 use secp256k1::{
@@ -16,7 +15,7 @@ use secp256k1::{
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
 
-use crate::tree::Hasher;
+use crate::tree::Digest;
 
 lazy_static! {
     static ref SECP: Secp256k1<secp256k1::All> = Secp256k1::new();
@@ -51,9 +50,7 @@ impl VerifyingKey {
                     .map_err(|e| anyhow!(e))
             }
             VerifyingKey::Secp256k1(bytes) => {
-                let mut hasher = Hasher::new();
-                hasher.update(message);
-                let hashed_message = hasher.finalize();
+                let hashed_message = Digest::hash(bytes).to_bytes();
                 let vk = Secp256k1VerifyingKey::from_slice(bytes.as_slice())?;
                 let message = Secp256k1Message::from_digest(hashed_message);
                 let signature = Secp256k1Signature::from_compact(signature)?;
@@ -185,9 +182,7 @@ impl SigningKey {
         match self {
             SigningKey::Ed25519(sk) => sk.sign(message).to_bytes().to_vec(),
             SigningKey::Secp256k1(sk) => {
-                let mut hasher = Hasher::new();
-                hasher.update(message);
-                let hashed_message = hasher.finalize();
+                let hashed_message = Digest::hash(message).to_bytes();
                 let message = Secp256k1Message::from_digest(hashed_message);
                 let signature = SECP.sign_ecdsa(&message, sk);
                 signature.serialize_compact().to_vec()
