@@ -284,11 +284,17 @@ impl UpdateProof {
     }
 }
 
+#[derive(Debug)]
+pub enum HashchainResponse {
+    Found(Hashchain, MembershipProof),
+    NotFound(NonMembershipProof),
+}
+
 pub trait SnarkableTree {
     fn process_operation(&mut self, operation: &Operation) -> Result<Proof>;
     fn insert(&mut self, key: KeyHash, value: Hashchain) -> Result<InsertProof>;
     fn update(&mut self, key: KeyHash, value: HashchainEntry) -> Result<UpdateProof>;
-    fn get(&self, key: KeyHash) -> Result<Result<Hashchain, NonMembershipProof>>;
+    fn get(&self, key: KeyHash) -> Result<HashchainResponse>;
 }
 
 pub struct KeyDirectoryTree<S>
@@ -367,16 +373,19 @@ where
                 let hashed_id = Digest::hash(id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
-                let mut current_chain = self
-                    .get(key_hash)?
-                    .map_err(|_| anyhow!("Failed to get hashchain for ID {}", id))?;
+                match self.get(key_hash)? {
+                    HashchainResponse::Found(mut current_chain, _) => {
+                        let new_entry = current_chain.perform_operation(operation.clone())?;
 
-                let new_entry = current_chain.perform_operation(operation.clone())?;
+                        debug!("updating hashchain for user id {}", id.clone());
+                        let proof = self.update(key_hash, new_entry.clone())?;
 
-                debug!("updating hashchain for user id {}", id.clone());
-                let proof = self.update(key_hash, new_entry.clone())?;
-
-                Ok(Proof::Update(proof))
+                        Ok(Proof::Update(proof))
+                    }
+                    HashchainResponse::NotFound(_) => {
+                        bail!("Failed to get hashchain for ID {}", id)
+                    }
+                }
             }
             Operation::CreateAccount(CreateAccountArgs {
                 id,
@@ -389,7 +398,7 @@ where
                 let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 // Verify that the account doesn't already exist
-                if self.get(account_key_hash)?.is_ok() {
+                if matches!(self.get(account_key_hash)?, HashchainResponse::Found(_, _)) {
                     bail!(DatabaseError::NotFoundError(format!(
                         "Account already exists for ID {}",
                         id
@@ -397,9 +406,11 @@ where
                 }
 
                 let service_key_hash = KeyHash::with::<Hasher>(Digest::hash(service_id.as_bytes()));
-                let service_hashchain = self.get(service_key_hash)?.map_err(|_| {
-                    anyhow!("Failed to get hashchain for service ID {}", service_id)
-                })?;
+
+                let HashchainResponse::Found(service_hashchain, _) = self.get(service_key_hash)?
+                else {
+                    bail!("Failed to get hashchain for service ID {}", service_id);
+                };
 
                 let service_last_entry = service_hashchain.last().ok_or(anyhow!(
                     "Service hashchain is empty, could not retrieve challenge key"
@@ -452,12 +463,12 @@ where
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 // hashchain should not already exist
-                if self.get(key_hash)?.is_ok() {
+                let HashchainResponse::NotFound(_) = self.get(key_hash)? else {
                     bail!(DatabaseError::NotFoundError(format!(
                         "empty slot for ID {}",
                         id
                     )));
-                }
+                };
 
                 debug!("creating new hashchain for service id {}", id);
                 let chain = Hashchain::register_service(id.clone(), creation_gate.clone())?;
@@ -534,19 +545,31 @@ where
         })
     }
 
-    fn get(&self, key: KeyHash) -> Result<Result<Hashchain, NonMembershipProof>> {
+    fn get(&self, key: KeyHash) -> Result<HashchainResponse> {
         let (value, proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         match value {
             Some(serialized_value) => {
                 let deserialized_value = Self::deserialize_value(&serialized_value)?;
-                Ok(Ok(deserialized_value))
+                let membership_proof = MembershipProof {
+                    root: self.get_current_root()?.into(),
+                    proof,
+                    key,
+                    value: deserialized_value.clone(),
+                };
+                Ok(HashchainResponse::Found(
+                    deserialized_value,
+                    membership_proof,
+                ))
             }
-            None => Ok(Err(NonMembershipProof {
-                root: self.get_current_root()?.into(),
-                proof,
-                key,
-            })),
+            None => {
+                let non_membership_proof = NonMembershipProof {
+                    root: self.get_current_root()?.into(),
+                    proof,
+                    key,
+                };
+                Ok(HashchainResponse::NotFound(non_membership_proof))
+            }
         }
     }
 }
@@ -570,8 +593,10 @@ mod tests {
         let insert_proof = tree_state.insert_account(account.clone()).unwrap();
         assert!(insert_proof.verify().is_ok());
 
-        let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
-        assert_eq!(get_result, account.hashchain);
+        let get_result = tree_state.tree.get(account.key_hash).unwrap();
+        assert!(
+            matches!(get_result, HashchainResponse::Found(hashchain, _) if hashchain == account.hashchain)
+        );
     }
 
     #[test]
@@ -638,8 +663,10 @@ mod tests {
         let update_proof = tree_state.update_account(account.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
 
-        let get_result = tree_state.tree.get(account.key_hash).unwrap().unwrap();
-        assert_eq!(get_result, account.hashchain);
+        let get_result = tree_state.tree.get(account.key_hash).unwrap();
+        assert!(
+            matches!(get_result, HashchainResponse::Found(hashchain, _) if hashchain == account.hashchain)
+        );
     }
 
     #[test]
@@ -661,11 +688,12 @@ mod tests {
         let key = KeyHash::with::<Hasher>(b"non_existing_key");
 
         let result = tree_state.tree.get(key).unwrap();
-        assert!(result.is_err());
 
-        if let Err(non_membership_proof) = result {
-            assert!(non_membership_proof.verify().is_ok());
-        }
+        let HashchainResponse::NotFound(non_membership_proof) = result else {
+            panic!("Hashchain found for key while it was expected to be missing");
+        };
+
+        assert!(non_membership_proof.verify().is_ok());
     }
 
     #[test]
@@ -688,11 +716,14 @@ mod tests {
         tree_state.update_account(account1.clone()).unwrap();
         tree_state.update_account(account2.clone()).unwrap();
 
-        let tree_hashchain1 = tree_state.tree.get(account1.key_hash).unwrap().unwrap();
-        let tree_hashchain2 = tree_state.tree.get(account2.key_hash).unwrap().unwrap();
-
-        assert_eq!(tree_hashchain1, account1.hashchain);
-        assert_eq!(tree_hashchain2, account2.hashchain);
+        assert!(matches!(
+            tree_state.tree.get(account1.key_hash).unwrap(),
+            HashchainResponse::Found(h, _) if h == account1.hashchain
+        ));
+        assert!(matches!(
+            tree_state.tree.get(account2.key_hash).unwrap(),
+            HashchainResponse::Found(h, _) if h == account2.hashchain
+        ));
     }
 
     #[test]
@@ -718,14 +749,14 @@ mod tests {
         // Update account_2 using the correct key index
         let last_proof = test_tree.update_account(account_2.clone()).unwrap();
 
-        assert_eq!(
-            test_tree.tree.get(account_1.key_hash).unwrap().unwrap(),
-            account_1.hashchain
-        );
-        assert_eq!(
-            test_tree.tree.get(account_2.key_hash).unwrap().unwrap(),
-            account_2.hashchain
-        );
+        assert!(matches!(
+            test_tree.tree.get(account_1.key_hash).unwrap(),
+            HashchainResponse::Found(h, _) if h == account_1.hashchain
+        ));
+        assert!(matches!(
+            test_tree.tree.get(account_2.key_hash).unwrap(),
+            HashchainResponse::Found(h, _) if h == account_2.hashchain
+        ));
         assert_eq!(
             last_proof.new_root,
             test_tree.tree.get_current_root().unwrap()
@@ -794,7 +825,13 @@ mod tests {
         println!("Final get result for key1: {:?}", get_result1);
         println!("Final get result for key2: {:?}", get_result2);
 
-        assert_eq!(get_result1.unwrap().unwrap(), account1.hashchain);
-        assert_eq!(get_result2.unwrap().unwrap(), account2.hashchain);
+        assert!(matches!(
+            get_result1.unwrap(),
+            HashchainResponse::Found(h, _) if h == account1.hashchain
+        ));
+        assert!(matches!(
+            get_result2.unwrap(),
+            HashchainResponse::Found(h, _) if h == account2.hashchain
+        ));
     }
 }

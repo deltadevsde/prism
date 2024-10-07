@@ -1,7 +1,7 @@
 use crate::{
     hashchain::Hashchain,
     operation::{Operation, ServiceChallenge, SigningKey, VerifyingKey},
-    tree::{InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof},
+    tree::{HashchainResponse, InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof},
 };
 use anyhow::{anyhow, Result};
 #[cfg(not(feature = "secp256k1"))]
@@ -170,7 +170,10 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         .iter()
         .nth(rng.gen_range(0..state.inserted_keys.len()))
         .unwrap();
-    let mut hc = state.tree.get(key).unwrap().unwrap();
+
+    let HashchainResponse::Found(mut hc, _) = state.tree.get(key).unwrap() else {
+        panic!("No response found for key. Cannot perform update.");
+    };
 
     let signing_key = create_mock_signing_key();
     let verifying_key = signing_key.verifying_key();
