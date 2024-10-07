@@ -1,10 +1,9 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use ed25519_dalek::SigningKey;
 use jmt::KeyHash;
-use prism_common::{
-    hashchain::Hashchain,
-    tree::{Batch, Digest, Hasher, KeyDirectoryTree, NonMembershipProof, Proof, SnarkableTree},
+use prism_common::tree::{
+    Batch, Digest, HashchainResponse, Hasher, KeyDirectoryTree, Proof, SnarkableTree,
 };
 use prism_errors::DataAvailabilityError;
 use std::{self, collections::VecDeque, sync::Arc};
@@ -363,10 +362,7 @@ impl Sequencer {
         tree.get_commitment().context("Failed to get commitment")
     }
 
-    pub async fn get_hashchain(
-        &self,
-        id: &String,
-    ) -> Result<Result<Hashchain, NonMembershipProof>> {
+    pub async fn get_hashchain(&self, id: &String) -> Result<HashchainResponse> {
         let tree = self.tree.read().await;
         let hashed_id = Digest::hash(id);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
@@ -393,15 +389,13 @@ impl Sequencer {
             Operation::RegisterService(_) => (),
             Operation::CreateAccount(_) => (),
             Operation::AddKey(_) | Operation::RevokeKey(_) => {
-                let hc = self.get_hashchain(&incoming_operation.id()).await?;
-                if let Ok(mut hc) = hc {
-                    hc.perform_operation(incoming_operation.clone())?;
-                } else {
-                    return Err(anyhow!(
-                        "Hashchain not found for id: {}",
-                        incoming_operation.id()
-                    ));
-                }
+                let hcr = self.get_hashchain(&incoming_operation.id()).await?;
+
+                let HashchainResponse::Found(mut hc, _) = hcr else {
+                    bail!("Hashchain not found for id: {}", incoming_operation.id())
+                };
+
+                hc.perform_operation(incoming_operation.clone())?;
             }
         };
 
