@@ -188,6 +188,22 @@ pub enum Proof {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MembershipProof {
+    pub root: Digest,
+    pub proof: SparseMerkleProof<Hasher>,
+    pub key: KeyHash,
+    pub value: Hashchain,
+}
+
+impl MembershipProof {
+    pub fn verify(&self) -> Result<()> {
+        let value = bincode::serialize(&self.value)?;
+        self.proof
+            .verify_existence(self.root.into(), self.key, value)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NonMembershipProof {
     pub root: Digest,
     pub proof: SparseMerkleProof<Hasher>,
