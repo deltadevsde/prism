@@ -19,11 +19,14 @@ use crate::tree::Digest;
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 /// Represents a public key supported by the system.
 pub enum VerifyingKey {
-    Secp256k1(Vec<u8>), // Bitcoin, Ethereum
-    Ed25519(Vec<u8>),   // Cosmos, OpenSSH, GnuPG
+    /// Bitcoin, Ethereum
+    Secp256k1(Vec<u8>),
+    /// Cosmos, OpenSSH, GnuPG
+    Ed25519(Vec<u8>),
 }
 
 impl VerifyingKey {
+    /// Returns the byte representation of the public key.
     pub fn as_bytes(&self) -> &[u8] {
         match self {
             VerifyingKey::Ed25519(bytes) => bytes,
@@ -83,6 +86,21 @@ impl From<Secp256k1VerifyingKey> for VerifyingKey {
 impl TryFrom<String> for VerifyingKey {
     type Error = anyhow::Error;
 
+    /// Attempts to create a `VerifyingKey` from a base64-encoded string.
+    ///
+    /// # Arguments
+    ///
+    /// * `s` - The base64-encoded string representation of the public key.
+    ///
+    /// Depending on the length of the input string, the function will attempt to
+    /// decode it and create a `VerifyingKey` instance. According to the specifications,
+    /// the input string should be either [32 bytes (Ed25519)](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.5) or [33/65 bytes (Secp256k1)](https://www.secg.org/sec1-v2.pdf).
+    /// The secp256k1 key can be either compressed (33 bytes) or uncompressed (65 bytes).
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(VerifyingKey)` if the conversion was successful.
+    /// * `Err` if the input is invalid or the conversion failed.
     fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
         let bytes = engine
             .decode(s)
@@ -90,7 +108,7 @@ impl TryFrom<String> for VerifyingKey {
 
         match bytes.len() {
             32 => Ok(VerifyingKey::Ed25519(bytes)),
-            33 | 65 => Ok(VerifyingKey::Secp256k1(bytes)), // Compressed or uncompressed
+            33 | 65 => Ok(VerifyingKey::Secp256k1(bytes)),
             _ => Err(anyhow!("Invalid public key length")),
         }
     }
@@ -100,8 +118,10 @@ impl TryFrom<String> for VerifyingKey {
 /// Represents a signature bundle, which includes the index of the key
 /// in the user's hashchain and the associated signature.
 pub struct SignatureBundle {
-    pub key_idx: u64,       // Index of the key in the hashchain
-    pub signature: Vec<u8>, // The actual signature
+    /// Index of the key in the hashchain
+    pub key_idx: u64,
+    /// The actual signature
+    pub signature: Vec<u8>,
 }
 
 impl SignatureBundle {
@@ -116,38 +136,45 @@ impl SignatureBundle {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Input required to complete a challenge for account creation.
 pub enum ServiceChallengeInput {
-    Signed(Vec<u8>), // Signature bytes
+    /// Signature bytes
+    Signed(Vec<u8>),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-// An [`Operation`] represents a state transition in the system.
-// In a blockchain analogy, this would be the full set of our transaction types.
+/// An [`Operation`] represents a state transition in the system.
+/// In a blockchain analogy, this would be the full set of our transaction types.
 pub enum Operation {
-    // Creates a new account with the given id and value.
+    /// Creates a new account with the given id and value.
     CreateAccount(CreateAccountArgs),
-    // Adds a value to an existing account.
+    /// Adds a value to an existing account.
     AddKey(KeyOperationArgs),
-    // Revokes a value from an existing account.
+    /// Revokes a value from an existing account.
     RevokeKey(KeyOperationArgs),
-    // Registers a new service with the given id.
+    /// Registers a new service with the given id.
     RegisterService(RegisterServiceArgs),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Arguments for creating an account with a service.
 pub struct CreateAccountArgs {
-    pub id: String,          // Account ID
-    pub value: VerifyingKey, // Public Key
+    /// Account ID
+    pub id: String,
+    /// Public key being added
+    pub value: VerifyingKey,
     pub signature: Vec<u8>,
-    pub service_id: String,               // Associated service ID
-    pub challenge: ServiceChallengeInput, // Challenge input for verification
+    /// Associated service ID
+    pub service_id: String,
+    /// Challenge input for verification
+    pub challenge: ServiceChallengeInput,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Arguments for registering a new service.
 pub struct RegisterServiceArgs {
-    pub id: String,                      // Service ID
-    pub creation_gate: ServiceChallenge, // Challenge gate for access control
+    /// Service ID
+    pub id: String,
+    /// Challenge gate for access control
+    pub creation_gate: ServiceChallenge,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -164,9 +191,12 @@ impl From<SigningKey> for ServiceChallenge {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Common structure for operations involving keys (adding or revoking).
 pub struct KeyOperationArgs {
-    pub id: String,                 // Account ID
-    pub value: VerifyingKey,        // Public key being added or revoked
-    pub signature: SignatureBundle, // Signature to authorize the action
+    /// Account ID
+    pub id: String,
+    /// Public key being added or revoked
+    pub value: VerifyingKey,
+    /// Signature to authorize the action
+    pub signature: SignatureBundle,
 }
 
 #[derive(Clone)]
