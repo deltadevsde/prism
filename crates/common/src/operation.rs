@@ -47,7 +47,7 @@ impl VerifyingKey {
                     .map_err(|e| anyhow!(e))
             }
             VerifyingKey::Secp256k1(bytes) => {
-                let hashed_message = Digest::hash(bytes).to_bytes();
+                let hashed_message = Digest::hash(message).to_bytes();
                 let vk = Secp256k1VerifyingKey::from_slice(bytes.as_slice())?;
                 let message = Secp256k1Message::from_digest(hashed_message);
                 let signature = Secp256k1Signature::from_compact(signature)?;

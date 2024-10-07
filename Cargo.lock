@@ -4830,7 +4830,6 @@ dependencies = [
  "ed25519-dalek",
  "hex",
  "jmt",
- "lazy_static",
  "log",
  "prism-errors",
  "rand",

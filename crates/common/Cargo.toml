@@ -21,7 +21,6 @@ ed25519-dalek.workspace = true
 secp256k1.workspace = true 
 base64.workspace = true
 rand.workspace = true
-lazy_static.workspace = true
 
 [features]
 default = []

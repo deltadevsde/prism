@@ -86,7 +86,6 @@ prism-errors = { path = "crates/errors" }
 prism-main = { path = "crates/prism" }
 prism-groth16 = { path = "crates/groth16" }
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
-lazy_static = "1.5.0"
 
 
 [patch.crates-io]
