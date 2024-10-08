@@ -551,13 +551,14 @@ where
     }
 
     fn get(&self, key: KeyHash) -> Result<HashchainResponse> {
+        let root = self.get_current_root()?.into();
         let (value, proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         match value {
             Some(serialized_value) => {
                 let deserialized_value = Self::deserialize_value(&serialized_value)?;
                 let membership_proof = MembershipProof {
-                    root: self.get_current_root()?.into(),
+                    root,
                     proof,
                     key,
                     value: deserialized_value.clone(),
@@ -565,11 +566,7 @@ where
                 Ok(Found(deserialized_value, membership_proof))
             }
             None => {
-                let non_membership_proof = NonMembershipProof {
-                    root: self.get_current_root()?.into(),
-                    proof,
-                    key,
-                };
+                let non_membership_proof = NonMembershipProof { root, proof, key };
                 Ok(NotFound(non_membership_proof))
             }
         }
