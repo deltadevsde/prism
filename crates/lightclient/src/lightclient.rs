@@ -1,6 +1,4 @@
-use crate::node_types::NodeType;
 use anyhow::{Context, Result};
-use async_trait::async_trait;
 use ed25519_dalek::VerifyingKey;
 use prism_common::tree::Digest;
 use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
@@ -9,8 +7,9 @@ use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};
 
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
+#[allow(dead_code)]
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
     pub sequencer_pubkey: Option<VerifyingKey>,
@@ -19,23 +18,7 @@ pub struct LightClient {
     pub start_height: u64,
 }
 
-#[async_trait]
-impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> Result<()> {
-        // start listening for new headers to update sync target
-        self.da
-            .start()
-            .await
-            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))
-            .context("Failed to start DataAvailabilityLayer")?;
-
-        self.sync_loop()
-            .await
-            .map_err(|e| GeneralError::InitializationError(e.to_string()))
-            .context("Sync loop failed")
-    }
-}
-
+#[allow(dead_code)]
 impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
@@ -55,6 +38,20 @@ impl LightClient {
             sequencer_pubkey,
             start_height: cfg.start_height,
         }
+    }
+
+    async fn start(self: Arc<Self>) -> Result<()> {
+        // start listening for new headers to update sync target
+        self.da
+            .start()
+            .await
+            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))
+            .context("Failed to start DataAvailabilityLayer")?;
+
+        self.sync_loop()
+            .await
+            .map_err(|e| GeneralError::InitializationError(e.to_string()))
+            .context("Sync loop failed")
     }
 
     async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {

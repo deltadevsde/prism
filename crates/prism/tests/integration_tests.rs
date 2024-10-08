@@ -15,10 +15,8 @@ use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
     DataAvailabilityLayer,
 };
-use prism_main::{
-    cfg::Config,
-    node_types::{lightclient::LightClient, NodeType},
-};
+use prism_lightclient::LightClient;
+use prism_main::{cfg::Config, node_types::NodeType};
 use prism_sequencer::Sequencer;
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};

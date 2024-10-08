@@ -4866,6 +4866,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "prism-lightclient"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "auto_impl",
+ "base64 0.22.1",
+ "bincode",
+ "bls12_381 0.8.0",
+ "dirs 5.0.1",
+ "ed25519-dalek",
+ "hex",
+ "jmt",
+ "log",
+ "mockall",
+ "prism-common",
+ "prism-da",
+ "prism-errors",
+ "rand",
+ "serde",
+ "serde_json",
+ "sp1-sdk",
+ "tokio",
+ "toml",
+]
+
+[[package]]
 name = "prism-main"
 version = "0.1.0"
 dependencies = [
@@ -4892,6 +4919,7 @@ dependencies = [
  "prism-common",
  "prism-da",
  "prism-errors",
+ "prism-lightclient",
  "prism-sequencer",
  "prism-storage",
  "rand",

@@ -17,6 +17,7 @@ readme = "README.md"
 default-members = [
     "crates/prism",
     "crates/sequencer",
+    "crates/lightclient",
     "crates/common",
     "crates/errors",
     "crates/storage",
@@ -26,6 +27,7 @@ default-members = [
 members = [
     "crates/prism",
     "crates/sequencer",
+    "crates/lightclient",
     "crates/common",
     "crates/errors",
     "crates/sp1",
@@ -88,6 +90,7 @@ prism-errors = { path = "crates/errors" }
 prism-main = { path = "crates/prism" }
 prism-groth16 = { path = "crates/groth16" }
 prism-sequencer = { path = "crates/sequencer" }
+prism-lightclient = { path = "crates/lightclient" }
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
 
 

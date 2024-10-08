@@ -8,7 +8,8 @@ use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use prism_common::keys::VerifyingKey;
 
-use node_types::{lightclient::LightClient, NodeType};
+use node_types::NodeType;
+use prism_lightclient::LightClient;
 use prism_sequencer::Sequencer;
 use prism_storage::RedisConnection;
 use std::sync::Arc;
