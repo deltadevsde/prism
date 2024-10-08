@@ -5,9 +5,9 @@ extern crate log;
 use anyhow::Result;
 use keystore_rs::create_signing_key;
 use prism_common::{
+    keys::{SigningKey, VerifyingKey},
     operation::{
         CreateAccountArgs, KeyOperationArgs, Operation, ServiceChallengeInput, SignatureBundle,
-        SigningKey, VerifyingKey,
     },
     test_utils::create_mock_signing_key,
 };

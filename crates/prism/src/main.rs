@@ -7,7 +7,7 @@ use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;
 use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-use prism_common::operation::VerifyingKey;
+use prism_common::keys::VerifyingKey;
 
 use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
 use prism_storage::RedisConnection;

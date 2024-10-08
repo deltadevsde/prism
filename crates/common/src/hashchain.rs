@@ -7,9 +7,9 @@ use std::{
 };
 
 use crate::{
+    keys::VerifyingKey,
     operation::{
         CreateAccountArgs, Operation, RegisterServiceArgs, ServiceChallenge, ServiceChallengeInput,
-        VerifyingKey,
     },
     tree::{Digest, Hasher},
 };

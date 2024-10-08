@@ -1,6 +1,7 @@
 use crate::{
     hashchain::Hashchain,
-    operation::{Operation, ServiceChallenge, SigningKey, VerifyingKey},
+    keys::{SigningKey, VerifyingKey},
+    operation::{Operation, ServiceChallenge},
     tree::{
         HashchainResponse::*, InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof,
     },
