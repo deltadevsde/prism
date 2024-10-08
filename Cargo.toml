@@ -16,8 +16,8 @@ readme = "README.md"
 [workspace]
 default-members = [
     "crates/prism",
-    "crates/sequencer",
-    "crates/lightclient",
+    "crates/node_types/sequencer",
+    "crates/node_types/lightclient",
     "crates/common",
     "crates/errors",
     "crates/storage",
@@ -26,11 +26,11 @@ default-members = [
 
 members = [
     "crates/prism",
-    "crates/sequencer",
-    "crates/lightclient",
+    "crates/node_types/sequencer",
+    "crates/node_types/lightclient",
     "crates/common",
     "crates/errors",
-    "crates/sp1",
+    "crates/zk/sp1",
     "crates/storage",
     "crates/da",
 ]
@@ -84,13 +84,13 @@ sp1-zkvm = { version = "1.2.0" }
 sp1-sdk = { version = "1.2.0" }
 prism-common = { path = "crates/common" }
 prism-storage = { path = "crates/storage" }
-prism-nova = { path = "crates/nova" }
+prism-nova = { path = "crates/zk/nova" }
 prism-da = { path = "crates/da" }
 prism-errors = { path = "crates/errors" }
 prism-main = { path = "crates/prism" }
-prism-groth16 = { path = "crates/groth16" }
-prism-sequencer = { path = "crates/sequencer" }
-prism-lightclient = { path = "crates/lightclient" }
+prism-groth16 = { path = "crates/zk/groth16" }
+prism-sequencer = { path = "crates/node_types/sequencer" }
+prism-lightclient = { path = "crates/node_types/lightclient" }
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
 
 

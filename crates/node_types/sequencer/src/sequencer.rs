@@ -15,7 +15,7 @@ use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_storage::Database;
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
 #[allow(dead_code)]
 pub struct Sequencer {

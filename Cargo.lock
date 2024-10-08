@@ -4953,7 +4953,6 @@ dependencies = [
  "jmt",
  "keystore-rs",
  "log",
- "mockall",
  "prism-common",
  "prism-da",
  "prism-errors",
