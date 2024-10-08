@@ -149,9 +149,9 @@ async fn get_hashchain(
     let get_hashchain_result = session.get_hashchain(&request.id).await;
     let Ok(hashchain_response) = get_hashchain_result else {
         return (
-            StatusCode::BAD_REQUEST,
+            StatusCode::INTERNAL_SERVER_ERROR,
             format!(
-                "Couldn't get hashchain: {}",
+                "Failed to retrieve hashchain or non-membership-proof: {}",
                 get_hashchain_result.unwrap_err()
             ),
         )
