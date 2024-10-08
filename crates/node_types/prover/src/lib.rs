@@ -1,7 +1,7 @@
-pub mod sequencer;
+pub mod prover;
 pub mod webserver;
 
-pub use sequencer::Sequencer;
+pub use prover::Prover;
 
 #[macro_use]
 extern crate log;

@@ -12,7 +12,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
         <link rel="shortcut icon" href="favicon.png">
         <link rel="stylesheet" href="css/variables.css">
         <link rel="stylesheet" href="css/general.css">
@@ -188,7 +187,7 @@
 <p>In the current design, account creation is managed through <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">registered services</a>. Here's how it works:</p>
 <ol>
 <li>Services must be registered in the system via a <code>RegisterService</code> operation.</li>
-<li>Initially, service registration will be permissioned, requiring a signature from the prover/sequencer.</li>
+<li>Initially, service registration will be permissioned, requiring a signature from the prover.</li>
 <li>Each service defines a specific challenge that must be completed to create an account. This could be either a signature check or providing a groth16 proof.</li>
 <li>Users create accounts by completing the service-specific challenge.</li>
 </ol>

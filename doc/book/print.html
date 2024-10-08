@@ -13,7 +13,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
         <link rel="shortcut icon" href="favicon.png">
         <link rel="stylesheet" href="css/variables.css">
         <link rel="stylesheet" href="css/general.css">
@@ -231,7 +230,7 @@
 <h3 id="prism-node-types"><a class="header" href="#prism-node-types">Prism Node Types</a></h3>
 <p>Prism employs three primary node types, each with distinct responsibilities:</p>
 <ol>
-<li><strong>Sequencer/Prover</strong>: A singleton node that generates epoch proofs for operations in the previous Prism block and posts them to a proof namespace on Celestia.</li>
+<li><strong>Prover</strong>: A singleton node that generates epoch proofs for operations in the previous Prism block and posts them to a proof namespace on Celestia.</li>
 <li><strong>Full Nodes</strong>: These nodes run all operations posted to Prism blocks, ensuring that the Merkle root is updated according to the application-specific policies, independent of the SNARK contents.</li>
 <li><strong>Light Nodes</strong>: Running on end-user devices, light nodes verify epoch proofs without downloading Prism blocks or single operations, making them efficient for minimal-resource environments.</li>
 </ol>
@@ -326,7 +325,7 @@
 <p>In the current design, account creation is managed through <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">registered services</a>. Here's how it works:</p>
 <ol>
 <li>Services must be registered in the system via a <code>RegisterService</code> operation.</li>
-<li>Initially, service registration will be permissioned, requiring a signature from the prover/sequencer.</li>
+<li>Initially, service registration will be permissioned, requiring a signature from the prover.</li>
 <li>Each service defines a specific challenge that must be completed to create an account. This could be either a signature check or providing a groth16 proof.</li>
 <li>Users create accounts by completing the service-specific challenge.</li>
 </ol>
@@ -481,7 +480,7 @@ struct Proof {
 <h2 id="2-rollup-status"><a class="header" href="#2-rollup-status">2. Rollup Status</a></h2>
 <p>We've made significant progress in rollup implementation:</p>
 <ul>
-<li>Successfully implemented based sequencing with a partially unprivileged sequencer</li>
+<li>Successfully implemented based sequencing with a batcher + prover</li>
 <li>Enabled direct base layer update operations for users</li>
 <li>Developed a robust proof of concept for further refinement</li>
 </ul>
@@ -511,11 +510,11 @@ struct Proof {
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
 <p>We operate as a based rollup on Celestia. The SNARKs are posted to one namespace, and the operations are posted to a secondary namespace, enabling full nodes. This architecture is designed to be trust-minimized and censorship-resistant.</p>
-<p>The sequencer is a partially unprivileged sequencer: while anybody can post update operations to the base layer, account creations must be signed by the sequencer. This is a temporary measure discussed in <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">adr-003 (Service Registration)</a>.</p>
+<p>The prover is just a batcher: anybody can post update operations to the base layer, but can also send them over the prover.</p>
 <p>Light nodes verify the state by downloading and verifying the SNARKs posted to Celestia. There is currently no P2P overlay for the Prism network.</p>
 <ol>
 <li>An epoch is defined by the valid operations posted to the namespace in the previous Celestia block.</li>
-<li>Services can replicate the state by running a full node, to serve their own stack and not rely on the liveness of the sequencer.</li>
+<li>Services can replicate the state by running a full node, to serve their own stack and not rely on the liveness of the prover.</li>
 <li>Enables future prover decentralization (perhaps with a prover marketplace).</li>
 <li>Censorship resistance (updates can be posted directly to the DA layer).</li>
 </ol>
@@ -537,8 +536,8 @@ struct Proof {
 
     ChatServer --&gt;|uploads key updates| Celestia
 
-    Celestia --&gt;|gives key updates from last celestia block| Sequencer
-    Sequencer[Sequencer/Prover] --&gt;|posts snark to celestia| Celestia
+    Celestia --&gt;|gives key updates from last celestia block| Prover
+    Prover[Prover] --&gt;|posts snark to celestia| Celestia
 </pre>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="introduction-to-cryptography"><a class="header" href="#introduction-to-cryptography">Introduction to Cryptography</a></h1>

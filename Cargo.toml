@@ -16,7 +16,7 @@ readme = "README.md"
 [workspace]
 default-members = [
     "crates/bin",
-    "crates/node_types/sequencer",
+    "crates/node_types/prover",
     "crates/node_types/lightclient",
     "crates/common",
     "crates/errors",
@@ -26,7 +26,7 @@ default-members = [
 
 members = [
     "crates/bin",
-    "crates/node_types/sequencer",
+    "crates/node_types/prover",
     "crates/node_types/lightclient",
     "crates/common",
     "crates/errors",
@@ -89,7 +89,7 @@ prism-da = { path = "crates/da" }
 prism-errors = { path = "crates/errors" }
 prism-bin = { path = "crates/bin" }
 prism-groth16 = { path = "crates/zk/groth16" }
-prism-sequencer = { path = "crates/node_types/sequencer" }
+prism-prover = { path = "crates/node_types/prover" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
 

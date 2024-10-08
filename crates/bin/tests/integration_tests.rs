@@ -17,7 +17,7 @@ use prism_da::{
     DataAvailabilityLayer,
 };
 use prism_lightclient::LightClient;
-use prism_sequencer::Sequencer;
+use prism_prover::Prover;
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::{collections::HashMap, sync::Arc};
@@ -57,7 +57,7 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 }
 
 #[tokio::test]
-async fn test_light_client_sequencer_talking() -> Result<()> {
+async fn test_light_client_prover_talking() -> Result<()> {
     std::env::set_var(
         "RUST_LOG",
         "DEBUG,tracing=off,sp1_stark=info,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
@@ -80,7 +80,7 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
     let signing_key = create_signing_key();
     let pubkey = signing_key.verifying_key();
 
-    let sequencer = Arc::new(Sequencer::new(
+    let prover = Arc::new(Prover::new(
         db.clone(),
         bridge_da_layer.clone(),
         cfg.clone().webserver.unwrap(),
@@ -94,10 +94,10 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
         Some(pubkey),
     ));
 
-    let seq_clone = sequencer.clone();
+    let prover_clone = prover.clone();
     spawn(async move {
-        debug!("starting sequencer");
-        seq_clone.start().await.unwrap();
+        debug!("starting prover");
+        prover_clone.start().await.unwrap();
     });
 
     let lc_clone = lightclient.clone();
@@ -118,7 +118,7 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
                 let new_key = create_mock_signing_key();
                 let new_acc =
                     create_random_user(format!("{}@gmail.com", i).as_str(), new_key.clone());
-                sequencer
+                prover
                     .clone()
                     .validate_and_queue_update(&new_acc)
                     .await
@@ -147,7 +147,7 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
                         new_public_key,
                         signing_key.clone(),
                     );
-                    sequencer
+                    prover
                         .clone()
                         .validate_and_queue_update(&update_op)
                         .await

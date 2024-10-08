@@ -9,7 +9,7 @@ pub trait NodeType {
 }
 
 #[async_trait]
-impl NodeType for prism_sequencer::Sequencer {
+impl NodeType for prism_prover::Prover {
     async fn start(self: Arc<Self>) -> Result<()> {
         self.start().await
     }

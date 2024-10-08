@@ -1,5 +1,5 @@
 [package]
-name = "prism-sequencer"
+name = "prism-prover"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

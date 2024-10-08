@@ -61,7 +61,7 @@ Prism's block sequencing and ordering are directly determined by Celestia’s va
 
 Prism employs three primary node types, each with distinct responsibilities:
 
-1. **Sequencer/Prover**: A singleton node that generates epoch proofs for operations in the previous Prism block and posts them to a proof namespace on Celestia.
+1. **Prover**: A singleton node that generates epoch proofs for operations in the previous Prism block and posts them to a proof namespace on Celestia.
 2. **Full Nodes**: These nodes run all operations posted to Prism blocks, ensuring that the Merkle root is updated according to the application-specific policies, independent of the SNARK contents.
 3. **Light Nodes**: Running on end-user devices, light nodes verify epoch proofs without downloading Prism blocks or single operations, making them efficient for minimal-resource environments.
 

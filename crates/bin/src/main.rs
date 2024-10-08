@@ -9,7 +9,7 @@ use prism_common::keys::VerifyingKey;
 
 use node_types::NodeType;
 use prism_lightclient::LightClient;
-use prism_sequencer::Sequencer;
+use prism_prover::Prover;
 use prism_storage::RedisConnection;
 use std::sync::Arc;
 
@@ -38,16 +38,16 @@ async fn main() -> std::io::Result<()> {
                 )
             })?;
 
-            let sequencer_vk = config
+            let prover_vk = config
                 .verifying_key
                 .and_then(|s| s.try_into().ok())
                 .and_then(|vk: VerifyingKey| {
                     Ed25519VerifyingKey::from_bytes(vk.as_bytes().try_into().unwrap()).ok()
                 });
 
-            Arc::new(LightClient::new(da, celestia_config, sequencer_vk))
+            Arc::new(LightClient::new(da, celestia_config, prover_vk))
         }
-        Commands::Sequencer {} => {
+        Commands::Prover {} => {
             let redis_config = config.clone().redis_config.ok_or_else(|| {
                 std::io::Error::new(
                     std::io::ErrorKind::NotFound,
@@ -62,7 +62,7 @@ async fn main() -> std::io::Result<()> {
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
             Arc::new(
-                Sequencer::new(
+                Prover::new(
                     Arc::new(Box::new(redis_connections)),
                     da,
                     config.webserver.unwrap(),
@@ -70,7 +70,7 @@ async fn main() -> std::io::Result<()> {
                     signing_key,
                 )
                 .map_err(|e| {
-                    error!("error initializing sequencer: {}", e);
+                    error!("error initializing prover: {}", e);
                     std::io::Error::new(std::io::ErrorKind::Other, e.to_string())
                 })?,
             )

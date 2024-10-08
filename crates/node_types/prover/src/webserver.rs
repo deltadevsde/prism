@@ -1,4 +1,4 @@
-use crate::sequencer::Sequencer;
+use crate::Prover;
 use anyhow::{Context, Result};
 use axum::{
     extract::State,
@@ -91,7 +91,7 @@ impl WebServer {
         Self { cfg }
     }
 
-    pub async fn start(&self, session: Arc<Sequencer>) -> Result<()> {
+    pub async fn start(&self, session: Arc<Prover>) -> Result<()> {
         info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let app = Router::new()
             .route("/update-entry", post(update_entry))
@@ -124,7 +124,7 @@ impl WebServer {
     )
 )]
 async fn update_entry(
-    State(session): State<Arc<Sequencer>>,
+    State(session): State<Arc<Prover>>,
     Json(operation_input): Json<OperationInput>,
 ) -> impl IntoResponse {
     match session
@@ -158,7 +158,7 @@ async fn update_entry(
     )
 )]
 async fn get_hashchain(
-    State(session): State<Arc<Sequencer>>,
+    State(session): State<Arc<Prover>>,
     Json(request): Json<UserKeyRequest>,
 ) -> impl IntoResponse {
     let get_hashchain_result = session.get_hashchain(&request.id).await;
@@ -203,7 +203,7 @@ async fn get_hashchain(
         (status = 500, description = "Internal server error")
     )
 )]
-async fn get_commitment(State(session): State<Arc<Sequencer>>) -> impl IntoResponse {
+async fn get_commitment(State(session): State<Arc<Prover>>) -> impl IntoResponse {
     match session.get_commitment().await {
         Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),

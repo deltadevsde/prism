@@ -12,7 +12,7 @@ pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-
 #[allow(dead_code)]
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
-    pub sequencer_pubkey: Option<VerifyingKey>,
+    pub prover_pubkey: Option<VerifyingKey>,
     pub client: ProverClient,
     pub verifying_key: SP1VerifyingKey,
     pub start_height: u64,
@@ -23,7 +23,7 @@ impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: CelestiaConfig,
-        sequencer_pubkey: Option<VerifyingKey>,
+        prover_pubkey: Option<VerifyingKey>,
     ) -> LightClient {
         #[cfg(feature = "mock_prover")]
         let client = ProverClient::mock();
@@ -35,7 +35,7 @@ impl LightClient {
             da,
             verifying_key,
             client,
-            sequencer_pubkey,
+            prover_pubkey,
             start_height: cfg.start_height,
         }
     }
@@ -72,7 +72,7 @@ impl LightClient {
                                     debug!("light client: got epochs at height {}", i + 1);
 
                                     // Signature verification
-                                    if let Some(pubkey) = &self.sequencer_pubkey {
+                                    if let Some(pubkey) = &self.prover_pubkey {
                                         match finalized_epoch.verify_signature(*pubkey) {
                                             Ok(_) => trace!("valid signature for epoch {}", finalized_epoch.height),
                                             Err(e) => panic!("invalid signature in epoch {}: {:?}", i, e),

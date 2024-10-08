@@ -209,7 +209,7 @@ impl Operation {
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
                 args.signature.signature = signature
             }
-            _ => unimplemented!("RegisterService sequencer gating not yet implemented"),
+            _ => unimplemented!("RegisterService prover gating not yet implemented"),
         }
         Ok(())
     }
