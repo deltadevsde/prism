@@ -1,6 +1,5 @@
 mod cfg;
 mod node_types;
-mod utils;
 
 use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;

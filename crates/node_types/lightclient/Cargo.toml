@@ -23,7 +23,6 @@ bincode = { workspace = true }
 bls12_381 = { workspace = true }
 hex = { workspace = true }
 log = { workspace = true }
-mockall = { workspace = true }
 toml = { workspace = true }
 dirs = { workspace = true }
 anyhow = { workspace = true }

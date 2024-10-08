@@ -4,6 +4,7 @@
 extern crate log;
 use anyhow::Result;
 use keystore_rs::create_signing_key;
+use prism_bin::{cfg::Config, node_types::NodeType};
 use prism_common::{
     keys::{SigningKey, VerifyingKey},
     operation::{
@@ -16,7 +17,6 @@ use prism_da::{
     DataAvailabilityLayer,
 };
 use prism_lightclient::LightClient;
-use prism_main::{cfg::Config, node_types::NodeType};
 use prism_sequencer::Sequencer;
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};

@@ -15,7 +15,7 @@ readme = "README.md"
 
 [workspace]
 default-members = [
-    "crates/prism",
+    "crates/bin",
     "crates/node_types/sequencer",
     "crates/node_types/lightclient",
     "crates/common",
@@ -25,7 +25,7 @@ default-members = [
 ]
 
 members = [
-    "crates/prism",
+    "crates/bin",
     "crates/node_types/sequencer",
     "crates/node_types/lightclient",
     "crates/common",
@@ -87,7 +87,7 @@ prism-storage = { path = "crates/storage" }
 prism-nova = { path = "crates/zk/nova" }
 prism-da = { path = "crates/da" }
 prism-errors = { path = "crates/errors" }
-prism-main = { path = "crates/prism" }
+prism-bin = { path = "crates/bin" }
 prism-groth16 = { path = "crates/zk/groth16" }
 prism-sequencer = { path = "crates/node_types/sequencer" }
 prism-lightclient = { path = "crates/node_types/lightclient" }

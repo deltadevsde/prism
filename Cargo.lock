@@ -620,27 +620,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d965446196e3b7decd44aa7ee49e31d630118f90ef12f97900f262eb915c951d"
 
 [[package]]
-name = "bellman"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9afceed28bac7f9f5a508bca8aeeff51cdfa4770c0b967ac55c621e2ddfd6171"
-dependencies = [
- "bitvec",
- "blake2s_simd",
- "byteorder",
- "crossbeam-channel",
- "ff 0.13.0",
- "group 0.13.0",
- "lazy_static",
- "log",
- "num_cpus",
- "pairing 0.23.0",
- "rand_core",
- "rayon",
- "subtle",
-]
-
-[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -749,17 +728,6 @@ name = "blake2b_simd"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23285ad32269793932e830392f2fe2f83e26488fd3ec778883a93c8323735780"
-dependencies = [
- "arrayref",
- "arrayvec",
- "constant_time_eq",
-]
-
-[[package]]
-name = "blake2s_simd"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94230421e395b9920d23df13ea5d77a20e1725331f90fbbf6df6040b33f756ae"
 dependencies = [
  "arrayref",
  "arrayvec",
@@ -1403,15 +1371,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "crossbeam-channel"
-version = "0.5.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33480d6946193aa8033910124896ca395333cae7e2d1113d1fef6c3272217df2"
-dependencies = [
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -4819,6 +4778,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "prism-bin"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "auto_impl",
+ "axum 0.6.20",
+ "base64 0.22.1",
+ "bincode",
+ "bls12_381 0.8.0",
+ "clap",
+ "config",
+ "dirs 5.0.1",
+ "dotenvy",
+ "ed25519-dalek",
+ "hex",
+ "indexed-merkle-tree",
+ "jmt",
+ "keystore-rs",
+ "log",
+ "mockall",
+ "pretty_env_logger",
+ "prism-common",
+ "prism-da",
+ "prism-errors",
+ "prism-lightclient",
+ "prism-sequencer",
+ "prism-storage",
+ "rand",
+ "redis",
+ "serde",
+ "serde_json",
+ "sp1-sdk",
+ "tokio",
+ "toml",
+ "tower-http",
+ "utoipa",
+ "utoipa-swagger-ui",
+]
+
+[[package]]
 name = "prism-common"
 version = "0.1.0"
 dependencies = [
@@ -4880,7 +4880,6 @@ dependencies = [
  "hex",
  "jmt",
  "log",
- "mockall",
  "prism-common",
  "prism-da",
  "prism-errors",
@@ -4890,48 +4889,6 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "toml",
-]
-
-[[package]]
-name = "prism-main"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "auto_impl",
- "axum 0.6.20",
- "base64 0.22.1",
- "bellman",
- "bincode",
- "bls12_381 0.8.0",
- "clap",
- "config",
- "dirs 5.0.1",
- "dotenvy",
- "ed25519-dalek",
- "hex",
- "indexed-merkle-tree",
- "jmt",
- "keystore-rs",
- "log",
- "mockall",
- "pretty_env_logger",
- "prism-common",
- "prism-da",
- "prism-errors",
- "prism-lightclient",
- "prism-sequencer",
- "prism-storage",
- "rand",
- "redis",
- "serde",
- "serde_json",
- "sp1-sdk",
- "tokio",
- "toml",
- "tower-http",
- "utoipa",
- "utoipa-swagger-ui",
 ]
 
 [[package]]
