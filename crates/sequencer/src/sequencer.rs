@@ -1,5 +1,4 @@
 use anyhow::{anyhow, bail, Context, Result};
-use async_trait::async_trait;
 use ed25519_dalek::SigningKey;
 use jmt::KeyHash;
 use prism_common::tree::{
@@ -10,14 +9,15 @@ use prism_errors::DataAvailabilityError;
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 
-use crate::{cfg::Config, node_types::NodeType, webserver::WebServer};
+use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_storage::Database;
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
+#[allow(dead_code)]
 pub struct Sequencer {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
@@ -40,8 +40,38 @@ pub struct Sequencer {
     verifying_key: SP1VerifyingKey,
 }
 
-#[async_trait]
-impl NodeType for Sequencer {
+#[allow(dead_code)]
+impl Sequencer {
+    pub fn new(
+        db: Arc<Box<dyn Database>>,
+        da: Arc<dyn DataAvailabilityLayer>,
+        cfg: WebServerConfig,
+        start_height: u64,
+        key: SigningKey,
+    ) -> Result<Sequencer> {
+        let tree = Arc::new(RwLock::new(KeyDirectoryTree::new(db.clone())));
+
+        #[cfg(feature = "mock_prover")]
+        let prover_client = ProverClient::mock();
+        #[cfg(not(feature = "mock_prover"))]
+        let prover_client = ProverClient::local();
+
+        let (pk, vk) = prover_client.setup(PRISM_ELF);
+
+        Ok(Sequencer {
+            db: db.clone(),
+            da,
+            ws: WebServer::new(cfg),
+            proving_key: pk,
+            verifying_key: vk,
+            key,
+            start_height,
+            prover_client: Arc::new(RwLock::new(prover_client)),
+            tree,
+            pending_operations: Arc::new(RwLock::new(Vec::new())),
+        })
+    }
+
     async fn start(self: Arc<Self>) -> Result<()> {
         self.da
             .start()
@@ -61,41 +91,6 @@ impl NodeType for Sequencer {
             res = ws => Ok(res.context("WebServer failed")?),
         }
     }
-}
-
-impl Sequencer {
-    pub fn new(
-        db: Arc<Box<dyn Database>>,
-        da: Arc<dyn DataAvailabilityLayer>,
-        cfg: Config,
-        key: SigningKey,
-    ) -> Result<Sequencer> {
-        let ws = cfg.webserver.context("Missing webserver configuration")?;
-        let start_height = cfg.celestia_config.unwrap_or_default().start_height;
-
-        let tree = Arc::new(RwLock::new(KeyDirectoryTree::new(db.clone())));
-
-        #[cfg(feature = "mock_prover")]
-        let prover_client = ProverClient::mock();
-        #[cfg(not(feature = "mock_prover"))]
-        let prover_client = ProverClient::local();
-
-        let (pk, vk) = prover_client.setup(PRISM_ELF);
-
-        Ok(Sequencer {
-            db: db.clone(),
-            da,
-            ws: WebServer::new(ws),
-            proving_key: pk,
-            verifying_key: vk,
-            key,
-            start_height,
-            prover_client: Arc::new(RwLock::new(prover_client)),
-            tree,
-            pending_operations: Arc::new(RwLock::new(Vec::new())),
-        })
-    }
-
     async fn main_loop(self: Arc<Self>) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
         let current_height = height_rx.recv().await?;
@@ -420,9 +415,8 @@ mod tests {
         let da_layer = Arc::new(da_layer);
         let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
         let signing_key = create_signing_key();
-        Arc::new(
-            Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
-        )
+        let cfg = WebServerConfig::default();
+        Arc::new(Sequencer::new(db.clone(), da_layer, cfg, 0, signing_key.clone()).unwrap())
     }
 
     #[tokio::test]

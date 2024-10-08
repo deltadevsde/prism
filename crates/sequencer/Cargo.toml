@@ -1,11 +1,10 @@
 [package]
-name = "prism-main"
+name = "prism-sequencer"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-
 
 [features]
 default = []
@@ -25,14 +24,10 @@ redis = { workspace = true }
 ed25519-dalek = { workspace = true }
 base64 = { workspace = true }
 tokio = { workspace = true }
-bellman = { workspace = true }
 bincode = { workspace = true }
 bls12_381 = { workspace = true }
 hex = { workspace = true }
 log = { workspace = true }
-pretty_env_logger = { workspace = true }
-clap = { workspace = true }
-config = { workspace = true }
 indexed-merkle-tree = { workspace = true }
 dotenvy = { workspace = true }
 mockall = { workspace = true }
@@ -45,12 +40,6 @@ auto_impl = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage = { workspace = true }
 prism-errors = { workspace = true }
-prism-sequencer = { workspace = true }
 prism-da = { workspace = true }
 sp1-sdk = { workspace = true }
 rand = { workspace = true }
-
-[[test]]
-name = "integration_tests"
-path = "tests/integration_tests.rs"
-harness = true

@@ -5,6 +5,7 @@ use dirs::home_dir;
 use dotenvy::dotenv;
 use log::{error, warn};
 use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
+use prism_sequencer::webserver::WebServerConfig;
 use prism_storage::redis::RedisConfig;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
@@ -83,21 +84,6 @@ pub enum DALayerOption {
     Celestia,
     InMemory,
     None,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct WebServerConfig {
-    pub host: String,
-    pub port: u16,
-}
-
-impl Default for WebServerConfig {
-    fn default() -> Self {
-        WebServerConfig {
-            host: "127.0.0.1".to_string(),
-            port: 8089,
-        }
-    }
 }
 
 impl Default for Config {

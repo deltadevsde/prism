@@ -1,7 +1,6 @@
 mod cfg;
 mod node_types;
 mod utils;
-mod webserver;
 
 use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;
@@ -9,7 +8,8 @@ use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use prism_common::keys::VerifyingKey;
 
-use node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType};
+use node_types::{lightclient::LightClient, NodeType};
+use prism_sequencer::Sequencer;
 use prism_storage::RedisConnection;
 use std::sync::Arc;
 
@@ -65,7 +65,8 @@ async fn main() -> std::io::Result<()> {
                 Sequencer::new(
                     Arc::new(Box::new(redis_connections)),
                     da,
-                    config,
+                    config.webserver.unwrap(),
+                    config.celestia_config.unwrap().start_height,
                     signing_key,
                 )
                 .map_err(|e| {

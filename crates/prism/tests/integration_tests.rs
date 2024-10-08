@@ -17,8 +17,9 @@ use prism_da::{
 };
 use prism_main::{
     cfg::Config,
-    node_types::{lightclient::LightClient, sequencer::Sequencer, NodeType},
+    node_types::{lightclient::LightClient, NodeType},
 };
+use prism_sequencer::Sequencer;
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::{collections::HashMap, sync::Arc};
@@ -84,7 +85,8 @@ async fn test_light_client_sequencer_talking() -> Result<()> {
     let sequencer = Arc::new(Sequencer::new(
         db.clone(),
         bridge_da_layer.clone(),
-        cfg.clone(),
+        cfg.clone().webserver.unwrap(),
+        cfg.clone().celestia_config.unwrap().start_height,
         signing_key.clone(),
     )?);
 
