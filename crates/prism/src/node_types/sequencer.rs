@@ -3,7 +3,8 @@ use async_trait::async_trait;
 use ed25519_dalek::SigningKey;
 use jmt::KeyHash;
 use prism_common::tree::{
-    Batch, Digest, HashchainResponse, Hasher, KeyDirectoryTree, Proof, SnarkableTree,
+    Batch, Digest, HashchainResponse, HashchainResponse::*, Hasher, KeyDirectoryTree, Proof,
+    SnarkableTree,
 };
 use prism_errors::DataAvailabilityError;
 use std::{self, collections::VecDeque, sync::Arc};
@@ -389,9 +390,9 @@ impl Sequencer {
             Operation::RegisterService(_) => (),
             Operation::CreateAccount(_) => (),
             Operation::AddKey(_) | Operation::RevokeKey(_) => {
-                let hcr = self.get_hashchain(&incoming_operation.id()).await?;
+                let hc_response = self.get_hashchain(&incoming_operation.id()).await?;
 
-                let HashchainResponse::Found(mut hc, _) = hcr else {
+                let Found(mut hc, _) = hc_response else {
                     bail!("Hashchain not found for id: {}", incoming_operation.id())
                 };
 

@@ -21,6 +21,8 @@ use crate::{
     },
 };
 
+use HashchainResponse::*;
+
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
@@ -378,7 +380,7 @@ where
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 match self.get(key_hash)? {
-                    HashchainResponse::Found(mut current_chain, _) => {
+                    Found(mut current_chain, _) => {
                         let new_entry = current_chain.perform_operation(operation.clone())?;
 
                         debug!("updating hashchain for user id {}", id.clone());
@@ -386,7 +388,7 @@ where
 
                         Ok(Proof::Update(proof))
                     }
-                    HashchainResponse::NotFound(_) => {
+                    NotFound(_) => {
                         bail!("Failed to get hashchain for ID {}", id)
                     }
                 }
@@ -402,7 +404,7 @@ where
                 let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 // Verify that the account doesn't already exist
-                if matches!(self.get(account_key_hash)?, HashchainResponse::Found(_, _)) {
+                if matches!(self.get(account_key_hash)?, Found(_, _)) {
                     bail!(DatabaseError::NotFoundError(format!(
                         "Account already exists for ID {}",
                         id
@@ -411,8 +413,7 @@ where
 
                 let service_key_hash = KeyHash::with::<Hasher>(Digest::hash(service_id.as_bytes()));
 
-                let HashchainResponse::Found(service_hashchain, _) = self.get(service_key_hash)?
-                else {
+                let Found(service_hashchain, _) = self.get(service_key_hash)? else {
                     bail!("Failed to get hashchain for service ID {}", service_id);
                 };
 
@@ -467,7 +468,7 @@ where
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 // hashchain should not already exist
-                let HashchainResponse::NotFound(_) = self.get(key_hash)? else {
+                let NotFound(_) = self.get(key_hash)? else {
                     bail!(DatabaseError::NotFoundError(format!(
                         "empty slot for ID {}",
                         id
@@ -561,10 +562,7 @@ where
                     key,
                     value: deserialized_value.clone(),
                 };
-                Ok(HashchainResponse::Found(
-                    deserialized_value,
-                    membership_proof,
-                ))
+                Ok(Found(deserialized_value, membership_proof))
             }
             None => {
                 let non_membership_proof = NonMembershipProof {
@@ -572,7 +570,7 @@ where
                     proof,
                     key,
                 };
-                Ok(HashchainResponse::NotFound(non_membership_proof))
+                Ok(NotFound(non_membership_proof))
             }
         }
     }
@@ -667,10 +665,8 @@ mod tests {
         let update_proof = tree_state.update_account(account.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
 
-        let get_result = tree_state.tree.get(account.key_hash).unwrap();
-        assert!(
-            matches!(get_result, HashchainResponse::Found(hashchain, _) if hashchain == account.hashchain)
-        );
+        let get_result = tree_state.tree.get(account.key_hash);
+        assert!(matches!(get_result.unwrap(), Found(hc, _) if hc == account.hashchain));
     }
 
     #[test]
@@ -693,7 +689,7 @@ mod tests {
 
         let result = tree_state.tree.get(key).unwrap();
 
-        let HashchainResponse::NotFound(non_membership_proof) = result else {
+        let NotFound(non_membership_proof) = result else {
             panic!("Hashchain found for key while it was expected to be missing");
         };
 
@@ -720,14 +716,11 @@ mod tests {
         tree_state.update_account(account1.clone()).unwrap();
         tree_state.update_account(account2.clone()).unwrap();
 
-        assert!(matches!(
-            tree_state.tree.get(account1.key_hash).unwrap(),
-            HashchainResponse::Found(h, _) if h == account1.hashchain
-        ));
-        assert!(matches!(
-            tree_state.tree.get(account2.key_hash).unwrap(),
-            HashchainResponse::Found(h, _) if h == account2.hashchain
-        ));
+        let get_result1 = tree_state.tree.get(account1.key_hash);
+        let get_result2 = tree_state.tree.get(account2.key_hash);
+
+        assert!(matches!(get_result1.unwrap(), Found(hc, _) if hc == account1.hashchain));
+        assert!(matches!(get_result2.unwrap(), Found(hc, _) if hc == account2.hashchain));
     }
 
     #[test]
@@ -753,14 +746,11 @@ mod tests {
         // Update account_2 using the correct key index
         let last_proof = test_tree.update_account(account_2.clone()).unwrap();
 
-        assert!(matches!(
-            test_tree.tree.get(account_1.key_hash).unwrap(),
-            HashchainResponse::Found(h, _) if h == account_1.hashchain
-        ));
-        assert!(matches!(
-            test_tree.tree.get(account_2.key_hash).unwrap(),
-            HashchainResponse::Found(h, _) if h == account_2.hashchain
-        ));
+        let get_result1 = test_tree.tree.get(account_1.key_hash);
+        let get_result2 = test_tree.tree.get(account_2.key_hash);
+
+        assert!(matches!(get_result1.unwrap(), Found(hc, _) if hc == account_1.hashchain));
+        assert!(matches!(get_result2.unwrap(), Found(hc, _) if hc == account_2.hashchain));
         assert_eq!(
             last_proof.new_root,
             test_tree.tree.get_current_root().unwrap()
@@ -829,13 +819,7 @@ mod tests {
         println!("Final get result for key1: {:?}", get_result1);
         println!("Final get result for key2: {:?}", get_result2);
 
-        assert!(matches!(
-            get_result1.unwrap(),
-            HashchainResponse::Found(h, _) if h == account1.hashchain
-        ));
-        assert!(matches!(
-            get_result2.unwrap(),
-            HashchainResponse::Found(h, _) if h == account2.hashchain
-        ));
+        assert!(matches!(get_result1.unwrap(), Found(hc, _) if hc == account1.hashchain));
+        assert!(matches!(get_result2.unwrap(), Found(hc, _) if hc == account2.hashchain));
     }
 }
