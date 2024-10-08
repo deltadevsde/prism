@@ -168,7 +168,7 @@ async fn get_hashchain(
         )
             .into_response(),
         HashchainResponse::NotFound(non_membership_proof) => (
-            StatusCode::BAD_REQUEST,
+            StatusCode::OK,
             Json(UserKeyResponse {
                 hashchain: None,
                 proof: non_membership_proof.proof,
