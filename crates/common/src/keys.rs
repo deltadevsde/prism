@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
-use ed25519_dalek::{
-    Signature as Ed25519Signature, Signer as Ed25519Signer, SigningKey as Ed25519SigningKey,
-    VerifyingKey as Ed25519VerifyingKey,
+use ed25519_consensus::{
+    Signature as Ed25519Signature, SigningKey as Ed25519SigningKey,
+    VerificationKey as Ed25519VerifyingKey,
 };
 use secp256k1::{
     ecdsa::Signature as Secp256k1Signature, Message as Secp256k1Message,
@@ -37,11 +37,9 @@ impl VerifyingKey {
         }
         match self {
             VerifyingKey::Ed25519(bytes) => {
-                let vk = Ed25519VerifyingKey::from_bytes(bytes.as_slice().try_into()?)
-                    .map_err(|e| anyhow!(e))?;
-                let signature = Ed25519Signature::from_bytes(signature.try_into()?);
-                vk.verify_strict(message, &signature)
-                    .map_err(|e| anyhow!(e))
+                let vk = Ed25519VerifyingKey::try_from(bytes.as_slice()).map_err(|e| anyhow!(e))?;
+                let signature = Ed25519Signature::try_from(signature).map_err(|e| anyhow!(e))?;
+                vk.verify(&signature, message).map_err(|e| anyhow!(e))
             }
             VerifyingKey::Secp256k1(bytes) => {
                 let hashed_message = Digest::hash(message).to_bytes();
@@ -58,7 +56,7 @@ impl VerifyingKey {
 
 impl From<Ed25519SigningKey> for VerifyingKey {
     fn from(sk: Ed25519SigningKey) -> Self {
-        VerifyingKey::Ed25519(sk.verifying_key().to_bytes().to_vec())
+        VerifyingKey::Ed25519(sk.verification_key().to_bytes().to_vec())
     }
 }
 
@@ -113,7 +111,7 @@ impl TryFrom<String> for VerifyingKey {
 
 #[derive(Clone)]
 pub enum SigningKey {
-    Ed25519(Ed25519SigningKey),
+    Ed25519(Box<Ed25519SigningKey>),
     Secp256k1(Secp256k1SigningKey),
 }
 
@@ -132,7 +130,7 @@ impl SigningKey {
 
     pub fn verifying_key(&self) -> VerifyingKey {
         match self {
-            SigningKey::Ed25519(sk) => sk.verifying_key().into(),
+            SigningKey::Ed25519(sk) => sk.verification_key().into(),
             SigningKey::Secp256k1(sk) => sk.public_key(SECP256K1).into(),
         }
     }
@@ -146,7 +144,7 @@ mod tests {
     #[test]
     fn test_verifying_key_from_string_ed25519() {
         let ed25519_vk =
-            SigningKey::Ed25519(Ed25519SigningKey::generate(&mut OsRng)).verifying_key();
+            SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).verifying_key();
         let encoded = engine.encode(ed25519_vk.as_bytes());
 
         let result = VerifyingKey::try_from(encoded);

@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, Context, Result};
-use ed25519_dalek::SigningKey;
+use ed25519_consensus::SigningKey;
 use jmt::KeyHash;
 use prism_common::tree::{
     Batch, Digest, HashchainResponse, HashchainResponse::*, Hasher, KeyDirectoryTree, Proof,

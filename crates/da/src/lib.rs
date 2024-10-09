@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
+use ed25519_consensus::{Signature, SigningKey, VerificationKey as VerifyingKey};
 use prism_common::{operation::Operation, tree::Digest};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;
@@ -56,7 +56,7 @@ impl FinalizedEpoch {
             .try_into()
             .map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
 
-        vk.verify_strict(&message, &signature)
+        vk.verify(&signature, &message)
             .map_err(|e| anyhow::anyhow!("Signature verification failed: {}", e))?;
         Ok(())
     }

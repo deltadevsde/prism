@@ -17,8 +17,8 @@ sha2.workspace = true
 celestia-types.workspace = true
 bincode.workspace = true
 log.workspace = true
-ed25519-dalek.workspace = true
-secp256k1.workspace = true 
+ed25519-consensus.workspace = true
+secp256k1.workspace = true
 base64.workspace = true
 rand.workspace = true
 

@@ -72,7 +72,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let db = setup_db();
     let cfg = Config::default();
     let signing_key = create_signing_key();
-    let pubkey = signing_key.verifying_key();
+    let pubkey = signing_key.verification_key();
 
     let mut test_state = TestTreeState::new();
     let _service = test_state.register_service("test_service".to_string());

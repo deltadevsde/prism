@@ -3,7 +3,7 @@ mod node_types;
 
 use cfg::{initialize_da_layer, load_config, CommandLineArgs, Commands};
 use clap::Parser;
-use ed25519_dalek::VerifyingKey as Ed25519VerifyingKey;
+use ed25519_consensus::VerificationKey as Ed25519VerifyingKey;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use prism_common::keys::VerifyingKey;
 
@@ -41,9 +41,7 @@ async fn main() -> std::io::Result<()> {
             let prover_vk = config
                 .verifying_key
                 .and_then(|s| s.try_into().ok())
-                .and_then(|vk: VerifyingKey| {
-                    Ed25519VerifyingKey::from_bytes(vk.as_bytes().try_into().unwrap()).ok()
-                });
+                .and_then(|vk: VerifyingKey| Ed25519VerifyingKey::try_from(vk.as_bytes()).ok());
 
             Arc::new(LightClient::new(da, celestia_config, prover_vk))
         }
