@@ -3,6 +3,7 @@ use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::{nmt::Namespace, Blob, TxConfig};
+use log::{debug, error, trace, warn};
 use prism_common::operation::Operation;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,6 @@ use std::{
     },
 };
 use tokio::{sync::broadcast, task::spawn};
-use log::{trace, debug, warn, error};
 
 use bincode;
 
@@ -257,7 +257,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         sync_target.store(height, Ordering::Relaxed);
                         // todo: correct error handling
                         let _ = height_update_tx.send(height);
-                        debug!("updated sync target for height {}", height);
+                        trace!("updated sync target for height {}", height);
                     }
                     Err(e) => {
                         error!("Error retrieving header from DA layer: {}", e);

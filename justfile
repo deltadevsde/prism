@@ -65,7 +65,7 @@ integration-test:
   just celestia-up
 
   echo "Running integration tests..."
-  cargo test --release --test integration_tests
+  cargo test --release --test integration_tests --features mock_prover
 
   just celestia-down
 

@@ -40,7 +40,7 @@ impl LightClient {
         }
     }
 
-    async fn start(self: Arc<Self>) -> Result<()> {
+    pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
         self.da
             .start()
@@ -64,7 +64,6 @@ impl LightClient {
             loop {
                 match height_rx.recv().await {
                     Ok(target) => {
-                        debug!("updated sync target to height {}", target);
                         for i in current_position..target {
                             trace!("processing height: {}", i);
                             match self.da.get_finalized_epoch(i + 1).await {

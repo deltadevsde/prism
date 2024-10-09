@@ -70,7 +70,7 @@ impl Prover {
         })
     }
 
-    async fn start(self: Arc<Self>) -> Result<()> {
+    pub async fn run(self: Arc<Self>) -> Result<()> {
         self.da
             .start()
             .await
@@ -100,7 +100,7 @@ impl Prover {
     }
 
     async fn sync_range(&self, start_height: u64, end_height: u64) -> Result<()> {
-        let saved_epoch = match self.db.get_epoch() {
+        let mut saved_epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch,
             Err(_) => {
                 debug!("no existing epoch state found, setting epoch to 0");
@@ -108,7 +108,6 @@ impl Prover {
                 0
             }
         };
-        let mut current_epoch: u64 = 0;
         let mut buffered_operations: VecDeque<Vec<Operation>> = VecDeque::new();
         let mut current_height = start_height;
 
@@ -117,13 +116,12 @@ impl Prover {
             let operations = self.da.get_operations(height).await?;
             let epoch_result = self.da.get_finalized_epoch(height).await?;
 
-            self.process_height(
+            self.sync_historical_epoch(
                 height,
                 operations,
                 epoch_result,
-                &mut current_epoch,
+                &mut saved_epoch,
                 &mut buffered_operations,
-                saved_epoch,
             )
             .await?;
 
@@ -142,7 +140,7 @@ impl Prover {
 
         loop {
             let height = height_rx.recv().await?;
-            debug!("received height {}", height);
+            trace!("received height {}", height);
 
             // Get pending operations
             let pending_operations = {
@@ -182,45 +180,40 @@ impl Prover {
         loop {
             let height = height_rx.recv().await?;
             let operations = self.da.get_operations(height).await?;
-            let epoch_result = self.da.get_finalized_epoch(height).await?;
 
-            self.process_height(
+            self.process_real_time_epoch(
                 height,
                 operations,
-                epoch_result,
                 &mut current_epoch,
                 &mut buffered_operations,
-                saved_epoch,
             )
             .await?;
         }
     }
 
-    async fn process_height(
+    async fn sync_historical_epoch(
         &self,
         height: u64,
         operations: Vec<Operation>,
         epoch_result: Option<FinalizedEpoch>,
         current_epoch: &mut u64,
         buffered_operations: &mut VecDeque<Vec<Operation>>,
-        saved_epoch: u64,
     ) -> Result<()> {
         let prev_commitment = self.get_commitment().await?;
 
         debug!(
-            "processing height {}, saved_epoch: {}, current_epoch: {}",
-            height, saved_epoch, current_epoch
+            "processing old height {}, current_epoch: {}",
+            height, current_epoch
         );
 
+        // If there are new operations at this height, add them to the queue to
+        // be included in the next finalized epoch.
         if !operations.is_empty() {
             buffered_operations.push_back(operations);
         }
 
-        if !buffered_operations.is_empty() && height > saved_epoch {
-            let all_ops: Vec<Operation> = buffered_operations.drain(..).flatten().collect();
-            *current_epoch = height;
-            self.finalize_new_epoch(*current_epoch, all_ops).await?;
-        } else if let Some(epoch) = epoch_result {
+        if let Some(epoch) = epoch_result {
+            // run all buffered operations from the last celestia blocks and increment current_epoch
             self.process_existing_epoch(
                 epoch,
                 current_epoch,
@@ -231,6 +224,33 @@ impl Prover {
             .await?;
         } else {
             debug!("No operations to process at height {}", height);
+        }
+
+        Ok(())
+    }
+
+    async fn process_real_time_epoch(
+        &self,
+        height: u64,
+        operations: Vec<Operation>,
+        current_epoch: &mut u64,
+        buffered_operations: &mut VecDeque<Vec<Operation>>,
+    ) -> Result<()> {
+        debug!(
+            "processing new height {}, current_epoch: {}",
+            height, current_epoch
+        );
+
+        // If there are new operations at this height, add them to the queue to
+        // be included in the next finalized epoch.
+        if !operations.is_empty() {
+            buffered_operations.push_back(operations);
+        }
+
+        if !buffered_operations.is_empty() {
+            let all_ops: Vec<Operation> = buffered_operations.drain(..).flatten().collect();
+            self.finalize_new_epoch(*current_epoch, all_ops).await?;
+            *current_epoch += 1;
         }
 
         Ok(())
@@ -290,7 +310,11 @@ impl Prover {
         Ok(proofs)
     }
 
-    async fn finalize_new_epoch(&self, height: u64, operations: Vec<Operation>) -> Result<()> {
+    async fn finalize_new_epoch(
+        &self,
+        epoch_height: u64,
+        operations: Vec<Operation>,
+    ) -> Result<()> {
         let prev_commitment = self.get_commitment().await?;
 
         let proofs = self.execute_block(operations).await?;
@@ -298,15 +322,15 @@ impl Prover {
         let new_commitment = self.get_commitment().await?;
 
         let finalized_epoch = self
-            .prove_epoch(height, prev_commitment, new_commitment, proofs)
+            .prove_epoch(epoch_height, prev_commitment, new_commitment, proofs)
             .await?;
 
         self.da.submit_finalized_epoch(finalized_epoch).await?;
 
-        self.db.set_commitment(&height, &new_commitment)?;
-        self.db.set_epoch(&height)?;
+        self.db.set_commitment(&epoch_height, &new_commitment)?;
+        self.db.set_epoch(&epoch_height)?;
 
-        info!("Finalized new epoch at height {}", height);
+        info!("Finalized new epoch at height {}", epoch_height);
 
         Ok(())
     }
@@ -328,13 +352,16 @@ impl Prover {
         stdin.write(&batch);
         let client = self.prover_client.read().await;
 
-        info!("generating proof for epoch height {}", height);
+        info!("generating proof for epoch at height {}", height);
         #[cfg(not(feature = "groth16"))]
         let proof = client.prove(&self.proving_key, stdin).run()?;
 
         #[cfg(feature = "groth16")]
         let proof = client.prove(&self.proving_key, stdin).groth16().run()?;
-        info!("successfully generated proof for epoch height {}", height);
+        info!(
+            "successfully generated proof for epoch at height {}",
+            height
+        );
 
         client.verify(&proof, &self.verifying_key)?;
         info!("verified proof for epoch height {}", height);

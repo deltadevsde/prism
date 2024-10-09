@@ -11,13 +11,13 @@ pub trait NodeType {
 #[async_trait]
 impl NodeType for prism_prover::Prover {
     async fn start(self: Arc<Self>) -> Result<()> {
-        self.start().await
+        self.run().await
     }
 }
 
 #[async_trait]
 impl NodeType for prism_lightclient::LightClient {
     async fn start(self: Arc<Self>) -> Result<()> {
-        self.start().await
+        self.run().await
     }
 }
