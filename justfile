@@ -79,7 +79,7 @@ build:
   @echo "Building the project..."
   cargo build --release
   @echo "Building SP1..."
-  cd crates/sp1 && cargo prove build
+  cd crates/zk/sp1 && cargo prove build
 
 unit-test:
   @echo "Running unit tests..."
