@@ -11,7 +11,12 @@ use indexed_merkle_tree::{
     tree::{Proof, UpdateProof},
     Hash as TreeHash,
 };
-use prism_common::{hashchain::Hashchain, operation::Operation};
+use jmt::proof::SparseMerkleProof;
+use prism_common::{
+    hashchain::Hashchain,
+    operation::Operation,
+    tree::{HashchainResponse, Hasher},
+};
 use serde::{Deserialize, Serialize};
 use std::{self, sync::Arc};
 use tower_http::cors::CorsLayer;
@@ -46,11 +51,10 @@ pub struct UserKeyRequest {
     pub id: String,
 }
 
-// TODO: Retrieve Merkle proof of current epoch
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UserKeyResponse {
-    pub hashchain: Hashchain,
-    // pub proof: MerkleProof
+    pub hashchain: Option<Hashchain>,
+    pub proof: SparseMerkleProof<Hasher>,
 }
 
 #[derive(OpenApi)]
@@ -142,16 +146,33 @@ async fn get_hashchain(
     State(session): State<Arc<Sequencer>>,
     Json(request): Json<UserKeyRequest>,
 ) -> impl IntoResponse {
-    match session.get_hashchain(&request.id).await {
-        Ok(hashchain_or_proof) => match hashchain_or_proof {
-            Ok(hashchain) => (StatusCode::OK, Json(UserKeyResponse { hashchain })).into_response(),
-            Err(non_inclusion_proof) => {
-                (StatusCode::BAD_REQUEST, Json(non_inclusion_proof)).into_response()
-            }
-        },
-        Err(err) => (
-            StatusCode::BAD_REQUEST,
-            format!("Couldn't get hashchain: {}", err),
+    let get_hashchain_result = session.get_hashchain(&request.id).await;
+    let Ok(hashchain_response) = get_hashchain_result else {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!(
+                "Failed to retrieve hashchain or non-membership-proof: {}",
+                get_hashchain_result.unwrap_err()
+            ),
+        )
+            .into_response();
+    };
+
+    match hashchain_response {
+        HashchainResponse::Found(hashchain, membership_proof) => (
+            StatusCode::OK,
+            Json(UserKeyResponse {
+                hashchain: Some(hashchain),
+                proof: membership_proof.proof,
+            }),
+        )
+            .into_response(),
+        HashchainResponse::NotFound(non_membership_proof) => (
+            StatusCode::OK,
+            Json(UserKeyResponse {
+                hashchain: None,
+                proof: non_membership_proof.proof,
+            }),
         )
             .into_response(),
     }
