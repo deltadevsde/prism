@@ -8,7 +8,7 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 #[cfg(not(feature = "secp256k1"))]
-use ed25519_dalek::SigningKey as Ed25519SigningKey;
+use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use jmt::{mock::MockTreeStore, KeyHash};
 use rand::{
     rngs::{OsRng, StdRng},
@@ -200,7 +200,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
 
 #[cfg(not(feature = "secp256k1"))]
 pub fn create_mock_signing_key() -> SigningKey {
-    SigningKey::Ed25519(Ed25519SigningKey::generate(&mut OsRng))
+    SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng)))
 }
 
 #[cfg(feature = "secp256k1")]
