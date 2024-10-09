@@ -592,10 +592,13 @@ mod tests {
         let insert_proof = tree_state.insert_account(account.clone()).unwrap();
         assert!(insert_proof.verify().is_ok());
 
-        let get_result = tree_state.tree.get(account.key_hash).unwrap();
-        assert!(
-            matches!(get_result, HashchainResponse::Found(hashchain, _) if hashchain == account.hashchain)
-        );
+        let Found(hashchain, membership_proof) = tree_state.tree.get(account.key_hash).unwrap()
+        else {
+            panic!("Expected hashchain to be found, but was not found.")
+        };
+
+        assert_eq!(hashchain, account.hashchain);
+        assert!(membership_proof.verify().is_ok());
     }
 
     #[test]
