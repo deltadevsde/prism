@@ -48,12 +48,12 @@ Redis serves as a powerful in-memory database that is used to store the label-va
 
 A DA layer such as Celestia is an important component for data security and availability. It stores the cryptographic commitments and parameters of the zkSNARKs and ideally enables them to be verified. Follow the instructions [here](https://github.com/celestiaorg/apollo) to deploy a local testnet.
 
-### Starting the sequencer
+### Starting the prover
 
-If Redis is installed and the local devnet is running, Prism can be started. Prism can be started in two different ways, as a sequencer (service provider and proof generator) or as a light-client (to verify the proofs posted on Celestia using the cryptographic commitments). To start the sequencer, run the following command:
+If Redis is installed and the local devnet is running, Prism can be started. Prism can be started in two different ways, as a prover (service provider and proof generator) or as a light-client (to verify the proofs posted on Celestia using the cryptographic commitments). To start the prover, run the following command:
 
 ```bash
-cargo run sequencer
+cargo run prover
 ```
 
 to start the light-client, run the following command:

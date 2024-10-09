@@ -1,4 +1,5 @@
 pub mod hashchain;
+pub mod keys;
 pub mod operation;
 pub mod tree;
 

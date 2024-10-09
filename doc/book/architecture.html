@@ -12,7 +12,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
         <link rel="shortcut icon" href="favicon.png">
         <link rel="stylesheet" href="css/variables.css">
         <link rel="stylesheet" href="css/general.css">
@@ -179,11 +178,11 @@
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
 <p>We operate as a based rollup on Celestia. The SNARKs are posted to one namespace, and the operations are posted to a secondary namespace, enabling full nodes. This architecture is designed to be trust-minimized and censorship-resistant.</p>
-<p>The sequencer is a partially unprivileged sequencer: while anybody can post update operations to the base layer, account creations must be signed by the sequencer. This is a temporary measure discussed in <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">adr-003 (Service Registration)</a>.</p>
+<p>The prover is just a batcher: anybody can post update operations to the base layer, but can also send them over the prover.</p>
 <p>Light nodes verify the state by downloading and verifying the SNARKs posted to Celestia. There is currently no P2P overlay for the Prism network.</p>
 <ol>
 <li>An epoch is defined by the valid operations posted to the namespace in the previous Celestia block.</li>
-<li>Services can replicate the state by running a full node, to serve their own stack and not rely on the liveness of the sequencer.</li>
+<li>Services can replicate the state by running a full node, to serve their own stack and not rely on the liveness of the prover.</li>
 <li>Enables future prover decentralization (perhaps with a prover marketplace).</li>
 <li>Censorship resistance (updates can be posted directly to the DA layer).</li>
 </ol>
@@ -205,8 +204,8 @@
 
     ChatServer --&gt;|uploads key updates| Celestia
 
-    Celestia --&gt;|gives key updates from last celestia block| Sequencer
-    Sequencer[Sequencer/Prover] --&gt;|posts snark to celestia| Celestia
+    Celestia --&gt;|gives key updates from last celestia block| Prover
+    Prover[Prover] --&gt;|posts snark to celestia| Celestia
 </pre>
 
                     </main>

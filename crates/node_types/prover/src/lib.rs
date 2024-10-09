@@ -1,6 +1,7 @@
-pub mod cfg;
-pub mod node_types;
-pub mod utils;
+pub mod prover;
 pub mod webserver;
+
+pub use prover::Prover;
+
 #[macro_use]
 extern crate log;

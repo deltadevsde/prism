@@ -5,6 +5,7 @@ use dirs::home_dir;
 use dotenvy::dotenv;
 use log::{error, warn};
 use prism_errors::{DataAvailabilityError, GeneralError, PrismError};
+use prism_prover::webserver::WebServerConfig;
 use prism_storage::redis::RedisConfig;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
@@ -19,7 +20,7 @@ use prism_da::{
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
     LightClient,
-    Sequencer,
+    Prover,
 }
 
 #[derive(Parser, Clone, Debug, Deserialize)]
@@ -85,21 +86,6 @@ pub enum DALayerOption {
     None,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct WebServerConfig {
-    pub host: String,
-    pub port: u16,
-}
-
-impl Default for WebServerConfig {
-    fn default() -> Self {
-        WebServerConfig {
-            host: "127.0.0.1".to_string(),
-            port: 8089,
-        }
-    }
-}
-
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -137,7 +123,7 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config> {
     let final_config = apply_command_line_args(merged_config, args);
 
     if final_config.verifying_key.is_none() {
-        warn!("sequencer's public key was not provided. this is not recommended and epoch signatures will not be verified.");
+        warn!("prover's public key was not provided. this is not recommended and epoch signatures will not be verified.");
     }
 
     Ok(final_config)

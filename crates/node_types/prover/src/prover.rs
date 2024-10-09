@@ -1,5 +1,4 @@
 use anyhow::{anyhow, bail, Context, Result};
-use async_trait::async_trait;
 use ed25519_dalek::SigningKey;
 use jmt::KeyHash;
 use prism_common::tree::{
@@ -10,7 +9,7 @@ use prism_errors::DataAvailabilityError;
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 
-use crate::{cfg::Config, node_types::NodeType, webserver::WebServer};
+use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_storage::Database;
@@ -18,16 +17,15 @@ use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
-pub struct Sequencer {
+#[allow(dead_code)]
+pub struct Prover {
     pub db: Arc<dyn Database>,
     pub da: Arc<dyn DataAvailabilityLayer>,
     pub ws: WebServer,
 
-    // [`start_height`] is the DA layer height the sequencer should start syncing operations from.
+    // [`start_height`] is the DA layer height the prover should start syncing operations from.
     pub start_height: u64,
 
-    // [`key`] is the [`SigningKey`] used to sign [`Operation::CreateAccount`]s
-    // (specifically, [`AccountSource::SignedBySequencer`]), as well as [`FinalizedEpoch`]s.
     pub key: SigningKey,
 
     // [`pending_operations`] is a buffer for operations that have not yet been
@@ -40,9 +38,39 @@ pub struct Sequencer {
     verifying_key: SP1VerifyingKey,
 }
 
-#[async_trait]
-impl NodeType for Sequencer {
-    async fn start(self: Arc<Self>) -> Result<()> {
+#[allow(dead_code)]
+impl Prover {
+    pub fn new(
+        db: Arc<Box<dyn Database>>,
+        da: Arc<dyn DataAvailabilityLayer>,
+        cfg: WebServerConfig,
+        start_height: u64,
+        key: SigningKey,
+    ) -> Result<Prover> {
+        let tree = Arc::new(RwLock::new(KeyDirectoryTree::new(db.clone())));
+
+        #[cfg(feature = "mock_prover")]
+        let prover_client = ProverClient::mock();
+        #[cfg(not(feature = "mock_prover"))]
+        let prover_client = ProverClient::local();
+
+        let (pk, vk) = prover_client.setup(PRISM_ELF);
+
+        Ok(Prover {
+            db: db.clone(),
+            da,
+            ws: WebServer::new(cfg),
+            proving_key: pk,
+            verifying_key: vk,
+            key,
+            start_height,
+            prover_client: Arc::new(RwLock::new(prover_client)),
+            tree,
+            pending_operations: Arc::new(RwLock::new(Vec::new())),
+        })
+    }
+
+    pub async fn run(self: Arc<Self>) -> Result<()> {
         self.da
             .start()
             .await
@@ -61,41 +89,6 @@ impl NodeType for Sequencer {
             res = ws => Ok(res.context("WebServer failed")?),
         }
     }
-}
-
-impl Sequencer {
-    pub fn new(
-        db: Arc<Box<dyn Database>>,
-        da: Arc<dyn DataAvailabilityLayer>,
-        cfg: Config,
-        key: SigningKey,
-    ) -> Result<Sequencer> {
-        let ws = cfg.webserver.context("Missing webserver configuration")?;
-        let start_height = cfg.celestia_config.unwrap_or_default().start_height;
-
-        let tree = Arc::new(RwLock::new(KeyDirectoryTree::new(db.clone())));
-
-        #[cfg(feature = "mock_prover")]
-        let prover_client = ProverClient::mock();
-        #[cfg(not(feature = "mock_prover"))]
-        let prover_client = ProverClient::local();
-
-        let (pk, vk) = prover_client.setup(PRISM_ELF);
-
-        Ok(Sequencer {
-            db: db.clone(),
-            da,
-            ws: WebServer::new(ws),
-            proving_key: pk,
-            verifying_key: vk,
-            key,
-            start_height,
-            prover_client: Arc::new(RwLock::new(prover_client)),
-            tree,
-            pending_operations: Arc::new(RwLock::new(Vec::new())),
-        })
-    }
-
     async fn main_loop(self: Arc<Self>) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
         let current_height = height_rx.recv().await?;
@@ -107,7 +100,7 @@ impl Sequencer {
     }
 
     async fn sync_range(&self, start_height: u64, end_height: u64) -> Result<()> {
-        let saved_epoch = match self.db.get_epoch() {
+        let mut saved_epoch = match self.db.get_epoch() {
             Ok(epoch) => epoch,
             Err(_) => {
                 debug!("no existing epoch state found, setting epoch to 0");
@@ -115,7 +108,6 @@ impl Sequencer {
                 0
             }
         };
-        let mut current_epoch: u64 = 0;
         let mut buffered_operations: VecDeque<Vec<Operation>> = VecDeque::new();
         let mut current_height = start_height;
 
@@ -124,13 +116,12 @@ impl Sequencer {
             let operations = self.da.get_operations(height).await?;
             let epoch_result = self.da.get_finalized_epoch(height).await?;
 
-            self.process_height(
+            self.sync_historical_epoch(
                 height,
                 operations,
                 epoch_result,
-                &mut current_epoch,
+                &mut saved_epoch,
                 &mut buffered_operations,
-                saved_epoch,
             )
             .await?;
 
@@ -149,7 +140,7 @@ impl Sequencer {
 
         loop {
             let height = height_rx.recv().await?;
-            debug!("received height {}", height);
+            trace!("received height {}", height);
 
             // Get pending operations
             let pending_operations = {
@@ -189,45 +180,40 @@ impl Sequencer {
         loop {
             let height = height_rx.recv().await?;
             let operations = self.da.get_operations(height).await?;
-            let epoch_result = self.da.get_finalized_epoch(height).await?;
 
-            self.process_height(
+            self.process_real_time_epoch(
                 height,
                 operations,
-                epoch_result,
                 &mut current_epoch,
                 &mut buffered_operations,
-                saved_epoch,
             )
             .await?;
         }
     }
 
-    async fn process_height(
+    async fn sync_historical_epoch(
         &self,
         height: u64,
         operations: Vec<Operation>,
         epoch_result: Option<FinalizedEpoch>,
         current_epoch: &mut u64,
         buffered_operations: &mut VecDeque<Vec<Operation>>,
-        saved_epoch: u64,
     ) -> Result<()> {
         let prev_commitment = self.get_commitment().await?;
 
         debug!(
-            "processing height {}, saved_epoch: {}, current_epoch: {}",
-            height, saved_epoch, current_epoch
+            "processing old height {}, current_epoch: {}",
+            height, current_epoch
         );
 
+        // If there are new operations at this height, add them to the queue to
+        // be included in the next finalized epoch.
         if !operations.is_empty() {
             buffered_operations.push_back(operations);
         }
 
-        if !buffered_operations.is_empty() && height > saved_epoch {
-            let all_ops: Vec<Operation> = buffered_operations.drain(..).flatten().collect();
-            *current_epoch = height;
-            self.finalize_new_epoch(*current_epoch, all_ops).await?;
-        } else if let Some(epoch) = epoch_result {
+        if let Some(epoch) = epoch_result {
+            // run all buffered operations from the last celestia blocks and increment current_epoch
             self.process_existing_epoch(
                 epoch,
                 current_epoch,
@@ -238,6 +224,33 @@ impl Sequencer {
             .await?;
         } else {
             debug!("No operations to process at height {}", height);
+        }
+
+        Ok(())
+    }
+
+    async fn process_real_time_epoch(
+        &self,
+        height: u64,
+        operations: Vec<Operation>,
+        current_epoch: &mut u64,
+        buffered_operations: &mut VecDeque<Vec<Operation>>,
+    ) -> Result<()> {
+        debug!(
+            "processing new height {}, current_epoch: {}",
+            height, current_epoch
+        );
+
+        // If there are new operations at this height, add them to the queue to
+        // be included in the next finalized epoch.
+        if !operations.is_empty() {
+            buffered_operations.push_back(operations);
+        }
+
+        if !buffered_operations.is_empty() {
+            let all_ops: Vec<Operation> = buffered_operations.drain(..).flatten().collect();
+            self.finalize_new_epoch(*current_epoch, all_ops).await?;
+            *current_epoch += 1;
         }
 
         Ok(())
@@ -297,7 +310,11 @@ impl Sequencer {
         Ok(proofs)
     }
 
-    async fn finalize_new_epoch(&self, height: u64, operations: Vec<Operation>) -> Result<()> {
+    async fn finalize_new_epoch(
+        &self,
+        epoch_height: u64,
+        operations: Vec<Operation>,
+    ) -> Result<()> {
         let prev_commitment = self.get_commitment().await?;
 
         let proofs = self.execute_block(operations).await?;
@@ -305,15 +322,15 @@ impl Sequencer {
         let new_commitment = self.get_commitment().await?;
 
         let finalized_epoch = self
-            .prove_epoch(height, prev_commitment, new_commitment, proofs)
+            .prove_epoch(epoch_height, prev_commitment, new_commitment, proofs)
             .await?;
 
         self.da.submit_finalized_epoch(finalized_epoch).await?;
 
-        self.db.set_commitment(&height, &new_commitment)?;
-        self.db.set_epoch(&height)?;
+        self.db.set_commitment(&epoch_height, &new_commitment)?;
+        self.db.set_epoch(&epoch_height)?;
 
-        info!("Finalized new epoch at height {}", height);
+        info!("Finalized new epoch at height {}", epoch_height);
 
         Ok(())
     }
@@ -335,13 +352,16 @@ impl Sequencer {
         stdin.write(&batch);
         let client = self.prover_client.read().await;
 
-        info!("generating proof for epoch height {}", height);
+        info!("generating proof for epoch at height {}", height);
         #[cfg(not(feature = "groth16"))]
         let proof = client.prove(&self.proving_key, stdin).run()?;
 
         #[cfg(feature = "groth16")]
         let proof = client.prove(&self.proving_key, stdin).groth16().run()?;
-        info!("successfully generated proof for epoch height {}", height);
+        info!(
+            "successfully generated proof for epoch at height {}",
+            height
+        );
 
         client.verify(&proof, &self.verifying_key)?;
         info!("verified proof for epoch height {}", height);
@@ -414,44 +434,35 @@ mod tests {
     use prism_da::memory::InMemoryDataAvailabilityLayer;
     use prism_storage::inmemory::InMemoryDatabase;
 
-    // Helper function to create a test Sequencer instance
-    async fn create_test_sequencer() -> Arc<Sequencer> {
+    // Helper function to create a test prover instance
+    async fn create_test_prover() -> Arc<Prover> {
         let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
         let da_layer = Arc::new(da_layer);
         let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
         let signing_key = create_signing_key();
-        Arc::new(
-            Sequencer::new(db.clone(), da_layer, Config::default(), signing_key.clone()).unwrap(),
-        )
+        let cfg = WebServerConfig::default();
+        Arc::new(Prover::new(db.clone(), da_layer, cfg, 0, signing_key.clone()).unwrap())
     }
 
     #[tokio::test]
     async fn test_validate_and_queue_update() {
-        let sequencer = create_test_sequencer().await;
+        let prover = create_test_prover().await;
 
         let service_key = create_mock_signing_key();
         let op =
             Operation::new_register_service("service_id".to_string(), service_key.clone().into());
 
-        sequencer
-            .clone()
-            .validate_and_queue_update(&op)
-            .await
-            .unwrap();
+        prover.clone().validate_and_queue_update(&op).await.unwrap();
 
-        sequencer
-            .clone()
-            .validate_and_queue_update(&op)
-            .await
-            .unwrap();
+        prover.clone().validate_and_queue_update(&op).await.unwrap();
 
-        let pending_ops = sequencer.pending_operations.read().await;
+        let pending_ops = prover.pending_operations.read().await;
         assert_eq!(pending_ops.len(), 2);
     }
 
     #[tokio::test]
     async fn test_process_operation() {
-        let sequencer = create_test_sequencer().await;
+        let prover = create_test_prover().await;
 
         let signing_key = create_mock_signing_key();
         let original_pubkey = signing_key.verifying_key();
@@ -467,16 +478,13 @@ mod tests {
         )
         .unwrap();
 
-        let proof = sequencer
+        let proof = prover
             .process_operation(&register_service_op)
             .await
             .unwrap();
         assert!(matches!(proof, Proof::Insert(_)));
 
-        let proof = sequencer
-            .process_operation(&create_account_op)
-            .await
-            .unwrap();
+        let proof = prover.process_operation(&create_account_op).await.unwrap();
         assert!(matches!(proof, Proof::Insert(_)));
 
         let new_key = create_mock_signing_key();
@@ -485,7 +493,7 @@ mod tests {
             Operation::new_add_key("test@example.com".to_string(), pubkey, &signing_key, 0)
                 .unwrap();
 
-        let proof = sequencer.process_operation(&add_key_op).await.unwrap();
+        let proof = prover.process_operation(&add_key_op).await.unwrap();
 
         assert!(matches!(proof, Proof::Update(_)));
 
@@ -493,13 +501,13 @@ mod tests {
         let revoke_op =
             Operation::new_revoke_key("test@example.com".to_string(), original_pubkey, &new_key, 1)
                 .unwrap();
-        let proof = sequencer.process_operation(&revoke_op).await.unwrap();
+        let proof = prover.process_operation(&revoke_op).await.unwrap();
         assert!(matches!(proof, Proof::Update(_)));
     }
 
     #[tokio::test]
     async fn test_execute_block_with_invalid_tx() {
-        let sequencer = create_test_sequencer().await;
+        let prover = create_test_prover().await;
 
         let signing_key_1 = create_mock_signing_key();
         let signing_key_2 = create_mock_signing_key();
@@ -542,13 +550,13 @@ mod tests {
             .unwrap(),
         ];
 
-        let proofs = sequencer.execute_block(operations).await.unwrap();
+        let proofs = prover.execute_block(operations).await.unwrap();
         assert_eq!(proofs.len(), 4);
     }
 
     #[tokio::test]
     async fn test_execute_block() {
-        let sequencer = create_test_sequencer().await;
+        let prover = create_test_prover().await;
 
         let signing_key_1 = create_mock_signing_key();
         let signing_key_2 = create_mock_signing_key();
@@ -575,13 +583,13 @@ mod tests {
                 .unwrap(),
         ];
 
-        let proofs = sequencer.execute_block(operations).await.unwrap();
+        let proofs = prover.execute_block(operations).await.unwrap();
         assert_eq!(proofs.len(), 4);
     }
 
     #[tokio::test]
     async fn test_finalize_new_epoch() {
-        let sequencer = create_test_sequencer().await;
+        let prover = create_test_prover().await;
 
         let signing_key_1 = create_mock_signing_key();
         let signing_key_2 = create_mock_signing_key();
@@ -608,10 +616,10 @@ mod tests {
                 .unwrap(),
         ];
 
-        let prev_commitment = sequencer.get_commitment().await.unwrap();
-        sequencer.finalize_new_epoch(0, operations).await.unwrap();
+        let prev_commitment = prover.get_commitment().await.unwrap();
+        prover.finalize_new_epoch(0, operations).await.unwrap();
 
-        let new_commitment = sequencer.get_commitment().await.unwrap();
+        let new_commitment = prover.get_commitment().await.unwrap();
         assert_ne!(prev_commitment, new_commitment);
     }
 }

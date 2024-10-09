@@ -1,6 +1,4 @@
-use crate::node_types::NodeType;
 use anyhow::{Context, Result};
-use async_trait::async_trait;
 use ed25519_dalek::VerifyingKey;
 use prism_common::tree::Digest;
 use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
@@ -11,17 +9,38 @@ use tokio::{sync::broadcast, task::spawn};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
+#[allow(dead_code)]
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
-    pub sequencer_pubkey: Option<VerifyingKey>,
+    pub prover_pubkey: Option<VerifyingKey>,
     pub client: ProverClient,
     pub verifying_key: SP1VerifyingKey,
     pub start_height: u64,
 }
 
-#[async_trait]
-impl NodeType for LightClient {
-    async fn start(self: Arc<Self>) -> Result<()> {
+#[allow(dead_code)]
+impl LightClient {
+    pub fn new(
+        da: Arc<dyn DataAvailabilityLayer>,
+        cfg: CelestiaConfig,
+        prover_pubkey: Option<VerifyingKey>,
+    ) -> LightClient {
+        #[cfg(feature = "mock_prover")]
+        let client = ProverClient::mock();
+        #[cfg(not(feature = "mock_prover"))]
+        let client = ProverClient::local();
+        let (_, verifying_key) = client.setup(PRISM_ELF);
+
+        LightClient {
+            da,
+            verifying_key,
+            client,
+            prover_pubkey,
+            start_height: cfg.start_height,
+        }
+    }
+
+    pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
         self.da
             .start()
@@ -34,28 +53,6 @@ impl NodeType for LightClient {
             .map_err(|e| GeneralError::InitializationError(e.to_string()))
             .context("Sync loop failed")
     }
-}
-
-impl LightClient {
-    pub fn new(
-        da: Arc<dyn DataAvailabilityLayer>,
-        cfg: CelestiaConfig,
-        sequencer_pubkey: Option<VerifyingKey>,
-    ) -> LightClient {
-        #[cfg(feature = "mock_prover")]
-        let client = ProverClient::mock();
-        #[cfg(not(feature = "mock_prover"))]
-        let client = ProverClient::local();
-        let (_, verifying_key) = client.setup(PRISM_ELF);
-
-        LightClient {
-            da,
-            verifying_key,
-            client,
-            sequencer_pubkey,
-            start_height: cfg.start_height,
-        }
-    }
 
     async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
         info!("starting SNARK sync loop");
@@ -67,7 +64,6 @@ impl LightClient {
             loop {
                 match height_rx.recv().await {
                     Ok(target) => {
-                        debug!("updated sync target to height {}", target);
                         for i in current_position..target {
                             trace!("processing height: {}", i);
                             match self.da.get_finalized_epoch(i + 1).await {
@@ -75,7 +71,7 @@ impl LightClient {
                                     debug!("light client: got epochs at height {}", i + 1);
 
                                     // Signature verification
-                                    if let Some(pubkey) = &self.sequencer_pubkey {
+                                    if let Some(pubkey) = &self.prover_pubkey {
                                         match finalized_epoch.verify_signature(*pubkey) {
                                             Ok(_) => trace!("valid signature for epoch {}", finalized_epoch.height),
                                             Err(e) => panic!("invalid signature in epoch {}: {:?}", i, e),

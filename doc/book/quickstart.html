@@ -12,7 +12,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
         <link rel="shortcut icon" href="favicon.png">
         <link rel="stylesheet" href="css/variables.css">
         <link rel="stylesheet" href="css/general.css">
@@ -210,7 +209,7 @@
 <h3 id="prism-node-types"><a class="header" href="#prism-node-types">Prism Node Types</a></h3>
 <p>Prism employs three primary node types, each with distinct responsibilities:</p>
 <ol>
-<li><strong>Sequencer/Prover</strong>: A singleton node that generates epoch proofs for operations in the previous Prism block and posts them to a proof namespace on Celestia.</li>
+<li><strong>Prover</strong>: A singleton node that generates epoch proofs for operations in the previous Prism block and posts them to a proof namespace on Celestia.</li>
 <li><strong>Full Nodes</strong>: These nodes run all operations posted to Prism blocks, ensuring that the Merkle root is updated according to the application-specific policies, independent of the SNARK contents.</li>
 <li><strong>Light Nodes</strong>: Running on end-user devices, light nodes verify epoch proofs without downloading Prism blocks or single operations, making them efficient for minimal-resource environments.</li>
 </ol>

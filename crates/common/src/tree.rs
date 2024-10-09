@@ -455,7 +455,7 @@ where
                     signature,
                 )?;
 
-                debug!("Creating new hashchain for user ID {}", id);
+                debug!("creating new hashchain for user ID {}", id);
 
                 Ok(Proof::Insert(
                     self.insert(account_key_hash, new_account_chain)?,

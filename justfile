@@ -65,7 +65,7 @@ integration-test:
   just celestia-up
 
   echo "Running integration tests..."
-  cargo test --release --test integration_tests
+  cargo test --release --test integration_tests --features mock_prover
 
   just celestia-down
 
@@ -79,11 +79,11 @@ build:
   @echo "Building the project..."
   cargo build --release
   @echo "Building SP1..."
-  cd crates/sp1 && cargo prove build
+  cd crates/zk/sp1 && cargo prove build
 
 unit-test:
   @echo "Running unit tests..."
-  cargo test --lib --release --features "mock_prover secp256k1" -- --skip test_light_client_sequencer_talking
+  cargo test --lib --release --features "mock_prover secp256k1" -- --skip test_light_client_prover_talking
 
 install-deps:
   #!/usr/bin/env bash

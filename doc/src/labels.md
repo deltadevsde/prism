@@ -16,7 +16,7 @@ See more in [adr-002 (Account Sources)](https://github.com/deltadevsde/prism/blo
 In the current design, account creation is managed through [registered services](https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md). Here's how it works:
 
 1. Services must be registered in the system via a `RegisterService` operation.
-2. Initially, service registration will be permissioned, requiring a signature from the prover/sequencer.
+2. Initially, service registration will be permissioned, requiring a signature from the prover.
 3. Each service defines a specific challenge that must be completed to create an account. This could be either a signature check or providing a groth16 proof.
 4. Users create accounts by completing the service-specific challenge.
 

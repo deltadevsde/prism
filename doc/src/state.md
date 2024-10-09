@@ -17,7 +17,7 @@ Our current circuit implementations serve as a functional prototype, allowing us
 
 We've made significant progress in rollup implementation:
 
-- Successfully implemented based sequencing with a partially unprivileged sequencer
+- Successfully implemented based sequencing with a batcher + prover
 - Enabled direct base layer update operations for users
 - Developed a robust proof of concept for further refinement
 
