@@ -1,10 +1,10 @@
-// #![cfg(test)]
+#![cfg(test)]
 
 #[macro_use]
 extern crate log;
+
 use anyhow::Result;
 use keystore_rs::create_signing_key;
-use prism_bin::{cfg::Config, node_types::NodeType};
 use prism_common::{
     operation::{Operation, ServiceChallenge},
     test_utils::create_mock_signing_key,
@@ -14,7 +14,7 @@ use prism_da::{
     DataAvailabilityLayer,
 };
 use prism_lightclient::LightClient;
-use prism_prover::Prover;
+use prism_prover::{webserver::WebServerConfig, Prover};
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
@@ -70,7 +70,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
     let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());
     let db = setup_db();
-    let cfg = Config::default();
     let signing_key = create_signing_key();
     let pubkey = signing_key.verification_key();
 
@@ -80,27 +79,23 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let prover = Arc::new(Prover::new(
         db.clone(),
         bridge_da_layer.clone(),
-        cfg.clone().webserver.unwrap(),
-        cfg.clone().celestia_config.unwrap().start_height,
+        WebServerConfig::default(),
+        0,
         signing_key.clone(),
     )?);
 
-    let lightclient = Arc::new(LightClient::new(
-        lc_da_layer.clone(),
-        cfg.celestia_config.unwrap(),
-        Some(pubkey),
-    ));
+    let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), lc_cfg, Some(pubkey)));
 
     let prover_clone = prover.clone();
     spawn(async move {
         debug!("starting prover");
-        prover_clone.start().await.unwrap();
+        prover_clone.run().await.unwrap();
     });
 
     let lc_clone = lightclient.clone();
     spawn(async move {
         debug!("starting light client");
-        lc_clone.start().await.unwrap();
+        lc_clone.run().await.unwrap();
     });
 
     spawn(async move {
@@ -157,14 +152,15 @@ async fn test_light_client_prover_talking() -> Result<()> {
                 }
             }
 
-            tokio::time::sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(5000)).await;
         }
     });
 
     let mut rx = lc_da_layer.clone().subscribe_to_heights();
+    let initial_height = rx.recv().await.unwrap();
     while let Ok(height) = rx.recv().await {
         debug!("received height {}", height);
-        if height >= 100 {
+        if height >= initial_height + 100 {
             break;
         }
     }
