@@ -83,7 +83,7 @@ build:
 
 unit-test:
   @echo "Running unit tests..."
-  cargo test --lib --release --features "mock_prover secp256k1" -- --skip test_light_client_prover_talking
+  cargo test --lib --release --features "mock_prover" -- --skip test_light_client_prover_talking
 
 install-deps:
   #!/usr/bin/env bash
