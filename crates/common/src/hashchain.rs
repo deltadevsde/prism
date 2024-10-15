@@ -9,7 +9,8 @@ use std::{
 use crate::{
     keys::VerifyingKey,
     operation::{
-        CreateAccountArgs, Operation, RegisterServiceArgs, ServiceChallenge, ServiceChallengeInput,
+        AddSignedDataArgs, CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs,
+        ServiceChallenge, ServiceChallengeInput,
     },
     tree::{Digest, Hasher},
 };
@@ -130,6 +131,7 @@ impl Hashchain {
                 Operation::RevokeKey(args) => {
                     valid_keys.remove(&args.value);
                 }
+                Operation::AddSignedData(_) => {}
             }
         }
 
@@ -161,13 +163,21 @@ impl Hashchain {
                 )?;
             }
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
-                let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
-                if !valid_keys.contains(signing_key) {
-                    bail!("Last operation signed with revoked or non-existent key");
-                }
-                signing_key.verify_signature(
-                    &bincode::serialize(&last_entry.operation.without_signature())?,
+                let message = bincode::serialize(&last_entry.operation.without_signature())?;
+
+                self.verify_signature_at_key_idx(
+                    &message,
                     &args.signature.signature,
+                    args.signature.key_idx as usize,
+                    &valid_keys,
+                )?;
+            }
+            Operation::AddSignedData(args) => {
+                self.verify_signature_at_key_idx(
+                    &args.value,
+                    &args.signature.signature,
+                    args.signature.key_idx as usize,
+                    &valid_keys,
                 )?;
             }
         }
@@ -193,7 +203,7 @@ impl Hashchain {
 
         for entry in self.entries.clone() {
             match &entry.operation {
-                Operation::RegisterService(_) => {}
+                Operation::RegisterService(_) | Operation::AddSignedData(_) => {}
                 Operation::CreateAccount(args) => {
                     valid_keys.insert(args.value.clone());
                 }
@@ -218,6 +228,24 @@ impl Hashchain {
                 _ => None,
             })
             .unwrap_or(false)
+    }
+
+    fn verify_signature_at_key_idx(
+        &self,
+        value: &[u8],
+        signature: &[u8],
+        idx: usize,
+        valid_keys: &HashSet<VerifyingKey>,
+    ) -> Result<()> {
+        let verifying_key = self.get_key_at_index(idx)?;
+        if !valid_keys.contains(verifying_key) {
+            bail!(
+                "Key intended to verify signature {:?} is not in valid keys {:?}",
+                verifying_key,
+                valid_keys
+            );
+        }
+        verifying_key.verify_signature(value, signature)
     }
 
     pub fn iter(&self) -> std::slice::Iter<'_, HashchainEntry> {
@@ -262,8 +290,10 @@ impl Hashchain {
                 }
                 Ok(())
             }
-            Operation::AddKey(args) | Operation::RevokeKey(args) => {
-                let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
+            Operation::AddKey(KeyOperationArgs { signature, .. })
+            | Operation::RevokeKey(KeyOperationArgs { signature, .. })
+            | Operation::AddSignedData(AddSignedDataArgs { signature, .. }) => {
+                let signing_key = self.get_key_at_index(signature.key_idx as usize)?;
 
                 if self.is_key_revoked(signing_key.clone()) {
                     bail!("The signing key is revoked");
