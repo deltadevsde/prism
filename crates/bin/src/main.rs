@@ -59,13 +59,19 @@ async fn main() -> std::io::Result<()> {
                 .get_signing_key()
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
+            let prover_cfg = prism_prover::Config {
+                prover: true,
+                batcher: true,
+                webserver: config.webserver.unwrap(),
+                key: signing_key.clone(),
+                start_height: config.celestia_config.unwrap().start_height,
+            };
+
             Arc::new(
                 Prover::new(
                     Arc::new(Box::new(redis_connections)),
                     da,
-                    config.webserver.unwrap(),
-                    config.celestia_config.unwrap().start_height,
-                    signing_key,
+                    prover_cfg.clone(),
                 )
                 .map_err(|e| {
                     error!("error initializing prover: {}", e);

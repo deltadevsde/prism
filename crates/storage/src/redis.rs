@@ -167,6 +167,26 @@ impl Database for RedisConnection {
         Ok(Digest(value.try_into().unwrap()))
     }
 
+    fn get_last_synced_height(&self) -> Result<u64> {
+        let mut con = self.lock_connection()?;
+        con.get("app_state:sync_height").map_err(|_| {
+            anyhow!(DatabaseError::NotFoundError(
+                "current sync height".to_string()
+            ))
+        })
+    }
+
+    fn set_last_synced_height(&self, height: &u64) -> Result<()> {
+        let mut con = self.lock_connection()?;
+        con.set::<&str, &u64, ()>("app_state:sync_height", height)
+            .map_err(|_| {
+                anyhow!(DatabaseError::WriteError(format!(
+                    "sync_height: {}",
+                    height
+                )))
+            })
+    }
+
     fn get_epoch(&self) -> Result<u64> {
         let mut con = self.lock_connection()?;
         con.get("app_state:epoch")

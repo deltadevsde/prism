@@ -12,6 +12,9 @@ pub trait Database: Send + Sync + TreeReader + TreeWriter {
     fn get_epoch(&self) -> Result<u64>;
     fn set_epoch(&self, epoch: &u64) -> Result<()>;
 
+    fn get_last_synced_height(&self) -> Result<u64>;
+    fn set_last_synced_height(&self, height: &u64) -> Result<()>;
+
     fn flush_database(&self) -> Result<()>;
 }
 

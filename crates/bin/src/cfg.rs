@@ -166,6 +166,7 @@ fn merge_configs(loaded: Config, default: Config) -> Config {
 fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
     Config {
         webserver: Some(WebServerConfig {
+            enabled: true,
             host: args.host.unwrap_or_else(|| {
                 config
                     .webserver

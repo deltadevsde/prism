@@ -1,7 +1,10 @@
 pub mod prover;
 pub mod webserver;
 
-pub use prover::Prover;
+pub use prover::{Config, Prover};
 
 #[macro_use]
 extern crate log;
+
+#[cfg(test)]
+mod tests;
