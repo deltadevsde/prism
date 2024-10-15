@@ -123,6 +123,25 @@ impl TestTreeState {
         account.hashchain.perform_operation(op).unwrap();
         Ok(())
     }
+
+    pub fn add_signed_data_to_account(
+        &mut self,
+        data: &[u8],
+        account: &mut TestAccount,
+    ) -> Result<()> {
+        let signing_key = self.signing_keys.get(&account.hashchain.id).unwrap();
+        let signature = signing_key.sign(data);
+
+        let op = Operation::new_add_signed_data(
+            account.hashchain.id.clone(),
+            data.to_vec(),
+            signature,
+            0,
+        )?;
+
+        account.hashchain.perform_operation(op).unwrap();
+        Ok(())
+    }
 }
 
 impl Default for TestTreeState {
