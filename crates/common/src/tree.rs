@@ -16,8 +16,8 @@ use std::{
 use crate::{
     hashchain::{Hashchain, HashchainEntry},
     operation::{
-        CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs, ServiceChallenge,
-        ServiceChallengeInput,
+        AddSignedDataArgs, CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs,
+        ServiceChallenge, ServiceChallengeInput,
     },
 };
 
@@ -387,7 +387,8 @@ where
     fn process_operation(&mut self, operation: &Operation) -> Result<Proof> {
         match operation {
             Operation::AddKey(KeyOperationArgs { id, .. })
-            | Operation::RevokeKey(KeyOperationArgs { id, .. }) => {
+            | Operation::RevokeKey(KeyOperationArgs { id, .. })
+            | Operation::AddSignedData(AddSignedDataArgs { id, .. }) => {
                 let hashed_id = Digest::hash(id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -722,7 +723,9 @@ mod tests {
         tree_state.insert_account(account2.clone()).unwrap();
 
         tree_state.add_key_to_account(&mut account1).unwrap();
-        tree_state.add_key_to_account(&mut account2).unwrap();
+        tree_state
+            .add_signed_data_to_account(b"testdata", &mut account2)
+            .unwrap();
 
         // Update accounts using the correct key indices
         tree_state.update_account(account1.clone()).unwrap();
