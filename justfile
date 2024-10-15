@@ -85,6 +85,12 @@ unit-test:
   @echo "Running unit tests..."
   cargo test --lib --release --features "mock_prover" -- --skip test_light_client_prover_talking
 
+coverage:
+    @echo "Generating coverage report..."
+    cargo llvm-cov nextest --html --output-dir coverage_report --lib --features "mock_prover" --release --workspace --exclude prism-bin --exclude-from-report prism-sp1  --ignore-filename-regex sp1
+    @echo "Coverage report generated in 'coverage_report' directory"
+
+
 install-deps:
   #!/usr/bin/env bash
   set -euo pipefail

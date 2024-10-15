@@ -49,8 +49,3 @@ prism-lightclient = { workspace = true }
 prism-da = { workspace = true }
 sp1-sdk = { workspace = true }
 rand = { workspace = true }
-
-[[test]]
-name = "integration_tests"
-path = "tests/integration_tests.rs"
-harness = true

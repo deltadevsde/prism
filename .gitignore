@@ -6,3 +6,4 @@
 dump.rdb
 Cargo.lock
 .idea
+/coverage_report
