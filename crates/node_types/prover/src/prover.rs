@@ -133,8 +133,7 @@ impl Prover {
 
     async fn main_loop(self: Arc<Self>) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
-        let current_height = height_rx.recv().await?;
-        let historical_sync_height = current_height;
+        let historical_sync_height = height_rx.recv().await?;
 
         let start_height = match self.db.get_last_synced_height() {
             Ok(height) => height,
@@ -164,18 +163,17 @@ impl Prover {
             }
         };
 
-        // TODO: There is probably a better place to put this? Maybe on database initialization
         if saved_epoch == 0 {
             let initial_commitment = self.get_commitment().await?;
             self.db.set_commitment(&0, &initial_commitment)?;
         }
 
         // TODO: Should be persisted in database for crash recovery
-        let mut buffered_operations: VecDeque<Vec<Operation>> = VecDeque::new();
+        let mut buffered_operations: VecDeque<Operation> = VecDeque::new();
         let mut current_height = start_height;
 
         while current_height <= end_height {
-            self.process_height(current_height, &mut buffered_operations, false)
+            self.process_da_height(current_height, &mut buffered_operations, false)
                 .await?;
             // TODO: Race between set_epoch and set_last_synced_height
             self.db.set_last_synced_height(&current_height)?;
@@ -190,18 +188,18 @@ impl Prover {
         loop {
             let height = incoming_heights.recv().await?;
             assert_eq!(height, current_height, "heights should be sequential");
-            self.process_height(height, &mut buffered_operations, true)
+            self.process_da_height(height, &mut buffered_operations, true)
                 .await?;
             current_height += 1;
-            // TODO: Race between set_epoch and set_last_synced_height
+            // TODO: Race between set_epoch and set_last_synced_height - updating these should be a single atomic operation
             self.db.set_last_synced_height(&current_height)?;
         }
     }
 
-    async fn process_height(
+    async fn process_da_height(
         &self,
         height: u64,
-        buffered_operations: &mut VecDeque<Vec<Operation>>,
+        buffered_operations: &mut VecDeque<Operation>,
         is_real_time: bool,
     ) -> Result<()> {
         let current_epoch = self.db.get_epoch()?;
@@ -218,32 +216,35 @@ impl Prover {
 
         if let Some(epoch) = epoch_result {
             // run all buffered operations from the last celestia blocks and increment current_epoch
-            self.process_existing_epoch(epoch, buffered_operations)
-                .await?;
+            self.process_epoch(epoch, buffered_operations).await?;
         } else {
             debug!("No operations to process at height {}", height);
         }
 
         if is_real_time && !buffered_operations.is_empty() && self.cfg.prover {
-            let all_ops: Vec<Operation> = buffered_operations.drain(..).flatten().collect();
+            let all_ops: Vec<Operation> = buffered_operations.drain(..).collect();
             self.finalize_new_epoch(current_epoch, all_ops).await?;
         }
 
         // If there are new operations at this height, add them to the queue to
         // be included in the next finalized epoch.
         if !operations.is_empty() {
-            buffered_operations.push_back(operations);
+            buffered_operations.extend(operations);
         }
 
         Ok(())
     }
 
-    async fn process_existing_epoch(
+    async fn process_epoch(
         &self,
         epoch: FinalizedEpoch,
-        buffered_operations: &mut VecDeque<Vec<Operation>>,
+        buffered_operations: &mut VecDeque<Operation>,
     ) -> Result<()> {
         let mut current_epoch = self.db.get_epoch()?;
+
+        // If prover is enabled and is actively producing new epochs, it has
+        // likely already ran all of the operations in the found epoch, so no
+        // further processing is needed
         if epoch.height < current_epoch {
             debug!("epoch {} already processed internally", current_epoch);
             return Ok(());
@@ -266,8 +267,9 @@ impl Prover {
             ));
         }
 
-        while let Some(buffered_ops) = buffered_operations.pop_front() {
-            self.execute_block(buffered_ops).await?;
+        let all_ops: Vec<Operation> = buffered_operations.drain(..).collect();
+        if !all_ops.is_empty() {
+            self.execute_block(all_ops).await?;
         }
 
         let new_commitment = self.get_commitment().await?;
