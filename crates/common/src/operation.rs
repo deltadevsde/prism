@@ -13,9 +13,11 @@ use crate::keys::{SigningKey, VerifyingKey};
 pub enum Operation {
     /// Creates a new account with the given id and value.
     CreateAccount(CreateAccountArgs),
-    /// Adds a value to an existing account.
+    /// Adds a key to an existing account.
     AddKey(KeyOperationArgs),
-    /// Revokes a value from an existing account.
+    /// Adds arbitrary signed data to an existing account.
+    AddSignedData(AddSignedDataArgs),
+    /// Revokes a key from an existing account.
     RevokeKey(KeyOperationArgs),
     /// Registers a new service with the given id.
     RegisterService(RegisterServiceArgs),
@@ -79,6 +81,17 @@ impl From<SigningKey> for ServiceChallenge {
     fn from(sk: SigningKey) -> Self {
         ServiceChallenge::Signed(sk.verifying_key())
     }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+/// Structure for adding signed data.
+pub struct AddSignedDataArgs {
+    /// Account ID
+    pub id: String,
+    /// Signed data to be added
+    pub value: Vec<u8>,
+    /// Signature to authorize the action
+    pub signature: SignatureBundle,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -176,10 +189,24 @@ impl Operation {
         }))
     }
 
+    pub fn new_add_signed_data(
+        id: String,
+        value: Vec<u8>,
+        signature: Vec<u8>,
+        key_idx: u64,
+    ) -> Result<Self> {
+        Ok(Operation::AddSignedData(AddSignedDataArgs {
+            id,
+            value,
+            signature: SignatureBundle { key_idx, signature },
+        }))
+    }
+
     pub fn id(&self) -> String {
         match self {
             Operation::CreateAccount(args) => args.id.clone(),
             Operation::AddKey(args) | Operation::RevokeKey(args) => args.id.clone(),
+            Operation::AddSignedData(args) => args.id.clone(),
             Operation::RegisterService(args) => args.id.clone(),
         }
     }
@@ -188,7 +215,7 @@ impl Operation {
         match self {
             Operation::RevokeKey(args) | Operation::AddKey(args) => Some(&args.value),
             Operation::CreateAccount(args) => Some(&args.value),
-            Operation::RegisterService(_) => None,
+            Operation::RegisterService(_) | Operation::AddSignedData(_) => None,
         }
     }
 
@@ -196,6 +223,7 @@ impl Operation {
         match self {
             Operation::AddKey(args) => Some(args.signature.clone()),
             Operation::RevokeKey(args) => Some(args.signature.clone()),
+            Operation::AddSignedData(args) => Some(args.signature.clone()),
             Operation::RegisterService(_) | Operation::CreateAccount(_) => None,
         }
     }
@@ -245,6 +273,14 @@ impl Operation {
                     signature: Vec::new(),
                 },
             }),
+            Operation::AddSignedData(args) => Operation::AddSignedData(AddSignedDataArgs {
+                id: args.id.clone(),
+                value: args.value.clone(),
+                signature: SignatureBundle {
+                    key_idx: args.signature.key_idx,
+                    signature: Vec::new(),
+                },
+            }),
             Operation::CreateAccount(args) => Operation::CreateAccount(CreateAccountArgs {
                 id: args.id.clone(),
                 value: args.value.clone(),
@@ -272,13 +308,17 @@ impl Operation {
                     .context("User signature failed")?;
                 pubkey.verify_signature(&message, &args.signature.signature)
             }
+            Operation::AddSignedData(args) => {
+                pubkey.verify_signature(&args.value, &args.signature.signature)
+            }
         }
     }
 
     pub fn validate(&self) -> Result<()> {
         match &self {
             Operation::AddKey(KeyOperationArgs { id, signature, .. })
-            | Operation::RevokeKey(KeyOperationArgs { id, signature, .. }) => {
+            | Operation::RevokeKey(KeyOperationArgs { id, signature, .. })
+            | Operation::AddSignedData(AddSignedDataArgs { id, signature, .. }) => {
                 if id.is_empty() {
                     return Err(
                         GeneralError::MissingArgumentError("id is empty".to_string()).into(),
