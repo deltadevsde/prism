@@ -17,6 +17,7 @@ pub struct InMemoryDatabase {
     values: Arc<Mutex<HashMap<(Version, KeyHash), OwnedValue>>>,
     commitments: Arc<Mutex<HashMap<u64, Digest>>>,
     current_epoch: Arc<Mutex<u64>>,
+    sync_height: Arc<Mutex<u64>>,
 }
 
 impl InMemoryDatabase {
@@ -26,6 +27,7 @@ impl InMemoryDatabase {
             values: Arc::new(Mutex::new(HashMap::new())),
             commitments: Arc::new(Mutex::new(HashMap::new())),
             current_epoch: Arc::new(Mutex::new(0)),
+            sync_height: Arc::new(Mutex::new(1)),
         }
     }
 }
@@ -111,6 +113,15 @@ impl Database for InMemoryDatabase {
 
     fn set_epoch(&self, epoch: &u64) -> Result<()> {
         *self.current_epoch.lock().unwrap() = *epoch;
+        Ok(())
+    }
+
+    fn get_last_synced_height(&self) -> Result<u64> {
+        Ok(*self.sync_height.lock().unwrap())
+    }
+
+    fn set_last_synced_height(&self, epoch: &u64) -> Result<()> {
+        *self.sync_height.lock().unwrap() = *epoch;
         Ok(())
     }
 

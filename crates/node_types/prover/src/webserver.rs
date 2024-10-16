@@ -1,5 +1,5 @@
 use crate::Prover;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -25,6 +25,7 @@ use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebServerConfig {
+    pub enabled: bool,
     pub host: String,
     pub port: u16,
 }
@@ -32,14 +33,16 @@ pub struct WebServerConfig {
 impl Default for WebServerConfig {
     fn default() -> Self {
         WebServerConfig {
+            enabled: true,
             host: "127.0.0.1".to_string(),
-            port: 8089,
+            port: 0,
         }
     }
 }
 
 pub struct WebServer {
     pub cfg: WebServerConfig,
+    pub session: Arc<Prover>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -87,11 +90,15 @@ pub struct UserKeyResponse {
 struct ApiDoc;
 
 impl WebServer {
-    pub fn new(cfg: WebServerConfig) -> Self {
-        Self { cfg }
+    pub fn new(cfg: WebServerConfig, session: Arc<Prover>) -> Self {
+        Self { cfg, session }
     }
 
-    pub async fn start(&self, session: Arc<Prover>) -> Result<()> {
+    pub async fn start(&self) -> Result<()> {
+        if !self.cfg.enabled {
+            bail!("Webserver is disabled")
+        }
+
         info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let app = Router::new()
             .route("/update-entry", post(update_entry))
@@ -99,7 +106,7 @@ impl WebServer {
             .route("/get-current-commitment", get(get_commitment))
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
             .layer(CorsLayer::permissive())
-            .with_state(session);
+            .with_state(self.session.clone());
 
         let addr = format!("{}:{}", self.cfg.host, self.cfg.port);
         axum::Server::bind(&addr.parse().unwrap())

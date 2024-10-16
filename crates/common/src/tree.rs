@@ -332,6 +332,18 @@ where
         tree
     }
 
+    pub fn load(store: Arc<S>, epoch: u64) -> Self {
+        if epoch == 0 {
+            return KeyDirectoryTree::new(store);
+        }
+        Self {
+            db: store.clone(),
+            jmt: JellyfishMerkleTree::<Arc<S>, Hasher>::new(store),
+            pending_batch: None,
+            epoch,
+        }
+    }
+
     pub fn get_commitment(&self) -> Result<Digest> {
         let root = self.get_current_root()?;
         Ok(Digest(root.0))

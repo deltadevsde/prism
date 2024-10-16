@@ -176,7 +176,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 .map_err(|e| {
                     anyhow!(DataAvailabilityError::DataRetrievalError(
                         height,
-                        e.to_string()
+                        format!("getting operations from da layer: {}", e)
                     ))
                 })?;
 

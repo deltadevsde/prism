@@ -47,6 +47,21 @@ impl Database for RocksDBConnection {
         )?)
     }
 
+    fn get_last_synced_height(&self) -> anyhow::Result<u64> {
+        let res = self
+            .connection
+            .get(b"app_state:sync_height")?
+            .ok_or_else(|| DatabaseError::NotFoundError("current sync height".to_string()))?;
+
+        Ok(u64::from_be_bytes(res.try_into().unwrap()))
+    }
+
+    fn set_last_synced_height(&self, height: &u64) -> anyhow::Result<()> {
+        Ok(self
+            .connection
+            .put(b"app_state:sync_height", height.to_be_bytes())?)
+    }
+
     fn get_epoch(&self) -> anyhow::Result<u64> {
         let res = self
             .connection

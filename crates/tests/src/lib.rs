@@ -14,7 +14,7 @@ use prism_da::{
     DataAvailabilityLayer,
 };
 use prism_lightclient::LightClient;
-use prism_prover::{webserver::WebServerConfig, Prover};
+use prism_prover::Prover;
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
@@ -75,13 +75,15 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     let mut test_state = TestTreeState::new();
     let _service = test_state.register_service("test_service".to_string());
+    let prover_cfg = prism_prover::Config {
+        key: signing_key,
+        ..prism_prover::Config::default()
+    };
 
     let prover = Arc::new(Prover::new(
         db.clone(),
         bridge_da_layer.clone(),
-        WebServerConfig::default(),
-        0,
-        signing_key.clone(),
+        &prover_cfg,
     )?);
 
     let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), lc_cfg, Some(pubkey)));
