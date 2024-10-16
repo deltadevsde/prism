@@ -50,7 +50,6 @@ async fn test_validate_and_queue_update() {
     let op = Operation::new_register_service("service_id".to_string(), service_key.clone().into());
 
     prover.clone().validate_and_queue_update(&op).await.unwrap();
-
     prover.clone().validate_and_queue_update(&op).await.unwrap();
 
     let pending_ops = prover.pending_operations.read().await;

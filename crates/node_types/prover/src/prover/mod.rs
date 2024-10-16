@@ -187,7 +187,13 @@ impl Prover {
 
         loop {
             let height = incoming_heights.recv().await?;
-            assert_eq!(height, current_height, "heights should be sequential");
+            if height != current_height {
+                return Err(anyhow!(
+                    "heights are not sequential: expected {}, got {}",
+                    current_height,
+                    height
+                ));
+            }
             self.process_da_height(height, &mut buffered_operations, true)
                 .await?;
             current_height += 1;
