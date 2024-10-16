@@ -168,7 +168,7 @@ impl Hashchain {
                 self.verify_signature_at_key_idx(
                     &message,
                     &args.signature.signature,
-                    args.signature.key_idx as usize,
+                    args.signature.key_idx,
                     &valid_keys,
                 )?;
             }
@@ -176,7 +176,7 @@ impl Hashchain {
                 self.verify_signature_at_key_idx(
                     &args.value,
                     &args.signature.signature,
-                    args.signature.key_idx as usize,
+                    args.signature.key_idx,
                     &valid_keys,
                 )?;
             }
@@ -293,7 +293,7 @@ impl Hashchain {
             Operation::AddKey(KeyOperationArgs { signature, .. })
             | Operation::RevokeKey(KeyOperationArgs { signature, .. })
             | Operation::AddSignedData(AddSignedDataArgs { signature, .. }) => {
-                let signing_key = self.get_key_at_index(signature.key_idx as usize)?;
+                let signing_key = self.get_key_at_index(signature.key_idx)?;
 
                 if self.is_key_revoked(signing_key.clone()) {
                     bail!("The signing key is revoked");
