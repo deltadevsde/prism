@@ -1,8 +1,8 @@
+use super::*;
 use prism_common::tree::Proof;
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
-use crate::{Config, Prover};
 use prism_common::{operation::Operation, test_utils::create_mock_signing_key};
 use prism_da::memory::InMemoryDataAvailabilityLayer;
 use prism_storage::{inmemory::InMemoryDatabase, Database};

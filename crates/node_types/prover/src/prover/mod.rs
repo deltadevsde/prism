@@ -19,7 +19,7 @@ use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_storage::Database;
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
 
 #[derive(Clone)]
 pub struct Config {
@@ -63,7 +63,7 @@ pub struct Prover {
 
     /// [`pending_operations`] is a buffer for operations that have not yet been
     /// posted to the DA layer.
-    pub(crate) pending_operations: Arc<RwLock<Vec<Operation>>>,
+    pub pending_operations: Arc<RwLock<Vec<Operation>>>,
 
     /// [`tree`] is the representation of the JMT, prism's state tree. It is accessed via the [`db`].
     tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
@@ -292,7 +292,7 @@ impl Prover {
         Ok(())
     }
 
-    pub(crate) async fn execute_block(&self, operations: Vec<Operation>) -> Result<Vec<Proof>> {
+    async fn execute_block(&self, operations: Vec<Operation>) -> Result<Vec<Proof>> {
         debug!("executing block with {} operations", operations.len());
 
         let mut proofs = Vec::new();
@@ -310,7 +310,7 @@ impl Prover {
         Ok(proofs)
     }
 
-    pub(crate) async fn finalize_new_epoch(
+    async fn finalize_new_epoch(
         &self,
         epoch_height: u64,
         operations: Vec<Operation>,
@@ -336,7 +336,7 @@ impl Prover {
         Ok(())
     }
 
-    pub(crate) async fn prove_epoch(
+    async fn prove_epoch(
         &self,
         epoch_height: u64,
         prev_commitment: Digest,
@@ -427,7 +427,7 @@ impl Prover {
     }
 
     /// Updates the state from an already verified pending operation.
-    pub(crate) async fn process_operation(&self, operation: &Operation) -> Result<Proof> {
+    async fn process_operation(&self, operation: &Operation) -> Result<Proof> {
         let mut tree = self.tree.write().await;
         tree.process_operation(operation)
     }
@@ -464,3 +464,6 @@ impl Prover {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;

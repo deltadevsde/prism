@@ -5,6 +5,3 @@ pub use prover::{Config, Prover};
 
 #[macro_use]
 extern crate log;
-
-#[cfg(test)]
-mod tests;
