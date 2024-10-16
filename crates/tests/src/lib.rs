@@ -83,7 +83,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let prover = Arc::new(Prover::new(
         db.clone(),
         bridge_da_layer.clone(),
-        prover_cfg,
+        &prover_cfg,
     )?);
 
     let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), lc_cfg, Some(pubkey)));

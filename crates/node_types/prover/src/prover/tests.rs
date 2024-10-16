@@ -13,7 +13,7 @@ async fn create_test_prover() -> Arc<Prover> {
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let cfg = Config::default();
-    Arc::new(Prover::new(db.clone(), da_layer, cfg.clone()).unwrap())
+    Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
 }
 
 fn create_mock_operations(service_id: String) -> Vec<Operation> {
@@ -179,7 +179,7 @@ async fn test_restart_sync_from_scratch() {
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let cfg = Config::default();
-    let prover = Arc::new(Prover::new(db1.clone(), da_layer.clone(), cfg.clone()).unwrap());
+    let prover = Arc::new(Prover::new(db1.clone(), da_layer.clone(), &cfg).unwrap());
 
     let runner = prover.clone();
     spawn(async move {
@@ -199,7 +199,7 @@ async fn test_restart_sync_from_scratch() {
 
     assert_eq!(prover.clone().db.get_epoch().unwrap(), 4);
 
-    let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), cfg.clone()).unwrap());
+    let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), &cfg).unwrap());
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
 
@@ -208,7 +208,7 @@ async fn test_restart_sync_from_scratch() {
         if epoch == 4 {
             break;
         }
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_millis(200)).await;
     }
 }
 
@@ -218,7 +218,7 @@ async fn test_load_persisted_state() {
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let cfg = Config::default();
-    let prover = Arc::new(Prover::new(db.clone(), da_layer.clone(), cfg.clone()).unwrap());
+    let prover = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
 
     let runner = prover.clone();
     spawn(async move {
@@ -238,7 +238,7 @@ async fn test_load_persisted_state() {
 
     assert_eq!(prover.clone().db.get_epoch().unwrap(), 4);
 
-    let prover2 = Arc::new(Prover::new(db.clone(), da_layer.clone(), cfg.clone()).unwrap());
+    let prover2 = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
     let epoch = prover2.clone().db.get_epoch().unwrap();

@@ -78,7 +78,7 @@ impl Prover {
     pub fn new(
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
-        cfg: Config,
+        cfg: &Config,
     ) -> Result<Prover> {
         let tree = Arc::new(RwLock::new(KeyDirectoryTree::new(db.clone())));
 
