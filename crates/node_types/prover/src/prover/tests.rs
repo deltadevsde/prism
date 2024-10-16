@@ -50,6 +50,7 @@ async fn test_validate_and_queue_update() {
     let op = Operation::new_register_service("service_id".to_string(), service_key.clone().into());
 
     prover.clone().validate_and_queue_update(&op).await.unwrap();
+
     prover.clone().validate_and_queue_update(&op).await.unwrap();
 
     let pending_ops = prover.pending_operations.read().await;
@@ -205,6 +206,10 @@ async fn test_restart_sync_from_scratch() {
     loop {
         let epoch = prover2.clone().db.get_epoch().unwrap();
         if epoch == 4 {
+            assert_eq!(
+                prover.get_commitment().await.unwrap(),
+                prover2.get_commitment().await.unwrap()
+            );
             break;
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
@@ -242,4 +247,8 @@ async fn test_load_persisted_state() {
     spawn(async move { runner.run().await.unwrap() });
     let epoch = prover2.clone().db.get_epoch().unwrap();
     assert_eq!(epoch, 4);
+    assert_eq!(
+        prover.get_commitment().await.unwrap(),
+        prover2.get_commitment().await.unwrap()
+    );
 }
