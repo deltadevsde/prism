@@ -28,13 +28,13 @@ pub enum Operation {
 /// in the user's hashchain and the associated signature.
 pub struct SignatureBundle {
     /// Index of the key in the hashchain
-    pub key_idx: u64,
+    pub key_idx: usize,
     /// The actual signature
     pub signature: Vec<u8>,
 }
 
 impl SignatureBundle {
-    pub fn empty_with_idx(idx: u64) -> Self {
+    pub fn empty_with_idx(idx: usize) -> Self {
         SignatureBundle {
             key_idx: idx,
             signature: vec![],
@@ -143,7 +143,7 @@ impl Operation {
         id: String,
         value: VerifyingKey,
         signing_key: &SigningKey,
-        key_idx: u64,
+        key_idx: usize,
     ) -> Result<Self> {
         let op_to_sign = Operation::AddKey(KeyOperationArgs {
             id: id.clone(),
@@ -168,7 +168,7 @@ impl Operation {
         id: String,
         value: VerifyingKey,
         signing_key: &SigningKey,
-        key_idx: u64,
+        key_idx: usize,
     ) -> Result<Self> {
         let op_to_sign = Operation::RevokeKey(KeyOperationArgs {
             id: id.clone(),
@@ -193,7 +193,7 @@ impl Operation {
         id: String,
         value: Vec<u8>,
         signature: Vec<u8>,
-        key_idx: u64,
+        key_idx: usize,
     ) -> Result<Self> {
         Ok(Operation::AddSignedData(AddSignedDataArgs {
             id,
