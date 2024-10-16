@@ -80,7 +80,16 @@ impl Prover {
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: &Config,
     ) -> Result<Prover> {
-        let tree = Arc::new(RwLock::new(KeyDirectoryTree::new(db.clone())));
+        let saved_epoch = match db.get_epoch() {
+            Ok(epoch) => epoch,
+            Err(_) => {
+                debug!("no existing epoch state found, setting epoch to 0");
+                db.set_epoch(&0)?;
+                0
+            }
+        };
+
+        let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(db.clone(), saved_epoch)));
 
         #[cfg(feature = "mock_prover")]
         let prover_client = ProverClient::mock();
@@ -154,14 +163,7 @@ impl Prover {
         end_height: u64,
         mut incoming_heights: broadcast::Receiver<u64>,
     ) -> Result<()> {
-        let saved_epoch = match self.db.get_epoch() {
-            Ok(epoch) => epoch,
-            Err(_) => {
-                debug!("no existing epoch state found, setting epoch to 0");
-                self.db.set_epoch(&0)?;
-                0
-            }
-        };
+        let saved_epoch = self.db.get_epoch()?;
 
         if saved_epoch == 0 {
             let initial_commitment = self.get_commitment().await?;
