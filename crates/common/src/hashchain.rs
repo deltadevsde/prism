@@ -237,7 +237,7 @@ impl Hashchain {
                 Operation::CreateAccount(args) if args.value == key => Some(false),
                 _ => None,
             })
-            .unwrap_or(false)
+            .unwrap_or(true)
     }
 
     fn verify_signature_at_key_idx(
