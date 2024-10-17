@@ -336,7 +336,7 @@ impl Hashchain {
             }
             Operation::CreateAccount(args) => {
                 if !self.entries.is_empty() {
-                    bail!("RegisterService operation must be the first entry");
+                    bail!("CreateAccount operation must be the first entry");
                 }
 
                 if args.prev_hash != Digest::zero() {
