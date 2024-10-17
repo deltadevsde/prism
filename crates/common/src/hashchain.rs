@@ -240,7 +240,7 @@ impl Hashchain {
             }
             Operation::CreateAccount(args) => {
                 if idx > 0 {
-                    bail!("RegisterService operation must be the first entry");
+                    bail!("CreateAccount operation must be the first entry");
                 }
                 operation.verify_user_signature(args.value.clone())
             }
