@@ -70,7 +70,7 @@ impl LightClient {
                                 Ok(Some(finalized_epoch)) => {
                                     debug!("light client: got epochs at height {}", i + 1);
 
-                                    // Signature verification
+                                    // TODO: Issue #144
                                     if let Some(pubkey) = &self.prover_pubkey {
                                         match finalized_epoch.verify_signature(*pubkey) {
                                             Ok(_) => trace!("valid signature for epoch {}", finalized_epoch.height),
