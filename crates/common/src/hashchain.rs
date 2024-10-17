@@ -105,74 +105,24 @@ impl Hashchain {
     }
 
     pub fn verify_last_entry(&self) -> Result<()> {
-        if self.entries.is_empty() {
+        let mut rev_iter = self.iter().enumerate().rev();
+
+        let Some((last_idx, last_entry)) = rev_iter.next() else {
+            // When there is no entry at all, consider it verified
             return Ok(());
+        };
+
+        let Some((second_last_idx, second_last_entry)) = rev_iter.next() else {
+            // When there is only 1 item in the chain, validate insertion at idx 0
+            return self.validate_operation_at_idx(&last_entry.operation, last_idx);
+        };
+
+        // When there are 2 or more items in the chain, validate insertion at 2nd last index
+        if last_entry.previous_hash != second_last_entry.hash {
+            bail!("Previous hash mismatch for the last entry");
         }
 
-        let mut valid_keys: HashSet<VerifyingKey> = HashSet::new();
-
-        for (index, entry) in self.entries.iter().enumerate().take(self.entries.len() - 1) {
-            match &entry.operation {
-                Operation::RegisterService(_) => {
-                    if index != 0 {
-                        bail!("RegisterService operation must be the first entry");
-                    }
-                }
-                Operation::CreateAccount(args) => {
-                    if index != 0 {
-                        bail!("CreateAccount operation must be the first entry");
-                    }
-                    valid_keys.insert(args.value.clone());
-                }
-                Operation::AddKey(args) => {
-                    valid_keys.insert(args.value.clone());
-                }
-                Operation::RevokeKey(args) => {
-                    valid_keys.remove(&args.value);
-                }
-            }
-        }
-
-        let last_entry = self.entries.last().unwrap();
-        let last_index = self.entries.len() - 1;
-        if last_index > 0 {
-            let prev_entry = &self.entries[last_index - 1];
-            if last_entry.previous_hash != prev_entry.hash {
-                bail!("Previous hash mismatch for the last entry");
-            }
-        }
-
-        match &last_entry.operation {
-            // TODO: RegisterService should not be permissionless at first, until we have state bloat metrics
-            Operation::RegisterService(_) => {
-                if last_index != 0 {
-                    bail!("RegisterService operation must be the first entry");
-                }
-            }
-            Operation::CreateAccount(args) => {
-                if last_index != 0 {
-                    bail!("CreateAccount operation must be the first entry");
-                }
-                args.value.verify_signature(
-                    &bincode::serialize(
-                        &last_entry.operation.without_signature().without_challenge(),
-                    )?,
-                    &args.signature,
-                )?;
-            }
-            Operation::AddKey(args) | Operation::RevokeKey(args) => {
-                let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
-                if !valid_keys.contains(signing_key) {
-                    bail!("Last operation signed with revoked or non-existent key");
-                }
-                signing_key.verify_signature(
-                    &bincode::serialize(&last_entry.operation.without_signature())?,
-                    &args.signature.signature,
-                )?;
-            }
-        }
-
-        Ok(())
+        self.validate_operation_at_idx(&last_entry.operation, second_last_idx)
     }
 
     pub(crate) fn insert_unsafe(&self, new_entry: HashchainEntry) -> Hashchain {
@@ -209,7 +159,15 @@ impl Hashchain {
     }
 
     pub fn is_key_revoked(&self, key: VerifyingKey) -> bool {
+        if self.entries.is_empty() {
+            return true;
+        }
+        self.is_key_revoked_before_idx(key, self.entries.len() - 1)
+    }
+
+    fn is_key_revoked_before_idx(&self, key: VerifyingKey, idx: usize) -> bool {
         self.iter()
+            .skip(idx)
             .rev()
             .find_map(|entry| match entry.operation.clone() {
                 Operation::RevokeKey(args) if args.value == key => Some(true),
@@ -217,15 +175,7 @@ impl Hashchain {
                 Operation::CreateAccount(args) if args.value == key => Some(false),
                 _ => None,
             })
-            .unwrap_or(false)
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<'_, HashchainEntry> {
-        self.entries.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, HashchainEntry> {
-        self.entries.iter_mut()
+            .unwrap_or(true)
     }
 
     pub fn get(&self, idx: usize) -> &HashchainEntry {
@@ -253,11 +203,20 @@ impl Hashchain {
         self.push(operation)
     }
 
-    /// Verifies the structure and signature of a new operation without checking if the key is revoked.
+    /// Verifies the structure and signature of a new operation
     fn validate_new_operation(&self, operation: &Operation) -> Result<()> {
+        if self.entries.is_empty() {
+            return self.validate_operation_at_idx(operation, 0);
+        }
+
+        self.validate_operation_at_idx(operation, self.entries.len() - 1)
+    }
+
+    fn validate_operation_at_idx(&self, operation: &Operation, idx: usize) -> Result<()> {
+        println!("Validating op {}", operation);
         match operation {
             Operation::RegisterService(_) => {
-                if !self.entries.is_empty() {
+                if idx > 0 {
                     bail!("RegisterService operation must be the first entry");
                 }
                 Ok(())
@@ -265,15 +224,15 @@ impl Hashchain {
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
                 let signing_key = self.get_key_at_index(args.signature.key_idx as usize)?;
 
-                if self.is_key_revoked(signing_key.clone()) {
+                if self.is_key_revoked_before_idx(signing_key.clone(), idx) {
                     bail!("The signing key is revoked");
                 }
 
                 operation.verify_user_signature(signing_key.clone())
             }
             Operation::CreateAccount(args) => {
-                if !self.entries.is_empty() {
-                    bail!("RegisterService operation must be the first entry");
+                if idx > 0 {
+                    bail!("CreateAccount operation must be the first entry");
                 }
                 operation.verify_user_signature(args.value.clone())
             }
