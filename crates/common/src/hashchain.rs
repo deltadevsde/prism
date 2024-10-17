@@ -260,14 +260,6 @@ impl Hashchain {
         verifying_key.verify_signature(&message, signature)
     }
 
-    pub fn iter(&self) -> std::slice::Iter<'_, HashchainEntry> {
-        self.entries.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, HashchainEntry> {
-        self.entries.iter_mut()
-    }
-
     pub fn get(&self, idx: usize) -> &HashchainEntry {
         &self.entries[idx]
     }
