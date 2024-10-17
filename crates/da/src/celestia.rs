@@ -33,16 +33,16 @@ pub struct CelestiaConfig {
     pub connection_string: String,
     pub start_height: u64,
     pub snark_namespace_id: String,
-    pub operation_namespace_id: Option<String>,
+    pub operation_namespace_id: String,
 }
 
 impl Default for CelestiaConfig {
     fn default() -> Self {
         CelestiaConfig {
             connection_string: "ws://localhost:26658".to_string(),
-            start_height: 0,
+            start_height: 1,
             snark_namespace_id: "00000000000000de1008".to_string(),
-            operation_namespace_id: Some("00000000000000de1009".to_string()),
+            operation_namespace_id: "00000000000000de1009".to_string(),
         }
     }
 }
@@ -68,13 +68,11 @@ impl CelestiaConnection {
             &config.snark_namespace_id
         ))?;
 
-        let operation_namespace = match &config.operation_namespace_id {
-            Some(id) => create_namespace(id).context(format!(
+        let operation_namespace =
+            create_namespace(&config.operation_namespace_id).context(format!(
                 "Failed to create operation namespace from: '{}'",
-                id
-            ))?,
-            None => snark_namespace,
-        };
+                &config.operation_namespace_id
+            ))?;
 
         let (height_update_tx, _) = broadcast::channel(100);
 
