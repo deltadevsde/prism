@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, Context, Result};
-use ed25519_consensus::SigningKey;
+use ed25519_consensus::{SigningKey, VerificationKey};
 use jmt::KeyHash;
 use keystore_rs::create_signing_key;
 use prism_common::{
@@ -30,9 +30,9 @@ pub const PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succin
 
 #[derive(Clone)]
 pub struct Config {
-    /// Enables generating FinalizedEpochs and posting them to the DA
+    /// Enables generating [`FinalizedEpoch`]s and posting them to the DA
     /// layer. When deactivated, the node will simply sync historical and
-    /// incoming FinalizedEpochs.
+    /// incoming [`FinalizedEpoch`]s.
     pub prover: bool,
 
     /// Enables accepting incoming transactions from the webserver and posting batches to the DA layer.
@@ -42,8 +42,12 @@ pub struct Config {
     /// Configuration for the webserver.
     pub webserver: WebServerConfig,
 
-    /// Key used to sign new FinalizedEpochs.
-    pub key: SigningKey,
+    /// Key used to sign new [`FinalizedEpochs`].
+    pub signing_key: SigningKey,
+
+    /// Key used to verify incoming [`FinalizedEpochs`].
+    /// This is not necessarily the counterpart to signing_key, as fullnodes must use the [`verifying_key`] of the prover.
+    pub verifying_key: VerificationKey,
 
     /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,
@@ -51,11 +55,14 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
+        let signing_key = create_signing_key();
+
         Config {
             prover: true,
             batcher: true,
             webserver: WebServerConfig::default(),
-            key: create_signing_key(),
+            signing_key: signing_key.clone(),
+            verifying_key: signing_key.verification_key(),
             start_height: 1,
         }
     }
@@ -262,6 +269,12 @@ impl Prover {
             return Ok(());
         }
 
+        // TODO: Issue #144
+        match epoch.verify_signature(self.cfg.verifying_key) {
+            Ok(_) => trace!("valid signature for epoch {}", epoch.height),
+            Err(e) => panic!("invalid signature in epoch {}: {:?}", epoch.height, e),
+        }
+
         let prev_commitment = self.db.get_commitment(&current_epoch)?;
 
         if epoch.height != current_epoch {
@@ -290,6 +303,18 @@ impl Prover {
                 "new commitment mismatch at epoch {}",
                 current_epoch
             ));
+        }
+
+        let client = self.prover_client.read().await;
+        match client.verify(&epoch.proof, &self.verifying_key) {
+            Ok(_) => info!(
+                "zkSNARK for epoch {} was validated successfully",
+                epoch.height
+            ),
+            Err(err) => panic!(
+                "failed to validate epoch at height {}: {:?}",
+                epoch.height, err
+            ),
         }
 
         debug!(
@@ -386,7 +411,7 @@ impl Prover {
             signature: None,
         };
 
-        epoch_json.insert_signature(&self.cfg.key);
+        epoch_json.insert_signature(&self.cfg.signing_key);
         Ok(epoch_json)
     }
 

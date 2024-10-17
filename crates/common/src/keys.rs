@@ -124,6 +124,13 @@ impl TryFrom<String> for VerifyingKey {
     }
 }
 
+impl std::fmt::Display for VerifyingKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let encoded = engine.encode(self.as_bytes());
+        write!(f, "{}", encoded)
+    }
+}
+
 #[derive(Clone)]
 pub enum SigningKey {
     Ed25519(Box<Ed25519SigningKey>),
