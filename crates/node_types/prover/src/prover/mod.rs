@@ -456,7 +456,7 @@ impl Prover {
         match incoming_operation {
             Operation::RegisterService(_) => (),
             Operation::CreateAccount(_) => (),
-            Operation::AddKey(_) | Operation::RevokeKey(_) => {
+            Operation::AddKey(_) | Operation::RevokeKey(_) | Operation::AddData(_) => {
                 let hc_response = self.get_hashchain(&incoming_operation.id()).await?;
 
                 let Found(mut hc, _) = hc_response else {
