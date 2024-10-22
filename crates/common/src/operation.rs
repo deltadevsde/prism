@@ -13,9 +13,11 @@ use crate::keys::{SigningKey, VerifyingKey};
 pub enum Operation {
     /// Creates a new account with the given id and value.
     CreateAccount(CreateAccountArgs),
-    /// Adds a value to an existing account.
+    /// Adds a key to an existing account.
     AddKey(KeyOperationArgs),
-    /// Revokes a value from an existing account.
+    /// Adds arbitrary signed data to an existing account.
+    AddData(AddDataArgs),
+    /// Revokes a key from an existing account.
     RevokeKey(KeyOperationArgs),
     /// Registers a new service with the given id.
     RegisterService(RegisterServiceArgs),
@@ -24,20 +26,29 @@ pub enum Operation {
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 /// Represents a signature bundle, which includes the index of the key
 /// in the user's hashchain and the associated signature.
-pub struct SignatureBundle {
+pub struct HashchainSignatureBundle {
     /// Index of the key in the hashchain
-    pub key_idx: u64,
+    pub key_idx: usize,
     /// The actual signature
     pub signature: Vec<u8>,
 }
 
-impl SignatureBundle {
-    pub fn empty_with_idx(idx: u64) -> Self {
-        SignatureBundle {
+impl HashchainSignatureBundle {
+    pub fn empty_with_idx(idx: usize) -> Self {
+        HashchainSignatureBundle {
             key_idx: idx,
             signature: vec![],
         }
     }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+/// Represents a signature including its.
+pub struct SignatureBundle {
+    /// The key that can be used to verify the signature
+    pub verifying_key: VerifyingKey,
+    /// The actual signature
+    pub signature: Vec<u8>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -82,6 +93,19 @@ impl From<SigningKey> for ServiceChallenge {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+/// Structure for adding data.
+pub struct AddDataArgs {
+    /// Account ID
+    pub id: String,
+    /// Data to be added
+    pub value: Vec<u8>,
+    /// Optional external signature used to sign the data to be added
+    pub value_signature: Option<SignatureBundle>,
+    /// Signature to authorize the action
+    pub op_signature: HashchainSignatureBundle,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Common structure for operations involving keys (adding or revoking).
 pub struct KeyOperationArgs {
     /// Account ID
@@ -89,7 +113,7 @@ pub struct KeyOperationArgs {
     /// Public key being added or revoked
     pub value: VerifyingKey,
     /// Signature to authorize the action
-    pub signature: SignatureBundle,
+    pub signature: HashchainSignatureBundle,
 }
 
 impl Operation {
@@ -130,16 +154,16 @@ impl Operation {
         id: String,
         value: VerifyingKey,
         signing_key: &SigningKey,
-        key_idx: u64,
+        key_idx: usize,
     ) -> Result<Self> {
         let op_to_sign = Operation::AddKey(KeyOperationArgs {
             id: id.clone(),
             value: value.clone(),
-            signature: SignatureBundle::empty_with_idx(key_idx),
+            signature: HashchainSignatureBundle::empty_with_idx(key_idx),
         });
 
         let message = bincode::serialize(&op_to_sign)?;
-        let signature = SignatureBundle {
+        let signature = HashchainSignatureBundle {
             key_idx,
             signature: signing_key.sign(&message).to_vec(),
         };
@@ -155,16 +179,16 @@ impl Operation {
         id: String,
         value: VerifyingKey,
         signing_key: &SigningKey,
-        key_idx: u64,
+        key_idx: usize,
     ) -> Result<Self> {
         let op_to_sign = Operation::RevokeKey(KeyOperationArgs {
             id: id.clone(),
             value: value.clone(),
-            signature: SignatureBundle::empty_with_idx(key_idx),
+            signature: HashchainSignatureBundle::empty_with_idx(key_idx),
         });
 
         let message = bincode::serialize(&op_to_sign)?;
-        let signature = SignatureBundle {
+        let signature = HashchainSignatureBundle {
             key_idx,
             signature: signing_key.sign(&message).to_vec(),
         };
@@ -176,10 +200,39 @@ impl Operation {
         }))
     }
 
+    pub fn new_add_signed_data(
+        id: String,
+        value: Vec<u8>,
+        value_signature: Option<SignatureBundle>,
+        signing_key: &SigningKey,
+        key_idx: usize,
+    ) -> Result<Self> {
+        let op_to_sign = Operation::AddData(AddDataArgs {
+            id: id.clone(),
+            value: value.clone(),
+            value_signature: value_signature.clone(),
+            op_signature: HashchainSignatureBundle::empty_with_idx(key_idx),
+        });
+
+        let message = { bincode::serialize(&op_to_sign)? };
+        let op_signature = HashchainSignatureBundle {
+            key_idx,
+            signature: signing_key.sign(&message).to_vec(),
+        };
+
+        Ok(Operation::AddData(AddDataArgs {
+            id,
+            value,
+            value_signature,
+            op_signature,
+        }))
+    }
+
     pub fn id(&self) -> String {
         match self {
             Operation::CreateAccount(args) => args.id.clone(),
             Operation::AddKey(args) | Operation::RevokeKey(args) => args.id.clone(),
+            Operation::AddData(args) => args.id.clone(),
             Operation::RegisterService(args) => args.id.clone(),
         }
     }
@@ -188,15 +241,7 @@ impl Operation {
         match self {
             Operation::RevokeKey(args) | Operation::AddKey(args) => Some(&args.value),
             Operation::CreateAccount(args) => Some(&args.value),
-            Operation::RegisterService(_) => None,
-        }
-    }
-
-    pub fn get_signature_bundle(&self) -> Option<SignatureBundle> {
-        match self {
-            Operation::AddKey(args) => Some(args.signature.clone()),
-            Operation::RevokeKey(args) => Some(args.signature.clone()),
-            Operation::RegisterService(_) | Operation::CreateAccount(_) => None,
+            Operation::RegisterService(_) | Operation::AddData(_) => None,
         }
     }
 
@@ -232,7 +277,7 @@ impl Operation {
             Operation::AddKey(args) => Operation::AddKey(KeyOperationArgs {
                 id: args.id.clone(),
                 value: args.value.clone(),
-                signature: SignatureBundle {
+                signature: HashchainSignatureBundle {
                     key_idx: args.signature.key_idx,
                     signature: Vec::new(),
                 },
@@ -240,8 +285,17 @@ impl Operation {
             Operation::RevokeKey(args) => Operation::RevokeKey(KeyOperationArgs {
                 id: args.id.clone(),
                 value: args.value.clone(),
-                signature: SignatureBundle {
+                signature: HashchainSignatureBundle {
                     key_idx: args.signature.key_idx,
+                    signature: Vec::new(),
+                },
+            }),
+            Operation::AddData(args) => Operation::AddData(AddDataArgs {
+                id: args.id.clone(),
+                value: args.value.clone(),
+                value_signature: args.value_signature.clone(),
+                op_signature: HashchainSignatureBundle {
+                    key_idx: args.op_signature.key_idx,
                     signature: Vec::new(),
                 },
             }),
@@ -272,13 +326,35 @@ impl Operation {
                     .context("User signature failed")?;
                 pubkey.verify_signature(&message, &args.signature.signature)
             }
+            Operation::AddData(args) => {
+                let message = bincode::serialize(&self.without_signature())
+                    .context("Serializing operation failed")?;
+                pubkey
+                    .verify_signature(&message, &args.op_signature.signature)
+                    .context("Verifying operation signature failed")?;
+
+                let Some(value_signature) = &args.value_signature else {
+                    return Ok(());
+                };
+
+                // If data to be added is signed, also validate its signature
+                value_signature
+                    .verifying_key
+                    .verify_signature(&args.value, &value_signature.signature)
+                    .context("Verifying value signature failed")
+            }
         }
     }
 
     pub fn validate(&self) -> Result<()> {
         match &self {
             Operation::AddKey(KeyOperationArgs { id, signature, .. })
-            | Operation::RevokeKey(KeyOperationArgs { id, signature, .. }) => {
+            | Operation::RevokeKey(KeyOperationArgs { id, signature, .. })
+            | Operation::AddData(AddDataArgs {
+                id,
+                op_signature: signature,
+                ..
+            }) => {
                 if id.is_empty() {
                     return Err(
                         GeneralError::MissingArgumentError("id is empty".to_string()).into(),

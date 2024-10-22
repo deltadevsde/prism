@@ -1,7 +1,7 @@
 use crate::{
     hashchain::Hashchain,
     keys::{SigningKey, VerifyingKey},
-    operation::{Operation, ServiceChallenge},
+    operation::{Operation, ServiceChallenge, SignatureBundle},
     tree::{
         HashchainResponse::*, InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof,
     },
@@ -117,6 +117,48 @@ impl TestTreeState {
             account.hashchain.id.clone(),
             key_to_add.clone(),
             self.signing_keys.get(&account.hashchain.id).unwrap(),
+            0,
+        )?;
+
+        account.hashchain.perform_operation(op).unwrap();
+        Ok(())
+    }
+
+    pub fn add_unsigned_data_to_account(
+        &mut self,
+        data: &[u8],
+        account: &mut TestAccount,
+    ) -> Result<()> {
+        self.add_data_to_account(data, account, None)
+    }
+
+    pub fn add_signed_data_to_account(
+        &mut self,
+        data: &[u8],
+        account: &mut TestAccount,
+    ) -> Result<()> {
+        let random_signing_key = create_mock_signing_key();
+        self.add_data_to_account(data, account, Some(&random_signing_key))
+    }
+
+    fn add_data_to_account(
+        &mut self,
+        data: &[u8],
+        account: &mut TestAccount,
+        signing_key: Option<&SigningKey>,
+    ) -> Result<()> {
+        let signature_bundle = signing_key.map(|sk| SignatureBundle {
+            verifying_key: sk.verifying_key(),
+            signature: sk.sign(data),
+        });
+
+        let op_signing_key = self.signing_keys.get(&account.hashchain.id).unwrap();
+
+        let op = Operation::new_add_signed_data(
+            account.hashchain.id.clone(),
+            data.to_vec(),
+            signature_bundle,
+            op_signing_key,
             0,
         )?;
 
