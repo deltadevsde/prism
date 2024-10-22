@@ -1,7 +1,10 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use prism_common::tree::{Batch, Digest, Proof};
+use prism_common::{
+    digest::Digest,
+    tree::{Batch, Proof},
+};
 
 pub fn main() {
     let batch = sp1_zkvm::io::read::<Batch>();

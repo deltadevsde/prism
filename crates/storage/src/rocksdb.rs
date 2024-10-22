@@ -4,7 +4,7 @@ use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
 };
-use prism_common::tree::Digest;
+use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
 use rocksdb::{DBWithThreadMode, MultiThreaded, Options, DB};
 
@@ -109,7 +109,6 @@ impl TreeReader for RocksDBConnection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use prism_common::tree::Digest;
     use tempfile::TempDir;
 
     #[test]

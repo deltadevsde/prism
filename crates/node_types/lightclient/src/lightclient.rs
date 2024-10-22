@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use ed25519_consensus::VerificationKey as VerifyingKey;
-use prism_common::tree::Digest;
+use prism_common::digest::Digest;
 use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use sp1_sdk::{ProverClient, SP1VerifyingKey};

@@ -7,12 +7,13 @@ use std::{
 };
 
 use crate::{
+    digest::Digest,
+    hasher::Hasher,
     keys::VerifyingKey,
     operation::{
         AddDataArgs, CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs,
         ServiceChallenge, ServiceChallengeInput,
     },
-    tree::{Digest, Hasher},
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]

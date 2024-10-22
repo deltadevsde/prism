@@ -13,9 +13,7 @@ use indexed_merkle_tree::{
 };
 use jmt::proof::SparseMerkleProof;
 use prism_common::{
-    hashchain::Hashchain,
-    operation::Operation,
-    tree::{HashchainResponse, Hasher},
+    hashchain::Hashchain, hasher::Hasher, operation::Operation, tree::HashchainResponse,
 };
 use serde::{Deserialize, Serialize};
 use std::{self, sync::Arc};

@@ -11,7 +11,7 @@ use secp256k1::{
 use serde::{Deserialize, Serialize};
 use std::{self};
 
-use crate::tree::Digest;
+use crate::digest::Digest;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 /// Represents a public key supported by the system.
