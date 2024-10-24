@@ -258,9 +258,10 @@ where
             Operation::CreateAccount(CreateAccountArgs {
                 id,
                 value,
-                signature,
                 service_id,
                 challenge,
+                prev_hash,
+                signature,
             }) => {
                 let hashed_id = Digest::hash(id);
                 let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
@@ -295,9 +296,10 @@ where
                 let new_account_chain = Hashchain::create_account(
                     id.clone(),
                     value.clone(),
-                    signature.clone(),
                     service_id.clone(),
                     challenge.clone(),
+                    *prev_hash,
+                    signature.clone(),
                 )?;
                 let new_account_entry = new_account_chain.last().unwrap();
 

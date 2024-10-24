@@ -5,7 +5,10 @@ use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
 
-use crate::keys::{SigningKey, VerifyingKey};
+use crate::{
+    digest::Digest,
+    keys::{SigningKey, VerifyingKey},
+};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// An [`Operation`] represents a state transition in the system.
@@ -65,11 +68,14 @@ pub struct CreateAccountArgs {
     pub id: String,
     /// Public key being added
     pub value: VerifyingKey,
-    pub signature: Vec<u8>,
     /// Associated service ID
     pub service_id: String,
     /// Challenge input for verification
     pub challenge: ServiceChallengeInput,
+    /// The hash of the previous operation
+    pub prev_hash: Digest,
+    /// The signature that signed the operation
+    pub signature: Vec<u8>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -79,6 +85,8 @@ pub struct RegisterServiceArgs {
     pub id: String,
     /// Challenge gate for access control
     pub creation_gate: ServiceChallenge,
+    /// The hash of the previous operation
+    pub prev_hash: Digest,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -101,6 +109,8 @@ pub struct AddDataArgs {
     pub value: Vec<u8>,
     /// Optional external signature used to sign the data to be added
     pub value_signature: Option<SignatureBundle>,
+    /// The hash of the previous operation
+    pub prev_hash: Digest,
     /// Signature to authorize the action
     pub op_signature: HashchainSignatureBundle,
 }
@@ -112,6 +122,8 @@ pub struct KeyOperationArgs {
     pub id: String,
     /// Public key being added or revoked
     pub value: VerifyingKey,
+    /// The hash of the previous operation
+    pub prev_hash: Digest,
     /// Signature to authorize the action
     pub signature: HashchainSignatureBundle,
 }
@@ -128,6 +140,7 @@ impl Operation {
             value: signing_key.clone().verifying_key(),
             service_id,
             challenge: ServiceChallengeInput::Signed(Vec::new()),
+            prev_hash: Digest::zero(),
             signature: Vec::new(),
         });
 
@@ -147,18 +160,24 @@ impl Operation {
     }
 
     pub fn new_register_service(id: String, creation_gate: ServiceChallenge) -> Self {
-        Operation::RegisterService(RegisterServiceArgs { id, creation_gate })
+        Operation::RegisterService(RegisterServiceArgs {
+            id,
+            creation_gate,
+            prev_hash: Digest::zero(),
+        })
     }
 
     pub fn new_add_key(
         id: String,
         value: VerifyingKey,
+        prev_hash: Digest,
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> Result<Self> {
         let op_to_sign = Operation::AddKey(KeyOperationArgs {
             id: id.clone(),
             value: value.clone(),
+            prev_hash,
             signature: HashchainSignatureBundle::empty_with_idx(key_idx),
         });
 
@@ -171,6 +190,7 @@ impl Operation {
         Ok(Operation::AddKey(KeyOperationArgs {
             id,
             value,
+            prev_hash,
             signature,
         }))
     }
@@ -178,12 +198,14 @@ impl Operation {
     pub fn new_revoke_key(
         id: String,
         value: VerifyingKey,
+        prev_hash: Digest,
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> Result<Self> {
         let op_to_sign = Operation::RevokeKey(KeyOperationArgs {
             id: id.clone(),
             value: value.clone(),
+            prev_hash,
             signature: HashchainSignatureBundle::empty_with_idx(key_idx),
         });
 
@@ -196,6 +218,7 @@ impl Operation {
         Ok(Operation::RevokeKey(KeyOperationArgs {
             id,
             value,
+            prev_hash,
             signature,
         }))
     }
@@ -204,6 +227,7 @@ impl Operation {
         id: String,
         value: Vec<u8>,
         value_signature: Option<SignatureBundle>,
+        prev_hash: Digest,
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> Result<Self> {
@@ -211,6 +235,7 @@ impl Operation {
             id: id.clone(),
             value: value.clone(),
             value_signature: value_signature.clone(),
+            prev_hash,
             op_signature: HashchainSignatureBundle::empty_with_idx(key_idx),
         });
 
@@ -224,6 +249,7 @@ impl Operation {
             id,
             value,
             value_signature,
+            prev_hash,
             op_signature,
         }))
     }
@@ -264,9 +290,10 @@ impl Operation {
             Operation::CreateAccount(args) => Operation::CreateAccount(CreateAccountArgs {
                 id: args.id.clone(),
                 value: args.value.clone(),
-                signature: args.signature.clone(),
                 service_id: args.service_id.clone(),
                 challenge: ServiceChallengeInput::Signed(Vec::new()),
+                prev_hash: args.prev_hash,
+                signature: args.signature.clone(),
             }),
             _ => self.clone(),
         }
@@ -277,6 +304,7 @@ impl Operation {
             Operation::AddKey(args) => Operation::AddKey(KeyOperationArgs {
                 id: args.id.clone(),
                 value: args.value.clone(),
+                prev_hash: args.prev_hash,
                 signature: HashchainSignatureBundle {
                     key_idx: args.signature.key_idx,
                     signature: Vec::new(),
@@ -285,6 +313,7 @@ impl Operation {
             Operation::RevokeKey(args) => Operation::RevokeKey(KeyOperationArgs {
                 id: args.id.clone(),
                 value: args.value.clone(),
+                prev_hash: args.prev_hash,
                 signature: HashchainSignatureBundle {
                     key_idx: args.signature.key_idx,
                     signature: Vec::new(),
@@ -293,6 +322,7 @@ impl Operation {
             Operation::AddData(args) => Operation::AddData(AddDataArgs {
                 id: args.id.clone(),
                 value: args.value.clone(),
+                prev_hash: args.prev_hash,
                 value_signature: args.value_signature.clone(),
                 op_signature: HashchainSignatureBundle {
                     key_idx: args.op_signature.key_idx,
@@ -302,13 +332,15 @@ impl Operation {
             Operation::CreateAccount(args) => Operation::CreateAccount(CreateAccountArgs {
                 id: args.id.clone(),
                 value: args.value.clone(),
-                signature: Vec::new(),
                 service_id: args.service_id.clone(),
                 challenge: args.challenge.clone(),
+                prev_hash: args.prev_hash,
+                signature: Vec::new(),
             }),
             Operation::RegisterService(args) => Operation::RegisterService(RegisterServiceArgs {
                 id: args.id.clone(),
                 creation_gate: args.creation_gate.clone(),
+                prev_hash: args.prev_hash,
             }),
         }
     }
