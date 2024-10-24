@@ -9,4 +9,6 @@ pub mod tree;
 extern crate log;
 
 #[cfg(feature = "test_utils")]
+pub mod test_ops;
+#[cfg(feature = "test_utils")]
 pub mod test_utils;
