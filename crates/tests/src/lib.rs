@@ -3,11 +3,15 @@
 #[macro_use]
 extern crate log;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
+use jmt::KeyHash;
 use keystore_rs::create_signing_key;
 use prism_common::{
+    digest::Digest,
+    hasher::Hasher,
     operation::{Operation, ServiceChallenge},
     test_utils::create_mock_signing_key,
+    tree::{HashchainResponse::*, SnarkableTree},
 };
 use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
@@ -28,10 +32,16 @@ fn create_random_user(id: &str, state: &mut TestTreeState, service: &Service) ->
 }
 
 fn add_key(id: &str, state: &mut TestTreeState) -> Result<Operation> {
-    let signing_key = state
-        .signing_keys
-        .get(id)
-        .ok_or_else(|| anyhow::anyhow!("Signing key not found for account {}", id))?;
+    let hashed_id = Digest::hash(id);
+    let key_hash = KeyHash::with::<Hasher>(hashed_id);
+
+    let Found(hc, _) = state.tree.get(key_hash)? else {
+        bail!("Hashchain not found for account {}", id);
+    };
+
+    let Some(signing_key) = state.signing_keys.get(id) else {
+        bail!("Signing key not found for account {}", id);
+    };
 
     let new_key = create_mock_signing_key();
     let new_public_key = new_key.verifying_key();
@@ -39,6 +49,7 @@ fn add_key(id: &str, state: &mut TestTreeState) -> Result<Operation> {
     let op = Operation::new_add_key(
         id.to_string(),
         new_public_key,
+        hc.last_hash(),
         signing_key,
         0, // Assuming this is the key index, you might need to adjust this
     )?;
