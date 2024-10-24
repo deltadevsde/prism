@@ -116,6 +116,7 @@ impl TestTreeState {
         let op = Operation::new_add_key(
             account.hashchain.id.clone(),
             key_to_add.clone(),
+            account.hashchain.last_hash(),
             self.signing_keys.get(&account.hashchain.id).unwrap(),
             0,
         )?;
@@ -154,10 +155,13 @@ impl TestTreeState {
 
         let op_signing_key = self.signing_keys.get(&account.hashchain.id).unwrap();
 
+        let prev_hash = account.hashchain.last_hash();
+
         let op = Operation::new_add_signed_data(
             account.hashchain.id.clone(),
             data.to_vec(),
             signature_bundle,
+            prev_hash,
             op_signing_key,
             0,
         )?;
@@ -229,8 +233,14 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         .ok_or_else(|| anyhow::anyhow!("Signing key not found for hashchain"))
         .unwrap();
 
-    let operation =
-        Operation::new_add_key(hc.id.clone(), verifying_key.clone(), signer, 0).unwrap();
+    let operation = Operation::new_add_key(
+        hc.id.clone(),
+        verifying_key.clone(),
+        hc.last_hash(),
+        signer,
+        0,
+    )
+    .unwrap();
     hc.perform_operation(operation)
         .expect("Adding to hashchain should succeed");
 
