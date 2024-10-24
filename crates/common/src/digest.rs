@@ -14,6 +14,10 @@ impl Digest {
         hasher.update(data.as_ref());
         Self(hasher.finalize())
     }
+
+    pub const fn zero() -> Self {
+        Self([0u8; 32])
+    }
 }
 
 // serializer and deserializer for rocksdb
