@@ -309,9 +309,7 @@ where
                     self.insert(account_key_hash, new_account_chain)?,
                 )))
             }
-            Operation::RegisterService(RegisterServiceArgs {
-                id, creation_gate, ..
-            }) => {
+            Operation::RegisterService(RegisterServiceArgs { id, .. }) => {
                 let hashed_id = Digest::hash(id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -324,7 +322,7 @@ where
                 };
 
                 debug!("creating new hashchain for service id {}", id);
-                let chain = Hashchain::register_service(id.clone(), creation_gate.clone())?;
+                let chain = Hashchain::from_operation(operation.clone())?;
 
                 Ok(Proof::Insert(Box::new(
                     self.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,

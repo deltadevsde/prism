@@ -50,10 +50,10 @@ impl TestTreeState {
     pub fn register_service(&mut self, service_id: String) -> Service {
         let service_key = create_mock_signing_key();
 
-        let hashchain = Hashchain::register_service(
+        let hashchain = Hashchain::from_operation(Operation::new_register_service(
             service_id.clone(),
             ServiceChallenge::from(service_key.clone()),
-        )
+        ))
         .unwrap();
 
         let key_hash = hashchain.get_keyhash();

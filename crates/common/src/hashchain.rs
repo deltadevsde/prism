@@ -10,9 +10,7 @@ use crate::{
     digest::Digest,
     hasher::Hasher,
     keys::VerifyingKey,
-    operation::{
-        CreateAccountArgs, Operation, RegisterServiceArgs, ServiceChallenge, ServiceChallengeInput,
-    },
+    operation::{AddDataArgs, KeyOperationArgs, Operation},
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -65,17 +63,6 @@ impl DerefMut for Hashchain {
 impl Hashchain {
     pub fn from_operation(operation: Operation) -> Result<Self> {
         let mut hc = Hashchain::empty(operation.id());
-        hc.perform_operation(operation)?;
-        Ok(hc)
-    }
-
-    pub fn register_service(id: String, challenge: ServiceChallenge) -> Result<Hashchain> {
-        let mut hc = Hashchain::empty(id.clone());
-        let operation = Operation::RegisterService(RegisterServiceArgs {
-            id,
-            creation_gate: challenge,
-            prev_hash: Digest::zero(),
-        });
         hc.perform_operation(operation)?;
         Ok(hc)
     }
