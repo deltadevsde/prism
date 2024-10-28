@@ -345,7 +345,7 @@ impl Operation {
         }
     }
 
-    pub fn verify_user_signature(&self, pubkey: VerifyingKey) -> Result<()> {
+    pub fn verify_user_signature(&self, pubkey: &VerifyingKey) -> Result<()> {
         match self {
             Operation::RegisterService(_) => Ok(()),
             Operation::CreateAccount(args) => {

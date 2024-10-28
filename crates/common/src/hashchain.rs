@@ -11,8 +11,7 @@ use crate::{
     hasher::Hasher,
     keys::VerifyingKey,
     operation::{
-        AddDataArgs, CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs,
-        ServiceChallenge, ServiceChallengeInput,
+        CreateAccountArgs, Operation, RegisterServiceArgs, ServiceChallenge, ServiceChallengeInput,
     },
 };
 
@@ -298,31 +297,53 @@ impl Hashchain {
     /// Verifies the structure and signature of a new operation
     fn validate_new_operation(&self, operation: &Operation) -> Result<()> {
         match operation {
-            Operation::RegisterService(_) => {
+            Operation::RegisterService(args) => {
                 if !self.entries.is_empty() {
                     bail!("RegisterService operation must be the first entry");
                 }
+
+                if args.prev_hash != Digest::zero() {
+                    bail!("Previous hash for initial operation must be zero")
+                }
+
                 Ok(())
             }
-            Operation::AddKey(KeyOperationArgs { signature, .. })
-            | Operation::RevokeKey(KeyOperationArgs { signature, .. })
-            | Operation::AddData(AddDataArgs {
-                op_signature: signature,
-                ..
-            }) => {
-                let signing_key = self.get_key_at_index(signature.key_idx)?;
+            Operation::AddKey(args) | Operation::RevokeKey(args) => {
+                if args.prev_hash != self.last_hash() {
+                    bail!("Previous hash for key operation must be the last hash")
+                }
+
+                let signing_key = self.get_key_at_index(args.signature.key_idx)?;
 
                 if self.is_key_revoked(signing_key.clone()) {
                     bail!("The signing key is revoked");
                 }
 
-                operation.verify_user_signature(signing_key.clone())
+                operation.verify_user_signature(signing_key)
+            }
+            Operation::AddData(args) => {
+                if args.prev_hash != self.last_hash() {
+                    bail!("Previous hash for add-data operation must be the last hash")
+                }
+
+                let signing_key = self.get_key_at_index(args.op_signature.key_idx)?;
+
+                if self.is_key_revoked(signing_key.clone()) {
+                    bail!("The signing key is revoked");
+                }
+
+                operation.verify_user_signature(signing_key)
             }
             Operation::CreateAccount(args) => {
                 if !self.entries.is_empty() {
                     bail!("RegisterService operation must be the first entry");
                 }
-                operation.verify_user_signature(args.value.clone())
+
+                if args.prev_hash != Digest::zero() {
+                    bail!("Previous hash for initial operation must be zero")
+                }
+
+                operation.verify_user_signature(&args.value)
             }
         }
     }
