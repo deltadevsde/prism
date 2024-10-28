@@ -287,14 +287,7 @@ where
 
                 let ServiceChallenge::Signed(service_pubkey) = creation_gate;
 
-                let new_account_chain = Hashchain::create_account(
-                    id.clone(),
-                    value.clone(),
-                    service_id.clone(),
-                    challenge.clone(),
-                    *prev_hash,
-                    signature.clone(),
-                )?;
+                let new_account_chain = Hashchain::from_operation(operation.clone())?;
                 let new_account_entry = new_account_chain.last().unwrap();
 
                 let ServiceChallengeInput::Signed(challenge_signature) = &challenge;

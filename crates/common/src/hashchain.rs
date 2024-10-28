@@ -69,27 +69,6 @@ impl Hashchain {
         Ok(hc)
     }
 
-    pub fn create_account(
-        id: String,
-        value: VerifyingKey,
-        service_id: String,
-        challenge: ServiceChallengeInput,
-        prev_hash: Digest,
-        signature: Vec<u8>,
-    ) -> Result<Hashchain> {
-        let mut hc = Hashchain::empty(id.clone());
-        let operation = Operation::CreateAccount(CreateAccountArgs {
-            id,
-            value,
-            service_id,
-            challenge,
-            prev_hash,
-            signature,
-        });
-        hc.perform_operation(operation)?;
-        Ok(hc)
-    }
-
     pub fn register_service(id: String, challenge: ServiceChallenge) -> Result<Hashchain> {
         let mut hc = Hashchain::empty(id.clone());
         let operation = Operation::RegisterService(RegisterServiceArgs {
