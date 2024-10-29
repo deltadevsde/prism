@@ -21,29 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Rust
-        run: |
-          rustup toolchain install ${{ matrix.rust.version }} --profile ${{ matrix.rust.profile }}
-          rustup default ${{ matrix.rust.version }}
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
         with:
           version: "23.3"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up cargo cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-${{ hashFiles('**/Cargo.lock') }}
-            cargo-
 
       - name: Run non-integration tests
         run: cargo test --lib --release --features mock_prover -- --skip test_light_client_prover_talking
@@ -61,10 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Rust
-        run: |
-          rustup toolchain install ${{ matrix.rust.version }} --profile ${{ matrix.rust.profile }}
-          rustup default ${{ matrix.rust.version }}
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
@@ -132,21 +113,7 @@ jobs:
           version: "23.3"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install toolchain
-        uses: dtolnay/rust-toolchain@nightly
-
-      - name: Set up cargo cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-${{ hashFiles('**/Cargo.lock') }}
-            cargo-
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Install cargo-udeps
         uses: taiki-e/cache-cargo-install-action@v1
@@ -168,34 +135,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        run: |
-          rustup toolchain install ${{ matrix.rust.version }} --profile ${{ matrix.rust.profile }}
-          rustup default ${{ matrix.rust.version }}
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
         with:
           version: "23.3"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up cargo cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-${{ hashFiles('**/Cargo.lock') }}
-            cargo-
-
-      - name: Add clippy component if not stable
-        if: matrix.rust.version != 'stable'
-        run: rustup component add clippy
 
       - name: Run clippy
         run: cargo clippy --locked --all --all-targets -- -D warnings
