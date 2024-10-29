@@ -11,13 +11,6 @@ jobs:
   unit-test:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        rust:
-          - version: nightly
-            profile: default
-
     steps:
       - uses: actions/checkout@v4
 
@@ -34,13 +27,6 @@ jobs:
 
   integration-test:
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        rust:
-          - version: nightly
-            profile: minimal
 
     steps:
       - uses: actions/checkout@v4
@@ -125,13 +111,6 @@ jobs:
 
   clippy:
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        rust:
-          - version: nightly
-            profile: minimal
 
     steps:
       - uses: actions/checkout@v4
