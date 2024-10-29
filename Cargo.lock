@@ -5796,6 +5796,7 @@ dependencies = [
  "k256",
  "rand",
  "secp256k1-sys",
+ "serde",
 ]
 
 [[package]]
