@@ -1,20 +1,18 @@
 use anyhow::{anyhow, bail, Context, Result};
 use bincode;
-use bls12_381::Scalar;
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
-    JellyfishMerkleTree, KeyHash, RootHash, SimpleHasher,
+    JellyfishMerkleTree, KeyHash, RootHash,
 };
 use prism_errors::DatabaseError;
-use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
-use std::{
-    convert::{From, Into},
-    sync::Arc,
-};
+use serde::{Deserialize, Serialize};
+use std::{convert::Into, sync::Arc};
 
 use crate::{
+    digest::Digest,
     hashchain::{Hashchain, HashchainEntry},
+    hasher::Hasher,
     operation::{
         AddDataArgs, CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs,
         ServiceChallenge, ServiceChallengeInput,
@@ -25,155 +23,6 @@ use HashchainResponse::*;
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
-
-#[derive(Debug, Clone, Default)]
-pub struct Hasher(sha2::Sha256);
-
-impl Serialize for Hasher {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_tuple_struct("Sha256Wrapper", 0)?.end()
-    }
-}
-
-impl<'de> Deserialize<'de> for Hasher {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct Sha256WrapperVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for Sha256WrapperVisitor {
-            type Value = Hasher;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a Sha256Wrapper")
-            }
-
-            fn visit_seq<A>(self, _seq: A) -> Result<Self::Value, A::Error>
-            where
-                A: serde::de::SeqAccess<'de>,
-            {
-                Ok(Hasher::default())
-            }
-        }
-
-        deserializer.deserialize_tuple_struct("Sha256Wrapper", 0, Sha256WrapperVisitor)
-    }
-}
-
-impl SimpleHasher for Hasher {
-    fn new() -> Self {
-        Self(sha2::Sha256::new())
-    }
-
-    fn update(&mut self, data: &[u8]) {
-        self.0.update(data);
-    }
-
-    fn finalize(self) -> [u8; 32] {
-        self.0.finalize()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
-pub struct Digest(pub [u8; 32]);
-
-impl Digest {
-    pub fn hash(data: impl AsRef<[u8]>) -> Self {
-        let mut hasher = Hasher::new();
-        hasher.update(data.as_ref());
-        Self(hasher.finalize())
-    }
-}
-
-// serializer and deserializer for rocksdb
-// converts from bytearrays into digests
-// padds it with zero if it is too small
-impl<const N: usize> From<[u8; N]> for Digest {
-    fn from(value: [u8; N]) -> Self {
-        assert!(N <= 32, "Input array must not exceed 32 bytes");
-        let mut digest = [0u8; 32];
-        digest[..N].copy_from_slice(&value);
-        Self(digest)
-    }
-}
-
-// implementing it for now to get things to compile, curve choice will be made later
-impl TryFrom<Digest> for Scalar {
-    type Error = anyhow::Error;
-
-    fn try_from(value: Digest) -> Result<Scalar, Self::Error> {
-        let mut byte_array = [0u8; 32];
-        byte_array.copy_from_slice(value.as_ref());
-        byte_array.reverse();
-
-        let val =
-            [
-                u64::from_le_bytes(byte_array[0..8].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [0..8] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[8..16].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [8..16] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[16..24].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [16..24] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[24..32].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [24..32] for digest: {value:?}"))
-                })?),
-            ];
-
-        Ok(Scalar::from_raw(val))
-    }
-}
-
-impl From<Digest> for RootHash {
-    fn from(val: Digest) -> RootHash {
-        RootHash::from(val.0)
-    }
-}
-
-impl From<RootHash> for Digest {
-    fn from(val: RootHash) -> Digest {
-        Digest(val.0)
-    }
-}
-
-impl AsRef<[u8]> for Digest {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl std::fmt::Display for Digest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_hex())
-    }
-}
-
-impl Digest {
-    pub const fn new(bytes: [u8; 32]) -> Self {
-        Digest(bytes)
-    }
-
-    pub fn from_hex(hex_str: &str) -> Result<Self> {
-        let mut bytes = [0u8; 32];
-        hex::decode_to_slice(hex_str, &mut bytes)
-            .map_err(|e| anyhow!(format!("Invalid Format: {e}")))?;
-        Ok(Digest(bytes))
-    }
-
-    pub fn to_hex(&self) -> String {
-        hex::encode(self.0)
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0
-    }
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct Batch {
@@ -409,9 +258,10 @@ where
             Operation::CreateAccount(CreateAccountArgs {
                 id,
                 value,
-                signature,
                 service_id,
                 challenge,
+                prev_hash,
+                signature,
             }) => {
                 let hashed_id = Digest::hash(id);
                 let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
@@ -446,9 +296,10 @@ where
                 let new_account_chain = Hashchain::create_account(
                     id.clone(),
                     value.clone(),
-                    signature.clone(),
                     service_id.clone(),
                     challenge.clone(),
+                    *prev_hash,
+                    signature.clone(),
                 )?;
                 let new_account_entry = new_account_chain.last().unwrap();
 

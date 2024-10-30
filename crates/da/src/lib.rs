@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use ed25519_consensus::{Signature, SigningKey, VerificationKey as VerifyingKey};
-use prism_common::{operation::Operation, tree::Digest};
+use prism_common::{digest::Digest, operation::Operation};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;
 use tokio::sync::broadcast;

@@ -2,9 +2,14 @@ use anyhow::{anyhow, bail, Context, Result};
 use ed25519_consensus::SigningKey;
 use jmt::KeyHash;
 use keystore_rs::create_signing_key;
-use prism_common::tree::{
-    Batch, Digest, HashchainResponse, HashchainResponse::*, Hasher, KeyDirectoryTree, Proof,
-    SnarkableTree,
+use prism_common::{
+    digest::Digest,
+    hasher::Hasher,
+    tree::{
+        Batch,
+        HashchainResponse::{self, *},
+        KeyDirectoryTree, Proof, SnarkableTree,
+    },
 };
 use prism_errors::DataAvailabilityError;
 use std::{self, collections::VecDeque, sync::Arc};

@@ -4,6 +4,7 @@ use jmt::{
     KeyHash, OwnedValue, Version,
 };
 use mockall::predicate::*;
+use prism_common::digest::Digest;
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -14,7 +15,6 @@ use std::{
     time::Duration,
 };
 
-use prism_common::tree::Digest;
 use prism_errors::DatabaseError;
 
 use crate::database::{convert_to_connection_error, Database};
