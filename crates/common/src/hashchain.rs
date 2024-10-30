@@ -271,26 +271,26 @@ impl Hashchain {
                     bail!("Previous hash for key operation must be the last hash")
                 }
 
-                let signing_key = self.get_key_at_index(args.signature.key_idx)?;
+                let verifying_key = self.get_key_at_index(args.signature.key_idx)?;
 
-                if self.is_key_revoked(signing_key.clone()) {
+                if self.is_key_revoked(verifying_key.clone()) {
                     bail!("The signing key is revoked");
                 }
 
-                operation.verify_user_signature(signing_key)
+                operation.verify_user_signature(verifying_key)
             }
             Operation::AddData(args) => {
                 if args.prev_hash != self.last_hash() {
                     bail!("Previous hash for add-data operation must be the last hash")
                 }
 
-                let signing_key = self.get_key_at_index(args.op_signature.key_idx)?;
+                let verifying_key = self.get_key_at_index(args.op_signature.key_idx)?;
 
-                if self.is_key_revoked(signing_key.clone()) {
+                if self.is_key_revoked(verifying_key.clone()) {
                     bail!("The signing key is revoked");
                 }
 
-                operation.verify_user_signature(signing_key)
+                operation.verify_user_signature(verifying_key)
             }
             Operation::CreateAccount(args) => {
                 if !self.entries.is_empty() {
