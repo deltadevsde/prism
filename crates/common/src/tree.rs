@@ -49,8 +49,7 @@ pub struct MembershipProof {
 impl MembershipProof {
     pub fn verify(&self) -> Result<()> {
         let value = bincode::serialize(&self.value)?;
-        self.proof
-            .verify_existence(self.root.into(), self.key, value)
+        self.proof.verify_existence(self.root.into(), self.key, value)
     }
 }
 
@@ -78,9 +77,7 @@ pub struct InsertProof {
 
 impl InsertProof {
     pub fn verify(&self) -> Result<()> {
-        self.non_membership_proof
-            .verify()
-            .context("Invalid NonMembershipProof")?;
+        self.non_membership_proof.verify().context("Invalid NonMembershipProof")?;
 
         let value = bincode::serialize(&self.value)?;
 
@@ -116,8 +113,7 @@ impl UpdateProof {
         // Verify existence of old value.
         // Otherwise, any arbitrary hashchain could be set
         let old_value = bincode::serialize(&self.old_value)?;
-        self.inclusion_proof
-            .verify_existence(self.old_root, self.key, old_value)?;
+        self.inclusion_proof.verify_existence(self.old_root, self.key, old_value)?;
 
         // Append the new entry and verify it's validity
         let new_hashchain = self.old_value.insert_unsafe(self.new_entry.clone());
@@ -214,9 +210,7 @@ where
     }
 
     pub fn get_current_root(&self) -> Result<RootHash> {
-        self.jmt
-            .get_root_hash(self.epoch)
-            .map_err(|e| anyhow!("Failed to get root hash: {}", e))
+        self.jmt.get_root_hash(self.epoch).map_err(|e| anyhow!("Failed to get root hash: {}", e))
     }
 
     fn serialize_value(value: &Hashchain) -> Result<Vec<u8>> {
@@ -311,10 +305,7 @@ where
 
                 value.verify_signature(
                     &bincode::serialize(
-                        &new_account_entry
-                            .operation
-                            .without_challenge()
-                            .without_signature(),
+                        &new_account_entry.operation.without_challenge().without_signature(),
                     )?,
                     signature,
                 )?;
@@ -448,9 +439,7 @@ mod tests {
         let service = tree_state.register_service("service_1".to_string());
         let account = tree_state.create_account("key_1".to_string(), service.clone());
 
-        let insert_proof = tree_state
-            .insert_account(service.registration.clone())
-            .unwrap();
+        let insert_proof = tree_state.insert_account(service.registration.clone()).unwrap();
         assert!(insert_proof.verify().is_ok());
 
         let insert_proof = tree_state.insert_account(account.clone()).unwrap();
@@ -485,9 +474,7 @@ mod tests {
 
         let account = tree_state.create_account("key_1".to_string(), falsified_service.clone());
 
-        let insert_proof = tree_state
-            .insert_account(service.registration.clone())
-            .unwrap();
+        let insert_proof = tree_state.insert_account(service.registration.clone()).unwrap();
         assert!(insert_proof.verify().is_ok());
 
         let insert_proof = tree_state.insert_account(account.clone());
@@ -500,9 +487,7 @@ mod tests {
         let service = tree_state.register_service("service_1".to_string());
         let account = tree_state.create_account("key_1".to_string(), service.clone());
 
-        let insert_proof = tree_state
-            .insert_account(service.registration.clone())
-            .unwrap();
+        let insert_proof = tree_state.insert_account(service.registration.clone()).unwrap();
         assert!(insert_proof.verify().is_ok());
 
         tree_state.insert_account(account.clone()).unwrap();
@@ -517,9 +502,7 @@ mod tests {
 
         let service = tree_state.register_service("service_1".to_string());
         let mut account = tree_state.create_account("key_1".to_string(), service.clone());
-        tree_state
-            .insert_account(service.registration.clone())
-            .unwrap();
+        tree_state.insert_account(service.registration.clone()).unwrap();
         tree_state.insert_account(account.clone()).unwrap();
 
         // Add a new key
@@ -538,9 +521,7 @@ mod tests {
         let mut tree_state = TestTreeState::default();
         let service = tree_state.register_service("service_1".to_string());
         let account = tree_state.create_account("key_1".to_string(), service.clone());
-        tree_state
-            .insert_account(service.registration.clone())
-            .unwrap();
+        tree_state.insert_account(service.registration.clone()).unwrap();
 
         let result = tree_state.update_account(account);
         assert!(result.is_err());
@@ -577,13 +558,9 @@ mod tests {
         tree_state.add_key_to_account(&mut account1).unwrap();
         tree_state.update_account(account1.clone()).unwrap();
 
-        tree_state
-            .add_unsigned_data_to_account(b"unsigned", &mut account2)
-            .unwrap();
+        tree_state.add_unsigned_data_to_account(b"unsigned", &mut account2).unwrap();
         tree_state.update_account(account2.clone()).unwrap();
-        tree_state
-            .add_signed_data_to_account(b"signed", &mut account2)
-            .unwrap();
+        tree_state.add_signed_data_to_account(b"signed", &mut account2).unwrap();
         tree_state.update_account(account2.clone()).unwrap();
 
         let get_result1 = tree_state.tree.get(account1.key_hash);
@@ -636,10 +613,7 @@ mod tests {
         tree_state.insert_account(service.registration).unwrap();
 
         let root_before = tree_state.tree.get_current_root().unwrap();
-        tree_state
-            .tree
-            .insert(account.key_hash, account.hashchain)
-            .unwrap();
+        tree_state.tree.insert(account.key_hash, account.hashchain).unwrap();
         let root_after = tree_state.tree.get_current_root().unwrap();
 
         assert_ne!(root_before, root_after);

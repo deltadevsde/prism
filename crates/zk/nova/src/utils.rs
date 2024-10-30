@@ -98,10 +98,7 @@ pub fn next_rom_index_and_pc<F: PrimeField, CS: ConstraintSystem<F>>(
     // Allocate the next pc without checking.
     // The next iteration will check whether the next pc is valid.
     let pc_next = AllocatedNum::alloc_infallible(cs.namespace(|| "next pc"), || {
-        allocated_rom
-            .get(next_rom_index)
-            .and_then(|v| v.get_value())
-            .unwrap_or(-F::ONE)
+        allocated_rom.get(next_rom_index).and_then(|v| v.get_value()).unwrap_or(-F::ONE)
     });
 
     Ok((rom_index_next, pc_next))
@@ -142,10 +139,8 @@ pub fn get_selector_vec_from_index<F: PrimeField, CS: ConstraintSystem<F>>(
 
     // Enforce `target_index - ∑ i * selector[i] = 0``
     {
-        let selected_value = selector
-            .iter()
-            .enumerate()
-            .fold(LinearCombination::zero(), |lc, (i, bit)| {
+        let selected_value =
+            selector.iter().enumerate().fold(LinearCombination::zero(), |lc, (i, bit)| {
                 lc + &bit.lc(CS::one(), F::from(i as u64))
             });
         cs.enforce(
@@ -175,10 +170,7 @@ pub fn create_pp() -> PublicParams<PallasEngine> {
         )
         .unwrap();
 
-    let insert_proof = test_tree
-        .tree
-        .insert(account.key_hash, account.hashchain.clone())
-        .unwrap();
+    let insert_proof = test_tree.tree.insert(account.key_hash, account.hashchain.clone()).unwrap();
 
     test_tree.add_key_to_account(&mut account).unwrap();
 
@@ -197,10 +189,8 @@ pub fn allocate_bits_to_binary_number<Scalar: PrimeField, CS: ConstraintSystem<S
     cs: &mut CS,
     value: Vec<u8>,
 ) -> Result<Vec<Boolean>, SynthesisError> {
-    let bits: Vec<bool> = value
-        .iter()
-        .flat_map(|byte| (0..8).rev().map(move |i| (byte >> i) & 1 == 1))
-        .collect();
+    let bits: Vec<bool> =
+        value.iter().flat_map(|byte| (0..8).rev().map(move |i| (byte >> i) & 1 == 1)).collect();
 
     let result: Result<Vec<Boolean>, SynthesisError> = bits
         .into_iter()
@@ -435,17 +425,9 @@ fn conditionally_select_vector<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>
 
 #[allow(dead_code)]
 fn boolvec_to_bytes(value: Vec<Boolean>) -> Vec<u8> {
-    let bits: Vec<bool> = value
-        .iter()
-        .map(|b| b.get_value().unwrap_or(false))
-        .collect();
+    let bits: Vec<bool> = value.iter().map(|b| b.get_value().unwrap_or(false)).collect();
 
     bits.chunks(8)
-        .map(|chunk| {
-            chunk
-                .iter()
-                .enumerate()
-                .fold(0u8, |acc, (i, &bit)| acc | ((bit as u8) << i))
-        })
+        .map(|chunk| chunk.iter().enumerate().fold(0u8, |acc, (i, &bit)| acc | ((bit as u8) << i)))
         .collect()
 }

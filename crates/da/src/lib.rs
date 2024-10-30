@@ -39,10 +39,8 @@ impl FinalizedEpoch {
         let message = bincode::serialize(&epoch_without_signature)
             .map_err(|e| anyhow::anyhow!("Failed to serialize epoch: {}", e))?;
 
-        let signature = self
-            .signature
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("No signature present"))?;
+        let signature =
+            self.signature.as_ref().ok_or_else(|| anyhow::anyhow!("No signature present"))?;
 
         let signature_bytes = hex::decode(signature)
             .map_err(|e| anyhow::anyhow!("Failed to decode signature: {}", e))?;

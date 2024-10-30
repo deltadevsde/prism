@@ -158,8 +158,7 @@ impl Prover {
             }
         };
 
-        self.sync_loop(start_height, historical_sync_height, height_rx)
-            .await
+        self.sync_loop(start_height, historical_sync_height, height_rx).await
     }
 
     async fn sync_loop(
@@ -180,8 +179,7 @@ impl Prover {
         let mut current_height = start_height;
 
         while current_height <= end_height {
-            self.process_da_height(current_height, &mut buffered_operations, false)
-                .await?;
+            self.process_da_height(current_height, &mut buffered_operations, false).await?;
             // TODO: Race between set_epoch and set_last_synced_height
             self.db.set_last_synced_height(&current_height)?;
             current_height += 1;
@@ -201,8 +199,7 @@ impl Prover {
                     height
                 ));
             }
-            self.process_da_height(height, &mut buffered_operations, true)
-                .await?;
+            self.process_da_height(height, &mut buffered_operations, true).await?;
             current_height += 1;
             // TODO: Race between set_epoch and set_last_synced_height - updating these should be a single atomic operation
             self.db.set_last_synced_height(&current_height)?;
@@ -334,9 +331,8 @@ impl Prover {
 
         let new_commitment = self.get_commitment().await?;
 
-        let finalized_epoch = self
-            .prove_epoch(epoch_height, prev_commitment, new_commitment, proofs)
-            .await?;
+        let finalized_epoch =
+            self.prove_epoch(epoch_height, prev_commitment, new_commitment, proofs).await?;
 
         self.da.submit_finalized_epoch(finalized_epoch).await?;
 

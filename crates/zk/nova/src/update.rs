@@ -82,15 +82,11 @@ where
 
         let update_proof = &self.update_proof.update_proof.proofs()[0];
 
-        let leaf = &update_proof
-            .leaf()
-            .ok_or(SynthesisError::AssignmentMissing)?;
+        let leaf = &update_proof.leaf().ok_or(SynthesisError::AssignmentMissing)?;
 
         verify_membership_proof(cs, update_proof, old_root_bits, *leaf)?;
 
-        self.update_proof
-            .verify()
-            .map_err(|_| SynthesisError::Unsatisfiable)?;
+        self.update_proof.verify().map_err(|_| SynthesisError::Unsatisfiable)?;
 
         let mut z_next = vec![new_root];
         z_next.push(rom_index_next);

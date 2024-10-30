@@ -132,11 +132,7 @@ impl From<groth16::VerifyingKey<Bls12>> for VerifyingKey {
             delta_g1: G1(verifying_key.delta_g1.to_compressed()),
             delta_g2: G2(verifying_key.delta_g2.to_compressed()),
             gamma_g2: G2(verifying_key.gamma_g2.to_compressed()),
-            ic: verifying_key
-                .ic
-                .iter()
-                .map(|x| G1(x.to_compressed()))
-                .collect::<Vec<G1>>(),
+            ic: verifying_key.ic.iter().map(|x| G1(x.to_compressed())).collect::<Vec<G1>>(),
         }
     }
 }
@@ -169,11 +165,8 @@ impl TryFrom<VerifyingKey> for groth16::VerifyingKey<Bls12> {
             .gamma_g2
             .try_into()
             .map_err(|e| GeneralError::EncodingError(format!("{}: gamma_g2", e)))?;
-        let ic = custom_vk
-            .ic
-            .into_iter()
-            .map(|s| s.try_into())
-            .collect::<Result<Vec<G1Affine>>>()?;
+        let ic =
+            custom_vk.ic.into_iter().map(|s| s.try_into()).collect::<Result<Vec<G1Affine>>>()?;
 
         Ok(bellman::groth16::VerifyingKey {
             alpha_g1,
