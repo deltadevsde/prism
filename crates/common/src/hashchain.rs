@@ -96,7 +96,7 @@ impl Hashchain {
         valid_keys
     }
 
-    pub fn is_key_revoked(&self, key: VerifyingKey) -> bool {
+    pub fn is_key_invalid(&self, key: VerifyingKey) -> bool {
         self.iter()
             .rev()
             .find_map(|entry| match entry.operation.clone() {
@@ -161,10 +161,14 @@ impl Hashchain {
                     )
                 }
 
-                let verifying_key = self.get_key_at_index(args.signature.key_idx)?;
+                let key_idx = args.signature.key_idx;
+                let verifying_key = self.get_key_at_index(key_idx)?;
 
-                if self.is_key_revoked(verifying_key.clone()) {
-                    bail!("The signing key is revoked");
+                if self.is_key_invalid(verifying_key.clone()) {
+                    bail!(
+                        "The key at index {}, intended to verify this operation, is invalid",
+                        key_idx
+                    );
                 }
 
                 operation.verify_user_signature(verifying_key)
@@ -179,10 +183,14 @@ impl Hashchain {
                     )
                 }
 
-                let verifying_key = self.get_key_at_index(args.op_signature.key_idx)?;
+                let key_idx = args.op_signature.key_idx;
+                let verifying_key = self.get_key_at_index(key_idx)?;
 
-                if self.is_key_revoked(verifying_key.clone()) {
-                    bail!("The signing key is revoked");
+                if self.is_key_invalid(verifying_key.clone()) {
+                    bail!(
+                        "The key at index {}, intended to verify this operation, is invalid",
+                        key_idx
+                    );
                 }
 
                 operation.verify_user_signature(verifying_key)

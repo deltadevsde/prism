@@ -98,7 +98,7 @@ pub struct UpdateProof {
     pub new_root: RootHash,
 
     pub key: KeyHash,
-    pub old_value: Hashchain,
+    pub old_hashchain: Hashchain,
     pub update_op: Operation,
 
     /// Inclusion proof of [`old_value`]
@@ -111,10 +111,10 @@ impl UpdateProof {
     pub fn verify(&self) -> Result<()> {
         // Verify existence of old value.
         // Otherwise, any arbitrary hashchain could be set
-        let old_serialized_hashchain = bincode::serialize(&self.old_value)?;
+        let old_serialized_hashchain = bincode::serialize(&self.old_hashchain)?;
         self.inclusion_proof.verify_existence(self.old_root, self.key, old_serialized_hashchain)?;
 
-        let mut hashchain_after_update = self.old_value.clone();
+        let mut hashchain_after_update = self.old_hashchain.clone();
         // Append the new entry and verify it's validity
         hashchain_after_update.perform_operation(self.update_op.clone())?;
 
@@ -354,7 +354,7 @@ where
             old_root,
             new_root,
             inclusion_proof,
-            old_value: old_hashchain,
+            old_hashchain,
             key,
             update_proof,
             update_op,
