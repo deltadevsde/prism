@@ -60,9 +60,7 @@ impl RedisConnection {
         }
 
         let client = Client::open(connection_string).map_err(convert_to_connection_error)?;
-        let connection = client
-            .get_connection()
-            .map_err(convert_to_connection_error)?;
+        let connection = client.get_connection().map_err(convert_to_connection_error)?;
 
         Ok(RedisConnection {
             connection: Mutex::new(connection),
@@ -73,9 +71,7 @@ impl RedisConnection {
     // because rust can not make sure that that's the case, we need to use the 'static lifetime here
     // (but i dont really know why the issue pops up now and not before, i think we were using the same/similar pattern in the other functions)
     fn lock_connection(&self) -> Result<MutexGuard<Connection>> {
-        self.connection
-            .lock()
-            .map_err(|_| anyhow!(DatabaseError::LockError))
+        self.connection.lock().map_err(|_| anyhow!(DatabaseError::LockError))
     }
 }
 
@@ -156,9 +152,8 @@ impl TreeWriter for RedisConnection {
 impl Database for RedisConnection {
     fn get_commitment(&self, epoch: &u64) -> Result<Digest> {
         let mut con = self.lock_connection()?;
-        let redis_value = con
-            .get::<&str, String>(&format!("commitments:epoch_{}", epoch))
-            .map_err(|_| {
+        let redis_value =
+            con.get::<&str, String>(&format!("commitments:epoch_{}", epoch)).map_err(|_| {
                 DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
             })?;
 
@@ -178,13 +173,12 @@ impl Database for RedisConnection {
 
     fn set_last_synced_height(&self, height: &u64) -> Result<()> {
         let mut con = self.lock_connection()?;
-        con.set::<&str, &u64, ()>("app_state:sync_height", height)
-            .map_err(|_| {
-                anyhow!(DatabaseError::WriteError(format!(
-                    "sync_height: {}",
-                    height
-                )))
-            })
+        con.set::<&str, &u64, ()>("app_state:sync_height", height).map_err(|_| {
+            anyhow!(DatabaseError::WriteError(format!(
+                "sync_height: {}",
+                height
+            )))
+        })
     }
 
     fn get_epoch(&self) -> Result<u64> {

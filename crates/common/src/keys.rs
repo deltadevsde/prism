@@ -97,9 +97,8 @@ impl TryFrom<String> for VerifyingKey {
     /// * `Ok(VerifyingKey)` if the conversion was successful.
     /// * `Err` if the input is invalid or the conversion failed.
     fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
-        let bytes = engine
-            .decode(s)
-            .map_err(|e| anyhow!("Failed to decode base64 string: {}", e))?;
+        let bytes =
+            engine.decode(s).map_err(|e| anyhow!("Failed to decode base64 string: {}", e))?;
 
         match bytes.len() {
             32 => Ok(VerifyingKey::Ed25519(bytes)),

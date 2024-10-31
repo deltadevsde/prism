@@ -86,9 +86,7 @@ impl TestTreeState {
             return Err(anyhow!("{:?} already contained in tree", account.key_hash));
         }
 
-        let proof = self
-            .tree
-            .process_operation(&account.hashchain.last().unwrap().operation)?;
+        let proof = self.tree.process_operation(&account.hashchain.last().unwrap().operation)?;
         if let Proof::Insert(insert_proof) = proof {
             self.inserted_keys.insert(account.key_hash);
             return Ok(insert_proof);
@@ -101,9 +99,7 @@ impl TestTreeState {
             return Err(anyhow!("{:?} not found in tree", account.key_hash));
         }
 
-        let proof = self
-            .tree
-            .process_operation(&account.hashchain.last().unwrap().operation)?;
+        let proof = self.tree.process_operation(&account.hashchain.last().unwrap().operation)?;
         if let Proof::Update(update_proof) = proof {
             return Ok(update_proof);
         }
@@ -186,16 +182,12 @@ impl Default for TestTreeState {
 
 pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> InsertProof {
     loop {
-        let random_string: String = (0..10)
-            .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
-            .collect();
+        let random_string: String =
+            (0..10).map(|_| rng.sample(rand::distributions::Alphanumeric) as char).collect();
         let sk = create_mock_signing_key();
 
-        let (_, service) = state
-            .services
-            .iter()
-            .nth(rng.gen_range(0..state.services.len()))
-            .unwrap();
+        let (_, service) =
+            state.services.iter().nth(rng.gen_range(0..state.services.len())).unwrap();
 
         let hc = create_new_hashchain(random_string.as_str(), &sk, service.clone()); //Hashchain::new(random_string);
         let key = hc.get_keyhash();
@@ -214,11 +206,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         panic!("No keys have been inserted yet. Cannot perform update.");
     }
 
-    let key = *state
-        .inserted_keys
-        .iter()
-        .nth(rng.gen_range(0..state.inserted_keys.len()))
-        .unwrap();
+    let key = *state.inserted_keys.iter().nth(rng.gen_range(0..state.inserted_keys.len())).unwrap();
 
     let Found(mut hc, _) = state.tree.get(key).unwrap() else {
         panic!("No response found for key. Cannot perform update.");
@@ -241,13 +229,9 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         0,
     )
     .unwrap();
-    hc.perform_operation(operation)
-        .expect("Adding to hashchain should succeed");
+    hc.perform_operation(operation).expect("Adding to hashchain should succeed");
 
-    state
-        .tree
-        .update(key, hc.last().unwrap().clone())
-        .expect("Update should succeed")
+    state.tree.update(key, hc.last().unwrap().clone()).expect("Update should succeed")
 }
 
 #[cfg(not(feature = "secp256k1"))]

@@ -33,9 +33,8 @@ impl Database for RocksDBConnection {
             DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
         })?;
 
-        let value: [u8; 32] = raw_bytes
-            .try_into()
-            .expect("commitment digest should always be 32 bytes");
+        let value: [u8; 32] =
+            raw_bytes.try_into().expect("commitment digest should always be 32 bytes");
 
         Ok(Digest(value))
     }
@@ -57,9 +56,7 @@ impl Database for RocksDBConnection {
     }
 
     fn set_last_synced_height(&self, height: &u64) -> anyhow::Result<()> {
-        Ok(self
-            .connection
-            .put(b"app_state:sync_height", height.to_be_bytes())?)
+        Ok(self.connection.put(b"app_state:sync_height", height.to_be_bytes())?)
     }
 
     fn get_epoch(&self) -> anyhow::Result<u64> {
@@ -72,9 +69,7 @@ impl Database for RocksDBConnection {
     }
 
     fn set_epoch(&self, epoch: &u64) -> anyhow::Result<()> {
-        Ok(self
-            .connection
-            .put(b"app_state:epoch", epoch.to_be_bytes())?)
+        Ok(self.connection.put(b"app_state:epoch", epoch.to_be_bytes())?)
     }
 
     fn flush_database(&self) -> Result<()> {

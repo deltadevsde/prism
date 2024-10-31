@@ -132,10 +132,7 @@ async fn update_entry(
     State(session): State<Arc<Prover>>,
     Json(operation_input): Json<OperationInput>,
 ) -> impl IntoResponse {
-    match session
-        .validate_and_queue_update(&operation_input.operation)
-        .await
-    {
+    match session.validate_and_queue_update(&operation_input.operation).await {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",

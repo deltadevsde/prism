@@ -185,12 +185,8 @@ mod tests {
 
         let mut z0_primary = vec![initial_commitment]; // Initial root
         z0_primary.push(<E1 as Engine>::Scalar::ZERO); // Initial ROM index
-        z0_primary.extend(
-            circuit_sequence
-                .rom
-                .iter()
-                .map(|&x| <E1 as Engine>::Scalar::from(x as u64)),
-        );
+        z0_primary
+            .extend(circuit_sequence.rom.iter().map(|&x| <E1 as Engine>::Scalar::from(x as u64)));
 
         let z0_secondary = vec![<<Dual<E1> as Engine>::Scalar>::ONE];
 
@@ -214,13 +210,9 @@ mod tests {
                 .unwrap()
             });
 
-            recursive_snark
-                .prove_step(&pp, &primary_circuit, &secondary_circuit)
-                .unwrap();
+            recursive_snark.prove_step(&pp, &primary_circuit, &secondary_circuit).unwrap();
 
-            recursive_snark
-                .verify(&pp, &z0_primary, &z0_secondary)
-                .unwrap();
+            recursive_snark.verify(&pp, &z0_primary, &z0_secondary).unwrap();
 
             recursive_snark_option = Some(recursive_snark)
         }
@@ -229,9 +221,7 @@ mod tests {
 
         let recursive_snark = recursive_snark_option.unwrap();
 
-        assert!(recursive_snark
-            .verify(&pp, &z0_primary, &z0_secondary)
-            .is_ok());
+        assert!(recursive_snark.verify(&pp, &z0_primary, &z0_secondary).is_ok());
 
         // Additional assertions
         let zi_primary = recursive_snark.zi_primary();
@@ -244,9 +234,7 @@ mod tests {
         );
 
         let final_commitment: <E1 as Engine>::Scalar =
-            NovaDigest::new(state.tree.get_commitment().unwrap())
-                .to_scalar()
-                .unwrap();
+            NovaDigest::new(state.tree.get_commitment().unwrap()).to_scalar().unwrap();
 
         assert_eq!(
             zi_primary[0], final_commitment,

@@ -65,17 +65,13 @@ impl<Scalar: PrimeField + PrimeFieldBits> StepCircuit<Scalar> for InsertCircuit<
 
         // Allocate the new root
         let new_root = AllocatedNum::alloc(cs.namespace(|| "new_root"), || {
-            Digest::new(self.proof.new_root)
-                .to_scalar()
-                .map_err(|_| SynthesisError::Unsatisfiable)
+            Digest::new(self.proof.new_root).to_scalar().map_err(|_| SynthesisError::Unsatisfiable)
         })?;
 
         let new_root_bits =
             allocate_bits_to_binary_number(cs, self.proof.membership_proof.root_hash().0.to_vec())?;
 
-        self.proof
-            .verify()
-            .map_err(|_| SynthesisError::Unsatisfiable)?;
+        self.proof.verify().map_err(|_| SynthesisError::Unsatisfiable)?;
 
         // Verify the non-membership proof
         // verify_non_membership_proof(
@@ -85,11 +81,7 @@ impl<Scalar: PrimeField + PrimeFieldBits> StepCircuit<Scalar> for InsertCircuit<
         //     &key_bits,
         // )?;
 
-        let leaf = &self
-            .proof
-            .membership_proof
-            .leaf()
-            .ok_or(SynthesisError::AssignmentMissing)?;
+        let leaf = &self.proof.membership_proof.leaf().ok_or(SynthesisError::AssignmentMissing)?;
 
         verify_membership_proof(cs, &self.proof.membership_proof, new_root_bits, *leaf)?;
 
