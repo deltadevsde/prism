@@ -290,6 +290,8 @@ where
                 let hashed_id = Digest::hash(id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
+                debug!("creating new hashchain for service id {}", id);
+
                 let insert_proof = self.insert(key_hash, operation.clone())?;
                 Ok(Proof::Insert(Box::new(insert_proof)))
             }
