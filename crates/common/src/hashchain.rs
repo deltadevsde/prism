@@ -155,7 +155,7 @@ impl Hashchain {
                 let last_hash = self.last_hash();
                 if args.prev_hash != last_hash {
                     bail!(
-                        "Previous hash for key operation must be the last hash\nprev: {}\nlast: {}",
+                        "Previous hash for key operation must be the last hash - prev: {}, last: {}",
                         args.prev_hash,
                         last_hash
                     )
@@ -177,7 +177,7 @@ impl Hashchain {
                 let last_hash = self.last_hash();
                 if args.prev_hash != last_hash {
                     bail!(
-                        "Previous hash for add-data operation is not equal to the last hash\nprev: {}\nlast: {}",
+                        "Previous hash for add-data operation is not equal to the last hash - prev: {}, last: {}",
                         args.prev_hash,
                         last_hash
                     )
