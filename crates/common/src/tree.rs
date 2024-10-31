@@ -34,8 +34,8 @@ pub struct Batch {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Proof {
-    Update(UpdateProof),
-    Insert(InsertProof),
+    Update(Box<UpdateProof>),
+    Insert(Box<InsertProof>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -242,7 +242,7 @@ where
                         debug!("updating hashchain for user id {}", id.clone());
                         let proof = self.update(key_hash, new_entry.clone())?;
 
-                        Ok(Proof::Update(proof))
+                        Ok(Proof::Update(Box::new(proof)))
                     }
                     NotFound(_) => {
                         bail!("Failed to get hashchain for ID {}", id)
@@ -312,9 +312,9 @@ where
 
                 debug!("creating new hashchain for user ID {}", id);
 
-                Ok(Proof::Insert(
+                Ok(Proof::Insert(Box::new(
                     self.insert(account_key_hash, new_account_chain)?,
-                ))
+                )))
             }
             Operation::RegisterService(RegisterServiceArgs {
                 id, creation_gate, ..
@@ -333,9 +333,9 @@ where
                 debug!("creating new hashchain for service id {}", id);
                 let chain = Hashchain::register_service(id.clone(), creation_gate.clone())?;
 
-                Ok(Proof::Insert(
+                Ok(Proof::Insert(Box::new(
                     self.insert(KeyHash::with::<Hasher>(hashed_id), chain)?,
-                ))
+                )))
             }
         }
     }

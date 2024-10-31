@@ -17,17 +17,17 @@ use crate::digest::Digest;
 /// Represents a public key supported by the system.
 pub enum VerifyingKey {
     /// Bitcoin, Ethereum
-    Secp256k1(Vec<u8>),
+    Secp256k1(Secp256k1VerifyingKey),
     /// Cosmos, OpenSSH, GnuPG
-    Ed25519(Vec<u8>),
+    Ed25519(Ed25519VerifyingKey),
 }
 
 impl VerifyingKey {
     /// Returns the byte representation of the public key.
-    pub fn as_bytes(&self) -> &[u8] {
+    pub fn as_bytes(&self) -> Vec<u8> {
         match self {
-            VerifyingKey::Ed25519(bytes) => bytes,
-            VerifyingKey::Secp256k1(bytes) => bytes,
+            VerifyingKey::Ed25519(vk) => vk.to_bytes().to_vec(),
+            VerifyingKey::Secp256k1(vk) => vk.serialize().to_vec(),
         }
     }
 
@@ -36,14 +36,12 @@ impl VerifyingKey {
             return Err(anyhow!("Invalid signature length"));
         }
         match self {
-            VerifyingKey::Ed25519(bytes) => {
-                let vk = Ed25519VerifyingKey::try_from(bytes.as_slice()).map_err(|e| anyhow!(e))?;
+            VerifyingKey::Ed25519(vk) => {
                 let signature = Ed25519Signature::try_from(signature).map_err(|e| anyhow!(e))?;
                 vk.verify(&signature, message).map_err(|e| anyhow!(e))
             }
-            VerifyingKey::Secp256k1(bytes) => {
+            VerifyingKey::Secp256k1(vk) => {
                 let hashed_message = Digest::hash(message).to_bytes();
-                let vk = Secp256k1VerifyingKey::from_slice(bytes.as_slice())?;
                 let message = Secp256k1Message::from_digest(hashed_message);
                 let signature = Secp256k1Signature::from_compact(signature)?;
 
@@ -56,13 +54,13 @@ impl VerifyingKey {
 
 impl From<Ed25519SigningKey> for VerifyingKey {
     fn from(sk: Ed25519SigningKey) -> Self {
-        VerifyingKey::Ed25519(sk.verification_key().to_bytes().to_vec())
+        VerifyingKey::Ed25519(sk.verification_key())
     }
 }
 
 impl From<Ed25519VerifyingKey> for VerifyingKey {
     fn from(vk: Ed25519VerifyingKey) -> Self {
-        VerifyingKey::Ed25519(vk.to_bytes().to_vec())
+        VerifyingKey::Ed25519(vk)
     }
 }
 
@@ -74,7 +72,7 @@ impl From<Secp256k1SigningKey> for VerifyingKey {
 
 impl From<Secp256k1VerifyingKey> for VerifyingKey {
     fn from(vk: Secp256k1VerifyingKey) -> Self {
-        VerifyingKey::Secp256k1(vk.serialize().to_vec())
+        VerifyingKey::Secp256k1(vk)
     }
 }
 
@@ -101,8 +99,16 @@ impl TryFrom<String> for VerifyingKey {
             engine.decode(s).map_err(|e| anyhow!("Failed to decode base64 string: {}", e))?;
 
         match bytes.len() {
-            32 => Ok(VerifyingKey::Ed25519(bytes)),
-            33 | 65 => Ok(VerifyingKey::Secp256k1(bytes)),
+            32 => {
+                let vk = Ed25519VerifyingKey::try_from(bytes.as_slice())
+                    .map_err(|e| anyhow!("Invalid Ed25519 key: {}", e))?;
+                Ok(VerifyingKey::Ed25519(vk))
+            }
+            33 | 65 => {
+                let vk = Secp256k1VerifyingKey::from_slice(bytes.as_slice())
+                    .map_err(|e| anyhow!("Invalid Secp256k1 key: {}", e))?;
+                Ok(VerifyingKey::Secp256k1(vk))
+            }
             _ => Err(anyhow!("Invalid public key length")),
         }
     }
@@ -142,53 +148,28 @@ mod tests {
 
     #[test]
     fn test_verifying_key_from_string_ed25519() {
-        let ed25519_vk =
+        let original_key =
             SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).verifying_key();
-        let encoded = engine.encode(ed25519_vk.as_bytes());
+        let encoded = engine.encode(original_key.as_bytes());
 
         let result = VerifyingKey::try_from(encoded);
         assert!(result.is_ok());
 
-        if let Ok(VerifyingKey::Ed25519(key_bytes)) = result {
-            assert_eq!(key_bytes.len(), 32);
-            assert_eq!(key_bytes, ed25519_vk.as_bytes());
-        } else {
-            panic!("Expected Ed25519 key");
-        }
+        let decoded_key = result.unwrap();
+        assert_eq!(decoded_key.as_bytes(), original_key.as_bytes());
     }
 
     #[test]
-    fn test_verifying_key_from_string_secp256k1_compressed() {
-        let secp256k1_vk =
+    fn test_verifying_key_from_string_secp256k1() {
+        let original_key =
             SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)).verifying_key();
-        let secp256k1_bytes = secp256k1_vk.as_bytes();
-        let encoded = engine.encode(secp256k1_bytes);
+        let encoded = engine.encode(original_key.as_bytes());
 
         let result = VerifyingKey::try_from(encoded);
         assert!(result.is_ok());
 
-        if let Ok(VerifyingKey::Secp256k1(key_bytes)) = result {
-            dbg!(key_bytes.len());
-            assert_eq!(key_bytes, secp256k1_bytes);
-        } else {
-            panic!("Expected Secp256k1 key");
-        }
-    }
-
-    #[test]
-    fn test_verifying_key_from_string_secp256k1_uncompressed() {
-        let secp256k1_bytes = [0; 65];
-        let encoded = engine.encode(secp256k1_bytes);
-
-        let result = VerifyingKey::try_from(encoded);
-        assert!(result.is_ok());
-
-        if let Ok(VerifyingKey::Secp256k1(key_bytes)) = result {
-            assert_eq!(key_bytes.len(), 65);
-            assert_eq!(key_bytes, secp256k1_bytes);
-        } else {
-            panic!("Expected Secp256k1 key");
-        }
+        let decoded_key = result.unwrap();
+        assert_eq!(decoded_key.as_bytes(), original_key.as_bytes());
     }
 
     #[test]

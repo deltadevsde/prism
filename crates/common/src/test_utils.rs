@@ -89,7 +89,7 @@ impl TestTreeState {
         let proof = self.tree.process_operation(&account.hashchain.last().unwrap().operation)?;
         if let Proof::Insert(insert_proof) = proof {
             self.inserted_keys.insert(account.key_hash);
-            return Ok(insert_proof);
+            return Ok(*insert_proof);
         }
         Err(anyhow!("Insert proof not returned"))
     }
@@ -101,7 +101,7 @@ impl TestTreeState {
 
         let proof = self.tree.process_operation(&account.hashchain.last().unwrap().operation)?;
         if let Proof::Update(update_proof) = proof {
-            return Ok(update_proof);
+            return Ok(*update_proof);
         }
         Err(anyhow!("Update proof not returned"))
     }
