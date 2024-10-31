@@ -6,12 +6,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{
-    digest::Digest,
-    hasher::Hasher,
-    keys::VerifyingKey,
-    operation::{AddDataArgs, KeyOperationArgs, Operation},
-};
+use crate::{digest::Digest, hasher::Hasher, keys::VerifyingKey, operation::Operation};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Hashchain {
@@ -74,99 +69,6 @@ impl Hashchain {
         }
     }
 
-    pub fn verify_last_entry(&self) -> Result<()> {
-        if self.entries.is_empty() {
-            return Ok(());
-        }
-
-        let mut valid_keys: HashSet<VerifyingKey> = HashSet::new();
-
-        for (index, entry) in self.entries.iter().enumerate().take(self.entries.len() - 1) {
-            match &entry.operation {
-                Operation::RegisterService(_) => {
-                    if index != 0 {
-                        bail!("RegisterService operation must be the first entry");
-                    }
-                }
-                Operation::CreateAccount(args) => {
-                    if index != 0 {
-                        bail!("CreateAccount operation must be the first entry");
-                    }
-                    valid_keys.insert(args.value.clone());
-                }
-                Operation::AddKey(args) => {
-                    valid_keys.insert(args.value.clone());
-                }
-                Operation::RevokeKey(args) => {
-                    valid_keys.remove(&args.value);
-                }
-                Operation::AddData(_) => {}
-            }
-        }
-
-        let last_entry = self.entries.last().unwrap();
-        let last_index = self.entries.len() - 1;
-        if last_index > 0 {
-            let prev_entry = &self.entries[last_index - 1];
-            if last_entry.previous_hash != prev_entry.hash {
-                bail!("Previous hash mismatch for the last entry");
-            }
-        }
-
-        match &last_entry.operation {
-            // TODO: RegisterService should not be permissionless at first, until we have state bloat metrics
-            Operation::RegisterService(_) => {
-                if last_index != 0 {
-                    bail!("RegisterService operation must be the first entry");
-                }
-            }
-            Operation::CreateAccount(args) => {
-                if last_index != 0 {
-                    bail!("CreateAccount operation must be the first entry");
-                }
-                args.value.verify_signature(
-                    &bincode::serialize(
-                        &last_entry.operation.without_signature().without_challenge(),
-                    )?,
-                    &args.signature,
-                )?;
-            }
-            Operation::AddKey(args) | Operation::RevokeKey(args) => {
-                self.verify_signature_at_key_idx(
-                    &last_entry.operation,
-                    &args.signature.signature,
-                    args.signature.key_idx,
-                    &valid_keys,
-                )?;
-            }
-            Operation::AddData(args) => {
-                self.verify_signature_at_key_idx(
-                    &last_entry.operation,
-                    &args.op_signature.signature,
-                    args.op_signature.key_idx,
-                    &valid_keys,
-                )?;
-
-                let Some(value_signature) = &args.value_signature else {
-                    return Ok(());
-                };
-
-                // If data to be added is signed, also validate its signature
-                value_signature
-                    .verifying_key
-                    .verify_signature(&args.value, &value_signature.signature)?;
-            }
-        }
-
-        Ok(())
-    }
-
-    pub(crate) fn insert_unsafe(&self, new_entry: HashchainEntry) -> Hashchain {
-        let mut new = self.clone();
-        new.entries.push(new_entry);
-        new
-    }
-
     pub fn get_key_at_index(&self, idx: usize) -> Result<&VerifyingKey> {
         self.entries
             .get(idx)
@@ -206,26 +108,6 @@ impl Hashchain {
             .unwrap_or(true)
     }
 
-    fn verify_signature_at_key_idx(
-        &self,
-        operation: &Operation,
-        signature: &[u8],
-        idx: usize,
-        valid_keys: &HashSet<VerifyingKey>,
-    ) -> Result<()> {
-        let verifying_key = self.get_key_at_index(idx)?;
-        if !valid_keys.contains(verifying_key) {
-            bail!(
-                "Key intended to verify signature {:?} is not in valid keys {:?}",
-                verifying_key,
-                valid_keys
-            );
-        }
-
-        let message = bincode::serialize(&operation.without_signature())?;
-        verifying_key.verify_signature(&message, signature)
-    }
-
     pub fn get(&self, idx: usize) -> &HashchainEntry {
         &self.entries[idx]
     }
@@ -261,14 +143,22 @@ impl Hashchain {
                 }
 
                 if args.prev_hash != Digest::zero() {
-                    bail!("Previous hash for initial operation must be zero")
+                    bail!(
+                        "Previous hash for initial operation must be zero, but was {}",
+                        args.prev_hash
+                    )
                 }
 
                 Ok(())
             }
             Operation::AddKey(args) | Operation::RevokeKey(args) => {
-                if args.prev_hash != self.last_hash() {
-                    bail!("Previous hash for key operation must be the last hash")
+                let last_hash = self.last_hash();
+                if args.prev_hash != last_hash {
+                    bail!(
+                        "Previous hash for key operation must be the last hash\nprev: {}\nlast: {}",
+                        args.prev_hash,
+                        last_hash
+                    )
                 }
 
                 let verifying_key = self.get_key_at_index(args.signature.key_idx)?;
@@ -280,8 +170,13 @@ impl Hashchain {
                 operation.verify_user_signature(verifying_key)
             }
             Operation::AddData(args) => {
-                if args.prev_hash != self.last_hash() {
-                    bail!("Previous hash for add-data operation must be the last hash")
+                let last_hash = self.last_hash();
+                if args.prev_hash != last_hash {
+                    bail!(
+                        "Previous hash for add-data operation is not equal to the last hash\nprev: {}\nlast: {}",
+                        args.prev_hash,
+                        last_hash
+                    )
                 }
 
                 let verifying_key = self.get_key_at_index(args.op_signature.key_idx)?;
