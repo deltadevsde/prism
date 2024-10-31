@@ -96,7 +96,7 @@ pub enum ServiceChallenge {
 
 impl From<SigningKey> for ServiceChallenge {
     fn from(sk: SigningKey) -> Self {
-        ServiceChallenge::Signed(sk.verifying_key())
+        ServiceChallenge::Signed(sk.into())
     }
 }
 
@@ -137,7 +137,7 @@ impl Operation {
     ) -> Result<Self> {
         let mut op = Operation::CreateAccount(CreateAccountArgs {
             id: id.to_string(),
-            value: signing_key.clone().verifying_key(),
+            value: signing_key.clone().into(),
             service_id,
             challenge: ServiceChallengeInput::Signed(Vec::new()),
             prev_hash: Digest::zero(),

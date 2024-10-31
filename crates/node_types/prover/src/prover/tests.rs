@@ -1,5 +1,5 @@
 use super::*;
-use prism_common::{test_ops::OpsBuilder, tree::Proof};
+use prism_common::{keys::VerifyingKey, test_ops::OpsBuilder, tree::Proof};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
@@ -59,7 +59,7 @@ async fn test_process_operation() {
 
     let new_key = create_mock_signing_key();
     let add_key_op =
-        ops_builder.add_key_verified_with_root("test_account", new_key.verifying_key()).ex();
+        ops_builder.add_key_verified_with_root("test_account", new_key.clone().into()).ex();
 
     let proof = prover.process_operation(&add_key_op).await.unwrap();
 
@@ -84,18 +84,19 @@ async fn test_execute_block_with_invalid_tx() {
 
     let mut ops_builder = OpsBuilder::new();
 
-    let new_key_1 = create_mock_signing_key();
+    let new_signing_key = create_mock_signing_key();
+    let new_verifying_key: VerifyingKey = new_signing_key.clone().into();
 
     let operations = vec![
         ops_builder.register_service_with_random_key("service_id").ex(),
         ops_builder.create_account_with_random_key("account_id", "service_id").ex(),
         // add new key, so it will be index = 1
-        ops_builder.add_key_verified_with_root("account_id", new_key_1.verifying_key()).ex(),
+        ops_builder.add_key_verified_with_root("account_id", new_verifying_key.clone()).ex(),
         // revoke new key again
-        ops_builder.revoke_key_verified_with_root("account_id", new_key_1.verifying_key()).ex(),
+        ops_builder.revoke_key_verified_with_root("account_id", new_verifying_key.clone()).ex(),
         // and adding in same block.
         // both of these operations are valid individually, but when processed together it will fail.
-        ops_builder.add_random_key("account_id", &new_key_1, 1).op(),
+        ops_builder.add_random_key("account_id", &new_signing_key, 1).op(),
     ];
 
     let proofs = prover.execute_block(operations).await.unwrap();

@@ -61,7 +61,7 @@ impl TestTreeState {
         Service {
             id: service_id,
             sk: service_key.clone(),
-            vk: service_key.verifying_key(),
+            vk: service_key.into(),
             registration: TestAccount {
                 key_hash,
                 hashchain,
@@ -108,7 +108,7 @@ impl TestTreeState {
 
     pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {
         let signing_key_to_add = create_mock_signing_key();
-        let key_to_add = signing_key_to_add.verifying_key();
+        let key_to_add: VerifyingKey = signing_key_to_add.into();
         let op = Operation::new_add_key(
             account.hashchain.id.clone(),
             key_to_add.clone(),
@@ -145,7 +145,7 @@ impl TestTreeState {
         signing_key: Option<&SigningKey>,
     ) -> Result<()> {
         let signature_bundle = signing_key.map(|sk| SignatureBundle {
-            verifying_key: sk.verifying_key(),
+            verifying_key: sk.clone().into(),
             signature: sk.sign(data),
         });
 
@@ -213,7 +213,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
     };
 
     let signing_key = create_mock_signing_key();
-    let verifying_key = signing_key.verifying_key();
+    let verifying_key: VerifyingKey = signing_key.into();
 
     let signer = state
         .signing_keys

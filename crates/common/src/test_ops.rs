@@ -148,7 +148,7 @@ impl OpsBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedOperation {
-        let random_key = create_mock_signing_key().verifying_key();
+        let random_key = create_mock_signing_key().into();
         self.add_key(id, random_key, signing_key, key_idx)
     }
 

@@ -99,6 +99,7 @@ prism-prover = { path = "crates/node_types/prover" }
 prism-tests = { path = "crates/tests" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
+p256 = { version = "0.13.2", features = ["serde", "ecdsa"] }
 
 
 [patch.crates-io]

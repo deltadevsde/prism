@@ -9,6 +9,7 @@ use keystore_rs::create_signing_key;
 use prism_common::{
     digest::Digest,
     hasher::Hasher,
+    keys::VerifyingKey,
     operation::{Operation, ServiceChallenge},
     test_utils::create_mock_signing_key,
     tree::{HashchainResponse::*, SnarkableTree},
@@ -44,7 +45,7 @@ fn add_key(id: &str, state: &mut TestTreeState) -> Result<Operation> {
     };
 
     let new_key = create_mock_signing_key();
-    let new_public_key = new_key.verifying_key();
+    let new_public_key: VerifyingKey = new_key.into();
 
     let op = Operation::new_add_key(
         id.to_string(),
