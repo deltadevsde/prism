@@ -241,10 +241,8 @@ where
             }
             Operation::CreateAccount(CreateAccountArgs {
                 id,
-                value,
                 service_id,
                 challenge,
-                signature,
                 ..
             }) => {
                 let hashed_id = Digest::hash(id);
@@ -281,11 +279,6 @@ where
                 service_pubkey.verify_signature(
                     &bincode::serialize(&operation.without_challenge())?,
                     challenge_signature,
-                )?;
-
-                value.verify_signature(
-                    &bincode::serialize(&operation.without_challenge().without_signature())?,
-                    signature,
                 )?;
 
                 debug!("creating new hashchain for user ID {}", id);
