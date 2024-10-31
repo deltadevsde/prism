@@ -246,7 +246,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         panic!("No update proof returned.");
     };
 
-    update_proof
+    *update_proof
 }
 
 #[cfg(not(feature = "secp256k1"))]
