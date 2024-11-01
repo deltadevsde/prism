@@ -13,6 +13,14 @@ use std::{self};
 
 use crate::digest::Digest;
 
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Default)]
+pub enum Signature {
+    Secp256k1(Secp256k1Signature),
+    Ed25519(Ed25519Signature),
+    #[default]
+    Placeholder,
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 /// Represents a public key supported by the system.
 pub enum VerifyingKey {
@@ -31,22 +39,25 @@ impl VerifyingKey {
         }
     }
 
-    pub fn verify_signature(&self, message: &[u8], signature: &[u8]) -> Result<()> {
-        if signature.len() != 64 {
-            return Err(anyhow!("Invalid signature length: {}", signature.len()));
-        }
+    pub fn verify_signature(&self, message: &[u8], signature: &Signature) -> Result<()> {
         match self {
             VerifyingKey::Ed25519(vk) => {
-                let signature = Ed25519Signature::try_from(signature).map_err(|e| anyhow!(e))?;
-                vk.verify(&signature, message).map_err(|e| anyhow!(e))
+                if let Signature::Ed25519(signature) = signature {
+                    vk.verify(signature, message)
+                        .map_err(|e| anyhow!("Failed to verify signature: {}", e))
+                } else {
+                    Err(anyhow!("Invalid signature type"))
+                }
             }
             VerifyingKey::Secp256k1(vk) => {
-                let hashed_message = Digest::hash(message).to_bytes();
-                let message = Secp256k1Message::from_digest(hashed_message);
-                let signature = Secp256k1Signature::from_compact(signature)?;
-
-                vk.verify(SECP256K1, &message, &signature)
-                    .map_err(|e| anyhow!("Failed to verify signature: {}", e))
+                if let Signature::Secp256k1(signature) = signature {
+                    let hashed_message = Digest::hash(message).to_bytes();
+                    let message = Secp256k1Message::from_digest(hashed_message);
+                    vk.verify(SECP256K1, &message, signature)
+                        .map_err(|e| anyhow!("Failed to verify signature: {}", e))
+                } else {
+                    Err(anyhow!("Invalid signature type"))
+                }
             }
         }
     }
@@ -121,14 +132,14 @@ pub enum SigningKey {
 }
 
 impl SigningKey {
-    pub fn sign(&self, message: &[u8]) -> Vec<u8> {
+    pub fn sign(&self, message: &[u8]) -> Signature {
         match self {
-            SigningKey::Ed25519(sk) => sk.sign(message).to_bytes().to_vec(),
+            SigningKey::Ed25519(sk) => Signature::Ed25519(sk.sign(message)),
             SigningKey::Secp256k1(sk) => {
                 let hashed_message = Digest::hash(message).to_bytes();
                 let message = Secp256k1Message::from_digest(hashed_message);
                 let signature = SECP256K1.sign_ecdsa(&message, sk);
-                signature.serialize_compact().to_vec()
+                Signature::Secp256k1(signature)
             }
         }
     }

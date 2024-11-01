@@ -454,7 +454,7 @@ impl Prover {
         incoming_operation.validate_basic()?;
 
         // validate operation against existing hashchain if necessary, including signature checks
-        match &incoming_operation.op {
+        match &incoming_operation.variant {
             OperationType::RegisterService { .. } => (),
             OperationType::CreateAccount { .. } => (),
             OperationType::AddKey { .. }

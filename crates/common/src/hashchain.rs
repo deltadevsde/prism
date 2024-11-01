@@ -85,7 +85,7 @@ impl Hashchain {
         let mut valid_keys: HashSet<VerifyingKey> = HashSet::new();
 
         for entry in self.entries.clone() {
-            match &entry.operation.op {
+            match &entry.operation.variant {
                 OperationType::RegisterService { .. } | OperationType::AddData { .. } => {}
                 OperationType::AddKey | OperationType::CreateAccount { .. } => {
                     let key = entry.operation.get_public_key().unwrap();
@@ -104,7 +104,7 @@ impl Hashchain {
         for entry in self.iter().rev() {
             if let Some(entry_key) = entry.operation.get_public_key() {
                 if key.eq(entry_key) {
-                    match entry.operation.op {
+                    match entry.operation.variant {
                         OperationType::RevokeKey { .. } => return true,
                         OperationType::AddKey { .. }
                         | OperationType::CreateAccount { .. }
@@ -158,7 +158,7 @@ impl Hashchain {
         }
 
         // Retrieve the [`VerifyingKey`] referenced in the [`Operation`]
-        let vk = match &operation.op {
+        let vk = match &operation.variant {
             OperationType::CreateAccount { .. } | OperationType::RegisterService { .. } => {
                 if !self.entries.is_empty() {
                     bail!("CreateAccount or RegisterService operation must be the first entry");
@@ -173,7 +173,7 @@ impl Hashchain {
                     bail!("CreateAccount or RegisterService operation must be the first entry");
                 }
 
-                let Some(key_idx) = operation.signer_ref else {
+                let Some(key_idx) = operation.key_index else {
                     bail!("Key operation must be signed by an existing key")
                 };
                 let verifying_key = self.get_key_at_index(key_idx)?;

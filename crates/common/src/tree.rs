@@ -226,7 +226,7 @@ where
     fn process_operation(&mut self, operation: &Operation) -> Result<Proof> {
         let hashed_id = Digest::hash(operation.id.clone());
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
-        match &operation.op {
+        match &operation.variant {
             OperationType::AddKey { .. }
             | OperationType::RevokeKey { .. }
             | OperationType::AddData { .. } => {
@@ -258,7 +258,7 @@ where
                     bail!("Service hashchain is empty, could not retrieve challenge key");
                 };
 
-                let creation_gate = match &service_last_entry.operation.op {
+                let creation_gate = match &service_last_entry.operation.variant {
                     OperationType::RegisterService { creation_gate, .. } => creation_gate,
                     _ => {
                         bail!("Service hashchain's last entry was not a RegisterService operation")

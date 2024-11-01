@@ -6,25 +6,27 @@ use std::{self, fmt::Display};
 
 use crate::{
     digest::Digest,
-    keys::{SigningKey, VerifyingKey},
+    keys::{Signature, SigningKey, VerifyingKey},
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// An [`Operation`] represents the data needed for a prism state transition.
 pub struct Operation {
-    /// The id of the account this operation is for.
+    /// The account ID this operation is for.
     pub id: String,
 
-    /// The operation variant.
-    pub op: OperationType,
-
     /// The digest of the previous operation in the hashchain.
+    pub new_key: Option<VerifyingKey>,
+    /// The signature of the operation.
+    pub signature: Signature,
+    /// Index of the operation's signer in the hashchain
+    pub key_index: Option<usize>,
+
+    /// The hash of the previous operation in the hashchain.
     pub prev_hash: Digest,
 
-    pub new_key: Option<VerifyingKey>,
-    pub signer_ref: Option<usize>,
-    /// The signature of the operation.
-    pub signature: Vec<u8>,
+    /// The operation type.
+    pub variant: OperationType,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -56,15 +58,13 @@ impl Operation {
         service_id: String,
         service_signer: &SigningKey,
     ) -> Result<Self> {
-        let mut op = Operation::new(
+        let mut op = Operation::new_genesis(
             id.clone(),
-            Digest::zero(),
             OperationType::CreateAccount {
                 service_id: service_id.clone(),
-                challenge: ServiceChallengeInput::Signed(Vec::new()),
+                challenge: ServiceChallengeInput::Signed(Signature::Placeholder),
             },
-            Some(signing_key.verifying_key()),
-            None,
+            signing_key.verifying_key(),
         );
 
         op.insert_signature(signing_key).context("Failed to insert signature")?;
@@ -72,7 +72,7 @@ impl Operation {
         let msg = bincode::serialize(&op).context("Failed to serialize operation")?;
         let service_challenge = service_signer.sign(&msg);
 
-        op.op = OperationType::CreateAccount {
+        op.variant = OperationType::CreateAccount {
             service_id,
             challenge: ServiceChallengeInput::Signed(service_challenge),
         };
@@ -85,12 +85,10 @@ impl Operation {
         creation_gate: ServiceChallenge,
         signing_key: &SigningKey,
     ) -> Result<Self> {
-        let mut op = Operation::new(
+        let mut op = Operation::new_genesis(
             id,
-            Digest::zero(),
             OperationType::RegisterService { creation_gate },
-            Some(signing_key.verifying_key()),
-            None,
+            signing_key.verifying_key(),
         );
 
         op.insert_signature(signing_key)?;
@@ -171,11 +169,23 @@ impl Operation {
     ) -> Self {
         Operation {
             id,
-            op: operation_type,
+            variant: operation_type,
             prev_hash,
             new_key,
-            signature: Vec::new(),
-            signer_ref,
+            signature: Signature::Placeholder,
+            key_index: signer_ref,
+        }
+    }
+
+    /// Creates a new genesis operation, which is the first operation in a hashchain.
+    fn new_genesis(id: String, operation_type: OperationType, new_key: VerifyingKey) -> Self {
+        Operation {
+            id,
+            variant: operation_type,
+            prev_hash: Digest::zero(),
+            new_key: Some(new_key),
+            signature: Signature::Placeholder,
+            key_index: None,
         }
     }
 
@@ -193,10 +203,10 @@ impl Operation {
 
     pub fn without_challenge(&self) -> Self {
         let mut val = self.clone();
-        if let OperationType::CreateAccount { service_id, .. } = &self.op {
-            val.op = OperationType::CreateAccount {
+        if let OperationType::CreateAccount { service_id, .. } = &self.variant {
+            val.variant = OperationType::CreateAccount {
                 service_id: service_id.clone(),
-                challenge: ServiceChallengeInput::Signed(Vec::new()),
+                challenge: ServiceChallengeInput::Signed(Signature::Placeholder),
             };
         }
         val
@@ -204,7 +214,7 @@ impl Operation {
 
     pub fn without_signature(&self) -> Self {
         let mut val = self.clone();
-        val.signature = Vec::new();
+        val.signature = Signature::Placeholder;
         val
     }
 
@@ -215,7 +225,7 @@ impl Operation {
             .context("User signature failed")?;
         pubkey.verify_signature(&message, &self.signature)?;
 
-        match &self.op {
+        match &self.variant {
             OperationType::CreateAccount { .. } | OperationType::RegisterService { .. } => {
                 let new_key = self.get_public_key().ok_or_else(|| anyhow!("No key supplied"))?;
                 assert_eq!(new_key, pubkey);
@@ -246,43 +256,17 @@ impl Operation {
             bail!("Id is empty")
         }
 
-        if self.signature.is_empty() {
-            bail!("Signature is empty")
-        }
-
-        match &self.op {
+        match &self.variant {
             OperationType::AddKey | OperationType::RevokeKey => (),
-            OperationType::RegisterService { .. } => {
+            OperationType::RegisterService { .. } | OperationType::CreateAccount { .. } => {
                 if self.new_key.is_none() {
                     bail!("Creating a hashchain requires adding an initial key");
                 }
             }
-            OperationType::CreateAccount { challenge, .. } => {
-                if self.new_key.is_none() {
-                    bail!("creating a hashchain requires adding an initial key");
-                }
-
-                match challenge {
-                    ServiceChallengeInput::Signed(signature) => {
-                        if signature.is_empty() {
-                            bail!("account creation challenge is empty")
-                        }
-                    }
-                }
-            }
-            OperationType::AddData {
-                value,
-                value_signature,
-            } => {
+            OperationType::AddData { value, .. } => {
                 // TODO: Upper bound on value size
                 if value.is_empty() {
                     bail!("Adding external data requires a non-empty value");
-                }
-
-                if let Some(value_signature) = value_signature {
-                    if value_signature.signature.is_empty() {
-                        bail!("external data requires a non-empty signature")
-                    }
                 }
             }
         };
@@ -297,14 +281,14 @@ pub struct HashchainSignatureBundle {
     /// Index of the key in the hashchain
     pub key_idx: usize,
     /// The actual signature
-    pub signature: Vec<u8>,
+    pub signature: Signature,
 }
 
 impl HashchainSignatureBundle {
     pub fn empty_with_idx(idx: usize) -> Self {
         HashchainSignatureBundle {
             key_idx: idx,
-            signature: vec![],
+            signature: Signature::Placeholder,
         }
     }
 }
@@ -315,14 +299,13 @@ pub struct SignatureBundle {
     /// The key that can be used to verify the signature
     pub verifying_key: VerifyingKey,
     /// The actual signature
-    pub signature: Vec<u8>,
+    pub signature: Signature,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Input required to complete a challenge for account creation.
 pub enum ServiceChallengeInput {
-    /// Signature bytes
-    Signed(Vec<u8>),
+    Signed(Signature),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
