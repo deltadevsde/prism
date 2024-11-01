@@ -118,7 +118,9 @@ async fn test_light_client_prover_talking() -> Result<()> {
         let op = Operation::new_register_service(
             service.clone().id,
             ServiceChallenge::Signed(service.clone().vk),
-        );
+            &service.sk,
+        )
+        .unwrap();
         let mut i = 0;
 
         prover.clone().validate_and_queue_update(&op).await.unwrap();

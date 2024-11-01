@@ -11,26 +11,25 @@ use crate::{
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub enum SignerRef {
-    None,
-    Index(usize),
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-/// An [`Operation`] represents a state transition in the system.
-/// In a blockchain analogy, this would be the full set of our transaction types.
+/// An [`Operation`] represents the data needed for a prism state transition.
 pub struct Operation {
+    /// The id of the account this operation is for.
     pub id: String,
 
+    /// The operation variant.
     pub op: OperationType,
 
+    /// The digest of the previous operation in the hashchain.
     pub prev_hash: Digest,
 
+    /// The signature of the operation.
     pub signature: Vec<u8>,
-    pub signer_ref: SignerRef,
+    pub signer_ref: Option<usize>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+/// An [`OperationType`] represents the type of operation being performed.
+/// In a blockchain analogy, this would be the full set of our transaction types.
 pub enum OperationType {
     /// Creates a new account with the given id and value.
     CreateAccount {
@@ -66,7 +65,7 @@ impl Operation {
                 value: signing_key.verifying_key(),
                 challenge: ServiceChallengeInput::Signed(Vec::new()),
             },
-            SignerRef::None,
+            None,
         );
 
         op.insert_signature(signing_key).context("Failed to insert signature")?;
@@ -74,26 +73,30 @@ impl Operation {
         let msg = bincode::serialize(&op).context("Failed to serialize operation")?;
         let service_challenge = service_signer.sign(&msg);
 
-        Ok(Operation::new(
-            id,
-            Digest::zero(),
-            OperationType::CreateAccount {
-                service_id,
-                value: signing_key.verifying_key(),
-                challenge: ServiceChallengeInput::Signed(service_challenge),
-            },
-            SignerRef::None,
-        ))
+        op.op = OperationType::CreateAccount {
+            service_id,
+            value: signing_key.verifying_key(),
+            challenge: ServiceChallengeInput::Signed(service_challenge),
+        };
+
+        Ok(op)
     }
 
-    pub fn new_register_service(id: String, creation_gate: ServiceChallenge) -> Self {
-        // TODO: sign
-        Operation::new(
+    pub fn new_register_service(
+        id: String,
+        creation_gate: ServiceChallenge,
+        signing_key: &SigningKey,
+    ) -> Result<Self> {
+        let mut op = Operation::new(
             id,
             Digest::zero(),
             OperationType::RegisterService { creation_gate },
-            SignerRef::None,
-        )
+            None,
+        );
+
+        op.insert_signature(signing_key)?;
+
+        Ok(op)
     }
 
     pub fn new_add_key(
@@ -107,7 +110,7 @@ impl Operation {
             id,
             prev_hash,
             OperationType::AddKey { value },
-            SignerRef::Index(key_idx),
+            Some(key_idx),
         );
 
         op.insert_signature(signing_key)?;
@@ -126,7 +129,7 @@ impl Operation {
             id,
             prev_hash,
             OperationType::RevokeKey { value },
-            SignerRef::Index(key_idx),
+            Some(key_idx),
         );
 
         op.insert_signature(signing_key)?;
@@ -149,7 +152,7 @@ impl Operation {
                 value,
                 value_signature,
             },
-            SignerRef::Index(key_idx),
+            Some(key_idx),
         );
 
         op.insert_signature(signing_key)?;
@@ -161,7 +164,7 @@ impl Operation {
         id: String,
         prev_hash: Digest,
         operation_type: OperationType,
-        signer_ref: SignerRef,
+        signer_ref: Option<usize>,
     ) -> Self {
         Operation {
             id,
@@ -219,7 +222,11 @@ impl Operation {
         pubkey.verify_signature(&message, &self.signature)?;
 
         match &self.op {
-            // TODO: RegisterService
+            OperationType::RegisterService { creation_gate } => {
+                let ServiceChallenge::Signed(service_pubkey) = creation_gate;
+                assert_eq!(service_pubkey, pubkey);
+                Ok(())
+            }
             OperationType::CreateAccount { value, .. } => {
                 assert_eq!(value, pubkey);
                 Ok(())

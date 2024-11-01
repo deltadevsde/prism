@@ -87,8 +87,12 @@ impl OpsBuilder {
         id: &str,
         service_signing_key: SigningKey,
     ) -> UncommittedOperation {
-        let op =
-            Operation::new_register_service(id.to_string(), service_signing_key.clone().into());
+        let op = Operation::new_register_service(
+            id.to_string(),
+            service_signing_key.clone().into(),
+            &service_signing_key,
+        )
+        .unwrap();
 
         UncommittedOperation {
             operation: op,

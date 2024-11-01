@@ -33,7 +33,7 @@ impl VerifyingKey {
 
     pub fn verify_signature(&self, message: &[u8], signature: &[u8]) -> Result<()> {
         if signature.len() != 64 {
-            return Err(anyhow!("Invalid signature length"));
+            return Err(anyhow!("Invalid signature length: {}", signature.len()));
         }
         match self {
             VerifyingKey::Ed25519(vk) => {

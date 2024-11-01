@@ -10,7 +10,7 @@ use crate::{
     digest::Digest,
     hasher::Hasher,
     keys::VerifyingKey,
-    operation::{Operation, OperationType, SignerRef},
+    operation::{Operation, OperationType},
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -166,7 +166,7 @@ impl Hashchain {
                     )
                 }
 
-                let SignerRef::Index(key_idx) = operation.signer_ref else {
+                let Some(key_idx) = operation.signer_ref else {
                     bail!("Key operation must be signed by an existing key")
                 };
                 let verifying_key = self.get_key_at_index(key_idx)?;
@@ -190,7 +190,7 @@ impl Hashchain {
                     )
                 }
 
-                let SignerRef::Index(key_idx) = operation.signer_ref else {
+                let Some(key_idx) = operation.signer_ref else {
                     bail!("Key operation must be signed by an existing key")
                 };
                 let verifying_key = self.get_key_at_index(key_idx)?;
