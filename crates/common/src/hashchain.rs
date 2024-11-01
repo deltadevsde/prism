@@ -101,21 +101,20 @@ impl Hashchain {
     }
 
     pub fn is_key_invalid(&self, key: &VerifyingKey) -> bool {
-        self.iter()
-            .rev()
-            .find_map(|entry| {
-                let value = entry.operation.get_public_key();
-                match &entry.operation.op {
-                    OperationType::RevokeKey { .. } if key.eq(value.unwrap()) => Some(true),
-                    OperationType::AddKey { .. } | OperationType::CreateAccount { .. }
-                        if key.eq(value.unwrap()) =>
-                    {
-                        Some(false)
+        for entry in self.iter().rev() {
+            if let Some(entry_key) = entry.operation.get_public_key() {
+                if key.eq(entry_key) {
+                    match entry.operation.op {
+                        OperationType::RevokeKey { .. } => return true,
+                        OperationType::AddKey { .. }
+                        | OperationType::CreateAccount { .. }
+                        | OperationType::RegisterService { .. } => return false,
+                        _ => {}
                     }
-                    _ => None,
                 }
-            })
-            .unwrap_or(true)
+            }
+        }
+        true
     }
 
     pub fn get(&self, idx: usize) -> &HashchainEntry {
@@ -157,6 +156,8 @@ impl Hashchain {
                 last_hash
             )
         }
+
+        // Retrieve the [`VerifyingKey`] referenced in the [`Operation`]
         let vk = match &operation.op {
             OperationType::CreateAccount { .. } | OperationType::RegisterService { .. } => {
                 if !self.entries.is_empty() {

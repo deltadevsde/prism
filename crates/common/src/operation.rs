@@ -257,6 +257,19 @@ impl Operation {
                     bail!("Creating a hashchain requires adding an initial key");
                 }
             }
+            OperationType::CreateAccount { challenge, .. } => {
+                if self.new_key.is_none() {
+                    bail!("creating a hashchain requires adding an initial key");
+                }
+
+                match challenge {
+                    ServiceChallengeInput::Signed(signature) => {
+                        if signature.is_empty() {
+                            bail!("account creation challenge is empty")
+                        }
+                    }
+                }
+            }
             OperationType::AddData {
                 value,
                 value_signature,
@@ -269,19 +282,6 @@ impl Operation {
                 if let Some(value_signature) = value_signature {
                     if value_signature.signature.is_empty() {
                         bail!("external data requires a non-empty signature")
-                    }
-                }
-            }
-            OperationType::CreateAccount { challenge, .. } => {
-                if self.new_key.is_none() {
-                    bail!("creating a hashchain requires adding an initial key");
-                }
-
-                match challenge {
-                    ServiceChallengeInput::Signed(signature) => {
-                        if signature.is_empty() {
-                            bail!("account creation challenge is empty")
-                        }
                     }
                 }
             }
