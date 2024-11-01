@@ -13,10 +13,7 @@ use crate::{
     digest::Digest,
     hashchain::Hashchain,
     hasher::Hasher,
-    operation::{
-        AddDataArgs, CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs,
-        ServiceChallenge, ServiceChallengeInput,
-    },
+    operation::{Operation, OperationType, ServiceChallenge, ServiceChallengeInput},
 };
 
 use HashchainResponse::*;
@@ -227,32 +224,27 @@ where
     S: TreeReader + TreeWriter,
 {
     fn process_operation(&mut self, operation: &Operation) -> Result<Proof> {
-        match operation {
-            Operation::AddKey(KeyOperationArgs { id, .. })
-            | Operation::RevokeKey(KeyOperationArgs { id, .. })
-            | Operation::AddData(AddDataArgs { id, .. }) => {
-                let hashed_id = Digest::hash(id);
-                let key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-                debug!("updating hashchain for user id {}", id.clone());
+        let hashed_id = Digest::hash(operation.id.clone());
+        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        match &operation.op {
+            OperationType::AddKey { .. }
+            | OperationType::RevokeKey { .. }
+            | OperationType::AddData { .. } => {
+                debug!("updating hashchain for user id {}", operation.id.clone());
                 let proof = self.update(key_hash, operation.clone())?;
 
                 Ok(Proof::Update(Box::new(proof)))
             }
-            Operation::CreateAccount(CreateAccountArgs {
-                id,
+            OperationType::CreateAccount {
                 service_id,
                 challenge,
                 ..
-            }) => {
-                let hashed_id = Digest::hash(id);
-                let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
-
+            } => {
                 // Verify that the account doesn't already exist
-                if matches!(self.get(account_key_hash)?, Found(_, _)) {
+                if matches!(self.get(key_hash)?, Found(_, _)) {
                     bail!(DatabaseError::NotFoundError(format!(
                         "Account already exists for ID {}",
-                        id
+                        operation.id
                     )));
                 }
 
@@ -266,8 +258,8 @@ where
                     bail!("Service hashchain is empty, could not retrieve challenge key");
                 };
 
-                let creation_gate = match &service_last_entry.operation {
-                    Operation::RegisterService(args) => &args.creation_gate,
+                let creation_gate = match &service_last_entry.operation.op {
+                    OperationType::RegisterService { creation_gate } => creation_gate,
                     _ => {
                         bail!("Service hashchain's last entry was not a RegisterService operation")
                     }
@@ -281,16 +273,21 @@ where
                     challenge_signature,
                 )?;
 
-                debug!("creating new hashchain for user ID {}", id);
+                debug!("creating new hashchain for user ID {}", operation.id);
 
-                let insert_proof = self.insert(account_key_hash, operation.clone())?;
+                let insert_proof = self.insert(key_hash, operation.clone())?;
                 Ok(Proof::Insert(Box::new(insert_proof)))
             }
-            Operation::RegisterService(RegisterServiceArgs { id, .. }) => {
-                let hashed_id = Digest::hash(id);
-                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+            OperationType::RegisterService { .. } => {
+                // Verify that the account doesn't already exist
+                if matches!(self.get(key_hash)?, Found(_, _)) {
+                    bail!(DatabaseError::NotFoundError(format!(
+                        "Account already exists for ID {}",
+                        operation.id
+                    )));
+                }
 
-                debug!("creating new hashchain for service id {}", id);
+                debug!("creating new hashchain for service id {}", operation.id);
 
                 let insert_proof = self.insert(key_hash, operation.clone())?;
                 Ok(Proof::Insert(Box::new(insert_proof)))

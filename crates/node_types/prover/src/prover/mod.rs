@@ -19,7 +19,7 @@ use tokio::{
 };
 
 use crate::webserver::{WebServer, WebServerConfig};
-use prism_common::operation::Operation;
+use prism_common::operation::{Operation, OperationType};
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_storage::Database;
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
@@ -454,14 +454,16 @@ impl Prover {
         incoming_operation.validate()?;
 
         // validate operation against existing hashchain if necessary, including signature checks
-        match incoming_operation {
-            Operation::RegisterService(_) => (),
-            Operation::CreateAccount(_) => (),
-            Operation::AddKey(_) | Operation::RevokeKey(_) | Operation::AddData(_) => {
-                let hc_response = self.get_hashchain(&incoming_operation.id()).await?;
+        match &incoming_operation.op {
+            OperationType::RegisterService { .. } => (),
+            OperationType::CreateAccount { .. } => (),
+            OperationType::AddKey { .. }
+            | OperationType::RevokeKey { .. }
+            | OperationType::AddData { .. } => {
+                let hc_response = self.get_hashchain(&incoming_operation.id).await?;
 
                 let Found(mut hc, _) = hc_response else {
-                    bail!("Hashchain not found for id: {}", incoming_operation.id())
+                    bail!("Hashchain not found for id: {}", incoming_operation.id)
                 };
 
                 hc.perform_operation(incoming_operation.clone())?;

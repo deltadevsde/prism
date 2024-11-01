@@ -6,7 +6,12 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{digest::Digest, hasher::Hasher, keys::VerifyingKey, operation::Operation};
+use crate::{
+    digest::Digest,
+    hasher::Hasher,
+    keys::VerifyingKey,
+    operation::{Operation, OperationType, SignerRef},
+};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Hashchain {
@@ -57,7 +62,7 @@ impl DerefMut for Hashchain {
 
 impl Hashchain {
     pub fn from_operation(operation: Operation) -> Result<Self> {
-        let mut hc = Hashchain::empty(operation.id());
+        let mut hc = Hashchain::empty(operation.id.clone());
         hc.perform_operation(operation)?;
         Ok(hc)
     }
@@ -80,29 +85,29 @@ impl Hashchain {
         let mut valid_keys: HashSet<VerifyingKey> = HashSet::new();
 
         for entry in self.entries.clone() {
-            match &entry.operation {
-                Operation::RegisterService(_) | Operation::AddData(_) => {}
-                Operation::CreateAccount(args) => {
-                    valid_keys.insert(args.value.clone());
+            match &entry.operation.op {
+                OperationType::RegisterService { .. } | OperationType::AddData { .. } => {}
+                OperationType::AddKey { value } | OperationType::CreateAccount { value, .. } => {
+                    valid_keys.insert(value.clone());
                 }
-                Operation::AddKey(args) => {
-                    valid_keys.insert(args.value.clone());
-                }
-                Operation::RevokeKey(args) => {
-                    valid_keys.remove(&args.value.clone());
+                OperationType::RevokeKey { value } => {
+                    valid_keys.remove(&value.clone());
                 }
             }
         }
         valid_keys
     }
 
-    pub fn is_key_invalid(&self, key: VerifyingKey) -> bool {
+    pub fn is_key_invalid(&self, key: &VerifyingKey) -> bool {
         self.iter()
             .rev()
-            .find_map(|entry| match entry.operation.clone() {
-                Operation::RevokeKey(args) if args.value == key => Some(true),
-                Operation::AddKey(args) if args.value == key => Some(false),
-                Operation::CreateAccount(args) if args.value == key => Some(false),
+            .find_map(|entry| match &entry.operation.op {
+                OperationType::RevokeKey { value } if value.eq(key) => Some(true),
+                OperationType::AddKey { value } | OperationType::CreateAccount { value, .. }
+                    if value.eq(key) =>
+                {
+                    Some(false)
+                }
                 _ => None,
             })
             .unwrap_or(true)
@@ -117,7 +122,7 @@ impl Hashchain {
     }
 
     fn push(&mut self, operation: Operation) -> Result<HashchainEntry> {
-        if operation.id() != self.id {
+        if operation.id != self.id {
             bail!("Operation ID does not match Hashchain ID");
         }
 
@@ -136,35 +141,37 @@ impl Hashchain {
 
     /// Verifies the structure and signature of a new operation
     fn validate_new_operation(&self, operation: &Operation) -> Result<()> {
-        match operation {
-            Operation::RegisterService(args) => {
+        match &operation.op {
+            OperationType::RegisterService { .. } => {
                 if !self.entries.is_empty() {
                     bail!("RegisterService operation must be the first entry");
                 }
 
-                if args.prev_hash != Digest::zero() {
+                if operation.prev_hash != Digest::zero() {
                     bail!(
                         "Previous hash for initial operation must be zero, but was {}",
-                        args.prev_hash
+                        operation.prev_hash
                     )
                 }
 
                 Ok(())
             }
-            Operation::AddKey(args) | Operation::RevokeKey(args) => {
+            OperationType::AddKey { .. } | OperationType::RevokeKey { .. } => {
                 let last_hash = self.last_hash();
-                if args.prev_hash != last_hash {
+                if operation.prev_hash != last_hash {
                     bail!(
                         "Previous hash for key operation must be the last hash - prev: {}, last: {}",
-                        args.prev_hash,
+                        operation.prev_hash,
                         last_hash
                     )
                 }
 
-                let key_idx = args.signature.key_idx;
+                let SignerRef::Index(key_idx) = operation.signer_ref else {
+                    bail!("Key operation must be signed by an existing key")
+                };
                 let verifying_key = self.get_key_at_index(key_idx)?;
 
-                if self.is_key_invalid(verifying_key.clone()) {
+                if self.is_key_invalid(verifying_key) {
                     bail!(
                         "The key at index {}, intended to verify this operation, is invalid",
                         key_idx
@@ -173,20 +180,22 @@ impl Hashchain {
 
                 operation.verify_user_signature(verifying_key)
             }
-            Operation::AddData(args) => {
+            OperationType::AddData { .. } => {
                 let last_hash = self.last_hash();
-                if args.prev_hash != last_hash {
+                if operation.prev_hash != last_hash {
                     bail!(
                         "Previous hash for add-data operation is not equal to the last hash - prev: {}, last: {}",
-                        args.prev_hash,
+                        operation.prev_hash,
                         last_hash
                     )
                 }
 
-                let key_idx = args.op_signature.key_idx;
+                let SignerRef::Index(key_idx) = operation.signer_ref else {
+                    bail!("Key operation must be signed by an existing key")
+                };
                 let verifying_key = self.get_key_at_index(key_idx)?;
 
-                if self.is_key_invalid(verifying_key.clone()) {
+                if self.is_key_invalid(verifying_key) {
                     bail!(
                         "The key at index {}, intended to verify this operation, is invalid",
                         key_idx
@@ -195,16 +204,17 @@ impl Hashchain {
 
                 operation.verify_user_signature(verifying_key)
             }
-            Operation::CreateAccount(args) => {
+            OperationType::CreateAccount { value, .. } => {
+                // TODO: Validation against service id?
                 if !self.entries.is_empty() {
                     bail!("CreateAccount operation must be the first entry");
                 }
 
-                if args.prev_hash != Digest::zero() {
+                if operation.prev_hash != Digest::zero() {
                     bail!("Previous hash for initial operation must be zero")
                 }
 
-                operation.verify_user_signature(&args.value)
+                operation.verify_user_signature(value)
             }
         }
     }
