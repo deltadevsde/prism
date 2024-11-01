@@ -85,7 +85,7 @@ to start the light-client, run the following command:
 prism-cli light-client|full-node --verifying-key <verifying-key>
 ```
 
-You can then interact with Prism via the interfaces defined in [webserver.rs](https://github.com/deltadevsde/prism/blob/crates/prover/src/webserver.rs).
+You can then interact with Prism via the interfaces defined in [webserver.rs](https://github.com/deltadevsde/prism/blob/main/crates/prover/src/webserver.rs).
 
 ## Contributions
 
