@@ -1,7 +1,6 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use bincode;
 use celestia_types::Blob;
-use prism_errors::GeneralError;
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
 
@@ -22,9 +21,10 @@ pub struct Operation {
     /// The digest of the previous operation in the hashchain.
     pub prev_hash: Digest,
 
+    pub new_key: Option<VerifyingKey>,
+    pub signer_ref: Option<usize>,
     /// The signature of the operation.
     pub signature: Vec<u8>,
-    pub signer_ref: Option<usize>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -34,7 +34,6 @@ pub enum OperationType {
     /// Creates a new account with the given id and value.
     CreateAccount {
         service_id: String,
-        value: VerifyingKey,
         challenge: ServiceChallengeInput,
     },
     /// Registers a new service with the given id.
@@ -45,9 +44,9 @@ pub enum OperationType {
         value_signature: Option<SignatureBundle>,
     },
     /// Adds a key to an existing account.
-    AddKey { value: VerifyingKey },
+    AddKey,
     /// Revokes a key from an existing account.
-    RevokeKey { value: VerifyingKey },
+    RevokeKey,
 }
 
 impl Operation {
@@ -62,9 +61,9 @@ impl Operation {
             Digest::zero(),
             OperationType::CreateAccount {
                 service_id: service_id.clone(),
-                value: signing_key.verifying_key(),
                 challenge: ServiceChallengeInput::Signed(Vec::new()),
             },
+            Some(signing_key.verifying_key()),
             None,
         );
 
@@ -75,7 +74,6 @@ impl Operation {
 
         op.op = OperationType::CreateAccount {
             service_id,
-            value: signing_key.verifying_key(),
             challenge: ServiceChallengeInput::Signed(service_challenge),
         };
 
@@ -91,6 +89,7 @@ impl Operation {
             id,
             Digest::zero(),
             OperationType::RegisterService { creation_gate },
+            Some(signing_key.verifying_key()),
             None,
         );
 
@@ -109,7 +108,8 @@ impl Operation {
         let mut op = Operation::new(
             id,
             prev_hash,
-            OperationType::AddKey { value },
+            OperationType::AddKey,
+            Some(value),
             Some(key_idx),
         );
 
@@ -128,7 +128,8 @@ impl Operation {
         let mut op = Operation::new(
             id,
             prev_hash,
-            OperationType::RevokeKey { value },
+            OperationType::RevokeKey,
+            Some(value),
             Some(key_idx),
         );
 
@@ -152,6 +153,7 @@ impl Operation {
                 value,
                 value_signature,
             },
+            None,
             Some(key_idx),
         );
 
@@ -164,27 +166,21 @@ impl Operation {
         id: String,
         prev_hash: Digest,
         operation_type: OperationType,
+        new_key: Option<VerifyingKey>,
         signer_ref: Option<usize>,
     ) -> Self {
         Operation {
             id,
             op: operation_type,
             prev_hash,
+            new_key,
             signature: Vec::new(),
             signer_ref,
         }
     }
 
     pub fn get_public_key(&self) -> Option<&VerifyingKey> {
-        match &self.op {
-            OperationType::RevokeKey { value }
-            | OperationType::AddKey { value }
-            | OperationType::CreateAccount { value, .. } => Some(value),
-            OperationType::RegisterService { creation_gate } => match creation_gate {
-                ServiceChallenge::Signed(key) => Some(key),
-            },
-            OperationType::AddData { .. } => None,
-        }
+        return self.new_key.as_ref();
     }
 
     pub fn insert_signature(&mut self, signing_key: &SigningKey) -> Result<()> {
@@ -197,13 +193,9 @@ impl Operation {
 
     pub fn without_challenge(&self) -> Self {
         let mut val = self.clone();
-        if let OperationType::CreateAccount {
-            value, service_id, ..
-        } = &self.op
-        {
+        if let OperationType::CreateAccount { service_id, .. } = &self.op {
             val.op = OperationType::CreateAccount {
                 service_id: service_id.clone(),
-                value: value.clone(),
                 challenge: ServiceChallengeInput::Signed(Vec::new()),
             };
         }
@@ -216,19 +208,17 @@ impl Operation {
         val
     }
 
-    pub fn verify_user_signature(&self, pubkey: &VerifyingKey) -> Result<()> {
+    /// Validates the operation signature using the hashchain key (referenced
+    /// either by index or first-op key)
+    pub fn validate_signature(&self, pubkey: &VerifyingKey) -> Result<()> {
         let message = bincode::serialize(&self.without_signature().without_challenge())
             .context("User signature failed")?;
         pubkey.verify_signature(&message, &self.signature)?;
 
         match &self.op {
-            OperationType::RegisterService { creation_gate } => {
-                let ServiceChallenge::Signed(service_pubkey) = creation_gate;
-                assert_eq!(service_pubkey, pubkey);
-                Ok(())
-            }
-            OperationType::CreateAccount { value, .. } => {
-                assert_eq!(value, pubkey);
+            OperationType::CreateAccount { .. } | OperationType::RegisterService { .. } => {
+                let new_key = self.get_public_key().ok_or_else(|| anyhow!("No key supplied"))?;
+                assert_eq!(new_key, pubkey);
                 Ok(())
             }
             OperationType::AddData {
@@ -249,58 +239,54 @@ impl Operation {
         }
     }
 
-    pub fn validate(&self) -> Result<()> {
+    /// Does basic input validation, making sure that all required fields are present.
+    /// Does not validate any signatures.
+    pub fn validate_basic(&self) -> Result<()> {
         if self.id.is_empty() {
-            return Err(GeneralError::MissingArgumentError("id is empty".to_string()).into());
+            bail!("Id is empty")
         }
 
         if self.signature.is_empty() {
-            return Err(
-                GeneralError::MissingArgumentError("signature is empty".to_string()).into(),
-            );
+            bail!("Signature is empty")
         }
 
         match &self.op {
-            OperationType::AddKey { .. }
-            | OperationType::RevokeKey { .. }
-            | OperationType::RegisterService { .. } => Ok(()),
+            OperationType::AddKey | OperationType::RevokeKey => (),
+            OperationType::RegisterService { .. } => {
+                if self.new_key.is_none() {
+                    bail!("Creating a hashchain requires adding an initial key");
+                }
+            }
             OperationType::AddData {
                 value,
                 value_signature,
             } => {
                 // TODO: Upper bound on value size
                 if value.is_empty() {
-                    return Err(
-                        GeneralError::MissingArgumentError("value is empty".to_string()).into(),
-                    );
+                    bail!("Adding external data requires a non-empty value");
                 }
 
                 if let Some(value_signature) = value_signature {
                     if value_signature.signature.is_empty() {
-                        return Err(GeneralError::MissingArgumentError(
-                            "signature is empty".to_string(),
-                        )
-                        .into());
+                        bail!("external data requires a non-empty signature")
                     }
                 }
-
-                Ok(())
             }
             OperationType::CreateAccount { challenge, .. } => {
+                if self.new_key.is_none() {
+                    bail!("creating a hashchain requires adding an initial key");
+                }
+
                 match challenge {
                     ServiceChallengeInput::Signed(signature) => {
                         if signature.is_empty() {
-                            return Err(GeneralError::MissingArgumentError(
-                                "challenge data is empty".to_string(),
-                            )
-                            .into());
+                            bail!("account creation challenge is empty")
                         }
                     }
                 }
-
-                Ok(())
             }
-        }
+        };
+        Ok(())
     }
 }
 

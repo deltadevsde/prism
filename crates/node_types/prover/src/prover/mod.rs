@@ -451,7 +451,7 @@ impl Prover {
         }
 
         // basic validation, does not include signature checks
-        incoming_operation.validate()?;
+        incoming_operation.validate_basic()?;
 
         // validate operation against existing hashchain if necessary, including signature checks
         match &incoming_operation.op {

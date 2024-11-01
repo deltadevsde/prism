@@ -259,7 +259,7 @@ where
                 };
 
                 let creation_gate = match &service_last_entry.operation.op {
-                    OperationType::RegisterService { creation_gate } => creation_gate,
+                    OperationType::RegisterService { creation_gate, .. } => creation_gate,
                     _ => {
                         bail!("Service hashchain's last entry was not a RegisterService operation")
                     }

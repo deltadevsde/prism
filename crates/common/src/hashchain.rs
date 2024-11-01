@@ -87,11 +87,13 @@ impl Hashchain {
         for entry in self.entries.clone() {
             match &entry.operation.op {
                 OperationType::RegisterService { .. } | OperationType::AddData { .. } => {}
-                OperationType::AddKey { value } | OperationType::CreateAccount { value, .. } => {
-                    valid_keys.insert(value.clone());
+                OperationType::AddKey | OperationType::CreateAccount { .. } => {
+                    let key = entry.operation.get_public_key().unwrap();
+                    valid_keys.insert(key.clone());
                 }
-                OperationType::RevokeKey { value } => {
-                    valid_keys.remove(&value.clone());
+                OperationType::RevokeKey => {
+                    let key = entry.operation.get_public_key().unwrap();
+                    valid_keys.remove(&key.clone());
                 }
             }
         }
@@ -101,14 +103,17 @@ impl Hashchain {
     pub fn is_key_invalid(&self, key: &VerifyingKey) -> bool {
         self.iter()
             .rev()
-            .find_map(|entry| match &entry.operation.op {
-                OperationType::RevokeKey { value } if value.eq(key) => Some(true),
-                OperationType::AddKey { value } | OperationType::CreateAccount { value, .. }
-                    if value.eq(key) =>
-                {
-                    Some(false)
+            .find_map(|entry| {
+                let value = entry.operation.get_public_key();
+                match &entry.operation.op {
+                    OperationType::RevokeKey { .. } if key.eq(value.unwrap()) => Some(true),
+                    OperationType::AddKey { .. } | OperationType::CreateAccount { .. }
+                        if key.eq(value.unwrap()) =>
+                    {
+                        Some(false)
+                    }
+                    _ => None,
                 }
-                _ => None,
             })
             .unwrap_or(true)
     }
@@ -134,6 +139,7 @@ impl Hashchain {
         Ok(entry)
     }
 
+    // Validates and performs a new operation on the hashchain.
     pub fn perform_operation(&mut self, operation: Operation) -> Result<HashchainEntry> {
         self.validate_new_operation(&operation)?;
         self.push(operation)
@@ -141,82 +147,48 @@ impl Hashchain {
 
     /// Verifies the structure and signature of a new operation
     fn validate_new_operation(&self, operation: &Operation) -> Result<()> {
-        match &operation.op {
-            OperationType::RegisterService { .. } => {
-                if !self.entries.is_empty() {
-                    bail!("RegisterService operation must be the first entry");
-                }
+        operation.validate_basic()?;
 
-                if operation.prev_hash != Digest::zero() {
-                    bail!(
-                        "Previous hash for initial operation must be zero, but was {}",
-                        operation.prev_hash
-                    )
-                }
-
-                Ok(())
-            }
-            OperationType::AddKey { .. } | OperationType::RevokeKey { .. } => {
-                let last_hash = self.last_hash();
-                if operation.prev_hash != last_hash {
-                    bail!(
-                        "Previous hash for key operation must be the last hash - prev: {}, last: {}",
-                        operation.prev_hash,
-                        last_hash
-                    )
-                }
-
-                let Some(key_idx) = operation.signer_ref else {
-                    bail!("Key operation must be signed by an existing key")
-                };
-                let verifying_key = self.get_key_at_index(key_idx)?;
-
-                if self.is_key_invalid(verifying_key) {
-                    bail!(
-                        "The key at index {}, intended to verify this operation, is invalid",
-                        key_idx
-                    );
-                }
-
-                operation.verify_user_signature(verifying_key)
-            }
-            OperationType::AddData { .. } => {
-                let last_hash = self.last_hash();
-                if operation.prev_hash != last_hash {
-                    bail!(
-                        "Previous hash for add-data operation is not equal to the last hash - prev: {}, last: {}",
-                        operation.prev_hash,
-                        last_hash
-                    )
-                }
-
-                let Some(key_idx) = operation.signer_ref else {
-                    bail!("Key operation must be signed by an existing key")
-                };
-                let verifying_key = self.get_key_at_index(key_idx)?;
-
-                if self.is_key_invalid(verifying_key) {
-                    bail!(
-                        "The key at index {}, intended to verify this operation, is invalid",
-                        key_idx
-                    );
-                }
-
-                operation.verify_user_signature(verifying_key)
-            }
-            OperationType::CreateAccount { value, .. } => {
-                // TODO: Validation against service id?
-                if !self.entries.is_empty() {
-                    bail!("CreateAccount operation must be the first entry");
-                }
-
-                if operation.prev_hash != Digest::zero() {
-                    bail!("Previous hash for initial operation must be zero")
-                }
-
-                operation.verify_user_signature(value)
-            }
+        let last_hash = self.last_hash();
+        if operation.prev_hash != last_hash {
+            bail!(
+                "Previous hash for key operation must be the last hash - prev: {}, last: {}",
+                operation.prev_hash,
+                last_hash
+            )
         }
+        let vk = match &operation.op {
+            OperationType::CreateAccount { .. } | OperationType::RegisterService { .. } => {
+                if !self.entries.is_empty() {
+                    bail!("CreateAccount or RegisterService operation must be the first entry");
+                }
+
+                &operation.new_key.clone().unwrap()
+            }
+            OperationType::AddKey { .. }
+            | OperationType::RevokeKey { .. }
+            | OperationType::AddData { .. } => {
+                if self.entries.is_empty() {
+                    bail!("CreateAccount or RegisterService operation must be the first entry");
+                }
+
+                let Some(key_idx) = operation.signer_ref else {
+                    bail!("Key operation must be signed by an existing key")
+                };
+                let verifying_key = self.get_key_at_index(key_idx)?;
+
+                if self.is_key_invalid(verifying_key) {
+                    bail!(
+                        "The key at index {}, intended to verify this operation, is invalid",
+                        key_idx
+                    );
+                }
+
+                verifying_key
+            }
+        };
+
+        operation.validate_signature(vk)
     }
 
     pub fn get_keyhash(&self) -> KeyHash {
