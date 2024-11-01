@@ -464,7 +464,7 @@ impl Prover {
                     bail!("Hashchain not found for id: {}", incoming_operation.id())
                 };
 
-                hc.perform_operation(incoming_operation.clone())?;
+                // hc.perform_operation(incoming_operation.clone())?;
             }
         };
 

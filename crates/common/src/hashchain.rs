@@ -9,9 +9,10 @@ use std::{
 use crate::{
     digest::Digest,
     hasher::Hasher,
-    keys::VerifyingKey,
+    keys::{SigningKey, VerifyingKey},
     operation::{
         CreateAccountArgs, Operation, RegisterServiceArgs, ServiceChallenge, ServiceChallengeInput,
+        SignatureBundle,
     },
 };
 
@@ -83,7 +84,7 @@ impl Hashchain {
             value,
             service_id,
             challenge,
-            prev_hash,
+            prev_hash: Digest::zero(),
             signature,
         });
         hc.perform_operation(operation)?;
@@ -99,6 +100,25 @@ impl Hashchain {
         });
         hc.perform_operation(operation)?;
         Ok(hc)
+    }
+
+    pub fn add_data(
+        &mut self,
+        value: Vec<u8>,
+        value_signature: Option<SignatureBundle>,
+        signing_key: &SigningKey,
+        key_idx: usize,
+    ) -> Result<Operation> {
+        let digest = self.last_hash();
+        let operation = Operation::new_add_signed_data(
+            self.id.clone(),
+            value,
+            value_signature,
+            digest,
+            signing_key,
+            key_idx,
+        )?;
+        self.perform_operation(operation).map(|entry| entry.operation)
     }
 
     pub fn empty(id: String) -> Self {
