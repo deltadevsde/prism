@@ -237,7 +237,7 @@ pub async fn initialize_da_layer(
                 config.celestia_config.clone().context("Celestia configuration not found")?;
 
             for attempt in 1..=DA_RETRY_COUNT {
-                match CelestiaConnection::new(&celestia_conf, None).await {
+                match CelestiaConnection::new(&celestia_conf, Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJwdWJsaWMiLCJyZWFkIiwid3JpdGUiLCJhZG1pbiJdfQ.lyUUIegvG9MNObLElHw6DD3HM-xDoTktS7is6agjtC0")).await {
                     Ok(da) => return Ok(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
                     Err(e) => {
                         if attempt == DA_RETRY_COUNT {

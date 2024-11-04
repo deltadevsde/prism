@@ -368,10 +368,7 @@ impl Prover {
         let client = self.prover_client.read().await;
 
         info!("generating proof for epoch at height {}", epoch_height);
-        #[cfg(not(feature = "groth16"))]
-        let proof = client.prove(&self.proving_key, stdin).run()?;
-
-        #[cfg(feature = "groth16")]
+   
         let proof = client.prove(&self.proving_key, stdin).groth16().run()?;
         info!("successfully generated proof for epoch {}", epoch_height);
 
@@ -382,7 +379,7 @@ impl Prover {
             height: epoch_height,
             prev_commitment,
             current_commitment: new_commitment,
-            proof,
+            proof: bincode::serialize(&proof).unwrap(),
             signature: None,
         };
 

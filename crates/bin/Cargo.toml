@@ -46,6 +46,7 @@ prism-storage = { workspace = true }
 prism-errors = { workspace = true }
 prism-prover = { workspace = true }
 prism-lightclient = { workspace = true }
+prism-wasm-lightclient = { workspace = true }
 prism-da = { workspace = true }
 sp1-sdk = { workspace = true }
 rand = { workspace = true }

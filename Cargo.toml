@@ -81,13 +81,12 @@ sha2 = "0.10.8"
 auto_impl = "1.2.0"
 bincode = "1.3.3"
 ed25519-consensus = "2.1.0"
-secp256k1 = { version = "0.29.0", features = [
-    "global-context",
-    "rand-std",
-    "serde",
-] }
-sp1-zkvm = { version = "3.0.0-rc1" }
-sp1-sdk = { version = "3.0.0-rc1" }
+secp256k1 = { version = "0.29.0", features = ["global-context", "rand-std", "serde"] }
+sp1-zkvm = { version = "3.1.0" }
+sp1-sdk = { version = "3.0.0" }
+sp1-verifier = { git = "https://github.com/succinctlabs/sp1", rev = "d13675665bff079b6da4f115cb322eadca6bb50e" }
+lumina-node = { path = "../lumina/node" }
+lumina-node-wasm = { path = "../lumina/node-wasm" }
 prism-common = { path = "crates/common" }
 prism-storage = { path = "crates/storage" }
 prism-nova = { path = "crates/zk/nova" }
@@ -98,6 +97,7 @@ prism-groth16 = { path = "crates/zk/groth16" }
 prism-prover = { path = "crates/node_types/prover" }
 prism-tests = { path = "crates/tests" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
+prism-wasm-lightclient = { path = "crates/node_types/lightclient/wasm" }
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
 
 
