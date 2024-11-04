@@ -76,26 +76,6 @@ impl Hashchain {
             .ok_or_else(|| anyhow!("No valid public key found at index {}", idx))
     }
 
-    pub fn get_valid_keys(&self) -> HashSet<VerifyingKey> {
-        let mut valid_keys: HashSet<VerifyingKey> = HashSet::new();
-
-        for entry in self.entries.clone() {
-            match &entry.operation {
-                Operation::RegisterService(_) | Operation::AddData(_) => {}
-                Operation::CreateAccount(args) => {
-                    valid_keys.insert(args.value.clone());
-                }
-                Operation::AddKey(args) => {
-                    valid_keys.insert(args.value.clone());
-                }
-                Operation::RevokeKey(args) => {
-                    valid_keys.remove(&args.value.clone());
-                }
-            }
-        }
-        valid_keys
-    }
-
     pub fn is_key_invalid(&self, key: VerifyingKey) -> bool {
         self.iter()
             .rev()
