@@ -7,7 +7,7 @@ use std::{self, fmt::Display};
 
 use crate::{
     digest::Digest,
-    keys::{SigningKey, VerifyingKey},
+    keys::{Signature, SigningKey, VerifyingKey},
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -33,14 +33,14 @@ pub struct HashchainSignatureBundle {
     /// Index of the key in the hashchain
     pub key_idx: usize,
     /// The actual signature
-    pub signature: Vec<u8>,
+    pub signature: Signature,
 }
 
 impl HashchainSignatureBundle {
     pub fn empty_with_idx(idx: usize) -> Self {
         HashchainSignatureBundle {
             key_idx: idx,
-            signature: vec![],
+            signature: Signature::Placeholder,
         }
     }
 }
@@ -51,14 +51,14 @@ pub struct SignatureBundle {
     /// The key that can be used to verify the signature
     pub verifying_key: VerifyingKey,
     /// The actual signature
-    pub signature: Vec<u8>,
+    pub signature: Signature,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Input required to complete a challenge for account creation.
 pub enum ServiceChallengeInput {
     /// Signature bytes
-    Signed(Vec<u8>),
+    Signed(Signature),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -75,7 +75,7 @@ pub struct CreateAccountArgs {
     /// The hash of the previous operation
     pub prev_hash: Digest,
     /// The signature that signed the operation
-    pub signature: Vec<u8>,
+    pub signature: Signature,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -139,9 +139,9 @@ impl Operation {
             id: id.to_string(),
             value: signing_key.clone().verifying_key(),
             service_id,
-            challenge: ServiceChallengeInput::Signed(Vec::new()),
+            challenge: ServiceChallengeInput::Signed(Signature::Placeholder),
             prev_hash: Digest::zero(),
-            signature: Vec::new(),
+            signature: Signature::Placeholder,
         });
 
         op.insert_signature(signing_key)
@@ -184,7 +184,7 @@ impl Operation {
         let message = bincode::serialize(&op_to_sign)?;
         let signature = HashchainSignatureBundle {
             key_idx,
-            signature: signing_key.sign(&message).to_vec(),
+            signature: signing_key.sign(&message),
         };
 
         Ok(Operation::AddKey(KeyOperationArgs {
@@ -212,7 +212,7 @@ impl Operation {
         let message = bincode::serialize(&op_to_sign)?;
         let signature = HashchainSignatureBundle {
             key_idx,
-            signature: signing_key.sign(&message).to_vec(),
+            signature: signing_key.sign(&message),
         };
 
         Ok(Operation::RevokeKey(KeyOperationArgs {
@@ -242,7 +242,7 @@ impl Operation {
         let message = { bincode::serialize(&op_to_sign)? };
         let op_signature = HashchainSignatureBundle {
             key_idx,
-            signature: signing_key.sign(&message).to_vec(),
+            signature: signing_key.sign(&message),
         };
 
         Ok(Operation::AddData(AddDataArgs {
@@ -291,7 +291,7 @@ impl Operation {
                 id: args.id.clone(),
                 value: args.value.clone(),
                 service_id: args.service_id.clone(),
-                challenge: ServiceChallengeInput::Signed(Vec::new()),
+                challenge: ServiceChallengeInput::Signed(Signature::Placeholder),
                 prev_hash: args.prev_hash,
                 signature: args.signature.clone(),
             }),
@@ -307,7 +307,7 @@ impl Operation {
                 prev_hash: args.prev_hash,
                 signature: HashchainSignatureBundle {
                     key_idx: args.signature.key_idx,
-                    signature: Vec::new(),
+                    signature: Signature::Placeholder,
                 },
             }),
             Operation::RevokeKey(args) => Operation::RevokeKey(KeyOperationArgs {
@@ -316,7 +316,7 @@ impl Operation {
                 prev_hash: args.prev_hash,
                 signature: HashchainSignatureBundle {
                     key_idx: args.signature.key_idx,
-                    signature: Vec::new(),
+                    signature: Signature::Placeholder,
                 },
             }),
             Operation::AddData(args) => Operation::AddData(AddDataArgs {
@@ -326,7 +326,7 @@ impl Operation {
                 value_signature: args.value_signature.clone(),
                 op_signature: HashchainSignatureBundle {
                     key_idx: args.op_signature.key_idx,
-                    signature: Vec::new(),
+                    signature: Signature::Placeholder,
                 },
             }),
             Operation::CreateAccount(args) => Operation::CreateAccount(CreateAccountArgs {
@@ -335,7 +335,7 @@ impl Operation {
                 service_id: args.service_id.clone(),
                 challenge: args.challenge.clone(),
                 prev_hash: args.prev_hash,
-                signature: Vec::new(),
+                signature: Signature::Placeholder,
             }),
             Operation::RegisterService(args) => Operation::RegisterService(RegisterServiceArgs {
                 id: args.id.clone(),
@@ -380,44 +380,14 @@ impl Operation {
 
     pub fn validate(&self) -> Result<()> {
         match &self {
-            Operation::AddKey(KeyOperationArgs { id, signature, .. })
-            | Operation::RevokeKey(KeyOperationArgs { id, signature, .. })
-            | Operation::AddData(AddDataArgs {
-                id,
-                op_signature: signature,
-                ..
-            }) => {
+            Operation::AddKey(KeyOperationArgs { id, .. })
+            | Operation::RevokeKey(KeyOperationArgs { id, .. })
+            | Operation::AddData(AddDataArgs { id, .. })
+            | Operation::CreateAccount(CreateAccountArgs { id, .. }) => {
                 if id.is_empty() {
                     return Err(
                         GeneralError::MissingArgumentError("id is empty".to_string()).into(),
                     );
-                }
-
-                if signature.signature.is_empty() {
-                    return Err(GeneralError::MissingArgumentError(
-                        "signature is empty".to_string(),
-                    )
-                    .into());
-                }
-
-                Ok(())
-            }
-            Operation::CreateAccount(CreateAccountArgs { id, challenge, .. }) => {
-                if id.is_empty() {
-                    return Err(
-                        GeneralError::MissingArgumentError("id is empty".to_string()).into(),
-                    );
-                }
-
-                match challenge {
-                    ServiceChallengeInput::Signed(signature) => {
-                        if signature.is_empty() {
-                            return Err(GeneralError::MissingArgumentError(
-                                "challenge data is empty".to_string(),
-                            )
-                            .into());
-                        }
-                    }
                 }
 
                 Ok(())
