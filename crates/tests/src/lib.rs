@@ -3,16 +3,9 @@
 #[macro_use]
 extern crate log;
 
-use anyhow::{bail, Result};
-use jmt::KeyHash;
+use anyhow::Result;
 use keystore_rs::create_signing_key;
-use prism_common::{
-    digest::Digest,
-    hasher::Hasher,
-    operation::{Operation, ServiceChallenge},
-    test_utils::create_mock_signing_key,
-    tree::{HashchainResponse::*, SnarkableTree},
-};
+use prism_common::test_ops::RequestBuilder;
 use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
     DataAvailabilityLayer,
@@ -24,38 +17,7 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
 
-use prism_common::test_utils::{Service, TestTreeState};
-
-fn create_random_user(id: &str, state: &mut TestTreeState, service: &Service) -> Operation {
-    let account = state.create_account(id.to_string(), service.clone());
-    account.hashchain.last().unwrap().operation.clone()
-}
-
-fn add_key(id: &str, state: &mut TestTreeState) -> Result<Operation> {
-    let hashed_id = Digest::hash(id);
-    let key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-    let Found(hc, _) = state.tree.get(key_hash)? else {
-        bail!("Hashchain not found for account {}", id);
-    };
-
-    let Some(signing_key) = state.signing_keys.get(id) else {
-        bail!("Signing key not found for account {}", id);
-    };
-
-    let new_key = create_mock_signing_key();
-    let new_public_key = new_key.verifying_key();
-
-    let op = Operation::new_add_key(
-        id.to_string(),
-        new_public_key,
-        hc.last_hash(),
-        signing_key,
-        0, // Assuming this is the key index, you might need to adjust this
-    )?;
-
-    Ok(op)
-}
+use prism_common::test_utils::TestTreeState;
 
 fn setup_db() -> Arc<Box<dyn Database>> {
     Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>)
@@ -113,55 +75,46 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     spawn(async move {
         let mut rng = StdRng::from_entropy();
-        let mut test_state = TestTreeState::new();
-        let service = test_state.register_service("test_service".to_string());
-        let op = Operation::new_register_service(
-            service.clone().id,
-            ServiceChallenge::Signed(service.clone().vk),
-        );
+
+        let mut request_builder = RequestBuilder::new();
+        let register_service_req =
+            request_builder.register_service_with_random_keys("test_service").ex();
+
         let mut i = 0;
 
-        prover.clone().validate_and_queue_update(&op).await.unwrap();
+        prover.clone().validate_and_queue_update(register_service_req).await.unwrap();
+        let mut added_account_ids: Vec<String> = Vec::new();
 
         loop {
             // Create 1 to 3 new accounts
             let num_new_accounts = rng.gen_range(1..=3);
             for _ in 0..num_new_accounts {
-                let new_acc = create_random_user(
-                    format!("{}@gmail.com", i).as_str(),
-                    &mut test_state,
-                    &service,
-                );
-                match prover.clone().validate_and_queue_update(&new_acc).await {
-                    Ok(_) => i += 1,
+                let random_user_id = format!("{}@gmail.com", i);
+                let new_acc = request_builder
+                    .create_account_with_random_key(random_user_id.as_str(), "test_service")
+                    .ex();
+                match prover.clone().validate_and_queue_update(new_acc).await {
+                    Ok(_) => {
+                        i += 1;
+                        added_account_ids.push(random_user_id);
+                    }
                     Err(e) => eprintln!("Failed to create account: {}", e),
                 }
             }
 
             // Update 5 random existing accounts (if we have at least 5)
-            if test_state.signing_keys.len() >= 5 {
+            if added_account_ids.len() >= 5 {
                 for _ in 0..5 {
-                    let account_id = match test_state
-                        .signing_keys
-                        .keys()
-                        .nth(rng.gen_range(0..test_state.signing_keys.len()))
-                    {
-                        Some(id) => id.clone(),
-                        None => {
-                            eprintln!("Failed to get random account id");
-                            continue;
-                        }
+                    let acc_id = added_account_ids
+                        .get(rng.gen_range(0..added_account_ids.len()))
+                        .map_or("Problem", |id| id.as_str());
+
+                    let update_acc = request_builder.add_random_key_verified_with_root(acc_id).ex();
+
+                    match prover.clone().validate_and_queue_update(update_acc).await {
+                        Ok(_) => (),
+                        Err(e) => eprintln!("Failed to validate and queue update: {}", e),
                     };
-                    match add_key(&account_id, &mut test_state) {
-                        Ok(update_op) => {
-                            if let Err(e) =
-                                prover.clone().validate_and_queue_update(&update_op).await
-                            {
-                                eprintln!("Failed to validate and queue update: {}", e);
-                            }
-                        }
-                        Err(e) => eprintln!("Failed to add key: {}", e),
-                    }
                 }
             }
 
