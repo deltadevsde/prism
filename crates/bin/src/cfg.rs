@@ -115,9 +115,8 @@ pub fn load_config(args: CommandLineArgs) -> Result<Config> {
         .context("Failed to build config")?;
 
     let default_config = Config::default();
-    let loaded_config: Config = config_source
-        .try_deserialize()
-        .context("Failed to deserialize config file")?;
+    let loaded_config: Config =
+        config_source.try_deserialize().context("Failed to deserialize config file")?;
 
     let merged_config = merge_configs(loaded_config, default_config);
     let final_config = apply_command_line_args(merged_config, args);
@@ -213,12 +212,12 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
                     .map(|c| c.snark_namespace_id.clone())
                     .unwrap_or_else(|| CelestiaConfig::default().snark_namespace_id)
             }),
-            operation_namespace_id: Some(args.operation_namespace_id.unwrap_or_else(|| {
+            request_namespace_id: Some(args.operation_namespace_id.unwrap_or_else(|| {
                 config
                     .celestia_config
                     .as_ref()
-                    .map(|c| c.operation_namespace_id.clone())
-                    .unwrap_or_else(|| CelestiaConfig::default().operation_namespace_id)
+                    .map(|c| c.request_namespace_id.clone())
+                    .unwrap_or_else(|| CelestiaConfig::default().request_namespace_id)
                     .unwrap()
             })),
         }),
@@ -234,10 +233,8 @@ pub async fn initialize_da_layer(
 
     match da_layer {
         DALayerOption::Celestia => {
-            let celestia_conf = config
-                .celestia_config
-                .clone()
-                .context("Celestia configuration not found")?;
+            let celestia_conf =
+                config.celestia_config.clone().context("Celestia configuration not found")?;
 
             for attempt in 1..=DA_RETRY_COUNT {
                 match CelestiaConnection::new(&celestia_conf, None).await {
