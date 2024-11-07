@@ -127,9 +127,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let initial_height = rx.recv().await.unwrap();
     while let Ok(height) = rx.recv().await {
         debug!("received height {}", height);
-        if height >= initial_height + 100 {
-            break;
-        }
     }
 
     Ok(())

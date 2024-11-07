@@ -10,7 +10,7 @@ NODE_NAME="bridge-$NODE_ID"
 # a private local network
 P2P_NETWORK="private"
 # a bridge node configuration directory
-CONFIG_DIR="$CELESTIA_HOME/.celestia-bridge-$P2P_NETWORK"
+CONFIG_DIR="$CELESTIA_HOME"
 # directory and the files shared with the validator node
 CREDENTIALS_DIR="/credentials"
 # node credentials
@@ -19,6 +19,8 @@ NODE_JWT_FILE="$CREDENTIALS_DIR/$NODE_NAME.jwt"
 # directory where validator will write the genesis hash
 GENESIS_DIR="/genesis"
 GENESIS_HASH_FILE="$GENESIS_DIR/genesis_hash"
+CELESTIA_BOOTSTRAPPER=true
+
 
 # Wait for the validator to set up and provision us via shared dir
 wait_for_provision() {
@@ -46,6 +48,15 @@ add_trusted_genesis() {
   # and make it trusted in the node's config
   echo "Trusting a genesis: $genesis_hash"
   sed -i'.bak' "s/TrustedHash = .*/TrustedHash = $genesis_hash/" "$CONFIG_DIR/config.toml"
+}
+
+whitelist_localhost_nodes() {
+  # to get the list of ips:
+  # cargo run -- node -n private -l 0.0.0.0
+  # docker compose -f ci/docker-compose.yml exec bridge-0 celestia p2p peer-info $lumina_peerid
+  dasel put -f "$CONFIG_DIR/config.toml" \
+    -t json -v '["172.0.0.0/8", "172.18.0.1/24", "172.17.0.1/24", "192.168.0.0/16"]' \
+    'P2P.IPColocationWhitelist'
 }
 
 write_jwt_token() {

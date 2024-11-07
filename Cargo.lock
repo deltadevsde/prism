@@ -730,7 +730,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55f2cf2244bd65e9f00adb06c6b5e951bab980fdacdd572ff035bf610628be99"
 dependencies = [
  "asynchronous-codec",
- "blockstore 0.7.0",
+ "blockstore",
  "bytes",
  "cid",
  "fnv",
@@ -903,18 +903,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array 0.14.7",
-]
-
-[[package]]
-name = "blockstore"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc99329facbb960effbe7ed707c753a718877c1878eb8ca08704fa391c494020"
-dependencies = [
- "cid",
- "dashmap 6.1.0",
- "multihash",
- "thiserror",
 ]
 
 [[package]]
@@ -1097,20 +1085,6 @@ dependencies = [
 
 [[package]]
 name = "celestia-proto"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cde2c574760f88d5a6da8dfc55dbb79d91f4da15aa87b9e0d57d4d3a8fa5687"
-dependencies = [
- "anyhow",
- "celestia-tendermint-proto",
- "prost 0.12.6",
- "prost-build",
- "prost-types",
- "serde",
-]
-
-[[package]]
-name = "celestia-proto"
 version = "0.4.1"
 dependencies = [
  "celestia-tendermint-proto",
@@ -1123,12 +1097,11 @@ dependencies = [
 
 [[package]]
 name = "celestia-rpc"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "434791f35530f774dba2c8d1a056079b33d309bfef819cbc856b9e8def031376"
+version = "0.6.0"
 dependencies = [
  "async-trait",
- "celestia-types 0.4.0",
+ "celestia-types",
+ "futures",
  "http 1.1.0",
  "jsonrpsee",
  "serde",
@@ -1186,42 +1159,13 @@ dependencies = [
 
 [[package]]
 name = "celestia-types"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ca29b1216d1eb09c21f9448fb87f9b50fd7dc2a6266a2f4a846f66c728195e2"
-dependencies = [
- "base64 0.22.1",
- "bech32 0.11.0",
- "blockstore 0.6.1",
- "bytes",
- "celestia-proto 0.3.1",
- "celestia-tendermint",
- "celestia-tendermint-proto",
- "cid",
- "const_format",
- "enum_dispatch",
- "leopard-codec",
- "libp2p-identity",
- "multiaddr",
- "multihash",
- "nmt-rs",
- "ruint",
- "serde",
- "serde_repr",
- "sha2 0.10.8",
- "thiserror",
- "time",
-]
-
-[[package]]
-name = "celestia-types"
 version = "0.6.1"
 dependencies = [
  "base64 0.22.1",
  "bech32 0.11.0",
- "blockstore 0.7.0",
+ "blockstore",
  "bytes",
- "celestia-proto 0.4.1",
+ "celestia-proto",
  "celestia-tendermint",
  "celestia-tendermint-proto",
  "cid",
@@ -4769,11 +4713,11 @@ dependencies = [
  "async-trait",
  "backoff",
  "beetswap",
- "blockstore 0.7.0",
- "celestia-proto 0.4.1",
+ "blockstore",
+ "celestia-proto",
  "celestia-tendermint",
  "celestia-tendermint-proto",
- "celestia-types 0.6.1",
+ "celestia-types",
  "cid",
  "dashmap 5.5.3",
  "futures",
@@ -4809,9 +4753,9 @@ name = "lumina-node-wasm"
 version = "0.5.2"
 dependencies = [
  "anyhow",
- "blockstore 0.7.0",
+ "blockstore",
  "celestia-tendermint",
- "celestia-types 0.6.1",
+ "celestia-types",
  "console_error_panic_hook",
  "enum-as-inner",
  "futures",
@@ -6233,7 +6177,7 @@ dependencies = [
  "base64 0.22.1",
  "bincode",
  "bls12_381 0.8.0",
- "celestia-types 0.4.0",
+ "celestia-types",
  "ed25519-consensus",
  "hex",
  "jmt",
@@ -6253,7 +6197,7 @@ dependencies = [
  "async-trait",
  "bincode",
  "celestia-rpc",
- "celestia-types 0.4.0",
+ "celestia-types",
  "ed25519-consensus",
  "hex",
  "log",
@@ -6387,7 +6331,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "celestia-rpc",
- "celestia-types 0.6.1",
+ "celestia-types",
  "hex",
  "js-sys",
  "libp2p",

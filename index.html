@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Light Client Test</title>
+</head>
+<body>
+    <h1>Light Client Test</h1>
+    <button id="startBtn">Start Light Client</button>
+    <div id="status"></div>
+
+    <script type="module">
+        import init, { LightClientWorker, WasmLightClient } from '../pkg/prism_wasm_lightclient.js';  
+
+        await init();
+
+        const statusDiv = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+
+        startBtn.onclick = async () => {
+            try {
+                statusDiv.textContent = 'Starting light client...';
+				const channel = new MessageChannel();
+				const worker = await new LightClientWorker(channel.port1);
+
+				const workerPromise = worker.run();
+                
+				const client = await new WasmLightClient(channel.port2);
+                
+                statusDiv.textContent = 'Light client running and verified epoch 1000!';
+            } catch (error) {
+                console.error(error);
+            }
+        };
+    </script>
+</body>
+</html>

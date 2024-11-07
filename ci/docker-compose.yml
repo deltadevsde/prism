@@ -26,6 +26,7 @@ services:
       - SKIP_AUTH=true
     ports:
       - 26658:26658
+      - 2121:2121
     volumes:
       - credentials:/credentials
       - genesis:/genesis
@@ -42,6 +43,7 @@ services:
       - NODE_ID=1
       # setting SKIP_AUTH to true disables the use of JWT for authentication
       - SKIP_AUTH=true
+      - CELESTIA_BOOTSTRAPPER=true
     ports:
       - 36658:26658
     volumes:

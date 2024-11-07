@@ -1,6 +1,5 @@
-use serde_wasm_bindgen::to_value;
 use wasm_bindgen::prelude::*;
-use web_sys::{console, MessagePort};
+use web_sys::MessagePort;
 
 use crate::{
     commands::{LightClientCommand, WorkerResponse},
@@ -18,16 +17,6 @@ impl WasmLightClient {
     #[wasm_bindgen(constructor)]
     pub async fn new(port: MessagePort) -> Result<WasmLightClient, JsError> {
         let worker = WorkerClient::new(port)?;
-
-        let response = worker.exec(LightClientCommand::InternalPing).await?; // ping to ensure connection?
-        console::log_2(
-            &"• Connected to worker ✔ Command:".into(),
-            &to_value(&response).map_err(|e| JsError::new(&e.to_string()))?,
-        );
-        if !matches!(response, WorkerResponse::InternalPong) {
-            return Err(JsError::new("Failed to connect to worker"));
-        }
-
         Ok(Self { worker })
     }
 

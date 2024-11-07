@@ -10,7 +10,8 @@ NODE_NAME="light-$NODE_ID"
 # a private local network
 P2P_NETWORK="private"
 # a light node configuration directory
-CONFIG_DIR="$CELESTIA_HOME/.celestia-light-$P2P_NETWORK"
+CONFIG_DIR="$CELESTIA_HOME"
+# "/.celestia-light-$P2P_NETWORK"
 # directory and the files shared with the validator node
 CREDENTIALS_DIR="/credentials"
 # node credentials

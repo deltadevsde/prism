@@ -5,10 +5,6 @@ use web_sys::{console, MessageEvent, MessagePort};
 
 use crate::commands::{LightClientCommand, WorkerResponse};
 
-pub enum ClientMessage {
-    Command(LightClientCommand),
-}
-
 struct ClientConnection {
     port: MessagePort,
     onmessage: Closure<dyn Fn(MessageEvent)>,
@@ -17,13 +13,13 @@ struct ClientConnection {
 impl ClientConnection {
     fn new(
         port: MessagePort,
-        server_tx: mpsc::UnboundedSender<ClientMessage>,
+        server_tx: mpsc::UnboundedSender<LightClientCommand>,
     ) -> Result<Self, JsError> {
         // We need the Closure because it's how we handle incoming messages from the MessagePort. It's basically our event handler.
         let onmessage = Closure::new(move |message_event: MessageEvent| {
             match from_value(message_event.data()) {
                 Ok(command) => {
-                    if let Err(e) = server_tx.send(ClientMessage::Command(command)) {
+                    if let Err(e) = server_tx.send(command) {
                         web_sys::console::error_1(&format!("Failed to send command: {}", e).into());
                     }
                 }
@@ -108,8 +104,8 @@ impl Drop for WorkerClient {
 // Doesn't need Mutex because it's designed to process one command at a time sequentially
 pub struct WorkerServer {
     connection: Option<ClientConnection>,
-    client_tx: mpsc::UnboundedSender<ClientMessage>,
-    client_rx: mpsc::UnboundedReceiver<ClientMessage>,
+    client_tx: mpsc::UnboundedSender<LightClientCommand>,
+    client_rx: mpsc::UnboundedReceiver<LightClientCommand>,
 }
 
 impl Default for WorkerServer {
@@ -137,10 +133,10 @@ impl WorkerServer {
     }
 
     pub async fn recv(&mut self) -> Result<LightClientCommand, JsError> {
-        match self.client_rx.recv().await {
-            Some(ClientMessage::Command(cmd)) => Ok(cmd),
-            None => Err(JsError::new("Channel closed")),
-        }
+        self.client_rx
+            .recv()
+            .await
+            .ok_or_else(|| JsError::new("Channel closed"))
     }
 
     pub fn respond(&self, response: WorkerResponse) {
