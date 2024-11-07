@@ -25,7 +25,9 @@ pub struct UncommittedTransaction<'a> {
 }
 
 impl UncommittedTransaction<'_> {
-    pub fn ex(self) -> Transaction {
+    /// Commits and returns a transaction, updating the builder. Subsequent transactions
+    /// built with the same builder will have the correct previous hash.
+    pub fn commit(self) -> Transaction {
         self.builder
             .tree
             .process_transaction(self.transaction.clone())
@@ -44,7 +46,9 @@ impl UncommittedTransaction<'_> {
         self.transaction
     }
 
-    pub fn op(self) -> Transaction {
+    /// Returns a transaction without updating the builder.
+    /// Can be used to create invalid transactions.
+    pub fn build(self) -> Transaction {
         self.transaction
     }
 }
