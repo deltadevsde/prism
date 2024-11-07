@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::{nmt::Namespace, Blob, TxConfig};
 use log::{debug, error, trace, warn};
-use prism_common::request::PendingRequest;
+use prism_common::transaction::Transaction;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -33,7 +33,7 @@ pub struct CelestiaConfig {
     pub connection_string: String,
     pub start_height: u64,
     pub snark_namespace_id: String,
-    pub request_namespace_id: Option<String>,
+    pub transaction_namespace_id: Option<String>,
 }
 
 impl Default for CelestiaConfig {
@@ -42,7 +42,7 @@ impl Default for CelestiaConfig {
             connection_string: "ws://localhost:26658".to_string(),
             start_height: 0,
             snark_namespace_id: "00000000000000de1008".to_string(),
-            request_namespace_id: Some("00000000000000de1009".to_string()),
+            transaction_namespace_id: Some("00000000000000de1009".to_string()),
         }
     }
 }
@@ -50,7 +50,7 @@ impl Default for CelestiaConfig {
 pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
     pub snark_namespace: Namespace,
-    pub request_namespace: Namespace,
+    pub transaction_namespace: Namespace,
 
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
@@ -68,7 +68,7 @@ impl CelestiaConnection {
             &config.snark_namespace_id
         ))?;
 
-        let request_namespace = match &config.request_namespace_id {
+        let transaction_namespace = match &config.transaction_namespace_id {
             Some(id) => create_namespace(id).context(format!(
                 "Failed to create operation namespace from: '{}'",
                 id
@@ -81,7 +81,7 @@ impl CelestiaConnection {
         Ok(CelestiaConnection {
             client,
             snark_namespace,
-            request_namespace,
+            transaction_namespace,
             height_update_tx,
             sync_target: Arc::new(AtomicU64::new(0)),
         })
@@ -168,26 +168,27 @@ impl DataAvailabilityLayer for CelestiaConnection {
             .map_err(|e| anyhow!(DataAvailabilityError::SubmissionError(e.to_string())))
     }
 
-    async fn get_requests(&self, height: u64) -> Result<Vec<PendingRequest>> {
+    async fn get_transactions(&self, height: u64) -> Result<Vec<Transaction>> {
         trace!("searching for operations on da layer at height {}", height);
-        let maybe_blobs = BlobClient::blob_get_all(&self.client, height, &[self.request_namespace])
-            .await
-            .map_err(|e| {
-                anyhow!(DataAvailabilityError::DataRetrievalError(
-                    height,
-                    format!("getting operations from da layer: {}", e)
-                ))
-            })?;
+        let maybe_blobs =
+            BlobClient::blob_get_all(&self.client, height, &[self.transaction_namespace])
+                .await
+                .map_err(|e| {
+                    anyhow!(DataAvailabilityError::DataRetrievalError(
+                        height,
+                        format!("getting operations from da layer: {}", e)
+                    ))
+                })?;
 
         let blobs = match maybe_blobs {
             Some(blobs) => blobs,
             None => return Ok(vec![]),
         };
 
-        let requests = blobs
+        let transactions = blobs
             .iter()
-            .filter_map(|blob| match PendingRequest::try_from(blob) {
-                Ok(request) => Some(request),
+            .filter_map(|blob| match Transaction::try_from(blob) {
+                Ok(transaction) => Some(transaction),
                 Err(e) => {
                     warn!(
                         "Failed to parse blob from height {} to operation: {:?}",
@@ -198,24 +199,27 @@ impl DataAvailabilityLayer for CelestiaConnection {
             })
             .collect();
 
-        Ok(requests)
+        Ok(transactions)
     }
 
-    async fn submit_requests(&self, requests: Vec<PendingRequest>) -> Result<u64> {
-        debug!("posting {} entries to DA layer", requests.len());
-        let blobs: Result<Vec<Blob>, _> = requests
+    async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<u64> {
+        debug!("posting {} transactions to DA layer", transactions.len());
+        let blobs: Result<Vec<Blob>, _> = transactions
             .iter()
-            .map(|request| {
-                let data = bincode::serialize(request)
-                    .context(format!("Failed to serialize entry {:?}", request))
+            .map(|transaction| {
+                let data = bincode::serialize(transaction)
+                    .context(format!("Failed to serialize transaction {:?}", transaction))
                     .map_err(|e| {
                         DataAvailabilityError::GeneralError(GeneralError::ParsingError(
                             e.to_string(),
                         ))
                     })?;
 
-                Blob::new(self.request_namespace, data)
-                    .context(format!("Failed to create blob for entry {:?}", request))
+                Blob::new(self.transaction_namespace, data)
+                    .context(format!(
+                        "Failed to create blob for transaction {:?}",
+                        transaction
+                    ))
                     .map_err(|e| {
                         DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(
                             e.to_string(),

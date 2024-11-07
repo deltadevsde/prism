@@ -8,8 +8,8 @@ use crate::{
     hasher::Hasher,
     keys::{SigningKey, VerifyingKey},
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
-    request::PendingRequest,
     test_utils::create_mock_signing_key,
+    transaction::Transaction,
     tree::{HashchainResponse::*, KeyDirectoryTree, SnarkableTree},
 };
 enum PostCommitAction {
@@ -18,17 +18,17 @@ enum PostCommitAction {
     RememberAccountKey(String, SigningKey),
 }
 
-pub struct UncommittedRequest<'a> {
-    request: PendingRequest,
-    builder: &'a mut RequestBuilder,
+pub struct UncommittedTransaction<'a> {
+    transaction: Transaction,
+    builder: &'a mut TransactionBuilder,
     post_commit_action: PostCommitAction,
 }
 
-impl UncommittedRequest<'_> {
-    pub fn ex(self) -> PendingRequest {
+impl UncommittedTransaction<'_> {
+    pub fn ex(self) -> Transaction {
         self.builder
             .tree
-            .process_entry(self.request.clone())
+            .process_transaction(self.transaction.clone())
             .expect("Processing operation should work");
 
         match self.post_commit_action {
@@ -41,15 +41,15 @@ impl UncommittedRequest<'_> {
             }
         }
 
-        self.request
+        self.transaction
     }
 
-    pub fn op(self) -> PendingRequest {
-        self.request
+    pub fn op(self) -> Transaction {
+        self.transaction
     }
 }
 
-pub struct RequestBuilder {
+pub struct TransactionBuilder {
     /// Simulated hashchain storage that is mutated when operations are applied
     tree: Box<dyn SnarkableTree>,
     /// Remembers private keys of services to simulate account creation via an external service
@@ -58,7 +58,7 @@ pub struct RequestBuilder {
     account_keys: HashMap<String, SigningKey>,
 }
 
-impl Default for RequestBuilder {
+impl Default for TransactionBuilder {
     fn default() -> Self {
         let store = Arc::new(MockTreeStore::default());
         let tree = Box::new(KeyDirectoryTree::new(store));
@@ -73,12 +73,12 @@ impl Default for RequestBuilder {
     }
 }
 
-impl RequestBuilder {
+impl TransactionBuilder {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn register_service_with_random_keys(&mut self, id: &str) -> UncommittedRequest {
+    pub fn register_service_with_random_keys(&mut self, id: &str) -> UncommittedTransaction {
         let random_service_challenge_key = create_mock_signing_key();
         let random_service_signing_key = create_mock_signing_key();
         self.register_service(id, random_service_challenge_key, random_service_signing_key)
@@ -89,7 +89,7 @@ impl RequestBuilder {
         id: &str,
         challenge_key: SigningKey,
         signing_key: SigningKey,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let entry = HashchainEntry::new_register_service(
             id.to_string(),
             ServiceChallenge::from(challenge_key.clone()),
@@ -97,8 +97,8 @@ impl RequestBuilder {
             &signing_key,
         );
 
-        UncommittedRequest {
-            request: PendingRequest {
+        UncommittedTransaction {
+            transaction: Transaction {
                 id: id.to_string(),
                 entry,
             },
@@ -111,7 +111,7 @@ impl RequestBuilder {
         &mut self,
         id: &str,
         service_id: &str,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let random_signing_key = create_mock_signing_key();
         self.create_account(id, service_id, random_signing_key)
     }
@@ -121,7 +121,7 @@ impl RequestBuilder {
         id: &str,
         service_id: &str,
         signing_key: SigningKey,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let Some(service_signing_key) = self.service_keys.get(service_id) else {
             panic!("No existing service found for {}", service_id)
         };
@@ -142,8 +142,8 @@ impl RequestBuilder {
             &signing_key,
         );
 
-        UncommittedRequest {
-            request: PendingRequest {
+        UncommittedTransaction {
+            transaction: Transaction {
                 id: id.to_string(),
                 entry,
             },
@@ -152,7 +152,7 @@ impl RequestBuilder {
         }
     }
 
-    pub fn add_random_key_verified_with_root(&mut self, id: &str) -> UncommittedRequest {
+    pub fn add_random_key_verified_with_root(&mut self, id: &str) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -165,7 +165,7 @@ impl RequestBuilder {
         id: &str,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let random_key = create_mock_signing_key().verifying_key();
         self.add_key(id, random_key, signing_key, key_idx)
     }
@@ -174,7 +174,7 @@ impl RequestBuilder {
         &mut self,
         id: &str,
         key: VerifyingKey,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -188,7 +188,7 @@ impl RequestBuilder {
         key: VerifyingKey,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let hashed_id = Digest::hash(id);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -198,8 +198,8 @@ impl RequestBuilder {
 
         let entry = HashchainEntry::new_add_key(key, hc.last_hash(), signing_key, key_idx);
 
-        UncommittedRequest {
-            request: PendingRequest {
+        UncommittedTransaction {
+            transaction: Transaction {
                 id: id.to_string(),
                 entry,
             },
@@ -212,7 +212,7 @@ impl RequestBuilder {
         &mut self,
         id: &str,
         key: VerifyingKey,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -226,7 +226,7 @@ impl RequestBuilder {
         key: VerifyingKey,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let hashed_id = Digest::hash(id);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -236,8 +236,8 @@ impl RequestBuilder {
 
         let entry = HashchainEntry::new_revoke_key(key, hc.last_hash(), signing_key, key_idx);
 
-        UncommittedRequest {
-            request: PendingRequest {
+        UncommittedTransaction {
+            transaction: Transaction {
                 id: id.to_string(),
                 entry,
             },
@@ -253,7 +253,7 @@ impl RequestBuilder {
         value_signature: SignatureBundle,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         self.add_data(id, value, Some(value_signature), signing_key, key_idx)
     }
 
@@ -262,7 +262,7 @@ impl RequestBuilder {
         id: &str,
         value: Vec<u8>,
         value_signature: SignatureBundle,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         self.add_data_verified_with_root(id, value, Some(value_signature))
     }
 
@@ -272,7 +272,7 @@ impl RequestBuilder {
         value: Vec<u8>,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         self.add_data(id, value, None, signing_key, key_idx)
     }
 
@@ -280,7 +280,7 @@ impl RequestBuilder {
         &mut self,
         id: &str,
         value: Vec<u8>,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         self.add_data_verified_with_root(id, value, None)
     }
 
@@ -289,7 +289,7 @@ impl RequestBuilder {
         id: &str,
         value: Vec<u8>,
         value_signature: Option<SignatureBundle>,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -304,7 +304,7 @@ impl RequestBuilder {
         data_signature: Option<SignatureBundle>,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedRequest {
+    ) -> UncommittedTransaction {
         let hashed_id = Digest::hash(id);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -320,8 +320,8 @@ impl RequestBuilder {
             key_idx,
         );
 
-        UncommittedRequest {
-            request: PendingRequest {
+        UncommittedTransaction {
+            transaction: Transaction {
                 id: id.to_string(),
                 entry,
             },

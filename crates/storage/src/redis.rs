@@ -208,6 +208,6 @@ impl Database for RedisConnection {
         let mut conn = self.lock_connection()?;
         redis::cmd("FLUSHALL")
             .query::<()>(&mut conn)
-            .map_err(|_| anyhow!(DatabaseError::DeleteError("all entries".to_string())))
+            .map_err(|_| anyhow!(DatabaseError::DeleteError("all transactions".to_string())))
     }
 }

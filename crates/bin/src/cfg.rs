@@ -212,12 +212,12 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
                     .map(|c| c.snark_namespace_id.clone())
                     .unwrap_or_else(|| CelestiaConfig::default().snark_namespace_id)
             }),
-            request_namespace_id: Some(args.operation_namespace_id.unwrap_or_else(|| {
+            transaction_namespace_id: Some(args.operation_namespace_id.unwrap_or_else(|| {
                 config
                     .celestia_config
                     .as_ref()
-                    .map(|c| c.request_namespace_id.clone())
-                    .unwrap_or_else(|| CelestiaConfig::default().request_namespace_id)
+                    .map(|c| c.transaction_namespace_id.clone())
+                    .unwrap_or_else(|| CelestiaConfig::default().transaction_namespace_id)
                     .unwrap()
             })),
         }),

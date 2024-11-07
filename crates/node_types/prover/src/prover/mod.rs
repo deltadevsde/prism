@@ -6,7 +6,7 @@ use prism_common::{
     digest::Digest,
     hashchain::Hashchain,
     hasher::Hasher,
-    request::PendingRequest,
+    transaction::Transaction,
     tree::{
         Batch,
         HashchainResponse::{self, *},
@@ -68,9 +68,9 @@ pub struct Prover {
 
     pub cfg: Config,
 
-    /// [`pending_requests`] is a buffer for entries that have not yet been
+    /// [`pending_transactions`] is a buffer for transactions that have not yet been
     /// posted to the DA layer.
-    pub pending_requests: Arc<RwLock<Vec<PendingRequest>>>,
+    pub pending_transactions: Arc<RwLock<Vec<Transaction>>>,
 
     /// [`tree`] is the representation of the JMT, prism's state tree. It is accessed via the [`db`].
     tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
@@ -113,7 +113,7 @@ impl Prover {
             verifying_key: vk,
             prover_client: Arc::new(RwLock::new(prover_client)),
             tree,
-            pending_requests: Arc::new(RwLock::new(Vec::new())),
+            pending_transactions: Arc::new(RwLock::new(Vec::new())),
         })
     }
 
@@ -177,11 +177,11 @@ impl Prover {
         }
 
         // TODO: Should be persisted in database for crash recovery
-        let mut buffered_requests: VecDeque<PendingRequest> = VecDeque::new();
+        let mut buffered_transactions: VecDeque<Transaction> = VecDeque::new();
         let mut current_height = start_height;
 
         while current_height <= end_height {
-            self.process_da_height(current_height, &mut buffered_requests, false).await?;
+            self.process_da_height(current_height, &mut buffered_transactions, false).await?;
             // TODO: Race between set_epoch and set_last_synced_height
             self.db.set_last_synced_height(&current_height)?;
             current_height += 1;
@@ -201,7 +201,7 @@ impl Prover {
                     height
                 ));
             }
-            self.process_da_height(height, &mut buffered_requests, true).await?;
+            self.process_da_height(height, &mut buffered_transactions, true).await?;
             current_height += 1;
             // TODO: Race between set_epoch and set_last_synced_height - updating these should be a single atomic operation
             self.db.set_last_synced_height(&current_height)?;
@@ -211,12 +211,12 @@ impl Prover {
     async fn process_da_height(
         &self,
         height: u64,
-        buffered_requests: &mut VecDeque<PendingRequest>,
+        buffered_transactions: &mut VecDeque<Transaction>,
         is_real_time: bool,
     ) -> Result<()> {
         let current_epoch = self.db.get_epoch()?;
 
-        let requests = self.da.get_requests(height).await?;
+        let transactions = self.da.get_transactions(height).await?;
         let epoch_result = self.da.get_finalized_epoch(height).await?;
 
         debug!(
@@ -228,20 +228,20 @@ impl Prover {
 
         if let Some(epoch) = epoch_result {
             // run all buffered operations from the last celestia blocks and increment current_epoch
-            self.process_epoch(epoch, buffered_requests).await?;
+            self.process_epoch(epoch, buffered_transactions).await?;
         } else {
             debug!("No operations to process at height {}", height);
         }
 
-        if is_real_time && !buffered_requests.is_empty() && self.cfg.prover {
-            let all_requests: Vec<PendingRequest> = buffered_requests.drain(..).collect();
-            self.finalize_new_epoch(current_epoch, all_requests).await?;
+        if is_real_time && !buffered_transactions.is_empty() && self.cfg.prover {
+            let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
+            self.finalize_new_epoch(current_epoch, all_transactions).await?;
         }
 
         // If there are new operations at this height, add them to the queue to
         // be included in the next finalized epoch.
-        if !requests.is_empty() {
-            buffered_requests.extend(requests);
+        if !transactions.is_empty() {
+            buffered_transactions.extend(transactions);
         }
 
         Ok(())
@@ -250,7 +250,7 @@ impl Prover {
     async fn process_epoch(
         &self,
         epoch: FinalizedEpoch,
-        buffered_requests: &mut VecDeque<PendingRequest>,
+        buffered_transactions: &mut VecDeque<Transaction>,
     ) -> Result<()> {
         let mut current_epoch = self.db.get_epoch()?;
 
@@ -279,9 +279,9 @@ impl Prover {
             ));
         }
 
-        let all_requests: Vec<PendingRequest> = buffered_requests.drain(..).collect();
-        if !all_requests.is_empty() {
-            self.execute_block(all_requests).await?;
+        let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
+        if !all_transactions.is_empty() {
+            self.execute_block(all_transactions).await?;
         }
 
         let new_commitment = self.get_commitment().await?;
@@ -304,17 +304,20 @@ impl Prover {
         Ok(())
     }
 
-    async fn execute_block(&self, requests: Vec<PendingRequest>) -> Result<Vec<Proof>> {
-        debug!("executing block with {} requests", requests.len());
+    async fn execute_block(&self, transactions: Vec<Transaction>) -> Result<Vec<Proof>> {
+        debug!("executing block with {} transactions", transactions.len());
 
         let mut proofs = Vec::new();
 
-        for request in requests {
-            match self.process_request(request.clone()).await {
+        for transaction in transactions {
+            match self.process_transaction(transaction.clone()).await {
                 Ok(proof) => proofs.push(proof),
                 Err(e) => {
                     // Log the error and continue with the next operation
-                    warn!("Failed to process operation: {:?}. Error: {}", request, e);
+                    warn!(
+                        "Failed to process operation: {:?}. Error: {}",
+                        transaction, e
+                    );
                 }
             }
         }
@@ -325,11 +328,11 @@ impl Prover {
     async fn finalize_new_epoch(
         &self,
         epoch_height: u64,
-        requests: Vec<PendingRequest>,
+        transactions: Vec<Transaction>,
     ) -> Result<()> {
         let prev_commitment = self.get_commitment().await?;
 
-        let proofs = self.execute_block(requests).await?;
+        let proofs = self.execute_block(transactions).await?;
 
         let new_commitment = self.get_commitment().await?;
 
@@ -395,16 +398,16 @@ impl Prover {
             trace!("received height {}", height);
 
             // Get pending operations
-            let pending_requests = {
-                let mut ops = self.pending_requests.write().await;
+            let pending_transactions = {
+                let mut ops = self.pending_transactions.write().await;
                 std::mem::take(&mut *ops)
             };
 
-            let op_count = pending_requests.len();
+            let op_count = pending_transactions.len();
 
             // If there are pending operations, submit them
-            if !pending_requests.clone().is_empty() {
-                match self.da.submit_requests(pending_requests).await {
+            if !pending_transactions.clone().is_empty() {
+                match self.da.submit_transactions(pending_transactions).await {
                     Ok(submitted_height) => {
                         info!(
                             "post_batch_loop: submitted {} operations at height {}",
@@ -437,36 +440,39 @@ impl Prover {
         tree.get(key_hash)
     }
 
-    /// Updates the state from an already verified pending entry.
-    async fn process_request(&self, request: PendingRequest) -> Result<Proof> {
+    /// Updates the state from an already verified pending transaction.
+    async fn process_transaction(&self, transaction: Transaction) -> Result<Proof> {
         let mut tree = self.tree.write().await;
-        tree.process_entry(request)
+        tree.process_transaction(transaction)
     }
 
     /// Adds an operation to be posted to the DA layer and applied in the next epoch.
-    pub async fn validate_and_queue_update(self: Arc<Self>, request: PendingRequest) -> Result<()> {
+    pub async fn validate_and_queue_update(
+        self: Arc<Self>,
+        transaction: Transaction,
+    ) -> Result<()> {
         if !self.cfg.batcher {
             bail!("Batcher is disabled, cannot queue operations");
         }
 
         // validate against existing hashchain if necessary, including signature checks
-        match request.entry.operation {
+        match transaction.entry.operation {
             Operation::RegisterService { .. } | Operation::CreateAccount { .. } => {
-                Hashchain::empty().add_entry(request.entry.clone())?
+                Hashchain::empty().add_entry(transaction.entry.clone())?
             }
             Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
-                let hc_response = self.get_hashchain(&request.id).await?;
+                let hc_response = self.get_hashchain(&transaction.id).await?;
 
                 let Found(mut hc, _) = hc_response else {
-                    bail!("Hashchain not found for id: {}", request.id)
+                    bail!("Hashchain not found for id: {}", transaction.id)
                 };
 
-                hc.add_entry(request.entry.clone())?;
+                hc.add_entry(transaction.entry.clone())?;
             }
         };
 
-        let mut pending = self.pending_requests.write().await;
-        pending.push(request);
+        let mut pending = self.pending_transactions.write().await;
+        pending.push(transaction);
         Ok(())
     }
 }

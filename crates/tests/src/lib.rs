@@ -5,7 +5,7 @@ extern crate log;
 
 use anyhow::Result;
 use keystore_rs::create_signing_key;
-use prism_common::test_ops::RequestBuilder;
+use prism_common::test_ops::TransactionBuilder;
 use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
     DataAvailabilityLayer,
@@ -76,9 +76,9 @@ async fn test_light_client_prover_talking() -> Result<()> {
     spawn(async move {
         let mut rng = StdRng::from_entropy();
 
-        let mut request_builder = RequestBuilder::new();
+        let mut transaction_builder = TransactionBuilder::new();
         let register_service_req =
-            request_builder.register_service_with_random_keys("test_service").ex();
+            transaction_builder.register_service_with_random_keys("test_service").ex();
 
         let mut i = 0;
 
@@ -90,7 +90,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
             let num_new_accounts = rng.gen_range(1..=3);
             for _ in 0..num_new_accounts {
                 let random_user_id = format!("{}@gmail.com", i);
-                let new_acc = request_builder
+                let new_acc = transaction_builder
                     .create_account_with_random_key(random_user_id.as_str(), "test_service")
                     .ex();
                 match prover.clone().validate_and_queue_update(new_acc).await {
@@ -109,7 +109,8 @@ async fn test_light_client_prover_talking() -> Result<()> {
                         .get(rng.gen_range(0..added_account_ids.len()))
                         .map_or("Could not find random account id", |id| id.as_str());
 
-                    let update_acc = request_builder.add_random_key_verified_with_root(acc_id).ex();
+                    let update_acc =
+                        transaction_builder.add_random_key_verified_with_root(acc_id).ex();
 
                     match prover.clone().validate_and_queue_update(update_acc).await {
                         Ok(_) => (),

@@ -14,7 +14,7 @@ use crate::{
     hashchain::{Hashchain, HashchainEntry},
     hasher::Hasher,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput},
-    request::PendingRequest,
+    transaction::Transaction,
 };
 
 use HashchainResponse::*;
@@ -139,7 +139,7 @@ pub enum HashchainResponse {
 }
 
 pub trait SnarkableTree: Send + Sync {
-    fn process_entry(&mut self, request: PendingRequest) -> Result<Proof>;
+    fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof>;
     fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof>;
     fn update(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<UpdateProof>;
     fn get(&self, key: KeyHash) -> Result<HashchainResponse>;
@@ -224,14 +224,14 @@ impl<S> SnarkableTree for KeyDirectoryTree<S>
 where
     S: Send + Sync + TreeReader + TreeWriter,
 {
-    fn process_entry(&mut self, request: PendingRequest) -> Result<Proof> {
-        match &request.entry.operation {
+    fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof> {
+        match &transaction.entry.operation {
             Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
-                let hashed_id = Digest::hash(&request.id);
+                let hashed_id = Digest::hash(&transaction.id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
-                debug!("updating hashchain for user id {}", request.id);
-                let proof = self.update(key_hash, request.entry)?;
+                debug!("updating hashchain for user id {}", transaction.id);
+                let proof = self.update(key_hash, transaction.entry)?;
 
                 Ok(Proof::Update(Box::new(proof)))
             }
@@ -242,8 +242,8 @@ where
                 key,
             } => {
                 ensure!(
-                    request.id == id.as_str(),
-                    "Id of request needs to be equal to operation id"
+                    transaction.id == id.as_str(),
+                    "Id of transaction needs to be equal to operation id"
                 );
 
                 let hashed_id = Digest::hash(id);
@@ -285,13 +285,13 @@ where
 
                 debug!("creating new hashchain for user ID {}", id);
 
-                let insert_proof = self.insert(account_key_hash, request.entry)?;
+                let insert_proof = self.insert(account_key_hash, transaction.entry)?;
                 Ok(Proof::Insert(Box::new(insert_proof)))
             }
             Operation::RegisterService { id, .. } => {
                 ensure!(
-                    request.id == id.as_str(),
-                    "Id of request needs to be equal to operation id"
+                    transaction.id == id.as_str(),
+                    "Id of transaction needs to be equal to operation id"
                 );
 
                 let hashed_id = Digest::hash(id);
@@ -299,7 +299,7 @@ where
 
                 debug!("creating new hashchain for service id {}", id);
 
-                let insert_proof = self.insert(key_hash, request.entry)?;
+                let insert_proof = self.insert(key_hash, transaction.entry)?;
                 Ok(Proof::Insert(Box::new(insert_proof)))
             }
         }

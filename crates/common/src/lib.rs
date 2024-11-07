@@ -3,7 +3,7 @@ pub mod hashchain;
 pub mod hasher;
 pub mod keys;
 pub mod operation;
-pub mod request;
+pub mod transaction;
 pub mod tree;
 
 #[macro_use]

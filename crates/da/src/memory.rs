@@ -2,7 +2,7 @@ use crate::{DataAvailabilityLayer, FinalizedEpoch};
 use anyhow::Result;
 use async_trait::async_trait;
 use log::debug;
-use prism_common::request::PendingRequest;
+use prism_common::transaction::Transaction;
 use std::{collections::VecDeque, sync::Arc};
 use tokio::{
     sync::{broadcast, RwLock},
@@ -12,14 +12,14 @@ use tokio::{
 #[derive(Clone, Debug)]
 pub struct Block {
     pub height: u64,
-    pub requests: Vec<PendingRequest>,
+    pub transactions: Vec<Transaction>,
     pub epoch: Option<FinalizedEpoch>,
 }
 
 #[derive(Clone)]
 pub struct InMemoryDataAvailabilityLayer {
     blocks: Arc<RwLock<Vec<Block>>>,
-    pending_requests: Arc<RwLock<Vec<PendingRequest>>>,
+    pending_transactions: Arc<RwLock<Vec<Transaction>>>,
     pending_epochs: Arc<RwLock<VecDeque<FinalizedEpoch>>>,
     latest_height: Arc<RwLock<u64>>,
     height_update_tx: broadcast::Sender<u64>,
@@ -34,7 +34,7 @@ impl InMemoryDataAvailabilityLayer {
         (
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
-                pending_requests: Arc::new(RwLock::new(Vec::new())),
+                pending_transactions: Arc::new(RwLock::new(Vec::new())),
                 pending_epochs: Arc::new(RwLock::new(VecDeque::new())),
                 latest_height: Arc::new(RwLock::new(0)),
                 height_update_tx: height_tx,
@@ -51,20 +51,20 @@ impl InMemoryDataAvailabilityLayer {
         loop {
             interval.tick().await;
             let mut blocks = self.blocks.write().await;
-            let mut pending_requests = self.pending_requests.write().await;
+            let mut pending_transactions = self.pending_transactions.write().await;
             let mut pending_epochs = self.pending_epochs.write().await;
             let mut latest_height = self.latest_height.write().await;
 
             *latest_height += 1;
             let new_block = Block {
                 height: *latest_height,
-                requests: std::mem::take(&mut *pending_requests),
+                transactions: std::mem::take(&mut *pending_transactions),
                 epoch: pending_epochs.pop_front(),
             };
             debug!(
-                "new block produced at height {} with {} entries",
+                "new block produced at height {} with {} transactions",
                 new_block.height,
-                new_block.requests.len(),
+                new_block.transactions.len(),
             );
             blocks.push(new_block.clone());
 
@@ -108,18 +108,18 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         self.get_latest_height().await
     }
 
-    async fn get_requests(&self, height: u64) -> Result<Vec<PendingRequest>> {
+    async fn get_transactions(&self, height: u64) -> Result<Vec<Transaction>> {
         let blocks = self.blocks.read().await;
         Ok(blocks
             .iter()
             .find(|block| block.height == height)
-            .map(|block| block.requests.clone())
+            .map(|block| block.transactions.clone())
             .unwrap_or_default())
     }
 
-    async fn submit_requests(&self, entries: Vec<PendingRequest>) -> Result<u64> {
-        let mut pending_requests = self.pending_requests.write().await;
-        pending_requests.extend(entries);
+    async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<u64> {
+        let mut pending_transactions = self.pending_transactions.write().await;
+        pending_transactions.extend(transactions);
         self.get_latest_height().await
     }
 
