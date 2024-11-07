@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import init, { LightClientWorker, WasmLightClient } from "../../pkg/prism_wasm_lightclient.js";
-import OperationSubmitter from './components/OperationSubmitter.js';
+/* import OperationSubmitter from './components/OperationSubmitter.js'; */
 
 function App() {
   const [status, setStatus] = useState('Not started')
@@ -76,7 +76,7 @@ function App() {
           Verify Random Epoch
         </button> */}
       </div>
-      {client && <OperationSubmitter />}
+      {/* client && <OperationSubmitter /> */}
     </div>
   )
 }
