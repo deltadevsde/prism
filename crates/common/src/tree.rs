@@ -11,12 +11,9 @@ use std::{convert::Into, sync::Arc};
 
 use crate::{
     digest::Digest,
-    hashchain::Hashchain,
+    hashchain::{Hashchain, HashchainEntry},
     hasher::Hasher,
-    operation::{
-        AddDataArgs, CreateAccountArgs, KeyOperationArgs, Operation, RegisterServiceArgs,
-        ServiceChallenge, ServiceChallengeInput,
-    },
+    operation::{Operation, ServiceChallenge, ServiceChallengeInput},
 };
 
 use HashchainResponse::*;
@@ -72,14 +69,14 @@ pub struct InsertProof {
 
     pub new_root: Digest,
     pub membership_proof: SparseMerkleProof<Hasher>,
-    pub insertion_op: Operation,
+    pub new_entry: HashchainEntry,
 }
 
 impl InsertProof {
     pub fn verify(&self) -> Result<()> {
         self.non_membership_proof.verify().context("Invalid NonMembershipProof")?;
 
-        let hashchain = Hashchain::from_operation(self.insertion_op.clone())?;
+        let hashchain = Hashchain::from_entry(self.new_entry.clone())?;
         let serialized_hashchain = bincode::serialize(&hashchain)?;
 
         self.membership_proof.clone().verify_existence(
@@ -99,7 +96,7 @@ pub struct UpdateProof {
 
     pub key: KeyHash,
     pub old_hashchain: Hashchain,
-    pub update_op: Operation,
+    pub new_entry: HashchainEntry,
 
     /// Inclusion proof of [`old_value`]
     pub inclusion_proof: SparseMerkleProof<Hasher>,
@@ -116,7 +113,7 @@ impl UpdateProof {
 
         let mut hashchain_after_update = self.old_hashchain.clone();
         // Append the new entry and verify it's validity
-        hashchain_after_update.perform_operation(self.update_op.clone())?;
+        hashchain_after_update.add_entry(self.new_entry.clone())?;
 
         // Ensure the update proof corresponds to the new hashchain value
         let new_serialized_hashchain = bincode::serialize(&hashchain_after_update)?;
@@ -140,10 +137,11 @@ pub enum HashchainResponse {
     NotFound(NonMembershipProof),
 }
 
-pub trait SnarkableTree {
-    fn process_operation(&mut self, operation: &Operation) -> Result<Proof>;
-    fn insert(&mut self, key: KeyHash, initial_op: Operation) -> Result<InsertProof>;
-    fn update(&mut self, key: KeyHash, update_op: Operation) -> Result<UpdateProof>;
+pub trait SnarkableTree: Send + Sync {
+    // fn process_operation(&mut self, operation: &Operation) -> Result<Proof>;
+    fn process_entry(&mut self, id: &str, entry: HashchainEntry) -> Result<Proof>;
+    fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof>;
+    fn update(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<UpdateProof>;
     fn get(&self, key: KeyHash) -> Result<HashchainResponse>;
 }
 
@@ -224,27 +222,25 @@ where
 
 impl<S> SnarkableTree for KeyDirectoryTree<S>
 where
-    S: TreeReader + TreeWriter,
+    S: Send + Sync + TreeReader + TreeWriter,
 {
-    fn process_operation(&mut self, operation: &Operation) -> Result<Proof> {
-        match operation {
-            Operation::AddKey(KeyOperationArgs { id, .. })
-            | Operation::RevokeKey(KeyOperationArgs { id, .. })
-            | Operation::AddData(AddDataArgs { id, .. }) => {
+    fn process_entry(&mut self, id: &str, entry: HashchainEntry) -> Result<Proof> {
+        match &entry.operation {
+            Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
                 let hashed_id = Digest::hash(id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
-                debug!("updating hashchain for user id {}", id.clone());
-                let proof = self.update(key_hash, operation.clone())?;
+                debug!("updating hashchain for user id {}", id);
+                let proof = self.update(key_hash, entry)?;
 
                 Ok(Proof::Update(Box::new(proof)))
             }
-            Operation::CreateAccount(CreateAccountArgs {
+            Operation::CreateAccount {
                 id,
                 service_id,
                 challenge,
-                ..
-            }) => {
+                key,
+            } => {
                 let hashed_id = Digest::hash(id);
                 let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -267,38 +263,39 @@ where
                 };
 
                 let creation_gate = match &service_last_entry.operation {
-                    Operation::RegisterService(args) => &args.creation_gate,
+                    Operation::RegisterService { creation_gate, .. } => creation_gate,
                     _ => {
                         bail!("Service hashchain's last entry was not a RegisterService operation")
                     }
                 };
 
-                let ServiceChallenge::Signed(service_pubkey) = creation_gate;
+                // Hash and sign credentials that have been signed by the external service
+                let hash =
+                    Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &key.as_bytes()]);
 
+                let ServiceChallenge::Signed(service_pubkey) = creation_gate;
                 let ServiceChallengeInput::Signed(challenge_signature) = &challenge;
-                service_pubkey.verify_signature(
-                    &bincode::serialize(&operation.without_challenge())?,
-                    challenge_signature,
-                )?;
+
+                service_pubkey.verify_signature(&hash.to_bytes(), challenge_signature)?;
 
                 debug!("creating new hashchain for user ID {}", id);
 
-                let insert_proof = self.insert(account_key_hash, operation.clone())?;
+                let insert_proof = self.insert(account_key_hash, entry)?;
                 Ok(Proof::Insert(Box::new(insert_proof)))
             }
-            Operation::RegisterService(RegisterServiceArgs { id, .. }) => {
+            Operation::RegisterService { .. } => {
                 let hashed_id = Digest::hash(id);
                 let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
                 debug!("creating new hashchain for service id {}", id);
 
-                let insert_proof = self.insert(key_hash, operation.clone())?;
+                let insert_proof = self.insert(key_hash, entry)?;
                 Ok(Proof::Insert(Box::new(insert_proof)))
             }
         }
     }
 
-    fn insert(&mut self, key: KeyHash, insertion_op: Operation) -> Result<InsertProof> {
+    fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof> {
         let old_root = self.get_current_root()?;
         let (None, non_membership_merkle_proof) = self.jmt.get_with_proof(key, self.epoch)? else {
             bail!("Key already exists");
@@ -310,7 +307,7 @@ where
             key,
         };
 
-        let hashchain = Hashchain::from_operation(insertion_op.clone())?;
+        let hashchain = Hashchain::from_entry(entry.clone())?;
         let serialized_hashchain = Self::serialize_value(&hashchain)?;
 
         // the update proof just contains another nm proof
@@ -324,13 +321,13 @@ where
 
         Ok(InsertProof {
             new_root: new_root.into(),
-            insertion_op,
+            new_entry: entry,
             non_membership_proof,
             membership_proof,
         })
     }
 
-    fn update(&mut self, key: KeyHash, update_op: Operation) -> Result<UpdateProof> {
+    fn update(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<UpdateProof> {
         let old_root = self.get_current_root()?;
         let (Some(old_serialized_hashchain), inclusion_proof) =
             self.jmt.get_with_proof(key, self.epoch)?
@@ -341,7 +338,7 @@ where
         let old_hashchain: Hashchain = bincode::deserialize(old_serialized_hashchain.as_slice())?;
 
         let mut new_hashchain = old_hashchain.clone();
-        new_hashchain.perform_operation(update_op.clone())?;
+        new_hashchain.add_entry(entry.clone())?;
 
         let serialized_value = Self::serialize_value(&new_hashchain)?;
 
@@ -359,7 +356,7 @@ where
             old_hashchain,
             key,
             update_proof,
-            update_op,
+            new_entry: entry,
         })
     }
 
