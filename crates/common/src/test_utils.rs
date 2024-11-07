@@ -3,7 +3,7 @@ use crate::{
     hashchain::Hashchain,
     hasher::Hasher,
     keys::{SigningKey, VerifyingKey},
-    operation::{Operation, ServiceChallenge, SignatureBundle},
+    operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     tree::{
         HashchainResponse::*, InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof,
     },
@@ -26,12 +26,13 @@ use std::{
 pub struct TestTreeState {
     pub tree: KeyDirectoryTree<MockTreeStore>,
     pub signing_keys: HashMap<String, SigningKey>,
-    inserted_keys: HashSet<KeyHash>,
+    inserted_keys: HashSet<String>,
     pub services: HashMap<String, Service>,
 }
 
 #[derive(Clone)]
 pub struct TestAccount {
+    pub id: String,
     pub key_hash: KeyHash,
     pub hashchain: Hashchain,
 }
@@ -50,58 +51,89 @@ impl TestTreeState {
     }
 
     pub fn register_service(&mut self, service_id: String) -> Service {
-        let service_key = create_mock_signing_key();
+        let service_challenge_key = create_mock_signing_key();
+        let service_signing_key = create_mock_signing_key();
 
-        let hashchain = Hashchain::from_operation(Operation::new_register_service(
-            service_id.clone(),
-            ServiceChallenge::from(service_key.clone()),
-        ))
-        .unwrap();
+        let mut hashchain = Hashchain::empty();
 
-        let key_hash = hashchain.get_keyhash();
+        hashchain
+            .register_service(
+                service_id.clone(),
+                ServiceChallenge::from(service_challenge_key.clone()),
+                service_signing_key.verifying_key(),
+                &service_signing_key,
+            )
+            .unwrap();
+
+        let hashed_id = Digest::hash(&service_id);
+        let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
         Service {
-            id: service_id,
-            sk: service_key.clone(),
-            vk: service_key.verifying_key(),
+            id: service_id.clone(),
+            sk: service_challenge_key.clone(),
+            vk: service_challenge_key.verifying_key(),
             registration: TestAccount {
+                id: service_id,
                 key_hash,
                 hashchain,
             },
         }
     }
 
-    pub fn create_account(&mut self, key: String, service: Service) -> TestAccount {
+    pub fn create_account(&mut self, id: String, service: Service) -> TestAccount {
         let signing_key = create_mock_signing_key();
-        self.signing_keys.insert(key.clone(), signing_key.clone());
-        let hashchain = create_new_hashchain(key.as_str(), &signing_key, service);
-        let key_hash = hashchain.get_keyhash();
+        self.signing_keys.insert(id.clone(), signing_key.clone());
+
+        // Simulate some external service signing account creation credentials
+        let hash = Digest::hash_items(&[
+            id.as_bytes(),
+            service.id.as_bytes(),
+            &signing_key.verifying_key().as_bytes(),
+        ]);
+        let signature = service.sk.sign(&hash.to_bytes());
+
+        let mut hashchain = Hashchain::empty();
+        hashchain
+            .create_account(
+                id.clone(),
+                service.id.clone(),
+                ServiceChallengeInput::Signed(signature),
+                signing_key.verifying_key(),
+                &signing_key,
+            )
+            .unwrap();
+
+        let hashed_id = Digest::hash(&id);
+        let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
         TestAccount {
+            id,
             key_hash,
             hashchain,
         }
     }
 
     pub fn insert_account(&mut self, account: TestAccount) -> Result<InsertProof> {
-        if self.inserted_keys.contains(&account.key_hash) {
-            return Err(anyhow!("{:?} already contained in tree", account.key_hash));
+        if self.inserted_keys.contains(&account.id) {
+            return Err(anyhow!("{:?} already contained in tree", account.id));
         }
 
-        let proof = self.tree.process_operation(&account.hashchain.last().unwrap().operation)?;
+        let proof =
+            self.tree.process_entry(&account.id, account.hashchain.last().unwrap().clone())?;
         if let Proof::Insert(insert_proof) = proof {
-            self.inserted_keys.insert(account.key_hash);
+            self.inserted_keys.insert(account.id);
             return Ok(*insert_proof);
         }
         Err(anyhow!("Insert proof not returned"))
     }
 
     pub fn update_account(&mut self, account: TestAccount) -> Result<UpdateProof> {
-        if !self.inserted_keys.contains(&account.key_hash) {
-            return Err(anyhow!("{:?} not found in tree", account.key_hash));
+        if !self.inserted_keys.contains(&account.id) {
+            return Err(anyhow!("{:?} not found in tree", account.id));
         }
 
-        let proof = self.tree.process_operation(&account.hashchain.last().unwrap().operation)?;
+        let proof =
+            self.tree.process_entry(&account.id, account.hashchain.last().unwrap().clone())?;
         if let Proof::Update(update_proof) = proof {
             return Ok(*update_proof);
         }
@@ -111,15 +143,11 @@ impl TestTreeState {
     pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {
         let signing_key_to_add = create_mock_signing_key();
         let key_to_add = signing_key_to_add.verifying_key();
-        let op = Operation::new_add_key(
-            account.hashchain.id.clone(),
-            key_to_add.clone(),
-            account.hashchain.last_hash(),
-            self.signing_keys.get(&account.hashchain.id).unwrap(),
-            0,
-        )?;
 
-        account.hashchain.perform_operation(op).unwrap();
+        account
+            .hashchain
+            .add_key(key_to_add, self.signing_keys.get(&account.id).unwrap(), 0)
+            .unwrap();
         Ok(())
     }
 
@@ -151,20 +179,9 @@ impl TestTreeState {
             signature: sk.sign(data),
         });
 
-        let op_signing_key = self.signing_keys.get(&account.hashchain.id).unwrap();
+        let signing_key = self.signing_keys.get(&account.id).unwrap();
 
-        let prev_hash = account.hashchain.last_hash();
-
-        let op = Operation::new_add_signed_data(
-            account.hashchain.id.clone(),
-            data.to_vec(),
-            signature_bundle,
-            prev_hash,
-            op_signing_key,
-            0,
-        )?;
-
-        account.hashchain.perform_operation(op).unwrap();
+        account.hashchain.add_data(data.to_vec(), signature_bundle, signing_key, 0)?;
         Ok(())
     }
 }
@@ -191,20 +208,30 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
         let (_, service) =
             state.services.iter().nth(rng.gen_range(0..state.services.len())).unwrap();
 
-        let operation = Operation::new_create_account(
-            random_string.clone(),
-            &sk,
-            service.id.clone(),
-            &service.sk,
-        )
-        .expect("Creating account operation should succeed");
+        // Simulate some external service signing account creation credentials
+        let hash = Digest::hash_items(&[
+            random_string.as_bytes(),
+            service.id.as_bytes(),
+            &sk.verifying_key().as_bytes(),
+        ]);
+        let signature = service.sk.sign(&hash.to_bytes());
 
         let hashed_id = Digest::hash(&random_string);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
-        if !state.inserted_keys.contains(&key_hash) {
-            let proof = state.tree.insert(key_hash, operation).expect("Insert should succeed");
-            state.inserted_keys.insert(key_hash);
+        let entry = Hashchain::empty()
+            .create_account(
+                random_string.clone(),
+                service.id.clone(),
+                ServiceChallengeInput::Signed(signature),
+                sk.verifying_key(),
+                &sk,
+            )
+            .unwrap();
+
+        if !state.inserted_keys.contains(&random_string) {
+            let proof = state.tree.insert(key_hash, entry).expect("Insert should succeed");
+            state.inserted_keys.insert(random_string.clone());
             state.signing_keys.insert(random_string, sk);
             return proof;
         }
@@ -216,9 +243,12 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         panic!("No keys have been inserted yet. Cannot perform update.");
     }
 
-    let key = *state.inserted_keys.iter().nth(rng.gen_range(0..state.inserted_keys.len())).unwrap();
+    let key = state.inserted_keys.iter().nth(rng.gen_range(0..state.inserted_keys.len())).unwrap();
 
-    let Found(hc, _) = state.tree.get(key).unwrap() else {
+    let hashed_id = Digest::hash(key);
+    let key_hash = KeyHash::with::<Hasher>(hashed_id);
+
+    let Found(mut hc, _) = state.tree.get(key_hash).unwrap() else {
         panic!("No response found for key. Cannot perform update.");
     };
 
@@ -227,21 +257,14 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
 
     let signer = state
         .signing_keys
-        .get(&hc.id)
+        .get(key)
         .ok_or_else(|| anyhow::anyhow!("Signing key not found for hashchain"))
         .unwrap();
 
-    let operation = Operation::new_add_key(
-        hc.id.clone(),
-        verifying_key.clone(),
-        hc.last_hash(),
-        signer,
-        0,
-    )
-    .unwrap();
+    let entry = hc.add_key(verifying_key, signer, 0).unwrap();
 
     let Proof::Update(update_proof) =
-        state.tree.process_operation(&operation).expect("Processing operation should succeed")
+        state.tree.process_entry(key, entry).expect("Processing operation should succeed")
     else {
         panic!("No update proof returned.");
     };
@@ -257,10 +280,4 @@ pub fn create_mock_signing_key() -> SigningKey {
 #[cfg(feature = "secp256k1")]
 pub fn create_mock_signing_key() -> SigningKey {
     SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng))
-}
-
-pub fn create_new_hashchain(id: &str, signing_key: &SigningKey, service: Service) -> Hashchain {
-    let op = Operation::new_create_account(id.to_string(), signing_key, service.id, &service.sk)
-        .unwrap();
-    Hashchain::from_operation(op.clone()).unwrap()
 }
