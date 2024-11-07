@@ -107,7 +107,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
                 for _ in 0..5 {
                     let acc_id = added_account_ids
                         .get(rng.gen_range(0..added_account_ids.len()))
-                        .map_or("Problem", |id| id.as_str());
+                        .map_or("Could not find random account id", |id| id.as_str());
 
                     let update_acc = request_builder.add_random_key_verified_with_root(acc_id).ex();
 

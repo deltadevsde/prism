@@ -190,12 +190,12 @@ impl Hashchain {
         match entry.operation {
             Operation::CreateAccount { .. } | Operation::RegisterService { .. } => {
                 if !self.entries.is_empty() {
-                    bail!("Operation {} must be the first entry", &entry.operation);
+                    bail!("CreateAccount/RegisterService must be the first entry");
                 }
             }
             Operation::AddData { .. } | Operation::AddKey { .. } | Operation::RevokeKey { .. } => {
                 if self.entries.is_empty() {
-                    bail!("Operation {} must not be the first entry", &entry.operation);
+                    bail!("CreateAccount/RegisterService must be the first entry");
                 }
 
                 if self.is_key_invalid(verifying_key) {
@@ -337,8 +337,7 @@ impl HashchainEntry {
     pub fn validate_hash(&self) -> Result<()> {
         let pristine_entry = self.without_signature();
 
-        let serialized_operation = bincode::serialize(&pristine_entry.operation)
-            .expect("Serializing operation should work");
+        let serialized_operation = bincode::serialize(&pristine_entry.operation)?;
         let pristine_entry_hash = Digest::hash_items(&[
             serialized_operation.as_slice(),
             &pristine_entry.previous_hash.to_bytes(),
@@ -352,8 +351,7 @@ impl HashchainEntry {
     }
 
     pub fn validate_signature(&self, verifying_key: &VerifyingKey) -> Result<()> {
-        verifying_key.verify_signature(self.hash.as_ref(), &self.signature_bundle.signature)?;
-        Ok(())
+        verifying_key.verify_signature(self.hash.as_ref(), &self.signature_bundle.signature)
     }
 
     pub fn validate_operation(&self) -> Result<()> {

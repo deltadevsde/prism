@@ -138,7 +138,6 @@ pub enum HashchainResponse {
 }
 
 pub trait SnarkableTree: Send + Sync {
-    // fn process_operation(&mut self, operation: &Operation) -> Result<Proof>;
     fn process_entry(&mut self, id: &str, entry: HashchainEntry) -> Result<Proof>;
     fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof>;
     fn update(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<UpdateProof>;

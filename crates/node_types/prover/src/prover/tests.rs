@@ -87,8 +87,6 @@ async fn test_execute_block_with_invalid_tx() {
 
     let new_key_1 = create_mock_signing_key();
 
-    debug!("CAN YOU SEE ME?");
-
     let operations = vec![
         ops_builder.register_service_with_random_keys("service_id").ex(),
         ops_builder.create_account_with_random_key("account_id", "service_id").ex(),

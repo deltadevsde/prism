@@ -449,10 +449,7 @@ impl Prover {
             bail!("Batcher is disabled, cannot queue operations");
         }
 
-        // basic validation, does not include signature checks
-        // incoming_update.validate()?;
-
-        // validate operation against existing hashchain if necessary, including signature checks
+        // validate against existing hashchain if necessary, including signature checks
         match request.entry.operation {
             Operation::RegisterService { .. } | Operation::CreateAccount { .. } => {
                 Hashchain::empty().add_entry(request.entry.clone())?
@@ -469,7 +466,7 @@ impl Prover {
         };
 
         let mut pending = self.pending_requests.write().await;
-        pending.push(request.clone());
+        pending.push(request);
         Ok(())
     }
 }
