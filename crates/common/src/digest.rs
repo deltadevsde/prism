@@ -15,6 +15,14 @@ impl Digest {
         Self(hasher.finalize())
     }
 
+    pub fn hash_items(items: &[impl AsRef<[u8]>]) -> Self {
+        let mut hasher = Hasher::new();
+        for item in items {
+            hasher.update(item.as_ref());
+        }
+        Self(hasher.finalize())
+    }
+
     pub const fn zero() -> Self {
         Self([0u8; 32])
     }
