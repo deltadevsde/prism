@@ -440,7 +440,7 @@ impl Prover {
     /// Updates the state from an already verified pending entry.
     async fn process_request(&self, request: PendingRequest) -> Result<Proof> {
         let mut tree = self.tree.write().await;
-        tree.process_entry(&request.id, request.entry)
+        tree.process_entry(request)
     }
 
     /// Adds an operation to be posted to the DA layer and applied in the next epoch.

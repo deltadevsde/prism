@@ -19,8 +19,7 @@ enum PostCommitAction {
 }
 
 pub struct UncommittedRequest<'a> {
-    id: String,
-    entry: HashchainEntry,
+    request: PendingRequest,
     builder: &'a mut RequestBuilder,
     post_commit_action: PostCommitAction,
 }
@@ -29,7 +28,7 @@ impl UncommittedRequest<'_> {
     pub fn ex(self) -> PendingRequest {
         self.builder
             .tree
-            .process_entry(&self.id, self.entry.clone())
+            .process_entry(self.request.clone())
             .expect("Processing operation should work");
 
         match self.post_commit_action {
@@ -42,17 +41,11 @@ impl UncommittedRequest<'_> {
             }
         }
 
-        PendingRequest {
-            id: self.id,
-            entry: self.entry,
-        }
+        self.request
     }
 
     pub fn op(self) -> PendingRequest {
-        PendingRequest {
-            id: self.id,
-            entry: self.entry,
-        }
+        self.request
     }
 }
 
@@ -105,8 +98,10 @@ impl RequestBuilder {
         );
 
         UncommittedRequest {
-            id: id.to_string(),
-            entry,
+            request: PendingRequest {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::RememberServiceKey(id.to_string(), challenge_key),
         }
@@ -148,8 +143,10 @@ impl RequestBuilder {
         );
 
         UncommittedRequest {
-            id: id.to_string(),
-            entry,
+            request: PendingRequest {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::RememberAccountKey(id.to_string(), signing_key),
         }
@@ -202,8 +199,10 @@ impl RequestBuilder {
         let entry = HashchainEntry::new_add_key(key, hc.last_hash(), signing_key, key_idx);
 
         UncommittedRequest {
-            id: id.to_string(),
-            entry,
+            request: PendingRequest {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }
@@ -238,8 +237,10 @@ impl RequestBuilder {
         let entry = HashchainEntry::new_revoke_key(key, hc.last_hash(), signing_key, key_idx);
 
         UncommittedRequest {
-            id: id.to_string(),
-            entry,
+            request: PendingRequest {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }
@@ -320,8 +321,10 @@ impl RequestBuilder {
         );
 
         UncommittedRequest {
-            id: id.to_string(),
-            entry,
+            request: PendingRequest {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }

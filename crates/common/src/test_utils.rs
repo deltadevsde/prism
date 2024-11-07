@@ -4,6 +4,7 @@ use crate::{
     hasher::Hasher,
     keys::{SigningKey, VerifyingKey},
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
+    request::PendingRequest,
     tree::{
         HashchainResponse::*, InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof,
     },
@@ -118,8 +119,12 @@ impl TestTreeState {
             return Err(anyhow!("{:?} already contained in tree", account.id));
         }
 
-        let proof =
-            self.tree.process_entry(&account.id, account.hashchain.last().unwrap().clone())?;
+        let request = PendingRequest {
+            id: account.id.clone(),
+            entry: account.hashchain.last().unwrap().clone(),
+        };
+
+        let proof = self.tree.process_entry(request)?;
         if let Proof::Insert(insert_proof) = proof {
             self.inserted_keys.insert(account.id);
             return Ok(*insert_proof);
@@ -132,8 +137,12 @@ impl TestTreeState {
             return Err(anyhow!("{:?} not found in tree", account.id));
         }
 
-        let proof =
-            self.tree.process_entry(&account.id, account.hashchain.last().unwrap().clone())?;
+        let request = PendingRequest {
+            id: account.id.clone(),
+            entry: account.hashchain.last().unwrap().clone(),
+        };
+
+        let proof = self.tree.process_entry(request)?;
         if let Proof::Update(update_proof) = proof {
             return Ok(*update_proof);
         }
@@ -262,9 +271,13 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         .unwrap();
 
     let entry = hc.add_key(verifying_key, signer, 0).unwrap();
+    let request = PendingRequest {
+        id: key.clone(),
+        entry,
+    };
 
     let Proof::Update(update_proof) =
-        state.tree.process_entry(key, entry).expect("Processing operation should succeed")
+        state.tree.process_entry(request).expect("Processing operation should succeed")
     else {
         panic!("No update proof returned.");
     };
