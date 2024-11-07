@@ -15,7 +15,7 @@ use jmt::proof::SparseMerkleProof;
 use prism_common::{
     hashchain::{Hashchain, HashchainEntry},
     hasher::Hasher,
-    request::{PendingRequest, RequestLike},
+    request::PendingRequest,
     tree::HashchainResponse,
 };
 use serde::{Deserialize, Serialize};
@@ -55,18 +55,9 @@ pub struct EpochData {
 }
 
 #[derive(Deserialize, Debug, ToSchema)]
-pub struct UpdateEntryDto {
+pub struct RequestInput {
     pub id: String,
     pub entry: HashchainEntry,
-}
-
-impl RequestLike for UpdateEntryDto {
-    fn id(&self) -> &str {
-        &self.id
-    }
-    fn entry(&self) -> &HashchainEntry {
-        &self.entry
-    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -90,7 +81,7 @@ pub struct UserKeyResponse {
 #[openapi(
     paths(update_entry, get_hashchain, get_commitment),
     components(schemas(
-        UpdateEntryDto,
+        RequestInput,
         EpochData,
         UpdateProofResponse,
         Hash,
@@ -143,9 +134,13 @@ impl WebServer {
 )]
 async fn update_entry(
     State(session): State<Arc<Prover>>,
-    Json(update_dto): Json<UpdateEntryDto>,
+    Json(update_input): Json<RequestInput>,
 ) -> impl IntoResponse {
-    match session.validate_and_queue_update(PendingRequest::from(update_dto)).await {
+    let request = PendingRequest {
+        id: update_input.id.clone(),
+        entry: update_input.entry.clone(),
+    };
+    match session.validate_and_queue_update(request).await {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",
