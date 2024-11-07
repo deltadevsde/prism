@@ -335,7 +335,6 @@ impl HashchainEntry {
     }
 
     pub fn validate_hash(&self) -> Result<()> {
-        // let pristine_entry = self.without_challenge().without_signature();
         let pristine_entry = self.without_signature();
 
         let serialized_operation = bincode::serialize(&pristine_entry.operation)
@@ -368,16 +367,6 @@ impl HashchainEntry {
                 signature: Signature::Placeholder,
             },
             ..self.clone()
-        }
-    }
-
-    pub fn without_challenge(&self) -> Self {
-        match self.operation {
-            Operation::CreateAccount { .. } => Self {
-                operation: self.operation.without_challenge(),
-                ..self.clone()
-            },
-            _ => self.clone(),
         }
     }
 }

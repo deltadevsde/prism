@@ -90,25 +90,6 @@ impl Operation {
         }
     }
 
-    pub fn without_challenge(&self) -> Self {
-        let Operation::CreateAccount {
-            id,
-            service_id,
-            key,
-            ..
-        } = self
-        else {
-            return self.clone();
-        };
-
-        Operation::CreateAccount {
-            id: id.clone(),
-            service_id: service_id.clone(),
-            key: key.clone(),
-            challenge: ServiceChallengeInput::Signed(Signature::Placeholder),
-        }
-    }
-
     pub fn validate_basic(&self) -> Result<()> {
         match &self {
             Operation::RegisterService { .. } => Ok(()),
