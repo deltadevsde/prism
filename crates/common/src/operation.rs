@@ -92,10 +92,20 @@ impl Operation {
 
     pub fn validate_basic(&self) -> Result<()> {
         match &self {
-            Operation::RegisterService { .. } => Ok(()),
-            Operation::CreateAccount { service_id, .. } => {
+            Operation::RegisterService { id, .. } => {
+                if id.is_empty() {
+                    bail!("id must not be empty when registering service");
+                }
+
+                Ok(())
+            }
+            Operation::CreateAccount { id, service_id, .. } => {
+                if id.is_empty() {
+                    bail!("id must not be empty when creating account service");
+                }
+
                 if service_id.is_empty() {
-                    bail!("service_id must not be empty when adding service");
+                    bail!("service_id must not be empty when creating account service");
                 }
 
                 Ok(())
