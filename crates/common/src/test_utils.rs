@@ -277,7 +277,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
     };
 
     let Proof::Update(update_proof) =
-        state.tree.process_transaction(transaction).expect("Processing operation should succeed")
+        state.tree.process_transaction(transaction).expect("Processing transaction should succeed")
     else {
         panic!("No update proof returned.");
     };

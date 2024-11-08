@@ -89,23 +89,23 @@ async fn test_process_transactions() {
 async fn test_execute_block_with_invalid_tx() {
     let prover = create_test_prover().await;
 
-    let mut ops_builder = TransactionBuilder::new();
+    let mut tx_builder = TransactionBuilder::new();
 
     let new_key_1 = create_mock_signing_key();
 
-    let operations = vec![
-        ops_builder.register_service_with_random_keys("service_id").commit(),
-        ops_builder.create_account_with_random_key("account_id", "service_id").commit(),
+    let transactions = vec![
+        tx_builder.register_service_with_random_keys("service_id").commit(),
+        tx_builder.create_account_with_random_key("account_id", "service_id").commit(),
         // add new key, so it will be index = 1
-        ops_builder.add_key_verified_with_root("account_id", new_key_1.verifying_key()).commit(),
+        tx_builder.add_key_verified_with_root("account_id", new_key_1.verifying_key()).commit(),
         // revoke new key again
-        ops_builder.revoke_key_verified_with_root("account_id", new_key_1.verifying_key()).commit(),
+        tx_builder.revoke_key_verified_with_root("account_id", new_key_1.verifying_key()).commit(),
         // and adding in same block.
-        // both of these operations are valid individually, but when processed together it will fail.
-        ops_builder.add_random_key("account_id", &new_key_1, 1).build(),
+        // both of these transactions are valid individually, but when processed together it will fail.
+        tx_builder.add_random_key("account_id", &new_key_1, 1).build(),
     ];
 
-    let proofs = prover.execute_block(operations).await.unwrap();
+    let proofs = prover.execute_block(transactions).await.unwrap();
     assert_eq!(proofs.len(), 4);
 }
 
@@ -113,19 +113,19 @@ async fn test_execute_block_with_invalid_tx() {
 async fn test_execute_block() {
     let prover = create_test_prover().await;
 
-    let operations = create_mock_transactions("test_service".to_string());
+    let transactions = create_mock_transactions("test_service".to_string());
 
-    let proofs = prover.execute_block(operations).await.unwrap();
+    let proofs = prover.execute_block(transactions).await.unwrap();
     assert_eq!(proofs.len(), 4);
 }
 
 #[tokio::test]
 async fn test_finalize_new_epoch() {
     let prover = create_test_prover().await;
-    let operations = create_mock_transactions("test_service".to_string());
+    let transactions = create_mock_transactions("test_service".to_string());
 
     let prev_commitment = prover.get_commitment().await.unwrap();
-    prover.finalize_new_epoch(0, operations).await.unwrap();
+    prover.finalize_new_epoch(0, transactions).await.unwrap();
 
     let new_commitment = prover.get_commitment().await.unwrap();
     assert_ne!(prev_commitment, new_commitment);

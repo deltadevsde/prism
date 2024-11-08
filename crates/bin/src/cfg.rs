@@ -41,9 +41,9 @@ pub struct CommandLineArgs {
     #[arg(long)]
     snark_namespace_id: Option<String>,
 
-    /// Celestia Operation Namespace ID
+    /// Celestia Transaction Namespace ID
     #[arg(long)]
-    operation_namespace_id: Option<String>,
+    transaction_namespace_id: Option<String>,
 
     // Height to start searching the DA layer for SNARKs on
     #[arg(short = 's', long)]
@@ -212,7 +212,7 @@ fn apply_command_line_args(config: Config, args: CommandLineArgs) -> Config {
                     .map(|c| c.snark_namespace_id.clone())
                     .unwrap_or_else(|| CelestiaConfig::default().snark_namespace_id)
             }),
-            transaction_namespace_id: Some(args.operation_namespace_id.unwrap_or_else(|| {
+            transaction_namespace_id: Some(args.transaction_namespace_id.unwrap_or_else(|| {
                 config
                     .celestia_config
                     .as_ref()

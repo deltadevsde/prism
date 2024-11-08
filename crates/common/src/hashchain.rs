@@ -179,7 +179,7 @@ impl Hashchain {
         let last_hash = self.last_hash();
         if entry.previous_hash != last_hash {
             bail!(
-                "Previous hash for key operation must be the last hash - prev: {}, last: {}",
+                "Previous hash for new entry must be the last hash - prev: {}, last: {}",
                 entry.previous_hash,
                 last_hash
             )

@@ -31,7 +31,7 @@ impl UncommittedTransaction<'_> {
         self.builder
             .tree
             .process_transaction(self.transaction.clone())
-            .expect("Processing operation should work");
+            .expect("Processing transaction should work");
 
         match self.post_commit_action {
             PostCommitAction::UpdateStorageOnly => (),
@@ -54,7 +54,7 @@ impl UncommittedTransaction<'_> {
 }
 
 pub struct TransactionBuilder {
-    /// Simulated hashchain storage that is mutated when operations are applied
+    /// Simulated hashchain storage that is mutated when transactions are applied
     tree: Box<dyn SnarkableTree>,
     /// Remembers private keys of services to simulate account creation via an external service
     service_keys: HashMap<String, SigningKey>,

@@ -35,8 +35,8 @@ pub struct Config {
     /// incoming FinalizedEpochs.
     pub prover: bool,
 
-    /// Enables accepting incoming operations from the webserver and posting batches to the DA layer.
-    /// When deactivated, the node will reject incoming operations.
+    /// Enables accepting incoming transactions from the webserver and posting batches to the DA layer.
+    /// When deactivated, the node will reject incoming transactions.
     pub batcher: bool,
 
     /// Configuration for the webserver.
@@ -45,7 +45,7 @@ pub struct Config {
     /// Key used to sign new FinalizedEpochs.
     pub key: SigningKey,
 
-    /// DA layer height the prover should start syncing operations from.
+    /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,
 }
 
@@ -203,7 +203,7 @@ impl Prover {
             }
             self.process_da_height(height, &mut buffered_transactions, true).await?;
             current_height += 1;
-            // TODO: Race between set_epoch and set_last_synced_height - updating these should be a single atomic operation
+            // TODO: Race between set_epoch and set_last_synced_height - updating these should be a single atomic transaction
             self.db.set_last_synced_height(&current_height)?;
         }
     }
@@ -227,10 +227,10 @@ impl Prover {
         );
 
         if let Some(epoch) = epoch_result {
-            // run all buffered operations from the last celestia blocks and increment current_epoch
+            // run all buffered transactions from the last celestia blocks and increment current_epoch
             self.process_epoch(epoch, buffered_transactions).await?;
         } else {
-            debug!("No operations to process at height {}", height);
+            debug!("No transactions to process at height {}", height);
         }
 
         if is_real_time && !buffered_transactions.is_empty() && self.cfg.prover {
@@ -238,7 +238,7 @@ impl Prover {
             self.finalize_new_epoch(current_epoch, all_transactions).await?;
         }
 
-        // If there are new operations at this height, add them to the queue to
+        // If there are new transactions at this height, add them to the queue to
         // be included in the next finalized epoch.
         if !transactions.is_empty() {
             buffered_transactions.extend(transactions);
@@ -255,7 +255,7 @@ impl Prover {
         let mut current_epoch = self.db.get_epoch()?;
 
         // If prover is enabled and is actively producing new epochs, it has
-        // likely already ran all of the operations in the found epoch, so no
+        // likely already ran all of the transactions in the found epoch, so no
         // further processing is needed
         if epoch.height < current_epoch {
             debug!("epoch {} already processed internally", current_epoch);
@@ -313,9 +313,9 @@ impl Prover {
             match self.process_transaction(transaction.clone()).await {
                 Ok(proof) => proofs.push(proof),
                 Err(e) => {
-                    // Log the error and continue with the next operation
+                    // Log the error and continue with the next transaction
                     warn!(
-                        "Failed to process operation: {:?}. Error: {}",
+                        "Failed to process transaction: {:?}. Error: {}",
                         transaction, e
                     );
                 }
@@ -397,30 +397,30 @@ impl Prover {
             let height = height_rx.recv().await?;
             trace!("received height {}", height);
 
-            // Get pending operations
+            // Get pending transactions
             let pending_transactions = {
                 let mut ops = self.pending_transactions.write().await;
                 std::mem::take(&mut *ops)
             };
 
-            let op_count = pending_transactions.len();
+            let tx_count = pending_transactions.len();
 
-            // If there are pending operations, submit them
+            // If there are pending transactions, submit them
             if !pending_transactions.clone().is_empty() {
                 match self.da.submit_transactions(pending_transactions).await {
                     Ok(submitted_height) => {
                         info!(
-                            "post_batch_loop: submitted {} operations at height {}",
-                            op_count, submitted_height
+                            "post_batch_loop: submitted {} transactions at height {}",
+                            tx_count, submitted_height
                         );
                     }
                     Err(e) => {
-                        error!("post_batch_loop: Failed to submit operations: {}", e);
+                        error!("post_batch_loop: Failed to submit transactions: {}", e);
                     }
                 }
             } else {
                 debug!(
-                    "post_batch_loop: No pending operations to submit at height {}",
+                    "post_batch_loop: No pending transactions to submit at height {}",
                     height
                 );
             }
@@ -446,13 +446,13 @@ impl Prover {
         tree.process_transaction(transaction)
     }
 
-    /// Adds an operation to be posted to the DA layer and applied in the next epoch.
+    /// Adds an transaction to be posted to the DA layer and applied in the next epoch.
     pub async fn validate_and_queue_update(
         self: Arc<Self>,
         transaction: Transaction,
     ) -> Result<()> {
         if !self.cfg.batcher {
-            bail!("Batcher is disabled, cannot queue operations");
+            bail!("Batcher is disabled, cannot queue transactions");
         }
 
         // validate against existing hashchain if necessary, including signature checks

@@ -70,7 +70,7 @@ impl CelestiaConnection {
 
         let transaction_namespace = match &config.transaction_namespace_id {
             Some(id) => create_namespace(id).context(format!(
-                "Failed to create operation namespace from: '{}'",
+                "Failed to create transaction namespace from: '{}'",
                 id
             ))?,
             None => snark_namespace,
@@ -169,14 +169,17 @@ impl DataAvailabilityLayer for CelestiaConnection {
     }
 
     async fn get_transactions(&self, height: u64) -> Result<Vec<Transaction>> {
-        trace!("searching for operations on da layer at height {}", height);
+        trace!(
+            "searching for transactions on da layer at height {}",
+            height
+        );
         let maybe_blobs =
             BlobClient::blob_get_all(&self.client, height, &[self.transaction_namespace])
                 .await
                 .map_err(|e| {
                     anyhow!(DataAvailabilityError::DataRetrievalError(
                         height,
-                        format!("getting operations from da layer: {}", e)
+                        format!("getting transactions from da layer: {}", e)
                     ))
                 })?;
 
@@ -191,7 +194,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 Ok(transaction) => Some(transaction),
                 Err(e) => {
                     warn!(
-                        "Failed to parse blob from height {} to operation: {:?}",
+                        "Failed to parse blob from height {} to transaction: {:?}",
                         height, e
                     );
                     None
