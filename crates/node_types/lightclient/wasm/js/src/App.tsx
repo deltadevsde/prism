@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import init, { LightClientWorker, WasmLightClient } from "../../pkg/prism_wasm_lightclient.js";
-/* import OperationSubmitter from './components/OperationSubmitter.js'; */
 
 function App() {
   const [status, setStatus] = useState('Not started')
   const [height, setHeight] = useState(0)
-  const [client, setClient] = useState<WasmLightClient | null>(null)
 
   const startLightClient = async () => {
     try {
@@ -17,7 +15,6 @@ function App() {
       worker.run()
       
       const client = await new WasmLightClient(channel.port2)
-      setClient(client);
       setStatus('Running')
 
       channel.port2.onmessage = (event) => {
@@ -35,15 +32,6 @@ function App() {
       setStatus(`Error: ${error}`)
     }
   }
-
-/*   const verifyRandomEpoch = async () => {
-    try {
-      setStatus('Verifying epoch...')
-      setStatus('Epoch verified successfully')
-    } catch (error) {
-      setStatus(`Verification failed: ${error}`)
-    }
-  } */
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -67,16 +55,7 @@ function App() {
         >
           Start Light Client
         </button>
-        
-        {/* <button
-          onClick={verifyRandomEpoch}
-          disabled={!client}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-400"
-        >
-          Verify Random Epoch
-        </button> */}
       </div>
-      {/* client && <OperationSubmitter /> */}
     </div>
   )
 }

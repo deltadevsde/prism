@@ -16,14 +16,18 @@ pub struct WasmLightClient {
 impl WasmLightClient {
     #[wasm_bindgen(constructor)]
     pub async fn new(port: MessagePort) -> Result<WasmLightClient, JsError> {
-        let worker = WorkerClient::new(port)?;
-        Ok(Self { worker })
+        Ok(Self {
+            worker: WorkerClient::new(port)?,
+        })
     }
 
     #[wasm_bindgen(js_name = verifyEpoch)]
     pub async fn verify_epoch(&self, height: u64) -> Result<(), JsError> {
-        let command = LightClientCommand::VerifyEpoch { height };
-        match self.worker.exec(command).await? {
+        match self
+            .worker
+            .exec(LightClientCommand::VerifyEpoch { height })
+            .await?
+        {
             WorkerResponse::EpochVerified => Ok(()),
             WorkerResponse::Error(e) => Err(JsError::new(&e)),
             _ => Err(JsError::new("Unexpected response")),

@@ -33,17 +33,12 @@ pub struct WasmCelestiaClient {
 
 impl WasmCelestiaClient {
     pub async fn new(config: CelestiaConfig) -> Result<Self, JsError> {
-        let bridge_addr = CelestiaConfig::fetch_bridge_webtransport_multiaddr().await;
-
-        console::log_2(
-            &"🚀 Bridge address:".into(),
-            &bridge_addr.to_string().into(),
-        );
+        /* let bridge_addr = CelestiaConfig::fetch_bridge_webtransport_multiaddr().await; */
 
         let current_height = Arc::new(AtomicU64::new(config.start_height));
 
-        let mut wasm_node_config = WasmNodeConfig::default(Network::Private);
-        wasm_node_config.set_bridge_bootnode(bridge_addr.to_string());
+        let mut wasm_node_config = WasmNodeConfig::default(Network::Mocha);
+        wasm_node_config.set_bridge_bootnode(/* bridge_addr.to_string() */);
         let node_config = wasm_node_config.initialize_node_config().await?;
 
         let (node, mut event_subscriber) = Node::new_subscribed(node_config).await?;
@@ -154,7 +149,7 @@ impl WasmCelestiaClient {
             .request_all_blobs(
                 &header,
                 Namespace::new_v0(&namespace).unwrap(),
-                Some(Duration::from_secs(5)),
+                Some(Duration::from_secs(7)),
             )
             .await
         {

@@ -3,8 +3,7 @@
 use celestia_rpc::{Client, P2PClient};
 use libp2p::{identity::Keypair, multiaddr::Protocol, Multiaddr};
 use lumina_node::{
-    blockstore::IndexedDbBlockstore, events::NodeEvent, network::network_id, store::IndexedDbStore,
-    NodeConfig,
+    blockstore::IndexedDbBlockstore, network::network_id, store::IndexedDbStore, NodeConfig,
 };
 use lumina_node_wasm::{
     client::WasmNodeConfig,
@@ -27,7 +26,7 @@ impl Default for CelestiaConfig {
     fn default() -> Self {
         Self {
             node_url: "ws://localhost:26658".to_string(),
-            start_height: 0,
+            start_height: 3093687,
             snark_namespace_id: "00000000000000de1008".to_string(),
             operation_namespace_id: Some("00000000000000de1009".to_string()),
         }
@@ -66,7 +65,7 @@ pub trait WasmNodeConfigExt {
         &self,
     ) -> Result<NodeConfig<IndexedDbBlockstore, IndexedDbStore>, JsError>;
 
-    fn set_bridge_bootnode(&mut self, bridge_addr: String);
+    fn set_bridge_bootnode(&mut self /* , bridge_addr: String */);
 }
 
 impl WasmNodeConfigExt for WasmNodeConfig {
@@ -88,6 +87,7 @@ impl WasmNodeConfigExt for WasmNodeConfig {
 
         // Process bootnodes
         let mut p2p_bootnodes = Vec::with_capacity(self.bootnodes.len());
+
         for addr in &self.bootnodes {
             console::log_1(&format!("🚀 Adding bootnode: {}", addr).into());
             let addr = addr
@@ -116,7 +116,13 @@ impl WasmNodeConfigExt for WasmNodeConfig {
         })
     }
 
-    fn set_bridge_bootnode(&mut self, bridge_addr: String) {
-        self.bootnodes = vec![bridge_addr];
+    fn set_bridge_bootnode(&mut self /* , bridge_addr: String */) {
+        self.bootnodes = vec![
+            "/dnsaddr/da-bridge-mocha-4.celestia-mocha.com/p2p/12D3KooWCBAbQbJSpCpCGKzqz3rAN4ixYbc63K68zJg9aisuAajg".to_string(),
+            "/dnsaddr/da-bridge-mocha-4-2.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G".to_string(),
+            "/dnsaddr/da-full-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCUHPLqQXZzpTx1x3TAsdn3vYmTNDhzg66yG8hqoxGGN8".to_string(),
+            "/dnsaddr/da-full-2-mocha-4.celestia-mocha.com/p2p/12D3KooWR6SHsXPkkvhCRn6vp1RqSefgaT1X1nMNvrVjU2o3GoYy".to_string(),
+        ];
+        /* self.bootnodes = vec![bridge_addr]; */
     }
 }

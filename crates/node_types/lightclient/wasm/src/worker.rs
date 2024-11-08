@@ -17,15 +17,10 @@ pub struct LightClientWorker {
 impl LightClientWorker {
     #[wasm_bindgen(constructor)]
     pub async fn new(port: MessagePort) -> Result<LightClientWorker, JsError> {
-        console::log_1(&"• Initializing LightClientWorker  ✔".into());
-        let mut server = WorkerServer::new();
-        server.initialize(port)?;
-
-        let celestia = WasmCelestiaClient::new(CelestiaConfig::default()).await?;
-
-        console::log_1(&"• Server registered  ✔".into());
-
-        Ok(Self { server, celestia })
+        Ok(Self {
+            server: WorkerServer::new(port)?,
+            celestia: WasmCelestiaClient::new(CelestiaConfig::default()).await?,
+        })
     }
 
     pub async fn run(&mut self) -> Result<(), JsError> {

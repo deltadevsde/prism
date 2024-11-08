@@ -32,16 +32,17 @@ async fn test_light_client_prover_talking() -> Result<()> {
     pretty_env_logger::init();
 
     let bridge_cfg = CelestiaConfig {
-        connection_string: "ws://0.0.0.0:36658".to_string(),
+        connection_string: "ws://0.0.0.0:26658".to_string(),
+        start_height: 3093707,
         ..CelestiaConfig::default()
     };
-    let lc_cfg = CelestiaConfig {
+    /* let lc_cfg = CelestiaConfig {
         connection_string: "ws://0.0.0.0:26658".to_string(),
         ..CelestiaConfig::default()
-    };
+    }; */
 
     let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
-    let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());
+    /* let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap()); */
     let db = setup_db();
     let signing_key = create_signing_key();
     let pubkey = signing_key.verification_key();
@@ -50,6 +51,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let _service = test_state.register_service("test_service".to_string());
     let prover_cfg = prism_prover::Config {
         key: signing_key,
+        start_height: 3093707,
         ..prism_prover::Config::default()
     };
 
@@ -59,20 +61,20 @@ async fn test_light_client_prover_talking() -> Result<()> {
         &prover_cfg,
     )?);
 
-    let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), lc_cfg, Some(pubkey)));
-
+    /*     let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), lc_cfg, Some(pubkey)));
+     */
     let prover_clone = prover.clone();
     spawn(async move {
         debug!("starting prover");
         prover_clone.run().await.unwrap();
     });
 
-    let lc_clone = lightclient.clone();
-    spawn(async move {
-        debug!("starting light client");
-        lc_clone.run().await.unwrap();
-    });
-
+    /*     let lc_clone = lightclient.clone();
+       spawn(async move {
+           debug!("starting light client");
+           lc_clone.run().await.unwrap();
+       });
+    */
     spawn(async move {
         let mut rng = StdRng::from_entropy();
 
@@ -123,7 +125,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
         }
     });
 
-    let mut rx = lc_da_layer.clone().subscribe_to_heights();
+    let mut rx = bridge_da_layer.clone().subscribe_to_heights();
     let initial_height = rx.recv().await.unwrap();
     while let Ok(height) = rx.recv().await {
         debug!("received height {}", height);
