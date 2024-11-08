@@ -13,7 +13,10 @@ use indexed_merkle_tree::{
 };
 use jmt::proof::SparseMerkleProof;
 use prism_common::{
-    hashchain::Hashchain, hasher::Hasher, operation::Operation, tree::HashchainResponse,
+    hashchain::{Hashchain, HashchainEntry},
+    hasher::Hasher,
+    transaction::Transaction,
+    tree::HashchainResponse,
 };
 use serde::{Deserialize, Serialize};
 use std::{self, sync::Arc};
@@ -52,8 +55,9 @@ pub struct EpochData {
 }
 
 #[derive(Deserialize, Debug, ToSchema)]
-pub struct OperationInput {
-    pub operation: Operation,
+pub struct TransactionRequest {
+    pub id: String,
+    pub entry: HashchainEntry,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -75,9 +79,9 @@ pub struct UserKeyResponse {
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(update_entry, get_hashchain, get_commitment),
+    paths(post_transaction, get_hashchain, get_commitment),
     components(schemas(
-        OperationInput,
+        TransactionRequest,
         EpochData,
         UpdateProofResponse,
         Hash,
@@ -99,7 +103,7 @@ impl WebServer {
 
         info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let app = Router::new()
-            .route("/update-entry", post(update_entry))
+            .route("/transaction", post(post_transaction))
             .route("/get-hashchain", post(get_hashchain))
             .route("/get-current-commitment", get(get_commitment))
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -116,23 +120,27 @@ impl WebServer {
     }
 }
 
-/// Updates or inserts an entry in the transparency dictionary, pending inclusion in the next epoch.
+/// Updates or inserts a transaction in the transparency dictionary, pending inclusion in the next epoch.
 ///
 #[utoipa::path(
     post,
-    path = "/update-entry",
-    request_body = UpdateEntryJson,
+    path = "/transaction",
+    request_body = TransactionRequest,
     responses(
         (status = 200, description = "Entry update queued for insertion into next epoch"),
         (status = 400, description = "Bad request"),
         (status = 500, description = "Internal server error")
     )
 )]
-async fn update_entry(
+async fn post_transaction(
     State(session): State<Arc<Prover>>,
-    Json(operation_input): Json<OperationInput>,
+    Json(update_input): Json<TransactionRequest>,
 ) -> impl IntoResponse {
-    match session.validate_and_queue_update(&operation_input.operation).await {
+    let transaction = Transaction {
+        id: update_input.id.clone(),
+        entry: update_input.entry.clone(),
+    };
+    match session.validate_and_queue_update(transaction).await {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",

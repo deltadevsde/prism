@@ -4,31 +4,34 @@ use jmt::{mock::MockTreeStore, KeyHash};
 
 use crate::{
     digest::Digest,
+    hashchain::HashchainEntry,
     hasher::Hasher,
     keys::{SigningKey, VerifyingKey},
-    operation::{Operation, SignatureBundle},
+    operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     test_utils::create_mock_signing_key,
+    transaction::Transaction,
     tree::{HashchainResponse::*, KeyDirectoryTree, SnarkableTree},
 };
-
 enum PostCommitAction {
     UpdateStorageOnly,
     RememberServiceKey(String, SigningKey),
     RememberAccountKey(String, SigningKey),
 }
 
-pub struct UncommittedOperation<'a> {
-    operation: Operation,
-    builder: &'a mut OpsBuilder,
+pub struct UncommittedTransaction<'a> {
+    transaction: Transaction,
+    builder: &'a mut TransactionBuilder,
     post_commit_action: PostCommitAction,
 }
 
-impl UncommittedOperation<'_> {
-    pub fn ex(self) -> Operation {
+impl UncommittedTransaction<'_> {
+    /// Commits and returns a transaction, updating the builder. Subsequent transactions
+    /// built with the same builder will have the correct previous hash.
+    pub fn commit(self) -> Transaction {
         self.builder
             .tree
-            .process_operation(&self.operation)
-            .expect("Processing operation should work");
+            .process_transaction(self.transaction.clone())
+            .expect("Processing transaction should work");
 
         match self.post_commit_action {
             PostCommitAction::UpdateStorageOnly => (),
@@ -40,16 +43,18 @@ impl UncommittedOperation<'_> {
             }
         }
 
-        self.operation
+        self.transaction
     }
 
-    pub fn op(self) -> Operation {
-        self.operation
+    /// Returns a transaction without updating the builder.
+    /// Can be used to create invalid transactions.
+    pub fn build(self) -> Transaction {
+        self.transaction
     }
 }
 
-pub struct OpsBuilder {
-    /// Simulated hashchain storage that is mutated when operations are applied
+pub struct TransactionBuilder {
+    /// Simulated hashchain storage that is mutated when transactions are applied
     tree: Box<dyn SnarkableTree>,
     /// Remembers private keys of services to simulate account creation via an external service
     service_keys: HashMap<String, SigningKey>,
@@ -57,7 +62,7 @@ pub struct OpsBuilder {
     account_keys: HashMap<String, SigningKey>,
 }
 
-impl Default for OpsBuilder {
+impl Default for TransactionBuilder {
     fn default() -> Self {
         let store = Arc::new(MockTreeStore::default());
         let tree = Box::new(KeyDirectoryTree::new(store));
@@ -72,31 +77,37 @@ impl Default for OpsBuilder {
     }
 }
 
-impl OpsBuilder {
+impl TransactionBuilder {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn register_service_with_random_key(&mut self, id: &str) -> UncommittedOperation {
-        let random_service_key = create_mock_signing_key();
-        self.register_service(id, random_service_key)
+    pub fn register_service_with_random_keys(&mut self, id: &str) -> UncommittedTransaction {
+        let random_service_challenge_key = create_mock_signing_key();
+        let random_service_signing_key = create_mock_signing_key();
+        self.register_service(id, random_service_challenge_key, random_service_signing_key)
     }
 
     pub fn register_service(
         &mut self,
         id: &str,
-        service_signing_key: SigningKey,
-    ) -> UncommittedOperation {
-        let op =
-            Operation::new_register_service(id.to_string(), service_signing_key.clone().into());
+        challenge_key: SigningKey,
+        signing_key: SigningKey,
+    ) -> UncommittedTransaction {
+        let entry = HashchainEntry::new_register_service(
+            id.to_string(),
+            ServiceChallenge::from(challenge_key.clone()),
+            signing_key.verifying_key(),
+            &signing_key,
+        );
 
-        UncommittedOperation {
-            operation: op,
+        UncommittedTransaction {
+            transaction: Transaction {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
-            post_commit_action: PostCommitAction::RememberServiceKey(
-                id.to_string(),
-                service_signing_key,
-            ),
+            post_commit_action: PostCommitAction::RememberServiceKey(id.to_string(), challenge_key),
         }
     }
 
@@ -104,7 +115,7 @@ impl OpsBuilder {
         &mut self,
         id: &str,
         service_id: &str,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let random_signing_key = create_mock_signing_key();
         self.create_account(id, service_id, random_signing_key)
     }
@@ -114,27 +125,38 @@ impl OpsBuilder {
         id: &str,
         service_id: &str,
         signing_key: SigningKey,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let Some(service_signing_key) = self.service_keys.get(service_id) else {
             panic!("No existing service found for {}", service_id)
         };
 
-        let op = Operation::new_create_account(
-            id.to_string(),
-            &signing_key,
-            service_id.to_string(),
-            service_signing_key,
-        )
-        .expect("Creating account operation should work");
+        // Simulate some external service signing account creation credentials
+        let hash = Digest::hash_items(&[
+            id.as_bytes(),
+            service_id.as_bytes(),
+            &signing_key.verifying_key().as_bytes(),
+        ]);
+        let signature = service_signing_key.sign(&hash.to_bytes());
 
-        UncommittedOperation {
-            operation: op,
+        let entry = HashchainEntry::new_create_account(
+            id.to_string(),
+            service_id.to_string(),
+            ServiceChallengeInput::Signed(signature),
+            signing_key.verifying_key(),
+            &signing_key,
+        );
+
+        UncommittedTransaction {
+            transaction: Transaction {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::RememberAccountKey(id.to_string(), signing_key),
         }
     }
 
-    pub fn add_random_key_verified_with_root(&mut self, id: &str) -> UncommittedOperation {
+    pub fn add_random_key_verified_with_root(&mut self, id: &str) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -147,7 +169,7 @@ impl OpsBuilder {
         id: &str,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let random_key = create_mock_signing_key().verifying_key();
         self.add_key(id, random_key, signing_key, key_idx)
     }
@@ -156,7 +178,7 @@ impl OpsBuilder {
         &mut self,
         id: &str,
         key: VerifyingKey,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -170,7 +192,7 @@ impl OpsBuilder {
         key: VerifyingKey,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let hashed_id = Digest::hash(id);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -178,11 +200,13 @@ impl OpsBuilder {
             panic!("No existing hashchain found for {}", id)
         };
 
-        let op = Operation::new_add_key(id.to_string(), key, hc.last_hash(), signing_key, key_idx)
-            .expect("Creating add-key operation should work");
+        let entry = HashchainEntry::new_add_key(key, hc.last_hash(), signing_key, key_idx);
 
-        UncommittedOperation {
-            operation: op,
+        UncommittedTransaction {
+            transaction: Transaction {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }
@@ -192,7 +216,7 @@ impl OpsBuilder {
         &mut self,
         id: &str,
         key: VerifyingKey,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -206,7 +230,7 @@ impl OpsBuilder {
         key: VerifyingKey,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let hashed_id = Digest::hash(id);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -214,12 +238,13 @@ impl OpsBuilder {
             panic!("No existing hashchain found for {}", id)
         };
 
-        let op =
-            Operation::new_revoke_key(id.to_string(), key, hc.last_hash(), signing_key, key_idx)
-                .expect("Creating account operation should work");
+        let entry = HashchainEntry::new_revoke_key(key, hc.last_hash(), signing_key, key_idx);
 
-        UncommittedOperation {
-            operation: op,
+        UncommittedTransaction {
+            transaction: Transaction {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }
@@ -232,7 +257,7 @@ impl OpsBuilder {
         value_signature: SignatureBundle,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         self.add_data(id, value, Some(value_signature), signing_key, key_idx)
     }
 
@@ -241,7 +266,7 @@ impl OpsBuilder {
         id: &str,
         value: Vec<u8>,
         value_signature: SignatureBundle,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         self.add_data_verified_with_root(id, value, Some(value_signature))
     }
 
@@ -251,7 +276,7 @@ impl OpsBuilder {
         value: Vec<u8>,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         self.add_data(id, value, None, signing_key, key_idx)
     }
 
@@ -259,7 +284,7 @@ impl OpsBuilder {
         &mut self,
         id: &str,
         value: Vec<u8>,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         self.add_data_verified_with_root(id, value, None)
     }
 
@@ -268,7 +293,7 @@ impl OpsBuilder {
         id: &str,
         value: Vec<u8>,
         value_signature: Option<SignatureBundle>,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -279,11 +304,11 @@ impl OpsBuilder {
     fn add_data(
         &mut self,
         id: &str,
-        value: Vec<u8>,
-        value_signature: Option<SignatureBundle>,
+        data: Vec<u8>,
+        data_signature: Option<SignatureBundle>,
         signing_key: &SigningKey,
         key_idx: usize,
-    ) -> UncommittedOperation {
+    ) -> UncommittedTransaction {
         let hashed_id = Digest::hash(id);
         let key_hash = KeyHash::with::<Hasher>(hashed_id);
 
@@ -291,18 +316,19 @@ impl OpsBuilder {
             panic!("No existing hashchain found for {}", id)
         };
 
-        let op = Operation::new_add_signed_data(
-            id.to_string(),
-            value,
-            value_signature,
+        let entry = HashchainEntry::new_add_data(
+            data,
+            data_signature,
             hc.last_hash(),
             signing_key,
             key_idx,
-        )
-        .expect("Creating add-data operation should work");
+        );
 
-        UncommittedOperation {
-            operation: op,
+        UncommittedTransaction {
+            transaction: Transaction {
+                id: id.to_string(),
+                entry,
+            },
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }

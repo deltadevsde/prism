@@ -1,9 +1,9 @@
 use super::*;
-use prism_common::{test_ops::OpsBuilder, tree::Proof};
+use prism_common::{transaction_builder::TransactionBuilder, tree::Proof};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
-use prism_common::{operation::Operation, test_utils::create_mock_signing_key};
+use prism_common::test_utils::create_mock_signing_key;
 use prism_da::memory::InMemoryDataAvailabilityLayer;
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 
@@ -16,14 +16,18 @@ async fn create_test_prover() -> Arc<Prover> {
     Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
 }
 
-fn create_mock_operations(service_id: String) -> Vec<Operation> {
-    let mut ops_builder = OpsBuilder::new();
+fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
+    let mut transaction_builder = TransactionBuilder::new();
 
     vec![
-        ops_builder.register_service_with_random_key(&service_id).ex(),
-        ops_builder.create_account_with_random_key("user1@example.com", &service_id).ex(),
-        ops_builder.create_account_with_random_key("user2@example.com", &service_id).ex(),
-        ops_builder.add_random_key_verified_with_root("user1@example.com").ex(),
+        transaction_builder.register_service_with_random_keys(&service_id).commit(),
+        transaction_builder
+            .create_account_with_random_key("user1@example.com", &service_id)
+            .commit(),
+        transaction_builder
+            .create_account_with_random_key("user2@example.com", &service_id)
+            .commit(),
+        transaction_builder.add_random_key_verified_with_root("user1@example.com").commit(),
     ]
 }
 
@@ -31,50 +35,53 @@ fn create_mock_operations(service_id: String) -> Vec<Operation> {
 async fn test_validate_and_queue_update() {
     let prover = create_test_prover().await;
 
-    let mut ops_builder = OpsBuilder::new();
-    let op = ops_builder.register_service_with_random_key("test_service").ex();
+    let mut transaction_builder = TransactionBuilder::new();
+    let transaction =
+        transaction_builder.register_service_with_random_keys("test_service").commit();
 
-    prover.clone().validate_and_queue_update(&op).await.unwrap();
+    prover.clone().validate_and_queue_update(transaction.clone()).await.unwrap();
 
-    prover.clone().validate_and_queue_update(&op).await.unwrap();
+    prover.clone().validate_and_queue_update(transaction.clone()).await.unwrap();
 
-    let pending_ops = prover.pending_operations.read().await;
-    assert_eq!(pending_ops.len(), 2);
+    let pending_transactions = prover.pending_transactions.read().await;
+    assert_eq!(pending_transactions.len(), 2);
 }
 
 #[tokio::test]
-async fn test_process_operation() {
+async fn test_process_transactions() {
     let prover = create_test_prover().await;
 
-    let mut ops_builder = OpsBuilder::new();
-    let register_service_op = ops_builder.register_service_with_random_key("test_service").ex();
-    let create_account_op =
-        ops_builder.create_account_with_random_key("test_account", "test_service").ex();
+    let mut transaction_builder = TransactionBuilder::new();
+    let register_service_transaction =
+        transaction_builder.register_service_with_random_keys("test_service").commit();
+    let create_account_transaction =
+        transaction_builder.create_account_with_random_key("test_account", "test_service").commit();
 
-    let proof = prover.process_operation(&register_service_op).await.unwrap();
+    let proof = prover.process_transaction(register_service_transaction).await.unwrap();
     assert!(matches!(proof, Proof::Insert(_)));
 
-    let proof = prover.process_operation(&create_account_op).await.unwrap();
+    let proof = prover.process_transaction(create_account_transaction.clone()).await.unwrap();
     assert!(matches!(proof, Proof::Insert(_)));
 
     let new_key = create_mock_signing_key();
-    let add_key_op =
-        ops_builder.add_key_verified_with_root("test_account", new_key.verifying_key()).ex();
+    let add_key_transaction = transaction_builder
+        .add_key_verified_with_root("test_account", new_key.verifying_key())
+        .commit();
 
-    let proof = prover.process_operation(&add_key_op).await.unwrap();
+    let proof = prover.process_transaction(add_key_transaction).await.unwrap();
 
     assert!(matches!(proof, Proof::Update(_)));
 
     // Revoke original key
-    let revoke_op = ops_builder
+    let revoke_transaction = transaction_builder
         .revoke_key(
             "test_account",
-            create_account_op.get_public_key().cloned().unwrap(),
+            create_account_transaction.entry.operation.get_public_key().cloned().unwrap(),
             &new_key,
             1,
         )
-        .ex();
-    let proof = prover.process_operation(&revoke_op).await.unwrap();
+        .commit();
+    let proof = prover.process_transaction(revoke_transaction).await.unwrap();
     assert!(matches!(proof, Proof::Update(_)));
 }
 
@@ -82,23 +89,23 @@ async fn test_process_operation() {
 async fn test_execute_block_with_invalid_tx() {
     let prover = create_test_prover().await;
 
-    let mut ops_builder = OpsBuilder::new();
+    let mut tx_builder = TransactionBuilder::new();
 
     let new_key_1 = create_mock_signing_key();
 
-    let operations = vec![
-        ops_builder.register_service_with_random_key("service_id").ex(),
-        ops_builder.create_account_with_random_key("account_id", "service_id").ex(),
+    let transactions = vec![
+        tx_builder.register_service_with_random_keys("service_id").commit(),
+        tx_builder.create_account_with_random_key("account_id", "service_id").commit(),
         // add new key, so it will be index = 1
-        ops_builder.add_key_verified_with_root("account_id", new_key_1.verifying_key()).ex(),
+        tx_builder.add_key_verified_with_root("account_id", new_key_1.verifying_key()).commit(),
         // revoke new key again
-        ops_builder.revoke_key_verified_with_root("account_id", new_key_1.verifying_key()).ex(),
+        tx_builder.revoke_key_verified_with_root("account_id", new_key_1.verifying_key()).commit(),
         // and adding in same block.
-        // both of these operations are valid individually, but when processed together it will fail.
-        ops_builder.add_random_key("account_id", &new_key_1, 1).op(),
+        // both of these transactions are valid individually, but when processed together it will fail.
+        tx_builder.add_random_key("account_id", &new_key_1, 1).build(),
     ];
 
-    let proofs = prover.execute_block(operations).await.unwrap();
+    let proofs = prover.execute_block(transactions).await.unwrap();
     assert_eq!(proofs.len(), 4);
 }
 
@@ -106,19 +113,19 @@ async fn test_execute_block_with_invalid_tx() {
 async fn test_execute_block() {
     let prover = create_test_prover().await;
 
-    let operations = create_mock_operations("test_service".to_string());
+    let transactions = create_mock_transactions("test_service".to_string());
 
-    let proofs = prover.execute_block(operations).await.unwrap();
+    let proofs = prover.execute_block(transactions).await.unwrap();
     assert_eq!(proofs.len(), 4);
 }
 
 #[tokio::test]
 async fn test_finalize_new_epoch() {
     let prover = create_test_prover().await;
-    let operations = create_mock_operations("test_service".to_string());
+    let transactions = create_mock_transactions("test_service".to_string());
 
     let prev_commitment = prover.get_commitment().await.unwrap();
-    prover.finalize_new_epoch(0, operations).await.unwrap();
+    prover.finalize_new_epoch(0, transactions).await.unwrap();
 
     let new_commitment = prover.get_commitment().await.unwrap();
     assert_ne!(prev_commitment, new_commitment);
@@ -138,10 +145,10 @@ async fn test_restart_sync_from_scratch() {
         runner.run().await.unwrap();
     });
 
-    let operations = create_mock_operations("test_service".to_string());
+    let transactions = create_mock_transactions("test_service".to_string());
 
-    for op in operations {
-        prover.clone().validate_and_queue_update(&op).await.unwrap();
+    for transaction in transactions {
+        prover.clone().validate_and_queue_update(transaction).await.unwrap();
         while let Ok(new_block) = brx.recv().await {
             if new_block.epoch.is_some() {
                 break;
@@ -181,10 +188,10 @@ async fn test_load_persisted_state() {
         runner.run().await.unwrap();
     });
 
-    let operations = create_mock_operations("test_service".to_string());
+    let transactions = create_mock_transactions("test_service".to_string());
 
-    for op in operations {
-        prover.clone().validate_and_queue_update(&op).await.unwrap();
+    for transaction in transactions {
+        prover.clone().validate_and_queue_update(transaction).await.unwrap();
         while let Ok(new_block) = brx.recv().await {
             if new_block.epoch.is_some() {
                 break;

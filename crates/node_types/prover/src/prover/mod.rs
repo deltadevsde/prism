@@ -4,7 +4,9 @@ use jmt::KeyHash;
 use keystore_rs::create_signing_key;
 use prism_common::{
     digest::Digest,
+    hashchain::Hashchain,
     hasher::Hasher,
+    transaction::Transaction,
     tree::{
         Batch,
         HashchainResponse::{self, *},
@@ -33,8 +35,8 @@ pub struct Config {
     /// incoming FinalizedEpochs.
     pub prover: bool,
 
-    /// Enables accepting incoming operations from the webserver and posting batches to the DA layer.
-    /// When deactivated, the node will reject incoming operations.
+    /// Enables accepting incoming transactions from the webserver and posting batches to the DA layer.
+    /// When deactivated, the node will reject incoming transactions.
     pub batcher: bool,
 
     /// Configuration for the webserver.
@@ -43,7 +45,7 @@ pub struct Config {
     /// Key used to sign new FinalizedEpochs.
     pub key: SigningKey,
 
-    /// DA layer height the prover should start syncing operations from.
+    /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,
 }
 
@@ -66,9 +68,9 @@ pub struct Prover {
 
     pub cfg: Config,
 
-    /// [`pending_operations`] is a buffer for operations that have not yet been
+    /// [`pending_transactions`] is a buffer for transactions that have not yet been
     /// posted to the DA layer.
-    pub pending_operations: Arc<RwLock<Vec<Operation>>>,
+    pub pending_transactions: Arc<RwLock<Vec<Transaction>>>,
 
     /// [`tree`] is the representation of the JMT, prism's state tree. It is accessed via the [`db`].
     tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
@@ -111,7 +113,7 @@ impl Prover {
             verifying_key: vk,
             prover_client: Arc::new(RwLock::new(prover_client)),
             tree,
-            pending_operations: Arc::new(RwLock::new(Vec::new())),
+            pending_transactions: Arc::new(RwLock::new(Vec::new())),
         })
     }
 
@@ -175,11 +177,11 @@ impl Prover {
         }
 
         // TODO: Should be persisted in database for crash recovery
-        let mut buffered_operations: VecDeque<Operation> = VecDeque::new();
+        let mut buffered_transactions: VecDeque<Transaction> = VecDeque::new();
         let mut current_height = start_height;
 
         while current_height <= end_height {
-            self.process_da_height(current_height, &mut buffered_operations, false).await?;
+            self.process_da_height(current_height, &mut buffered_transactions, false).await?;
             // TODO: Race between set_epoch and set_last_synced_height
             self.db.set_last_synced_height(&current_height)?;
             current_height += 1;
@@ -199,9 +201,9 @@ impl Prover {
                     height
                 ));
             }
-            self.process_da_height(height, &mut buffered_operations, true).await?;
+            self.process_da_height(height, &mut buffered_transactions, true).await?;
             current_height += 1;
-            // TODO: Race between set_epoch and set_last_synced_height - updating these should be a single atomic operation
+            // TODO: Race between set_epoch and set_last_synced_height - updating these should be a single atomic transaction
             self.db.set_last_synced_height(&current_height)?;
         }
     }
@@ -209,12 +211,12 @@ impl Prover {
     async fn process_da_height(
         &self,
         height: u64,
-        buffered_operations: &mut VecDeque<Operation>,
+        buffered_transactions: &mut VecDeque<Transaction>,
         is_real_time: bool,
     ) -> Result<()> {
         let current_epoch = self.db.get_epoch()?;
 
-        let operations = self.da.get_operations(height).await?;
+        let transactions = self.da.get_transactions(height).await?;
         let epoch_result = self.da.get_finalized_epoch(height).await?;
 
         debug!(
@@ -225,21 +227,21 @@ impl Prover {
         );
 
         if let Some(epoch) = epoch_result {
-            // run all buffered operations from the last celestia blocks and increment current_epoch
-            self.process_epoch(epoch, buffered_operations).await?;
+            // run all buffered transactions from the last celestia blocks and increment current_epoch
+            self.process_epoch(epoch, buffered_transactions).await?;
         } else {
-            debug!("No operations to process at height {}", height);
+            debug!("No transactions to process at height {}", height);
         }
 
-        if is_real_time && !buffered_operations.is_empty() && self.cfg.prover {
-            let all_ops: Vec<Operation> = buffered_operations.drain(..).collect();
-            self.finalize_new_epoch(current_epoch, all_ops).await?;
+        if is_real_time && !buffered_transactions.is_empty() && self.cfg.prover {
+            let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
+            self.finalize_new_epoch(current_epoch, all_transactions).await?;
         }
 
-        // If there are new operations at this height, add them to the queue to
+        // If there are new transactions at this height, add them to the queue to
         // be included in the next finalized epoch.
-        if !operations.is_empty() {
-            buffered_operations.extend(operations);
+        if !transactions.is_empty() {
+            buffered_transactions.extend(transactions);
         }
 
         Ok(())
@@ -248,12 +250,12 @@ impl Prover {
     async fn process_epoch(
         &self,
         epoch: FinalizedEpoch,
-        buffered_operations: &mut VecDeque<Operation>,
+        buffered_transactions: &mut VecDeque<Transaction>,
     ) -> Result<()> {
         let mut current_epoch = self.db.get_epoch()?;
 
         // If prover is enabled and is actively producing new epochs, it has
-        // likely already ran all of the operations in the found epoch, so no
+        // likely already ran all of the transactions in the found epoch, so no
         // further processing is needed
         if epoch.height < current_epoch {
             debug!("epoch {} already processed internally", current_epoch);
@@ -277,9 +279,9 @@ impl Prover {
             ));
         }
 
-        let all_ops: Vec<Operation> = buffered_operations.drain(..).collect();
-        if !all_ops.is_empty() {
-            self.execute_block(all_ops).await?;
+        let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
+        if !all_transactions.is_empty() {
+            self.execute_block(all_transactions).await?;
         }
 
         let new_commitment = self.get_commitment().await?;
@@ -302,17 +304,20 @@ impl Prover {
         Ok(())
     }
 
-    async fn execute_block(&self, operations: Vec<Operation>) -> Result<Vec<Proof>> {
-        debug!("executing block with {} operations", operations.len());
+    async fn execute_block(&self, transactions: Vec<Transaction>) -> Result<Vec<Proof>> {
+        debug!("executing block with {} transactions", transactions.len());
 
         let mut proofs = Vec::new();
 
-        for operation in operations {
-            match self.process_operation(&operation).await {
+        for transaction in transactions {
+            match self.process_transaction(transaction.clone()).await {
                 Ok(proof) => proofs.push(proof),
                 Err(e) => {
-                    // Log the error and continue with the next operation
-                    warn!("Failed to process operation: {:?}. Error: {}", operation, e);
+                    // Log the error and continue with the next transaction
+                    warn!(
+                        "Failed to process transaction: {:?}. Error: {}",
+                        transaction, e
+                    );
                 }
             }
         }
@@ -323,11 +328,11 @@ impl Prover {
     async fn finalize_new_epoch(
         &self,
         epoch_height: u64,
-        operations: Vec<Operation>,
+        transactions: Vec<Transaction>,
     ) -> Result<()> {
         let prev_commitment = self.get_commitment().await?;
 
-        let proofs = self.execute_block(operations).await?;
+        let proofs = self.execute_block(transactions).await?;
 
         let new_commitment = self.get_commitment().await?;
 
@@ -392,30 +397,30 @@ impl Prover {
             let height = height_rx.recv().await?;
             trace!("received height {}", height);
 
-            // Get pending operations
-            let pending_operations = {
-                let mut ops = self.pending_operations.write().await;
+            // Get pending transactions
+            let pending_transactions = {
+                let mut ops = self.pending_transactions.write().await;
                 std::mem::take(&mut *ops)
             };
 
-            let op_count = pending_operations.len();
+            let tx_count = pending_transactions.len();
 
-            // If there are pending operations, submit them
-            if !pending_operations.clone().is_empty() {
-                match self.da.submit_operations(pending_operations).await {
+            // If there are pending transactions, submit them
+            if !pending_transactions.clone().is_empty() {
+                match self.da.submit_transactions(pending_transactions).await {
                     Ok(submitted_height) => {
                         info!(
-                            "post_batch_loop: submitted {} operations at height {}",
-                            op_count, submitted_height
+                            "post_batch_loop: submitted {} transactions at height {}",
+                            tx_count, submitted_height
                         );
                     }
                     Err(e) => {
-                        error!("post_batch_loop: Failed to submit operations: {}", e);
+                        error!("post_batch_loop: Failed to submit transactions: {}", e);
                     }
                 }
             } else {
                 debug!(
-                    "post_batch_loop: No pending operations to submit at height {}",
+                    "post_batch_loop: No pending transactions to submit at height {}",
                     height
                 );
             }
@@ -435,41 +440,39 @@ impl Prover {
         tree.get(key_hash)
     }
 
-    /// Updates the state from an already verified pending operation.
-    async fn process_operation(&self, operation: &Operation) -> Result<Proof> {
+    /// Updates the state from an already verified pending transaction.
+    async fn process_transaction(&self, transaction: Transaction) -> Result<Proof> {
         let mut tree = self.tree.write().await;
-        tree.process_operation(operation)
+        tree.process_transaction(transaction)
     }
 
-    /// Adds an operation to be posted to the DA layer and applied in the next epoch.
+    /// Adds an transaction to be posted to the DA layer and applied in the next epoch.
     pub async fn validate_and_queue_update(
         self: Arc<Self>,
-        incoming_operation: &Operation,
+        transaction: Transaction,
     ) -> Result<()> {
         if !self.cfg.batcher {
-            bail!("Batcher is disabled, cannot queue operations");
+            bail!("Batcher is disabled, cannot queue transactions");
         }
 
-        // basic validation, does not include signature checks
-        incoming_operation.validate()?;
-
-        // validate operation against existing hashchain if necessary, including signature checks
-        match incoming_operation {
-            Operation::RegisterService(_) => (),
-            Operation::CreateAccount(_) => (),
-            Operation::AddKey(_) | Operation::RevokeKey(_) | Operation::AddData(_) => {
-                let hc_response = self.get_hashchain(&incoming_operation.id()).await?;
+        // validate against existing hashchain if necessary, including signature checks
+        match transaction.entry.operation {
+            Operation::RegisterService { .. } | Operation::CreateAccount { .. } => {
+                Hashchain::empty().add_entry(transaction.entry.clone())?
+            }
+            Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
+                let hc_response = self.get_hashchain(&transaction.id).await?;
 
                 let Found(mut hc, _) = hc_response else {
-                    bail!("Hashchain not found for id: {}", incoming_operation.id())
+                    bail!("Hashchain not found for id: {}", transaction.id)
                 };
 
-                hc.perform_operation(incoming_operation.clone())?;
+                hc.add_entry(transaction.entry.clone())?;
             }
         };
 
-        let mut pending = self.pending_operations.write().await;
-        pending.push(incoming_operation.clone());
+        let mut pending = self.pending_transactions.write().await;
+        pending.push(transaction);
         Ok(())
     }
 }
