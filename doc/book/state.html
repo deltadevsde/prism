@@ -177,24 +177,25 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="state-of-prism"><a class="header" href="#state-of-prism">State of Prism</a></h1>
-<p>This post is an overview on the current development status of Prism as of Sep 17th 2024. We will do our best to keep it routinely updated.</p>
+<p>This post is an overview on the current development status of Prism as of Nov 12th 2024. We will do our best to keep it routinely updated.</p>
 <h2 id="1-circuits"><a class="header" href="#1-circuits">1. Circuits</a></h2>
-<p>Our current circuit implementations serve as a functional prototype, allowing us to ship an initial Proof of Concept. These circuits are missing critical components and constraints. In the repo you will find our groth16 and supernova circuits, as well as our SP1 program. We're actively enhancing this system by:</p>
+<p>Our handwritten circuits have now been succeeded by our sp1 implementation, but the groth16 and supernova variants can still be found under the <code>zk</code> directory.
+We're actively working on the next steps:</p>
 <ul>
-<li>Rewriting original groth16 circuits using bellpepper for increased flexibility in proving systems</li>
-<li>Finishing Supernova circuits to leverage folding schemes and move to a trusted ZK setup</li>
-<li>Developing additional core circuits (related to Celestia state and hashchain verification) to eliminate further trust assumptions</li>
-<li>Exploring zkVM solutions (e.g., Risc0, Jolt, SP1) for Celestia state awareness and harnessing JMT proof optimizations without compromise</li>
+<li>Optimizing code run in circuit</li>
+<li>Adding Celestia state proof, that all transactions since the last epoch have been included</li>
+<li>Recursive epoch proofs for near-instant state sync</li>
 </ul>
-<p><strong>Next steps:</strong> Complete Nova rewrite and zkVM PoC</p>
+<p><strong>Next steps:</strong> Finish benchmarking before rebooting testnet</p>
 <h2 id="2-rollup-status"><a class="header" href="#2-rollup-status">2. Rollup Status</a></h2>
-<p>We've made significant progress in rollup implementation:</p>
+<p>We've made significant progress in the rollup logic:</p>
 <ul>
+<li>Implemented full nodes, light nodes, and prover</li>
 <li>Successfully implemented based sequencing with a batcher + prover</li>
 <li>Enabled direct base layer update operations for users</li>
 <li>Developed a robust proof of concept for further refinement</li>
 </ul>
-<p><strong>Next steps:</strong> Implement full nodes and develop checkpoint SNARKs for fast sync (ADR-001)</p>
+<p><strong>Next steps:</strong> Implement checkpoint SNARKs for fast sync (ADR-001)</p>
 <h2 id="3-api-development"><a class="header" href="#3-api-development">3. API Development</a></h2>
 <p>We've initiated a comprehensive API redesign to better serve our diverse user base:</p>
 <ul>

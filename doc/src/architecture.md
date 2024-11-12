@@ -10,25 +10,5 @@ Light nodes verify the state by downloading and verifying the SNARKs posted to C
 2. Services can replicate the state by running a full node, to serve their own stack and not rely on the liveness of the prover.
 3. Enables future prover decentralization (perhaps with a prover marketplace).
 4. Censorship resistance (updates can be posted directly to the DA layer).
-```mermaid
-graph TD
-    User[User] -->|interacts with| ChatApp[Chat Application]
-    subgraph ChatApp[Chat Application]
-        LuminaPrism[Lumina+Prism]
-    end
-    LuminaPrism -->|uses| ServiceAPI[Service API]
-    LuminaPrism -->|downloads + verifies SNARK| Celestia
 
-    subgraph ChatServiceInfra[Chat Service Infrastructure]
-        ChatServer[Chat Service Server]
-        PrismNode[Prism Full Node]
-    end
-
-    ServiceAPI -->|requests keys and merkle proofs| ChatServiceInfra
-    ServiceAPI -->|verifies merkle proofs against commitment in SNARK| ChatServiceInfra
-
-    ChatServer -->|uploads key updates| Celestia
-
-    Celestia -->|gives key updates from last celestia block| Prover
-    Prover[Prover] -->|posts snark to celestia| Celestia
-```
+![Architecture](./img/architecturehor-08.png)
