@@ -177,31 +177,31 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="quickstart"><a class="header" href="#quickstart">Quickstart</a></h1>
-<p>This guide will introduce you to the ideas behind Prism.</p>
+<p>This guide introduces the core concepts behind Prism and why it's essential for modern internet security.</p>
 <blockquote>
-<p><strong>Note</strong>: If you have no or only little previous knowledge, you can get a short overview with partly simplified explanations <a href="./crypto-intro/intro.html">here</a>.</p>
+<p><strong>Note</strong>: New to cryptography and internet security? Check out our <a href="./crypto-intro/intro.html">simplified overview</a> for beginners.</p>
 </blockquote>
-<h2 id="the-e2ee-psyop"><a class="header" href="#the-e2ee-psyop">The E2EE Psyop</a></h2>
-<p>Despite being end-to-end encrypted (an essential security feature in every communication protocol), Signal, WhatsApp, iMessage, are not as secure as we've been led to believe.</p>
-<p>At its core, E2EE allows gated access for the sender and receiver to read messages inside a conversation, while anyone else, including the app provider, is locked out.</p>
-<p>But E2EE isn't perfect. It hinges on the trust assumption you're communicating with the person you think is on the other side - a foundation for backdoors and hacks.</p>
-<h2 id="what-is-a-key-directory"><a class="header" href="#what-is-a-key-directory">What is a Key Directory?</a></h2>
-<p>A key directory serves as a repository or service that stores and distributes user's public keys. It store's public keys associated with users' identities, and allows users to fetch the public keys and corresponding merkle proofs to ensure they can securely send encrypted messages.</p>
-<p>Although there have been instances of centralized key directories (see: MIT PGP Public Key Server, Keybase), there are no public key directories with a key transparency solution. This is what this infrastructure layer intends to provide as a rollup on top of Celestia.</p>
-<h2 id="the-trust-assumption-virus"><a class="header" href="#the-trust-assumption-virus">The 'Trust-Assumption' Virus</a></h2>
-<p>Each of these apps uses its own key directory, which typically relies on a single authority to establish channels and ensure the integrity of all communications inside the protocol.</p>
-<p>Signal, an example hailed as the gold standard of private communication, can't read users' messages due to end-to-end encryption, but lacks cryptographic guarantees and verifiability through its lack of key transparency. This tradeoff creates a potential vulnerability as the integrity of the key exchange can be compromised without users' immediate knowledge.</p>
-<p>Specifically, it makes these systems vulnerable to a 'man-in-the-middle attack' (MITM) - in which an unverified 3rd party intercepts a conversation without either party being aware, by sending messages inside a chat and pretending to be the person on the other side. In case you wonder how close it is to reality - back in 2016, the UK government proposed <a href="https://theconversation.com/u-k-proposal-to-bcc-law-enforcement-on-messaging-apps-threatens-global-privacy-118142">GHOST</a>, a protocol designed to integrate with popular messaging apps, designed to achieve the same goal of a MITM attack.</p>
-<h2 id="the-achilles-heel-of-e2ee"><a class="header" href="#the-achilles-heel-of-e2ee">The achilles heel of E2EE</a></h2>
-<p>To escape criticism around key transparency, apps like Signal and Whatsapp have introduced their own solutions to allow users to verify their contacts by scanning a QR code or comparing numbers from their screen in person or via a phone call.</p>
-<p>While this sounds straightforward, in reality, only <a href="https://www.usenix.org/conference/soups2017/technical-sessions/presentation/vaziripour">14%</a> of users manage to navigate this on their own. Even with guidance, it takes an average of over 7 minutes to complete, with most users still not fully grasping its purpose.</p>
+<h2 id="the-authentication-challenge"><a class="header" href="#the-authentication-challenge">The Authentication Challenge</a></h2>
+<p>Every day, billions of internet users rely on cryptographic authentication to secure their digital interactions. Whether you're checking your email, browsing websites, or sending encrypted messages, you need to verify you're connecting to the right service or person.</p>
+<p>Currently, this verification relies heavily on trusted intermediaries—certificate authorities for websites, key directories for messaging apps, and identity providers for online services. While these intermediaries use encryption, they remain central points of failure that can be compromised without users knowing.</p>
+<blockquote>
+<p>"This whole business of protecting public keys from tampering is the single most difficult problem in practical public key applications. It is the ‘Achilles heel’ of public key cryptography, and a lot of software complexity is tied up in solving this one problem."</p>
+<p>—Zimmermann et al. (“PGP User’s Guide Volume I: Essential Topics,” 1992)</p>
+</blockquote>
+<h2 id="the-split-world-vulnerability"><a class="header" href="#the-split-world-vulnerability">The Split-World Vulnerability</a></h2>
+<p>This centralized trust creates what security researchers call a "split-world" vulnerability: a malicious actor could show different security credentials to different users without detection. For example:</p>
+<ul>
+<li>A compromised certificate authority could issue fake certificates for banking websites</li>
+<li>A messaging service could secretly provide different encryption keys to enable surveillance</li>
+<li>An identity provider could selectively authenticate false credentials</li>
+</ul>
+<p>These vulnerabilities persist even with strong encryption because users lack direct means to verify the authenticity of cryptographic materials.</p>
 <h2 id="what-is-key-transparency"><a class="header" href="#what-is-key-transparency">What is Key Transparency?</a></h2>
-<p>Key transparency is a security system designed to make the distribution and management of a key directory auditable and verifiable. Signal has no key transparency solution. Other E2EE applications who do have key transparency solutions (Keybase, Whatsapp), have various strong trust assumptions that cancel out the verifiability of these systems. Furthermore, all current E2EE chat applications with key transparency solutions do not actually implement auditing or verifying from the chat client.</p>
-<p>We provide the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over Celestia. These WASM light clients are integrated into chat clients to have a direct connection to the DA layer without trusting an RPC.</p>
+<p>Key transparency is a security system that makes the distribution and management of cryptographic materials (like public keys and certificates) auditable and verifiable. While some services implement partial solutions, they still rely on trusted intermediaries and lack practical verification mechanisms for end users.</p>
+<p>Traditional solutions often put the burden on users to manually verify credentials (like comparing key fingerprints or scanning QR codes). Research shows this is impractical—only a small percentage of users successfully complete these verifications, and even fewer understand their purpose.</p>
 <h2 id="what-is-prism"><a class="header" href="#what-is-prism">What is Prism?</a></h2>
 <p>From a high level, Prism is simply a trust-minimized service that manages data - more precisely, a label-value-map - that produces evidence that it has acted correctly and honestly. Correct and honest here refer to application-specific policies by which it purports to act.</p>
-<h2 id="a-practical-application"><a class="header" href="#a-practical-application">A practical application</a></h2>
-<p>Prism originiated as a toy implementation of a paper from <a href="https://eprint.iacr.org/2021/1263.pdf">Tzialla et al.</a>, from which it has significantly diverged. In this documentation, <em>"Keypal"</em> is described as a concrete application example, which serves as a POC of an application that could run on Prism. Prism can be thought of as a service that simply manages a two-column table. The first column stores unique identifiers, which we will simplify to just e-mail addresses in this documentation, and the corresponding column on the right stores a hashchain of values. For most Prism applications, the values stored in this hashchain are the public keys associated with the identifier.</p>
+<p>Prism originiated as a toy implementation of a paper from <a href="https://eprint.iacr.org/2021/1263.pdf">Tzialla et al.</a>, from which it has significantly diverged. In this documentation, <em>"Keypal"</em> is described as a concrete application example, which serves as a POC of an application that could run on Prism.</p>
 <h2 id="prism-as-a-sovereign-rollup-on-celestia"><a class="header" href="#prism-as-a-sovereign-rollup-on-celestia">Prism as a Sovereign Rollup on Celestia</a></h2>
 <p>Prism operates as a sovereign-based rollup on the Celestia blockchain. A rollup is a scaling solution for blockchain networks, particularly designed to increase transaction throughput and reduce fees while maintaining the security guarantees of the underlying Layer 1 (L1) blockchain. Unlike traditional rollups, Prism does not rely on Celestia's L1 to validate its blocks - the nodes of the rollup network are responsible for validating them, allowing Prism to take charge of its own settlement.</p>
 <h3 id="block-sequencing-in-prism"><a class="header" href="#block-sequencing-in-prism">Block Sequencing in Prism</a></h3>

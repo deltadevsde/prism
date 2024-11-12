@@ -177,19 +177,18 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="what-is-prism"><a class="header" href="#what-is-prism">What is Prism?</a></h1>
+<p>Prism is a new verifiable authentication standard allowing users to <em>directly</em> verify the authenticity of cryptographic materials (e.g. keys and certificates) <em>without a trusted intermediary</em>.</p>
 <p><img src="./img/prism_banner.png" alt="Prism Banner" /></p>
-<p>Prism is a new verifiable authentication standard for private messaging and any systems relying on PKI.</p>
-<p>With <a href="https://celestia.org">Celestia</a> underneath, Prism enables users to <em>instantly and directly</em> verify their encrypted chats and other services from any device, replacing trusted intermediaries with embedded light nodes.</p>
-<p>Next to messaging, we envison many other use cases:</p>
-<ul>
-<li>A shared global identity layer</li>
-<li>Universal keystore rollups</li>
-<li>Decentralized password managers</li>
-<li>New TEE remote attestation protocols</li>
-<li>Advancements to CA and PKI systems</li>
-<li>Dark Rollups</li>
-</ul>
-<p>This website serves to provide documentation for the current iteration of the protocol, context for open problems that are being discussed, and general information regarding the status of the project.</p>
+<h1 id="why-prism"><a class="header" href="#why-prism">Why Prism?</a></h1>
+<p>Every time you browse a website or send an encrypted message, you're trusting that you're connecting to the right place and the right person. Without transparency systems, however, a malicious actor could secretly show you different security credentials than everyone else sees— allowing them to intercept your sensitive data without detection.</p>
+<p>This "split-world" vulnerability affects billions of daily internet interactions, from simply browsing the web to private messaging, making it one of the most fundamental security challenges of the internet.</p>
+<p><a href="./quickstart.html">Learn More →</a></p>
+<h1 id="how-does-it-work"><a class="header" href="#how-does-it-work">How does it work?</a></h1>
+<p>To eliminate the need for centralized key directories, Prism cryptographically verifies the identity behind every interaction by posting validity proofs of the key directory and the corresponding roots to a high-throughput, shared data layer as the first based rollup on Celestia.</p>
+<p>User applications embed a light node that downloads and verifies this proof directly from the Celestia network, without any intermediaries.</p>
+<p>With Prism, users finally have the infrastructure to create apps needing transparent verification.</p>
+<p>As a verification standard, Prism enables a new ecosystem of truly trustless applications: from a shared global identity layer and universal keystore rollups to new TEE remote attestation protocols and advancements in CA and PKI systems.</p>
 <p>If you're interested in being a part of the project,</p>
 <ul>
 <li>join our <a href="https://discord.gg/eNTVVHYSw7">Discord</a></li>
@@ -198,31 +197,31 @@
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="quickstart"><a class="header" href="#quickstart">Quickstart</a></h1>
-<p>This guide will introduce you to the ideas behind Prism.</p>
+<p>This guide introduces the core concepts behind Prism and why it's essential for modern internet security.</p>
 <blockquote>
-<p><strong>Note</strong>: If you have no or only little previous knowledge, you can get a short overview with partly simplified explanations <a href="./crypto-intro/intro.html">here</a>.</p>
+<p><strong>Note</strong>: New to cryptography and internet security? Check out our <a href="./crypto-intro/intro.html">simplified overview</a> for beginners.</p>
 </blockquote>
-<h2 id="the-e2ee-psyop"><a class="header" href="#the-e2ee-psyop">The E2EE Psyop</a></h2>
-<p>Despite being end-to-end encrypted (an essential security feature in every communication protocol), Signal, WhatsApp, iMessage, are not as secure as we've been led to believe.</p>
-<p>At its core, E2EE allows gated access for the sender and receiver to read messages inside a conversation, while anyone else, including the app provider, is locked out.</p>
-<p>But E2EE isn't perfect. It hinges on the trust assumption you're communicating with the person you think is on the other side - a foundation for backdoors and hacks.</p>
-<h2 id="what-is-a-key-directory"><a class="header" href="#what-is-a-key-directory">What is a Key Directory?</a></h2>
-<p>A key directory serves as a repository or service that stores and distributes user's public keys. It store's public keys associated with users' identities, and allows users to fetch the public keys and corresponding merkle proofs to ensure they can securely send encrypted messages.</p>
-<p>Although there have been instances of centralized key directories (see: MIT PGP Public Key Server, Keybase), there are no public key directories with a key transparency solution. This is what this infrastructure layer intends to provide as a rollup on top of Celestia.</p>
-<h2 id="the-trust-assumption-virus"><a class="header" href="#the-trust-assumption-virus">The 'Trust-Assumption' Virus</a></h2>
-<p>Each of these apps uses its own key directory, which typically relies on a single authority to establish channels and ensure the integrity of all communications inside the protocol.</p>
-<p>Signal, an example hailed as the gold standard of private communication, can't read users' messages due to end-to-end encryption, but lacks cryptographic guarantees and verifiability through its lack of key transparency. This tradeoff creates a potential vulnerability as the integrity of the key exchange can be compromised without users' immediate knowledge.</p>
-<p>Specifically, it makes these systems vulnerable to a 'man-in-the-middle attack' (MITM) - in which an unverified 3rd party intercepts a conversation without either party being aware, by sending messages inside a chat and pretending to be the person on the other side. In case you wonder how close it is to reality - back in 2016, the UK government proposed <a href="https://theconversation.com/u-k-proposal-to-bcc-law-enforcement-on-messaging-apps-threatens-global-privacy-118142">GHOST</a>, a protocol designed to integrate with popular messaging apps, designed to achieve the same goal of a MITM attack.</p>
-<h2 id="the-achilles-heel-of-e2ee"><a class="header" href="#the-achilles-heel-of-e2ee">The achilles heel of E2EE</a></h2>
-<p>To escape criticism around key transparency, apps like Signal and Whatsapp have introduced their own solutions to allow users to verify their contacts by scanning a QR code or comparing numbers from their screen in person or via a phone call.</p>
-<p>While this sounds straightforward, in reality, only <a href="https://www.usenix.org/conference/soups2017/technical-sessions/presentation/vaziripour">14%</a> of users manage to navigate this on their own. Even with guidance, it takes an average of over 7 minutes to complete, with most users still not fully grasping its purpose.</p>
+<h2 id="the-authentication-challenge"><a class="header" href="#the-authentication-challenge">The Authentication Challenge</a></h2>
+<p>Every day, billions of internet users rely on cryptographic authentication to secure their digital interactions. Whether you're checking your email, browsing websites, or sending encrypted messages, you need to verify you're connecting to the right service or person.</p>
+<p>Currently, this verification relies heavily on trusted intermediaries—certificate authorities for websites, key directories for messaging apps, and identity providers for online services. While these intermediaries use encryption, they remain central points of failure that can be compromised without users knowing.</p>
+<blockquote>
+<p>"This whole business of protecting public keys from tampering is the single most difficult problem in practical public key applications. It is the ‘Achilles heel’ of public key cryptography, and a lot of software complexity is tied up in solving this one problem."</p>
+<p>—Zimmermann et al. (“PGP User’s Guide Volume I: Essential Topics,” 1992)</p>
+</blockquote>
+<h2 id="the-split-world-vulnerability"><a class="header" href="#the-split-world-vulnerability">The Split-World Vulnerability</a></h2>
+<p>This centralized trust creates what security researchers call a "split-world" vulnerability: a malicious actor could show different security credentials to different users without detection. For example:</p>
+<ul>
+<li>A compromised certificate authority could issue fake certificates for banking websites</li>
+<li>A messaging service could secretly provide different encryption keys to enable surveillance</li>
+<li>An identity provider could selectively authenticate false credentials</li>
+</ul>
+<p>These vulnerabilities persist even with strong encryption because users lack direct means to verify the authenticity of cryptographic materials.</p>
 <h2 id="what-is-key-transparency"><a class="header" href="#what-is-key-transparency">What is Key Transparency?</a></h2>
-<p>Key transparency is a security system designed to make the distribution and management of a key directory auditable and verifiable. Signal has no key transparency solution. Other E2EE applications who do have key transparency solutions (Keybase, Whatsapp), have various strong trust assumptions that cancel out the verifiability of these systems. Furthermore, all current E2EE chat applications with key transparency solutions do not actually implement auditing or verifying from the chat client.</p>
-<p>We provide the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over Celestia. These WASM light clients are integrated into chat clients to have a direct connection to the DA layer without trusting an RPC.</p>
-<h2 id="what-is-prism"><a class="header" href="#what-is-prism">What is Prism?</a></h2>
+<p>Key transparency is a security system that makes the distribution and management of cryptographic materials (like public keys and certificates) auditable and verifiable. While some services implement partial solutions, they still rely on trusted intermediaries and lack practical verification mechanisms for end users.</p>
+<p>Traditional solutions often put the burden on users to manually verify credentials (like comparing key fingerprints or scanning QR codes). Research shows this is impractical—only a small percentage of users successfully complete these verifications, and even fewer understand their purpose.</p>
+<h2 id="what-is-prism-1"><a class="header" href="#what-is-prism-1">What is Prism?</a></h2>
 <p>From a high level, Prism is simply a trust-minimized service that manages data - more precisely, a label-value-map - that produces evidence that it has acted correctly and honestly. Correct and honest here refer to application-specific policies by which it purports to act.</p>
-<h2 id="a-practical-application"><a class="header" href="#a-practical-application">A practical application</a></h2>
-<p>Prism originiated as a toy implementation of a paper from <a href="https://eprint.iacr.org/2021/1263.pdf">Tzialla et al.</a>, from which it has significantly diverged. In this documentation, <em>"Keypal"</em> is described as a concrete application example, which serves as a POC of an application that could run on Prism. Prism can be thought of as a service that simply manages a two-column table. The first column stores unique identifiers, which we will simplify to just e-mail addresses in this documentation, and the corresponding column on the right stores a hashchain of values. For most Prism applications, the values stored in this hashchain are the public keys associated with the identifier.</p>
+<p>Prism originiated as a toy implementation of a paper from <a href="https://eprint.iacr.org/2021/1263.pdf">Tzialla et al.</a>, from which it has significantly diverged. In this documentation, <em>"Keypal"</em> is described as a concrete application example, which serves as a POC of an application that could run on Prism.</p>
 <h2 id="prism-as-a-sovereign-rollup-on-celestia"><a class="header" href="#prism-as-a-sovereign-rollup-on-celestia">Prism as a Sovereign Rollup on Celestia</a></h2>
 <p>Prism operates as a sovereign-based rollup on the Celestia blockchain. A rollup is a scaling solution for blockchain networks, particularly designed to increase transaction throughput and reduce fees while maintaining the security guarantees of the underlying Layer 1 (L1) blockchain. Unlike traditional rollups, Prism does not rely on Celestia's L1 to validate its blocks - the nodes of the rollup network are responsible for validating them, allowing Prism to take charge of its own settlement.</p>
 <h3 id="block-sequencing-in-prism"><a class="header" href="#block-sequencing-in-prism">Block Sequencing in Prism</a></h3>
@@ -241,7 +240,8 @@
 <p>This integration with Celestia not only bolsters Prism's scalability and security but also establishes a robust framework for end-to-end encrypted communication systems that rely on a decentralized key directory.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="prism-as-a-sovereign-rollup-on-celestia-1"><a class="header" href="#prism-as-a-sovereign-rollup-on-celestia-1">Prism as a Sovereign Rollup on Celestia</a></h1>
-<p>Prism operates as a sovereign based rollup on the Celestia blockchain. A rollup is a scaling solution for blockchain networks, particularly designed to increase transaction throughput and reduce fees while maintaining the security guarantees of the underlying Layer 1 (L1) blockchain. Unlike traditional rollups, Prism does not rely on the Celestia L1 to validate its blocks - the nodes of the rollup network are responsible for validating them, allowing Prism to take charge of its own settlement.</p>
+<p>Prism operates as a sovereign based rollup on the Celestia blockchain. A rollup is a scaling solution for blockchain networks, particularly designed to increase transaction throughput and reduce fees while maintaining the security guarantees of the underlying Layer 1 (L1) blockchain. Unlike traditional rollups, Prism does not rely on the Celestia L1 to validate its blocks - the nodes of the rollup network are responsible for validating them, allowing Prism to take charge of its own settlement.
+<img src="./img/architecturehor-08.png" alt="Architecture" /></p>
 <h2 id="block-sequencing-in-prism-1"><a class="header" href="#block-sequencing-in-prism-1">Block Sequencing in Prism</a></h2>
 <p>Prism's block sequencing and ordering are directly determined by Celestia’s validators as they produce blocks on the Celestia chain. This means that Prism transactions and state updates are included within Celestia blocks, ensuring a tight coupling with Celestia’s consensus mechanism. This offers strong security guarantees for Prism, as the state progression is backed by Celestia's validator set, enhancing security by leveraging Celestia’s data availability layer.</p>
 <h2 id="prism-node-types-1"><a class="header" href="#prism-node-types-1">Prism Node Types</a></h2>
@@ -467,24 +467,25 @@ struct Proof {
 </ol>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="state-of-prism"><a class="header" href="#state-of-prism">State of Prism</a></h1>
-<p>This post is an overview on the current development status of Prism as of Sep 17th 2024. We will do our best to keep it routinely updated.</p>
+<p>This post is an overview on the current development status of Prism as of Nov 12th 2024. We will do our best to keep it routinely updated.</p>
 <h2 id="1-circuits"><a class="header" href="#1-circuits">1. Circuits</a></h2>
-<p>Our current circuit implementations serve as a functional prototype, allowing us to ship an initial Proof of Concept. These circuits are missing critical components and constraints. In the repo you will find our groth16 and supernova circuits, as well as our SP1 program. We're actively enhancing this system by:</p>
+<p>Our handwritten circuits have now been succeeded by our sp1 implementation, but the groth16 and supernova variants can still be found under the <code>zk</code> directory.
+We're actively working on the next steps:</p>
 <ul>
-<li>Rewriting original groth16 circuits using bellpepper for increased flexibility in proving systems</li>
-<li>Finishing Supernova circuits to leverage folding schemes and move to a trusted ZK setup</li>
-<li>Developing additional core circuits (related to Celestia state and hashchain verification) to eliminate further trust assumptions</li>
-<li>Exploring zkVM solutions (e.g., Risc0, Jolt, SP1) for Celestia state awareness and harnessing JMT proof optimizations without compromise</li>
+<li>Optimizing code run in circuit</li>
+<li>Adding Celestia state proof, that all transactions since the last epoch have been included</li>
+<li>Recursive epoch proofs for near-instant state sync</li>
 </ul>
-<p><strong>Next steps:</strong> Complete Nova rewrite and zkVM PoC</p>
+<p><strong>Next steps:</strong> Finish benchmarking before rebooting testnet</p>
 <h2 id="2-rollup-status"><a class="header" href="#2-rollup-status">2. Rollup Status</a></h2>
-<p>We've made significant progress in rollup implementation:</p>
+<p>We've made significant progress in the rollup logic:</p>
 <ul>
+<li>Implemented full nodes, light nodes, and prover</li>
 <li>Successfully implemented based sequencing with a batcher + prover</li>
 <li>Enabled direct base layer update operations for users</li>
 <li>Developed a robust proof of concept for further refinement</li>
 </ul>
-<p><strong>Next steps:</strong> Implement full nodes and develop checkpoint SNARKs for fast sync (ADR-001)</p>
+<p><strong>Next steps:</strong> Implement checkpoint SNARKs for fast sync (ADR-001)</p>
 <h2 id="3-api-development"><a class="header" href="#3-api-development">3. API Development</a></h2>
 <p>We've initiated a comprehensive API redesign to better serve our diverse user base:</p>
 <ul>
@@ -518,27 +519,7 @@ struct Proof {
 <li>Enables future prover decentralization (perhaps with a prover marketplace).</li>
 <li>Censorship resistance (updates can be posted directly to the DA layer).</li>
 </ol>
-<pre class="mermaid">graph TD
-    User[User] --&gt;|interacts with| ChatApp[Chat Application]
-    subgraph ChatApp[Chat Application]
-        LuminaPrism[Lumina+Prism]
-    end
-    LuminaPrism --&gt;|uses| ServiceAPI[Service API]
-    LuminaPrism --&gt;|downloads + verifies SNARK| Celestia
-
-    subgraph ChatServiceInfra[Chat Service Infrastructure]
-        ChatServer[Chat Service Server]
-        PrismNode[Prism Full Node]
-    end
-
-    ServiceAPI --&gt;|requests keys and merkle proofs| ChatServiceInfra
-    ServiceAPI --&gt;|verifies merkle proofs against commitment in SNARK| ChatServiceInfra
-
-    ChatServer --&gt;|uploads key updates| Celestia
-
-    Celestia --&gt;|gives key updates from last celestia block| Prover
-    Prover[Prover] --&gt;|posts snark to celestia| Celestia
-</pre>
+<p><img src="./img/architecturehor-08.png" alt="Architecture" /></p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="introduction-to-cryptography"><a class="header" href="#introduction-to-cryptography">Introduction to Cryptography</a></h1>
 <p>This section deals with basic concepts of cryptography and explains them from a high level. This has no profound explanations, but tries to provide a superficial, simplified basis to give the reader a general idea for the advanced concepts of Prism. Feel free to skip this introduction, as it covers general cryptographic basics of Prism and is intended to serve as a quick reference.</p>
@@ -662,6 +643,14 @@ A person (or an algorithm; the prover) wants to prove to another person (or anot
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="resources"><a class="header" href="#resources">Resources</a></h1>
 <p>Here's a list of different resources that contain in-depth content on the relevant topics. The list is not exhaustive and is constantly updated.</p>
+<h2 id="podcasts"><a class="header" href="#podcasts">Podcasts</a></h2>
+<ul>
+<li><a href="https://www.youtube.com/watch?v=7vbxtLTMq8A">🎥 Jacob Arluck &amp; Ryan Ford - The Hidden Flaw in Encrypted Messaging</a></li>
+</ul>
+<h2 id="livestreams"><a class="header" href="#livestreams">Livestreams</a></h2>
+<ul>
+<li><a href="https://www.youtube.com/watch?v=kAzlAvRM50k">🎥 - Livecoding: Adding secp256r1 to Prism</a></li>
+</ul>
 <h2 id="papers"><a class="header" href="#papers">Papers</a></h2>
 <ul>
 <li><a href="https://eprint.iacr.org/2021/1263.pdf">Transparency Dictionaries with Succinct Proofs of Correct Operation</a></li>
@@ -681,7 +670,6 @@ A person (or an algorithm; the prover) wants to prove to another person (or anot
 <li><a href="https://joyofcryptography.com/">Rosulek - The Joy of Cryptography</a></li>
 <li><a href="https://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.pdf">Thaler - Proofs, Arguments and Zero-Knowledge</a></li>
 </ul>
-<h2 id="other-resources"><a class="header" href="#other-resources">Other Resources</a></h2>
 <h3 id="talks"><a class="header" href="#talks">Talks</a></h3>
 <ul>
 <li><a href="https://www.youtube.com/watch?v=Bky_AgO-Alg">🎥 Ryan Quinn Ford - Fixing E2EE Using Celestia</a></li>

@@ -1,18 +1,24 @@
+# What is Prism?
+
+Prism is a new verifiable authentication standard allowing users to *directly* verify the authenticity of cryptographic materials (e.g. keys and certificates) *without a trusted intermediary*.
+
 ![Prism Banner](./img/prism_banner.png)
 
-Prism is a new verifiable authentication standard for private messaging and any systems relying on PKI.
+# Why Prism?
+Every time you browse a website or send an encrypted message, you're trusting that you're connecting to the right place and the right person. Without transparency systems, however, a malicious actor could secretly show you different security credentials than everyone else sees— allowing them to intercept your sensitive data without detection.
 
-With [Celestia](https://celestia.org) underneath, Prism enables users to *instantly and directly* verify their encrypted chats and other services from any device, replacing trusted intermediaries with embedded light nodes.
+This "split-world" vulnerability affects billions of daily internet interactions, from simply browsing the web to private messaging, making it one of the most fundamental security challenges of the internet.
 
-Next to messaging, we envison many other use cases:
-- A shared global identity layer
-- Universal keystore rollups
-- Decentralized password managers
-- New TEE remote attestation protocols
-- Advancements to CA and PKI systems
-- Dark Rollups
+[Learn More →](./quickstart.md)
 
-This website serves to provide documentation for the current iteration of the protocol, context for open problems that are being discussed, and general information regarding the status of the project.
+# How does it work?
+To eliminate the need for centralized key directories, Prism cryptographically verifies the identity behind every interaction by posting validity proofs of the key directory and the corresponding roots to a high-throughput, shared data layer as the first based rollup on Celestia.
+
+User applications embed a light node that downloads and verifies this proof directly from the Celestia network, without any intermediaries.
+
+With Prism, users finally have the infrastructure to create apps needing transparent verification.
+
+As a verification standard, Prism enables a new ecosystem of truly trustless applications: from a shared global identity layer and universal keystore rollups to new TEE remote attestation protocols and advancements in CA and PKI systems.
 
 If you're interested in being a part of the project,
 - join our [Discord](https://discord.gg/eNTVVHYSw7)

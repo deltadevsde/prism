@@ -2,6 +2,12 @@
 
 Here's a list of different resources that contain in-depth content on the relevant topics. The list is not exhaustive and is constantly updated.
 
+## Podcasts
+- [🎥 Jacob Arluck & Ryan Ford - The Hidden Flaw in Encrypted Messaging](https://www.youtube.com/watch?v=7vbxtLTMq8A)
+
+## Livestreams
+- [🎥 - Livecoding: Adding secp256r1 to Prism](https://www.youtube.com/watch?v=kAzlAvRM50k)
+
 ## Papers
 
 - [Transparency Dictionaries with Succinct Proofs of Correct Operation](https://eprint.iacr.org/2021/1263.pdf)
@@ -20,8 +26,6 @@ Here's a list of different resources that contain in-depth content on the releva
 - [Boneh, Shoup - A Graduate Course in Applied Cryptography](http://toc.cryptobook.us/)
 - [Rosulek - The Joy of Cryptography](https://joyofcryptography.com/)
 - [Thaler - Proofs, Arguments and Zero-Knowledge](https://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.pdf)
-
-## Other Resources
 
 ### Talks
 
