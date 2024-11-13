@@ -29,7 +29,8 @@ impl LightClientWorker {
             let response = match command {
                 LightClientCommand::VerifyEpoch { height } => {
                     console::log_2(&"• Verifying epoch....".into(), &height.into());
-                    match self.celestia.verify_epoch(height).await {
+                    match WasmCelestiaClient::verify_epoch(self.celestia.node.clone(), height).await
+                    {
                         Ok(true) => WorkerResponse::EpochVerified,
                         Ok(false) => WorkerResponse::Error("No epoch data found".to_string()),
                         Err(e) => {

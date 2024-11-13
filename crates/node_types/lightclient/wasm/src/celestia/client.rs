@@ -1,14 +1,12 @@
 use crate::celestia::config::WasmNodeConfigExt;
 use celestia_types::nmt::Namespace;
-use libp2p::identity::Keypair;
 use lumina_node::{
-    blockstore::IndexedDbBlockstore, events::NodeEvent, network::network_id, store::IndexedDbStore,
-    Node, NodeConfig,
+    blockstore::IndexedDbBlockstore,
+    events::{EventSubscriber, NodeEvent},
+    store::IndexedDbStore,
+    Node,
 };
-use lumina_node_wasm::{
-    client::WasmNodeConfig,
-    utils::{resolve_dnsaddr_multiaddress, Network},
-};
+use lumina_node_wasm::{client::WasmNodeConfig, utils::Network};
 use serde_wasm_bindgen::to_value;
 use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
 use std::{
@@ -26,126 +24,112 @@ use super::{CelestiaConfig, FinalizedEpoch};
 
 #[derive(Clone)]
 pub struct WasmCelestiaClient {
-    config: CelestiaConfig,
-    node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
-    current_height: Arc<AtomicU64>,
+    pub config: CelestiaConfig,
+    pub node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
+    pub current_height: Arc<AtomicU64>,
 }
 
 impl WasmCelestiaClient {
     pub async fn new(config: CelestiaConfig) -> Result<Self, JsError> {
-        /* let bridge_addr = CelestiaConfig::fetch_bridge_webtransport_multiaddr().await; */
-
         let current_height = Arc::new(AtomicU64::new(config.start_height));
 
         let mut wasm_node_config = WasmNodeConfig::default(Network::Mocha);
-        wasm_node_config.set_bridge_bootnode(/* bridge_addr.to_string() */);
         let node_config = wasm_node_config.initialize_node_config().await?;
 
         let (node, mut event_subscriber) = Node::new_subscribed(node_config).await?;
+        let node = Arc::new(node);
 
         let client = Self {
             config,
-            node: Arc::new(node),
+            node: node.clone(),
             current_height: current_height.clone(),
         };
 
-        let client_for_verifier = client.clone();
-
-        spawn_local(async move {
-            console::log_1(&"📦 Subscribing to events...".into());
-
-            loop {
-                match event_subscriber.recv().await {
-                    Ok(event) => {
-                        if let NodeEvent::SamplingStarted {
-                            height,
-                            square_width,
-                            ref shares,
-                        } = event.event
-                        {
-                            console::log_4(
-                                &"📦 Sampling started:".into(),
-                                &height.into(),
-                                &square_width.into(),
-                                &shares.len().into(),
-                            );
-                        };
-                        if let NodeEvent::ShareSamplingResult {
-                            height,
-                            square_width,
-                            row,
-                            column,
-                            accepted,
-                        } = event.event.clone()
-                        {
-                            console::log_3(
-                                &"📦 Share sampling result:".into(),
-                                &height.into(),
-                                &accepted.into(),
-                            );
-                        }
-                        if let NodeEvent::SamplingFinished {
-                            height,
-                            accepted,
-                            took,
-                        } = event.event
-                        {
-                            console::log_2(&"📦 Sampling finished:".into(), &height.into());
-                        }
-                        if let NodeEvent::AddedHeaderFromHeaderSub { height } = event.event {
-                            console::log_2(
-                                &"📦 New block height:".into(),
-                                &height.to_string().into(),
-                            );
-                            current_height.store(height, Ordering::Relaxed);
-
-                            // Verify epoch using cloned client and config, because i can't pass self
-                            match client_for_verifier.verify_epoch(height).await {
-                                Ok(true) => console::log_2(
-                                    &"✅ Epoch verified at height:".into(),
-                                    &height.into(),
-                                ),
-                                Ok(false) => console::log_2(
-                                    &"⚠️ No epoch found at height:".into(),
-                                    &height.into(),
-                                ),
-                                Err(e) => {
-                                    console::error_1(
-                                        &format!("❌ Error verifying epoch: {:?}", e).into(),
-                                    );
-                                    // Don't break the loop on epoch verification error
-                                }
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        console::error_1(&format!("❌ Error receiving event: {:?}", e).into());
-                        // Maybe the channel was closed? Let's try to continue anyway
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                    }
-                }
-            }
-        });
+        spawn_local(Self::handle_events(node, event_subscriber, current_height));
 
         Ok(client)
     }
 
-    pub async fn get_current_height(&self) -> u64 {
-        self.current_height.load(Ordering::Relaxed)
+    async fn handle_events(
+        node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
+        mut event_subscriber: EventSubscriber,
+        current_height: Arc<AtomicU64>,
+    ) {
+        console::log_1(&"📦 Subscribing to events...".into());
+
+        while let Ok(event_info) = event_subscriber.recv().await {
+            Self::process_event(event_info.event, &node, &current_height).await;
+        }
     }
 
-    pub async fn verify_epoch(&self, height: u64) -> Result<bool, JsError> {
-        let namespace = hex::decode(&self.config.snark_namespace_id)
+    async fn process_event(
+        event: NodeEvent,
+        node: &Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
+        current_height: &AtomicU64,
+    ) {
+        match event {
+            NodeEvent::SamplingStarted {
+                height,
+                square_width,
+                ref shares,
+            } => {
+                console::log_4(
+                    &"📦 Sampling started:".into(),
+                    &height.into(),
+                    &square_width.into(),
+                    &shares.len().into(),
+                );
+            }
+            NodeEvent::ShareSamplingResult {
+                height, accepted, ..
+            } => {
+                console::log_3(
+                    &"📦 Share sampling result:".into(),
+                    &height.into(),
+                    &accepted.into(),
+                );
+            }
+            NodeEvent::SamplingFinished { height, .. } => {
+                console::log_2(&"📦 Sampling finished:".into(), &height.into());
+            }
+            NodeEvent::AddedHeaderFromHeaderSub { height } => {
+                console::log_2(&"📦 New block height:".into(), &height.to_string().into());
+                current_height.store(height, Ordering::Relaxed);
+
+                // Attempt to verify epoch at new height
+                let node = node.clone();
+                spawn_local(async move {
+                    match Self::verify_epoch(node, height).await {
+                        Ok(true) => {
+                            console::log_2(&"✅ Epoch verified at height:".into(), &height.into())
+                        }
+                        Ok(false) => {
+                            console::log_2(&"⚠️ No epoch found at height:".into(), &height.into())
+                        }
+                        Err(e) => {
+                            console::error_1(&format!("❌ Error verifying epoch: {:?}", e).into())
+                        }
+                    }
+                });
+            }
+            _ => {}
+        }
+    }
+
+    pub async fn verify_epoch(
+        node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
+        height: u64,
+    ) -> Result<bool, JsError> {
+        let namespace = hex::decode(&"00000000000000de1008".to_string())
             .map_err(|e| JsError::new(&format!("Invalid namespace: {}", e)))?;
         console::log_2(&"🔍 Namespace:".into(), &to_value(&namespace).unwrap());
-        let header = self.node.get_header_by_height(height).await?;
+        let header = node.get_header_by_height(height).await?;
         console::log_2(
             &"Header fetched".into(),
             &to_value(&header.clone()).unwrap(),
         );
 
-        match self
-            .node
+        match node
             .request_all_blobs(
                 &header,
                 Namespace::new_v0(&namespace).unwrap(),
@@ -196,5 +180,9 @@ impl WasmCelestiaClient {
                 Err(JsError::new(&format!("Failed to fetch blob: {}", e)))
             }
         }
+    }
+
+    pub async fn get_current_height(&self) -> u64 {
+        self.current_height.load(Ordering::Relaxed)
     }
 }

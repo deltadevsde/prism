@@ -42,12 +42,9 @@ impl CelestiaConfig {
             .addrs
             .into_iter()
             .find(|ma| {
-                let not_localhost = !ma
-                    .iter()
-                    .any(|prot| prot == Protocol::Ip4("127.0.0.1".parse().unwrap()));
-                let webtransport = ma
-                    .protocol_stack()
-                    .any(|protocol| protocol == "webtransport");
+                let not_localhost =
+                    !ma.iter().any(|prot| prot == Protocol::Ip4("127.0.0.1".parse().unwrap()));
+                let webtransport = ma.protocol_stack().any(|protocol| protocol == "webtransport");
                 not_localhost && webtransport
             })
             .expect("Bridge doesn't listen on webtransport");
@@ -62,15 +59,13 @@ impl CelestiaConfig {
 
 pub trait WasmNodeConfigExt {
     async fn initialize_node_config(
-        &self,
+        &mut self,
     ) -> Result<NodeConfig<IndexedDbBlockstore, IndexedDbStore>, JsError>;
-
-    fn set_bridge_bootnode(&mut self /* , bridge_addr: String */);
 }
 
 impl WasmNodeConfigExt for WasmNodeConfig {
     async fn initialize_node_config(
-        &self,
+        &mut self,
     ) -> Result<NodeConfig<IndexedDbBlockstore, IndexedDbStore>, JsError> {
         let network_id = network_id(self.network.into());
 
@@ -83,7 +78,10 @@ impl WasmNodeConfigExt for WasmNodeConfig {
             .await
             .map_err(|e| JsError::new(&format!("Failed to open the blockstore: {}", e)))?;
 
-        let p2p_local_keypair = Keypair::generate_ed25519();
+        if self.network == Network::Private {
+            let bridge_addr = CelestiaConfig::fetch_bridge_webtransport_multiaddr().await;
+            self.bootnodes = vec![bridge_addr.to_string()];
+        }
 
         // Process bootnodes
         let mut p2p_bootnodes = Vec::with_capacity(self.bootnodes.len());
@@ -99,30 +97,17 @@ impl WasmNodeConfigExt for WasmNodeConfig {
             p2p_bootnodes.extend(resolved_addrs.into_iter());
         }
 
-        // Get syncing window from config
-        let syncing_window = self
-            .custom_syncing_window_secs
-            .map(|d| Duration::from_secs(d.into()));
-
         Ok(NodeConfig {
             network_id: network_id.to_string(),
             p2p_bootnodes,
-            p2p_local_keypair,
+            p2p_local_keypair: Keypair::generate_ed25519(),
             p2p_listen_on: vec![],
             sync_batch_size: 128,
-            custom_syncing_window: syncing_window,
+            custom_syncing_window: self
+                .custom_syncing_window_secs
+                .map(|d| Duration::from_secs(d.into())),
             blockstore,
             store,
         })
-    }
-
-    fn set_bridge_bootnode(&mut self /* , bridge_addr: String */) {
-        self.bootnodes = vec![
-            "/dnsaddr/da-bridge-mocha-4.celestia-mocha.com/p2p/12D3KooWCBAbQbJSpCpCGKzqz3rAN4ixYbc63K68zJg9aisuAajg".to_string(),
-            "/dnsaddr/da-bridge-mocha-4-2.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G".to_string(),
-            "/dnsaddr/da-full-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCUHPLqQXZzpTx1x3TAsdn3vYmTNDhzg66yG8hqoxGGN8".to_string(),
-            "/dnsaddr/da-full-2-mocha-4.celestia-mocha.com/p2p/12D3KooWR6SHsXPkkvhCRn6vp1RqSefgaT1X1nMNvrVjU2o3GoYy".to_string(),
-        ];
-        /* self.bootnodes = vec![bridge_addr]; */
     }
 }
