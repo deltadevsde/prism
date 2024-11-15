@@ -19,7 +19,7 @@
 
 Prism is a decentralized key transparency protocol, first inspired by the paper [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf), leveraging zkSNARKs to enable trust-minimized verification of E2EE services via WASM light clients. This eliminates the possibility for hidden backdoors in E2EE services through a user-verifiable key management system. It uses transparency dictionaries under the hood, offering a generalized solution for managing a label-value map in environments where the service maintaining the map is not completely trusted.
 
-Prism provides the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over a data availbility layer. The system is designed to be efficient, scalable and secure, making it suitable for a wide range of applications.
+Prism provides the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM light clients over a data availability layer. The system is designed to be efficient, scalable and secure, making it suitable for a wide range of applications.
 
 You can view further information about the project in our [documentation](https://prism.deltadevs.xyz). The project is undergoing rapid development. You can view the current development status [here](https://prism.deltadevs.xyz/state).
 
