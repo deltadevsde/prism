@@ -375,6 +375,8 @@ impl Prover {
         client.verify(&proof, &self.verifying_key)?;
         info!("verified proof for epoch {}", epoch_height);
 
+        info!("proof: {:?}", &proof.clone().bytes());
+
         let mut epoch_json = FinalizedEpoch {
             height: epoch_height,
             prev_commitment,

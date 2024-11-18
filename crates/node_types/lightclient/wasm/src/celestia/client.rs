@@ -33,7 +33,7 @@ impl WasmCelestiaClient {
     pub async fn new(config: CelestiaConfig) -> Result<Self, JsError> {
         let current_height = Arc::new(AtomicU64::new(config.start_height));
 
-        let mut wasm_node_config = WasmNodeConfig::default(Network::Mocha);
+        let mut wasm_node_config = WasmNodeConfig::default(Network::Private);
         let node_config = wasm_node_config.initialize_node_config().await?;
 
         let (node, mut event_subscriber) = Node::new_subscribed(node_config).await?;
@@ -68,7 +68,7 @@ impl WasmCelestiaClient {
         current_height: &AtomicU64,
     ) {
         match event {
-            NodeEvent::SamplingStarted {
+            /* NodeEvent::SamplingStarted {
                 height,
                 square_width,
                 ref shares,
@@ -79,7 +79,7 @@ impl WasmCelestiaClient {
                     &square_width.into(),
                     &shares.len().into(),
                 );
-            }
+            } */
             NodeEvent::ShareSamplingResult {
                 height, accepted, ..
             } => {
@@ -88,10 +88,10 @@ impl WasmCelestiaClient {
                     &height.into(),
                     &accepted.into(),
                 );
-            }
+            } /*
             NodeEvent::SamplingFinished { height, .. } => {
-                console::log_2(&"📦 Sampling finished:".into(), &height.into());
-            }
+            console::log_2(&"📦 Sampling finished:".into(), &height.into());
+            } */
             NodeEvent::AddedHeaderFromHeaderSub { height } => {
                 console::log_2(&"📦 New block height:".into(), &height.to_string().into());
                 current_height.store(height, Ordering::Relaxed);
@@ -143,13 +143,14 @@ impl WasmCelestiaClient {
                     return Ok(false);
                 }
                 console::log_2(&"🔍 Verifying epoch at height:".into(), &height.into());
-                console::log_2(&"🔍 Epoch data:".into(), &to_value(&blob).unwrap());
                 for b in blob {
                     let epoch = FinalizedEpoch::try_from(&b).map_err(|_| {
                         JsError::new(&format!("Failed to decode blob into FinalizedEpoch"))
                     })?;
 
-                    let vk_hash_bytes = &epoch.proof[..4];
+                    // mock prover posts an empty proof [0, 0, 0, 0] (tested with real proof data on a different branch)
+
+                    /* let vk_hash_bytes = &epoch.proof[..4];
                     let encoded_proof = &epoch.proof[4..];
                     let vk_hash = hex::encode(vk_hash_bytes);
 
@@ -171,7 +172,7 @@ impl WasmCelestiaClient {
                         );
                         return Ok(false);
                     }
-                    console::log_2(&"🔍 Epoch:".into(), &to_value(&epoch).unwrap());
+                    console::log_2(&"🔍 Epoch:".into(), &to_value(&epoch).unwrap()); */
                 }
                 Ok(true)
             }

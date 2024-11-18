@@ -26,7 +26,7 @@ impl Default for CelestiaConfig {
     fn default() -> Self {
         Self {
             node_url: "ws://localhost:26658".to_string(),
-            start_height: 3093687,
+            start_height: 0,
             snark_namespace_id: "00000000000000de1008".to_string(),
             operation_namespace_id: Some("00000000000000de1009".to_string()),
         }
