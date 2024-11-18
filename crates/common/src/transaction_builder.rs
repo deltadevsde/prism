@@ -80,6 +80,10 @@ impl TransactionBuilder {
         Self::default()
     }
 
+    pub fn get_hashchain(&self, id: &str) -> Option<&Hashchain> {
+        self.hashchains.get(id)
+    }
+
     pub fn register_service_with_random_keys(&mut self, id: &str) -> UncommittedTransaction {
         let random_service_challenge_key = SigningKey::new_ed25519();
         let random_service_signing_key = SigningKey::new_ed25519();
