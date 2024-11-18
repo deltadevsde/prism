@@ -17,8 +17,6 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
 
-use prism_common::test_utils::TestTreeState;
-
 use tempfile::TempDir;
 
 fn setup_db() -> Arc<Box<dyn Database>> {
@@ -50,8 +48,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let signing_key = create_signing_key();
     let pubkey = signing_key.verification_key();
 
-    let mut test_state = TestTreeState::new();
-    let _service = test_state.register_service("test_service".to_string());
     let prover_cfg = prism_prover::Config {
         signing_key,
         ..prism_prover::Config::default()
