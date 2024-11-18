@@ -1,5 +1,6 @@
 pub mod digest;
 pub mod hashchain;
+pub mod hashchain_storage;
 pub mod hasher;
 pub mod keys;
 pub mod operation;

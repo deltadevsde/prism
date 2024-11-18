@@ -1,16 +1,15 @@
 use anyhow::{anyhow, bail, Context, Result};
 use ed25519_consensus::SigningKey;
-use jmt::KeyHash;
 use keystore_rs::create_signing_key;
 use prism_common::{
     digest::Digest,
     hashchain::Hashchain,
-    hasher::Hasher,
+    hashchain_storage::HashchainStorage,
     transaction::Transaction,
     tree::{
         Batch,
         HashchainResponse::{self, *},
-        KeyDirectoryTree, Proof, SnarkableTree,
+        KeyDirectoryTree, Proof,
     },
 };
 use prism_errors::DataAvailabilityError;
@@ -73,7 +72,7 @@ pub struct Prover {
     pub pending_transactions: Arc<RwLock<Vec<Transaction>>>,
 
     /// [`tree`] is the representation of the JMT, prism's state tree. It is accessed via the [`db`].
-    tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
+    tree: Arc<RwLock<dyn HashchainStorage>>,
 
     prover_client: Arc<RwLock<ProverClient>>,
     proving_key: SP1ProvingKey,
@@ -432,12 +431,9 @@ impl Prover {
         tree.get_commitment().context("Failed to get commitment")
     }
 
-    pub async fn get_hashchain(&self, id: &String) -> Result<HashchainResponse> {
+    pub async fn get_hashchain(&self, id: &str) -> Result<HashchainResponse> {
         let tree = self.tree.read().await;
-        let hashed_id = Digest::hash(id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-        tree.get(key_hash)
+        tree.get(id)
     }
 
     /// Updates the state from an already verified pending transaction.

@@ -1,13 +1,12 @@
 use crate::{
     digest::Digest,
-    hashchain::Hashchain,
+    hashchain::{Hashchain, HashchainEntry},
+    hashchain_storage::HashchainStorage,
     hasher::Hasher,
     keys::{SigningKey, VerifyingKey},
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::Transaction,
-    tree::{
-        HashchainResponse::*, InsertProof, KeyDirectoryTree, Proof, SnarkableTree, UpdateProof,
-    },
+    tree::{HashchainResponse::*, InsertProof, KeyDirectoryTree, Proof, UpdateProof},
 };
 use anyhow::{anyhow, Result};
 #[cfg(not(feature = "secp256k1"))]
@@ -225,24 +224,28 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
         ]);
         let signature = service.sk.sign(&hash.to_bytes());
 
-        let hashed_id = Digest::hash(&random_string);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        let entry = HashchainEntry::new_create_account(
+            random_string.clone(),
+            service.id.clone(),
+            ServiceChallengeInput::Signed(signature),
+            sk.verifying_key(),
+            &sk,
+        );
 
-        let entry = Hashchain::empty()
-            .create_account(
-                random_string.clone(),
-                service.id.clone(),
-                ServiceChallengeInput::Signed(signature),
-                sk.verifying_key(),
-                &sk,
-            )
-            .unwrap();
+        let create_acc_tx = Transaction {
+            id: random_string.clone(),
+            entry,
+        };
 
         if !state.inserted_keys.contains(&random_string) {
-            let proof = state.tree.insert(key_hash, entry).expect("Insert should succeed");
+            let Proof::Insert(insert_proof) =
+                state.tree.process_transaction(create_acc_tx).expect("Insert tx should succeed")
+            else {
+                panic!("Returned proof must be insert proof")
+            };
             state.inserted_keys.insert(random_string.clone());
             state.signing_keys.insert(random_string, sk);
-            return proof;
+            return *insert_proof;
         }
     }
 }
@@ -254,10 +257,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
 
     let key = state.inserted_keys.iter().nth(rng.gen_range(0..state.inserted_keys.len())).unwrap();
 
-    let hashed_id = Digest::hash(key);
-    let key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-    let Found(mut hc, _) = state.tree.get(key_hash).unwrap() else {
+    let Found(mut hc, _) = state.tree.get(key).unwrap() else {
         panic!("No response found for key. Cannot perform update.");
     };
 
