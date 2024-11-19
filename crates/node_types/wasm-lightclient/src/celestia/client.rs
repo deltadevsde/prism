@@ -55,8 +55,6 @@ impl WasmCelestiaClient {
         mut event_subscriber: EventSubscriber,
         current_height: Arc<AtomicU64>,
     ) {
-        console::log_1(&"📦 Subscribing to events...".into());
-
         while let Ok(event_info) = event_subscriber.recv().await {
             Self::process_event(event_info.event, &node, &current_height).await;
         }
@@ -68,18 +66,6 @@ impl WasmCelestiaClient {
         current_height: &AtomicU64,
     ) {
         match event {
-            /* NodeEvent::SamplingStarted {
-                height,
-                square_width,
-                ref shares,
-            } => {
-                console::log_4(
-                    &"📦 Sampling started:".into(),
-                    &height.into(),
-                    &square_width.into(),
-                    &shares.len().into(),
-                );
-            } */
             NodeEvent::ShareSamplingResult {
                 height, accepted, ..
             } => {
@@ -88,15 +74,9 @@ impl WasmCelestiaClient {
                     &height.into(),
                     &accepted.into(),
                 );
-            } /*
-            NodeEvent::SamplingFinished { height, .. } => {
-            console::log_2(&"📦 Sampling finished:".into(), &height.into());
-            } */
+            }
             NodeEvent::AddedHeaderFromHeaderSub { height } => {
-                console::log_2(&"📦 New block height:".into(), &height.to_string().into());
                 current_height.store(height, Ordering::Relaxed);
-
-                // Attempt to verify epoch at new height
                 let node = node.clone();
                 spawn_local(async move {
                     match Self::verify_epoch(node, height).await {
@@ -122,12 +102,7 @@ impl WasmCelestiaClient {
     ) -> Result<bool, JsError> {
         let namespace = hex::decode(&"00000000000000de1008".to_string())
             .map_err(|e| JsError::new(&format!("Invalid namespace: {}", e)))?;
-        console::log_2(&"🔍 Namespace:".into(), &to_value(&namespace).unwrap());
         let header = node.get_header_by_height(height).await?;
-        console::log_2(
-            &"Header fetched".into(),
-            &to_value(&header.clone()).unwrap(),
-        );
 
         match node
             .request_all_blobs(
@@ -148,20 +123,21 @@ impl WasmCelestiaClient {
                         JsError::new(&format!("Failed to decode blob into FinalizedEpoch"))
                     })?;
 
-                    // mock prover posts an empty proof [0, 0, 0, 0] (tested with real proof data on a different branch)
+                    console::log_2(&"🔍 Epoch:".into(), &to_value(&epoch).unwrap());
 
-                    /* let vk_hash_bytes = &epoch.proof[..4];
-                    let encoded_proof = &epoch.proof[4..];
-                    let vk_hash = hex::encode(vk_hash_bytes);
-
-                    let mut public_inputs = Vec::with_capacity(64);
+                    // mock prover posts an empty proof [0, 0, 0, 0], FinalizedEpoch needs vk_hash
+                    /* let mut public_inputs = Vec::with_capacity(64);
                     public_inputs.extend_from_slice(&epoch.prev_commitment);
-                    public_inputs.extend_from_slice(&epoch.current_commitment);
+                    public_inputs.extend_from_slice(&epoch.current_commitment); */
+
+                    let hardcoded_public_inputs_string = "e80300004d170000430e0000";
+                    let public_inputs = hex::decode(hardcoded_public_inputs_string)
+                        .map_err(|e| JsError::new(&format!("Invalid public inputs: {}", e)))?;
 
                     if !Groth16Verifier::verify(
-                        encoded_proof,
+                        &epoch.proof,
                         &public_inputs,
-                        &vk_hash,
+                        &epoch.vk_hash,
                         *GROTH16_VK_BYTES,
                     )
                     .is_ok()
@@ -172,7 +148,7 @@ impl WasmCelestiaClient {
                         );
                         return Ok(false);
                     }
-                    console::log_2(&"🔍 Epoch:".into(), &to_value(&epoch).unwrap()); */
+                    console::log_2(&"🔍 Epoch:".into(), &to_value(&epoch).unwrap());
                 }
                 Ok(true)
             }

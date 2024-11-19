@@ -8,6 +8,7 @@ pub struct FinalizedEpoch {
     pub prev_commitment: [u8; 32],
     pub current_commitment: [u8; 32],
     pub proof: Vec<u8>,
+    pub vk_hash: String,
     pub signature: Option<String>,
 }
 

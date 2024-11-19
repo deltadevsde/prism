@@ -19,14 +19,9 @@ impl WorkerClient {
         let (response_tx, response_rx) = mpsc::unbounded_channel();
 
         let onmessage = Closure::new(move |message_event: MessageEvent| {
-            match from_value(message_event.data()) {
-                Ok(response) => {
-                    if let Err(e) = response_tx.send(Ok(response)) {
-                        console::error_1(&format!("Failed to forward response: {}", e).into());
-                    }
-                }
-                Err(e) => {
-                    console::error_1(&format!("Failed to deserialize response: {}", e).into());
+            if let Ok(response) = from_value(message_event.data()) {
+                if response_tx.send(Ok(response)).is_err() {
+                    console::error_1(&format!("Failed to forward response").into());
                 }
             }
         });
@@ -41,16 +36,12 @@ impl WorkerClient {
     }
 
     pub async fn exec(&self, command: LightClientCommand) -> Result<WorkerResponse, JsError> {
-        let mut response_channel = self.response_channel.lock().await;
-        console::log_2(&"🩺 executing".into(), &to_value(&command)?);
-
+        let value = to_value(&command)?;
         self.port
-            .post_message(&to_value(&command)?)
+            .post_message(&value)
             .map_err(|e| JsError::new(&format!("Failed to post message: {:?}", e)))?;
 
-        console::log_1(&"📨 message posted".into());
-
-        // maybe we should loop and filter out some messages...
+        let mut response_channel = self.response_channel.lock().await;
         response_channel
             .recv()
             .await
@@ -70,21 +61,16 @@ impl WorkerServer {
         let (command_tx, command_rx) = mpsc::unbounded_channel();
 
         let onmessage = Closure::new(move |message_event: MessageEvent| {
-            match from_value(message_event.data()) {
-                Ok(command) => {
-                    if let Err(e) = command_tx.send(command) {
-                        console::error_1(&format!("Failed to process command: {}", e).into());
-                    }
-                }
-                Err(e) => {
-                    console::error_1(&format!("Failed to deserialize command: {}", e).into());
+            if let Ok(command) = from_value(message_event.data()) {
+                if let Err(e) = command_tx.send(command) {
+                    console::error_1(&format!("Failed to process command: {}", e).into());
                 }
             }
         });
 
         port.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
-        console::log_1(&"✅ WorkerServer initialized".into());
 
+        console::log_1(&"✅ WorkerServer initialized".into());
         Ok(WorkerServer {
             port,
             command_rx,
@@ -93,22 +79,13 @@ impl WorkerServer {
     }
 
     pub async fn recv(&mut self) -> Result<LightClientCommand, JsError> {
-        self.command_rx
-            .recv()
-            .await
-            .ok_or_else(|| JsError::new("Channel closed"))
+        self.command_rx.recv().await.ok_or_else(|| JsError::new("Channel closed"))
     }
 
-    pub fn respond(&self, response: WorkerResponse) {
-        match to_value(&response) {
-            Ok(response_value) => {
-                if let Err(e) = self.port.post_message(&response_value) {
-                    console::error_1(&format!("Failed to send response: {:?}", e).into());
-                }
-            }
-            Err(e) => {
-                console::error_1(&format!("Failed to serialize response: {:?}", e).into());
-            }
-        }
+    pub fn respond(&self, response: WorkerResponse) -> Result<(), JsError> {
+        let value = to_value(&response).map_err(|e| JsError::new(&e.to_string()))?;
+        self.port
+            .post_message(&value)
+            .map_err(|e| JsError::new(&format!("Failed to serialize response: {:?}", e)))
     }
 }

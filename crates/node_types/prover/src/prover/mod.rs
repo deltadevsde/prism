@@ -24,7 +24,9 @@ use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_storage::Database;
-use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
+use sp1_sdk::{
+    HashableKey, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin, SP1VerifyingKey,
+};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -375,13 +377,21 @@ impl Prover {
         client.verify(&proof, &self.verifying_key)?;
         info!("verified proof for epoch {}", epoch_height);
 
-        info!("proof: {:?}", &proof.clone().bytes());
+        let vk_hash = self.verifying_key.bytes32();
+
+        // for testing purposes, we use a real hardcoded groth16 proof
+        let proof = SP1ProofWithPublicValues::load(
+            "/Users/sebastianpusch/Programming/prism/fibonacci_groth16_proof.bin",
+        )?;
+        let vk_hash =
+            "0x004fa3a70a30bbcd8287005d63886f4f1d766cb2e37fa9190fd3f95388fcf86f".to_string();
 
         let mut epoch_json = FinalizedEpoch {
             height: epoch_height,
             prev_commitment,
             current_commitment: new_commitment,
             proof: proof.bytes(),
+            vk_hash,
             signature: None,
         };
 

@@ -7,3 +7,12 @@ dump.rdb
 Cargo.lock
 .idea
 /coverage_report
+
+/pkg/
+/wasm-pack.log
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
