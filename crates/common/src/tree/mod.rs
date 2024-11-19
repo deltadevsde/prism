@@ -39,7 +39,8 @@ mod tests {
         };
         assert!(insert_proof.verify().is_ok());
 
-        let account_tx = tx_builder.create_account_with_random_key("acc_1", "service_1").commit();
+        let account_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
 
         let Proof::Insert(insert_proof) = tree.process_transaction(account_tx).unwrap() else {
             panic!("Processing transaction did not return the expected insert proof");
@@ -64,8 +65,14 @@ mod tests {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
+        let service_signing_key = SigningKey::new_ed25519();
+
         let invalid_account_tx = tx_builder
-            .create_account_with_random_key("acc_1", "service_id_that_does_not_exist")
+            .create_account_with_random_key(
+                "acc_1",
+                "service_id_that_does_not_exist",
+                &service_signing_key,
+            )
             .build();
 
         let insertion_result = tree.process_transaction(invalid_account_tx);
@@ -109,9 +116,10 @@ mod tests {
         let mut tx_builder = TransactionBuilder::new();
 
         let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
-        let account_tx = tx_builder.create_account_with_random_key("acc_1", "service_1").commit();
+        let account_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
         let account_with_same_id_tx =
-            tx_builder.create_account_with_random_key("acc_1", "service_1").build();
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").build();
 
         let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
             panic!("Processing service registration failed")
@@ -133,7 +141,8 @@ mod tests {
         let mut tx_builder = TransactionBuilder::new();
 
         let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
-        let acc_tx = tx_builder.create_account_with_random_key("acc_1", "service_1").commit();
+        let acc_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
         tree.process_transaction(acc_tx).unwrap();
@@ -162,8 +171,8 @@ mod tests {
 
         // This is a signing key not known to the storage yet
         let random_signing_key = SigningKey::new_ed25519();
-        // This transaction shall be invalid, because it is signed with a unknown key
-        let invalid_key_tx = tx_builder.add_random_key("acc_1", &random_signing_key, 0).commit();
+        // This transaction shall be invalid, because it is signed with an unknown key
+        let invalid_key_tx = tx_builder.add_random_key("acc_1", &random_signing_key, 0).build();
 
         let result = tree.process_transaction(invalid_key_tx);
         assert!(result.is_err());
@@ -188,8 +197,10 @@ mod tests {
         let mut tx_builder = TransactionBuilder::new();
 
         let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
-        let acc1_tx = tx_builder.create_account_with_random_key("acc_1", "service_1").commit();
-        let acc2_tx = tx_builder.create_account_with_random_key("acc_2", "service_1").commit();
+        let acc1_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+        let acc2_tx =
+            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
 
@@ -225,8 +236,10 @@ mod tests {
         let mut tx_builder = TransactionBuilder::new();
 
         let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
-        let acc1_tx = tx_builder.create_account_with_random_key("acc_1", "service_1").commit();
-        let acc2_tx = tx_builder.create_account_with_random_key("acc_2", "service_1").commit();
+        let acc1_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+        let acc2_tx =
+            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
         tree.process_transaction(acc1_tx).unwrap();
@@ -240,7 +253,7 @@ mod tests {
         let last_proof = tree.process_transaction(add_key_to_2_tx).unwrap();
 
         // Update account_2 using the correct key index
-        let Proof::Insert(insert_proof) = last_proof else {
+        let Proof::Update(update_proof) = last_proof else {
             panic!("Expetced insert proof for transaction");
         };
 
@@ -252,7 +265,10 @@ mod tests {
 
         assert!(matches!(get_result1, Found(hc, _) if &hc == test_hashchain_acc1));
         assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
-        assert_eq!(insert_proof.new_root, tree.get_commitment().unwrap());
+        assert_eq!(
+            Digest::from(update_proof.new_root),
+            tree.get_commitment().unwrap()
+        );
     }
 
     #[test]
@@ -261,7 +277,8 @@ mod tests {
         let mut tx_builder = TransactionBuilder::new();
 
         let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
-        let account1_tx = tx_builder.create_account_with_random_key("acc_1", "service_1").commit();
+        let account1_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
 
@@ -278,8 +295,10 @@ mod tests {
         let mut tx_builder = TransactionBuilder::new();
 
         let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
-        let account1_tx = tx_builder.create_account_with_random_key("acc_1", "service_1").commit();
-        let account2_tx = tx_builder.create_account_with_random_key("acc_2", "service_2").commit();
+        let account1_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+        let account2_tx =
+            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
 

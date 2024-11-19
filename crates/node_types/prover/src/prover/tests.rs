@@ -22,10 +22,10 @@ fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
     vec![
         transaction_builder.register_service_with_random_keys(&service_id).commit(),
         transaction_builder
-            .create_account_with_random_key("user1@example.com", &service_id)
+            .create_account_with_random_key_signed("user1@example.com", &service_id)
             .commit(),
         transaction_builder
-            .create_account_with_random_key("user2@example.com", &service_id)
+            .create_account_with_random_key_signed("user2@example.com", &service_id)
             .commit(),
         transaction_builder.add_random_key_verified_with_root("user1@example.com").commit(),
     ]
@@ -54,8 +54,9 @@ async fn test_process_transactions() {
     let mut transaction_builder = TransactionBuilder::new();
     let register_service_transaction =
         transaction_builder.register_service_with_random_keys("test_service").commit();
-    let create_account_transaction =
-        transaction_builder.create_account_with_random_key("test_account", "test_service").commit();
+    let create_account_transaction = transaction_builder
+        .create_account_with_random_key_signed("test_account", "test_service")
+        .commit();
 
     let proof = prover.process_transaction(register_service_transaction).await.unwrap();
     assert!(matches!(proof, Proof::Insert(_)));
@@ -96,7 +97,7 @@ async fn test_execute_block_with_invalid_tx() {
 
     let transactions = vec![
         tx_builder.register_service_with_random_keys("service_id").commit(),
-        tx_builder.create_account_with_random_key("account_id", "service_id").commit(),
+        tx_builder.create_account_with_random_key_signed("account_id", "service_id").commit(),
         // add new key, so it will be index = 1
         tx_builder.add_key_verified_with_root("account_id", new_key_vk.clone()).commit(),
         // revoke new key again

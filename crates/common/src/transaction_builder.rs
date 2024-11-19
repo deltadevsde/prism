@@ -26,8 +26,8 @@ impl UncommittedTransaction<'_> {
         let hc = self
             .builder
             .hashchains
-            .get_mut(&self.transaction.id)
-            .expect("Hashchain should be found");
+            .entry(self.transaction.id.clone())
+            .or_insert_with(Hashchain::empty);
 
         hc.add_entry(self.transaction.entry.clone())
             .expect("Adding transaction entry to hashchain should work");
@@ -114,16 +114,16 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn create_account_with_random_key(
+    pub fn create_account_with_random_key_signed(
         &mut self,
         id: &str,
         service_id: &str,
     ) -> UncommittedTransaction {
-        let random_signing_key = SigningKey::new_ed25519();
-        self.create_account_for_existing_service(id, service_id, random_signing_key)
+        let account_signing_key = SigningKey::new_ed25519();
+        self.create_account_signed(id, service_id, account_signing_key)
     }
 
-    pub fn create_account_for_existing_service(
+    pub fn create_account_signed(
         &mut self,
         id: &str,
         service_id: &str,
@@ -134,6 +134,16 @@ impl TransactionBuilder {
         };
 
         self.create_account(id, service_id, &service_signing_key, signing_key)
+    }
+
+    pub fn create_account_with_random_key(
+        &mut self,
+        id: &str,
+        service_id: &str,
+        service_signing_key: &SigningKey,
+    ) -> UncommittedTransaction {
+        let account_signing_key = SigningKey::new_ed25519();
+        self.create_account(id, service_id, service_signing_key, account_signing_key)
     }
 
     pub fn create_account(
@@ -203,11 +213,9 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let Some(hc) = self.hashchains.get(id) else {
-            panic!("No existing hashchain found for {}", id)
-        };
+        let last_hash = self.hashchains.get(id).map_or(Digest::zero(), Hashchain::last_hash);
 
-        let entry = HashchainEntry::new_add_key(key, hc.last_hash(), signing_key, key_idx);
+        let entry = HashchainEntry::new_add_key(key, last_hash, signing_key, key_idx);
 
         UncommittedTransaction {
             transaction: Transaction {
@@ -238,9 +246,9 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let hc = self.hashchains.get(id).expect("No existing hashchain found for");
+        let last_hash = self.hashchains.get(id).map_or(Digest::zero(), Hashchain::last_hash);
 
-        let entry = HashchainEntry::new_revoke_key(key, hc.last_hash(), signing_key, key_idx);
+        let entry = HashchainEntry::new_revoke_key(key, last_hash, signing_key, key_idx);
 
         UncommittedTransaction {
             transaction: Transaction {
@@ -359,15 +367,10 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let hc = self.hashchains.get(id).expect("Hashchain to add data on should be found");
+        let last_hash = self.hashchains.get(id).map_or(Digest::zero(), Hashchain::last_hash);
 
-        let entry = HashchainEntry::new_add_data(
-            data,
-            data_signature,
-            hc.last_hash(),
-            signing_key,
-            key_idx,
-        );
+        let entry =
+            HashchainEntry::new_add_data(data, data_signature, last_hash, signing_key, key_idx);
 
         UncommittedTransaction {
             transaction: Transaction {

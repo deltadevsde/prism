@@ -91,7 +91,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
             for _ in 0..num_new_accounts {
                 let random_user_id = format!("{}@gmail.com", i);
                 let new_acc = transaction_builder
-                    .create_account_with_random_key(random_user_id.as_str(), "test_service")
+                    .create_account_with_random_key_signed(random_user_id.as_str(), "test_service")
                     .commit();
                 match prover.clone().validate_and_queue_update(new_acc).await {
                     Ok(_) => {
