@@ -30,7 +30,7 @@ pub struct WasmCelestiaClient {
 }
 
 impl WasmCelestiaClient {
-    pub async fn new(config: CelestiaConfig) -> Result<Self, JsError> {
+    pub async fn new(config: CelestiaConfig) -> Result<Arc<Self>, JsError> {
         let current_height = Arc::new(AtomicU64::new(config.start_height));
 
         let mut wasm_node_config = WasmNodeConfig::default(Network::Private);
@@ -39,32 +39,25 @@ impl WasmCelestiaClient {
         let (node, mut event_subscriber) = Node::new_subscribed(node_config).await?;
         let node = Arc::new(node);
 
-        let client = Self {
+        let client = Arc::new(Self {
             config,
-            node: node.clone(),
-            current_height: current_height.clone(),
-        };
+            node,
+            current_height,
+        });
 
-        spawn_local(Self::handle_events(node, event_subscriber, current_height));
+        let client_clone = client.clone();
+        spawn_local(async move { client_clone.handle_events(event_subscriber).await });
 
         Ok(client)
     }
 
-    async fn handle_events(
-        node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
-        mut event_subscriber: EventSubscriber,
-        current_height: Arc<AtomicU64>,
-    ) {
+    async fn handle_events(&self, mut event_subscriber: EventSubscriber) {
         while let Ok(event_info) = event_subscriber.recv().await {
-            Self::process_event(event_info.event, &node, &current_height).await;
+            self.process_event(event_info.event).await;
         }
     }
 
-    async fn process_event(
-        event: NodeEvent,
-        node: &Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
-        current_height: &AtomicU64,
-    ) {
+    async fn process_event(&self, event: NodeEvent) {
         match event {
             NodeEvent::ShareSamplingResult {
                 height, accepted, ..
@@ -76,39 +69,33 @@ impl WasmCelestiaClient {
                 );
             }
             NodeEvent::AddedHeaderFromHeaderSub { height } => {
-                current_height.store(height, Ordering::Relaxed);
-                let node = node.clone();
-                spawn_local(async move {
-                    match Self::verify_epoch(node, height).await {
-                        Ok(true) => {
-                            console::log_2(&"✅ Epoch verified at height:".into(), &height.into())
-                        }
-                        Ok(false) => {
-                            console::log_2(&"⚠️ No epoch found at height:".into(), &height.into())
-                        }
-                        Err(e) => {
-                            console::error_1(&format!("❌ Error verifying epoch: {:?}", e).into())
-                        }
+                match self.verify_epoch(height).await {
+                    Ok(true) => {
+                        console::log_2(&"✅ Epoch verified at height:".into(), &height.into())
                     }
-                });
+                    Ok(false) => {
+                        console::log_2(&"⚠️ No epoch found at height:".into(), &height.into())
+                    }
+                    Err(e) => {
+                        console::error_1(&format!("❌ Error verifying epoch: {:?}", e).into())
+                    }
+                }
             }
             _ => {}
         }
     }
 
-    pub async fn verify_epoch(
-        node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
-        height: u64,
-    ) -> Result<bool, JsError> {
-        let namespace = hex::decode(&"00000000000000de1008".to_string())
+    pub async fn verify_epoch(&self, height: u64) -> Result<bool, JsError> {
+        let namespace = hex::decode(&self.config.snark_namespace_id)
             .map_err(|e| JsError::new(&format!("Invalid namespace: {}", e)))?;
-        let header = node.get_header_by_height(height).await?;
+        let header = self.node.get_header_by_height(height).await?;
 
-        match node
+        match self
+            .node
             .request_all_blobs(
                 &header,
                 Namespace::new_v0(&namespace).unwrap(),
-                Some(Duration::from_secs(7)),
+                Some(Duration::from_secs(5)),
             )
             .await
         {
@@ -154,7 +141,7 @@ impl WasmCelestiaClient {
             }
             Err(e) => {
                 console::error_1(&format!("❌ Failed to fetch blobs: {}", e).into());
-                Err(JsError::new(&format!("Failed to fetch blob: {}", e)))
+                Err(JsError::new(&format!("❌ Failed to fetch blob: {}", e)))
             }
         }
     }

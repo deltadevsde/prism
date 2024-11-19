@@ -12,7 +12,6 @@ use lumina_node_wasm::{
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use wasm_bindgen::JsError;
-use web_sys::console;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CelestiaConfig {
@@ -87,7 +86,6 @@ impl WasmNodeConfigExt for WasmNodeConfig {
         let mut p2p_bootnodes = Vec::with_capacity(self.bootnodes.len());
 
         for addr in &self.bootnodes {
-            console::log_1(&format!("🚀 Adding bootnode: {}", addr).into());
             let addr = addr
                 .parse()
                 .map_err(|e| JsError::new(&format!("Invalid multiaddr '{}': {}", addr, e)))?;
