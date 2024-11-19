@@ -120,21 +120,31 @@ impl TransactionBuilder {
         service_id: &str,
     ) -> UncommittedTransaction {
         let random_signing_key = SigningKey::new_ed25519();
-        self.create_account(id, service_id, random_signing_key)
+        self.create_account_for_existing_service(id, service_id, random_signing_key)
+    }
+
+    pub fn create_account_for_existing_service(
+        &mut self,
+        id: &str,
+        service_id: &str,
+        signing_key: SigningKey,
+    ) -> UncommittedTransaction {
+        let Some(service_signing_key) = self.service_keys.get(service_id).cloned() else {
+            panic!("No existing service found for {}", service_id)
+        };
+
+        self.create_account(id, service_id, &service_signing_key, signing_key)
     }
 
     pub fn create_account(
         &mut self,
         id: &str,
         service_id: &str,
+        service_signing_key: &SigningKey,
         signing_key: SigningKey,
     ) -> UncommittedTransaction {
-        let Some(service_signing_key) = self.service_keys.get(service_id) else {
-            panic!("No existing service found for {}", service_id)
-        };
-
-        let vk: VerifyingKey = signing_key.clone().into();
         // Simulate some external service signing account creation credentials
+        let vk = signing_key.verifying_key();
         let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.to_bytes()]);
         let signature = service_signing_key.sign(&hash.to_bytes());
 
@@ -242,7 +252,55 @@ impl TransactionBuilder {
         }
     }
 
+    pub fn add_randomly_signed_data(
+        &mut self,
+        id: &str,
+        value: Vec<u8>,
+        signing_key: &SigningKey,
+        key_idx: usize,
+    ) -> UncommittedTransaction {
+        let value_signing_key = SigningKey::new_ed25519();
+        self.add_signed_data(id, value, &value_signing_key, signing_key, key_idx)
+    }
+
+    pub fn add_randomly_signed_data_verified_with_root(
+        &mut self,
+        id: &str,
+        value: Vec<u8>,
+    ) -> UncommittedTransaction {
+        let value_signing_key = SigningKey::new_ed25519();
+        self.add_signed_data_verified_with_root(id, value, &value_signing_key)
+    }
+
     pub fn add_signed_data(
+        &mut self,
+        id: &str,
+        value: Vec<u8>,
+        value_signing_key: &SigningKey,
+        signing_key: &SigningKey,
+        key_idx: usize,
+    ) -> UncommittedTransaction {
+        let value_signature_bundle = SignatureBundle {
+            verifying_key: value_signing_key.verifying_key(),
+            signature: value_signing_key.sign(&value),
+        };
+        self.add_pre_signed_data(id, value, value_signature_bundle, signing_key, key_idx)
+    }
+
+    pub fn add_signed_data_verified_with_root(
+        &mut self,
+        id: &str,
+        value: Vec<u8>,
+        value_signing_key: &SigningKey,
+    ) -> UncommittedTransaction {
+        let value_signature_bundle = SignatureBundle {
+            verifying_key: value_signing_key.verifying_key(),
+            signature: value_signing_key.sign(&value),
+        };
+        self.add_pre_signed_data_verified_with_root(id, value, value_signature_bundle)
+    }
+
+    pub fn add_pre_signed_data(
         &mut self,
         id: &str,
         value: Vec<u8>,
@@ -253,7 +311,7 @@ impl TransactionBuilder {
         self.add_data(id, value, Some(value_signature), signing_key, key_idx)
     }
 
-    pub fn add_signed_data_verified_with_root(
+    pub fn add_pre_signed_data_verified_with_root(
         &mut self,
         id: &str,
         value: Vec<u8>,
