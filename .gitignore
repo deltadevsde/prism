@@ -7,7 +7,7 @@ dump.rdb
 Cargo.lock
 .idea
 /coverage_report
-*.docker
+/ci/*.docker
 
 /pkg/
 /wasm-pack.log
