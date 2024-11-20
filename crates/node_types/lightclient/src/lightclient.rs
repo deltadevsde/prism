@@ -3,7 +3,7 @@ use ed25519_consensus::VerificationKey as VerifyingKey;
 use prism_common::digest::Digest;
 use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
 use prism_errors::{DataAvailabilityError, GeneralError};
-use sp1_sdk::{ProverClient, SP1VerifyingKey};
+use sp1_sdk::{ProverClient, SP1ProofWithPublicValues, SP1VerifyingKey};
 use std::{self, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};
 
@@ -81,7 +81,10 @@ impl LightClient {
                                     // Commitment verification
                                     let prev_commitment = &finalized_epoch.prev_commitment;
                                     let current_commitment = &finalized_epoch.current_commitment;
-                                    let mut public_values = finalized_epoch.proof.public_values.clone();
+                                    // muss das irgendwie besser serialisieren
+                                    let sp1_proof: SP1ProofWithPublicValues = bincode::deserialize(&finalized_epoch.proof)
+                                        .expect("failed to deserialize SP1 proof");
+                                    let mut public_values = sp1_proof.public_values.clone();
                                     let proof_prev_commitment: Digest = public_values.read();
                                     let proof_current_commitment: Digest = public_values.read();
 
@@ -99,7 +102,7 @@ impl LightClient {
                                     }
 
                                     // SNARK verification
-                                    match self.client.verify(&finalized_epoch.proof, &self.verifying_key) {
+                                    match self.client.verify(&sp1_proof, &self.verifying_key) {
                                         Ok(_) => info!("zkSNARK for epoch {} was validated successfully", finalized_epoch.height),
                                         Err(err) => panic!("failed to validate epoch at height {}: {:?}", finalized_epoch.height, err),
                                     }

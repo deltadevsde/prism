@@ -23,7 +23,6 @@ Prism provides the first key-transparency solution to enable automatic verificat
 
 You can view further information about the project in our [documentation](https://prism.deltadevs.xyz). The project is undergoing rapid development. You can view the current development status [here](https://prism.deltadevs.xyz/state).
 
-
 ## Status
 
 The project is still in the early development phase, has not been audited, and is not yet suitable for use in production environments.
@@ -31,6 +30,7 @@ The project is still in the early development phase, has not been audited, and i
 Due to this ongoing development work, changes are still being made that may affect existing functionalities.
 
 ## Circuits
+
 We are currently experimenting with various proof systems and have handwritten groth16 and supernova circuits to handle the epoch proofs. We are also experimenting with SP1 as an alternative, which you can find in the `prism-sp1` crate.
 
 ## Installation

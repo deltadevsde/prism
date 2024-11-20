@@ -33,6 +33,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://0.0.0.0:36658".to_string(),
+        start_height: 0,
         ..CelestiaConfig::default()
     };
     let lc_cfg = CelestiaConfig {
@@ -50,6 +51,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let _service = test_state.register_service("test_service".to_string());
     let prover_cfg = prism_prover::Config {
         key: signing_key,
+        start_height: 0,
         ..prism_prover::Config::default()
     };
 
@@ -123,13 +125,10 @@ async fn test_light_client_prover_talking() -> Result<()> {
         }
     });
 
-    let mut rx = lc_da_layer.clone().subscribe_to_heights();
+    let mut rx = bridge_da_layer.clone().subscribe_to_heights();
     let initial_height = rx.recv().await.unwrap();
     while let Ok(height) = rx.recv().await {
         debug!("received height {}", height);
-        if height >= initial_height + 100 {
-            break;
-        }
     }
 
     Ok(())

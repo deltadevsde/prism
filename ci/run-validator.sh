@@ -14,8 +14,8 @@ CONFIG_DIR="$CELESTIA_HOME/.celestia-app"
 # the names of the keys
 NODE_NAME=validator-0
 # amounts of the coins for the keys
-BRIDGE_COINS="200000000000000utia"
-VALIDATOR_COINS="1000000000000000utia"
+BRIDGE_COINS="200000000000000000utia"
+VALIDATOR_COINS="1000000000000000000utia"
 # a directory and the files shared with the bridge nodes
 CREDENTIALS_DIR="/credentials"
 # directory where validator will write the genesis hash

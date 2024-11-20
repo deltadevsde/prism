@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use ed25519_consensus::{Signature, SigningKey, VerificationKey as VerifyingKey};
 use prism_common::{digest::Digest, transaction::Transaction};
 use serde::{Deserialize, Serialize};
-use sp1_sdk::SP1ProofWithPublicValues;
 use tokio::sync::broadcast;
 
 pub mod celestia;
@@ -16,7 +15,8 @@ pub struct FinalizedEpoch {
     pub height: u64,
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
-    pub proof: SP1ProofWithPublicValues,
+    pub proof: Vec<u8>, // TODO: find a solution to use the SP1ProofWithPublicValues type at least for non wasm clients
+    pub vk_hash: String,
     pub signature: Option<String>,
 }
 
@@ -33,6 +33,7 @@ impl FinalizedEpoch {
             prev_commitment: self.prev_commitment,
             current_commitment: self.current_commitment,
             proof: self.proof.clone(),
+            vk_hash: self.vk_hash.clone(),
             signature: None,
         };
 
