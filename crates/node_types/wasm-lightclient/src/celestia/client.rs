@@ -1,4 +1,4 @@
-use crate::celestia::config::WasmNodeConfigExt;
+use crate::{celestia::config::WasmNodeConfigExt, commands::WorkerResponse};
 use celestia_types::nmt::Namespace;
 use lumina_node::{
     blockstore::IndexedDbBlockstore,
@@ -18,7 +18,7 @@ use std::{
 };
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::console;
+use web_sys::{console, MessagePort};
 
 use super::{CelestiaConfig, FinalizedEpoch};
 
@@ -27,10 +27,11 @@ pub struct WasmCelestiaClient {
     pub config: CelestiaConfig,
     pub node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
     pub current_height: Arc<AtomicU64>,
+    pub port: MessagePort,
 }
 
 impl WasmCelestiaClient {
-    pub async fn new(config: CelestiaConfig) -> Result<Arc<Self>, JsError> {
+    pub async fn new(port: MessagePort, config: CelestiaConfig) -> Result<Arc<Self>, JsError> {
         let current_height = Arc::new(AtomicU64::new(config.start_height));
 
         let mut wasm_node_config = WasmNodeConfig::default(Network::Private);
@@ -43,6 +44,7 @@ impl WasmCelestiaClient {
             config,
             node,
             current_height,
+            port,
         });
 
         let client_clone = client.clone();
@@ -57,32 +59,25 @@ impl WasmCelestiaClient {
         }
     }
 
-    async fn process_event(&self, event: NodeEvent) {
+    async fn process_event(&self, event: NodeEvent) -> Result<(), JsError> {
         match event {
             NodeEvent::ShareSamplingResult {
                 height, accepted, ..
             } => {
-                console::log_3(
-                    &"📦 Share sampling result:".into(),
-                    &height.into(),
-                    &accepted.into(),
-                );
+                let message = to_value(&WorkerResponse::SamplingResult { height, accepted })
+                    .map_err(|e| {
+                        JsError::new(&format!("Failed to serialize sampling result: {:?}", e))
+                    })?;
+                self.port.post_message(&message);
             }
             NodeEvent::AddedHeaderFromHeaderSub { height } => {
-                match self.verify_epoch(height).await {
-                    Ok(true) => {
-                        console::log_2(&"✅ Epoch verified at height:".into(), &height.into())
-                    }
-                    Ok(false) => {
-                        console::log_2(&"⚠️ No epoch found at height:".into(), &height.into())
-                    }
-                    Err(e) => {
-                        console::error_1(&format!("❌ Error verifying epoch: {:?}", e).into())
-                    }
-                }
+                let epoch_verified = self.verify_epoch(height).await?;
+                let message = to_value(&WorkerResponse::EpochVerified(epoch_verified))?;
+                self.port.post_message(&message);
             }
             _ => {}
         }
+        Ok(())
     }
 
     pub async fn verify_epoch(&self, height: u64) -> Result<bool, JsError> {
@@ -101,8 +96,8 @@ impl WasmCelestiaClient {
         {
             Ok(blob) => {
                 if blob.is_empty() {
-                    console::log_2(&"🔍 No blobs found at height:".into(), &height.into());
-                    return Ok(false);
+                    // no blobs found
+                    return Ok(true);
                 }
                 console::log_2(&"🔍 Verifying epoch at height:".into(), &height.into());
                 for b in blob {
@@ -110,13 +105,12 @@ impl WasmCelestiaClient {
                         JsError::new(&format!("Failed to decode blob into FinalizedEpoch"))
                     })?;
 
-                    console::log_2(&"🔍 Epoch:".into(), &to_value(&epoch).unwrap());
-
                     // mock prover posts an empty proof [0, 0, 0, 0], FinalizedEpoch needs vk_hash
                     /* let mut public_inputs = Vec::with_capacity(64);
                     public_inputs.extend_from_slice(&epoch.prev_commitment);
                     public_inputs.extend_from_slice(&epoch.current_commitment); */
 
+                    // for testing purposes, we use hardcoded public inputs
                     let hardcoded_public_inputs_string = "e80300004d170000430e0000";
                     let public_inputs = hex::decode(hardcoded_public_inputs_string)
                         .map_err(|e| JsError::new(&format!("Invalid public inputs: {}", e)))?;
@@ -129,20 +123,12 @@ impl WasmCelestiaClient {
                     )
                     .is_ok()
                     {
-                        console::log_2(
-                            &"❌ Epoch verification failed at height:".into(),
-                            &height.into(),
-                        );
                         return Ok(false);
                     }
-                    console::log_2(&"🔍 Epoch:".into(), &to_value(&epoch).unwrap());
                 }
                 Ok(true)
             }
-            Err(e) => {
-                console::error_1(&format!("❌ Failed to fetch blobs: {}", e).into());
-                Err(JsError::new(&format!("❌ Failed to fetch blob: {}", e)))
-            }
+            Err(e) => Err(JsError::new(&format!("❌ Failed to fetch blob: {}", e))),
         }
     }
 

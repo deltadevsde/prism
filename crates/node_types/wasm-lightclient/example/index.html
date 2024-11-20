@@ -87,9 +87,13 @@
         <button id="startBtn">Start Light Client</button>
     </div>
 
-    <script>
+    <script type="module">
+        import init, { LightClientWorker, WasmLightClient } from './node_modules/prism-wasm-lightclient/prism_wasm_lightclient.js';
+
         let running = false;
         let client = null;
+        let currentHeight = 0;
+        let syncStartHeight = 0;
         
         const logEl = document.getElementById('log');
         const statusText = document.getElementById('statusText');
@@ -110,22 +114,49 @@
             startBtn.disabled = running;
         }
 
-        async function loadWasm() {
-            try {
-                const { default: init, LightClientWorker, WasmLightClient } = await import('./pkg/prism_wasm_lightclient.js');
-                return { init, LightClientWorker, WasmLightClient };
-            } catch (error) {
-                throw new Error(`Failed to load WASM module: ${error.message}`);
+        async function verifyEpochRange(from, to) {
+            for (let height = from; height <= to; height++) {
+                try {
+                    await client.verifyEpoch(height);
+                    log(`✅ Verified historical epoch at height ${height}`);
+                } catch (error) {
+                    if (!error.message.includes("No epoch data found")) {
+                        log(`❌ Error verifying historical epoch at ${height}: ${error.message}`);
+                    }
+                }
+            }
+        }
+
+        async function processEvent(event) {
+            const data = event.data;
+            if (typeof data === 'object' && data.type === 'added_header_from_header_sub') {
+                const height = data.height;
+                currentHeight = height;
+
+                // If this is a new height and we haven't synced old epochs yet
+                if (syncStartHeight === 0) {
+                    // Start from a reasonable point in the past (e.g., 100 blocks ago)
+                    syncStartHeight = Math.max(1, height - 100);
+                    log(`Starting historical sync from height ${syncStartHeight} to ${height}`);
+                    await verifyEpochRange(syncStartHeight, height);
+                } else if (height > syncStartHeight) {
+                    // Verify just the new epoch
+                    try {
+                        await client.verifyEpoch(height);
+                        log(`✅ Verified new epoch at height ${height}`);
+                    } catch (error) {
+                        if (!error.message.includes("No epoch data found")) {
+                            log(`❌ Error verifying new epoch at ${height}: ${error.message}`);
+                        }
+                    }
+                }
             }
         }
 
         async function startLightClient() {
             if (running) return;
             
-            try {
-                updateStatus('Loading WASM...');
-                const { init, LightClientWorker, WasmLightClient } = await loadWasm();
-                
+            try {                
                 updateStatus('Initializing...');
                 await init();
                 log('WASM initialized successfully');
@@ -141,6 +172,10 @@
                 
                 running = true;
                 updateStatus('Running');
+
+                channel.port1.onmessage = (event) => {
+                    log(`1Worker: ${JSON.stringify(event.data)}`);
+                }
 
                 channel.port2.onmessage = (event) => {
                     log(`Worker: ${JSON.stringify(event.data)}`);

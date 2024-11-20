@@ -19,8 +19,8 @@ impl LightClientWorker {
     #[wasm_bindgen(constructor)]
     pub async fn new(port: MessagePort) -> Result<LightClientWorker, JsError> {
         Ok(Self {
-            server: WorkerServer::new(port)?,
-            celestia: WasmCelestiaClient::new(CelestiaConfig::default()).await?,
+            server: WorkerServer::new(port.clone())?,
+            celestia: WasmCelestiaClient::new(port, CelestiaConfig::default()).await?,
         })
     }
 
@@ -29,10 +29,8 @@ impl LightClientWorker {
         while let Ok(command) = self.server.recv().await {
             let response = match command {
                 LightClientCommand::VerifyEpoch { height } => {
-                    console::log_2(&"• Verifying epoch....".into(), &height.into());
                     match self.celestia.verify_epoch(height).await {
-                        Ok(true) => WorkerResponse::EpochVerified,
-                        Ok(false) => WorkerResponse::Error("No epoch data found".to_string()),
+                        Ok(value) => WorkerResponse::EpochVerified(value),
                         Err(e) => {
                             WorkerResponse::Error(format!("Failed to verify epoch...{:?}", e,))
                         }

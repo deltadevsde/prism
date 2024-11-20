@@ -87,8 +87,6 @@ secp256k1 = { version = "0.29.0", features = ["global-context", "rand-std", "ser
 sp1-zkvm = { version = "3.1.0" }
 sp1-sdk = { version = "3.0.0" }
 sp1-verifier = { git = "https://github.com/succinctlabs/sp1", rev = "d13675665bff079b6da4f115cb322eadca6bb50e" }
-lumina-node = { path = "../lumina/node" }
-lumina-node-wasm = { path = "../lumina/node-wasm" }
 prism-common = { path = "crates/common" }
 prism-storage = { path = "crates/storage" }
 prism-nova = { path = "crates/zk/nova" }
@@ -101,12 +99,15 @@ prism-tests = { path = "crates/tests" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 prism-wasm-lightclient = { path = "crates/node_types/wasm-lightclient" }
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
+lumina-node = { path = "../lumina/node" }
 
 
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", branch = "patch-sha2-v0.10.8" }
 ed25519-consensus = { git = "https://github.com/sp1-patches/ed25519-consensus", branch = "patch-v2.1.0" }
 secp256k1 = { git = "https://github.com/sp1-patches/rust-secp256k1", branch = "patch-secp256k1-v0.29.0" }
+
+
 
 [workspace.features]
 default = []

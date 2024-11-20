@@ -22,7 +22,7 @@ prism-errors = { workspace = true }
 tokio = { version = "*", features = ["sync"] }
 wasm-bindgen = "0.2"
 lumina-node = { workspace = true }
-lumina-node-wasm = { workspace = true }
+lumina-node-wasm = { path = "../../../../lumina/node-wasm" } 
 celestia-types = { path = "../../../../lumina/types" }
 js-sys = "0.3"
 web-sys = { version = "0.3", features = [

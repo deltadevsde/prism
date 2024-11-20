@@ -9,8 +9,11 @@ pub enum LightClientCommand {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum WorkerResponse {
-    EpochVerified,
+    EpochVerified(bool),
     CurrentHeight(u64),
     ProverKeySet,
+    SamplingResult { height: u64, accepted: bool },
+    NoEpochFound { height: u64 },
     Error(String),
+    Ignored,
 }

@@ -23,12 +23,14 @@ impl WasmLightClient {
 
     #[wasm_bindgen(js_name = verifyEpoch)]
     pub async fn verify_epoch(&self, height: u64) -> Result<(), JsError> {
-        match self
-            .worker
-            .exec(LightClientCommand::VerifyEpoch { height })
-            .await?
-        {
-            WorkerResponse::EpochVerified => Ok(()),
+        match self.worker.exec(LightClientCommand::VerifyEpoch { height }).await? {
+            WorkerResponse::EpochVerified(value) => {
+                if value {
+                    Ok(())
+                } else {
+                    Err(JsError::new("Epoch verification failed"))
+                }
+            }
             WorkerResponse::Error(e) => Err(JsError::new(&e)),
             _ => Err(JsError::new("Unexpected response")),
         }
@@ -36,11 +38,7 @@ impl WasmLightClient {
 
     #[wasm_bindgen(js_name = getCurrentHeight)]
     pub async fn get_current_height(&self) -> Result<u64, JsError> {
-        match self
-            .worker
-            .exec(LightClientCommand::GetCurrentHeight)
-            .await?
-        {
+        match self.worker.exec(LightClientCommand::GetCurrentHeight).await? {
             WorkerResponse::CurrentHeight(height) => Ok(height),
             WorkerResponse::Error(e) => Err(JsError::new(&e)),
             _ => Err(JsError::new("Unexpected response")),
