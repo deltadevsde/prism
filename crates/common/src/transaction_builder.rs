@@ -1,16 +1,16 @@
 use std::{collections::HashMap, sync::Arc};
 
-use jmt::{mock::MockTreeStore, KeyHash};
+use jmt::mock::MockTreeStore;
 
 use crate::{
     digest::Digest,
     hashchain::HashchainEntry,
-    hasher::Hasher,
+    hashchain_storage::HashchainStorage,
     keys::{SigningKey, VerifyingKey},
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     test_utils::create_mock_signing_key,
     transaction::Transaction,
-    tree::{HashchainResponse::*, KeyDirectoryTree, SnarkableTree},
+    tree::{HashchainResponse::*, KeyDirectoryTree},
 };
 enum PostCommitAction {
     UpdateStorageOnly,
@@ -29,7 +29,7 @@ impl UncommittedTransaction<'_> {
     /// built with the same builder will have the correct previous hash.
     pub fn commit(self) -> Transaction {
         self.builder
-            .tree
+            .storage
             .process_transaction(self.transaction.clone())
             .expect("Processing transaction should work");
 
@@ -55,7 +55,7 @@ impl UncommittedTransaction<'_> {
 
 pub struct TransactionBuilder {
     /// Simulated hashchain storage that is mutated when transactions are applied
-    tree: Box<dyn SnarkableTree>,
+    storage: Box<dyn HashchainStorage>,
     /// Remembers private keys of services to simulate account creation via an external service
     service_keys: HashMap<String, SigningKey>,
     /// Remembers private keys of accounts to simulate actions on behalf of these accounts
@@ -65,12 +65,12 @@ pub struct TransactionBuilder {
 impl Default for TransactionBuilder {
     fn default() -> Self {
         let store = Arc::new(MockTreeStore::default());
-        let tree = Box::new(KeyDirectoryTree::new(store));
+        let storage = Box::new(KeyDirectoryTree::new(store));
         let service_keys = HashMap::new();
         let account_keys = HashMap::new();
 
         Self {
-            tree,
+            storage,
             service_keys,
             account_keys,
         }
@@ -193,10 +193,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let hashed_id = Digest::hash(id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-        let Ok(Found(hc, _)) = self.tree.get(key_hash) else {
+        let Ok(Found(hc, _)) = self.storage.get(id) else {
             panic!("No existing hashchain found for {}", id)
         };
 
@@ -231,10 +228,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let hashed_id = Digest::hash(id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-        let Ok(Found(hc, _)) = self.tree.get(key_hash) else {
+        let Ok(Found(hc, _)) = self.storage.get(id) else {
             panic!("No existing hashchain found for {}", id)
         };
 
@@ -309,10 +303,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let hashed_id = Digest::hash(id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-        let Ok(Found(hc, _)) = self.tree.get(key_hash) else {
+        let Ok(Found(hc, _)) = self.storage.get(id) else {
             panic!("No existing hashchain found for {}", id)
         };
 

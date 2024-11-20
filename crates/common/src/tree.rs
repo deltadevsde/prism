@@ -1,20 +1,18 @@
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use bincode;
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
     JellyfishMerkleTree, KeyHash, RootHash,
 };
-use prism_errors::DatabaseError;
 use serde::{Deserialize, Serialize};
 use std::{convert::Into, sync::Arc};
 
 use crate::{
     digest::Digest,
     hashchain::{Hashchain, HashchainEntry},
+    hashchain_storage::HashchainStorage,
     hasher::Hasher,
-    operation::{Operation, ServiceChallenge, ServiceChallengeInput},
-    transaction::Transaction,
 };
 
 use HashchainResponse::*;
@@ -138,13 +136,6 @@ pub enum HashchainResponse {
     NotFound(NonMembershipProof),
 }
 
-pub trait SnarkableTree: Send + Sync {
-    fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof>;
-    fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof>;
-    fn update(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<UpdateProof>;
-    fn get(&self, key: KeyHash) -> Result<HashchainResponse>;
-}
-
 pub struct KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter,
@@ -186,11 +177,6 @@ where
         }
     }
 
-    pub fn get_commitment(&self) -> Result<Digest> {
-        let root = self.get_current_root()?;
-        Ok(Digest(root.0))
-    }
-
     fn queue_batch(&mut self, batch: TreeUpdateBatch) {
         match self.pending_batch {
             Some(ref mut pending_batch) => pending_batch.merge(batch.node_batch),
@@ -220,92 +206,37 @@ where
     }
 }
 
-impl<S> SnarkableTree for KeyDirectoryTree<S>
+impl<S> HashchainStorage for KeyDirectoryTree<S>
 where
     S: Send + Sync + TreeReader + TreeWriter,
 {
-    fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof> {
-        match &transaction.entry.operation {
-            Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
-                let hashed_id = Digest::hash(&transaction.id);
-                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+    fn get(&self, id: &str) -> Result<HashchainResponse> {
+        let key = KeyHash::with::<Hasher>(Digest::hash(id.as_bytes()));
 
-                debug!("updating hashchain for user id {}", transaction.id);
-                let proof = self.update(key_hash, transaction.entry)?;
+        let root = self.get_current_root()?.into();
+        let (value, proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
-                Ok(Proof::Update(Box::new(proof)))
+        match value {
+            Some(serialized_value) => {
+                let deserialized_value = Self::deserialize_value(&serialized_value)?;
+                let membership_proof = MembershipProof {
+                    root,
+                    proof,
+                    key,
+                    value: deserialized_value.clone(),
+                };
+                Ok(Found(deserialized_value, membership_proof))
             }
-            Operation::CreateAccount {
-                id,
-                service_id,
-                challenge,
-                key,
-            } => {
-                ensure!(
-                    transaction.id == id.as_str(),
-                    "Id of transaction needs to be equal to operation id"
-                );
-
-                let hashed_id = Digest::hash(id);
-                let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-                // Verify that the account doesn't already exist
-                if matches!(self.get(account_key_hash)?, Found(_, _)) {
-                    bail!(DatabaseError::NotFoundError(format!(
-                        "Account already exists for ID {}",
-                        id
-                    )));
-                }
-
-                let service_key_hash = KeyHash::with::<Hasher>(Digest::hash(service_id.as_bytes()));
-
-                let Found(service_hashchain, _) = self.get(service_key_hash)? else {
-                    bail!("Failed to get hashchain for service ID {}", service_id);
-                };
-
-                let Some(service_last_entry) = service_hashchain.last() else {
-                    bail!("Service hashchain is empty, could not retrieve challenge key");
-                };
-
-                let creation_gate = match &service_last_entry.operation {
-                    Operation::RegisterService { creation_gate, .. } => creation_gate,
-                    _ => {
-                        bail!("Service hashchain's last entry was not a RegisterService operation")
-                    }
-                };
-
-                // Hash and sign credentials that have been signed by the external service
-                let hash =
-                    Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &key.as_bytes()]);
-
-                let ServiceChallenge::Signed(service_pubkey) = creation_gate;
-                let ServiceChallengeInput::Signed(challenge_signature) = &challenge;
-
-                service_pubkey.verify_signature(&hash.to_bytes(), challenge_signature)?;
-
-                debug!("creating new hashchain for user ID {}", id);
-
-                let insert_proof = self.insert(account_key_hash, transaction.entry)?;
-                Ok(Proof::Insert(Box::new(insert_proof)))
-            }
-            Operation::RegisterService { id, .. } => {
-                ensure!(
-                    transaction.id == id.as_str(),
-                    "Id of transaction needs to be equal to operation id"
-                );
-
-                let hashed_id = Digest::hash(id);
-                let key_hash = KeyHash::with::<Hasher>(hashed_id);
-
-                debug!("creating new hashchain for service id {}", id);
-
-                let insert_proof = self.insert(key_hash, transaction.entry)?;
-                Ok(Proof::Insert(Box::new(insert_proof)))
+            None => {
+                let non_membership_proof = NonMembershipProof { root, proof, key };
+                Ok(NotFound(non_membership_proof))
             }
         }
     }
 
-    fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof> {
+    fn insert(&mut self, id: String, entry: HashchainEntry) -> Result<InsertProof> {
+        let key = KeyHash::with::<Hasher>(Digest::hash(id.as_bytes()));
+
         let old_root = self.get_current_root()?;
         let (None, non_membership_merkle_proof) = self.jmt.get_with_proof(key, self.epoch)? else {
             bail!("Key already exists");
@@ -337,7 +268,9 @@ where
         })
     }
 
-    fn update(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<UpdateProof> {
+    fn update(&mut self, id: String, entry: HashchainEntry) -> Result<UpdateProof> {
+        let key = KeyHash::with::<Hasher>(Digest::hash(id.as_bytes()));
+
         let old_root = self.get_current_root()?;
         let (Some(old_serialized_hashchain), inclusion_proof) =
             self.jmt.get_with_proof(key, self.epoch)?
@@ -370,26 +303,9 @@ where
         })
     }
 
-    fn get(&self, key: KeyHash) -> Result<HashchainResponse> {
-        let root = self.get_current_root()?.into();
-        let (value, proof) = self.jmt.get_with_proof(key, self.epoch)?;
-
-        match value {
-            Some(serialized_value) => {
-                let deserialized_value = Self::deserialize_value(&serialized_value)?;
-                let membership_proof = MembershipProof {
-                    root,
-                    proof,
-                    key,
-                    value: deserialized_value.clone(),
-                };
-                Ok(Found(deserialized_value, membership_proof))
-            }
-            None => {
-                let non_membership_proof = NonMembershipProof { root, proof, key };
-                Ok(NotFound(non_membership_proof))
-            }
-        }
+    fn get_commitment(&self) -> Result<Digest> {
+        let root = self.get_current_root()?;
+        Ok(Digest(root.0))
     }
 }
 
@@ -410,8 +326,7 @@ mod tests {
         let insert_proof = tree_state.insert_account(account.clone()).unwrap();
         assert!(insert_proof.verify().is_ok());
 
-        let Found(hashchain, membership_proof) = tree_state.tree.get(account.key_hash).unwrap()
-        else {
+        let Found(hashchain, membership_proof) = tree_state.tree.get("key_1").unwrap() else {
             panic!("Expected hashchain to be found, but was not found.")
         };
 
@@ -477,7 +392,7 @@ mod tests {
         let update_proof = tree_state.update_account(account.clone()).unwrap();
         assert!(update_proof.verify().is_ok());
 
-        let get_result = tree_state.tree.get(account.key_hash);
+        let get_result = tree_state.tree.get("key_1");
         assert!(matches!(get_result.unwrap(), Found(hc, _) if hc == account.hashchain));
     }
 
@@ -495,9 +410,8 @@ mod tests {
     #[test]
     fn test_get_non_existing_key() {
         let tree_state = TestTreeState::default();
-        let key = KeyHash::with::<Hasher>(b"non_existing_key");
 
-        let result = tree_state.tree.get(key).unwrap();
+        let result = tree_state.tree.get("non_existing_key").unwrap();
 
         let NotFound(non_membership_proof) = result else {
             panic!("Hashchain found for key while it was expected to be missing");
@@ -528,8 +442,8 @@ mod tests {
         tree_state.add_signed_data_to_account(b"signed", &mut account2).unwrap();
         tree_state.update_account(account2.clone()).unwrap();
 
-        let get_result1 = tree_state.tree.get(account1.key_hash);
-        let get_result2 = tree_state.tree.get(account2.key_hash);
+        let get_result1 = tree_state.tree.get("key_1");
+        let get_result2 = tree_state.tree.get("key_2");
 
         assert!(matches!(get_result1.unwrap(), Found(hc, _) if hc == account1.hashchain));
         assert!(matches!(get_result2.unwrap(), Found(hc, _) if hc == account2.hashchain));
@@ -558,8 +472,8 @@ mod tests {
         // Update account_2 using the correct key index
         let last_proof = test_tree.update_account(account_2.clone()).unwrap();
 
-        let get_result1 = test_tree.tree.get(account_1.key_hash);
-        let get_result2 = test_tree.tree.get(account_2.key_hash);
+        let get_result1 = test_tree.tree.get("key_1");
+        let get_result2 = test_tree.tree.get("key_2");
 
         assert!(matches!(get_result1.unwrap(), Found(hc, _) if hc == account_1.hashchain));
         assert!(matches!(get_result2.unwrap(), Found(hc, _) if hc == account_2.hashchain));
@@ -606,7 +520,7 @@ mod tests {
         );
 
         // Try to get the first value immediately
-        let get_result1 = tree_state.tree.get(account1.key_hash);
+        let get_result1 = tree_state.tree.get("key_1");
         println!("Get result for key1 after first write: {:?}", get_result1);
 
         println!("Inserting key2: {:?}", account2.key_hash);
@@ -622,8 +536,8 @@ mod tests {
         );
 
         // Try to get both values
-        let get_result1 = tree_state.tree.get(account1.key_hash);
-        let get_result2 = tree_state.tree.get(account2.key_hash);
+        let get_result1 = tree_state.tree.get("key_1");
+        let get_result2 = tree_state.tree.get("key_2");
 
         println!("Final get result for key1: {:?}", get_result1);
         println!("Final get result for key2: {:?}", get_result2);
