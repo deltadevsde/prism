@@ -33,16 +33,16 @@ pub struct CelestiaConfig {
     pub connection_string: String,
     pub start_height: u64,
     pub snark_namespace_id: String,
-    pub transaction_namespace_id: Option<String>,
+    pub operation_namespace_id: String,
 }
 
 impl Default for CelestiaConfig {
     fn default() -> Self {
         CelestiaConfig {
             connection_string: "ws://localhost:26658".to_string(),
-            start_height: 0,
+            start_height: 1,
             snark_namespace_id: "00000000000000de1008".to_string(),
-            transaction_namespace_id: Some("00000000000000de1009".to_string()),
+            operation_namespace_id: "00000000000000de1009".to_string(),
         }
     }
 }
@@ -50,7 +50,7 @@ impl Default for CelestiaConfig {
 pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
     pub snark_namespace: Namespace,
-    pub transaction_namespace: Namespace,
+    pub operation_namespace: Namespace,
 
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
@@ -68,20 +68,18 @@ impl CelestiaConnection {
             &config.snark_namespace_id
         ))?;
 
-        let transaction_namespace = match &config.transaction_namespace_id {
-            Some(id) => create_namespace(id).context(format!(
-                "Failed to create transaction namespace from: '{}'",
-                id
-            ))?,
-            None => snark_namespace,
-        };
+        let operation_namespace =
+            create_namespace(&config.operation_namespace_id).context(format!(
+                "Failed to create operation namespace from: '{}'",
+                &config.operation_namespace_id
+            ))?;
 
         let (height_update_tx, _) = broadcast::channel(100);
 
         Ok(CelestiaConnection {
             client,
             snark_namespace,
-            transaction_namespace,
+            operation_namespace,
             height_update_tx,
             sync_target: Arc::new(AtomicU64::new(0)),
         })
@@ -174,7 +172,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
             height
         );
         let maybe_blobs =
-            BlobClient::blob_get_all(&self.client, height, &[self.transaction_namespace])
+            BlobClient::blob_get_all(&self.client, height, &[self.operation_namespace])
                 .await
                 .map_err(|e| {
                     anyhow!(DataAvailabilityError::DataRetrievalError(
@@ -218,7 +216,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         ))
                     })?;
 
-                Blob::new(self.transaction_namespace, data)
+                Blob::new(self.operation_namespace, data)
                     .context(format!(
                         "Failed to create blob for transaction {:?}",
                         transaction

@@ -87,7 +87,7 @@ unit-test:
 
 coverage:
     @echo "Generating coverage report..."
-    cargo llvm-cov nextest --html --output-dir coverage_report --lib --features "mock_prover" --release --workspace --exclude prism-bin --exclude-from-report prism-sp1  --ignore-filename-regex sp1
+    cargo llvm-cov nextest --html --output-dir coverage_report --lib --features "mock_prover" --release --workspace --exclude prism-cli --exclude-from-report prism-sp1  --ignore-filename-regex sp1
     @echo "Coverage report generated in 'coverage_report' directory"
 
 
