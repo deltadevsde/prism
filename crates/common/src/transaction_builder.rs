@@ -94,10 +94,11 @@ impl TransactionBuilder {
         challenge_key: SigningKey,
         signing_key: SigningKey,
     ) -> UncommittedTransaction {
+        let vk: VerifyingKey = signing_key.clone().into();
         let entry = HashchainEntry::new_register_service(
             id.to_string(),
             ServiceChallenge::from(challenge_key.clone()),
-            signing_key.verifying_key(),
+            vk,
             &signing_key,
         );
 
@@ -130,19 +131,16 @@ impl TransactionBuilder {
             panic!("No existing service found for {}", service_id)
         };
 
+        let vk: VerifyingKey = signing_key.clone().into();
         // Simulate some external service signing account creation credentials
-        let hash = Digest::hash_items(&[
-            id.as_bytes(),
-            service_id.as_bytes(),
-            &signing_key.verifying_key().as_bytes(),
-        ]);
+        let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.as_bytes()]);
         let signature = service_signing_key.sign(&hash.to_bytes());
 
         let entry = HashchainEntry::new_create_account(
             id.to_string(),
             service_id.to_string(),
             ServiceChallengeInput::Signed(signature),
-            signing_key.verifying_key(),
+            vk.clone(),
             &signing_key,
         );
 
@@ -170,7 +168,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let random_key = create_mock_signing_key().verifying_key();
+        let random_key = create_mock_signing_key().into();
         self.add_key(id, random_key, signing_key, key_idx)
     }
 

@@ -54,6 +54,7 @@ impl TestTreeState {
     pub fn register_service(&mut self, service_id: String) -> Service {
         let service_challenge_key = create_mock_signing_key();
         let service_signing_key = create_mock_signing_key();
+        let service_vk: VerifyingKey = service_signing_key.clone().into();
 
         let mut hashchain = Hashchain::empty();
 
@@ -61,7 +62,7 @@ impl TestTreeState {
             .register_service(
                 service_id.clone(),
                 ServiceChallenge::from(service_challenge_key.clone()),
-                service_signing_key.verifying_key(),
+                service_vk,
                 &service_signing_key,
             )
             .unwrap();
@@ -72,7 +73,7 @@ impl TestTreeState {
         Service {
             id: service_id.clone(),
             sk: service_challenge_key.clone(),
-            vk: service_challenge_key.verifying_key(),
+            vk: service_challenge_key.into(),
             registration: TestAccount {
                 id: service_id,
                 key_hash,
@@ -83,14 +84,11 @@ impl TestTreeState {
 
     pub fn create_account(&mut self, id: String, service: Service) -> TestAccount {
         let signing_key = create_mock_signing_key();
+        let vk: VerifyingKey = signing_key.clone().into();
         self.signing_keys.insert(id.clone(), signing_key.clone());
 
         // Simulate some external service signing account creation credentials
-        let hash = Digest::hash_items(&[
-            id.as_bytes(),
-            service.id.as_bytes(),
-            &signing_key.verifying_key().as_bytes(),
-        ]);
+        let hash = Digest::hash_items(&[id.as_bytes(), service.id.as_bytes(), &vk.as_bytes()]);
         let signature = service.sk.sign(&hash.to_bytes());
 
         let mut hashchain = Hashchain::empty();
@@ -99,7 +97,7 @@ impl TestTreeState {
                 id.clone(),
                 service.id.clone(),
                 ServiceChallengeInput::Signed(signature),
-                signing_key.verifying_key(),
+                vk,
                 &signing_key,
             )
             .unwrap();
@@ -151,7 +149,7 @@ impl TestTreeState {
 
     pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {
         let signing_key_to_add = create_mock_signing_key();
-        let key_to_add = signing_key_to_add.verifying_key();
+        let key_to_add = signing_key_to_add.into();
 
         account
             .hashchain
@@ -184,7 +182,7 @@ impl TestTreeState {
         signing_key: Option<&SigningKey>,
     ) -> Result<()> {
         let signature_bundle = signing_key.map(|sk| SignatureBundle {
-            verifying_key: sk.verifying_key(),
+            verifying_key: sk.clone().into(),
             signature: sk.sign(data),
         });
 
@@ -217,11 +215,13 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
         let (_, service) =
             state.services.iter().nth(rng.gen_range(0..state.services.len())).unwrap();
 
+        let vk: VerifyingKey = sk.clone().into();
+
         // Simulate some external service signing account creation credentials
         let hash = Digest::hash_items(&[
             random_string.as_bytes(),
             service.id.as_bytes(),
-            &sk.verifying_key().as_bytes(),
+            &vk.as_bytes(),
         ]);
         let signature = service.sk.sign(&hash.to_bytes());
 
@@ -233,7 +233,7 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
                 random_string.clone(),
                 service.id.clone(),
                 ServiceChallengeInput::Signed(signature),
-                sk.verifying_key(),
+                vk,
                 &sk,
             )
             .unwrap();
@@ -262,7 +262,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
     };
 
     let signing_key = create_mock_signing_key();
-    let verifying_key = signing_key.verifying_key();
+    let verifying_key = signing_key.into();
 
     let signer = state
         .signing_keys
