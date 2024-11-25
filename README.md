@@ -37,32 +37,55 @@ We are currently experimenting with various proof systems and have handwritten g
 
 ### Prerequisites
 
-### Install Redis
+### Install Dependencies
 
-Redis serves as a powerful in-memory database that is used to store the label-value pairs. Follow these steps to install Redis:
+We use `just` as a task runner. Once installed, you can install the rest of the dependencies with:
 
-1. Download Redis from [Redis Download Page](https://redis.io/download/).
-2. Follow the installation instructions for your operating system.
+```bash
+just install-deps
+```
 
-### Install Celestia
+### Building
 
-A DA layer such as Celestia is an important component for data security and availability. It stores the cryptographic commitments and parameters of the zkSNARKs and ideally enables them to be verified. Follow the instructions [here](https://github.com/celestiaorg/apollo) to deploy a local testnet.
+To build the project, run:
+
+```bash
+just build
+```
+
+This will compile the `prism-cli` binary and sp1 `ELF` that are used to run the prover, light-client, and full-node.
+
+### Running a local DA layer
+
+To run a local Celestia network for testing, use:
+
+```bash
+just celestia-up
+```
 
 ### Starting the prover
 
-If Redis is installed and the local devnet is running, Prism can be started. Prism can be started in two different ways, as a prover (service provider and proof generator) or as a light-client (to verify the proofs posted on Celestia using the cryptographic commitments). To start the prover, run the following command:
+If the dependencies are installed and the local devnet is running, a prism node can be started.
 
+Prism can be started in three different ways:
+1. as a prover (service provider and proof generator)
+2. as a light-client (to verify the proofs posted on Celestia using the cryptographic commitments)
+3. as a full-node (acts as a service provider, processing all transactions and making the state available to the light-clients)
+
+To start the prover, run:
 ```bash
-cargo run prover
+prism-cli prover
 ```
+
+This will output the prover's verifying key in the logs, which you can use along with the light-client and full-node to verify the proofs.
 
 to start the light-client, run the following command:
 
 ```bash
-cargo run light-client
+prism-cli light-client|full-node --verifying-key <verifying-key>
 ```
 
-You can then interact with Prism via the interfaces defined in [webserver.rs](https://github.com/deltadevsde/prism/blob/main/src/webserver.rs). Based on the data exchanged or stored via the interface the global indexed merkle tree changes and proofs based on these changes then are created in defined epochs (currently 60 seconds) and cryptographic commitments including the proof parameters are posted in the Celestia namespace.
+You can then interact with Prism via the interfaces defined in [webserver.rs](https://github.com/deltadevsde/prism/blob/main/crates/prover/src/webserver.rs).
 
 ## Contributions
 

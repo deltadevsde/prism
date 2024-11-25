@@ -4,12 +4,21 @@ use ed25519_consensus::{
     Signature as Ed25519Signature, SigningKey as Ed25519SigningKey,
     VerificationKey as Ed25519VerifyingKey,
 };
+use p256::ecdsa::{
+    signature::{DigestSigner, DigestVerifier},
+    Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey,
+    VerifyingKey as Secp256r1VerifyingKey,
+};
 use secp256k1::{
     ecdsa::Signature as Secp256k1Signature, Message as Secp256k1Message,
     PublicKey as Secp256k1VerifyingKey, SecretKey as Secp256k1SigningKey, SECP256K1,
 };
 use serde::{Deserialize, Serialize};
-use std::{self};
+use sha2::Digest as _;
+use std::{
+    self,
+    hash::{Hash, Hasher},
+};
 
 use crate::digest::Digest;
 
@@ -17,17 +26,39 @@ use crate::digest::Digest;
 pub enum Signature {
     Secp256k1(Secp256k1Signature),
     Ed25519(Ed25519Signature),
+    Secp256r1(Secp256r1Signature),
     #[default]
     Placeholder,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 /// Represents a public key supported by the system.
 pub enum VerifyingKey {
     /// Bitcoin, Ethereum
     Secp256k1(Secp256k1VerifyingKey),
     /// Cosmos, OpenSSH, GnuPG
     Ed25519(Ed25519VerifyingKey),
+    // TLS, X.509 PKI, Passkeys
+    Secp256r1(Secp256r1VerifyingKey),
+}
+
+impl Hash for VerifyingKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            VerifyingKey::Ed25519(_) => {
+                state.write_u8(0);
+                self.as_bytes().hash(state);
+            }
+            VerifyingKey::Secp256k1(_) => {
+                state.write_u8(1);
+                self.as_bytes().hash(state);
+            }
+            VerifyingKey::Secp256r1(_) => {
+                state.write_u8(2);
+                self.as_bytes().hash(state);
+            }
+        }
+    }
 }
 
 impl VerifyingKey {
@@ -36,6 +67,7 @@ impl VerifyingKey {
         match self {
             VerifyingKey::Ed25519(vk) => vk.to_bytes().to_vec(),
             VerifyingKey::Secp256k1(vk) => vk.serialize().to_vec(),
+            VerifyingKey::Secp256r1(vk) => vk.to_sec1_bytes().to_vec(),
         }
     }
 
@@ -58,7 +90,30 @@ impl VerifyingKey {
                 vk.verify(SECP256K1, &message, signature)
                     .map_err(|e| anyhow!("Failed to verify signature: {}", e))
             }
+            VerifyingKey::Secp256r1(vk) => {
+                let Signature::Secp256r1(signature) = signature else {
+                    bail!("Invalid signature type");
+                };
+                let mut digest = sha2::Sha256::new();
+                digest.update(message);
+
+                let der_sig = signature.to_der();
+                vk.verify_digest(digest, &der_sig)
+                    .map_err(|e| anyhow!("Failed to verify signature: {}", e))
+            }
         }
+    }
+}
+
+impl From<Secp256r1VerifyingKey> for VerifyingKey {
+    fn from(vk: Secp256r1VerifyingKey) -> Self {
+        VerifyingKey::Secp256r1(vk)
+    }
+}
+
+impl From<Secp256r1SigningKey> for VerifyingKey {
+    fn from(sk: Secp256r1SigningKey) -> Self {
+        VerifyingKey::Secp256r1(sk.verifying_key().to_owned())
     }
 }
 
@@ -83,6 +138,16 @@ impl From<Secp256k1SigningKey> for VerifyingKey {
 impl From<Secp256k1VerifyingKey> for VerifyingKey {
     fn from(vk: Secp256k1VerifyingKey) -> Self {
         VerifyingKey::Secp256k1(vk)
+    }
+}
+
+impl From<SigningKey> for VerifyingKey {
+    fn from(sk: SigningKey) -> Self {
+        match sk {
+            SigningKey::Ed25519(sk) => VerifyingKey::Ed25519(sk.verification_key()),
+            SigningKey::Secp256k1(sk) => sk.public_key(SECP256K1).into(),
+            SigningKey::Secp256r1(sk) => VerifyingKey::Secp256r1(sk.verifying_key().to_owned()),
+        }
     }
 }
 
@@ -124,10 +189,18 @@ impl TryFrom<String> for VerifyingKey {
     }
 }
 
+impl std::fmt::Display for VerifyingKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let encoded = engine.encode(self.as_bytes());
+        write!(f, "{}", encoded)
+    }
+}
+
 #[derive(Clone)]
 pub enum SigningKey {
     Ed25519(Box<Ed25519SigningKey>),
     Secp256k1(Secp256k1SigningKey),
+    Secp256r1(Secp256r1SigningKey),
 }
 
 impl SigningKey {
@@ -140,13 +213,12 @@ impl SigningKey {
                 let signature = SECP256K1.sign_ecdsa(&message, sk);
                 Signature::Secp256k1(signature)
             }
-        }
-    }
-
-    pub fn verifying_key(&self) -> VerifyingKey {
-        match self {
-            SigningKey::Ed25519(sk) => sk.verification_key().into(),
-            SigningKey::Secp256k1(sk) => sk.public_key(SECP256K1).into(),
+            SigningKey::Secp256r1(sk) => {
+                let mut digest = sha2::Sha256::new();
+                digest.update(message);
+                let sig: Secp256r1Signature = sk.sign_digest(digest);
+                Signature::Secp256r1(sig)
+            }
         }
     }
 }
@@ -158,8 +230,8 @@ mod tests {
 
     #[test]
     fn test_verifying_key_from_string_ed25519() {
-        let original_key =
-            SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).verifying_key();
+        let original_key: VerifyingKey =
+            SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).into();
         let encoded = engine.encode(original_key.as_bytes());
 
         let result = VerifyingKey::try_from(encoded);
@@ -171,8 +243,8 @@ mod tests {
 
     #[test]
     fn test_verifying_key_from_string_secp256k1() {
-        let original_key =
-            SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)).verifying_key();
+        let original_key: VerifyingKey =
+            SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)).into();
         let encoded = engine.encode(original_key.as_bytes());
 
         let result = VerifyingKey::try_from(encoded);

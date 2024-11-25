@@ -1,5 +1,5 @@
 use super::*;
-use prism_common::{transaction_builder::TransactionBuilder, tree::Proof};
+use prism_common::{keys::VerifyingKey, transaction_builder::TransactionBuilder, tree::Proof};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
@@ -65,7 +65,7 @@ async fn test_process_transactions() {
 
     let new_key = create_mock_signing_key();
     let add_key_transaction = transaction_builder
-        .add_key_verified_with_root("test_account", new_key.verifying_key())
+        .add_key_verified_with_root("test_account", new_key.clone().into())
         .commit();
 
     let proof = prover.process_transaction(add_key_transaction).await.unwrap();
@@ -92,14 +92,15 @@ async fn test_execute_block_with_invalid_tx() {
     let mut tx_builder = TransactionBuilder::new();
 
     let new_key_1 = create_mock_signing_key();
+    let new_key_vk: VerifyingKey = new_key_1.clone().into();
 
     let transactions = vec![
         tx_builder.register_service_with_random_keys("service_id").commit(),
         tx_builder.create_account_with_random_key("account_id", "service_id").commit(),
         // add new key, so it will be index = 1
-        tx_builder.add_key_verified_with_root("account_id", new_key_1.verifying_key()).commit(),
+        tx_builder.add_key_verified_with_root("account_id", new_key_vk.clone()).commit(),
         // revoke new key again
-        tx_builder.revoke_key_verified_with_root("account_id", new_key_1.verifying_key()).commit(),
+        tx_builder.revoke_key_verified_with_root("account_id", new_key_vk).commit(),
         // and adding in same block.
         // both of these transactions are valid individually, but when processed together it will fail.
         tx_builder.add_random_key("account_id", &new_key_1, 1).build(),

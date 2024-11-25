@@ -75,7 +75,7 @@ pub enum ServiceChallenge {
 
 impl From<SigningKey> for ServiceChallenge {
     fn from(sk: SigningKey) -> Self {
-        ServiceChallenge::Signed(sk.verifying_key())
+        ServiceChallenge::Signed(sk.into())
     }
 }
 

@@ -49,7 +49,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let mut test_state = TestTreeState::new();
     let _service = test_state.register_service("test_service".to_string());
     let prover_cfg = prism_prover::Config {
-        key: signing_key,
+        signing_key,
         ..prism_prover::Config::default()
     };
 

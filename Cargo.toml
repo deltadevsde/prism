@@ -15,7 +15,7 @@ readme = "README.md"
 
 [workspace]
 default-members = [
-    "crates/bin",
+    "crates/cli",
     "crates/tests",
     "crates/node_types/prover",
     "crates/node_types/lightclient",
@@ -26,7 +26,7 @@ default-members = [
 ]
 
 members = [
-    "crates/bin",
+    "crates/cli",
     "crates/tests",
     "crates/node_types/prover",
     "crates/node_types/lightclient",
@@ -93,12 +93,13 @@ prism-storage = { path = "crates/storage" }
 prism-nova = { path = "crates/zk/nova" }
 prism-da = { path = "crates/da" }
 prism-errors = { path = "crates/errors" }
-prism-bin = { path = "crates/bin" }
+prism-cli = { path = "crates/cli" }
 prism-groth16 = { path = "crates/zk/groth16" }
 prism-prover = { path = "crates/node_types/prover" }
 prism-tests = { path = "crates/tests" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
+p256 = { version = "0.13.2", features = ["serde", "ecdsa"] }
 
 
 [patch.crates-io]
