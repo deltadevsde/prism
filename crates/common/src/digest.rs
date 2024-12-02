@@ -3,7 +3,7 @@ use bls12_381::Scalar;
 use jmt::RootHash;
 use serde::{Deserialize, Serialize};
 
-use crate::{hasher::Hasher, serialization::raw_or_hex_fixed};
+use crate::{hasher::Hasher, serde::raw_or_hex_fixed};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub struct Digest(#[serde(with = "raw_or_hex_fixed")] pub [u8; 32]);

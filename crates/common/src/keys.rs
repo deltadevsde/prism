@@ -15,7 +15,7 @@ use secp256k1::{
     PublicKey as Secp256k1VerifyingKey, SecretKey as Secp256k1SigningKey, SECP256K1,
 };
 
-use crate::serialization::CryptoPayload;
+use crate::serde::CryptoPayload;
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::{
