@@ -9,10 +9,13 @@ use p256::ecdsa::{
     Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey,
     VerifyingKey as Secp256r1VerifyingKey,
 };
+use rand::rngs::OsRng;
 use secp256k1::{
     ecdsa::Signature as Secp256k1Signature, Message as Secp256k1Message,
     PublicKey as Secp256k1VerifyingKey, SecretKey as Secp256k1SigningKey, SECP256K1,
 };
+
+use crate::serialization::CryptoPayload;
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::{
@@ -22,7 +25,8 @@ use std::{
 
 use crate::digest::Digest;
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+#[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
 pub enum Signature {
     Secp256k1(Secp256k1Signature),
     Ed25519(Ed25519Signature),
@@ -31,7 +35,60 @@ pub enum Signature {
     Placeholder,
 }
 
+impl Signature {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            Signature::Ed25519(sig) => sig.to_bytes().to_vec(),
+            Signature::Secp256k1(sig) => sig.serialize_der().to_vec(),
+            Signature::Secp256r1(sig) => sig.to_der().as_bytes().to_vec(),
+            Signature::Placeholder => vec![],
+        }
+    }
+
+    pub fn from_algorithm_and_bytes(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+        match algorithm {
+            "ed25519" => {
+                Ed25519Signature::try_from(bytes).map(Signature::Ed25519).map_err(|e| e.into())
+            }
+            "secp256k1" => {
+                Secp256k1Signature::from_der(bytes).map(Signature::Secp256k1).map_err(|e| e.into())
+            }
+            "secp256r1" => {
+                Secp256r1Signature::from_der(bytes).map(Signature::Secp256r1).map_err(|e| e.into())
+            }
+            _ => bail!("Unexpected algorithm for Signature"),
+        }
+    }
+
+    pub fn algorithm(&self) -> &'static str {
+        match self {
+            Signature::Ed25519(_) => "ed25519",
+            Signature::Secp256k1(_) => "secp256k1",
+            Signature::Secp256r1(_) => "secp256r1",
+            Signature::Placeholder => "placeholder",
+        }
+    }
+}
+
+impl TryFrom<CryptoPayload> for Signature {
+    type Error = anyhow::Error;
+
+    fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
+        Signature::from_algorithm_and_bytes(&value.algorithm, &value.bytes)
+    }
+}
+
+impl From<Signature> for CryptoPayload {
+    fn from(signature: Signature) -> Self {
+        CryptoPayload {
+            algorithm: signature.algorithm().to_string(),
+            bytes: signature.to_bytes(),
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
 /// Represents a public key supported by the system.
 pub enum VerifyingKey {
     /// Bitcoin, Ethereum
@@ -71,6 +128,29 @@ impl VerifyingKey {
         }
     }
 
+    pub fn from_algorithm_and_bytes(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+        match algorithm {
+            "ed25519" => Ed25519VerifyingKey::try_from(bytes)
+                .map(VerifyingKey::Ed25519)
+                .map_err(|e| e.into()),
+            "secp256k1" => Secp256k1VerifyingKey::from_slice(bytes)
+                .map(VerifyingKey::Secp256k1)
+                .map_err(|e| e.into()),
+            "secp256r1" => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
+                .map(VerifyingKey::Secp256r1)
+                .map_err(|e| e.into()),
+            _ => bail!("Unexpected algorithm for VerifyingKey"),
+        }
+    }
+
+    pub fn algorithm(&self) -> &'static str {
+        match self {
+            VerifyingKey::Ed25519(_) => "ed25519",
+            VerifyingKey::Secp256k1(_) => "secp256k1",
+            VerifyingKey::Secp256r1(_) => "secp256r1",
+        }
+    }
+
     pub fn verify_signature(&self, message: &[u8], signature: &Signature) -> Result<()> {
         match self {
             VerifyingKey::Ed25519(vk) => {
@@ -105,21 +185,20 @@ impl VerifyingKey {
     }
 }
 
-impl From<Secp256r1VerifyingKey> for VerifyingKey {
-    fn from(vk: Secp256r1VerifyingKey) -> Self {
-        VerifyingKey::Secp256r1(vk)
+impl TryFrom<CryptoPayload> for VerifyingKey {
+    type Error = anyhow::Error;
+
+    fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
+        VerifyingKey::from_algorithm_and_bytes(&value.algorithm, &value.bytes)
     }
 }
 
-impl From<Secp256r1SigningKey> for VerifyingKey {
-    fn from(sk: Secp256r1SigningKey) -> Self {
-        VerifyingKey::Secp256r1(sk.verifying_key().to_owned())
-    }
-}
-
-impl From<Ed25519SigningKey> for VerifyingKey {
-    fn from(sk: Ed25519SigningKey) -> Self {
-        VerifyingKey::Ed25519(sk.verification_key())
+impl From<VerifyingKey> for CryptoPayload {
+    fn from(signature: VerifyingKey) -> Self {
+        CryptoPayload {
+            algorithm: signature.algorithm().to_string(),
+            bytes: signature.to_bytes(),
+        }
     }
 }
 
@@ -129,24 +208,42 @@ impl From<Ed25519VerifyingKey> for VerifyingKey {
     }
 }
 
-impl From<Secp256k1SigningKey> for VerifyingKey {
-    fn from(sk: Secp256k1SigningKey) -> Self {
-        sk.public_key(SECP256K1).into()
-    }
-}
-
 impl From<Secp256k1VerifyingKey> for VerifyingKey {
     fn from(vk: Secp256k1VerifyingKey) -> Self {
         VerifyingKey::Secp256k1(vk)
     }
 }
 
+impl From<Secp256r1VerifyingKey> for VerifyingKey {
+    fn from(vk: Secp256r1VerifyingKey) -> Self {
+        VerifyingKey::Secp256r1(vk)
+    }
+}
+
+impl From<Ed25519SigningKey> for VerifyingKey {
+    fn from(sk: Ed25519SigningKey) -> Self {
+        VerifyingKey::Ed25519(sk.verification_key())
+    }
+}
+
+impl From<Secp256k1SigningKey> for VerifyingKey {
+    fn from(sk: Secp256k1SigningKey) -> Self {
+        sk.public_key(SECP256K1).into()
+    }
+}
+
+impl From<Secp256r1SigningKey> for VerifyingKey {
+    fn from(sk: Secp256r1SigningKey) -> Self {
+        VerifyingKey::Secp256r1(sk.verifying_key().to_owned())
+    }
+}
+
 impl From<SigningKey> for VerifyingKey {
     fn from(sk: SigningKey) -> Self {
         match sk {
-            SigningKey::Ed25519(sk) => VerifyingKey::Ed25519(sk.verification_key()),
-            SigningKey::Secp256k1(sk) => sk.public_key(SECP256K1).into(),
-            SigningKey::Secp256r1(sk) => VerifyingKey::Secp256r1(sk.verifying_key().to_owned()),
+            SigningKey::Ed25519(sk) => (*sk).into(),
+            SigningKey::Secp256k1(sk) => sk.into(),
+            SigningKey::Secp256r1(sk) => sk.into(),
         }
     }
 }
@@ -196,7 +293,7 @@ impl std::fmt::Display for VerifyingKey {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum SigningKey {
     Ed25519(Box<Ed25519SigningKey>),
     Secp256k1(Secp256k1SigningKey),
@@ -204,6 +301,53 @@ pub enum SigningKey {
 }
 
 impl SigningKey {
+    pub fn new_ed25519() -> Self {
+        SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng)))
+    }
+
+    pub fn new_secp256k1() -> Self {
+        SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng))
+    }
+
+    pub fn new_secp256r1() -> Self {
+        SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng))
+    }
+
+    pub fn verifying_key(&self) -> VerifyingKey {
+        self.clone().into()
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            SigningKey::Ed25519(sk) => sk.to_bytes().to_vec(),
+            SigningKey::Secp256k1(sk) => sk.secret_bytes().to_vec(),
+            SigningKey::Secp256r1(sk) => sk.to_bytes().to_vec(),
+        }
+    }
+
+    pub fn from_algorithm_and_bytes(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+        match algorithm {
+            "ed25519" => Ed25519SigningKey::try_from(bytes)
+                .map(|sk| SigningKey::Ed25519(Box::new(sk)))
+                .map_err(|e| e.into()),
+            "secp256k1" => Secp256k1SigningKey::from_slice(bytes)
+                .map(SigningKey::Secp256k1)
+                .map_err(|e| e.into()),
+            "secp256r1" => Secp256r1SigningKey::from_slice(bytes)
+                .map(SigningKey::Secp256r1)
+                .map_err(|e| e.into()),
+            _ => bail!("Unexpected algorithm for VerifyingKey"),
+        }
+    }
+
+    pub fn algorithm(&self) -> &'static str {
+        match self {
+            SigningKey::Ed25519(_) => "ed25519",
+            SigningKey::Secp256k1(_) => "secp256k1",
+            SigningKey::Secp256r1(_) => "secp256r1",
+        }
+    }
+
     pub fn sign(&self, message: &[u8]) -> Signature {
         match self {
             SigningKey::Ed25519(sk) => Signature::Ed25519(sk.sign(message)),
@@ -223,10 +367,121 @@ impl SigningKey {
     }
 }
 
+impl PartialEq for SigningKey {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (SigningKey::Ed25519(a), SigningKey::Ed25519(b)) => a.as_bytes() == b.as_bytes(),
+            (SigningKey::Secp256k1(a), SigningKey::Secp256k1(b)) => a == b,
+            (SigningKey::Secp256r1(a), SigningKey::Secp256r1(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+impl TryFrom<CryptoPayload> for SigningKey {
+    type Error = anyhow::Error;
+
+    fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
+        SigningKey::from_algorithm_and_bytes(&value.algorithm, &value.bytes)
+    }
+}
+
+impl From<SigningKey> for CryptoPayload {
+    fn from(signing_key: SigningKey) -> Self {
+        CryptoPayload {
+            algorithm: signing_key.algorithm().to_string(),
+            bytes: signing_key.to_bytes(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand::rngs::OsRng;
+
+    #[test]
+    fn test_reparsed_verifying_keys_are_equal_to_original() {
+        let verifying_key_ed25519 = SigningKey::new_ed25519().verifying_key();
+        let re_parsed_verifying_key = VerifyingKey::from_algorithm_and_bytes(
+            verifying_key_ed25519.algorithm(),
+            &verifying_key_ed25519.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_verifying_key, verifying_key_ed25519);
+
+        let verifying_key_secp256k1 = SigningKey::new_secp256k1().verifying_key();
+        let re_parsed_verifying_key = VerifyingKey::from_algorithm_and_bytes(
+            verifying_key_secp256k1.algorithm(),
+            &verifying_key_secp256k1.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_verifying_key, verifying_key_secp256k1);
+
+        let verifying_key_secp256r1 = SigningKey::new_secp256r1().verifying_key();
+        let re_parsed_verifying_key = VerifyingKey::from_algorithm_and_bytes(
+            verifying_key_secp256r1.algorithm(),
+            &verifying_key_secp256r1.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_verifying_key, verifying_key_secp256r1);
+    }
+
+    #[test]
+    fn test_reparsed_signing_keys_are_equal_to_original() {
+        let signing_key_ed25519 = SigningKey::new_ed25519();
+        let re_parsed_signing_key = SigningKey::from_algorithm_and_bytes(
+            signing_key_ed25519.algorithm(),
+            &signing_key_ed25519.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_signing_key, signing_key_ed25519);
+
+        let signing_key_secp256k1 = SigningKey::new_secp256k1();
+        let re_parsed_signing_key = SigningKey::from_algorithm_and_bytes(
+            signing_key_secp256k1.algorithm(),
+            &signing_key_secp256k1.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_signing_key, signing_key_secp256k1);
+
+        let signing_key_secp256r1 = SigningKey::new_secp256r1();
+        let re_parsed_signing_key = SigningKey::from_algorithm_and_bytes(
+            signing_key_secp256r1.algorithm(),
+            &signing_key_secp256r1.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_signing_key, signing_key_secp256r1);
+    }
+
+    #[test]
+    fn test_reparsed_signatures_are_equal_to_original() {
+        let message = b"test message";
+
+        let signature_ed25519 = SigningKey::new_ed25519().sign(message);
+        let re_parsed_signature = Signature::from_algorithm_and_bytes(
+            signature_ed25519.algorithm(),
+            &signature_ed25519.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_signature, signature_ed25519);
+
+        let signature_secp256k1 = SigningKey::new_secp256k1().sign(message);
+        let re_parsed_signature = Signature::from_algorithm_and_bytes(
+            signature_secp256k1.algorithm(),
+            &signature_secp256k1.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_signature, signature_secp256k1);
+
+        let signature_secp256r1 = SigningKey::new_secp256r1().sign(message);
+        let re_parsed_signature = Signature::from_algorithm_and_bytes(
+            signature_secp256r1.algorithm(),
+            &signature_secp256r1.to_bytes(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_signature, signature_secp256r1);
+    }
 
     #[test]
     fn test_verifying_key_from_string_ed25519() {
