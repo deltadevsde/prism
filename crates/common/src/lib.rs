@@ -3,6 +3,7 @@ pub mod hashchain;
 pub mod hasher;
 pub mod keys;
 pub mod operation;
+pub mod serialization;
 pub mod transaction;
 pub mod tree;
 
