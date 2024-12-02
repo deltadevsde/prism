@@ -3,7 +3,10 @@ use anyhow::{bail, ensure, Result};
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
 
-use crate::keys::{Signature, SigningKey, VerifyingKey};
+use crate::{
+    keys::{Signature, SigningKey, VerifyingKey},
+    serde::raw_or_b64,
+};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// An [`Operation`] represents a state transition in the system.
@@ -24,6 +27,7 @@ pub enum Operation {
     },
     /// Adds arbitrary signed data to an existing account.
     AddData {
+        #[serde(with = "raw_or_b64")]
         data: Vec<u8>,
         data_signature: Option<SignatureBundle>,
     },
