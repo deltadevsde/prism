@@ -133,7 +133,7 @@ impl TransactionBuilder {
 
         let vk: VerifyingKey = signing_key.clone().into();
         // Simulate some external service signing account creation credentials
-        let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.as_bytes()]);
+        let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.to_bytes()]);
         let signature = service_signing_key.sign(&hash.to_bytes());
 
         let entry = HashchainEntry::new_create_account(

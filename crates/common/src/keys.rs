@@ -47,15 +47,15 @@ impl Hash for VerifyingKey {
         match self {
             VerifyingKey::Ed25519(_) => {
                 state.write_u8(0);
-                self.as_bytes().hash(state);
+                self.to_bytes().hash(state);
             }
             VerifyingKey::Secp256k1(_) => {
                 state.write_u8(1);
-                self.as_bytes().hash(state);
+                self.to_bytes().hash(state);
             }
             VerifyingKey::Secp256r1(_) => {
                 state.write_u8(2);
-                self.as_bytes().hash(state);
+                self.to_bytes().hash(state);
             }
         }
     }
@@ -63,7 +63,7 @@ impl Hash for VerifyingKey {
 
 impl VerifyingKey {
     /// Returns the byte representation of the public key.
-    pub fn as_bytes(&self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             VerifyingKey::Ed25519(vk) => vk.to_bytes().to_vec(),
             VerifyingKey::Secp256k1(vk) => vk.serialize().to_vec(),
@@ -191,7 +191,7 @@ impl TryFrom<String> for VerifyingKey {
 
 impl std::fmt::Display for VerifyingKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let encoded = engine.encode(self.as_bytes());
+        let encoded = engine.encode(self.to_bytes());
         write!(f, "{}", encoded)
     }
 }
@@ -232,26 +232,26 @@ mod tests {
     fn test_verifying_key_from_string_ed25519() {
         let original_key: VerifyingKey =
             SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).into();
-        let encoded = engine.encode(original_key.as_bytes());
+        let encoded = engine.encode(original_key.to_bytes());
 
         let result = VerifyingKey::try_from(encoded);
         assert!(result.is_ok());
 
         let decoded_key = result.unwrap();
-        assert_eq!(decoded_key.as_bytes(), original_key.as_bytes());
+        assert_eq!(decoded_key.to_bytes(), original_key.to_bytes());
     }
 
     #[test]
     fn test_verifying_key_from_string_secp256k1() {
         let original_key: VerifyingKey =
             SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)).into();
-        let encoded = engine.encode(original_key.as_bytes());
+        let encoded = engine.encode(original_key.to_bytes());
 
         let result = VerifyingKey::try_from(encoded);
         assert!(result.is_ok());
 
         let decoded_key = result.unwrap();
-        assert_eq!(decoded_key.as_bytes(), original_key.as_bytes());
+        assert_eq!(decoded_key.to_bytes(), original_key.to_bytes());
     }
 
     #[test]

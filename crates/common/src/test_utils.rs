@@ -88,7 +88,7 @@ impl TestTreeState {
         self.signing_keys.insert(id.clone(), signing_key.clone());
 
         // Simulate some external service signing account creation credentials
-        let hash = Digest::hash_items(&[id.as_bytes(), service.id.as_bytes(), &vk.as_bytes()]);
+        let hash = Digest::hash_items(&[id.as_bytes(), service.id.as_bytes(), &vk.to_bytes()]);
         let signature = service.sk.sign(&hash.to_bytes());
 
         let mut hashchain = Hashchain::empty();
@@ -221,7 +221,7 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
         let hash = Digest::hash_items(&[
             random_string.as_bytes(),
             service.id.as_bytes(),
-            &vk.as_bytes(),
+            &vk.to_bytes(),
         ]);
         let signature = service.sk.sign(&hash.to_bytes());
 
