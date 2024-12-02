@@ -36,7 +36,7 @@ impl Default for WebServerConfig {
         WebServerConfig {
             enabled: true,
             host: "127.0.0.1".to_string(),
-            port: 0,
+            port: 50524,
         }
     }
 }
