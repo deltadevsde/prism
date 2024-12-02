@@ -4751,6 +4751,7 @@ dependencies = [
  "bincode",
  "bls12_381 0.8.0",
  "celestia-types",
+ "ecdsa 0.16.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "ed25519-consensus",
  "hex",
  "jmt",

@@ -276,7 +276,7 @@ where
 
                 // Hash and sign credentials that have been signed by the external service
                 let hash =
-                    Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &key.as_bytes()]);
+                    Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &key.to_bytes()]);
 
                 let ServiceChallenge::Signed(service_pubkey) = creation_gate;
                 let ServiceChallengeInput::Signed(challenge_signature) = &challenge;

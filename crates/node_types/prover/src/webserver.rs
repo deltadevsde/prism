@@ -36,7 +36,7 @@ impl Default for WebServerConfig {
         WebServerConfig {
             enabled: true,
             host: "127.0.0.1".to_string(),
-            port: 0,
+            port: 50524,
         }
     }
 }
@@ -101,7 +101,6 @@ impl WebServer {
             bail!("Webserver is disabled")
         }
 
-        info!("starting webserver on {}:{}", self.cfg.host, self.cfg.port);
         let app = Router::new()
             .route("/transaction", post(post_transaction))
             .route("/get-hashchain", post(get_hashchain))
@@ -111,10 +110,16 @@ impl WebServer {
             .with_state(self.session.clone());
 
         let addr = format!("{}:{}", self.cfg.host, self.cfg.port);
-        axum::Server::bind(&addr.parse().unwrap())
-            .serve(app.into_make_service())
-            .await
-            .context("Server error")?;
+        let server = axum::Server::bind(&addr.parse().unwrap()).serve(app.into_make_service());
+
+        let socket_addr = server.local_addr();
+        info!(
+            "Starting webserver on {}:{}",
+            self.cfg.host,
+            socket_addr.port()
+        );
+
+        server.await.context("Server error")?;
 
         Ok(())
     }
