@@ -2,7 +2,6 @@ use crate::{
     digest::Digest,
     hashchain::Hashchain,
     hasher::Hasher,
-    keys::{SigningKey, VerifyingKey},
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::Transaction,
     tree::{
@@ -10,15 +9,9 @@ use crate::{
     },
 };
 use anyhow::{anyhow, Result};
-#[cfg(not(feature = "secp256k1"))]
-use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use jmt::{mock::MockTreeStore, KeyHash};
-use rand::{
-    rngs::{OsRng, StdRng},
-    Rng,
-};
-#[cfg(feature = "secp256k1")]
-use secp256k1::SecretKey as Secp256k1SigningKey;
+use prism_keys::{SigningKey, VerifyingKey};
+use rand::{rngs::StdRng, Rng};
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
@@ -52,8 +45,8 @@ impl TestTreeState {
     }
 
     pub fn register_service(&mut self, service_id: String) -> Service {
-        let service_challenge_key = create_mock_signing_key();
-        let service_signing_key = create_mock_signing_key();
+        let service_challenge_key = SigningKey::new_ed25519();
+        let service_signing_key = SigningKey::new_ed25519();
         let service_vk: VerifyingKey = service_signing_key.clone().into();
 
         let mut hashchain = Hashchain::empty();
@@ -83,7 +76,7 @@ impl TestTreeState {
     }
 
     pub fn create_account(&mut self, id: String, service: Service) -> TestAccount {
-        let signing_key = create_mock_signing_key();
+        let signing_key = SigningKey::new_ed25519();
         let vk: VerifyingKey = signing_key.clone().into();
         self.signing_keys.insert(id.clone(), signing_key.clone());
 
@@ -148,7 +141,7 @@ impl TestTreeState {
     }
 
     pub fn add_key_to_account(&mut self, account: &mut TestAccount) -> Result<(), anyhow::Error> {
-        let signing_key_to_add = create_mock_signing_key();
+        let signing_key_to_add = SigningKey::new_ed25519();
         let key_to_add = signing_key_to_add.into();
 
         account
@@ -171,7 +164,7 @@ impl TestTreeState {
         data: &[u8],
         account: &mut TestAccount,
     ) -> Result<()> {
-        let random_signing_key = create_mock_signing_key();
+        let random_signing_key = SigningKey::new_ed25519();
         self.add_data_to_account(data, account, Some(&random_signing_key))
     }
 
@@ -210,7 +203,7 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
     loop {
         let random_string: String =
             (0..10).map(|_| rng.sample(rand::distributions::Alphanumeric) as char).collect();
-        let sk = create_mock_signing_key();
+        let sk = SigningKey::new_ed25519();
 
         let (_, service) =
             state.services.iter().nth(rng.gen_range(0..state.services.len())).unwrap();
@@ -261,7 +254,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
         panic!("No response found for key. Cannot perform update.");
     };
 
-    let signing_key = create_mock_signing_key();
+    let signing_key = SigningKey::new_ed25519();
     let verifying_key = signing_key.into();
 
     let signer = state
@@ -283,14 +276,4 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
     };
 
     *update_proof
-}
-
-#[cfg(not(feature = "secp256k1"))]
-pub fn create_mock_signing_key() -> SigningKey {
-    SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng)))
-}
-
-#[cfg(feature = "secp256k1")]
-pub fn create_mock_signing_key() -> SigningKey {
-    SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng))
 }

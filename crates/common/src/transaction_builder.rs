@@ -6,12 +6,11 @@ use crate::{
     digest::Digest,
     hashchain::HashchainEntry,
     hasher::Hasher,
-    keys::{SigningKey, VerifyingKey},
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
-    test_utils::create_mock_signing_key,
     transaction::Transaction,
     tree::{HashchainResponse::*, KeyDirectoryTree, SnarkableTree},
 };
+use prism_keys::{SigningKey, VerifyingKey};
 enum PostCommitAction {
     UpdateStorageOnly,
     RememberServiceKey(String, SigningKey),
@@ -83,8 +82,8 @@ impl TransactionBuilder {
     }
 
     pub fn register_service_with_random_keys(&mut self, id: &str) -> UncommittedTransaction {
-        let random_service_challenge_key = create_mock_signing_key();
-        let random_service_signing_key = create_mock_signing_key();
+        let random_service_challenge_key = SigningKey::new_ed25519();
+        let random_service_signing_key = SigningKey::new_ed25519();
         self.register_service(id, random_service_challenge_key, random_service_signing_key)
     }
 
@@ -117,7 +116,7 @@ impl TransactionBuilder {
         id: &str,
         service_id: &str,
     ) -> UncommittedTransaction {
-        let random_signing_key = create_mock_signing_key();
+        let random_signing_key = SigningKey::new_ed25519();
         self.create_account(id, service_id, random_signing_key)
     }
 
@@ -168,7 +167,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let random_key = create_mock_signing_key().into();
+        let random_key = SigningKey::new_ed25519().into();
         self.add_key(id, random_key, signing_key, key_idx)
     }
 

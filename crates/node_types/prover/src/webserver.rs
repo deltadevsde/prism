@@ -7,16 +7,13 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use indexed_merkle_tree::{
-    tree::{Proof, UpdateProof},
-    Hash as TreeHash,
-};
 use jmt::proof::SparseMerkleProof;
 use prism_common::{
+    digest::Digest,
     hashchain::{Hashchain, HashchainEntry},
     hasher::Hasher,
     transaction::Transaction,
-    tree::HashchainResponse,
+    tree::{HashchainResponse, Proof, UpdateProof},
 };
 use serde::{Deserialize, Serialize};
 use std::{self, sync::Arc};
@@ -64,7 +61,7 @@ pub struct TransactionRequest {
 pub struct UpdateProofResponse(UpdateProof);
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct Hash(TreeHash);
+pub struct Hash(Digest);
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UserKeyRequest {

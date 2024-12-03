@@ -3,10 +3,8 @@ use anyhow::{bail, ensure, Result};
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
 
-use crate::{
-    keys::{Signature, SigningKey, VerifyingKey},
-    serde::raw_or_b64,
-};
+use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_serde::raw_or_b64;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// An [`Operation`] represents a state transition in the system.

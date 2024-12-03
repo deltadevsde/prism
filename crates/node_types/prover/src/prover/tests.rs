@@ -1,9 +1,9 @@
 use super::*;
-use prism_common::{keys::VerifyingKey, transaction_builder::TransactionBuilder, tree::Proof};
+use prism_common::{transaction_builder::TransactionBuilder, tree::Proof};
+use prism_keys::{SigningKey, VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
-use prism_common::test_utils::create_mock_signing_key;
 use prism_da::memory::InMemoryDataAvailabilityLayer;
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 
@@ -63,7 +63,7 @@ async fn test_process_transactions() {
     let proof = prover.process_transaction(create_account_transaction.clone()).await.unwrap();
     assert!(matches!(proof, Proof::Insert(_)));
 
-    let new_key = create_mock_signing_key();
+    let new_key = SigningKey::new_ed25519();
     let add_key_transaction = transaction_builder
         .add_key_verified_with_root("test_account", new_key.clone().into())
         .commit();
@@ -91,7 +91,7 @@ async fn test_execute_block_with_invalid_tx() {
 
     let mut tx_builder = TransactionBuilder::new();
 
-    let new_key_1 = create_mock_signing_key();
+    let new_key_1 = SigningKey::new_ed25519();
     let new_key_vk: VerifyingKey = new_key_1.clone().into();
 
     let transactions = vec![

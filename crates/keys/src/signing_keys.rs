@@ -8,10 +8,8 @@ use secp256k1::{Message as Secp256k1Message, SecretKey as Secp256k1SigningKey, S
 
 use sha2::Digest as _;
 
-use crate::{
-    keys::{Signature, VerifyingKey},
-    serde::CryptoPayload,
-};
+use crate::{Signature, VerifyingKey};
+use prism_serde::CryptoPayload;
 
 #[derive(Clone, Debug)]
 pub enum SigningKey {

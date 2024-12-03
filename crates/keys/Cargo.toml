@@ -1,5 +1,5 @@
 [package]
-name = "prism-common"
+name = "prism-keys"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -7,28 +7,23 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-# prism
-prism-errors.workspace = true
-prism-keys.workspace = true
-
 # serde
 prism-serde.workspace = true
+base64.workspace = true
 serde.workspace = true
-hex.workspace = true
-bincode.workspace = true
 
-# celestia
-celestia-types.workspace = true
-
-# tree
-jmt.workspace = true
-sha2.workspace = true
+# curves
+ed25519-consensus.workspace = true
+secp256k1.workspace = true
+p256.workspace = true
+ecdsa.workspace = true             # needed transitively to enable der feature
 
 # misc
 anyhow.workspace = true
-log.workspace = true
+sha2.workspace = true
 rand.workspace = true
 
 [features]
 default = []
 test_utils = []
+secp256k1 = ["secp256k1/global-context", "secp256k1/rand-std"]

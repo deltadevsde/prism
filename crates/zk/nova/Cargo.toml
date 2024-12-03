@@ -7,15 +7,15 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-num = { workspace = true }
-rand = { workspace = true }
-ff = { workspace = true }
-thiserror = { workspace = true }
-celestia-types = { workspace = true }
-anyhow = { workspace = true }
-jmt = { workspace = true }
-bellpepper-core = { workspace = true }
-bellpepper = { workspace = true }
-arecibo = { workspace = true }
-itertools = { workspace = true }
-prism-common = { workspace = true, features = ["test_utils"] }
+# num = { workspace = true }
+# rand = { workspace = true }
+# ff = { workspace = true }
+# thiserror = { workspace = true }
+# celestia-types = { workspace = true }
+# anyhow = { workspace = true }
+# jmt = { workspace = true }
+# bellpepper-core = { workspace = true }
+# bellpepper = { workspace = true }
+# arecibo = { workspace = true }
+# itertools = { workspace = true }
+# prism-common = { workspace = true, features = ["test_utils"] }

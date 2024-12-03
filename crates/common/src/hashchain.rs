@@ -1,10 +1,10 @@
 use anyhow::{anyhow, bail, ensure, Result};
+use prism_keys::{Signature, SigningKey, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
 use crate::{
     digest::Digest,
-    keys::{Signature, SigningKey, VerifyingKey},
     operation::{
         HashchainSignatureBundle, Operation, ServiceChallenge, ServiceChallengeInput,
         SignatureBundle,

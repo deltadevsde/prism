@@ -21,11 +21,9 @@ pub enum HashchainResponse {
 #[cfg(all(test, feature = "test_utils"))]
 mod tests {
     use super::*;
-    use crate::{
-        test_utils::{create_mock_signing_key, TestTreeState},
-        tree::HashchainResponse::*,
-    };
+    use crate::{test_utils::TestTreeState, tree::HashchainResponse::*};
     use jmt::KeyHash;
+    use prism_keys::SigningKey;
 
     use crate::hasher::Hasher;
 
@@ -66,7 +64,7 @@ mod tests {
         let service = tree_state.register_service("service_1".to_string());
 
         let mut falsified_service = service.clone();
-        falsified_service.sk = create_mock_signing_key();
+        falsified_service.sk = SigningKey::new_ed25519();
 
         let account = tree_state.create_account("key_1".to_string(), falsified_service.clone());
 

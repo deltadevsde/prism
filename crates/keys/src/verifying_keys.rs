@@ -17,10 +17,8 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::{
-    keys::{Signature, SigningKey},
-    serde::CryptoPayload,
-};
+use crate::{Signature, SigningKey};
+use prism_serde::CryptoPayload;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]

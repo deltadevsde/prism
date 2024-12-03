@@ -17,18 +17,11 @@ mock_prover = []
 log = { workspace = true }
 pretty_env_logger = { workspace = true }
 anyhow = { workspace = true }
-jmt = { workspace = true }
 keystore-rs = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage = { workspace = true }
-prism-errors = { workspace = true }
 prism-prover = { workspace = true, features = ["mock_prover"] }
 prism-lightclient = { workspace = true }
 prism-da = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }
-
-[[test]]
-name = "integration_tests"
-path = "src/lib.rs"
-harness = true

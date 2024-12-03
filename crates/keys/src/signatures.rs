@@ -3,7 +3,7 @@ use ed25519_consensus::Signature as Ed25519Signature;
 use p256::ecdsa::Signature as Secp256r1Signature;
 use secp256k1::ecdsa::Signature as Secp256k1Signature;
 
-use crate::serde::CryptoPayload;
+use prism_serde::CryptoPayload;
 use serde::{Deserialize, Serialize};
 use std::{self};
 
