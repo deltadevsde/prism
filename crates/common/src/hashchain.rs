@@ -102,6 +102,8 @@ impl Hashchain {
         self.last().map_or(Digest::zero(), |entry| entry.hash)
     }
 
+    /// Validates and adds a new entry to the hashchain.
+    /// This method is ran in circuit.
     pub fn add_entry(&mut self, entry: HashchainEntry) -> Result<()> {
         self.validate_new_entry(&entry)?;
         self.entries.push(entry);
@@ -173,6 +175,8 @@ impl Hashchain {
         Ok(entry)
     }
 
+    /// Validates that the new entry is valid and can be added to the hashchain.
+    /// This method is ran in circuit.
     fn validate_new_entry(&self, entry: &HashchainEntry) -> Result<()> {
         entry.validate_operation()?;
 
