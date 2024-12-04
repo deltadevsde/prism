@@ -65,7 +65,7 @@ integration-test:
   just celestia-up
 
   echo "Running integration tests..."
-  cargo test --release --test integration_tests --features mock_prover
+  cargo test -p prism-tests --lib --release --features mock_prover
 
   just celestia-down
 

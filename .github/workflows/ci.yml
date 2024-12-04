@@ -88,7 +88,7 @@ jobs:
             awk '/Configuration finished. Running a bridge node/ {print;exit}'
 
       - name: Run integration tests
-        run: cargo test --lib --release --features mock_prover --test integration_tests
+        run: cargo test -p prism-tests --lib --release --features mock_prover
 
   unused-deps:
     runs-on: ubuntu-latest
