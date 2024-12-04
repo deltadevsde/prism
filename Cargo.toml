@@ -59,7 +59,7 @@ utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
 
 # database
 redis = "0.24.0"
-# rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] } commented until impl is finished
+rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
 
 # async
 async-trait = "0.1.68"
@@ -103,6 +103,7 @@ jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit"
     "mocks",
 ] }
 sha2 = "0.10.8"
+tempfile = "3.14.0"
 auto_impl = "1.2.0"
 
 # prism

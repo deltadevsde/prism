@@ -14,14 +14,15 @@ test_utils = []
 mock_prover = []
 
 [dependencies]
-log = { workspace = true }
-pretty_env_logger = { workspace = true }
-anyhow = { workspace = true }
-keystore-rs = { workspace = true }
+log.workspace = true
+pretty_env_logger.workspace = true
+anyhow.workspace = true
+keystore-rs.workspace = true
 prism-common = { workspace = true, features = ["test_utils"] }
-prism-storage = { workspace = true }
+prism-storage.workspace = true
 prism-prover = { workspace = true, features = ["mock_prover"] }
-prism-lightclient = { workspace = true }
-prism-da = { workspace = true }
-rand = { workspace = true }
-tokio = { workspace = true }
+prism-lightclient.workspace = true
+prism-da.workspace = true
+rand.workspace = true
+tokio.workspace = true
+tempfile.workspace = true
