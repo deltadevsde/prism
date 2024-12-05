@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::Database;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use bincode;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
@@ -10,6 +10,10 @@ use jmt::{
 use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
 use rocksdb::{DBWithThreadMode, MultiThreaded, Options, DB};
+
+const KEY_PREFIX_COMMITMENTS: &str = "commitments:epoch_";
+const KEY_PREFIX_NODE: &str = "node:";
+const KEY_PREFIX_VALUE_HISTORY: &str = "value_history:";
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
@@ -32,7 +36,7 @@ impl RocksDBConnection {
 
 impl Database for RocksDBConnection {
     fn get_commitment(&self, epoch: &u64) -> anyhow::Result<Digest> {
-        let key = format!("commitments:epoch_{}", epoch);
+        let key = format!("{KEY_PREFIX_COMMITMENTS}{}", epoch);
         let raw_bytes = self.connection.get(key.as_bytes())?.ok_or_else(|| {
             DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
         })?;
@@ -45,7 +49,7 @@ impl Database for RocksDBConnection {
 
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> anyhow::Result<()> {
         Ok(self.connection.put::<&[u8], [u8; 32]>(
-            format!("commitments:epoch_{}", epoch).as_bytes(),
+            format!("{KEY_PREFIX_COMMITMENTS}{}", epoch).as_bytes(),
             commitment.0,
         )?)
     }
@@ -56,7 +60,9 @@ impl Database for RocksDBConnection {
             .get(b"app_state:sync_height")?
             .ok_or_else(|| DatabaseError::NotFoundError("current sync height".to_string()))?;
 
-        Ok(u64::from_be_bytes(res.try_into().unwrap()))
+        Ok(u64::from_be_bytes(res.try_into().map_err(|e| {
+            anyhow!("failed byte conversion from BigEndian to u64: {:?}", e)
+        })?))
     }
 
     fn set_last_synced_height(&self, height: &u64) -> anyhow::Result<()> {
@@ -69,7 +75,9 @@ impl Database for RocksDBConnection {
             .get(b"app_state:epoch")?
             .ok_or_else(|| DatabaseError::NotFoundError("current epoch".to_string()))?;
 
-        Ok(u64::from_be_bytes(res.try_into().unwrap()))
+        Ok(u64::from_be_bytes(res.try_into().map_err(|e| {
+            anyhow!("failed byte conversion from BigEndian to u64: {:?}", e)
+        })?))
     }
 
     fn set_epoch(&self, epoch: &u64) -> anyhow::Result<()> {
@@ -83,7 +91,10 @@ impl Database for RocksDBConnection {
 
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        let key = format!("node:{}", hex::encode(bincode::serialize(node_key)?));
+        let key = format!(
+            "{KEY_PREFIX_NODE}{}",
+            hex::encode(bincode::serialize(node_key)?)
+        );
         let value = self.connection.get(key.as_bytes())?;
 
         match value {
@@ -97,7 +108,7 @@ impl TreeReader for RocksDBConnection {
         max_version: Version,
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
-        let value_key = format!("value_history:{}", hex::encode(key_hash.0));
+        let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", hex::encode(key_hash.0));
         let iter = self.connection.prefix_iterator(value_key.as_bytes());
 
         let mut latest_value = None;
@@ -114,17 +125,18 @@ impl TreeReader for RocksDBConnection {
             }
         }
 
-        Ok(latest_value.map(|v| bincode::deserialize(&v).unwrap()))
+        Ok(latest_value.map(|v| bincode::deserialize(&v)).transpose()?)
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
         let mut iter = self.connection.iterator(rocksdb::IteratorMode::End);
 
         while let Some(Ok((key, value))) = iter.next() {
-            if key.starts_with(b"node:") {
+            if key.starts_with(KEY_PREFIX_NODE.as_bytes()) {
                 let node: Node = bincode::deserialize(&value)?;
                 if let Node::Leaf(leaf) = node {
-                    let node_key: NodeKey = bincode::deserialize(&hex::decode(&key[5..])?)?;
+                    let node_key: NodeKey =
+                        bincode::deserialize(&hex::decode(&key[KEY_PREFIX_NODE.len()..])?)?;
                     return Ok(Some((node_key, leaf)));
                 }
             }
@@ -139,13 +151,16 @@ impl TreeWriter for RocksDBConnection {
         let mut batch = rocksdb::WriteBatch::default();
 
         for (node_key, node) in node_batch.nodes() {
-            let key = format!("node:{}", hex::encode(bincode::serialize(node_key)?));
+            let key = format!(
+                "{KEY_PREFIX_NODE}{}",
+                hex::encode(bincode::serialize(node_key)?)
+            );
             let value = bincode::serialize(node)?;
             batch.put(key.as_bytes(), &value);
         }
 
         for ((version, key_hash), value) in node_batch.values() {
-            let value_key = format!("value_history:{}", hex::encode(key_hash.0));
+            let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", hex::encode(key_hash.0));
             let version_key = format!(
                 "{}:{}",
                 value_key,
@@ -175,6 +190,31 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
         (temp_dir, db)
+    }
+
+    #[test]
+    fn test_rw_commitment() {
+        let (_temp_dir, db) = setup_db();
+
+        let epoch = 1;
+        let commitment = Digest([1; 32]);
+
+        db.set_commitment(&epoch, &commitment).unwrap();
+        let read_commitment = db.get_commitment(&epoch).unwrap();
+
+        assert_eq!(read_commitment, commitment);
+    }
+
+    #[test]
+    fn test_rw_epoch() {
+        let (_temp_dir, db) = setup_db();
+
+        let epoch = 1;
+
+        db.set_epoch(&epoch).unwrap();
+        let read_epoch = db.get_epoch().unwrap();
+
+        assert_eq!(read_epoch, epoch);
     }
 
     #[test]
