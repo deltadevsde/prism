@@ -2,6 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use ed25519_consensus::{Signature, SigningKey, VerificationKey as VerifyingKey};
 use prism_common::{digest::Digest, transaction::Transaction};
+use prism_serde::binary::BinaryTranscodable;
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;
 use tokio::sync::broadcast;
@@ -22,7 +23,7 @@ pub struct FinalizedEpoch {
 
 impl FinalizedEpoch {
     pub fn insert_signature(&mut self, key: &SigningKey) {
-        let plaintext = bincode::serialize(&self).unwrap();
+        let plaintext = self.encode_to_bytes().unwrap();
         let signature = key.sign(&plaintext);
         self.signature = Some(hex::encode(signature.to_bytes()));
     }
@@ -36,7 +37,8 @@ impl FinalizedEpoch {
             signature: None,
         };
 
-        let message = bincode::serialize(&epoch_without_signature)
+        let message = epoch_without_signature
+            .encode_to_bytes()
             .map_err(|e| anyhow::anyhow!("Failed to serialize epoch: {}", e))?;
 
         let signature =

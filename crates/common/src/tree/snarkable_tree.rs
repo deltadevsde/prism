@@ -1,10 +1,10 @@
 use anyhow::{bail, ensure, Result};
-use bincode;
 use jmt::{
     storage::{TreeReader, TreeWriter},
     KeyHash,
 };
 use prism_errors::DatabaseError;
+use prism_serde::binary::BinaryTranscodable;
 use std::convert::Into;
 
 use crate::{
@@ -124,7 +124,7 @@ where
         };
 
         let hashchain = Hashchain::from_entry(entry.clone())?;
-        let serialized_hashchain = Self::serialize_value(&hashchain)?;
+        let serialized_hashchain = hashchain.encode_to_bytes()?;
 
         // the update proof just contains another nm proof
         let (new_root, _, tree_update_batch) = self
@@ -151,12 +151,12 @@ where
             bail!("Key does not exist");
         };
 
-        let old_hashchain: Hashchain = bincode::deserialize(old_serialized_hashchain.as_slice())?;
+        let old_hashchain = Hashchain::decode_from_bytes(&old_serialized_hashchain)?;
 
         let mut new_hashchain = old_hashchain.clone();
         new_hashchain.add_entry(entry.clone())?;
 
-        let serialized_value = Self::serialize_value(&new_hashchain)?;
+        let serialized_value = new_hashchain.encode_to_bytes()?;
 
         let (new_root, update_proof, tree_update_batch) = self.jmt.put_value_set_with_proof(
             vec![(key, Some(serialized_value.clone()))],
@@ -182,7 +182,7 @@ where
 
         match value {
             Some(serialized_value) => {
-                let deserialized_value = Self::deserialize_value(&serialized_value)?;
+                let deserialized_value = Hashchain::decode_from_bytes(&serialized_value)?;
                 let membership_proof = MembershipProof {
                     root,
                     proof,

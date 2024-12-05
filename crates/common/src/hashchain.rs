@@ -1,5 +1,6 @@
 use anyhow::{anyhow, bail, ensure, Result};
 use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_serde::binary::BinaryTranscodable;
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
@@ -253,7 +254,7 @@ impl HashchainEntry {
         key_idx: usize,
     ) -> Self {
         let serialized_operation =
-            bincode::serialize(&operation).expect("Serializing operation should work");
+            operation.encode_to_bytes().expect("Serializing operation should work");
         let hash =
             Digest::hash_items(&[serialized_operation.as_slice(), &previous_hash.to_bytes()]);
 
@@ -341,7 +342,7 @@ impl HashchainEntry {
     pub fn validate_hash(&self) -> Result<()> {
         let pristine_entry = self.without_signature();
 
-        let serialized_operation = bincode::serialize(&pristine_entry.operation)?;
+        let serialized_operation = pristine_entry.operation.encode_to_bytes()?;
         let pristine_entry_hash = Digest::hash_items(&[
             serialized_operation.as_slice(),
             &pristine_entry.previous_hash.to_bytes(),

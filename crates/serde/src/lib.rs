@@ -1,4 +1,7 @@
 #![allow(dead_code)]
+
+pub mod binary;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]

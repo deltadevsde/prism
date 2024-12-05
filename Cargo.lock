@@ -4833,6 +4833,7 @@ dependencies = [
  "log",
  "prism-common",
  "prism-errors",
+ "prism-serde",
  "serde",
  "sp1-sdk",
  "tokio",
@@ -4903,7 +4904,9 @@ dependencies = [
 name = "prism-serde"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.22.1",
+ "bincode",
  "hex",
  "serde",
 ]
@@ -4928,6 +4931,7 @@ dependencies = [
  "log",
  "prism-common",
  "prism-errors",
+ "prism-serde",
  "redis",
  "rocksdb",
  "serde",
