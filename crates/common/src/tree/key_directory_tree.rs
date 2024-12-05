@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use bincode;
 use jmt::{
     self,
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
@@ -7,7 +6,7 @@ use jmt::{
 };
 use std::sync::Arc;
 
-use crate::{digest::Digest, hashchain::Hashchain, hasher::Hasher};
+use crate::{digest::Digest, hasher::Hasher};
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
     Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
@@ -77,14 +76,5 @@ where
 
     pub fn get_current_root(&self) -> Result<RootHash> {
         self.jmt.get_root_hash(self.epoch).map_err(|e| anyhow!("Failed to get root hash: {}", e))
-    }
-
-    pub(crate) fn serialize_value(value: &Hashchain) -> Result<Vec<u8>> {
-        bincode::serialize(value).map_err(|e| anyhow!("Failed to serialize value: {}", e))
-    }
-
-    pub(crate) fn deserialize_value(bytes: &[u8]) -> Result<Hashchain> {
-        bincode::deserialize::<Hashchain>(bytes)
-            .map_err(|e| anyhow!("Failed to deserialize value: {}", e))
     }
 }
