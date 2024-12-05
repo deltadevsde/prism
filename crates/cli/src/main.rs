@@ -4,7 +4,7 @@ mod node_types;
 use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-use prism_common::keys::VerifyingKey;
+use prism_keys::VerifyingKey;
 
 use node_types::NodeType;
 use prism_lightclient::LightClient;

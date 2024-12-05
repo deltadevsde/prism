@@ -13,7 +13,6 @@ readme.workspace = true
 [dependencies]
 serde = { workspace = true }
 redis = { workspace = true }
-mockall = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
 bincode = { workspace = true }
@@ -22,8 +21,4 @@ jmt = { workspace = true }
 prism-errors = { workspace = true }
 prism-common = { workspace = true }
 auto_impl = { workspace = true }
-rocksdb = { workspace = true }
-
-
-[dev-dependencies]
-tempfile = "3"
+# rocksdb = { workspace = true }

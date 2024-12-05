@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
-use bls12_381::Scalar;
 use jmt::RootHash;
 use serde::{Deserialize, Serialize};
 
-use crate::{hasher::Hasher, serde::raw_or_hex_fixed};
+use crate::hasher::Hasher;
+use prism_serde::raw_or_hex_fixed;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub struct Digest(#[serde(with = "raw_or_hex_fixed")] pub [u8; 32]);
@@ -37,35 +37,6 @@ impl<const N: usize> From<[u8; N]> for Digest {
         let mut digest = [0u8; 32];
         digest[..N].copy_from_slice(&value);
         Self(digest)
-    }
-}
-
-// implementing it for now to get things to compile, curve choice will be made later
-impl TryFrom<Digest> for Scalar {
-    type Error = anyhow::Error;
-
-    fn try_from(value: Digest) -> Result<Scalar, Self::Error> {
-        let mut byte_array = [0u8; 32];
-        byte_array.copy_from_slice(value.as_ref());
-        byte_array.reverse();
-
-        let val =
-            [
-                u64::from_le_bytes(byte_array[0..8].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [0..8] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[8..16].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [8..16] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[16..24].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [16..24] for digest: {value:?}"))
-                })?),
-                u64::from_le_bytes(byte_array[24..32].try_into().map_err(|_| {
-                    anyhow!(format!("slice to array: [24..32] for digest: {value:?}"))
-                })?),
-            ];
-
-        Ok(Scalar::from_raw(val))
     }
 }
 

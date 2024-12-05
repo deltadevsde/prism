@@ -3,7 +3,6 @@ use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
 };
-use mockall::predicate::*;
 use prism_common::digest::Digest;
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};

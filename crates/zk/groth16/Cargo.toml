@@ -7,13 +7,13 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-bellman = { workspace = true }
-bls12_381 = { workspace = true }
-rand = { workspace = true }
-hex = { workspace = true }
-ff = { workspace = true }
-log = { workspace = true }
-indexed-merkle-tree = { workspace = true }
-anyhow = { workspace = true }
-prism-common = { workspace = true }
-prism-errors = { workspace = true }
+# bellman = { workspace = true }
+# bls12_381 = { workspace = true }
+# rand = { workspace = true }
+# hex = { workspace = true }
+# ff = { workspace = true }
+# log = { workspace = true }
+# indexed-merkle-tree = { workspace = true }
+# anyhow = { workspace = true }
+# prism-common = { workspace = true }
+# prism-errors = { workspace = true }
