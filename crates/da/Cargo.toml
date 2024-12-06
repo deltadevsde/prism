@@ -23,4 +23,5 @@ celestia-types = { workspace = true }
 anyhow = { workspace = true }
 prism-common = { workspace = true }
 prism-errors = { workspace = true }
+prism-serde = { workspace = true }
 sp1-sdk = { workspace = true }
