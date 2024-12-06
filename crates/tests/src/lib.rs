@@ -12,15 +12,19 @@ use prism_da::{
 };
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
-use prism_storage::{inmemory::InMemoryDatabase, Database};
+use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
 
 use prism_common::test_utils::TestTreeState;
 
+use tempfile::TempDir;
+
 fn setup_db() -> Arc<Box<dyn Database>> {
-    Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>)
+    let temp_dir = TempDir::new().unwrap();
+    let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
+    Arc::new(Box::new(db) as Box<dyn Database>)
 }
 
 #[tokio::test]
