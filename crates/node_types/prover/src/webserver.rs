@@ -7,7 +7,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use jmt::proof::SparseMerkleProof;
+use jmt::proof::{SparseMerkleNode, SparseMerkleProof};
 use prism_common::{
     digest::Digest,
     hashchain::{Hashchain, HashchainEntry},
@@ -71,7 +71,29 @@ pub struct UserKeyRequest {
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UserKeyResponse {
     pub hashchain: Option<Hashchain>,
-    pub proof: SparseMerkleProof<Hasher>,
+    pub proof: JmtProofResponse,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct JmtProofResponse {
+    pub leaf: Option<Digest>,
+    pub siblings: Vec<Digest>,
+}
+
+impl From<SparseMerkleProof<Hasher>> for JmtProofResponse {
+    fn from(proof: SparseMerkleProof<Hasher>) -> Self {
+        let leaf_hash = proof.leaf().map(|node| node.hash::<Hasher>()).map(Digest::new);
+        let sibling_hashes = proof
+            .siblings()
+            .iter()
+            .map(SparseMerkleNode::hash::<Hasher>)
+            .map(Digest::new)
+            .collect();
+        Self {
+            leaf: leaf_hash,
+            siblings: sibling_hashes,
+        }
+    }
 }
 
 #[derive(OpenApi)]
@@ -83,7 +105,8 @@ pub struct UserKeyResponse {
         UpdateProofResponse,
         Hash,
         UserKeyRequest,
-        UserKeyResponse
+        UserKeyResponse,
+        JmtProofResponse
     ))
 )]
 struct ApiDoc;
@@ -190,7 +213,7 @@ async fn get_hashchain(
             StatusCode::OK,
             Json(UserKeyResponse {
                 hashchain: Some(hashchain),
-                proof: membership_proof.proof,
+                proof: JmtProofResponse::from(membership_proof.proof),
             }),
         )
             .into_response(),
@@ -198,7 +221,7 @@ async fn get_hashchain(
             StatusCode::OK,
             Json(UserKeyResponse {
                 hashchain: None,
-                proof: non_membership_proof.proof,
+                proof: JmtProofResponse::from(non_membership_proof.proof),
             }),
         )
             .into_response(),
