@@ -57,7 +57,7 @@ pub struct TransactionRequest {
     pub entry: HashchainEntry,
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, ToSchema)]
 pub struct UpdateProofResponse(UpdateProof);
 
 #[derive(Serialize, ToSchema)]
@@ -70,7 +70,7 @@ pub struct UserKeyRequest {
     pub id: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, ToSchema)]
 pub struct UserKeyResponse {
     pub hashchain: Option<Hashchain>,
     pub proof: SparseMerkleProof<Hasher>,
