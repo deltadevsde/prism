@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
-use bincode;
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     KeyHash, RootHash,
 };
+use prism_serde::binary::BinaryTranscodable;
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
 
@@ -55,7 +55,7 @@ impl InsertProof {
         self.non_membership_proof.verify().context("Invalid NonMembershipProof")?;
 
         let hashchain = Hashchain::from_entry(self.new_entry.clone())?;
-        let serialized_hashchain = bincode::serialize(&hashchain)?;
+        let serialized_hashchain = hashchain.encode_to_bytes()?;
 
         self.membership_proof.clone().verify_existence(
             self.new_root.into(),
@@ -88,7 +88,7 @@ impl UpdateProof {
     pub fn verify(&self) -> Result<()> {
         // Verify existence of old value.
         // Otherwise, any arbitrary hashchain could be set as old_hashchain.
-        let old_serialized_hashchain = bincode::serialize(&self.old_hashchain)?;
+        let old_serialized_hashchain = self.old_hashchain.encode_to_bytes()?;
         self.inclusion_proof.verify_existence(self.old_root, self.key, old_serialized_hashchain)?;
 
         let mut hashchain_after_update = self.old_hashchain.clone();
@@ -96,7 +96,7 @@ impl UpdateProof {
         hashchain_after_update.add_entry(self.new_entry.clone())?;
 
         // Ensure the update proof corresponds to the new hashchain value
-        let new_serialized_hashchain = bincode::serialize(&hashchain_after_update)?;
+        let new_serialized_hashchain = hashchain_after_update.encode_to_bytes()?;
         self.update_proof.clone().verify_update(
             self.old_root,
             self.new_root,
@@ -117,7 +117,7 @@ pub struct MembershipProof {
 
 impl MembershipProof {
     pub fn verify(&self) -> Result<()> {
-        let value = bincode::serialize(&self.value)?;
+        let value = self.value.encode_to_bytes()?;
         self.proof.verify_existence(self.root.into(), self.key, value)
     }
 }

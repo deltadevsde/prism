@@ -4,6 +4,7 @@ use jmt::{
     KeyHash, OwnedValue, Version,
 };
 use prism_common::digest::Digest;
+use prism_serde::binary::BinaryTranscodable;
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -77,9 +78,9 @@ impl RedisConnection {
 impl TreeReader for RedisConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
         let mut con = self.lock_connection()?;
-        let serialized_key = hex::encode(bincode::serialize(node_key)?);
+        let serialized_key = hex::encode(node_key.encode_to_bytes()?);
         let node_data: Option<Vec<u8>> = con.get(format!("node:{}", serialized_key))?;
-        Ok(node_data.map(|data| bincode::deserialize(&data).unwrap()))
+        Ok(node_data.map(|data| Node::decode_from_bytes(&data).unwrap()))
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
@@ -89,10 +90,10 @@ impl TreeReader for RedisConnection {
 
         for key in keys {
             let node_data: Vec<u8> = con.get(&key)?;
-            let node: Node = bincode::deserialize(&node_data)?;
+            let node = Node::decode_from_bytes(&node_data)?;
             if let Node::Leaf(leaf_node) = node {
                 let node_key_bytes = hex::decode(key.strip_prefix("node:").unwrap())?;
-                let node_key: NodeKey = bincode::deserialize(&node_key_bytes)?;
+                let node_key = NodeKey::decode_from_bytes(&node_key_bytes)?;
                 if rightmost.is_none()
                     || leaf_node.key_hash() > rightmost.as_ref().unwrap().1.key_hash()
                 {
@@ -132,8 +133,8 @@ impl TreeWriter for RedisConnection {
         let mut pipe = redis::pipe();
 
         for (node_key, node) in node_batch.nodes() {
-            let serialized_key = hex::encode(bincode::serialize(node_key)?);
-            let node_data = bincode::serialize(node)?;
+            let serialized_key = hex::encode(node_key.encode_to_bytes()?);
+            let node_data = node.encode_to_bytes()?;
             pipe.set(format!("node:{}", serialized_key), node_data);
         }
 

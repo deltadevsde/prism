@@ -6,6 +6,7 @@ use celestia_types::{nmt::Namespace, Blob, TxConfig};
 use log::{debug, error, trace, warn};
 use prism_common::transaction::Transaction;
 use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_serde::binary::BinaryTranscodable;
 use serde::{Deserialize, Serialize};
 use std::{
     self,
@@ -16,15 +17,15 @@ use std::{
 };
 use tokio::{sync::broadcast, task::spawn};
 
-use bincode;
-
 impl TryFrom<&Blob> for FinalizedEpoch {
     type Error = anyhow::Error;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        bincode::deserialize(&value.data).context(format!(
-            "Failed to decode blob into FinalizedEpoch: {value:?}"
-        ))
+        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
+            anyhow!(format!(
+                "Failed to decode blob into FinalizedEpoch: {value:?}"
+            ))
+        })
     }
 }
 
@@ -149,7 +150,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
         debug!("posting {}th epoch to da layer", epoch.height);
 
-        let data = bincode::serialize(&epoch).map_err(|e| {
+        let data = epoch.encode_to_bytes().map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
                 "serializing epoch {}: {}",
                 epoch.height, e
@@ -208,7 +209,8 @@ impl DataAvailabilityLayer for CelestiaConnection {
         let blobs: Result<Vec<Blob>, _> = transactions
             .iter()
             .map(|transaction| {
-                let data = bincode::serialize(transaction)
+                let data = transaction
+                    .encode_to_bytes()
                     .context(format!("Failed to serialize transaction {:?}", transaction))
                     .map_err(|e| {
                         DataAvailabilityError::GeneralError(GeneralError::ParsingError(
