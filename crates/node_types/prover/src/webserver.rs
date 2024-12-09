@@ -61,7 +61,9 @@ pub struct TransactionRequest {
 pub struct UpdateProofResponse(UpdateProof);
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct Hash(Digest);
+pub struct CommitmentResponse {
+    commitment: Digest,
+}
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UserKeyRequest {
@@ -81,7 +83,7 @@ pub struct UserKeyResponse {
         TransactionRequest,
         EpochData,
         UpdateProofResponse,
-        Hash,
+        CommitmentResponse,
         UserKeyRequest,
         UserKeyResponse
     ))
@@ -211,13 +213,13 @@ async fn get_hashchain(
     get,
     path = "/get-current-commitment",
     responses(
-        (status = 200, description = "Successfully retrieved current commitment", body = Hash),
+        (status = 200, description = "Successfully retrieved current commitment", body = CommitmentResponse),
         (status = 500, description = "Internal server error")
     )
 )]
 async fn get_commitment(State(session): State<Arc<Prover>>) -> impl IntoResponse {
     match session.get_commitment().await {
-        Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
+        Ok(commitment) => (StatusCode::OK, Json(CommitmentResponse { commitment })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
