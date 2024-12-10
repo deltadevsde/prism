@@ -20,7 +20,7 @@ We welcome various forms of contributions, including but not limited to:
 
 ## Setting Up Your Development Environment
 
-Please refer to the README.md for detailed instructions on setting up your development environment to start contributing.
+Please refer to README.md for detailed instructions on setting up your development environment to start contributing.
 
 ## Pull Request Guidelines
 
@@ -28,7 +28,7 @@ Please refer to the README.md for detailed instructions on setting up your devel
 - Write clear and descriptive commit messages.
 - Create a separate branch for each feature or bug fix.
 - Include tests where applicable.
-- Make a proposal to update the README.md with details of the changes, if necessary.
+- Make a proposal to update README.md with details of the changes, if necessary.
 
 ## Reporting Bugs
 
