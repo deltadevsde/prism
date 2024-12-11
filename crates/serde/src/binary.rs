@@ -14,15 +14,15 @@ where
     }
 }
 
-pub trait FromBinary<'de>: Sized {
-    fn decode_from_bytes<B: AsRef<[u8]>>(bytes: &'de B) -> Result<Self>;
+pub trait FromBinary: Sized {
+    fn decode_from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self>;
 }
 
-impl<'de, T> FromBinary<'de> for T
+impl<T> FromBinary for T
 where
-    T: Deserialize<'de>,
+    T: for<'de> Deserialize<'de>,
 {
-    fn decode_from_bytes<B: AsRef<[u8]>>(bytes: &'de B) -> Result<Self> {
+    fn decode_from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self> {
         bincode::deserialize(bytes.as_ref()).map_err(Into::<anyhow::Error>::into)
     }
 }
