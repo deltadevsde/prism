@@ -6,7 +6,7 @@ use celestia_types::{nmt::Namespace, Blob, TxConfig};
 use log::{debug, error, trace, warn};
 use prism_common::transaction::Transaction;
 use prism_errors::{DataAvailabilityError, GeneralError};
-use prism_serde::binary::BinaryTranscodable;
+use prism_serde::binary::{FromBinary, ToBinary};
 use serde::{Deserialize, Serialize};
 use std::{
     self,

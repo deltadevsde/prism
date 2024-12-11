@@ -1,5 +1,5 @@
 use celestia_types::Blob;
-use prism_serde::binary::BinaryTranscodable;
+use prism_serde::binary::FromBinary;
 use serde::{Deserialize, Serialize};
 
 use crate::hashchain::HashchainEntry;

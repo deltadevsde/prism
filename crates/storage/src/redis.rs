@@ -4,7 +4,7 @@ use jmt::{
     KeyHash, OwnedValue, Version,
 };
 use prism_common::digest::Digest;
-use prism_serde::binary::BinaryTranscodable;
+use prism_serde::binary::{FromBinary, ToBinary};
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
 use std::{

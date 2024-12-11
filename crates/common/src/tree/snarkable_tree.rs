@@ -4,7 +4,7 @@ use jmt::{
     KeyHash,
 };
 use prism_errors::DatabaseError;
-use prism_serde::binary::BinaryTranscodable;
+use prism_serde::binary::{FromBinary, ToBinary};
 use std::convert::Into;
 
 use crate::{

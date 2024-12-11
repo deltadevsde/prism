@@ -9,6 +9,7 @@ use jmt::{
 };
 use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
+use prism_serde::binary::{FromBinary, ToBinary};
 use rocksdb::{DBWithThreadMode, MultiThreaded, Options, DB};
 
 const KEY_PREFIX_COMMITMENTS: &str = "commitments:epoch_";
@@ -91,14 +92,11 @@ impl Database for RocksDBConnection {
 
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        let key = format!(
-            "{KEY_PREFIX_NODE}{}",
-            hex::encode(bincode::serialize(node_key)?)
-        );
+        let key = format!("{KEY_PREFIX_NODE}{}", node_key.encode_to_bytes()?.to_hex());
         let value = self.connection.get(key.as_bytes())?;
 
         match value {
-            Some(data) => Ok(Some(bincode::deserialize(&data)?)),
+            Some(data) => Ok(Some(Node::decode_from_bytes(&data)?)),
             None => Ok(None),
         }
     }
@@ -125,7 +123,7 @@ impl TreeReader for RocksDBConnection {
             }
         }
 
-        Ok(latest_value.map(|v| bincode::deserialize(&v)).transpose()?)
+        latest_value.map(|v| OwnedValue::decode_from_bytes(&v)).transpose()
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
@@ -133,7 +131,7 @@ impl TreeReader for RocksDBConnection {
 
         while let Some(Ok((key, value))) = iter.next() {
             if key.starts_with(KEY_PREFIX_NODE.as_bytes()) {
-                let node: Node = bincode::deserialize(&value)?;
+                let node: Node = Node::decode_from_bytes(&value)?;
                 if let Node::Leaf(leaf) = node {
                     let node_key: NodeKey =
                         bincode::deserialize(&hex::decode(&key[KEY_PREFIX_NODE.len()..])?)?;
@@ -168,7 +166,7 @@ impl TreeWriter for RocksDBConnection {
             );
 
             if let Some(v) = value {
-                let serialized_value = bincode::serialize(v)?;
+                let serialized_value = v.encode_to_bytes()?;
                 batch.put(version_key.as_bytes(), &serialized_value);
             } else {
                 batch.delete(version_key.as_bytes());

@@ -3,7 +3,7 @@ use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     KeyHash, RootHash,
 };
-use prism_serde::binary::BinaryTranscodable;
+use prism_serde::binary::ToBinary;
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
 
