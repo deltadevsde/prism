@@ -190,8 +190,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let hashed_id = Digest::hash(id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        let key_hash = KeyHash::with::<Hasher>(id);
 
         let Ok(Found(hc, _)) = self.tree.get(key_hash) else {
             panic!("No existing hashchain found for {}", id)
@@ -228,8 +227,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let hashed_id = Digest::hash(id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        let key_hash = KeyHash::with::<Hasher>(id);
 
         let Ok(Found(hc, _)) = self.tree.get(key_hash) else {
             panic!("No existing hashchain found for {}", id)
@@ -306,8 +304,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let hashed_id = Digest::hash(id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        let key_hash = KeyHash::with::<Hasher>(id);
 
         let Ok(Found(hc, _)) = self.tree.get(key_hash) else {
             panic!("No existing hashchain found for {}", id)

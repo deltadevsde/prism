@@ -459,8 +459,7 @@ impl Prover {
 
     pub async fn get_hashchain(&self, id: &String) -> Result<HashchainResponse> {
         let tree = self.tree.read().await;
-        let hashed_id = Digest::hash(id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        let key_hash = KeyHash::with::<Hasher>(id);
 
         tree.get(key_hash)
     }

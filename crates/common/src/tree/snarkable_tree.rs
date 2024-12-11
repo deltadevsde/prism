@@ -33,8 +33,7 @@ where
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof> {
         match &transaction.entry.operation {
             Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
-                let hashed_id = Digest::hash(&transaction.id);
-                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+                let key_hash = KeyHash::with::<Hasher>(&transaction.id);
 
                 debug!("updating hashchain for user id {}", transaction.id);
                 let proof = self.update(key_hash, transaction.entry)?;
@@ -52,8 +51,7 @@ where
                     "Id of transaction needs to be equal to operation id"
                 );
 
-                let hashed_id = Digest::hash(id);
-                let account_key_hash = KeyHash::with::<Hasher>(hashed_id);
+                let account_key_hash = KeyHash::with::<Hasher>(id);
 
                 // Verify that the account doesn't already exist
                 if matches!(self.get(account_key_hash)?, Found(_, _)) {
@@ -63,7 +61,7 @@ where
                     )));
                 }
 
-                let service_key_hash = KeyHash::with::<Hasher>(Digest::hash(service_id.as_bytes()));
+                let service_key_hash = KeyHash::with::<Hasher>(service_id);
 
                 let Found(service_hashchain, _) = self.get(service_key_hash)? else {
                     bail!("Failed to get hashchain for service ID {}", service_id);
@@ -100,8 +98,7 @@ where
                     "Id of transaction needs to be equal to operation id"
                 );
 
-                let hashed_id = Digest::hash(id);
-                let key_hash = KeyHash::with::<Hasher>(hashed_id);
+                let key_hash = KeyHash::with::<Hasher>(id);
 
                 debug!("creating new hashchain for service id {}", id);
 

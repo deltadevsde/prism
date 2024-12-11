@@ -60,8 +60,7 @@ impl TestTreeState {
             )
             .unwrap();
 
-        let hashed_id = Digest::hash(&service_id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        let key_hash = KeyHash::with::<Hasher>(&service_id);
 
         Service {
             id: service_id.clone(),
@@ -95,8 +94,7 @@ impl TestTreeState {
             )
             .unwrap();
 
-        let hashed_id = Digest::hash(&id);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        let key_hash = KeyHash::with::<Hasher>(&id);
 
         TestAccount {
             id,
@@ -218,8 +216,7 @@ pub fn create_random_insert(state: &mut TestTreeState, rng: &mut StdRng) -> Inse
         ]);
         let signature = service.sk.sign(&hash.to_bytes());
 
-        let hashed_id = Digest::hash(&random_string);
-        let key_hash = KeyHash::with::<Hasher>(hashed_id);
+        let key_hash = KeyHash::with::<Hasher>(&random_string);
 
         let entry = Hashchain::empty()
             .create_account(
@@ -247,8 +244,7 @@ pub fn create_random_update(state: &mut TestTreeState, rng: &mut StdRng) -> Upda
 
     let key = state.inserted_keys.iter().nth(rng.gen_range(0..state.inserted_keys.len())).unwrap();
 
-    let hashed_id = Digest::hash(key);
-    let key_hash = KeyHash::with::<Hasher>(hashed_id);
+    let key_hash = KeyHash::with::<Hasher>(key);
 
     let Found(mut hc, _) = state.tree.get(key_hash).unwrap() else {
         panic!("No response found for key. Cannot perform update.");
