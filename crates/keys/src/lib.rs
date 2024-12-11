@@ -9,8 +9,8 @@ pub use verifying_keys::*;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
     use ed25519_consensus::SigningKey as Ed25519SigningKey;
+    use prism_serde::base64::ToBase64;
     use rand::rngs::OsRng;
     use secp256k1::SecretKey as Secp256k1SigningKey;
 
@@ -101,7 +101,7 @@ mod tests {
     fn test_verifying_key_from_string_ed25519() {
         let original_key: VerifyingKey =
             SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).into();
-        let encoded = engine.encode(original_key.to_bytes());
+        let encoded = original_key.to_bytes().to_base64();
 
         let result = VerifyingKey::try_from(encoded);
         assert!(result.is_ok());
@@ -114,7 +114,7 @@ mod tests {
     fn test_verifying_key_from_string_secp256k1() {
         let original_key: VerifyingKey =
             SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)).into();
-        let encoded = engine.encode(original_key.to_bytes());
+        let encoded = original_key.to_bytes().to_base64();
 
         let result = VerifyingKey::try_from(encoded);
         assert!(result.is_ok());
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn test_verifying_key_from_string_invalid_length() {
         let invalid_bytes: [u8; 31] = [1; 31];
-        let encoded = engine.encode(invalid_bytes);
+        let encoded = invalid_bytes.to_base64();
 
         let result = VerifyingKey::try_from(encoded);
         assert!(result.is_err());

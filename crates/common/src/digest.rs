@@ -1,14 +1,22 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use jmt::RootHash;
 use serde::{Deserialize, Serialize};
 
 use crate::hasher::Hasher;
-use prism_serde::raw_or_hex_fixed;
+use prism_serde::{
+    base64::FromBase64,
+    hex::{FromHex, ToHex},
+    raw_or_hex,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
-pub struct Digest(#[serde(with = "raw_or_hex_fixed")] pub [u8; 32]);
+pub struct Digest(#[serde(with = "raw_or_hex")] pub [u8; 32]);
 
 impl Digest {
+    pub const fn new(bytes: [u8; 32]) -> Self {
+        Digest(bytes)
+    }
+
     pub fn hash(data: impl AsRef<[u8]>) -> Self {
         let mut hasher = Hasher::new();
         hasher.update(data.as_ref());
@@ -25,6 +33,10 @@ impl Digest {
 
     pub const fn zero() -> Self {
         Self([0u8; 32])
+    }
+
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.0
     }
 }
 
@@ -58,29 +70,24 @@ impl AsRef<[u8]> for Digest {
     }
 }
 
-impl std::fmt::Display for Digest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_hex())
+impl FromHex for Digest {
+    type Error = anyhow::Error;
+
+    fn from_hex<T: AsRef<[u8]>>(hex: T) -> std::result::Result<Self, Self::Error> {
+        Ok(Self(<[u8; 32]>::from_hex(hex)?))
     }
 }
 
-impl Digest {
-    pub const fn new(bytes: [u8; 32]) -> Self {
-        Digest(bytes)
-    }
+impl FromBase64 for Digest {
+    type Error = anyhow::Error;
 
-    pub fn from_hex(hex_str: &str) -> Result<Self> {
-        let mut bytes = [0u8; 32];
-        hex::decode_to_slice(hex_str, &mut bytes)
-            .map_err(|e| anyhow!(format!("Invalid Format: {e}")))?;
-        Ok(Digest(bytes))
+    fn from_base64<T: AsRef<[u8]>>(base64: T) -> Result<Self, Self::Error> {
+        Ok(Self(<[u8; 32]>::from_base64(base64)?))
     }
+}
 
-    pub fn to_hex(&self) -> String {
-        hex::encode(self.0)
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0
+impl std::fmt::Display for Digest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_hex())
     }
 }

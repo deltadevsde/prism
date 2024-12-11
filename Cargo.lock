@@ -4806,9 +4806,7 @@ name = "prism-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bincode",
  "celestia-types",
- "hex",
  "jmt",
  "log",
  "prism-errors",
@@ -4825,11 +4823,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "bincode",
  "celestia-rpc",
  "celestia-types",
  "ed25519-consensus",
- "hex",
  "log",
  "prism-common",
  "prism-errors",
@@ -4852,7 +4848,6 @@ name = "prism-keys"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "base64 0.22.1",
  "ecdsa 0.16.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "ed25519-consensus",
  "p256",
@@ -4925,8 +4920,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "auto_impl",
- "bincode",
- "hex",
  "jmt",
  "log",
  "prism-common",

@@ -2,7 +2,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 use ed25519_consensus::{Signature, SigningKey, VerificationKey as VerifyingKey};
 use prism_common::{digest::Digest, transaction::Transaction};
-use prism_serde::binary::ToBinary;
+use prism_serde::{
+    binary::ToBinary,
+    hex::{FromHex, ToHex},
+};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::SP1ProofWithPublicValues;
 use tokio::sync::broadcast;
@@ -25,7 +28,7 @@ impl FinalizedEpoch {
     pub fn insert_signature(&mut self, key: &SigningKey) {
         let plaintext = self.encode_to_bytes().unwrap();
         let signature = key.sign(&plaintext);
-        self.signature = Some(hex::encode(signature.to_bytes()));
+        self.signature = Some(signature.to_bytes().to_hex());
     }
 
     pub fn verify_signature(&self, vk: VerifyingKey) -> Result<()> {
@@ -44,7 +47,7 @@ impl FinalizedEpoch {
         let signature =
             self.signature.as_ref().ok_or_else(|| anyhow::anyhow!("No signature present"))?;
 
-        let signature_bytes = hex::decode(signature)
+        let signature_bytes = Vec::<u8>::from_hex(signature)
             .map_err(|e| anyhow::anyhow!("Failed to decode signature: {}", e))?;
 
         if signature_bytes.len() != 64 {

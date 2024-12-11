@@ -1,5 +1,4 @@
 use anyhow::{anyhow, bail, Result};
-use base64::{engine::general_purpose::STANDARD as engine, Engine as _};
 use ed25519_consensus::{SigningKey as Ed25519SigningKey, VerificationKey as Ed25519VerifyingKey};
 use p256::ecdsa::{
     signature::DigestVerifier, SigningKey as Secp256r1SigningKey,
@@ -18,7 +17,10 @@ use std::{
 };
 
 use crate::{Signature, SigningKey};
-use prism_serde::CryptoPayload;
+use prism_serde::{
+    base64::{FromBase64, ToBase64},
+    CryptoPayload,
+};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
@@ -162,7 +164,7 @@ impl From<Ed25519SigningKey> for VerifyingKey {
 
 impl From<Secp256k1SigningKey> for VerifyingKey {
     fn from(sk: Secp256k1SigningKey) -> Self {
-        sk.public_key(SECP256K1).into()
+        VerifyingKey::Secp256k1(sk.public_key(SECP256K1))
     }
 }
 
@@ -182,14 +184,14 @@ impl From<SigningKey> for VerifyingKey {
     }
 }
 
-impl TryFrom<String> for VerifyingKey {
+impl FromBase64 for VerifyingKey {
     type Error = anyhow::Error;
 
     /// Attempts to create a `VerifyingKey` from a base64-encoded string.
     ///
     /// # Arguments
     ///
-    /// * `s` - The base64-encoded string representation of the public key.
+    /// * `base64` - The base64-encoded string representation of the public key.
     ///
     /// Depending on the length of the input string, the function will attempt to
     /// decode it and create a `VerifyingKey` instance. According to the specifications,
@@ -200,9 +202,8 @@ impl TryFrom<String> for VerifyingKey {
     ///
     /// * `Ok(VerifyingKey)` if the conversion was successful.
     /// * `Err` if the input is invalid or the conversion failed.
-    fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
-        let bytes =
-            engine.decode(s).map_err(|e| anyhow!("Failed to decode base64 string: {}", e))?;
+    fn from_base64<T: AsRef<[u8]>>(base64: T) -> Result<Self, Self::Error> {
+        let bytes = Vec::<u8>::from_base64(base64)?;
 
         match bytes.len() {
             32 => {
@@ -220,9 +221,17 @@ impl TryFrom<String> for VerifyingKey {
     }
 }
 
+impl TryFrom<String> for VerifyingKey {
+    type Error = anyhow::Error;
+
+    fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
+        Self::from_base64(s)
+    }
+}
+
 impl std::fmt::Display for VerifyingKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let encoded = engine.encode(self.to_bytes());
+        let encoded = self.to_bytes().to_base64();
         write!(f, "{}", encoded)
     }
 }
