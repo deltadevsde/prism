@@ -4904,6 +4904,7 @@ dependencies = [
  "bincode",
  "hex",
  "serde",
+ "serde_bytes",
 ]
 
 [[package]]
