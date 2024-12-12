@@ -20,113 +20,169 @@ pub enum HashchainResponse {
 
 #[cfg(all(test, feature = "test_utils"))]
 mod tests {
-    use super::*;
-    use crate::{test_utils::TestTreeState, tree::HashchainResponse::*};
-    use jmt::KeyHash;
+    use std::sync::Arc;
+
+    use jmt::{mock::MockTreeStore, KeyHash};
     use prism_keys::SigningKey;
 
-    use crate::hasher::Hasher;
+    use super::{HashchainResponse::*, *};
+    use crate::{digest::Digest, hasher::Hasher, transaction_builder::TransactionBuilder};
 
     #[test]
     fn test_insert_and_get() {
-        let mut tree_state = TestTreeState::default();
-        let service = tree_state.register_service("service_1".to_string());
-        let account = tree_state.create_account("key_1".to_string(), service.clone());
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let insert_proof = tree_state.insert_account(service.registration.clone()).unwrap();
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
+            panic!("Processing transaction did not return the expected insert proof");
+        };
         assert!(insert_proof.verify().is_ok());
 
-        let insert_proof = tree_state.insert_account(account.clone()).unwrap();
+        let account_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+
+        let Proof::Insert(insert_proof) = tree.process_transaction(account_tx).unwrap() else {
+            panic!("Processing transaction did not return the expected insert proof");
+        };
         assert!(insert_proof.verify().is_ok());
 
-        let Found(hashchain, membership_proof) = tree_state.tree.get(account.key_hash).unwrap()
+        let Found(hashchain, membership_proof) =
+            tree.get(KeyHash::with::<Hasher>("acc_1")).unwrap()
         else {
             panic!("Expected hashchain to be found, but was not found.")
         };
 
-        assert_eq!(hashchain, account.hashchain);
+        let test_hashchain =
+            tx_builder.get_hashchain("acc_1").expect("Getting builder hashchain should work");
+
+        assert_eq!(&hashchain, test_hashchain);
         assert!(membership_proof.verify().is_ok());
     }
 
     #[test]
     fn test_insert_for_nonexistent_service_fails() {
-        let mut tree_state = TestTreeState::default();
-        let service = tree_state.register_service("service_1".to_string());
-        let account = tree_state.create_account("key_1".to_string(), service.clone());
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let insert_proof = tree_state.insert_account(account.clone());
-        assert!(insert_proof.is_err());
+        let service_signing_key = SigningKey::new_ed25519();
+
+        let invalid_account_tx = tx_builder
+            .create_account_with_random_key(
+                "acc_1",
+                "service_id_that_does_not_exist",
+                &service_signing_key,
+            )
+            .build();
+
+        let insertion_result = tree.process_transaction(invalid_account_tx);
+        assert!(insertion_result.is_err());
     }
 
     #[test]
     fn test_insert_with_invalid_service_challenge_fails() {
-        let mut tree_state = TestTreeState::default();
-        let service = tree_state.register_service("service_1".to_string());
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let mut falsified_service = service.clone();
-        falsified_service.sk = SigningKey::new_ed25519();
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
 
-        let account = tree_state.create_account("key_1".to_string(), falsified_service.clone());
+        // The correct way was to use the key from service registration,
+        // but here we want things to break
+        let incorrect_service_signing_key = SigningKey::new_ed25519();
 
-        let insert_proof = tree_state.insert_account(service.registration.clone()).unwrap();
+        let initial_acc_signing_key = SigningKey::new_ed25519();
+
+        let acc_with_invalid_challenge_tx = tx_builder
+            .create_account(
+                "key_1",
+                "service_1",
+                &incorrect_service_signing_key,
+                initial_acc_signing_key,
+            )
+            .build();
+
+        let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
+            panic!("Processing service registration failed")
+        };
         assert!(insert_proof.verify().is_ok());
 
-        let insert_proof = tree_state.insert_account(account.clone());
-        assert!(insert_proof.is_err());
+        let create_account_result = tree.process_transaction(acc_with_invalid_challenge_tx);
+        assert!(create_account_result.is_err());
     }
 
     #[test]
     fn test_insert_duplicate_key() {
-        let mut tree_state = TestTreeState::default();
-        let service = tree_state.register_service("service_1".to_string());
-        let account = tree_state.create_account("key_1".to_string(), service.clone());
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let insert_proof = tree_state.insert_account(service.registration.clone()).unwrap();
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let account_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+        let account_with_same_id_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").build();
+
+        let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
+            panic!("Processing service registration failed")
+        };
         assert!(insert_proof.verify().is_ok());
 
-        tree_state.insert_account(account.clone()).unwrap();
+        let Proof::Insert(insert_proof) = tree.process_transaction(account_tx).unwrap() else {
+            panic!("Processing Account creation failed")
+        };
+        assert!(insert_proof.verify().is_ok());
 
-        let result = tree_state.insert_account(account.clone());
-        assert!(result.is_err());
+        let create_acc_with_same_id_result = tree.process_transaction(account_with_same_id_tx);
+        assert!(create_acc_with_same_id_result.is_err());
     }
 
     #[test]
     fn test_update_existing_key() {
-        let mut tree_state = TestTreeState::default();
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let service = tree_state.register_service("service_1".to_string());
-        let mut account = tree_state.create_account("key_1".to_string(), service.clone());
-        tree_state.insert_account(service.registration.clone()).unwrap();
-        tree_state.insert_account(account.clone()).unwrap();
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let acc_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
 
-        // Add a new key
-        tree_state.add_key_to_account(&mut account).unwrap();
+        tree.process_transaction(service_tx).unwrap();
+        tree.process_transaction(acc_tx).unwrap();
 
-        // Update the account using the correct key index
-        let update_proof = tree_state.update_account(account.clone()).unwrap();
+        let key_tx = tx_builder.add_random_key_verified_with_root("acc_1").commit();
+
+        let Proof::Update(update_proof) = tree.process_transaction(key_tx).unwrap() else {
+            panic!("Processing key update failed")
+        };
         assert!(update_proof.verify().is_ok());
 
-        let get_result = tree_state.tree.get(account.key_hash);
-        assert!(matches!(get_result.unwrap(), Found(hc, _) if hc == account.hashchain));
+        let get_result = tree.get(KeyHash::with::<Hasher>("acc_1")).unwrap();
+        let test_hashchain = tx_builder.get_hashchain("acc_1").unwrap();
+
+        assert!(matches!(get_result, Found(hc, _) if &hc == test_hashchain));
     }
 
     #[test]
     fn test_update_non_existing_key() {
-        let mut tree_state = TestTreeState::default();
-        let service = tree_state.register_service("service_1".to_string());
-        let account = tree_state.create_account("key_1".to_string(), service.clone());
-        tree_state.insert_account(service.registration.clone()).unwrap();
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let result = tree_state.update_account(account);
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+
+        tree.process_transaction(service_tx).unwrap();
+
+        // This is a signing key not known to the storage yet
+        let random_signing_key = SigningKey::new_ed25519();
+        // This transaction shall be invalid, because it is signed with an unknown key
+        let invalid_key_tx = tx_builder.add_random_key("acc_1", &random_signing_key, 0).build();
+
+        let result = tree.process_transaction(invalid_key_tx);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_get_non_existing_key() {
-        let tree_state = TestTreeState::default();
-        let key = KeyHash::with::<Hasher>(b"non_existing_key");
+        let tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
 
-        let result = tree_state.tree.get(key).unwrap();
+        let result = tree.get(KeyHash::with::<Hasher>("non_existing_id")).unwrap();
 
         let NotFound(non_membership_proof) = result else {
             panic!("Hashchain found for key while it was expected to be missing");
@@ -137,127 +193,140 @@ mod tests {
 
     #[test]
     fn test_multiple_inserts_and_updates() {
-        let mut tree_state = TestTreeState::default();
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let service = tree_state.register_service("service_1".to_string());
-        let mut account1 = tree_state.create_account("key_1".to_string(), service.clone());
-        let mut account2 = tree_state.create_account("key_2".to_string(), service.clone());
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let acc1_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+        let acc2_tx =
+            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
 
-        tree_state.insert_account(service.registration).unwrap();
+        tree.process_transaction(service_tx).unwrap();
 
-        tree_state.insert_account(account1.clone()).unwrap();
-        tree_state.insert_account(account2.clone()).unwrap();
+        tree.process_transaction(acc1_tx).unwrap();
+        tree.process_transaction(acc2_tx).unwrap();
 
         // Do insert and update accounts using the correct key indices
-        tree_state.add_key_to_account(&mut account1).unwrap();
-        tree_state.update_account(account1.clone()).unwrap();
+        let key_1_tx = tx_builder.add_random_key_verified_with_root("acc_1").commit();
+        tree.process_transaction(key_1_tx).unwrap();
 
-        tree_state.add_unsigned_data_to_account(b"unsigned", &mut account2).unwrap();
-        tree_state.update_account(account2.clone()).unwrap();
-        tree_state.add_signed_data_to_account(b"signed", &mut account2).unwrap();
-        tree_state.update_account(account2.clone()).unwrap();
+        let data_1_tx =
+            tx_builder.add_unsigned_data_verified_with_root("acc_2", b"unsigned".to_vec()).commit();
+        tree.process_transaction(data_1_tx).unwrap();
 
-        let get_result1 = tree_state.tree.get(account1.key_hash);
-        let get_result2 = tree_state.tree.get(account2.key_hash);
+        let data_2_tx = tx_builder
+            .add_randomly_signed_data_verified_with_root("acc_2", b"signed".to_vec())
+            .commit();
+        tree.process_transaction(data_2_tx).unwrap();
 
-        assert!(matches!(get_result1.unwrap(), Found(hc, _) if hc == account1.hashchain));
-        assert!(matches!(get_result2.unwrap(), Found(hc, _) if hc == account2.hashchain));
+        let get_result1 = tree.get(KeyHash::with::<Hasher>("acc_1")).unwrap();
+        let get_result2 = tree.get(KeyHash::with::<Hasher>("acc_2")).unwrap();
+
+        let test_hashchain_acc1 = tx_builder.get_hashchain("acc_1").unwrap();
+        let test_hashchain_acc2 = tx_builder.get_hashchain("acc_2").unwrap();
+
+        assert!(matches!(get_result1, Found(hc, _) if &hc == test_hashchain_acc1));
+        assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
     }
 
     #[test]
     fn test_interleaved_inserts_and_updates() {
-        let mut test_tree = TestTreeState::default();
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let service = test_tree.register_service("service_1".to_string());
-        let mut account_1 = test_tree.create_account("key_1".to_string(), service.clone());
-        let mut account_2 = test_tree.create_account("key_2".to_string(), service.clone());
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let acc1_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+        let acc2_tx =
+            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
 
-        test_tree.insert_account(service.registration).unwrap();
+        tree.process_transaction(service_tx).unwrap();
+        tree.process_transaction(acc1_tx).unwrap();
 
-        test_tree.insert_account(account_1.clone()).unwrap();
+        let add_key_to_1_tx = tx_builder.add_random_key_verified_with_root("acc_1").commit();
+        tree.process_transaction(add_key_to_1_tx).unwrap();
 
-        test_tree.add_key_to_account(&mut account_1).unwrap();
-        // Update account_1 using the correct key index
-        test_tree.update_account(account_1.clone()).unwrap();
+        tree.process_transaction(acc2_tx).unwrap();
 
-        test_tree.insert_account(account_2.clone()).unwrap();
-
-        test_tree.add_key_to_account(&mut account_2).unwrap();
+        let add_key_to_2_tx = tx_builder.add_random_key_verified_with_root("acc_2").commit();
+        let last_proof = tree.process_transaction(add_key_to_2_tx).unwrap();
 
         // Update account_2 using the correct key index
-        let last_proof = test_tree.update_account(account_2.clone()).unwrap();
+        let Proof::Update(update_proof) = last_proof else {
+            panic!("Expetced insert proof for transaction");
+        };
 
-        let get_result1 = test_tree.tree.get(account_1.key_hash);
-        let get_result2 = test_tree.tree.get(account_2.key_hash);
+        let get_result1 = tree.get(KeyHash::with::<Hasher>("acc_1")).unwrap();
+        let get_result2 = tree.get(KeyHash::with::<Hasher>("acc_2")).unwrap();
 
-        assert!(matches!(get_result1.unwrap(), Found(hc, _) if hc == account_1.hashchain));
-        assert!(matches!(get_result2.unwrap(), Found(hc, _) if hc == account_2.hashchain));
+        let test_hashchain_acc1 = tx_builder.get_hashchain("acc_1").unwrap();
+        let test_hashchain_acc2 = tx_builder.get_hashchain("acc_2").unwrap();
+
+        assert!(matches!(get_result1, Found(hc, _) if &hc == test_hashchain_acc1));
+        assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
         assert_eq!(
-            last_proof.new_root,
-            test_tree.tree.get_current_root().unwrap()
+            Digest::from(update_proof.new_root),
+            tree.get_commitment().unwrap()
         );
     }
 
     #[test]
     fn test_root_hash_changes() {
-        let mut tree_state = TestTreeState::default();
-        let service = tree_state.register_service("service_1".to_string());
-        let account = tree_state.create_account("key_1".to_string(), service.clone());
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        tree_state.insert_account(service.registration).unwrap();
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let account1_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
 
-        let root_before = tree_state.tree.get_current_root().unwrap();
-        tree_state.insert_account(account).unwrap();
-        let root_after = tree_state.tree.get_current_root().unwrap();
+        tree.process_transaction(service_tx).unwrap();
+
+        let root_before = tree.get_current_root().unwrap();
+        tree.process_transaction(account1_tx).unwrap();
+        let root_after = tree.get_current_root().unwrap();
 
         assert_ne!(root_before, root_after);
     }
 
     #[test]
     fn test_batch_writing() {
-        let mut tree_state = TestTreeState::default();
-        let service = tree_state.register_service("service_1".to_string());
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let mut tx_builder = TransactionBuilder::new();
 
-        let account1 = tree_state.create_account("key_1".to_string(), service.clone());
-        let account2 = tree_state.create_account("key_2".to_string(), service.clone());
-        tree_state.insert_account(service.registration).unwrap();
+        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let account1_tx =
+            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+        let account2_tx =
+            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
 
-        println!("Inserting key1: {:?}", account1.key_hash);
-        tree_state.insert_account(account1.clone()).unwrap();
+        tree.process_transaction(service_tx).unwrap();
 
-        println!(
-            "Tree state after first insert: {:?}",
-            tree_state.tree.get_commitment()
-        );
-        println!(
-            "Tree state after first write_batch: {:?}",
-            tree_state.tree.get_commitment()
-        );
+        println!("Inserting acc_1");
+        tree.process_transaction(account1_tx).unwrap();
+
+        println!("Tree state after first insert: {:?}", tree.get_commitment());
 
         // Try to get the first value immediately
-        let get_result1 = tree_state.tree.get(account1.key_hash);
+        let get_result1 = tree.get(KeyHash::with::<Hasher>("acc_1"));
         println!("Get result for key1 after first write: {:?}", get_result1);
 
-        println!("Inserting key2: {:?}", account2.key_hash);
-        tree_state.insert_account(account2.clone()).unwrap();
+        println!("Inserting acc_2");
+        tree.process_transaction(account2_tx).unwrap();
 
-        println!(
-            "Tree state after second insert: {:?}",
-            tree_state.tree.get_commitment()
-        );
-        println!(
-            "Tree state after second write_batch: {:?}",
-            tree_state.tree.get_commitment()
-        );
+        println!("Tree state after 2nd insert: {:?}", tree.get_commitment());
 
         // Try to get both values
-        let get_result1 = tree_state.tree.get(account1.key_hash);
-        let get_result2 = tree_state.tree.get(account2.key_hash);
+        let get_result1 = tree.get(KeyHash::with::<Hasher>("acc_1")).unwrap();
+        let get_result2 = tree.get(KeyHash::with::<Hasher>("acc_2")).unwrap();
 
         println!("Final get result for key1: {:?}", get_result1);
         println!("Final get result for key2: {:?}", get_result2);
 
-        assert!(matches!(get_result1.unwrap(), Found(hc, _) if hc == account1.hashchain));
-        assert!(matches!(get_result2.unwrap(), Found(hc, _) if hc == account2.hashchain));
+        let test_hashchain_acc1 = tx_builder.get_hashchain("acc_1").unwrap();
+        let test_hashchain_acc2 = tx_builder.get_hashchain("acc_2").unwrap();
+
+        assert!(matches!(get_result1, Found(hc, _) if &hc == test_hashchain_acc1));
+        assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
     }
 }

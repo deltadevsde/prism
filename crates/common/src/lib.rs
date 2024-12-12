@@ -9,6 +9,4 @@ pub mod tree;
 extern crate log;
 
 #[cfg(feature = "test_utils")]
-pub mod test_utils;
-#[cfg(feature = "test_utils")]
 pub mod transaction_builder;
