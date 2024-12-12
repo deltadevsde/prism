@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::error::Error as StdError;
 
 pub trait ToHex {
     fn to_hex(&self) -> String;
@@ -23,11 +22,10 @@ pub trait FromHex: Sized {
 impl<T> FromHex for T
 where
     T: hex::FromHex,
-    T::Error: StdError + Send + Into<anyhow::Error>,
 {
-    type Error = anyhow::Error;
+    type Error = T::Error;
 
     fn from_hex<U: AsRef<[u8]>>(hex: U) -> Result<Self, Self::Error> {
-        T::from_hex(hex).map_err(|e| e.into())
+        T::from_hex(hex)
     }
 }

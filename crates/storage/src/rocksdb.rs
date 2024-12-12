@@ -125,7 +125,7 @@ impl TreeReader for RocksDBConnection {
             }
         }
 
-        latest_value.map(|v| OwnedValue::decode_from_bytes(&v)).transpose()
+        latest_value.map(|v| OwnedValue::decode_from_bytes(&v).map_err(|e| e.into())).transpose()
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {

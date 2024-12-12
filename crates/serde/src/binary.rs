@@ -2,27 +2,34 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 pub trait ToBinary {
-    fn encode_to_bytes(&self) -> Result<Vec<u8>>;
+    type Error;
+
+    fn encode_to_bytes(&self) -> Result<Vec<u8>, Self::Error>;
 }
 
 impl<T> ToBinary for T
 where
     T: Serialize,
 {
-    fn encode_to_bytes(&self) -> Result<Vec<u8>> {
-        bincode::serialize(self).map_err(Into::<anyhow::Error>::into)
+    type Error = bincode::Error;
+
+    fn encode_to_bytes(&self) -> Result<Vec<u8>, Self::Error> {
+        bincode::serialize(self)
     }
 }
 
 pub trait FromBinary: Sized {
-    fn decode_from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self>;
+    type Error;
+
+    fn decode_from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, Self::Error>;
 }
 
 impl<T> FromBinary for T
 where
     T: for<'de> Deserialize<'de>,
 {
-    fn decode_from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self> {
-        bincode::deserialize(bytes.as_ref()).map_err(Into::<anyhow::Error>::into)
+    type Error = bincode::Error;
+    fn decode_from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, Self::Error> {
+        bincode::deserialize(bytes.as_ref())
     }
 }

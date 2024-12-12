@@ -14,6 +14,6 @@ impl TryFrom<&Blob> for Transaction {
     type Error = anyhow::Error;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        Transaction::decode_from_bytes(&value.data)
+        Transaction::decode_from_bytes(&value.data).map_err(|e| e.into())
     }
 }
