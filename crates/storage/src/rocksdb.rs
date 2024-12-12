@@ -2,13 +2,16 @@ use std::sync::Arc;
 
 use crate::Database;
 use anyhow::{anyhow, Result};
-use bincode;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
 };
 use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
+use prism_serde::{
+    binary::{FromBinary, ToBinary},
+    hex::{FromHex, ToHex},
+};
 use rocksdb::{DBWithThreadMode, MultiThreaded, Options, DB};
 
 const KEY_PREFIX_COMMITMENTS: &str = "commitments:epoch_";
@@ -91,14 +94,11 @@ impl Database for RocksDBConnection {
 
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        let key = format!(
-            "{KEY_PREFIX_NODE}{}",
-            hex::encode(bincode::serialize(node_key)?)
-        );
+        let key = format!("{KEY_PREFIX_NODE}{}", node_key.encode_to_bytes()?.to_hex());
         let value = self.connection.get(key.as_bytes())?;
 
         match value {
-            Some(data) => Ok(Some(bincode::deserialize(&data)?)),
+            Some(data) => Ok(Some(Node::decode_from_bytes(&data)?)),
             None => Ok(None),
         }
     }
@@ -108,7 +108,7 @@ impl TreeReader for RocksDBConnection {
         max_version: Version,
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
-        let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", hex::encode(key_hash.0));
+        let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
         let iter = self.connection.prefix_iterator(value_key.as_bytes());
 
         let mut latest_value = None;
@@ -116,8 +116,8 @@ impl TreeReader for RocksDBConnection {
 
         for item in iter {
             let (key, value) = item?;
-            let version: Version =
-                bincode::deserialize(&hex::decode(&key[value_key.len() + 1..])?)?;
+            let version =
+                Version::decode_from_bytes(&Vec::<u8>::from_hex(&key[value_key.len() + 1..])?)?;
 
             if version <= max_version && version > latest_version {
                 latest_version = version;
@@ -125,7 +125,7 @@ impl TreeReader for RocksDBConnection {
             }
         }
 
-        Ok(latest_value.map(|v| bincode::deserialize(&v)).transpose()?)
+        latest_value.map(|v| OwnedValue::decode_from_bytes(&v).map_err(|e| e.into())).transpose()
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
@@ -133,10 +133,11 @@ impl TreeReader for RocksDBConnection {
 
         while let Some(Ok((key, value))) = iter.next() {
             if key.starts_with(KEY_PREFIX_NODE.as_bytes()) {
-                let node: Node = bincode::deserialize(&value)?;
+                let node: Node = Node::decode_from_bytes(&value)?;
                 if let Node::Leaf(leaf) = node {
-                    let node_key: NodeKey =
-                        bincode::deserialize(&hex::decode(&key[KEY_PREFIX_NODE.len()..])?)?;
+                    let node_key = NodeKey::decode_from_bytes(&Vec::<u8>::from_hex(
+                        &key[KEY_PREFIX_NODE.len()..],
+                    )?)?;
                     return Ok(Some((node_key, leaf)));
                 }
             }
@@ -151,24 +152,17 @@ impl TreeWriter for RocksDBConnection {
         let mut batch = rocksdb::WriteBatch::default();
 
         for (node_key, node) in node_batch.nodes() {
-            let key = format!(
-                "{KEY_PREFIX_NODE}{}",
-                hex::encode(bincode::serialize(node_key)?)
-            );
-            let value = bincode::serialize(node)?;
+            let key = format!("{KEY_PREFIX_NODE}{}", node_key.encode_to_bytes()?.to_hex());
+            let value = node.encode_to_bytes()?;
             batch.put(key.as_bytes(), &value);
         }
 
         for ((version, key_hash), value) in node_batch.values() {
-            let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", hex::encode(key_hash.0));
-            let version_key = format!(
-                "{}:{}",
-                value_key,
-                hex::encode(bincode::serialize(version)?)
-            );
+            let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
+            let version_key = format!("{}:{}", value_key, version.encode_to_bytes()?.to_hex());
 
             if let Some(v) = value {
-                let serialized_value = bincode::serialize(v)?;
+                let serialized_value = v.encode_to_bytes()?;
                 batch.put(version_key.as_bytes(), &serialized_value);
             } else {
                 batch.delete(version_key.as_bytes());

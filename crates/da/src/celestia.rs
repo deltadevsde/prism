@@ -6,7 +6,10 @@ use celestia_types::{nmt::Namespace, Blob, TxConfig};
 use log::{debug, error, trace, warn};
 use prism_common::transaction::Transaction;
 use prism_errors::{DataAvailabilityError, GeneralError};
-use prism_serde::binary::BinaryTranscodable;
+use prism_serde::{
+    binary::{FromBinary, ToBinary},
+    hex::FromHex,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     self,
@@ -88,7 +91,7 @@ impl CelestiaConnection {
 }
 
 fn create_namespace(namespace_hex: &str) -> Result<Namespace> {
-    let decoded_hex = hex::decode(namespace_hex).context(format!(
+    let decoded_hex = Vec::<u8>::from_hex(namespace_hex).context(format!(
         "Failed to decode namespace hex '{}'",
         namespace_hex
     ))?;

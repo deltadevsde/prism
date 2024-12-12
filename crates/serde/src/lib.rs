@@ -1,6 +1,6 @@
-#![allow(dead_code)]
-
+pub mod base64;
 pub mod binary;
+pub mod hex;
 
 use serde::{Deserialize, Serialize};
 
@@ -12,104 +12,71 @@ pub struct CryptoPayload {
 }
 
 pub mod raw_or_hex {
-    use serde::{self, Deserialize, Deserializer, Serializer};
+    use std::fmt::Display;
 
-    pub fn serialize<S, T: AsRef<[u8]>>(bytes: T, serializer: S) -> Result<S::Ok, S::Error>
+    use crate::hex::{FromHex, ToHex};
+    use serde::{self, Deserialize, Deserializer, Serializer};
+    use serde_bytes::{Deserialize as BytesDeserialize, Serialize as BytesSerialize};
+
+    pub fn serialize<S, T>(encodable: T, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
+        T: ToHex + BytesSerialize,
     {
         if serializer.is_human_readable() {
-            let hex_str = hex::encode(bytes.as_ref());
+            let hex_str = encodable.to_hex();
             serializer.serialize_str(&hex_str)
         } else {
-            serializer.serialize_bytes(bytes.as_ref())
+            encodable.serialize(serializer)
         }
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    pub fn deserialize<'de, D, T>(deserializer: D) -> Result<T, D::Error>
     where
         D: Deserializer<'de>,
+        T: FromHex + BytesDeserialize<'de>,
+        T::Error: Display,
     {
         if deserializer.is_human_readable() {
             let hex_str = String::deserialize(deserializer)?;
-            hex::decode(hex_str.as_bytes()).map_err(serde::de::Error::custom)
+            T::from_hex(hex_str).map_err(serde::de::Error::custom)
         } else {
-            Vec::<u8>::deserialize(deserializer)
+            T::deserialize(deserializer)
         }
-    }
-}
-
-pub mod raw_or_hex_fixed {
-    use super::raw_or_hex;
-    use serde::{self, Deserializer, Serializer};
-
-    pub fn serialize<S, const N: usize>(bytes: &[u8; N], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        raw_or_hex::serialize(bytes.as_slice(), serializer)
-    }
-
-    pub fn deserialize<'de, D, const N: usize>(deserializer: D) -> Result<[u8; N], D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let vec = raw_or_hex::deserialize(deserializer)?;
-
-        let len = vec.len();
-        vec.try_into()
-            .map_err(|_| serde::de::Error::custom(format!("Expected {} bytes, got {}", N, len)))
     }
 }
 
 pub mod raw_or_b64 {
-    use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
-    use serde::{self, Deserialize, Deserializer, Serializer};
+    use std::fmt::Display;
 
-    pub fn serialize<S, T: AsRef<[u8]>>(bytes: T, serializer: S) -> Result<S::Ok, S::Error>
+    use crate::base64::{FromBase64, ToBase64};
+    use serde::{self, Deserialize, Deserializer, Serializer};
+    use serde_bytes::{Deserialize as BytesDeserialize, Serialize as BytesSerialize};
+
+    pub fn serialize<S, T>(encodable: T, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
+        T: ToBase64 + BytesSerialize,
     {
         if serializer.is_human_readable() {
-            let base64_string = BASE64.encode(bytes.as_ref());
+            let base64_string = encodable.to_base64();
             serializer.serialize_str(&base64_string)
         } else {
-            serializer.serialize_bytes(bytes.as_ref())
+            encodable.serialize(serializer)
         }
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    pub fn deserialize<'de, D, T>(deserializer: D) -> Result<T, D::Error>
     where
         D: Deserializer<'de>,
+        T: FromBase64 + BytesDeserialize<'de>,
+        T::Error: Display,
     {
         if deserializer.is_human_readable() {
             let base64_string = String::deserialize(deserializer)?;
-            BASE64.decode(base64_string.as_bytes()).map_err(serde::de::Error::custom)
+            T::from_base64(base64_string).map_err(serde::de::Error::custom)
         } else {
-            Vec::<u8>::deserialize(deserializer)
+            T::deserialize(deserializer)
         }
-    }
-}
-
-pub mod raw_or_b64_fixed {
-    use super::raw_or_b64;
-    use serde::{self, Deserializer, Serializer};
-
-    pub fn serialize<S, const N: usize>(bytes: &[u8; N], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        raw_or_b64::serialize(bytes.as_slice(), serializer)
-    }
-
-    pub fn deserialize<'de, D, const N: usize>(deserializer: D) -> Result<[u8; N], D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let vec = raw_or_b64::deserialize(deserializer)?;
-
-        let len = vec.len();
-        vec.try_into()
-            .map_err(|_| serde::de::Error::custom(format!("Expected {} bytes, got {}", N, len)))
     }
 }

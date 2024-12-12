@@ -4,7 +4,10 @@ use jmt::{
     KeyHash, OwnedValue, Version,
 };
 use prism_common::digest::Digest;
-use prism_serde::binary::BinaryTranscodable;
+use prism_serde::{
+    binary::{FromBinary, ToBinary},
+    hex::{FromHex, ToHex},
+};
 use redis::{Client, Commands, Connection};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -78,7 +81,7 @@ impl RedisConnection {
 impl TreeReader for RedisConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
         let mut con = self.lock_connection()?;
-        let serialized_key = hex::encode(node_key.encode_to_bytes()?);
+        let serialized_key = node_key.encode_to_bytes()?.to_hex();
         let node_data: Option<Vec<u8>> = con.get(format!("node:{}", serialized_key))?;
         Ok(node_data.map(|data| Node::decode_from_bytes(&data).unwrap()))
     }
@@ -92,7 +95,7 @@ impl TreeReader for RedisConnection {
             let node_data: Vec<u8> = con.get(&key)?;
             let node = Node::decode_from_bytes(&node_data)?;
             if let Node::Leaf(leaf_node) = node {
-                let node_key_bytes = hex::decode(key.strip_prefix("node:").unwrap())?;
+                let node_key_bytes = Vec::<u8>::from_hex(key.strip_prefix("node:").unwrap())?;
                 let node_key = NodeKey::decode_from_bytes(&node_key_bytes)?;
                 if rightmost.is_none()
                     || leaf_node.key_hash() > rightmost.as_ref().unwrap().1.key_hash()
@@ -111,7 +114,7 @@ impl TreeReader for RedisConnection {
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
         let mut con = self.lock_connection()?;
-        let value_key = format!("value_history:{}", hex::encode(key_hash.0));
+        let value_key = format!("value_history:{}", key_hash.0.to_hex());
         let values: Vec<(String, f64)> =
             con.zrevrangebyscore_withscores(&value_key, max_version as f64, 0f64)?;
 
@@ -119,7 +122,7 @@ impl TreeReader for RedisConnection {
             if encoded_value.is_empty() {
                 Ok(None)
             } else {
-                Ok(Some(hex::decode(encoded_value)?))
+                Ok(Some(OwnedValue::from_hex(encoded_value)?))
             }
         } else {
             Ok(None)
@@ -133,14 +136,14 @@ impl TreeWriter for RedisConnection {
         let mut pipe = redis::pipe();
 
         for (node_key, node) in node_batch.nodes() {
-            let serialized_key = hex::encode(node_key.encode_to_bytes()?);
+            let serialized_key = node_key.encode_to_bytes()?.to_hex();
             let node_data = node.encode_to_bytes()?;
             pipe.set(format!("node:{}", serialized_key), node_data);
         }
 
         for ((version, key_hash), value) in node_batch.values() {
-            let value_key = format!("value_history:{}", hex::encode(key_hash.0));
-            let encoded_value = value.as_ref().map(hex::encode).unwrap_or_default();
+            let value_key = format!("value_history:{}", key_hash.0.to_hex());
+            let encoded_value = value.as_ref().map(ToHex::to_hex).unwrap_or_default();
             pipe.zadd(&value_key, encoded_value, *version as f64);
         }
 

@@ -1,6 +1,6 @@
 use anyhow::{anyhow, bail, ensure, Result};
 use prism_keys::{Signature, SigningKey, VerifyingKey};
-use prism_serde::binary::BinaryTranscodable;
+use prism_serde::binary::ToBinary;
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 

@@ -15,8 +15,6 @@ serde = { workspace = true }
 redis = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
-bincode = { workspace = true }
-hex = { workspace = true }
 jmt = { workspace = true }
 prism-errors = { workspace = true }
 prism-common = { workspace = true }
