@@ -94,6 +94,9 @@ jobs:
             sleep 1
           done
 
+      - name: Sleep for 30 seconds
+        run: sleep 30
+
       - name: Show and follow logs of light node 0
         run: docker compose -f ci/docker-compose.yml logs -f light-0
 
