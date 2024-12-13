@@ -3,7 +3,7 @@
 # A dockerfile for the celestia bridge node in DA layer
 # Based on:
 # https://github.com/celestiaorg/celestia-node/blob/main/Dockerfile
-FROM docker.io/alpine:3.19.1
+FROM docker.io/alpine:3.21.0
 
 ENV CELESTIA_HOME=/root
 

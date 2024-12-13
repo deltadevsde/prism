@@ -34,11 +34,11 @@ async fn test_light_client_prover_talking() -> Result<()> {
     pretty_env_logger::init();
 
     let bridge_cfg = CelestiaConfig {
-        connection_string: "ws://0.0.0.0:36658".to_string(),
+        connection_string: "ws://localhost:36658".to_string(),
         ..CelestiaConfig::default()
     };
     let lc_cfg = CelestiaConfig {
-        connection_string: "ws://0.0.0.0:26658".to_string(),
+        connection_string: "ws://localhost:46658".to_string(),
         ..CelestiaConfig::default()
     };
 
