@@ -64,6 +64,11 @@ jobs:
                 "cache-to": ["type=gha,mode=max,scope=bridge-0"],
                 "output": ["type=docker"]
               },
+              "bridge-1": {
+                "cache-from": ["type=gha,scope=bridge-1"],
+                "cache-to": ["type=gha,mode=max,scope=bridge-1"],
+                "output": ["type=docker"]
+              },
               "light-0": {
                 "cache-from": ["type=gha,scope=light-0"],
                 "cache-to": ["type=gha,mode=max,scope=light-0"],
