@@ -1,0 +1,9 @@
+.github/
+adr/
+assets/
+benches/
+ci/
+coverage_report/
+doc/
+elf/
+target/
