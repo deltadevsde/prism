@@ -43,7 +43,7 @@ pub struct CelestiaConfig {
 impl Default for CelestiaConfig {
     fn default() -> Self {
         CelestiaConfig {
-            connection_string: "ws://0.0.0.0:26658".to_string(),
+            connection_string: "ws://localhost:26658".to_string(),
             start_height: 1,
             snark_namespace_id: "00000000000000de1008".to_string(),
             operation_namespace_id: "00000000000000de1009".to_string(),
