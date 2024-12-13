@@ -87,6 +87,11 @@ jobs:
           docker compose -f ci/docker-compose.yml logs -f |
             awk '/Configuration finished. Running a bridge node/ {print;exit}'
 
+      - name: Wait for light node to start
+        run: |
+          docker compose -f ci/docker-compose.yml logs -f |
+            awk '/Configuration finished. Running a light node/ {print;exit}'
+
       - name: Run integration tests
         run: cargo test -p prism-tests --lib --release --features mock_prover
 
