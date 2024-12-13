@@ -82,14 +82,19 @@ jobs:
       - name: Run the docker-compose stack
         run: docker compose -f ci/docker-compose.yml up --no-build -d
 
-      - name: Wait for bridge node to start
+      - name: Wait for bridge node 0 to start
         run: |
-          docker compose -f ci/docker-compose.yml logs -f |
+          docker compose -f ci/docker-compose.yml logs bridge-0 -f | tee /dev/tty |
             awk '/Configuration finished. Running a bridge node/ {print;exit}'
 
-      - name: Wait for light node to start
+      - name: Wait for bridge node 1 to start
         run: |
-          docker compose -f ci/docker-compose.yml logs -f |
+          docker compose -f ci/docker-compose.yml logs bridge-1 -f | tee /dev/tty |
+            awk '/Configuration finished. Running a bridge node/ {print;exit}'
+
+      - name: Wait for light node 0 to start
+        run: |
+          docker compose -f ci/docker-compose.yml logs light-0 -f | tee /dev/tty |
             awk '/Configuration finished. Running a light node/ {print;exit}'
 
       - name: Run integration tests
