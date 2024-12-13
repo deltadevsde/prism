@@ -79,6 +79,10 @@ append_trusted_peers() {
   multiaddr="/dns/$CONTAINER_NAME/tcp/2121/p2p/$peer_id"
   echo "Appending trusted peer: $multiaddr"
 
+  # Lock the file to prevent race conditions
+  exec 9>"$TRUSTED_PEERS_FILE.lock"
+  flock -x 9
+
   # Read existing peers into a variable
   existing_peers=""
   if [[ -s "$TRUSTED_PEERS_FILE" ]]; then
@@ -91,6 +95,10 @@ append_trusted_peers() {
   else
     echo "$multiaddr" > "$TRUSTED_PEERS_FILE"
   fi
+
+  # Unlock the file
+  flock -u 9
+  exec 9>&-
 }
 
 main() {
