@@ -1,12 +1,10 @@
-use crate::hashchain::Hashchain;
+pub mod hasher;
+pub mod key_directory_tree;
+pub mod proofs;
+pub mod snarkable_tree;
 
-mod key_directory_tree;
-mod proofs;
-mod snarkable_tree;
-
-pub use key_directory_tree::*;
-pub use proofs::*;
-pub use snarkable_tree::*;
+use prism_common::hashchain::Hashchain;
+use proofs::{MembershipProof, NonMembershipProof};
 
 /// Enumerates possible responses when fetching tree values
 #[derive(Debug)]

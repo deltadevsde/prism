@@ -4826,9 +4826,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "celestia-types",
- "jmt",
- "log",
- "prism-errors",
  "prism-keys",
  "prism-serde",
  "rand",
@@ -4906,6 +4903,7 @@ dependencies = [
  "prism-errors",
  "prism-keys",
  "prism-storage",
+ "prism-tree",
  "serde",
  "sp1-sdk",
  "tokio",
@@ -4931,6 +4929,7 @@ name = "prism-sp1"
 version = "0.1.0"
 dependencies = [
  "prism-common",
+ "prism-tree",
  "sp1-zkvm",
 ]
 
@@ -4967,6 +4966,21 @@ dependencies = [
  "rand",
  "tempfile",
  "tokio",
+]
+
+[[package]]
+name = "prism-tree"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "jmt",
+ "log",
+ "prism-common",
+ "prism-errors",
+ "prism-keys",
+ "prism-serde",
+ "serde",
+ "sha2 0.10.8",
 ]
 
 [[package]]

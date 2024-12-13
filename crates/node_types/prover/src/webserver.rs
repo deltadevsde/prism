@@ -11,9 +11,12 @@ use jmt::proof::{SparseMerkleNode, SparseMerkleProof};
 use prism_common::{
     digest::Digest,
     hashchain::{Hashchain, HashchainEntry},
-    hasher::Hasher,
     transaction::Transaction,
-    tree::{HashchainResponse, Proof, UpdateProof},
+};
+use prism_tree::{
+    hasher::TreeHasher,
+    proofs::{Proof, UpdateProof},
+    HashchainResponse,
 };
 use serde::{Deserialize, Serialize};
 use std::{self, sync::Arc};
@@ -80,13 +83,13 @@ pub struct JmtProofResponse {
     pub siblings: Vec<Digest>,
 }
 
-impl From<SparseMerkleProof<Hasher>> for JmtProofResponse {
-    fn from(proof: SparseMerkleProof<Hasher>) -> Self {
-        let leaf_hash = proof.leaf().map(|node| node.hash::<Hasher>()).map(Digest::new);
+impl From<SparseMerkleProof<TreeHasher>> for JmtProofResponse {
+    fn from(proof: SparseMerkleProof<TreeHasher>) -> Self {
+        let leaf_hash = proof.leaf().map(|node| node.hash::<TreeHasher>()).map(Digest::new);
         let sibling_hashes = proof
             .siblings()
             .iter()
-            .map(SparseMerkleNode::hash::<Hasher>)
+            .map(SparseMerkleNode::hash::<TreeHasher>)
             .map(Digest::new)
             .collect();
         Self {

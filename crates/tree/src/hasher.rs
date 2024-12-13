@@ -2,23 +2,23 @@ use jmt::SimpleHasher;
 use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default)]
-pub struct Hasher(sha2::Sha256);
+pub struct TreeHasher(sha2::Sha256);
 
-impl Hasher {
-    pub fn new() -> Self {
+impl SimpleHasher for TreeHasher {
+    fn new() -> Self {
         Self(sha2::Sha256::new())
     }
 
-    pub fn update(&mut self, data: &[u8]) {
+    fn update(&mut self, data: &[u8]) {
         self.0.update(data);
     }
 
-    pub fn finalize(self) -> [u8; 32] {
+    fn finalize(self) -> [u8; 32] {
         self.0.finalize()
     }
 }
 
-impl Serialize for Hasher {
+impl Serialize for TreeHasher {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -27,7 +27,7 @@ impl Serialize for Hasher {
     }
 }
 
-impl<'de> Deserialize<'de> for Hasher {
+impl<'de> Deserialize<'de> for TreeHasher {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -35,7 +35,7 @@ impl<'de> Deserialize<'de> for Hasher {
         struct Sha256WrapperVisitor;
 
         impl<'de> serde::de::Visitor<'de> for Sha256WrapperVisitor {
-            type Value = Hasher;
+            type Value = TreeHasher;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("a Sha256Wrapper")
@@ -45,24 +45,10 @@ impl<'de> Deserialize<'de> for Hasher {
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                Ok(Hasher::default())
+                Ok(TreeHasher::default())
             }
         }
 
         deserializer.deserialize_tuple_struct("Sha256Wrapper", 0, Sha256WrapperVisitor)
-    }
-}
-
-impl SimpleHasher for Hasher {
-    fn new() -> Self {
-        Self::new()
-    }
-
-    fn update(&mut self, data: &[u8]) {
-        self.update(data);
-    }
-
-    fn finalize(self) -> [u8; 32] {
-        self.finalize()
     }
 }

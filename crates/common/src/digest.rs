@@ -1,13 +1,12 @@
 use anyhow::Result;
-use jmt::RootHash;
 use serde::{Deserialize, Serialize};
 
-use crate::hasher::Hasher;
 use prism_serde::{
     base64::FromBase64,
     hex::{FromHex, ToHex},
     raw_or_hex,
 };
+use sha2::{Digest as _, Sha256};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub struct Digest(#[serde(with = "raw_or_hex")] pub [u8; 32]);
@@ -18,17 +17,17 @@ impl Digest {
     }
 
     pub fn hash(data: impl AsRef<[u8]>) -> Self {
-        let mut hasher = Hasher::new();
+        let mut hasher = Sha256::new();
         hasher.update(data.as_ref());
-        Self(hasher.finalize())
+        Self(hasher.finalize().into())
     }
 
     pub fn hash_items(items: &[impl AsRef<[u8]>]) -> Self {
-        let mut hasher = Hasher::new();
+        let mut hasher = Sha256::new();
         for item in items {
             hasher.update(item.as_ref());
         }
-        Self(hasher.finalize())
+        Self(hasher.finalize().into())
     }
 
     pub const fn zero() -> Self {
@@ -49,18 +48,6 @@ impl<const N: usize> From<[u8; N]> for Digest {
         let mut digest = [0u8; 32];
         digest[..N].copy_from_slice(&value);
         Self(digest)
-    }
-}
-
-impl From<Digest> for RootHash {
-    fn from(val: Digest) -> RootHash {
-        RootHash::from(val.0)
-    }
-}
-
-impl From<RootHash> for Digest {
-    fn from(val: RootHash) -> Digest {
-        Digest(val.0)
     }
 }
 

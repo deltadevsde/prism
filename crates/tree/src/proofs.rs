@@ -3,15 +3,14 @@ use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     KeyHash, RootHash,
 };
-use prism_serde::binary::ToBinary;
-use serde::{Deserialize, Serialize};
-use std::convert::Into;
-
-use crate::{
+use prism_common::{
     digest::Digest,
     hashchain::{Hashchain, HashchainEntry},
-    hasher::Hasher,
 };
+use prism_serde::binary::ToBinary;
+use serde::{Deserialize, Serialize};
+
+use crate::hasher::TreeHasher;
 
 #[derive(Serialize, Deserialize)]
 /// Represents a contiguous stream of [`Proof`]s leading from [`Batch::prev_root`] to [`Batch::new_root`].
@@ -43,7 +42,7 @@ pub struct InsertProof {
     /// Post-insertion root hash of the tree
     pub new_root: Digest,
     /// Proof that the new hashchain is correctly inserted into the tree
-    pub membership_proof: SparseMerkleProof<Hasher>,
+    pub membership_proof: SparseMerkleProof<TreeHasher>,
 
     /// The new hashchain entry that was inserted.
     pub new_entry: HashchainEntry,
@@ -58,7 +57,7 @@ impl InsertProof {
         let serialized_hashchain = hashchain.encode_to_bytes()?;
 
         self.membership_proof.clone().verify_existence(
-            self.new_root.into(),
+            RootHash(self.new_root.0),
             self.non_membership_proof.key,
             serialized_hashchain,
         )?;
@@ -70,17 +69,17 @@ impl InsertProof {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Represents an update proof for an existing [`Hashchain`], updating it with a new [`HashchainEntry`].
 pub struct UpdateProof {
-    pub old_root: RootHash,
-    pub new_root: RootHash,
+    pub old_root: Digest,
+    pub new_root: Digest,
 
     pub key: KeyHash,
     pub old_hashchain: Hashchain,
     pub new_entry: HashchainEntry,
 
     /// Inclusion proof of [`UpdateProof::old_hashchain`]
-    pub inclusion_proof: SparseMerkleProof<Hasher>,
+    pub inclusion_proof: SparseMerkleProof<TreeHasher>,
     /// Update proof for [`UpdateProof::key`] to be updated with [`UpdateProof::new_entry`]
-    pub update_proof: UpdateMerkleProof<Hasher>,
+    pub update_proof: UpdateMerkleProof<TreeHasher>,
 }
 
 impl UpdateProof {
@@ -89,7 +88,11 @@ impl UpdateProof {
         // Verify existence of old value.
         // Otherwise, any arbitrary hashchain could be set as old_hashchain.
         let old_serialized_hashchain = self.old_hashchain.encode_to_bytes()?;
-        self.inclusion_proof.verify_existence(self.old_root, self.key, old_serialized_hashchain)?;
+        self.inclusion_proof.verify_existence(
+            RootHash(self.old_root.0),
+            self.key,
+            old_serialized_hashchain,
+        )?;
 
         let mut hashchain_after_update = self.old_hashchain.clone();
         // Append the new entry and verify it's validity
@@ -98,8 +101,8 @@ impl UpdateProof {
         // Ensure the update proof corresponds to the new hashchain value
         let new_serialized_hashchain = hashchain_after_update.encode_to_bytes()?;
         self.update_proof.clone().verify_update(
-            self.old_root,
-            self.new_root,
+            RootHash(self.old_root.0),
+            RootHash(self.new_root.0),
             vec![(self.key, Some(new_serialized_hashchain))],
         )?;
 
@@ -110,7 +113,7 @@ impl UpdateProof {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MembershipProof {
     pub root: Digest,
-    pub proof: SparseMerkleProof<Hasher>,
+    pub proof: SparseMerkleProof<TreeHasher>,
     pub key: KeyHash,
     pub value: Hashchain,
 }
@@ -118,19 +121,19 @@ pub struct MembershipProof {
 impl MembershipProof {
     pub fn verify(&self) -> Result<()> {
         let value = self.value.encode_to_bytes()?;
-        self.proof.verify_existence(self.root.into(), self.key, value)
+        self.proof.verify_existence(RootHash(self.root.0), self.key, value)
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NonMembershipProof {
     pub root: Digest,
-    pub proof: SparseMerkleProof<Hasher>,
+    pub proof: SparseMerkleProof<TreeHasher>,
     pub key: KeyHash,
 }
 
 impl NonMembershipProof {
     pub fn verify(&self) -> Result<()> {
-        self.proof.verify_nonexistence(self.root.into(), self.key)
+        self.proof.verify_nonexistence(RootHash(self.root.0), self.key)
     }
 }
