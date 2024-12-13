@@ -64,11 +64,6 @@ jobs:
                 "cache-to": ["type=gha,mode=max,scope=bridge-0"],
                 "output": ["type=docker"]
               },
-              "bridge-1": {
-                "cache-from": ["type=gha,scope=bridge-1"],
-                "cache-to": ["type=gha,mode=max,scope=bridge-1"],
-                "output": ["type=docker"]
-              },
               "light-0": {
                 "cache-from": ["type=gha,scope=light-0"],
                 "cache-to": ["type=gha,mode=max,scope=light-0"],
@@ -88,14 +83,11 @@ jobs:
             sleep 1
           done
 
-      - name: Wait for bridge node 1 to start
-        run: |
-          while ! docker compose -f ci/docker-compose.yml logs bridge-1 | grep -q 'Configuration finished. Running a bridge node'; do
-            sleep 1
-          done
-
       - name: Sleep for 30 seconds
         run: sleep 30
+
+      - name: List running containers
+        run: docker compose ps
 
       - name: Show and follow logs of light node 0
         run: docker compose -f ci/docker-compose.yml logs -f light-0

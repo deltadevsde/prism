@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.validator
     environment:
       # provide amount of bridge nodes to provision (default: 1)
-      - BRIDGE_COUNT=2
+      - BRIDGE_COUNT=1
       - LIGHT_COUNT=1
     volumes:
       - credentials:/credentials
@@ -34,26 +34,26 @@ services:
       - credentials:/credentials
       - genesis:/genesis
 
-  bridge-1:
-    image: bridge
-    platform: "linux/amd64"
-    build:
-      context: .
-      dockerfile: Dockerfile.bridge
-    environment:
-      # provide an id for the bridge node (default: 0)
-      # each node should have a next natural number starting from 0
-      - NODE_ID=1
-      # setting SKIP_AUTH to true disables the use of JWT for authentication
-      - SKIP_AUTH=true
-      # this must match the service name in the docker-compose.yml file
-      # used for the trusted peers string for the light node
-      - CONTAINER_NAME=bridge-1
-    ports:
-      - 36658:26658
-    volumes:
-      - credentials:/credentials
-      - genesis:/genesis
+  # bridge-1:
+  #   image: bridge
+  #   platform: "linux/amd64"
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.bridge
+  #   environment:
+  #     # provide an id for the bridge node (default: 0)
+  #     # each node should have a next natural number starting from 0
+  #     - NODE_ID=1
+  #     # setting SKIP_AUTH to true disables the use of JWT for authentication
+  #     - SKIP_AUTH=true
+  #     # this must match the service name in the docker-compose.yml file
+  #     # used for the trusted peers string for the light node
+  #     - CONTAINER_NAME=bridge-1
+  #   ports:
+  #     - 36658:26658
+  #   volumes:
+  #     - credentials:/credentials
+  #     - genesis:/genesis
 
   light-0:
     image: light
@@ -69,7 +69,7 @@ services:
       - SKIP_AUTH=true
       # depending on the number of bridge nodes, provide the count
       # is used for the trusted peers string for the light node
-      - BRIDGE_COUNT=2
+      - BRIDGE_COUNT=1
     ports:
       - 46658:26658
     volumes:
