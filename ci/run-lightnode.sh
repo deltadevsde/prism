@@ -17,10 +17,10 @@ CREDENTIALS_DIR="/credentials"
 # node credentials
 NODE_KEY_FILE="$CREDENTIALS_DIR/$NODE_NAME.key"
 NODE_JWT_FILE="$CREDENTIALS_DIR/$NODE_NAME.jwt"
-# directory where validator will write the genesis hash
-GENESIS_DIR="/genesis"
-GENESIS_HASH_FILE="$GENESIS_DIR/genesis_hash"
-TRUSTED_PEERS_FILE="$GENESIS_DIR/trusted_peers"
+# directory where validator will write the genesis hash and the bridge node their peers addresses
+SHARED_DIR="/shared"
+GENESIS_HASH_FILE="$SHARED_DIR/genesis_hash"
+TRUSTED_PEERS_FILE="$SHARED_DIR/trusted_peers"
 
 # Wait for the validator to set up and provision us via shared dir
 wait_for_provision() {
@@ -36,9 +36,14 @@ wait_for_provision() {
 
   while true; do
     if [[ -e "$TRUSTED_PEERS_FILE" ]]; then
+
+      echo "Trusted peers file exists"
+
       trusted_peers="$(cat "$TRUSTED_PEERS_FILE")"
-      comma_count=$(echo "$trusted_peers" | grep -o "," | wc -l)
-      if [[ $comma_count -eq $((BRIDGE_COUNT - 1)) ]]; then
+      echo "Trusted peers: $trusted_peers"
+      peer_count=$(echo "$trusted_peers" | tr ',' '\n' | wc -l)
+      echo "Peer count: $peer_count"
+      if [[ $peer_count -eq $BRIDGE_COUNT ]]; then
         echo "$BRIDGE_COUNT bridge nodes are ready"
         break
       else
