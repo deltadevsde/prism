@@ -13,7 +13,11 @@ celestia-up:
   fi
 
   echo "Building Docker images..."
-  docker-compose -f {{DOCKER_COMPOSE_FILE}} build
+  if [ "$(uname -s)" = "Linux" ]; then \
+    docker compose -f {{DOCKER_COMPOSE_FILE}} build; \
+  else \
+    docker-compose -f {{DOCKER_COMPOSE_FILE}} build; \
+  fi
 
   echo "Spinning up a fresh Docker Compose stack..."
   if [ "$(uname -s)" = "Linux" ]; then \
