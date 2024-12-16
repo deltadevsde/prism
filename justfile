@@ -19,9 +19,6 @@ celestia-up:
     docker-compose -f {{DOCKER_COMPOSE_FILE}} build; \
   fi
 
-  echo "Building Docker images..."
-  docker-compose -f {{DOCKER_COMPOSE_FILE}} build
-
   echo "Spinning up a fresh Docker Compose stack..."
   if [ "$(uname -s)" = "Linux" ]; then \
     docker compose -f {{DOCKER_COMPOSE_FILE}} up -d --force-recreate --renew-anon-volumes; \
