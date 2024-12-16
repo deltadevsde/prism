@@ -457,6 +457,10 @@ impl Prover {
         tree.get_commitment().context("Failed to get commitment")
     }
 
+    pub async fn get_current_epoch(&self) -> Result<u64> {
+        self.db.get_epoch().context("Failed to get current epoch")
+    }
+
     pub async fn get_hashchain(&self, id: &String) -> Result<HashchainResponse> {
         let tree = self.tree.read().await;
         let key_hash = KeyHash::with::<Hasher>(id);

@@ -15,7 +15,7 @@ use prism_prover::Prover;
 use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
-use tokio::{spawn, time::Duration};
+use tokio::{spawn, time::Duration, join};
 
 use tempfile::TempDir;
 
@@ -73,6 +73,8 @@ async fn test_light_client_prover_talking() -> Result<()> {
         lc_clone.run().await.unwrap();
     });
 
+    let prover_clone_for_after_spawn = prover.clone();
+
     spawn(async move {
         let mut rng = StdRng::from_entropy();
 
@@ -123,14 +125,49 @@ async fn test_light_client_prover_talking() -> Result<()> {
         }
     });
 
+    // Define test conditions
+    let height_threshold = 100;
+    let prover_epoch_threshold = 50;
+    let lightclient_epoch_threshold = 50;
+
+    // wait until the light client has synced to at least `height_threshold` height
     let mut rx = lc_da_layer.clone().subscribe_to_heights();
     let initial_height = rx.recv().await.unwrap();
-    while let Ok(height) = rx.recv().await {
-        debug!("received height {}", height);
-        if height >= initial_height + 100 {
-            break;
+    let height_future = async {
+        while let Ok(height) = rx.recv().await {
+            debug!("received height {}", height);
+            if height >= initial_height + height_threshold {
+                break;
+            }
         }
-    }
+    };
+
+    // check if the prover is at least `epoch_threshold` epochs
+    let initial_prover_epoch = prover_clone_for_after_spawn.clone().get_current_epoch().await.unwrap();
+    let prover_future = async {
+        while let Ok(epoch) = prover_clone_for_after_spawn.clone().get_current_epoch().await {
+            debug!("Current prover epoch: {}", epoch);
+            if epoch >= initial_prover_epoch + prover_epoch_threshold {
+                break;
+            }
+            tokio::time::sleep(Duration::from_secs(5)).await;
+        }
+    };
+
+    // // check if the lightclient verified at least `epoch_threshold` epochs
+    // let initial_lightclient_epoch = lightclient.clone().get_current_epoch().unwrap();
+    // let lightclient_future = async {
+    //     while let Ok(epoch) = lightclient.clone().get_current_epoch() {
+    //         debug!("Current lightclient epoch: {}", epoch);
+    //         if epoch >= initial_lightclient_epoch + lightclient_epoch_threshold {
+    //             break;
+    //         }
+    //         tokio::time::sleep(Duration::from_secs(5)).await;
+    //     }
+    // };
+
+    // Run all futures in parallel and wait for all to complete
+    join!(height_future, prover_future);
 
     Ok(())
 }
