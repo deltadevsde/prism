@@ -82,10 +82,23 @@ jobs:
       - name: Run the docker-compose stack
         run: docker compose -f ci/docker-compose.yml up --no-build -d
 
-      - name: Wait for bridge node to start
+      - name: Wait for bridge node 0 to start
         run: |
-          docker compose -f ci/docker-compose.yml logs -f |
-            awk '/Configuration finished. Running a bridge node/ {print;exit}'
+          while ! docker compose -f ci/docker-compose.yml logs bridge-0 | grep -q 'Configuration finished. Running a bridge node'; do
+            sleep 1
+          done
+
+      - name: Wait for bridge node 1 to start
+        run: |
+          while ! docker compose -f ci/docker-compose.yml logs bridge-1 | grep -q 'Configuration finished. Running a bridge node'; do
+            sleep 1
+          done
+
+      - name: Wait for light node 0 to start
+        run: |
+          while ! docker compose -f ci/docker-compose.yml logs light-0 | grep -q 'Configuration finished. Running a light node'; do
+            sleep 1
+          done
 
       - name: Run integration tests
         run: cargo test -p prism-tests --lib --release --features mock_prover

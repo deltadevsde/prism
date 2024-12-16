@@ -8,6 +8,9 @@ celestia-up:
   echo "Cleaning up any existing Docker resources..."
   docker-compose -f {{DOCKER_COMPOSE_FILE}} down -v --remove-orphans
 
+  echo "Building Docker images..."
+  docker-compose -f {{DOCKER_COMPOSE_FILE}} build
+
   echo "Spinning up a fresh Docker Compose stack..."
   docker-compose -f {{DOCKER_COMPOSE_FILE}} up -d --force-recreate --renew-anon-volumes
 
@@ -65,7 +68,9 @@ integration-test:
   just celestia-up
 
   echo "Running integration tests..."
-  cargo test -p prism-tests --lib --release --features mock_prover
+  if ! cargo test -p prism-tests --lib --release --features mock_prover; then
+    echo "Integration tests failed."
+  fi
 
   just celestia-down
 
@@ -86,10 +91,19 @@ unit-test:
   cargo test --lib --release --features "mock_prover" -- --skip test_light_client_prover_talking
 
 coverage:
-    @echo "Generating coverage report..."
-    cargo llvm-cov nextest --html --output-dir coverage_report --lib --features "mock_prover" --release --workspace --exclude prism-cli --exclude-from-report prism-sp1  --ignore-filename-regex sp1
-    @echo "Coverage report generated in 'coverage_report' directory"
+  #!/usr/bin/env bash
+  set -euo pipefail
 
+  just celestia-up
+
+  echo "Generating coverage report..."
+  if ! cargo llvm-cov nextest --html --output-dir coverage_report --lib --features "mock_prover" --release --workspace --exclude prism-cli --exclude-from-report prism-sp1 --ignore-filename-regex sp1; then
+    echo "Coverage report generation failed."
+  else
+    echo "Coverage report generated in 'coverage_report' directory"
+  fi
+
+  just celestia-down
 
 install-deps:
   #!/usr/bin/env bash
@@ -139,12 +153,10 @@ install-deps:
     echo "Protobuf is already installed."; \
   fi
 
-
   if ! command -v cargo prove > /dev/null; then \
     echo "Installing SP1..."
     curl -L https://sp1.succinct.xyz | bash; \
     source ~/.bashrc || source ~/.bash_profile || source ~/.zshrc; \
-
 
     echo "Running sp1up to install SP1 toolchain..."
     sp1up
@@ -158,5 +170,14 @@ install-deps:
   else \
     echo "SP1 is already installed."; \
   fi
+
+  for tool in cargo-udeps cargo-llvm-cov cargo-nextest; do \
+    if ! command -v $tool > /dev/null; then \
+      echo "Installing $tool..."; \
+      cargo install $tool; \
+    else \
+      echo "$tool is already installed."; \
+    fi; \
+  done
 
   echo "All dependencies installed successfully!"
