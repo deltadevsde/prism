@@ -141,18 +141,6 @@ install-deps:
     echo "Redis is already installed."; \
   fi
 
-  if ! command -v protoc > /dev/null; then \
-    echo "Installing Protobuf..."; \
-    if [ "$OS" = "Mac" ]; then \
-      brew install protobuf; \
-    elif [ "$OS" = "Linux" ]; then \
-      sudo apt update; \
-      sudo apt install protobuf-compiler -y; \
-    fi; \
-  else \
-    echo "Protobuf is already installed."; \
-  fi
-
   if ! command -v cargo prove > /dev/null; then \
     echo "Installing SP1..."
     curl -L https://sp1.succinct.xyz | bash; \
