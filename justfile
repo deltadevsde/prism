@@ -19,6 +19,9 @@ celestia-up:
     docker-compose -f {{DOCKER_COMPOSE_FILE}} build; \
   fi
 
+  echo "Building Docker images..."
+  docker-compose -f {{DOCKER_COMPOSE_FILE}} build
+
   echo "Spinning up a fresh Docker Compose stack..."
   if [ "$(uname -s)" = "Linux" ]; then \
     docker compose -f {{DOCKER_COMPOSE_FILE}} up -d --force-recreate --renew-anon-volumes; \
@@ -179,18 +182,6 @@ install-deps:
     echo "Redis installation complete!"; \
   else \
     echo "Redis is already installed."; \
-  fi
-
-  if ! command -v protoc > /dev/null; then \
-    echo "Installing Protobuf..."; \
-    if [ "$OS" = "Mac" ]; then \
-      brew install protobuf; \
-    elif [ "$OS" = "Linux" ]; then \
-      sudo apt update; \
-      sudo apt install protobuf-compiler -y; \
-    fi; \
-  else \
-    echo "Protobuf is already installed."; \
   fi
 
   if ! cargo prove --version > /dev/null 2>&1; then \

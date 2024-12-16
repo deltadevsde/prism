@@ -18,9 +18,9 @@ BRIDGE_COINS="200000000000000utia"
 VALIDATOR_COINS="1000000000000000utia"
 # a directory and the files shared with the bridge nodes
 CREDENTIALS_DIR="/credentials"
-# directory where validator will write the genesis hash
-GENESIS_DIR="/genesis"
-GENESIS_HASH_FILE="$GENESIS_DIR/genesis_hash"
+# directory where validator will write the genesis hash and the bridge node their peers addresses
+SHARED_DIR="/shared"
+GENESIS_HASH_FILE="$SHARED_DIR/genesis_hash"
 
 # Get the address of the node of given name
 node_address() {
