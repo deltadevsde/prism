@@ -23,4 +23,3 @@ prism-serde.workspace = true
 
 [features]
 default = []
-test_utils = []
