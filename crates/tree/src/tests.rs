@@ -6,7 +6,7 @@ use prism_keys::SigningKey;
 
 use crate::{
     hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
-    snarkable_tree::SnarkableTree, HashchainResponse::*,
+    snarkable_tree::SnarkableTree, AccountResponse::*,
 };
 
 #[test]
@@ -28,16 +28,15 @@ fn test_insert_and_get() {
     };
     assert!(insert_proof.verify().is_ok());
 
-    let Found(hashchain, membership_proof) =
-        tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap()
+    let Found(account, membership_proof) = tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap()
     else {
-        panic!("Expected hashchain to be found, but was not found.")
+        panic!("Expected account to be found, but was not found.")
     };
 
-    let test_hashchain =
-        tx_builder.get_hashchain("acc_1").expect("Getting builder hashchain should work");
+    let test_account =
+        tx_builder.get_account("acc_1").expect("Getting builder account should work");
 
-    assert_eq!(&hashchain, test_hashchain);
+    assert_eq!(*account, *test_account);
     assert!(membership_proof.verify().is_ok());
 }
 
@@ -135,9 +134,9 @@ fn test_update_existing_key() {
     assert!(update_proof.verify().is_ok());
 
     let get_result = tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap();
-    let test_hashchain = tx_builder.get_hashchain("acc_1").unwrap();
+    let test_account = tx_builder.get_account("acc_1").unwrap();
 
-    assert!(matches!(get_result, Found(hc, _) if &hc == test_hashchain));
+    assert!(matches!(get_result, Found(acc, _) if *acc == *test_account));
 }
 
 #[test]
@@ -152,7 +151,7 @@ fn test_update_non_existing_key() {
     // This is a signing key not known to the storage yet
     let random_signing_key = SigningKey::new_ed25519();
     // This transaction shall be invalid, because it is signed with an unknown key
-    let invalid_key_tx = tx_builder.add_random_key("acc_1", &random_signing_key, 0).build();
+    let invalid_key_tx = tx_builder.add_random_key("acc_1", &random_signing_key).build();
 
     let result = tree.process_transaction(invalid_key_tx);
     assert!(result.is_err());
@@ -165,7 +164,7 @@ fn test_get_non_existing_key() {
     let result = tree.get(KeyHash::with::<TreeHasher>("non_existing_id")).unwrap();
 
     let NotFound(non_membership_proof) = result else {
-        panic!("Hashchain found for key while it was expected to be missing");
+        panic!("Account found for key while it was expected to be missing");
     };
 
     assert!(non_membership_proof.verify().is_ok());
@@ -189,8 +188,9 @@ fn test_multiple_inserts_and_updates() {
     let key_1_tx = tx_builder.add_random_key_verified_with_root("acc_1").commit();
     tree.process_transaction(key_1_tx).unwrap();
 
-    let data_1_tx =
-        tx_builder.add_unsigned_data_verified_with_root("acc_2", b"unsigned".to_vec()).commit();
+    let data_1_tx = tx_builder
+        .add_internally_signed_data_verified_with_root("acc_2", b"unsigned".to_vec())
+        .commit();
     tree.process_transaction(data_1_tx).unwrap();
 
     let data_2_tx = tx_builder
@@ -201,11 +201,11 @@ fn test_multiple_inserts_and_updates() {
     let get_result1 = tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap();
     let get_result2 = tree.get(KeyHash::with::<TreeHasher>("acc_2")).unwrap();
 
-    let test_hashchain_acc1 = tx_builder.get_hashchain("acc_1").unwrap();
-    let test_hashchain_acc2 = tx_builder.get_hashchain("acc_2").unwrap();
+    let test_acc1 = tx_builder.get_account("acc_1").unwrap();
+    let test_acc2 = tx_builder.get_account("acc_2").unwrap();
 
-    assert!(matches!(get_result1, Found(hc, _) if &hc == test_hashchain_acc1));
-    assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
+    assert!(matches!(get_result1, Found(acc, _) if *acc == *test_acc1));
+    assert!(matches!(get_result2, Found(acc, _) if *acc == *test_acc2));
 }
 
 #[test]
@@ -236,11 +236,11 @@ fn test_interleaved_inserts_and_updates() {
     let get_result1 = tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap();
     let get_result2 = tree.get(KeyHash::with::<TreeHasher>("acc_2")).unwrap();
 
-    let test_hashchain_acc1 = tx_builder.get_hashchain("acc_1").unwrap();
-    let test_hashchain_acc2 = tx_builder.get_hashchain("acc_2").unwrap();
+    let test_acc1 = tx_builder.get_account("acc_1").unwrap();
+    let test_acc2 = tx_builder.get_account("acc_2").unwrap();
 
-    assert!(matches!(get_result1, Found(hc, _) if &hc == test_hashchain_acc1));
-    assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
+    assert!(matches!(get_result1, Found(acc, _) if *acc == *test_acc1));
+    assert!(matches!(get_result2, Found(acc, _) if *acc == *test_acc2));
     assert_eq!(update_proof.new_root, tree.get_commitment().unwrap());
 }
 
@@ -296,9 +296,9 @@ fn test_batch_writing() {
     println!("Final get result for key1: {:?}", get_result1);
     println!("Final get result for key2: {:?}", get_result2);
 
-    let test_hashchain_acc1 = tx_builder.get_hashchain("acc_1").unwrap();
-    let test_hashchain_acc2 = tx_builder.get_hashchain("acc_2").unwrap();
+    let test_acc1 = tx_builder.get_account("acc_1").unwrap();
+    let test_acc2 = tx_builder.get_account("acc_2").unwrap();
 
-    assert!(matches!(get_result1, Found(hc, _) if &hc == test_hashchain_acc1));
-    assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
+    assert!(matches!(get_result1, Found(acc, _) if *acc == *test_acc1));
+    assert!(matches!(get_result2, Found(acc, _) if *acc == *test_acc2));
 }

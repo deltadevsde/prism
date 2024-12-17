@@ -9,14 +9,13 @@ use axum::{
 };
 use jmt::proof::{SparseMerkleNode, SparseMerkleProof};
 use prism_common::{
-    digest::Digest,
-    hashchain::{Hashchain, HashchainEntry},
-    transaction::Transaction,
+    account::Account, digest::Digest, operation::Operation, transaction::Transaction,
 };
+use prism_keys::{Signature, VerifyingKey};
 use prism_tree::{
     hasher::TreeHasher,
     proofs::{Proof, UpdateProof},
-    HashchainResponse,
+    AccountResponse,
 };
 use serde::{Deserialize, Serialize};
 use std::{self, sync::Arc};
@@ -57,7 +56,22 @@ pub struct EpochData {
 #[derive(Deserialize, Debug, ToSchema)]
 pub struct TransactionRequest {
     pub id: String,
-    pub entry: HashchainEntry,
+    pub operation: Operation,
+    pub nonce: u64,
+    pub signature: Signature,
+    pub vk: VerifyingKey,
+}
+
+impl From<TransactionRequest> for Transaction {
+    fn from(tx: TransactionRequest) -> Self {
+        Transaction {
+            id: tx.id,
+            operation: tx.operation,
+            nonce: tx.nonce,
+            signature: tx.signature,
+            vk: tx.vk,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -73,7 +87,7 @@ pub struct UserKeyRequest {
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UserKeyResponse {
-    pub hashchain: Option<Hashchain>,
+    pub account: Option<Account>,
     pub proof: JmtProofResponse,
 }
 
@@ -101,7 +115,7 @@ impl From<SparseMerkleProof<TreeHasher>> for JmtProofResponse {
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(post_transaction, get_hashchain, get_commitment),
+    paths(post_transaction, get_account, get_commitment),
     components(schemas(
         TransactionRequest,
         EpochData,
@@ -126,7 +140,7 @@ impl WebServer {
 
         let app = Router::new()
             .route("/transaction", post(post_transaction))
-            .route("/get-hashchain", post(get_hashchain))
+            .route("/get-account", post(get_account))
             .route("/get-current-commitment", get(get_commitment))
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
             .layer(CorsLayer::permissive())
@@ -162,13 +176,9 @@ impl WebServer {
 )]
 async fn post_transaction(
     State(session): State<Arc<Prover>>,
-    Json(update_input): Json<TransactionRequest>,
+    Json(tx_request): Json<TransactionRequest>,
 ) -> impl IntoResponse {
-    let transaction = Transaction {
-        id: update_input.id.clone(),
-        entry: update_input.entry.clone(),
-    };
-    match session.validate_and_queue_update(transaction).await {
+    match session.validate_and_queue_update(tx_request.into()).await {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",
@@ -182,48 +192,48 @@ async fn post_transaction(
     }
 }
 
-/// The /get-hashchain endpoint returns all added keys for a given user id.
+/// The /get-account endpoint returns all added keys for a given user id.
 ///
 /// If the ID is not found in the database, the endpoint will return a 400 response with the message "Could not calculate values".
 ///
 #[utoipa::path(
     post,
-    path = "/get-hashchain",
+    path = "/get-account",
     request_body = UserKeyRequest,
     responses(
         (status = 200, description = "Successfully retrieved valid keys", body = UpdateKeyResponse),
         (status = 400, description = "Bad request")
     )
 )]
-async fn get_hashchain(
+async fn get_account(
     State(session): State<Arc<Prover>>,
     Json(request): Json<UserKeyRequest>,
 ) -> impl IntoResponse {
-    let get_hashchain_result = session.get_hashchain(&request.id).await;
-    let Ok(hashchain_response) = get_hashchain_result else {
+    let get_account_result = session.get_account(&request.id).await;
+    let Ok(account_response) = get_account_result else {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!(
-                "Failed to retrieve hashchain or non-membership-proof: {}",
-                get_hashchain_result.unwrap_err()
+                "Failed to retrieve account or non-membership-proof: {}",
+                get_account_result.unwrap_err()
             ),
         )
             .into_response();
     };
 
-    match hashchain_response {
-        HashchainResponse::Found(hashchain, membership_proof) => (
+    match account_response {
+        AccountResponse::Found(account, membership_proof) => (
             StatusCode::OK,
             Json(UserKeyResponse {
-                hashchain: Some(hashchain),
+                account: Some(*account),
                 proof: JmtProofResponse::from(membership_proof.proof),
             }),
         )
             .into_response(),
-        HashchainResponse::NotFound(non_membership_proof) => (
+        AccountResponse::NotFound(non_membership_proof) => (
             StatusCode::OK,
             Json(UserKeyResponse {
-                hashchain: None,
+                account: None,
                 proof: JmtProofResponse::from(non_membership_proof.proof),
             }),
         )
