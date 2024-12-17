@@ -51,7 +51,7 @@ impl InsertProof {
         self.non_membership_proof.verify().context("Invalid NonMembershipProof")?;
 
         let mut account = Account::default();
-        account.process_operation(&self.tx.operation)?;
+        account.process_transaction(&self.tx)?;
 
         let serialized_account = account.encode_to_bytes()?;
 
@@ -95,7 +95,7 @@ impl UpdateProof {
         )?;
 
         let mut new_account = self.old_account.clone();
-        new_account.process_operation(&self.tx.operation)?;
+        new_account.process_transaction(&self.tx)?;
 
         // Ensure the update proof corresponds to the new account value
         let new_serialized_account = new_account.encode_to_bytes()?;

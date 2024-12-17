@@ -21,12 +21,17 @@ pub struct Account {
 impl Account {
     pub fn prepare_transaction(
         &self,
+        account_id: String,
         operation: Operation,
         sk: &SigningKey,
     ) -> Result<Transaction> {
         let vk = sk.verifying_key();
-        match operation {
-            Operation::CreateAccount { .. } | Operation::RegisterService { .. } => {}
+        match &operation {
+            Operation::CreateAccount { id, .. } | Operation::RegisterService { id, .. } => {
+                if *id != account_id {
+                    return Err(anyhow!("Operation ID does not match account ID"));
+                }
+            }
             _ => {
                 if !self.valid_keys.contains(&vk) {
                     return Err(anyhow!("Invalid key"));
@@ -35,7 +40,7 @@ impl Account {
         }
 
         let mut tx = Transaction {
-            id: self.id.clone(),
+            id: account_id,
             nonce: self.nonce,
             operation,
             signature: Signature::Placeholder,
@@ -111,7 +116,7 @@ impl Account {
         Ok(())
     }
 
-    pub fn process_operation(&mut self, operation: &Operation) -> Result<()> {
+    fn process_operation(&mut self, operation: &Operation) -> Result<()> {
         self.validate_operation(operation)?;
 
         match operation {

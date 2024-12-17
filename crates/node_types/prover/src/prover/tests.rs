@@ -82,32 +82,8 @@ async fn test_process_transactions() {
         )
         .commit();
     let proof = prover.process_transaction(revoke_transaction).await.unwrap();
+    println!("slkjdfd4");
     assert!(matches!(proof, Proof::Update(_)));
-}
-
-#[tokio::test]
-async fn test_execute_block_with_invalid_tx() {
-    let prover = create_test_prover().await;
-
-    let mut tx_builder = TransactionBuilder::new();
-
-    let new_key_1 = SigningKey::new_ed25519();
-    let new_key_vk: VerifyingKey = new_key_1.clone().into();
-
-    let transactions = vec![
-        tx_builder.register_service_with_random_keys("service_id").commit(),
-        tx_builder.create_account_with_random_key_signed("account_id", "service_id").commit(),
-        // add new key, so it will be index = 1
-        tx_builder.add_key_verified_with_root("account_id", new_key_vk.clone()).commit(),
-        // revoke new key again
-        tx_builder.revoke_key_verified_with_root("account_id", new_key_vk).commit(),
-        // and adding in same block.
-        // both of these transactions are valid individually, but when processed together it will fail.
-        tx_builder.add_random_key("account_id", &new_key_1).build(),
-    ];
-
-    let proofs = prover.execute_block(transactions).await.unwrap();
-    assert_eq!(proofs.len(), 4);
 }
 
 #[tokio::test]

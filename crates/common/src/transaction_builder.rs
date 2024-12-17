@@ -100,7 +100,7 @@ impl TransactionBuilder {
         };
 
         let account = Account::default();
-        let transaction = account.prepare_transaction(op, &signing_key).unwrap();
+        let transaction = account.prepare_transaction(id.to_string(), op, &signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -161,7 +161,7 @@ impl TransactionBuilder {
         };
 
         let account = Account::default();
-        let transaction = account.prepare_transaction(op, &signing_key).unwrap();
+        let transaction = account.prepare_transaction(id.to_string(), op, &signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -204,7 +204,7 @@ impl TransactionBuilder {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::AddKey { key: key.clone() };
 
-        let transaction = account.prepare_transaction(op, signing_key).unwrap();
+        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -234,7 +234,7 @@ impl TransactionBuilder {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::RevokeKey { key: key.clone() };
 
-        let transaction = account.prepare_transaction(op, signing_key).unwrap();
+        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -364,7 +364,7 @@ impl TransactionBuilder {
             data_signature,
         };
 
-        let transaction = account.prepare_transaction(op, signing_key).unwrap();
+        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
