@@ -2,18 +2,16 @@ use anyhow::{anyhow, bail, Context, Result};
 use ed25519_consensus::{SigningKey, VerificationKey};
 use jmt::KeyHash;
 use keystore_rs::create_signing_key;
-use prism_common::{
-    digest::Digest,
-    hashchain::Hashchain,
-    hasher::Hasher,
-    transaction::Transaction,
-    tree::{
-        Batch,
-        HashchainResponse::{self, *},
-        KeyDirectoryTree, Proof, SnarkableTree,
-    },
-};
+use prism_common::{digest::Digest, hashchain::Hashchain, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
+use prism_storage::database::Database;
+use prism_tree::{
+    hasher::TreeHasher,
+    key_directory_tree::KeyDirectoryTree,
+    proofs::{Batch, Proof},
+    snarkable_tree::SnarkableTree,
+    HashchainResponse::{self, *},
+};
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::{
     sync::{broadcast, RwLock},
@@ -23,7 +21,6 @@ use tokio::{
 use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
-use prism_storage::Database;
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
@@ -459,7 +456,7 @@ impl Prover {
 
     pub async fn get_hashchain(&self, id: &String) -> Result<HashchainResponse> {
         let tree = self.tree.read().await;
-        let key_hash = KeyHash::with::<Hasher>(id);
+        let key_hash = KeyHash::with::<TreeHasher>(id);
 
         tree.get(key_hash)
     }

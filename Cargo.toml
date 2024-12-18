@@ -26,6 +26,7 @@ default-members = [
     "crates/da",
     "crates/serde",
     "crates/keys",
+    "crates/tree",
 ]
 
 members = [
@@ -40,6 +41,7 @@ members = [
     "crates/da",
     "crates/serde",
     "crates/keys",
+    "crates/tree",
 ]
 resolver = "2"
 
@@ -117,6 +119,7 @@ prism-prover = { path = "crates/node_types/prover" }
 prism-tests = { path = "crates/tests" }
 prism-keys = { path = "crates/keys" }
 prism-serde = { path = "crates/serde" }
+prism-tree = { path = "crates/tree" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 
 [patch.crates-io]

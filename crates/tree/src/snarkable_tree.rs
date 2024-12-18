@@ -3,17 +3,22 @@ use jmt::{
     storage::{TreeReader, TreeWriter},
     KeyHash,
 };
+use log::debug;
 use prism_errors::DatabaseError;
 use prism_serde::binary::{FromBinary, ToBinary};
-use std::convert::Into;
 
-use crate::{
+use prism_common::{
     digest::Digest,
     hashchain::{Hashchain, HashchainEntry},
-    hasher::Hasher,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput},
     transaction::Transaction,
-    tree::{HashchainResponse::*, *},
+};
+
+use crate::{
+    hasher::TreeHasher,
+    key_directory_tree::KeyDirectoryTree,
+    proofs::{InsertProof, MembershipProof, NonMembershipProof, Proof, UpdateProof},
+    HashchainResponse::{self, *},
 };
 
 /// Represents a tree that can be used to verifiably store and retrieve [`Hashchain`]s.
@@ -28,12 +33,12 @@ pub trait SnarkableTree: Send + Sync {
 
 impl<S> SnarkableTree for KeyDirectoryTree<S>
 where
-    S: Send + Sync + TreeReader + TreeWriter,
+    S: TreeReader + TreeWriter + Send + Sync,
 {
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof> {
         match &transaction.entry.operation {
             Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
-                let key_hash = KeyHash::with::<Hasher>(&transaction.id);
+                let key_hash = KeyHash::with::<TreeHasher>(&transaction.id);
 
                 debug!("updating hashchain for user id {}", transaction.id);
                 let proof = self.update(key_hash, transaction.entry)?;
@@ -51,7 +56,7 @@ where
                     "Id of transaction needs to be equal to operation id"
                 );
 
-                let account_key_hash = KeyHash::with::<Hasher>(id);
+                let account_key_hash = KeyHash::with::<TreeHasher>(id);
 
                 // Verify that the account doesn't already exist
                 if matches!(self.get(account_key_hash)?, Found(_, _)) {
@@ -61,7 +66,7 @@ where
                     )));
                 }
 
-                let service_key_hash = KeyHash::with::<Hasher>(service_id);
+                let service_key_hash = KeyHash::with::<TreeHasher>(service_id);
 
                 let Found(service_hashchain, _) = self.get(service_key_hash)? else {
                     bail!("Failed to get hashchain for service ID {}", service_id);
@@ -98,7 +103,7 @@ where
                     "Id of transaction needs to be equal to operation id"
                 );
 
-                let key_hash = KeyHash::with::<Hasher>(id);
+                let key_hash = KeyHash::with::<TreeHasher>(id);
 
                 debug!("creating new hashchain for service id {}", id);
 
@@ -109,13 +114,13 @@ where
     }
 
     fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof> {
-        let old_root = self.get_current_root()?;
+        let old_root = self.get_commitment()?;
         let (None, non_membership_merkle_proof) = self.jmt.get_with_proof(key, self.epoch)? else {
             bail!("Key already exists");
         };
 
         let non_membership_proof = NonMembershipProof {
-            root: old_root.into(),
+            root: old_root,
             proof: non_membership_merkle_proof,
             key,
         };
@@ -133,7 +138,7 @@ where
         let (_, membership_proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         Ok(InsertProof {
-            new_root: new_root.into(),
+            new_root: Digest(new_root.0),
             new_entry: entry,
             non_membership_proof,
             membership_proof,
@@ -163,8 +168,8 @@ where
         self.write_batch()?;
 
         Ok(UpdateProof {
-            old_root,
-            new_root,
+            old_root: Digest(old_root.0),
+            new_root: Digest(new_root.0),
             inclusion_proof,
             old_hashchain,
             key,
@@ -174,7 +179,7 @@ where
     }
 
     fn get(&self, key: KeyHash) -> Result<HashchainResponse> {
-        let root = self.get_current_root()?.into();
+        let root = self.get_commitment()?;
         let (value, proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         match value {
