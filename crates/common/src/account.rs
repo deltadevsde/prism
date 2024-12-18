@@ -128,7 +128,13 @@ impl Account {
                 data,
                 data_signature,
             } => {
-                data_signature.verifying_key.verify_signature(data, &data_signature.signature)?;
+                // we only need to do a single signature verification if the
+                // user signs transaction and data with their own key
+                if !self.valid_keys().contains(&data_signature.verifying_key) {
+                    data_signature
+                        .verifying_key
+                        .verify_signature(data, &data_signature.signature)?;
+                }
             }
             Operation::CreateAccount { .. } | Operation::RegisterService { .. } => {
                 if !self.is_empty() {
