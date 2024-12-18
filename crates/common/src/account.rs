@@ -8,17 +8,31 @@ use crate::{
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Hash, Default)]
+/// Represents an account or service on prism, making up the values of our state
+/// tree.
 pub struct Account {
+    /// The unique identifier for the account.
     pub id: String,
+
+    /// The transaction nonce for the account.
     pub nonce: u64,
+
+    /// The current set of valid keys for the account. Any of these keys can be
+    /// used to sign transactions.
     pub valid_keys: Vec<VerifyingKey>,
+
+    /// Arbitrary signed data associated with the account, used for bookkeeping
+    /// externally signed data from keys that don't live on Prism.
     pub signed_data: Vec<(VerifyingKey, Vec<u8>)>,
 
-    ///  Only set when the account is a service
+    /// The service challenge for the account, if it is a service.
     pub service_challenge: Option<ServiceChallenge>,
 }
 
 impl Account {
+    /// Creates a [`Transaction`] that can be used to update or create the
+    /// account. The transaction produced could be invalid, and will be
+    /// validated before being processed.
     pub fn prepare_transaction(
         &self,
         account_id: String,
@@ -40,6 +54,7 @@ impl Account {
         Ok(tx)
     }
 
+    /// Validates and processes an incoming [`Transaction`], updating the account state.
     pub fn process_transaction(&mut self, tx: &Transaction) -> Result<()> {
         self.validate_transaction(tx)?;
         self.process_operation(&tx.operation)?;
@@ -47,6 +62,7 @@ impl Account {
         Ok(())
     }
 
+    /// Validates a transaction against the current account state.
     pub fn validate_transaction(&self, tx: &Transaction) -> Result<()> {
         if tx.nonce != self.nonce {
             return Err(anyhow!(
@@ -76,7 +92,8 @@ impl Account {
         Ok(())
     }
 
-    pub fn validate_operation(&self, operation: &Operation) -> Result<()> {
+    /// Validates an operation against the current account state.
+    fn validate_operation(&self, operation: &Operation) -> Result<()> {
         match operation {
             Operation::AddKey { key } => {
                 if self.valid_keys.contains(key) {
@@ -104,6 +121,8 @@ impl Account {
         Ok(())
     }
 
+    /// Processes an operation, updating the account state. Should only be run
+    /// in the context of a transaction.
     fn process_operation(&mut self, operation: &Operation) -> Result<()> {
         self.validate_operation(operation)?;
 
