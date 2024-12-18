@@ -72,7 +72,7 @@ where
                     bail!("Failed to get account for service ID {}", service_id);
                 };
 
-                let Some(service_challenge) = service_account.service_challenge else {
+                let Some(service_challenge) = service_account.service_challenge() else {
                     bail!("Service account does not contain a service challenge");
                 };
 

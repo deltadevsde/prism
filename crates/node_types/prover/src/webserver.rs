@@ -8,10 +8,7 @@ use axum::{
     Json, Router,
 };
 use jmt::proof::{SparseMerkleNode, SparseMerkleProof};
-use prism_common::{
-    account::Account, digest::Digest, operation::Operation, transaction::Transaction,
-};
-use prism_keys::{Signature, VerifyingKey};
+use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_tree::{
     hasher::TreeHasher,
     proofs::{Proof, UpdateProof},
@@ -54,25 +51,7 @@ pub struct EpochData {
 }
 
 #[derive(Deserialize, Debug, ToSchema)]
-pub struct TransactionRequest {
-    pub id: String,
-    pub operation: Operation,
-    pub nonce: u64,
-    pub signature: Signature,
-    pub vk: VerifyingKey,
-}
-
-impl From<TransactionRequest> for Transaction {
-    fn from(tx: TransactionRequest) -> Self {
-        Transaction {
-            id: tx.id,
-            operation: tx.operation,
-            nonce: tx.nonce,
-            signature: tx.signature,
-            vk: tx.vk,
-        }
-    }
-}
+pub struct TransactionRequest(Transaction);
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UpdateProofResponse(UpdateProof);
@@ -178,7 +157,7 @@ async fn post_transaction(
     State(session): State<Arc<Prover>>,
     Json(tx_request): Json<TransactionRequest>,
 ) -> impl IntoResponse {
-    match session.validate_and_queue_update(tx_request.into()).await {
+    match session.validate_and_queue_update(tx_request.0).await {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",

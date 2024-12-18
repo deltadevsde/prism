@@ -7,29 +7,49 @@ use crate::{
     transaction::Transaction,
 };
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Hash, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
 /// Represents an account or service on prism, making up the values of our state
 /// tree.
 pub struct Account {
     /// The unique identifier for the account.
-    pub id: String,
+    id: String,
 
     /// The transaction nonce for the account.
-    pub nonce: u64,
+    nonce: u64,
 
     /// The current set of valid keys for the account. Any of these keys can be
     /// used to sign transactions.
-    pub valid_keys: Vec<VerifyingKey>,
+    valid_keys: Vec<VerifyingKey>,
 
     /// Arbitrary signed data associated with the account, used for bookkeeping
     /// externally signed data from keys that don't live on Prism.
-    pub signed_data: Vec<(VerifyingKey, Vec<u8>)>,
+    signed_data: Vec<(VerifyingKey, Vec<u8>)>,
 
     /// The service challenge for the account, if it is a service.
-    pub service_challenge: Option<ServiceChallenge>,
+    service_challenge: Option<ServiceChallenge>,
 }
 
 impl Account {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn nonce(&self) -> u64 {
+        self.nonce
+    }
+
+    pub fn valid_keys(&self) -> &[VerifyingKey] {
+        &self.valid_keys
+    }
+
+    pub fn signed_data(&self) -> &[(VerifyingKey, Vec<u8>)] {
+        &self.signed_data
+    }
+
+    pub fn service_challenge(&self) -> Option<&ServiceChallenge> {
+        self.service_challenge.as_ref()
+    }
+
     /// Creates a [`Transaction`] that can be used to update or create the
     /// account. The transaction produced could be invalid, and will be
     /// validated before being processed.
@@ -109,7 +129,6 @@ impl Account {
                 data,
                 data_signature,
             } => {
-                // if the data is externally signed
                 data_signature.verifying_key.verify_signature(data, &data_signature.signature)?;
             }
             Operation::CreateAccount { .. } | Operation::RegisterService { .. } => {

@@ -51,7 +51,7 @@ pub enum ServiceChallengeInput {
     Signed(Signature),
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Hash)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ServiceChallenge {
     Signed(VerifyingKey),
 }
