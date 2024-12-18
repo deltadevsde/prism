@@ -1,11 +1,15 @@
 use anyhow::{anyhow, Result};
 use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     operation::{Operation, ServiceChallenge},
     transaction::Transaction,
 };
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct SignedData(pub VerifyingKey, #[serde(with = "raw_or_b64")] pub Vec<u8>);
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
 /// Represents an account or service on prism, making up the values of our state
@@ -23,7 +27,7 @@ pub struct Account {
 
     /// Arbitrary signed data associated with the account, used for bookkeeping
     /// externally signed data from keys that don't live on Prism.
-    signed_data: Vec<(VerifyingKey, Vec<u8>)>,
+    signed_data: Vec<SignedData>,
 
     /// The service challenge for the account, if it is a service.
     service_challenge: Option<ServiceChallenge>,
@@ -42,7 +46,7 @@ impl Account {
         &self.valid_keys
     }
 
-    pub fn signed_data(&self) -> &[(VerifyingKey, Vec<u8>)] {
+    pub fn signed_data(&self) -> &[SignedData] {
         &self.signed_data
     }
 
@@ -161,7 +165,10 @@ impl Account {
                 data,
                 data_signature,
             } => {
-                self.signed_data.push((data_signature.verifying_key.clone(), data.clone()));
+                self.signed_data.push(SignedData(
+                    data_signature.verifying_key.clone(),
+                    data.clone(),
+                ));
             }
             Operation::CreateAccount { id, key, .. } => {
                 self.id = id.clone();
