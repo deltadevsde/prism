@@ -479,16 +479,16 @@ impl Prover {
         // validate against existing account if necessary, including signature checks
         match transaction.operation {
             Operation::RegisterService { .. } | Operation::CreateAccount { .. } => {
-                Account::default().validate_transaction(&transaction)?;
+                Account::default().process_transaction(&transaction)?;
             }
             Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
                 let account_response = self.get_account(&transaction.id).await?;
 
-                let Found(account, _) = account_response else {
+                let Found(mut account, _) = account_response else {
                     bail!("Account not found for id: {}", transaction.id)
                 };
 
-                account.validate_transaction(&transaction)?;
+                account.process_transaction(&transaction)?;
             }
         };
 

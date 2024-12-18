@@ -82,8 +82,9 @@ impl Account {
         Ok(())
     }
 
-    /// Validates a transaction against the current account state.
-    pub fn validate_transaction(&self, tx: &Transaction) -> Result<()> {
+    /// Validates a transaction against the current account state. Please note
+    /// that the operation must be validated separately.
+    fn validate_transaction(&self, tx: &Transaction) -> Result<()> {
         if tx.nonce != self.nonce {
             return Err(anyhow!(
                 "Nonce does not match. {} != {}",
@@ -106,8 +107,6 @@ impl Account {
 
         let msg = tx.get_signature_payload()?;
         tx.vk.verify_signature(&msg, &tx.signature)?;
-
-        self.validate_operation(&tx.operation)?;
 
         Ok(())
     }
