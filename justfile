@@ -1,30 +1,21 @@
 # Define the path to your docker-compose.yml file
 DOCKER_COMPOSE_FILE := "ci/docker-compose.yml"
 
+# Helper function to use correct docker compose command
+docker_compose_cmd := if `uname -s` == "Linux" { "docker compose" } else { "docker-compose" }
+
 celestia-up:
   #!/usr/bin/env bash
   set -euo pipefail
 
   echo "Cleaning up any existing Docker resources..."
-  if [ "$(uname -s)" = "Linux" ]; then \
-    docker compose -f {{DOCKER_COMPOSE_FILE}} down -v --remove-orphans; \
-  else \
-    docker-compose -f {{DOCKER_COMPOSE_FILE}} down -v --remove-orphans; \
-  fi
+  {{docker_compose_cmd}} -f {{DOCKER_COMPOSE_FILE}} down -v --remove-orphans
 
   echo "Building Docker images..."
-  if [ "$(uname -s)" = "Linux" ]; then \
-    docker compose -f {{DOCKER_COMPOSE_FILE}} build; \
-  else \
-    docker-compose -f {{DOCKER_COMPOSE_FILE}} build; \
-  fi
+  {{docker_compose_cmd}} -f {{DOCKER_COMPOSE_FILE}} build
 
   echo "Spinning up a fresh Docker Compose stack..."
-  if [ "$(uname -s)" = "Linux" ]; then \
-    docker compose -f {{DOCKER_COMPOSE_FILE}} up -d --force-recreate --renew-anon-volumes; \
-  else \
-    docker-compose -f {{DOCKER_COMPOSE_FILE}} up -d --force-recreate --renew-anon-volumes; \
-  fi
+  {{docker_compose_cmd}} -f {{DOCKER_COMPOSE_FILE}} up -d --force-recreate --renew-anon-volumes
 
   echo "Waiting for services to be ready..."
   timeout=120
@@ -33,11 +24,7 @@ celestia-up:
   bridge_node_ready=false
 
   while true; do
-    if [ "$(uname -s)" = "Linux" ]; then \
-      logs=$(docker compose -f {{DOCKER_COMPOSE_FILE}} logs); \
-    else \
-      logs=$(docker-compose -f {{DOCKER_COMPOSE_FILE}} logs); \
-    fi
+    logs=$( {{docker_compose_cmd}} -f {{DOCKER_COMPOSE_FILE}} logs )
 
     if [[ $logs == *"Configuration finished. Running a light node"* ]]; then
       light_node_ready=true
@@ -59,11 +46,7 @@ celestia-up:
 
     if [ $elapsed -ge $timeout ]; then
       echo "Timeout waiting for services to be ready. Check the logs for more information."
-      if [ "$(uname -s)" = "Linux" ]; then \
-        docker compose -f {{DOCKER_COMPOSE_FILE}} logs; \
-      else \
-        docker-compose -f {{DOCKER_COMPOSE_FILE}} logs; \
-      fi
+      {{docker_compose_cmd}} -f {{DOCKER_COMPOSE_FILE}} logs
       exit 1
     fi
 
@@ -74,18 +57,10 @@ celestia-up:
   echo "Celestia stack is up and running!"
 
 celestia-down:
-  if [ "$(uname -s)" = "Linux" ]; then \
-    docker compose -f {{DOCKER_COMPOSE_FILE}} down -v --remove-orphans; \
-  else \
-    docker-compose -f {{DOCKER_COMPOSE_FILE}} down -v --remove-orphans; \
-  fi
+  {{docker_compose_cmd}} -f {{DOCKER_COMPOSE_FILE}} down -v --remove-orphans
 
 celestia-logs:
-  if [ "$(uname -s)" = "Linux" ]; then \
-    docker compose -f {{DOCKER_COMPOSE_FILE}} logs -f; \
-  else \
-    docker-compose -f {{DOCKER_COMPOSE_FILE}} logs -f; \
-  fi
+  {{docker_compose_cmd}} -f {{DOCKER_COMPOSE_FILE}} logs -f
 
 # Command to run integration tests with a fresh Docker setup
 integration-test:
