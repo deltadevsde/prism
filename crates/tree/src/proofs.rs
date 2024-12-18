@@ -34,7 +34,7 @@ pub enum Proof {
 // the service, and then signature verification with the contained VK.
 pub struct InsertProof {
     /// Proof that the key does not already exist in the tree (i.e. it's not overwriting an existing key)
-    pub non_membership_proof: NonMembershipProof,
+    pub non_membership_proof: MerkleProof,
 
     /// Post-insertion root hash of the tree
     pub new_root: Digest,
@@ -48,7 +48,7 @@ pub struct InsertProof {
 impl InsertProof {
     /// The method called in circuit to verify the state transition to the new root.
     pub fn verify(&self) -> Result<()> {
-        self.non_membership_proof.verify().context("Invalid NonMembershipProof")?;
+        self.non_membership_proof.verify_nonexistence().context("Invalid NonMembershipProof")?;
 
         let mut account = Account::default();
         account.process_transaction(&self.tx)?;
@@ -110,29 +110,19 @@ impl UpdateProof {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MembershipProof {
+pub struct MerkleProof {
     pub root: Digest,
     pub proof: SparseMerkleProof<TreeHasher>,
     pub key: KeyHash,
-    pub value: Account,
 }
 
-impl MembershipProof {
-    pub fn verify(&self) -> Result<()> {
-        let value = self.value.encode_to_bytes()?;
+impl MerkleProof {
+    pub fn verify_existence(&self, value: &Account) -> Result<()> {
+        let value = value.encode_to_bytes()?;
         self.proof.verify_existence(RootHash(self.root.0), self.key, value)
     }
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NonMembershipProof {
-    pub root: Digest,
-    pub proof: SparseMerkleProof<TreeHasher>,
-    pub key: KeyHash,
-}
-
-impl NonMembershipProof {
-    pub fn verify(&self) -> Result<()> {
+    pub fn verify_nonexistence(&self) -> Result<()> {
         self.proof.verify_nonexistence(RootHash(self.root.0), self.key)
     }
 }

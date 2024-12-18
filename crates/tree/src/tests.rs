@@ -37,7 +37,7 @@ fn test_insert_and_get() {
         tx_builder.get_account("acc_1").expect("Getting builder account should work");
 
     assert_eq!(*account, *test_account);
-    assert!(membership_proof.verify().is_ok());
+    assert!(membership_proof.verify_existence(&account).is_ok());
 }
 
 #[test]
@@ -167,7 +167,7 @@ fn test_get_non_existing_key() {
         panic!("Account found for key while it was expected to be missing");
     };
 
-    assert!(non_membership_proof.verify().is_ok());
+    assert!(non_membership_proof.verify_nonexistence().is_ok());
 }
 
 #[test]

@@ -4,16 +4,16 @@ pub mod proofs;
 pub mod snarkable_tree;
 
 use prism_common::account::Account;
-use proofs::{MembershipProof, NonMembershipProof};
+use proofs::MerkleProof;
 
 /// Enumerates possible responses when fetching tree values
 #[derive(Debug)]
 pub enum AccountResponse {
     /// When an account was found, provides the value and its corresponding membership-proof
-    Found(Box<Account>, MembershipProof),
+    Found(Box<Account>, MerkleProof),
 
     /// When no account was found for a specific key, provides the corresponding non-membership-proof
-    NotFound(NonMembershipProof),
+    NotFound(MerkleProof),
 }
 
 #[cfg(test)]

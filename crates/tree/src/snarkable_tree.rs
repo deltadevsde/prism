@@ -5,10 +5,7 @@ use jmt::{
 };
 use log::debug;
 use prism_errors::DatabaseError;
-use prism_serde::{
-    binary::{FromBinary, ToBinary},
-    hex::ToHex,
-};
+use prism_serde::binary::{FromBinary, ToBinary};
 
 use prism_common::{
     account::Account,
@@ -20,7 +17,7 @@ use prism_common::{
 use crate::{
     hasher::TreeHasher,
     key_directory_tree::KeyDirectoryTree,
-    proofs::{InsertProof, MembershipProof, NonMembershipProof, Proof, UpdateProof},
+    proofs::{InsertProof, MerkleProof, Proof, UpdateProof},
     AccountResponse::{self, *},
 };
 
@@ -115,7 +112,7 @@ where
             bail!("Key already exists");
         };
 
-        let non_membership_proof = NonMembershipProof {
+        let non_membership_proof = MerkleProof {
             root: old_root,
             proof: non_membership_merkle_proof,
             key,
@@ -182,16 +179,11 @@ where
         match value {
             Some(serialized_value) => {
                 let deserialized_value = Account::decode_from_bytes(&serialized_value)?;
-                let membership_proof = MembershipProof {
-                    root,
-                    proof,
-                    key,
-                    value: deserialized_value.clone(),
-                };
+                let membership_proof = MerkleProof { root, proof, key };
                 Ok(Found(Box::new(deserialized_value), membership_proof))
             }
             None => {
-                let non_membership_proof = NonMembershipProof { root, proof, key };
+                let non_membership_proof = MerkleProof { root, proof, key };
                 Ok(NotFound(non_membership_proof))
             }
         }
