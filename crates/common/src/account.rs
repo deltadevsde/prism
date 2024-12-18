@@ -26,18 +26,6 @@ impl Account {
         sk: &SigningKey,
     ) -> Result<Transaction> {
         let vk = sk.verifying_key();
-        match &operation {
-            Operation::CreateAccount { id, .. } | Operation::RegisterService { id, .. } => {
-                if *id != account_id {
-                    return Err(anyhow!("Operation ID does not match account ID"));
-                }
-            }
-            _ => {
-                if !self.valid_keys.contains(&vk) {
-                    return Err(anyhow!("Invalid key"));
-                }
-            }
-        }
 
         let mut tx = Transaction {
             id: account_id,

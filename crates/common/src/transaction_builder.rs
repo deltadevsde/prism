@@ -95,7 +95,7 @@ impl TransactionBuilder {
         let vk: VerifyingKey = signing_key.clone().into();
         let op = Operation::RegisterService {
             id: id.to_string(),
-            creation_gate: ServiceChallenge::Signed(vk.clone()),
+            creation_gate: ServiceChallenge::Signed(challenge_key.verifying_key()),
             key: vk.clone(),
         };
 

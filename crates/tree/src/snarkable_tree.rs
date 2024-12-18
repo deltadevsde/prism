@@ -86,7 +86,7 @@ where
                 let ServiceChallenge::Signed(service_pubkey) = service_challenge;
                 let ServiceChallengeInput::Signed(challenge_signature) = &challenge;
 
-                // service_pubkey.verify_signature(&hash.to_bytes(), challenge_signature)?;
+                service_pubkey.verify_signature(&hash.to_bytes(), challenge_signature)?;
 
                 debug!("creating new account for user ID {}", id);
 
@@ -147,7 +147,6 @@ where
         let (Some(old_serialized_account), inclusion_proof) =
             self.jmt.get_with_proof(key, self.epoch)?
         else {
-            // TODO for wednesday Ryan: this should be getting hit but its not (test_update_non_existing_key)
             bail!("Key does not exist");
         };
 
