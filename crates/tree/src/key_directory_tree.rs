@@ -11,8 +11,8 @@ use crate::hasher::TreeHasher;
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: KeyHash = KeyHash(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
-/// Wraps a [`JellyfishMerkleTree`] to provide a key-value store for [`Hashchain`]s with batched insertions.
-/// This is prism's primary data structure for storing and retrieving [`Hashchain`]s.
+/// Wraps a [`JellyfishMerkleTree`] to provide a key-value store for [`Account`]s with batched insertions.
+/// This is prism's primary data structure for storing and retrieving [`Account`]s.
 pub struct KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter,

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
+    account::Account,
     digest::Digest,
-    hashchain::{Hashchain, HashchainEntry},
-    operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
+    operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::Transaction,
 };
 use prism_keys::{SigningKey, VerifyingKey};
@@ -23,14 +23,10 @@ impl UncommittedTransaction<'_> {
     /// Commits and returns a transaction, updating the builder. Subsequent transactions
     /// built with the same builder will have the correct previous hash.
     pub fn commit(self) -> Transaction {
-        let hc = self
-            .builder
-            .hashchains
-            .entry(self.transaction.id.clone())
-            .or_insert_with(Hashchain::empty);
+        let acc = self.builder.accounts.entry(self.transaction.id.clone()).or_default();
 
-        hc.add_entry(self.transaction.entry.clone())
-            .expect("Adding transaction entry to hashchain should work");
+        acc.process_transaction(&self.transaction)
+            .expect("Adding transaction entry to account should work");
 
         match self.post_commit_action {
             PostCommitAction::UpdateStorageOnly => (),
@@ -53,8 +49,8 @@ impl UncommittedTransaction<'_> {
 }
 
 pub struct TransactionBuilder {
-    /// Simulated hashchain storage that is mutated when transactions are applied
-    hashchains: HashMap<String, Hashchain>,
+    /// Simulated account storage that is mutated when transactions are applied
+    accounts: HashMap<String, Account>,
     /// Remembers private keys of services to simulate account creation via an external service
     service_keys: HashMap<String, SigningKey>,
     /// Remembers private keys of accounts to simulate actions on behalf of these accounts
@@ -63,12 +59,12 @@ pub struct TransactionBuilder {
 
 impl Default for TransactionBuilder {
     fn default() -> Self {
-        let hashchains = HashMap::new();
+        let accounts = HashMap::new();
         let service_keys = HashMap::new();
         let account_keys = HashMap::new();
 
         Self {
-            hashchains,
+            accounts,
             service_keys,
             account_keys,
         }
@@ -80,8 +76,8 @@ impl TransactionBuilder {
         Self::default()
     }
 
-    pub fn get_hashchain(&self, id: &str) -> Option<&Hashchain> {
-        self.hashchains.get(id)
+    pub fn get_account(&self, id: &str) -> Option<&Account> {
+        self.accounts.get(id)
     }
 
     pub fn register_service_with_random_keys(&mut self, id: &str) -> UncommittedTransaction {
@@ -97,18 +93,17 @@ impl TransactionBuilder {
         signing_key: SigningKey,
     ) -> UncommittedTransaction {
         let vk: VerifyingKey = signing_key.clone().into();
-        let entry = HashchainEntry::new_register_service(
-            id.to_string(),
-            ServiceChallenge::from(challenge_key.clone()),
-            vk,
-            &signing_key,
-        );
+        let op = Operation::RegisterService {
+            id: id.to_string(),
+            creation_gate: ServiceChallenge::Signed(challenge_key.verifying_key()),
+            key: vk.clone(),
+        };
+
+        let account = Account::default();
+        let transaction = account.prepare_transaction(id.to_string(), op, &signing_key).unwrap();
 
         UncommittedTransaction {
-            transaction: Transaction {
-                id: id.to_string(),
-                entry,
-            },
+            transaction,
             builder: self,
             post_commit_action: PostCommitAction::RememberServiceKey(id.to_string(), challenge_key),
         }
@@ -158,19 +153,18 @@ impl TransactionBuilder {
         let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.to_bytes()]);
         let signature = service_signing_key.sign(&hash.to_bytes());
 
-        let entry = HashchainEntry::new_create_account(
-            id.to_string(),
-            service_id.to_string(),
-            ServiceChallengeInput::Signed(signature),
-            vk.clone(),
-            &signing_key,
-        );
+        let op = Operation::CreateAccount {
+            id: id.to_string(),
+            service_id: service_id.to_string(),
+            challenge: ServiceChallengeInput::Signed(signature.clone()),
+            key: vk.clone(),
+        };
+
+        let account = Account::default();
+        let transaction = account.prepare_transaction(id.to_string(), op, &signing_key).unwrap();
 
         UncommittedTransaction {
-            transaction: Transaction {
-                id: id.to_string(),
-                entry,
-            },
+            transaction,
             builder: self,
             post_commit_action: PostCommitAction::RememberAccountKey(id.to_string(), signing_key),
         }
@@ -181,17 +175,12 @@ impl TransactionBuilder {
             panic!("No existing account key for {}", id)
         };
 
-        self.add_random_key(id, &account_signing_key, 0)
+        self.add_random_key(id, &account_signing_key)
     }
 
-    pub fn add_random_key(
-        &mut self,
-        id: &str,
-        signing_key: &SigningKey,
-        key_idx: usize,
-    ) -> UncommittedTransaction {
+    pub fn add_random_key(&mut self, id: &str, signing_key: &SigningKey) -> UncommittedTransaction {
         let random_key = SigningKey::new_ed25519().into();
-        self.add_key(id, random_key, signing_key, key_idx)
+        self.add_key(id, random_key, signing_key)
     }
 
     pub fn add_key_verified_with_root(
@@ -203,7 +192,7 @@ impl TransactionBuilder {
             panic!("No existing account key for {}", id)
         };
 
-        self.add_key(id, key, &account_signing_key, 0)
+        self.add_key(id, key, &account_signing_key)
     }
 
     pub fn add_key(
@@ -211,17 +200,14 @@ impl TransactionBuilder {
         id: &str,
         key: VerifyingKey,
         signing_key: &SigningKey,
-        key_idx: usize,
     ) -> UncommittedTransaction {
-        let last_hash = self.hashchains.get(id).map_or(Digest::zero(), Hashchain::last_hash);
+        let account = self.accounts.get(id).cloned().unwrap_or_default();
+        let op = Operation::AddKey { key: key.clone() };
 
-        let entry = HashchainEntry::new_add_key(key, last_hash, signing_key, key_idx);
+        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
 
         UncommittedTransaction {
-            transaction: Transaction {
-                id: id.to_string(),
-                entry,
-            },
+            transaction,
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }
@@ -236,7 +222,7 @@ impl TransactionBuilder {
             panic!("No existing account key for {}", id)
         };
 
-        self.revoke_key(id, key, &account_signing_key, 0)
+        self.revoke_key(id, key, &account_signing_key)
     }
 
     pub fn revoke_key(
@@ -244,17 +230,14 @@ impl TransactionBuilder {
         id: &str,
         key: VerifyingKey,
         signing_key: &SigningKey,
-        key_idx: usize,
     ) -> UncommittedTransaction {
-        let last_hash = self.hashchains.get(id).map_or(Digest::zero(), Hashchain::last_hash);
+        let account = self.accounts.get(id).cloned().unwrap_or_default();
+        let op = Operation::RevokeKey { key: key.clone() };
 
-        let entry = HashchainEntry::new_revoke_key(key, last_hash, signing_key, key_idx);
+        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
 
         UncommittedTransaction {
-            transaction: Transaction {
-                id: id.to_string(),
-                entry,
-            },
+            transaction,
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }
@@ -265,10 +248,9 @@ impl TransactionBuilder {
         id: &str,
         value: Vec<u8>,
         signing_key: &SigningKey,
-        key_idx: usize,
     ) -> UncommittedTransaction {
         let value_signing_key = SigningKey::new_ed25519();
-        self.add_signed_data(id, value, &value_signing_key, signing_key, key_idx)
+        self.add_signed_data(id, value, &value_signing_key, signing_key)
     }
 
     pub fn add_randomly_signed_data_verified_with_root(
@@ -286,13 +268,12 @@ impl TransactionBuilder {
         value: Vec<u8>,
         value_signing_key: &SigningKey,
         signing_key: &SigningKey,
-        key_idx: usize,
     ) -> UncommittedTransaction {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
             signature: value_signing_key.sign(&value),
         };
-        self.add_pre_signed_data(id, value, value_signature_bundle, signing_key, key_idx)
+        self.add_pre_signed_data(id, value, value_signature_bundle, signing_key)
     }
 
     pub fn add_signed_data_verified_with_root(
@@ -314,9 +295,8 @@ impl TransactionBuilder {
         value: Vec<u8>,
         value_signature: SignatureBundle,
         signing_key: &SigningKey,
-        key_idx: usize,
     ) -> UncommittedTransaction {
-        self.add_data(id, value, Some(value_signature), signing_key, key_idx)
+        self.add_data(id, value, value_signature, signing_key)
     }
 
     pub fn add_pre_signed_data_verified_with_root(
@@ -325,58 +305,69 @@ impl TransactionBuilder {
         value: Vec<u8>,
         value_signature: SignatureBundle,
     ) -> UncommittedTransaction {
-        self.add_data_verified_with_root(id, value, Some(value_signature))
+        self.add_data_verified_with_root(id, value, value_signature)
     }
 
-    pub fn add_unsigned_data(
+    pub fn add_internally_signed_data(
         &mut self,
         id: &str,
         value: Vec<u8>,
         signing_key: &SigningKey,
-        key_idx: usize,
     ) -> UncommittedTransaction {
-        self.add_data(id, value, None, signing_key, key_idx)
+        let bundle = SignatureBundle {
+            verifying_key: signing_key.verifying_key(),
+            signature: signing_key.sign(&value),
+        };
+        self.add_data(id, value, bundle, signing_key)
     }
 
-    pub fn add_unsigned_data_verified_with_root(
+    pub fn add_internally_signed_data_verified_with_root(
         &mut self,
         id: &str,
         value: Vec<u8>,
     ) -> UncommittedTransaction {
-        self.add_data_verified_with_root(id, value, None)
+        let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
+            panic!("No existing account key for {}", id)
+        };
+
+        let bundle = SignatureBundle {
+            verifying_key: account_signing_key.verifying_key(),
+            signature: account_signing_key.sign(&value),
+        };
+
+        self.add_data_verified_with_root(id, value, bundle)
     }
 
     fn add_data_verified_with_root(
         &mut self,
         id: &str,
         value: Vec<u8>,
-        value_signature: Option<SignatureBundle>,
+        value_signature: SignatureBundle,
     ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
 
-        self.add_data(id, value, value_signature, &account_signing_key, 0)
+        self.add_data(id, value, value_signature, &account_signing_key)
     }
 
     fn add_data(
         &mut self,
         id: &str,
         data: Vec<u8>,
-        data_signature: Option<SignatureBundle>,
+        data_signature: SignatureBundle,
         signing_key: &SigningKey,
-        key_idx: usize,
     ) -> UncommittedTransaction {
-        let last_hash = self.hashchains.get(id).map_or(Digest::zero(), Hashchain::last_hash);
+        let account = self.accounts.get(id).cloned().unwrap_or_default();
+        let op = Operation::AddData {
+            data,
+            data_signature,
+        };
 
-        let entry =
-            HashchainEntry::new_add_data(data, data_signature, last_hash, signing_key, key_idx);
+        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
 
         UncommittedTransaction {
-            transaction: Transaction {
-                id: id.to_string(),
-                entry,
-            },
+            transaction,
             builder: self,
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }
