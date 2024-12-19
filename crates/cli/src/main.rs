@@ -4,7 +4,7 @@ mod node_types;
 use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-use prism_keys::{SigningKey, VerifyingKey, KeyAlgorithm};
+use prism_keys::{SigningKey, VerifyingKey, KeyAlgorithm, SUPPORTED_ALGORITHMS};
 
 use node_types::NodeType;
 use prism_lightclient::LightClient;
@@ -40,7 +40,11 @@ async fn main() -> std::io::Result<()> {
             let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
             let prover_vk = VerifyingKey::from_algorithm_and_bytes(
-                KeyAlgorithm::from_str(verifying_key_algorithm).expect("Failed to create verifying key"),
+                KeyAlgorithm::from_str(verifying_key_algorithm)
+                    .map_err(|e| std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Failed to create verifying key: {}", e)
+                    ))?,
                 config.verifying_key.unwrap().as_bytes(),
             ).map_err(|e| std::io::Error::new(
               std::io::ErrorKind::InvalidData, format!("invalid prover verifying key: {}", e),
@@ -72,7 +76,11 @@ async fn main() -> std::io::Result<()> {
             let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
             let signing_key = SigningKey::from_algorithm_and_bytes(
-              KeyAlgorithm::from_str(verifying_key_algorithm).expect("Failed to create verifying key"),
+              KeyAlgorithm::from_str(verifying_key_algorithm)
+                  .map_err(|e| std::io::Error::new(
+                      std::io::ErrorKind::InvalidData,
+                      format!("Failed to create verifying key: {}", e)
+                  ))?,
               signing_key_chain.as_bytes())
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("invalid signing key: {}", e)))?;
             let verifying_key = signing_key.verifying_key();
@@ -124,7 +132,11 @@ async fn main() -> std::io::Result<()> {
             let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
             let signing_key = SigningKey::from_algorithm_and_bytes(
-              KeyAlgorithm::from_str(verifying_key_algorithm).expect("Failed to create verifying key"),
+              KeyAlgorithm::from_str(verifying_key_algorithm)
+                  .map_err(|e| std::io::Error::new(
+                      std::io::ErrorKind::InvalidData,
+                      format!("Failed to create verifying key: {}", e)
+                  ))?,
               signing_key_chain.as_bytes())
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("invalid signing key: {}", e)))?;
 
@@ -137,7 +149,11 @@ async fn main() -> std::io::Result<()> {
                     )
                 })
                 .and_then(|vk| VerifyingKey::from_algorithm_and_bytes(
-                  KeyAlgorithm::from_str(verifying_key_algorithm).expect("Failed to create verifying key"),
+                  KeyAlgorithm::from_str(verifying_key_algorithm)
+                      .map_err(|e| std::io::Error::new(
+                          std::io::ErrorKind::InvalidData,
+                          format!("Failed to create verifying key: {}", e)
+                      ))?,
                   vk.as_bytes()).map_err(|e| {
                     std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
@@ -173,7 +189,7 @@ fn validate_algorithm(algorithm: &str) -> Result<&str, std::io::Error> {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "verifying key algorithm is required"));
     }
 
-    if !["ed25519", "secp256k1", "secp256r1"].contains(&algorithm) {
+    if !SUPPORTED_ALGORITHMS.contains(&KeyAlgorithm::from_str(algorithm).unwrap()) {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid verifying key algorithm"));
     }
 

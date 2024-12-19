@@ -12,7 +12,7 @@ async fn create_test_prover(algorithm: KeyAlgorithm) -> Arc<Prover> {
     let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default_with_key_algorithm(algorithm);
+    let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
     Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
 }
 
@@ -132,7 +132,7 @@ async fn test_restart_sync_from_scratch(algorithm: KeyAlgorithm) {
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default_with_key_algorithm(algorithm);
+    let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
     let prover = Arc::new(Prover::new(db1.clone(), da_layer.clone(), &cfg).unwrap());
 
     let runner = prover.clone();
@@ -174,7 +174,7 @@ async fn test_load_persisted_state(algorithm: KeyAlgorithm) {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default_with_key_algorithm(algorithm);
+    let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
     let prover = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
 
     let runner = prover.clone();

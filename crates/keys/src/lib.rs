@@ -10,13 +10,15 @@ use std::str::FromStr;
 use std::fmt;
 use std::clone::Clone;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KeyAlgorithm {
     Ed25519,
     Secp256k1,
     Secp256r1,
     Placeholder,
 }
+
+pub const SUPPORTED_ALGORITHMS: &[KeyAlgorithm] = &[KeyAlgorithm::Ed25519, KeyAlgorithm::Secp256k1, KeyAlgorithm::Secp256r1];
 
 impl FromStr for KeyAlgorithm {
     type Err = anyhow::Error;

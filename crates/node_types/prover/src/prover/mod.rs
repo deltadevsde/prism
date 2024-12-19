@@ -66,17 +66,25 @@ impl Default for Config {
 
 #[allow(dead_code)]
 impl Config {
-    fn default_with_key_algorithm(algorithm: KeyAlgorithm) -> Self {
-        let signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
+    /// Creates a new Config instance with the specified key algorithm.
+    /// 
+    /// # Arguments
+    /// * `algorithm` - The key algorithm to use for signing and verification
+    /// 
+    /// # Returns
+    /// A Result containing the Config or an error if key creation fails
+    fn default_with_key_algorithm(algorithm: KeyAlgorithm) -> Result<Self> {
+        let signing_key = SigningKey::new_with_algorithm(algorithm)
+            .context("Failed to create signing key")?;
 
-        Config {
+        Ok(Config {
             prover: true,
             batcher: true,
             webserver: WebServerConfig::default(),
             signing_key: signing_key.clone(),
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
-        }
+        })
     }
 }
 
