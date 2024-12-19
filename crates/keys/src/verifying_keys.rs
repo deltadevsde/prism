@@ -122,8 +122,7 @@ impl VerifyingKey {
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
 
-                let der_sig = signature.to_der();
-                vk.verify_digest(digest, &der_sig)
+                vk.verify_digest(digest, signature)
                     .map_err(|e| anyhow!("Failed to verify signature: {}", e))
             }
         }
