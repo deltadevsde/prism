@@ -100,7 +100,7 @@ async fn test_execute_block_with_invalid_tx(algorithm: KeyAlgorithm) {
         tx_builder.revoke_key_verified_with_root("account_id", new_key_vk).commit(),
         // and adding in same block.
         // both of these transactions are valid individually, but when processed together it will fail.
-        tx_builder.add_random_key(algorithm, "account_id", &new_key_1).commit(),
+        tx_builder.add_random_key(algorithm, "account_id", &new_key_1).build(),
     ];
 
     let proofs = prover.execute_block(transactions).await.unwrap();

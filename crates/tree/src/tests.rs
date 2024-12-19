@@ -146,7 +146,7 @@ fn test_update_non_existing_key(algorithm: KeyAlgorithm) {
     // This is a signing key not known to the storage yet
     let random_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create random signing key");
     // This transaction shall be invalid, because it is signed with an unknown key
-    let invalid_key_tx = tx_builder.add_random_key(algorithm, "acc_1", &random_signing_key).commit();
+    let invalid_key_tx = tx_builder.add_random_key(algorithm, "acc_1", &random_signing_key).build();
 
     let result = tree.process_transaction(invalid_key_tx);
     assert!(result.is_err());
