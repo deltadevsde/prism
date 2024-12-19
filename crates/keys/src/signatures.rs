@@ -38,7 +38,7 @@ impl Signature {
             "secp256r1" => {
                 Secp256r1Signature::from_der(bytes).map(Signature::Secp256r1).map_err(|e| e.into())
             }
-            _ => bail!("Unexpected algorithm for Signature"),
+            _ => bail!("Unexpected algorithm for Signature: {}", algorithm),
         }
     }
 

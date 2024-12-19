@@ -1,7 +1,6 @@
 use anyhow::{anyhow, bail, Context, Result};
-use ed25519_consensus::{SigningKey, VerificationKey};
+use prism_keys::{SigningKey, VerifyingKey};
 use jmt::KeyHash;
-use keystore_rs::create_signing_key;
 use prism_common::{
     digest::Digest,
     hashchain::Hashchain,
@@ -47,7 +46,7 @@ pub struct Config {
 
     /// Key used to verify incoming [`FinalizedEpochs`].
     /// This is not necessarily the counterpart to signing_key, as fullnodes must use the [`verifying_key`] of the prover.
-    pub verifying_key: VerificationKey,
+    pub verifying_key: VerifyingKey,
 
     /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,
@@ -55,14 +54,30 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        let signing_key = create_signing_key();
+        let signing_key = SigningKey::new_ed25519();
 
         Config {
             prover: true,
             batcher: true,
             webserver: WebServerConfig::default(),
             signing_key: signing_key.clone(),
-            verifying_key: signing_key.verification_key(),
+            verifying_key: signing_key.verifying_key(),
+            start_height: 1,
+        }
+    }
+}
+
+#[cfg(test)]
+impl Config {
+    fn default_with_key_algorithm(algorithm: &str) -> Self {
+        let signing_key = SigningKey::new_with_algorithm(algorithm);
+
+        Config {
+            prover: true,
+            batcher: true,
+            webserver: WebServerConfig::default(),
+            signing_key: signing_key.clone(),
+            verifying_key: signing_key.verifying_key(),
             start_height: 1,
         }
     }
@@ -269,8 +284,10 @@ impl Prover {
             return Ok(());
         }
 
+        dbg!(self.cfg.verifying_key.clone());
+
         // TODO: Issue #144
-        match epoch.verify_signature(self.cfg.verifying_key) {
+        match epoch.verify_signature(self.cfg.verifying_key.clone()) {
             Ok(_) => trace!("valid signature for epoch {}", epoch.height),
             Err(e) => panic!("invalid signature in epoch {}: {:?}", epoch.height, e),
         }

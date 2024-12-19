@@ -4,7 +4,7 @@ mod node_types;
 use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-use prism_keys::VerifyingKey;
+use prism_keys::{SigningKey, VerifyingKey};
 
 use node_types::NodeType;
 use prism_lightclient::LightClient;
@@ -37,14 +37,9 @@ async fn main() -> std::io::Result<()> {
                 )
             })?;
 
-            let prover_vk = config.verifying_key.and_then(|s| s.try_into().ok()).and_then(
-                |vk: VerifyingKey| match vk {
-                    VerifyingKey::Ed25519(key) => Some(key),
-                    _ => None,
-                },
-            );
+            let prover_vk = VerifyingKey::from_algorithm_and_bytes(config.verifying_key_algorithm.as_str(), config.verifying_key.unwrap().as_bytes()).unwrap();
 
-            Arc::new(LightClient::new(da, celestia_config, prover_vk))
+            Arc::new(LightClient::new(da, celestia_config, Some(prover_vk)))
         }
         Commands::Prover(args) => {
             let config = load_config(args.clone())
@@ -63,22 +58,25 @@ async fn main() -> std::io::Result<()> {
             let redis_connections = RedisConnection::new(&redis_config)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-            let signing_key = KeyStoreType::KeyChain(KeyChain)
+            let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
                 .get_signing_key()
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+            let signing_key = SigningKey::from_algorithm_and_bytes(config.verifying_key_algorithm.as_str(), signing_key_chain.as_bytes()).unwrap();
+            let verifying_key = signing_key.verifying_key();
 
             let prover_cfg = prism_prover::Config {
                 prover: true,
                 batcher: true,
                 webserver: config.webserver.unwrap_or_default(),
                 signing_key: signing_key.clone(),
-                verifying_key: signing_key.verification_key(),
+                verifying_key: verifying_key.clone(),
                 start_height: config.celestia_config.unwrap_or_default().start_height,
             };
 
             info!(
                 "prover verifying key: {}",
-                VerifyingKey::from(prover_cfg.verifying_key)
+                VerifyingKey::from(prover_cfg.verifying_key.clone())
             );
 
             Arc::new(
@@ -107,23 +105,13 @@ async fn main() -> std::io::Result<()> {
             let redis_connections = RedisConnection::new(&redis_config)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-            let signing_key = KeyStoreType::KeyChain(KeyChain)
+            let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
                 .get_signing_key()
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-            let prover_vk = config
-                .verifying_key
-                .and_then(|s| s.try_into().ok())
-                .and_then(|vk: VerifyingKey| match vk {
-                    VerifyingKey::Ed25519(key) => Some(key),
-                    _ => None,
-                })
-                .ok_or_else(|| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::NotFound,
-                        "prover verifying key not found",
-                    )
-                })?;
+            let signing_key = SigningKey::from_algorithm_and_bytes(config.verifying_key_algorithm.as_str(), signing_key_chain.as_bytes()).unwrap();
+
+            let prover_vk = VerifyingKey::from_algorithm_and_bytes(config.verifying_key_algorithm.as_str(), config.verifying_key.unwrap().as_bytes()).unwrap();
 
             let prover_cfg = prism_prover::Config {
                 prover: false,

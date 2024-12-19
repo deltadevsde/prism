@@ -8,36 +8,35 @@ use prism_da::memory::InMemoryDataAvailabilityLayer;
 use prism_storage::{inmemory::InMemoryDatabase, Database};
 
 // Helper function to create a test prover instance
-async fn create_test_prover() -> Arc<Prover> {
+async fn create_test_prover(algorithm: &str) -> Arc<Prover> {
     let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default();
+    let cfg = Config::default_with_key_algorithm(algorithm);
     Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
 }
 
-fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
+fn create_mock_transactions(algorithm: &str, service_id: String) -> Vec<Transaction> {
     let mut transaction_builder = TransactionBuilder::new();
 
     vec![
-        transaction_builder.register_service_with_random_keys(&service_id).commit(),
+        transaction_builder.register_service_with_random_keys(algorithm, &service_id).commit(),
         transaction_builder
-            .create_account_with_random_key_signed("user1@example.com", &service_id)
+            .create_account_with_random_key_signed(algorithm, "user1@example.com", &service_id)
             .commit(),
         transaction_builder
-            .create_account_with_random_key_signed("user2@example.com", &service_id)
+            .create_account_with_random_key_signed(algorithm, "user2@example.com", &service_id)
             .commit(),
-        transaction_builder.add_random_key_verified_with_root("user1@example.com").commit(),
+        transaction_builder.add_random_key_verified_with_root(algorithm, "user1@example.com").commit(),
     ]
 }
 
-#[tokio::test]
-async fn test_validate_and_queue_update() {
-    let prover = create_test_prover().await;
+async fn test_validate_and_queue_update(algorithm: &str) {
+    let prover = create_test_prover(algorithm).await;
 
     let mut transaction_builder = TransactionBuilder::new();
     let transaction =
-        transaction_builder.register_service_with_random_keys("test_service").commit();
+        transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
 
     prover.clone().validate_and_queue_update(transaction.clone()).await.unwrap();
 
@@ -48,14 +47,28 @@ async fn test_validate_and_queue_update() {
 }
 
 #[tokio::test]
-async fn test_process_transactions() {
-    let prover = create_test_prover().await;
+async fn test_validate_and_queue_update_ed25519() {
+    test_validate_and_queue_update("ed25519").await;
+}
+
+#[tokio::test]
+async fn test_validate_and_queue_update_secp256k1() {
+    test_validate_and_queue_update("secp256k1").await;
+}
+
+#[tokio::test]
+async fn test_validate_and_queue_update_secp256r1() {
+    test_validate_and_queue_update("secp256r1").await;
+}
+
+async fn test_process_transactions(algorithm: &str) {
+    let prover = create_test_prover(algorithm).await;
 
     let mut transaction_builder = TransactionBuilder::new();
     let register_service_transaction =
-        transaction_builder.register_service_with_random_keys("test_service").commit();
+        transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
     let create_account_transaction = transaction_builder
-        .create_account_with_random_key_signed("test_account", "test_service")
+        .create_account_with_random_key_signed(algorithm, "test_account", "test_service")
         .commit();
 
     let proof = prover.process_transaction(register_service_transaction).await.unwrap();
@@ -64,7 +77,7 @@ async fn test_process_transactions() {
     let proof = prover.process_transaction(create_account_transaction.clone()).await.unwrap();
     assert!(matches!(proof, Proof::Insert(_)));
 
-    let new_key = SigningKey::new_ed25519();
+    let new_key = SigningKey::new_with_algorithm(algorithm);
     let add_key_transaction = transaction_builder
         .add_key_verified_with_root("test_account", new_key.clone().into())
         .commit();
@@ -87,24 +100,38 @@ async fn test_process_transactions() {
 }
 
 #[tokio::test]
-async fn test_execute_block_with_invalid_tx() {
-    let prover = create_test_prover().await;
+async fn test_process_transactions_ed25519() {
+    test_process_transactions("ed25519").await;
+}
+
+#[tokio::test]
+async fn test_process_transactions_secp256k1() {
+    test_process_transactions("secp256k1").await;
+}
+
+#[tokio::test]
+async fn test_process_transactions_secp256r1() {
+    test_process_transactions("secp256r1").await;
+}
+
+async fn test_execute_block_with_invalid_tx(algorithm: &str) {
+    let prover = create_test_prover(algorithm).await;
 
     let mut tx_builder = TransactionBuilder::new();
 
-    let new_key_1 = SigningKey::new_ed25519();
+    let new_key_1 = SigningKey::new_with_algorithm(algorithm);
     let new_key_vk: VerifyingKey = new_key_1.clone().into();
 
     let transactions = vec![
-        tx_builder.register_service_with_random_keys("service_id").commit(),
-        tx_builder.create_account_with_random_key_signed("account_id", "service_id").commit(),
-        // add new key, so it will be index = 1
+        tx_builder.register_service_with_random_keys(algorithm, "service_id").commit(),
+        tx_builder.create_account_with_random_key_signed(algorithm, "account_id", "service_id").commit(),
+               // add new key, so it will be index = 1
         tx_builder.add_key_verified_with_root("account_id", new_key_vk.clone()).commit(),
         // revoke new key again
         tx_builder.revoke_key_verified_with_root("account_id", new_key_vk).commit(),
         // and adding in same block.
         // both of these transactions are valid individually, but when processed together it will fail.
-        tx_builder.add_random_key("account_id", &new_key_1, 1).build(),
+        tx_builder.add_random_key(algorithm, "account_id", &new_key_1, 1).build(),
     ];
 
     let proofs = prover.execute_block(transactions).await.unwrap();
@@ -112,19 +139,47 @@ async fn test_execute_block_with_invalid_tx() {
 }
 
 #[tokio::test]
-async fn test_execute_block() {
-    let prover = create_test_prover().await;
+async fn test_execute_block_with_invalid_tx_ed25519() {
+    test_execute_block_with_invalid_tx("ed25519").await;
+}
 
-    let transactions = create_mock_transactions("test_service".to_string());
+#[tokio::test]
+async fn test_execute_block_with_invalid_tx_secp256k1() {
+    test_execute_block_with_invalid_tx("secp256k1").await;
+}
+
+#[tokio::test]
+async fn test_execute_block_with_invalid_tx_secp256r1() {
+    test_execute_block_with_invalid_tx("secp256r1").await;
+}
+
+async fn test_execute_block(algorithm: &str) {
+    let prover = create_test_prover(algorithm).await;
+
+    let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     let proofs = prover.execute_block(transactions).await.unwrap();
     assert_eq!(proofs.len(), 4);
 }
 
 #[tokio::test]
-async fn test_finalize_new_epoch() {
-    let prover = create_test_prover().await;
-    let transactions = create_mock_transactions("test_service".to_string());
+async fn test_execute_block_ed25519() {
+    test_execute_block("ed25519").await;
+}
+
+#[tokio::test]
+async fn test_execute_block_secp256k1() {
+    test_execute_block("secp256k1").await;
+}
+
+#[tokio::test]
+async fn test_execute_block_secp256r1() {
+    test_execute_block("secp256r1").await;
+}
+
+async fn test_finalize_new_epoch(algorithm: &str) {
+    let prover = create_test_prover(algorithm).await;
+    let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     let prev_commitment = prover.get_commitment().await.unwrap();
     prover.finalize_new_epoch(0, transactions).await.unwrap();
@@ -134,12 +189,26 @@ async fn test_finalize_new_epoch() {
 }
 
 #[tokio::test]
-async fn test_restart_sync_from_scratch() {
+async fn test_finalize_new_epoch_ed25519() {
+    test_finalize_new_epoch("ed25519").await;
+}
+
+#[tokio::test]
+async fn test_finalize_new_epoch_secp256k1() {
+    test_finalize_new_epoch("secp256k1").await;
+}
+
+#[tokio::test]
+async fn test_finalize_new_epoch_secp256r1() {
+    test_finalize_new_epoch("secp256r1").await;
+}
+
+async fn test_restart_sync_from_scratch(algorithm: &str) {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default();
+    let cfg = Config::default_with_key_algorithm(algorithm);
     let prover = Arc::new(Prover::new(db1.clone(), da_layer.clone(), &cfg).unwrap());
 
     let runner = prover.clone();
@@ -147,7 +216,7 @@ async fn test_restart_sync_from_scratch() {
         runner.run().await.unwrap();
     });
 
-    let transactions = create_mock_transactions("test_service".to_string());
+    let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     for transaction in transactions {
         prover.clone().validate_and_queue_update(transaction).await.unwrap();
@@ -158,7 +227,9 @@ async fn test_restart_sync_from_scratch() {
         }
     }
 
-    assert_eq!(prover.clone().db.get_epoch().unwrap(), 4);
+    let epoch = prover.clone().db.get_epoch().unwrap();
+    dbg!("Prover 1 reached epoch: {}", epoch);
+    assert_eq!(epoch, 4);
 
     let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), &cfg).unwrap());
     let runner = prover2.clone();
@@ -166,11 +237,13 @@ async fn test_restart_sync_from_scratch() {
 
     loop {
         let epoch = prover2.clone().db.get_epoch().unwrap();
+        dbg!("Prover 2 current epoch: {}", epoch);
         if epoch == 4 {
             assert_eq!(
                 prover.get_commitment().await.unwrap(),
                 prover2.get_commitment().await.unwrap()
             );
+            dbg!("Prover 2 reached epoch 4 and commitments match.");
             break;
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
@@ -178,11 +251,25 @@ async fn test_restart_sync_from_scratch() {
 }
 
 #[tokio::test]
-async fn test_load_persisted_state() {
+async fn test_restart_sync_from_scratch_ed25519() {
+    test_restart_sync_from_scratch("ed25519").await;
+}
+
+#[tokio::test]
+async fn test_restart_sync_from_scratch_secp256k1() {
+    test_restart_sync_from_scratch("secp256k1").await;
+}
+
+#[tokio::test]
+async fn test_restart_sync_from_scratch_secp256r1() {
+    test_restart_sync_from_scratch("secp256r1").await;
+}
+
+async fn test_load_persisted_state(algorithm: &str) {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default();
+    let cfg = Config::default_with_key_algorithm(algorithm);
     let prover = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
 
     let runner = prover.clone();
@@ -190,7 +277,7 @@ async fn test_load_persisted_state() {
         runner.run().await.unwrap();
     });
 
-    let transactions = create_mock_transactions("test_service".to_string());
+    let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     for transaction in transactions {
         prover.clone().validate_and_queue_update(transaction).await.unwrap();
@@ -212,4 +299,19 @@ async fn test_load_persisted_state() {
         prover.get_commitment().await.unwrap(),
         prover2.get_commitment().await.unwrap()
     );
+}
+
+#[tokio::test]
+async fn test_load_persisted_state_ed25519() {
+    test_load_persisted_state("ed25519").await;
+}
+
+#[tokio::test]
+async fn test_load_persisted_state_secp256k1() {
+    test_load_persisted_state("secp256k1").await;
+}
+
+#[tokio::test]
+async fn test_load_persisted_state_secp256r1() {
+    test_load_persisted_state("secp256r1").await;
 }

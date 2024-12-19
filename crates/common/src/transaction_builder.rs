@@ -84,9 +84,13 @@ impl TransactionBuilder {
         self.hashchains.get(id)
     }
 
-    pub fn register_service_with_random_keys(&mut self, id: &str) -> UncommittedTransaction {
-        let random_service_challenge_key = SigningKey::new_ed25519();
-        let random_service_signing_key = SigningKey::new_ed25519();
+    pub fn register_service_with_random_keys(
+        &mut self,
+        algorithm: &str,
+        id: &str,
+    ) -> UncommittedTransaction {
+        let random_service_challenge_key = SigningKey::new_with_algorithm(algorithm);
+        let random_service_signing_key = SigningKey::new_with_algorithm(algorithm);
         self.register_service(id, random_service_challenge_key, random_service_signing_key)
     }
 
@@ -116,10 +120,11 @@ impl TransactionBuilder {
 
     pub fn create_account_with_random_key_signed(
         &mut self,
+        algorithm: &str,
         id: &str,
         service_id: &str,
     ) -> UncommittedTransaction {
-        let account_signing_key = SigningKey::new_ed25519();
+        let account_signing_key = SigningKey::new_with_algorithm(algorithm);
         self.create_account_signed(id, service_id, account_signing_key)
     }
 
@@ -138,11 +143,12 @@ impl TransactionBuilder {
 
     pub fn create_account_with_random_key(
         &mut self,
+        algorithm: &str,
         id: &str,
         service_id: &str,
         service_signing_key: &SigningKey,
     ) -> UncommittedTransaction {
-        let account_signing_key = SigningKey::new_ed25519();
+        let account_signing_key = SigningKey::new_with_algorithm(algorithm);
         self.create_account(id, service_id, service_signing_key, account_signing_key)
     }
 
@@ -176,21 +182,22 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn add_random_key_verified_with_root(&mut self, id: &str) -> UncommittedTransaction {
+    pub fn add_random_key_verified_with_root(&mut self, algorithm: &str, id: &str) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
 
-        self.add_random_key(id, &account_signing_key, 0)
+        self.add_random_key(algorithm, id, &account_signing_key, 0)
     }
 
     pub fn add_random_key(
         &mut self,
+        algorithm: &str,
         id: &str,
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let random_key = SigningKey::new_ed25519().into();
+        let random_key = SigningKey::new_with_algorithm(algorithm).into();
         self.add_key(id, random_key, signing_key, key_idx)
     }
 
@@ -262,21 +269,23 @@ impl TransactionBuilder {
 
     pub fn add_randomly_signed_data(
         &mut self,
+        algorithm: &str,
         id: &str,
         value: Vec<u8>,
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let value_signing_key = SigningKey::new_ed25519();
+        let value_signing_key = SigningKey::new_with_algorithm(algorithm);
         self.add_signed_data(id, value, &value_signing_key, signing_key, key_idx)
     }
 
     pub fn add_randomly_signed_data_verified_with_root(
         &mut self,
+        algorithm: &str,
         id: &str,
         value: Vec<u8>,
     ) -> UncommittedTransaction {
-        let value_signing_key = SigningKey::new_ed25519();
+        let value_signing_key = SigningKey::new_with_algorithm(algorithm);
         self.add_signed_data_verified_with_root(id, value, &value_signing_key)
     }
 

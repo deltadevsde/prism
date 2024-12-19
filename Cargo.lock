@@ -4844,10 +4844,10 @@ dependencies = [
  "async-trait",
  "celestia-rpc",
  "celestia-types",
- "ed25519-consensus",
  "log",
  "prism-common",
  "prism-errors",
+ "prism-keys",
  "prism-serde",
  "serde",
  "sp1-sdk",
@@ -4882,11 +4882,11 @@ name = "prism-lightclient"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "ed25519-consensus",
  "log",
  "prism-common",
  "prism-da",
  "prism-errors",
+ "prism-keys",
  "sp1-sdk",
  "tokio",
 ]
@@ -4897,9 +4897,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum 0.6.20",
- "ed25519-consensus",
  "jmt",
- "keystore-rs",
  "log",
  "prism-common",
  "prism-da",
@@ -4961,6 +4959,7 @@ dependencies = [
  "pretty_env_logger",
  "prism-common",
  "prism-da",
+ "prism-keys",
  "prism-lightclient",
  "prism-prover",
  "prism-storage",

@@ -31,6 +31,15 @@ impl SigningKey {
         SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng))
     }
 
+    pub fn new_with_algorithm(algorithm: &str) -> Self {
+        match algorithm {
+            "ed25519" => SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))),
+            "secp256k1" => SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)),
+            "secp256r1" => SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng)),
+            _ => panic!("Unexpected key algorithm for SigningKey: {}", algorithm),
+        }
+    }
+
     pub fn verifying_key(&self) -> VerifyingKey {
         self.clone().into()
     }
@@ -54,7 +63,7 @@ impl SigningKey {
             "secp256r1" => Secp256r1SigningKey::from_slice(bytes)
                 .map(SigningKey::Secp256r1)
                 .map_err(|e| e.into()),
-            _ => bail!("Unexpected algorithm for VerifyingKey"),
+            _ => bail!("Unexpected algorithm for SigningKey: {}", algorithm),
         }
     }
 

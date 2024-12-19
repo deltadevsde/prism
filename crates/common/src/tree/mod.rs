@@ -28,19 +28,18 @@ mod tests {
     use super::{HashchainResponse::*, *};
     use crate::{digest::Digest, hasher::Hasher, transaction_builder::TransactionBuilder};
 
-    #[test]
-    fn test_insert_and_get() {
+    fn test_insert_and_get(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
         let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
             panic!("Processing transaction did not return the expected insert proof");
         };
         assert!(insert_proof.verify().is_ok());
 
         let account_tx =
-            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
 
         let Proof::Insert(insert_proof) = tree.process_transaction(account_tx).unwrap() else {
             panic!("Processing transaction did not return the expected insert proof");
@@ -61,14 +60,29 @@ mod tests {
     }
 
     #[test]
-    fn test_insert_for_nonexistent_service_fails() {
+    fn test_insert_and_get_ed25519() {
+        test_insert_and_get("ed25519");
+    }
+
+    #[test]
+    fn test_insert_and_get_secp256k1() {
+        test_insert_and_get("secp256k1");
+    }
+
+    #[test]
+    fn test_insert_and_get_secp256r1() {
+        test_insert_and_get("secp256r1");
+    }
+
+    fn test_insert_for_nonexistent_service_fails(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_signing_key = SigningKey::new_ed25519();
+        let service_signing_key = SigningKey::new_with_algorithm(algorithm);
 
         let invalid_account_tx = tx_builder
             .create_account_with_random_key(
+                algorithm,
                 "acc_1",
                 "service_id_that_does_not_exist",
                 &service_signing_key,
@@ -80,17 +94,31 @@ mod tests {
     }
 
     #[test]
-    fn test_insert_with_invalid_service_challenge_fails() {
+    fn test_insert_for_nonexistent_service_fails_ed25519() {
+        test_insert_for_nonexistent_service_fails("ed25519");
+    }
+
+    #[test]
+    fn test_insert_for_nonexistent_service_fails_secp256k1() {
+        test_insert_for_nonexistent_service_fails("secp256k1");
+    }
+
+    #[test]
+    fn test_insert_for_nonexistent_service_fails_secp256r1() {
+        test_insert_for_nonexistent_service_fails("secp256r1");
+    }
+
+    fn test_insert_with_invalid_service_challenge_fails(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
 
         // The correct way was to use the key from service registration,
         // but here we want things to break
-        let incorrect_service_signing_key = SigningKey::new_ed25519();
+        let incorrect_service_signing_key = SigningKey::new_with_algorithm(algorithm);
 
-        let initial_acc_signing_key = SigningKey::new_ed25519();
+        let initial_acc_signing_key = SigningKey::new_with_algorithm(algorithm);
 
         let acc_with_invalid_challenge_tx = tx_builder
             .create_account(
@@ -111,15 +139,29 @@ mod tests {
     }
 
     #[test]
-    fn test_insert_duplicate_key() {
+    fn test_insert_with_invalid_service_challenge_fails_ed25519() {
+        test_insert_with_invalid_service_challenge_fails("ed25519");
+    }
+
+    #[test]
+    fn test_insert_with_invalid_service_challenge_fails_secp256k1() {
+        test_insert_with_invalid_service_challenge_fails("secp256k1");
+    }
+
+    #[test]
+    fn test_insert_with_invalid_service_challenge_fails_secp256r1() {
+        test_insert_with_invalid_service_challenge_fails("secp256r1");
+    }
+
+    fn test_insert_duplicate_key(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
         let account_tx =
-            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
         let account_with_same_id_tx =
-            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").build();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").build();
 
         let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
             panic!("Processing service registration failed")
@@ -136,18 +178,32 @@ mod tests {
     }
 
     #[test]
-    fn test_update_existing_key() {
+    fn test_insert_duplicate_key_ed25519() {
+        test_insert_duplicate_key("ed25519");
+    }
+
+    #[test]
+    fn test_insert_duplicate_key_secp256k1() {
+        test_insert_duplicate_key("secp256k1");
+    }
+
+    #[test]
+    fn test_insert_duplicate_key_secp256r1() {
+        test_insert_duplicate_key("secp256r1");
+    }
+
+    fn test_update_existing_key(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
         let acc_tx =
-            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
         tree.process_transaction(acc_tx).unwrap();
 
-        let key_tx = tx_builder.add_random_key_verified_with_root("acc_1").commit();
+        let key_tx = tx_builder.add_random_key_verified_with_root(algorithm, "acc_1").commit();
 
         let Proof::Update(update_proof) = tree.process_transaction(key_tx).unwrap() else {
             panic!("Processing key update failed")
@@ -161,21 +217,50 @@ mod tests {
     }
 
     #[test]
-    fn test_update_non_existing_key() {
+    fn test_update_existing_key_ed25519() {
+        test_update_existing_key("ed25519");
+    }
+
+    #[test]
+    fn test_update_existing_key_secp256k1() {
+        test_update_existing_key("secp256k1");
+    }
+
+    #[test]
+    fn test_update_existing_key_secp256r1() {
+        test_update_existing_key("secp256r1");
+    }
+
+    fn test_update_non_existing_key(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
 
         // This is a signing key not known to the storage yet
-        let random_signing_key = SigningKey::new_ed25519();
+        let random_signing_key = SigningKey::new_with_algorithm(algorithm);
         // This transaction shall be invalid, because it is signed with an unknown key
-        let invalid_key_tx = tx_builder.add_random_key("acc_1", &random_signing_key, 0).build();
+        let invalid_key_tx = tx_builder.add_random_key(algorithm, "acc_1", &random_signing_key, 0).build();
 
         let result = tree.process_transaction(invalid_key_tx);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_update_non_existing_key_ed25519() {
+        test_update_non_existing_key("ed25519");
+    }
+
+    #[test]
+    fn test_update_non_existing_key_secp256k1() {
+        test_update_non_existing_key("secp256k1");
+    }
+
+    #[test]
+    fn test_update_non_existing_key_secp256r1() {
+        test_update_non_existing_key("secp256r1");
     }
 
     #[test]
@@ -190,17 +275,16 @@ mod tests {
 
         assert!(non_membership_proof.verify().is_ok());
     }
-
-    #[test]
-    fn test_multiple_inserts_and_updates() {
+    
+    fn test_multiple_inserts_and_updates(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
         let acc1_tx =
-            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
         let acc2_tx =
-            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_2", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
 
@@ -208,7 +292,7 @@ mod tests {
         tree.process_transaction(acc2_tx).unwrap();
 
         // Do insert and update accounts using the correct key indices
-        let key_1_tx = tx_builder.add_random_key_verified_with_root("acc_1").commit();
+        let key_1_tx = tx_builder.add_random_key_verified_with_root(algorithm, "acc_1").commit();
         tree.process_transaction(key_1_tx).unwrap();
 
         let data_1_tx =
@@ -216,7 +300,7 @@ mod tests {
         tree.process_transaction(data_1_tx).unwrap();
 
         let data_2_tx = tx_builder
-            .add_randomly_signed_data_verified_with_root("acc_2", b"signed".to_vec())
+            .add_randomly_signed_data_verified_with_root(algorithm, "acc_2", b"signed".to_vec())
             .commit();
         tree.process_transaction(data_2_tx).unwrap();
 
@@ -231,25 +315,39 @@ mod tests {
     }
 
     #[test]
-    fn test_interleaved_inserts_and_updates() {
+    fn test_multiple_inserts_and_updates_ed25519() {
+        test_multiple_inserts_and_updates("ed25519");
+    }
+
+    #[test]
+    fn test_multiple_inserts_and_updates_secp256k1() {
+        test_multiple_inserts_and_updates("secp256k1");
+    }
+
+    #[test]
+    fn test_multiple_inserts_and_updates_secp256r1() {
+        test_multiple_inserts_and_updates("secp256r1");
+    }
+
+    fn test_interleaved_inserts_and_updates(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
         let acc1_tx =
-            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
         let acc2_tx =
-            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_2", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
         tree.process_transaction(acc1_tx).unwrap();
 
-        let add_key_to_1_tx = tx_builder.add_random_key_verified_with_root("acc_1").commit();
+        let add_key_to_1_tx = tx_builder.add_random_key_verified_with_root(algorithm, "acc_1").commit();
         tree.process_transaction(add_key_to_1_tx).unwrap();
 
         tree.process_transaction(acc2_tx).unwrap();
 
-        let add_key_to_2_tx = tx_builder.add_random_key_verified_with_root("acc_2").commit();
+        let add_key_to_2_tx = tx_builder.add_random_key_verified_with_root(algorithm, "acc_2").commit();
         let last_proof = tree.process_transaction(add_key_to_2_tx).unwrap();
 
         // Update account_2 using the correct key index
@@ -272,13 +370,27 @@ mod tests {
     }
 
     #[test]
-    fn test_root_hash_changes() {
+    fn test_interleaved_inserts_and_updates_ed25519() {
+        test_interleaved_inserts_and_updates("ed25519");
+    }
+
+    #[test]
+    fn test_interleaved_inserts_and_updates_secp256k1() {
+        test_interleaved_inserts_and_updates("secp256k1");
+    }
+
+    #[test]
+    fn test_interleaved_inserts_and_updates_secp256r1() {
+        test_interleaved_inserts_and_updates("secp256r1");
+    }
+
+    fn test_root_hash_changes(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
         let account1_tx =
-            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
 
@@ -290,15 +402,29 @@ mod tests {
     }
 
     #[test]
-    fn test_batch_writing() {
+    fn test_root_hash_changes_ed25519() {
+        test_root_hash_changes("ed25519");
+    }
+
+    #[test]
+    fn test_root_hash_changes_secp256k1() {
+        test_root_hash_changes("secp256k1");
+    }
+
+    #[test]
+    fn test_root_hash_changes_secp256r1() {
+        test_root_hash_changes("secp256r1");
+    }
+
+    fn test_batch_writing(algorithm: &str) {
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let mut tx_builder = TransactionBuilder::new();
 
-        let service_tx = tx_builder.register_service_with_random_keys("service_1").commit();
+        let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
         let account1_tx =
-            tx_builder.create_account_with_random_key_signed("acc_1", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
         let account2_tx =
-            tx_builder.create_account_with_random_key_signed("acc_2", "service_1").commit();
+            tx_builder.create_account_with_random_key_signed(algorithm, "acc_2", "service_1").commit();
 
         tree.process_transaction(service_tx).unwrap();
 
@@ -328,5 +454,20 @@ mod tests {
 
         assert!(matches!(get_result1, Found(hc, _) if &hc == test_hashchain_acc1));
         assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
+    }
+
+    #[test]
+    fn test_batch_writing_ed25519() {
+        test_batch_writing("ed25519");
+    }
+
+    #[test]
+    fn test_batch_writing_secp256k1() {
+        test_batch_writing("secp256k1");
+    }
+
+    #[test]
+    fn test_batch_writing_secp256r1() {
+        test_batch_writing("secp256r1");
     }
 }
