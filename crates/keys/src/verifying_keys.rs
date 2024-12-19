@@ -143,10 +143,10 @@ impl TryFrom<CryptoPayload> for VerifyingKey {
 }
 
 impl From<VerifyingKey> for CryptoPayload {
-    fn from(signature: VerifyingKey) -> Self {
+    fn from(verifying_key: VerifyingKey) -> Self {
         CryptoPayload {
-            algorithm: signature.algorithm().to_string(),
-            bytes: signature.to_bytes(),
+            algorithm: verifying_key.algorithm().to_string(),
+            bytes: verifying_key.to_bytes(),
         }
     }
 }
