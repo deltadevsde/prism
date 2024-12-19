@@ -11,7 +11,7 @@ use prism_da::{
 };
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
-use prism_keys::SigningKey;
+use prism_keys::{SigningKey, KeyAlgorithm};
 use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
@@ -42,7 +42,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
         ..CelestiaConfig::default()
     };
 
-    let algorithm = "secp256r1";
+    let algorithm = KeyAlgorithm::Secp256r1;
 
     let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
     let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());

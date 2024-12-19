@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, Context, Result};
-use prism_keys::{SigningKey, VerifyingKey};
+use prism_keys::{SigningKey, VerifyingKey, KeyAlgorithm};
 use jmt::KeyHash;
 use prism_common::{digest::Digest, hashchain::Hashchain, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
@@ -64,9 +64,9 @@ impl Default for Config {
     }
 }
 
-#[cfg(test)]
+#[allow(dead_code)]
 impl Config {
-    fn default_with_key_algorithm(algorithm: &str) -> Self {
+    fn default_with_key_algorithm(algorithm: KeyAlgorithm) -> Self {
         let signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
 
         Config {

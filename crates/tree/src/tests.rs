@@ -2,14 +2,14 @@ use std::sync::Arc;
 
 use jmt::{mock::MockTreeStore, KeyHash};
 use prism_common::transaction_builder::TransactionBuilder;
-use prism_keys::SigningKey;
+use prism_keys::{SigningKey, KeyAlgorithm};
 
 use crate::{
     hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
     snarkable_tree::SnarkableTree, HashchainResponse::*,
 };
 
-fn test_insert_and_get(algorithm: &str) {
+fn test_insert_and_get(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -40,7 +40,7 @@ fn test_insert_and_get(algorithm: &str) {
     assert!(membership_proof.verify().is_ok());
 }
 
-fn test_insert_for_nonexistent_service_fails(algorithm: &str) {
+fn test_insert_for_nonexistent_service_fails(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -59,7 +59,7 @@ fn test_insert_for_nonexistent_service_fails(algorithm: &str) {
     assert!(insertion_result.is_err());
 }
 
-fn test_insert_with_invalid_service_challenge_fails(algorithm: &str) {
+fn test_insert_with_invalid_service_challenge_fails(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -89,7 +89,7 @@ fn test_insert_with_invalid_service_challenge_fails(algorithm: &str) {
     assert!(create_account_result.is_err());
 }
 
-fn test_insert_duplicate_key(algorithm: &str) {
+fn test_insert_duplicate_key(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -113,7 +113,7 @@ fn test_insert_duplicate_key(algorithm: &str) {
     assert!(create_acc_with_same_id_result.is_err());
 }
 
-fn test_update_existing_key(algorithm: &str) {
+fn test_update_existing_key(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -136,7 +136,7 @@ fn test_update_existing_key(algorithm: &str) {
     assert!(matches!(get_result, Found(hc, _) if &hc == test_hashchain));
 }
 
-fn test_update_non_existing_key(algorithm: &str) {
+fn test_update_non_existing_key(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -153,7 +153,7 @@ fn test_update_non_existing_key(algorithm: &str) {
     assert!(result.is_err());
 }
 
-fn test_multiple_inserts_and_updates(algorithm: &str) {
+fn test_multiple_inserts_and_updates(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -189,7 +189,7 @@ fn test_multiple_inserts_and_updates(algorithm: &str) {
     assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
 }
 
-fn test_interleaved_inserts_and_updates(algorithm: &str) {
+fn test_interleaved_inserts_and_updates(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -224,7 +224,7 @@ fn test_interleaved_inserts_and_updates(algorithm: &str) {
     assert_eq!(update_proof.new_root, tree.get_commitment().unwrap());
 }
 
-fn test_root_hash_changes(algorithm: &str) {
+fn test_root_hash_changes(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -241,7 +241,7 @@ fn test_root_hash_changes(algorithm: &str) {
     assert_ne!(root_before, root_after);
 }
 
-fn test_batch_writing(algorithm: &str) {
+fn test_batch_writing(algorithm: KeyAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -286,17 +286,17 @@ macro_rules! generate_algorithm_tests {
         paste::paste! {
             #[test]
             fn [<$test_fn _ed25519>]() {
-                $test_fn("ed25519");
+                $test_fn(KeyAlgorithm::Ed25519);
             }
 
             #[test]
             fn [<$test_fn _secp256k1>]() {
-                $test_fn("secp256k1");
+                $test_fn(KeyAlgorithm::Secp256k1);
             }
 
             #[test]
             fn [<$test_fn _secp256r1>]() {
-                $test_fn("secp256r1");
+                $test_fn(KeyAlgorithm::Secp256r1);
             }
         }
     };

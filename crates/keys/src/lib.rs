@@ -6,142 +6,42 @@ pub use signatures::*;
 pub use signing_keys::*;
 pub use verifying_keys::*;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ed25519_consensus::SigningKey as Ed25519SigningKey;
-    use prism_serde::base64::ToBase64;
-    use rand::rngs::OsRng;
-    use secp256k1::SecretKey as Secp256k1SigningKey;
-    use p256::ecdsa::SigningKey as Secp256r1SigningKey;
-    #[test]
-    fn test_reparsed_verifying_keys_are_equal_to_original() {
-        let verifying_key_ed25519 = SigningKey::new_ed25519().verifying_key();
-        let re_parsed_verifying_key = VerifyingKey::from_algorithm_and_bytes(
-            verifying_key_ed25519.algorithm(),
-            &verifying_key_ed25519.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_verifying_key, verifying_key_ed25519);
+use std::str::FromStr;
+use std::fmt;
+use std::clone::Clone;
 
-        let verifying_key_secp256k1 = SigningKey::new_secp256k1().verifying_key();
-        let re_parsed_verifying_key = VerifyingKey::from_algorithm_and_bytes(
-            verifying_key_secp256k1.algorithm(),
-            &verifying_key_secp256k1.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_verifying_key, verifying_key_secp256k1);
+#[derive(Debug, Clone, Copy)]
+pub enum KeyAlgorithm {
+    Ed25519,
+    Secp256k1,
+    Secp256r1,
+    Placeholder,
+}
 
-        let verifying_key_secp256r1 = SigningKey::new_secp256r1().verifying_key();
-        let re_parsed_verifying_key = VerifyingKey::from_algorithm_and_bytes(
-            verifying_key_secp256r1.algorithm(),
-            &verifying_key_secp256r1.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_verifying_key, verifying_key_secp256r1);
-    }
+impl FromStr for KeyAlgorithm {
+    type Err = anyhow::Error;
 
-    #[test]
-    fn test_reparsed_signing_keys_are_equal_to_original() {
-        let signing_key_ed25519 = SigningKey::new_ed25519();
-        let re_parsed_signing_key = SigningKey::from_algorithm_and_bytes(
-            signing_key_ed25519.algorithm(),
-            &signing_key_ed25519.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_signing_key, signing_key_ed25519);
-
-        let signing_key_secp256k1 = SigningKey::new_secp256k1();
-        let re_parsed_signing_key = SigningKey::from_algorithm_and_bytes(
-            signing_key_secp256k1.algorithm(),
-            &signing_key_secp256k1.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_signing_key, signing_key_secp256k1);
-
-        let signing_key_secp256r1 = SigningKey::new_secp256r1();
-        let re_parsed_signing_key = SigningKey::from_algorithm_and_bytes(
-            signing_key_secp256r1.algorithm(),
-            &signing_key_secp256r1.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_signing_key, signing_key_secp256r1);
-    }
-
-    #[test]
-    fn test_reparsed_signatures_are_equal_to_original() {
-        let message = b"test message";
-
-        let signature_ed25519 = SigningKey::new_ed25519().sign(message);
-        let re_parsed_signature = Signature::from_algorithm_and_bytes(
-            signature_ed25519.algorithm(),
-            &signature_ed25519.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_signature, signature_ed25519);
-
-        let signature_secp256k1 = SigningKey::new_secp256k1().sign(message);
-        let re_parsed_signature = Signature::from_algorithm_and_bytes(
-            signature_secp256k1.algorithm(),
-            &signature_secp256k1.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_signature, signature_secp256k1);
-
-        let signature_secp256r1 = SigningKey::new_secp256r1().sign(message);
-        let re_parsed_signature = Signature::from_algorithm_and_bytes(
-            signature_secp256r1.algorithm(),
-            &signature_secp256r1.to_bytes(),
-        )
-        .unwrap();
-        assert_eq!(re_parsed_signature, signature_secp256r1);
-    }
-
-    #[test]
-    fn test_verifying_key_from_string_ed25519() {
-        let original_key: VerifyingKey =
-            SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).into();
-        let encoded = original_key.to_bytes().to_base64();
-
-        let result = VerifyingKey::try_from(encoded);
-        assert!(result.is_ok());
-
-        let decoded_key = result.unwrap();
-        assert_eq!(decoded_key.to_bytes(), original_key.to_bytes());
-    }
-
-    #[test]
-    fn test_verifying_key_from_string_secp256k1() {
-        let original_key: VerifyingKey =
-            SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)).into();
-        let encoded = original_key.to_bytes().to_base64();
-
-        let result = VerifyingKey::try_from(encoded);
-        assert!(result.is_ok());
-
-        let decoded_key = result.unwrap();
-        assert_eq!(decoded_key.to_bytes(), original_key.to_bytes());
-    }
-
-    #[test]
-    fn test_verifying_key_from_string_secp256r1() {
-        let original_key: VerifyingKey =
-            SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng)).into();
-        let encoded = original_key.to_bytes().to_base64();
-
-        let result = VerifyingKey::try_from(encoded);
-        assert!(result.is_ok());
-
-        let decoded_key = result.unwrap();
-        assert_eq!(decoded_key.to_bytes(), original_key.to_bytes());
-    }
-
-    #[test]
-    fn test_verifying_key_from_string_invalid_length() {
-        let invalid_bytes: [u8; 31] = [1; 31];
-        let encoded = invalid_bytes.to_base64();
-
-        let result = VerifyingKey::try_from(encoded);
-        assert!(result.is_err());
+    fn from_str(input: &str) -> Result<KeyAlgorithm, Self::Err> {
+        match input.to_lowercase().as_str() {
+            "ed25519" => Ok(KeyAlgorithm::Ed25519),
+            "secp256k1" => Ok(KeyAlgorithm::Secp256k1),
+            "secp256r1" => Ok(KeyAlgorithm::Secp256r1),
+            "placeholder" => Ok(KeyAlgorithm::Placeholder),
+            _ => Err(anyhow::anyhow!("Invalid algorithm: {}", input)),
+        }
     }
 }
+
+impl fmt::Display for KeyAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            KeyAlgorithm::Ed25519 => write!(f, "Ed25519"),
+            KeyAlgorithm::Secp256k1 => write!(f, "Secp256k1"),
+            KeyAlgorithm::Secp256r1 => write!(f, "Secp256r1"),
+            KeyAlgorithm::Placeholder => write!(f, "Placeholder"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;

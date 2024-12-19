@@ -6,7 +6,7 @@ use crate::{
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::Transaction,
 };
-use prism_keys::{SigningKey, VerifyingKey};
+use prism_keys::{SigningKey, VerifyingKey, KeyAlgorithm};
 enum PostCommitAction {
     UpdateStorageOnly,
     RememberServiceKey(String, SigningKey),
@@ -86,10 +86,10 @@ impl TransactionBuilder {
 
     pub fn register_service_with_random_keys(
         &mut self,
-        algorithm: &str,
+        algorithm: KeyAlgorithm,
         id: &str,
     ) -> UncommittedTransaction {
-        let random_service_challenge_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create challenge key");
+        let random_service_challenge_key = SigningKey::new_with_algorithm(algorithm.clone()).expect("Failed to create challenge key");
         let random_service_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
         self.register_service(id, random_service_challenge_key, random_service_signing_key)
     }
@@ -120,7 +120,7 @@ impl TransactionBuilder {
 
     pub fn create_account_with_random_key_signed(
         &mut self,
-        algorithm: &str,
+        algorithm: KeyAlgorithm,
         id: &str,
         service_id: &str,
     ) -> UncommittedTransaction {
@@ -143,7 +143,7 @@ impl TransactionBuilder {
 
     pub fn create_account_with_random_key(
         &mut self,
-        algorithm: &str,
+        algorithm: KeyAlgorithm,
         id: &str,
         service_id: &str,
         service_signing_key: &SigningKey,
@@ -182,7 +182,7 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn add_random_key_verified_with_root(&mut self, algorithm: &str, id: &str) -> UncommittedTransaction {
+    pub fn add_random_key_verified_with_root(&mut self, algorithm: KeyAlgorithm, id: &str) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -192,7 +192,7 @@ impl TransactionBuilder {
 
     pub fn add_random_key(
         &mut self,
-        algorithm: &str,
+        algorithm: KeyAlgorithm,
         id: &str,
         signing_key: &SigningKey,
         key_idx: usize,
@@ -269,7 +269,7 @@ impl TransactionBuilder {
 
     pub fn add_randomly_signed_data(
         &mut self,
-        algorithm: &str,
+        algorithm: KeyAlgorithm,
         id: &str,
         value: Vec<u8>,
         signing_key: &SigningKey,
@@ -281,7 +281,7 @@ impl TransactionBuilder {
 
     pub fn add_randomly_signed_data_verified_with_root(
         &mut self,
-        algorithm: &str,
+        algorithm: KeyAlgorithm,
         id: &str,
         value: Vec<u8>,
     ) -> UncommittedTransaction {

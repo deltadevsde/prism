@@ -14,9 +14,10 @@ use sha2::Digest as _;
 use std::{
     self,
     hash::{Hash, Hasher},
+    str::FromStr,
 };
 
-use crate::{Signature, SigningKey};
+use crate::{Signature, SigningKey, KeyAlgorithm};
 use prism_serde::{
     base64::{FromBase64, ToBase64},
     CryptoPayload,
@@ -63,26 +64,26 @@ impl VerifyingKey {
         }
     }
 
-    pub fn from_algorithm_and_bytes(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+    pub fn from_algorithm_and_bytes(algorithm: KeyAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            "ed25519" => Ed25519VerifyingKey::try_from(bytes)
+            KeyAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
                 .map(VerifyingKey::Ed25519)
                 .map_err(|e| e.into()),
-            "secp256k1" => Secp256k1VerifyingKey::from_slice(bytes)
+            KeyAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_slice(bytes)
                 .map(VerifyingKey::Secp256k1)
                 .map_err(|e| e.into()),
-            "secp256r1" => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
+            KeyAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::Secp256r1)
                 .map_err(|e| e.into()),
             _ => bail!("Unexpected algorithm for VerifyingKey: {}", algorithm),
         }
     }
 
-    pub fn algorithm(&self) -> &'static str {
+    pub fn algorithm(&self) -> KeyAlgorithm {
         match self {
-            VerifyingKey::Ed25519(_) => "ed25519",
-            VerifyingKey::Secp256k1(_) => "secp256k1",
-            VerifyingKey::Secp256r1(_) => "secp256r1",
+            VerifyingKey::Ed25519(_) => KeyAlgorithm::Ed25519,
+            VerifyingKey::Secp256k1(_) => KeyAlgorithm::Secp256k1,
+            VerifyingKey::Secp256r1(_) => KeyAlgorithm::Secp256r1,
         }
     }
 
@@ -126,7 +127,10 @@ impl TryFrom<CryptoPayload> for VerifyingKey {
     type Error = anyhow::Error;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
-        VerifyingKey::from_algorithm_and_bytes(&value.algorithm, &value.bytes)
+        VerifyingKey::from_algorithm_and_bytes(
+            KeyAlgorithm::from_str(&value.algorithm).map_err(|_| anyhow::anyhow!("Invalid algorithm: {}", value.algorithm))?,
+            &value.bytes,
+        )
     }
 }
 

@@ -3,9 +3,10 @@ use ed25519_consensus::Signature as Ed25519Signature;
 use p256::ecdsa::Signature as Secp256r1Signature;
 use secp256k1::ecdsa::Signature as Secp256k1Signature;
 
+use crate::KeyAlgorithm;
 use prism_serde::CryptoPayload;
 use serde::{Deserialize, Serialize};
-use std::{self};
+use std::{self, str::FromStr};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
@@ -27,27 +28,27 @@ impl Signature {
         }
     }
 
-    pub fn from_algorithm_and_bytes(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+    pub fn from_algorithm_and_bytes(algorithm: KeyAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            "ed25519" => {
+            KeyAlgorithm::Ed25519 => {
                 Ed25519Signature::try_from(bytes).map(Signature::Ed25519).map_err(|e| e.into())
             }
-            "secp256k1" => {
+            KeyAlgorithm::Secp256k1 => {
                 Secp256k1Signature::from_der(bytes).map(Signature::Secp256k1).map_err(|e| e.into())
             }
-            "secp256r1" => {
+            KeyAlgorithm::Secp256r1 => {
                 Secp256r1Signature::from_der(bytes).map(Signature::Secp256r1).map_err(|e| e.into())
             }
             _ => bail!("Unexpected algorithm for Signature: {}", algorithm),
         }
     }
 
-    pub fn algorithm(&self) -> &'static str {
+    pub fn algorithm(&self) -> KeyAlgorithm {
         match self {
-            Signature::Ed25519(_) => "ed25519",
-            Signature::Secp256k1(_) => "secp256k1",
-            Signature::Secp256r1(_) => "secp256r1",
-            Signature::Placeholder => "placeholder",
+            Signature::Ed25519(_) => KeyAlgorithm::Ed25519,
+            Signature::Secp256k1(_) => KeyAlgorithm::Secp256k1,
+            Signature::Secp256r1(_) => KeyAlgorithm::Secp256r1,
+            Signature::Placeholder => KeyAlgorithm::Placeholder,
         }
     }
 }
@@ -56,7 +57,7 @@ impl TryFrom<CryptoPayload> for Signature {
     type Error = anyhow::Error;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
-        Signature::from_algorithm_and_bytes(&value.algorithm, &value.bytes)
+        Signature::from_algorithm_and_bytes(KeyAlgorithm::from_str(&value.algorithm)?, &value.bytes)
     }
 }
 
