@@ -227,9 +227,7 @@ async fn test_restart_sync_from_scratch(algorithm: &str) {
         }
     }
 
-    let epoch = prover.clone().db.get_epoch().unwrap();
-    dbg!("Prover 1 reached epoch: {}", epoch);
-    assert_eq!(epoch, 4);
+    assert_eq!(prover.clone().db.get_epoch().unwrap(), 4);
 
     let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), &cfg).unwrap());
     let runner = prover2.clone();
@@ -237,13 +235,11 @@ async fn test_restart_sync_from_scratch(algorithm: &str) {
 
     loop {
         let epoch = prover2.clone().db.get_epoch().unwrap();
-        dbg!("Prover 2 current epoch: {}", epoch);
         if epoch == 4 {
             assert_eq!(
                 prover.get_commitment().await.unwrap(),
                 prover2.get_commitment().await.unwrap()
             );
-            dbg!("Prover 2 reached epoch 4 and commitments match.");
             break;
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
