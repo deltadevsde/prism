@@ -80,7 +80,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
         let mut transaction_builder = TransactionBuilder::new();
         let register_service_req =
-            transaction_builder.register_service_with_random_keys(algorithm, "test_service")?.commit();
+            transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
 
         let mut i = 0;
 
@@ -93,7 +93,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
             for _ in 0..num_new_accounts {
                 let random_user_id = format!("{}@gmail.com", i);
                 let new_acc = transaction_builder
-                    .create_account_with_random_key_signed(algorithm, random_user_id.as_str(), "test_service")?
+                    .create_account_with_random_key_signed(algorithm, random_user_id.as_str(), "test_service")
                     .commit();
                 match prover.clone().validate_and_queue_update(new_acc).await {
                     Ok(_) => {
@@ -112,7 +112,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
                         .map_or("Could not find random account id", |id| id.as_str());
 
                     let update_acc =
-                        transaction_builder.add_random_key_verified_with_root(algorithm, acc_id)?.commit();
+                        transaction_builder.add_random_key_verified_with_root(algorithm, acc_id).commit();
 
                     match prover.clone().validate_and_queue_update(update_acc).await {
                         Ok(_) => (),

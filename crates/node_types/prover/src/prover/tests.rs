@@ -77,7 +77,7 @@ async fn test_process_transactions(algorithm: &str) {
     let proof = prover.process_transaction(create_account_transaction.clone()).await.unwrap();
     assert!(matches!(proof, Proof::Insert(_)));
 
-    let new_key = SigningKey::new_with_algorithm(algorithm);
+    let new_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create new key");
     let add_key_transaction = transaction_builder
         .add_key_verified_with_root("test_account", new_key.clone().into())
         .commit();
@@ -119,7 +119,7 @@ async fn test_execute_block_with_invalid_tx(algorithm: &str) {
 
     let mut tx_builder = TransactionBuilder::new();
 
-    let new_key_1 = SigningKey::new_with_algorithm(algorithm);
+    let new_key_1 = SigningKey::new_with_algorithm(algorithm).expect("Failed to create new key");
     let new_key_vk: VerifyingKey = new_key_1.clone().into();
 
     let transactions = vec![

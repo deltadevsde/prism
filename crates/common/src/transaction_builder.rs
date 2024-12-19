@@ -89,8 +89,8 @@ impl TransactionBuilder {
         algorithm: &str,
         id: &str,
     ) -> UncommittedTransaction {
-        let random_service_challenge_key = SigningKey::new_with_algorithm(algorithm);
-        let random_service_signing_key = SigningKey::new_with_algorithm(algorithm);
+        let random_service_challenge_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create challenge key");
+        let random_service_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
         self.register_service(id, random_service_challenge_key, random_service_signing_key)
     }
 
@@ -124,7 +124,7 @@ impl TransactionBuilder {
         id: &str,
         service_id: &str,
     ) -> UncommittedTransaction {
-        let account_signing_key = SigningKey::new_with_algorithm(algorithm);
+        let account_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create account signing key");
         self.create_account_signed(id, service_id, account_signing_key)
     }
 
@@ -148,7 +148,7 @@ impl TransactionBuilder {
         service_id: &str,
         service_signing_key: &SigningKey,
     ) -> UncommittedTransaction {
-        let account_signing_key = SigningKey::new_with_algorithm(algorithm);
+        let account_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create account signing key");
         self.create_account(id, service_id, service_signing_key, account_signing_key)
     }
 
@@ -197,7 +197,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let random_key = SigningKey::new_with_algorithm(algorithm).into();
+        let random_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create random key").into();
         self.add_key(id, random_key, signing_key, key_idx)
     }
 
@@ -275,7 +275,7 @@ impl TransactionBuilder {
         signing_key: &SigningKey,
         key_idx: usize,
     ) -> UncommittedTransaction {
-        let value_signing_key = SigningKey::new_with_algorithm(algorithm);
+        let value_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.add_signed_data(id, value, &value_signing_key, signing_key, key_idx)
     }
 
@@ -285,7 +285,7 @@ impl TransactionBuilder {
         id: &str,
         value: Vec<u8>,
     ) -> UncommittedTransaction {
-        let value_signing_key = SigningKey::new_with_algorithm(algorithm);
+        let value_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.add_signed_data_verified_with_root(id, value, &value_signing_key)
     }
 

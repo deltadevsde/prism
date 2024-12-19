@@ -67,7 +67,7 @@ impl Default for Config {
 #[cfg(test)]
 impl Config {
     fn default_with_key_algorithm(algorithm: &str) -> Self {
-        let signing_key = SigningKey::new_with_algorithm(algorithm);
+        let signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
 
         Config {
             prover: true,
@@ -282,7 +282,7 @@ impl Prover {
         }
 
         // TODO: Issue #144
-        epoch.verify_signature(&self.cfg.verifying_key)
+        epoch.verify_signature(self.cfg.verifying_key.clone())
             .with_context(|| format!("Invalid signature in epoch {}", epoch.height))?;
         trace!("valid signature for epoch {}", epoch.height);
 

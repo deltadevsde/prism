@@ -59,7 +59,7 @@ fn test_insert_for_nonexistent_service_fails(algorithm: &str) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
-    let service_signing_key = SigningKey::new_with_algorithm(algorithm);
+    let service_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create service signing key");
 
     let invalid_account_tx = tx_builder
         .create_account_with_random_key(
@@ -97,9 +97,9 @@ fn test_insert_with_invalid_service_challenge_fails(algorithm: &str) {
 
     // The correct way was to use the key from service registration,
     // but here we want things to break
-    let incorrect_service_signing_key = SigningKey::new_with_algorithm(algorithm);
+    let incorrect_service_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create service signing key");
 
-    let initial_acc_signing_key = SigningKey::new_with_algorithm(algorithm);
+    let initial_acc_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create account signing key");
 
     let acc_with_invalid_challenge_tx = tx_builder
         .create_account(
@@ -220,7 +220,7 @@ fn test_update_non_existing_key(algorithm: &str) {
     tree.process_transaction(service_tx).unwrap();
 
     // This is a signing key not known to the storage yet
-    let random_signing_key = SigningKey::new_with_algorithm(algorithm);
+    let random_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create random signing key");
     // This transaction shall be invalid, because it is signed with an unknown key
     let invalid_key_tx = tx_builder.add_random_key(algorithm, "acc_1", &random_signing_key, 0).build();
 
@@ -243,7 +243,8 @@ fn test_update_non_existing_key_secp256r1() {
     test_update_non_existing_key("secp256r1");
 }
 
-fn test_get_non_existing_key(algorithm: &str) {
+#[test]
+fn test_get_non_existing_key() {
     let tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
 
     let result = tree.get(KeyHash::with::<TreeHasher>("non_existing_id")).unwrap();
@@ -253,21 +254,6 @@ fn test_get_non_existing_key(algorithm: &str) {
     };
 
     assert!(non_membership_proof.verify().is_ok());
-}
-
-#[test]
-fn test_get_non_existing_key_ed25519() {
-    test_get_non_existing_key("ed25519");
-}
-
-#[test]
-fn test_get_non_existing_key_secp256k1() {
-    test_get_non_existing_key("secp256k1");
-}
-
-#[test]
-fn test_get_non_existing_key_secp256r1() {
-    test_get_non_existing_key("secp256r1");
 }
 
 fn test_multiple_inserts_and_updates(algorithm: &str) {
