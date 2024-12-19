@@ -1,5 +1,5 @@
+pub mod account;
 pub mod digest;
-pub mod hashchain;
 pub mod operation;
 pub mod transaction;
 

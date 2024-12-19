@@ -8,8 +8,8 @@ use prism_errors::DatabaseError;
 use prism_serde::binary::{FromBinary, ToBinary};
 
 use prism_common::{
+    account::Account,
     digest::Digest,
-    hashchain::{Hashchain, HashchainEntry},
     operation::{Operation, ServiceChallenge, ServiceChallengeInput},
     transaction::Transaction,
 };
@@ -17,18 +17,18 @@ use prism_common::{
 use crate::{
     hasher::TreeHasher,
     key_directory_tree::KeyDirectoryTree,
-    proofs::{InsertProof, MembershipProof, NonMembershipProof, Proof, UpdateProof},
-    HashchainResponse::{self, *},
+    proofs::{InsertProof, MerkleProof, Proof, UpdateProof},
+    AccountResponse::{self, *},
 };
 
-/// Represents a tree that can be used to verifiably store and retrieve [`Hashchain`]s.
+/// Represents a tree that can be used to verifiably store and retrieve [`Account`]s.
 /// The methods of this trait are NOT run in circuit: they are used to create verifiable inputs for the circuit.
 /// This distinction is critical because the returned proofs must contain all information necessary to verify the operations.
 pub trait SnarkableTree: Send + Sync {
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof>;
-    fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof>;
-    fn update(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<UpdateProof>;
-    fn get(&self, key: KeyHash) -> Result<HashchainResponse>;
+    fn insert(&mut self, key: KeyHash, tx: Transaction) -> Result<InsertProof>;
+    fn update(&mut self, key: KeyHash, tx: Transaction) -> Result<UpdateProof>;
+    fn get(&self, key: KeyHash) -> Result<AccountResponse>;
 }
 
 impl<S> SnarkableTree for KeyDirectoryTree<S>
@@ -36,12 +36,12 @@ where
     S: TreeReader + TreeWriter + Send + Sync,
 {
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof> {
-        match &transaction.entry.operation {
+        match &transaction.operation {
             Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
                 let key_hash = KeyHash::with::<TreeHasher>(&transaction.id);
 
-                debug!("updating hashchain for user id {}", transaction.id);
-                let proof = self.update(key_hash, transaction.entry)?;
+                debug!("updating account for user id {}", transaction.id);
+                let proof = self.update(key_hash, transaction)?;
 
                 Ok(Proof::Update(Box::new(proof)))
             }
@@ -68,33 +68,26 @@ where
 
                 let service_key_hash = KeyHash::with::<TreeHasher>(service_id);
 
-                let Found(service_hashchain, _) = self.get(service_key_hash)? else {
-                    bail!("Failed to get hashchain for service ID {}", service_id);
+                let Found(service_account, _) = self.get(service_key_hash)? else {
+                    bail!("Failed to get account for service ID {}", service_id);
                 };
 
-                let Some(service_last_entry) = service_hashchain.last() else {
-                    bail!("Service hashchain is empty, could not retrieve challenge key");
-                };
-
-                let creation_gate = match &service_last_entry.operation {
-                    Operation::RegisterService { creation_gate, .. } => creation_gate,
-                    _ => {
-                        bail!("Service hashchain's last entry was not a RegisterService operation")
-                    }
+                let Some(service_challenge) = service_account.service_challenge() else {
+                    bail!("Service account does not contain a service challenge");
                 };
 
                 // Hash and sign credentials that have been signed by the external service
                 let hash =
                     Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &key.to_bytes()]);
 
-                let ServiceChallenge::Signed(service_pubkey) = creation_gate;
+                let ServiceChallenge::Signed(service_pubkey) = service_challenge;
                 let ServiceChallengeInput::Signed(challenge_signature) = &challenge;
 
                 service_pubkey.verify_signature(&hash.to_bytes(), challenge_signature)?;
 
-                debug!("creating new hashchain for user ID {}", id);
+                debug!("creating new account for user ID {}", id);
 
-                let insert_proof = self.insert(account_key_hash, transaction.entry)?;
+                let insert_proof = self.insert(account_key_hash, transaction)?;
                 Ok(Proof::Insert(Box::new(insert_proof)))
             }
             Operation::RegisterService { id, .. } => {
@@ -105,33 +98,34 @@ where
 
                 let key_hash = KeyHash::with::<TreeHasher>(id);
 
-                debug!("creating new hashchain for service id {}", id);
+                debug!("creating new account for service id {}", id);
 
-                let insert_proof = self.insert(key_hash, transaction.entry)?;
+                let insert_proof = self.insert(key_hash, transaction)?;
                 Ok(Proof::Insert(Box::new(insert_proof)))
             }
         }
     }
 
-    fn insert(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<InsertProof> {
+    fn insert(&mut self, key: KeyHash, transaction: Transaction) -> Result<InsertProof> {
         let old_root = self.get_commitment()?;
         let (None, non_membership_merkle_proof) = self.jmt.get_with_proof(key, self.epoch)? else {
             bail!("Key already exists");
         };
 
-        let non_membership_proof = NonMembershipProof {
+        let non_membership_proof = MerkleProof {
             root: old_root,
             proof: non_membership_merkle_proof,
             key,
         };
 
-        let hashchain = Hashchain::from_entry(entry.clone())?;
-        let serialized_hashchain = hashchain.encode_to_bytes()?;
+        let mut account = Account::default();
+        account.process_transaction(&transaction)?;
+        let serialized_account = account.encode_to_bytes()?;
 
         // the update proof just contains another nm proof
         let (new_root, _, tree_update_batch) = self
             .jmt
-            .put_value_set_with_proof(vec![(key, Some(serialized_hashchain))], self.epoch + 1)?;
+            .put_value_set_with_proof(vec![(key, Some(serialized_account))], self.epoch + 1)?;
         self.queue_batch(tree_update_batch);
         self.write_batch()?;
 
@@ -139,26 +133,26 @@ where
 
         Ok(InsertProof {
             new_root: Digest(new_root.0),
-            new_entry: entry,
+            tx: transaction,
             non_membership_proof,
             membership_proof,
         })
     }
 
-    fn update(&mut self, key: KeyHash, entry: HashchainEntry) -> Result<UpdateProof> {
+    fn update(&mut self, key: KeyHash, transaction: Transaction) -> Result<UpdateProof> {
         let old_root = self.get_current_root()?;
-        let (Some(old_serialized_hashchain), inclusion_proof) =
+        let (Some(old_serialized_account), inclusion_proof) =
             self.jmt.get_with_proof(key, self.epoch)?
         else {
             bail!("Key does not exist");
         };
 
-        let old_hashchain = Hashchain::decode_from_bytes(&old_serialized_hashchain)?;
+        let old_account = Account::decode_from_bytes(&old_serialized_account)?;
 
-        let mut new_hashchain = old_hashchain.clone();
-        new_hashchain.add_entry(entry.clone())?;
+        let mut new_account = old_account.clone();
+        new_account.process_transaction(&transaction)?;
 
-        let serialized_value = new_hashchain.encode_to_bytes()?;
+        let serialized_value = new_account.encode_to_bytes()?;
 
         let (new_root, update_proof, tree_update_batch) = self.jmt.put_value_set_with_proof(
             vec![(key, Some(serialized_value.clone()))],
@@ -171,30 +165,25 @@ where
             old_root: Digest(old_root.0),
             new_root: Digest(new_root.0),
             inclusion_proof,
-            old_hashchain,
+            old_account,
             key,
             update_proof,
-            new_entry: entry,
+            tx: transaction,
         })
     }
 
-    fn get(&self, key: KeyHash) -> Result<HashchainResponse> {
+    fn get(&self, key: KeyHash) -> Result<AccountResponse> {
         let root = self.get_commitment()?;
         let (value, proof) = self.jmt.get_with_proof(key, self.epoch)?;
 
         match value {
             Some(serialized_value) => {
-                let deserialized_value = Hashchain::decode_from_bytes(&serialized_value)?;
-                let membership_proof = MembershipProof {
-                    root,
-                    proof,
-                    key,
-                    value: deserialized_value.clone(),
-                };
-                Ok(Found(deserialized_value, membership_proof))
+                let deserialized_value = Account::decode_from_bytes(&serialized_value)?;
+                let membership_proof = MerkleProof { root, proof, key };
+                Ok(Found(Box::new(deserialized_value), membership_proof))
             }
             None => {
-                let non_membership_proof = NonMembershipProof { root, proof, key };
+                let non_membership_proof = MerkleProof { root, proof, key };
                 Ok(NotFound(non_membership_proof))
             }
         }
