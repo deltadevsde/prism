@@ -284,8 +284,6 @@ impl Prover {
             return Ok(());
         }
 
-        dbg!(self.cfg.verifying_key.clone());
-
         // TODO: Issue #144
         match epoch.verify_signature(self.cfg.verifying_key.clone()) {
             Ok(_) => trace!("valid signature for epoch {}", epoch.height),
