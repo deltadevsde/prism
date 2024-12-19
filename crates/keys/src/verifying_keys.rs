@@ -1,8 +1,11 @@
 use anyhow::{anyhow, bail, Result};
 use ed25519_consensus::{SigningKey as Ed25519SigningKey, VerificationKey as Ed25519VerifyingKey};
-use p256::ecdsa::{
-    signature::DigestVerifier, SigningKey as Secp256r1SigningKey,
-    VerifyingKey as Secp256r1VerifyingKey,
+use p256::{
+    ecdsa::{
+        signature::DigestVerifier, SigningKey as Secp256r1SigningKey,
+        VerifyingKey as Secp256r1VerifyingKey,
+    },
+    pkcs8::DecodePublicKey,
 };
 use secp256k1::{
     Message as Secp256k1Message, PublicKey as Secp256k1VerifyingKey,
@@ -78,6 +81,17 @@ impl VerifyingKey {
         }
     }
 
+    pub fn from_algorithm_and_bytes_der(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+        match algorithm {
+            "ed25519" => bail!("Ed25519 vk from DER format is not implemented"),
+            "secp256k1" => bail!("Secp256k1 vk from DER format is not implemented"),
+            "secp256r1" => Secp256r1VerifyingKey::from_public_key_der(bytes)
+                .map(VerifyingKey::Secp256r1)
+                .map_err(|e| e.into()),
+            _ => bail!("Unexpected algorithm for VerifyingKey"),
+        }
+    }
+
     pub fn algorithm(&self) -> &'static str {
         match self {
             VerifyingKey::Ed25519(_) => "ed25519",
@@ -113,8 +127,7 @@ impl VerifyingKey {
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
 
-                let der_sig = signature.to_der();
-                vk.verify_digest(digest, &der_sig)
+                vk.verify_digest(digest, signature)
                     .map_err(|e| anyhow!("Failed to verify signature: {}", e))
             }
         }

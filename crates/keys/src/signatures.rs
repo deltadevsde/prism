@@ -21,8 +21,8 @@ impl Signature {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Signature::Ed25519(sig) => sig.to_bytes().to_vec(),
-            Signature::Secp256k1(sig) => sig.serialize_der().to_vec(),
-            Signature::Secp256r1(sig) => sig.to_der().as_bytes().to_vec(),
+            Signature::Secp256k1(sig) => sig.serialize_compact().to_vec(),
+            Signature::Secp256r1(sig) => sig.to_vec(),
             Signature::Placeholder => vec![],
         }
     }
@@ -32,6 +32,19 @@ impl Signature {
             "ed25519" => {
                 Ed25519Signature::try_from(bytes).map(Signature::Ed25519).map_err(|e| e.into())
             }
+            "secp256k1" => Secp256k1Signature::from_compact(bytes)
+                .map(Signature::Secp256k1)
+                .map_err(|e| e.into()),
+            "secp256r1" => Secp256r1Signature::from_slice(bytes)
+                .map(Signature::Secp256r1)
+                .map_err(|e| e.into()),
+            _ => bail!("Unexpected algorithm for Signature"),
+        }
+    }
+
+    pub fn from_algorithm_and_bytes_der(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+        match algorithm {
+            "ed25519" => bail!("Ed25519 sig from DER format is not implemented"),
             "secp256k1" => {
                 Secp256k1Signature::from_der(bytes).map(Signature::Secp256k1).map_err(|e| e.into())
             }
