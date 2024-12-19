@@ -1,12 +1,12 @@
 #[cfg(test)]
-mod tests {
-    use crate::{SigningKey, VerifyingKey};
+mod key_tests {
+    use crate::{SigningKey, VerifyingKey, Signature};
     use ed25519_consensus::SigningKey as Ed25519SigningKey;
     use prism_serde::base64::ToBase64;
     use rand::rngs::OsRng;
     use secp256k1::SecretKey as Secp256k1SigningKey;
     use p256::ecdsa::SigningKey as Secp256r1SigningKey;
-    use crate::Signature;
+
     #[test]
     fn test_reparsed_verifying_keys_are_equal_to_original() {
         let verifying_key_ed25519 = SigningKey::new_ed25519().verifying_key();
