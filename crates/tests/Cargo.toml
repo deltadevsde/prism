@@ -17,7 +17,6 @@ mock_prover = []
 log.workspace = true
 pretty_env_logger.workspace = true
 anyhow.workspace = true
-keystore-rs.workspace = true
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage.workspace = true
 prism-prover = { workspace = true, features = ["mock_prover"] }

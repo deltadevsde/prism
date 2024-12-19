@@ -4954,7 +4954,6 @@ name = "prism-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "keystore-rs",
  "log",
  "pretty_env_logger",
  "prism-common",
