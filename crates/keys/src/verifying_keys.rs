@@ -1,8 +1,11 @@
 use anyhow::{anyhow, bail, Result};
 use ed25519_consensus::{SigningKey as Ed25519SigningKey, VerificationKey as Ed25519VerifyingKey};
-use p256::ecdsa::{
-    signature::DigestVerifier, SigningKey as Secp256r1SigningKey,
-    VerifyingKey as Secp256r1VerifyingKey,
+use p256::{
+    ecdsa::{
+        signature::DigestVerifier, SigningKey as Secp256r1SigningKey,
+        VerifyingKey as Secp256r1VerifyingKey,
+    },
+    pkcs8::DecodePublicKey,
 };
 use secp256k1::{
     Message as Secp256k1Message, PublicKey as Secp256k1VerifyingKey,
@@ -69,6 +72,16 @@ impl VerifyingKey {
                 .map(VerifyingKey::Secp256k1)
                 .map_err(|e| e.into()),
             CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
+                .map(VerifyingKey::Secp256r1)
+                .map_err(|e| e.into()),
+        }
+    }
+
+    pub fn from_algorithm_and_der(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
+        match algorithm {
+            CryptoAlgorithm::Ed25519 => bail!("Ed25519 vk from DER format is not implemented"),
+            CryptoAlgorithm::Secp256k1 => bail!("Secp256k1 vk from DER format is not implemented"),
+            CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_public_key_der(bytes)
                 .map(VerifyingKey::Secp256r1)
                 .map_err(|e| e.into()),
         }
