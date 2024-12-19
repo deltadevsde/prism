@@ -125,7 +125,7 @@ async fn test_execute_block_with_invalid_tx(algorithm: &str) {
     let transactions = vec![
         tx_builder.register_service_with_random_keys(algorithm, "service_id").commit(),
         tx_builder.create_account_with_random_key_signed(algorithm, "account_id", "service_id").commit(),
-               // add new key, so it will be index = 1
+        // add new key, so it will be index = 1
         tx_builder.add_key_verified_with_root("account_id", new_key_vk.clone()).commit(),
         // revoke new key again
         tx_builder.revoke_key_verified_with_root("account_id", new_key_vk).commit(),
