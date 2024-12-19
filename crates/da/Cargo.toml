@@ -13,7 +13,6 @@ readme.workspace = true
 [dependencies]
 async-trait = { workspace = true }
 serde = { workspace = true }
-ed25519-consensus = { workspace = true }
 tokio = { workspace = true }
 log = { workspace = true }
 celestia-rpc = { workspace = true }
@@ -22,4 +21,5 @@ anyhow = { workspace = true }
 prism-common = { workspace = true }
 prism-errors = { workspace = true }
 prism-serde = { workspace = true }
+prism-keys = { workspace = true }
 sp1-sdk = { workspace = true }

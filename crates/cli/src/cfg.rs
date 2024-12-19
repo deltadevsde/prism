@@ -36,6 +36,10 @@ pub struct CommandArgs {
     #[arg(long)]
     verifying_key: Option<String>,
 
+    /// Can be one of: ed25519, secp256k1, secp256r1
+    #[arg(long, default_value = "ed25519")]
+    verifying_key_algorithm: Option<String>,
+
     #[arg(long)]
     config_path: Option<String>,
 
@@ -97,6 +101,7 @@ pub struct Config {
     pub da_layer: DALayerOption,
     pub redis_config: Option<RedisConfig>,
     pub verifying_key: Option<String>,
+    pub verifying_key_algorithm: String,
 }
 
 impl Default for Config {
@@ -107,6 +112,7 @@ impl Default for Config {
             da_layer: DALayerOption::default(),
             redis_config: Some(RedisConfig::default()),
             verifying_key: None,
+            verifying_key_algorithm: "ed25519".to_string(),
         }
     }
 }
@@ -201,6 +207,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         }),
         da_layer: config.da_layer,
         verifying_key: args.verifying_key.or(config.verifying_key),
+        verifying_key_algorithm: args.verifying_key_algorithm.unwrap_or(config.verifying_key_algorithm),
     }
 }
 

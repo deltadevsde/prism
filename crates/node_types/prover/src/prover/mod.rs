@@ -1,7 +1,6 @@
 use anyhow::{anyhow, bail, Context, Result};
-use ed25519_consensus::{SigningKey, VerificationKey};
+use prism_keys::{SigningKey, VerifyingKey, KeyAlgorithm};
 use jmt::KeyHash;
-use keystore_rs::create_signing_key;
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
 use prism_storage::database::Database;
@@ -44,7 +43,7 @@ pub struct Config {
 
     /// Key used to verify incoming [`FinalizedEpochs`].
     /// This is not necessarily the counterpart to signing_key, as fullnodes must use the [`verifying_key`] of the prover.
-    pub verifying_key: VerificationKey,
+    pub verifying_key: VerifyingKey,
 
     /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,
@@ -52,14 +51,30 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        let signing_key = create_signing_key();
+        let signing_key = SigningKey::new_ed25519();
 
         Config {
             prover: true,
             batcher: true,
             webserver: WebServerConfig::default(),
             signing_key: signing_key.clone(),
-            verifying_key: signing_key.verification_key(),
+            verifying_key: signing_key.verifying_key(),
+            start_height: 1,
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl Config {
+    fn default_with_key_algorithm(algorithm: KeyAlgorithm) -> Self {
+        let signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
+
+        Config {
+            prover: true,
+            batcher: true,
+            webserver: WebServerConfig::default(),
+            signing_key: signing_key.clone(),
+            verifying_key: signing_key.verifying_key(),
             start_height: 1,
         }
     }
@@ -267,10 +282,9 @@ impl Prover {
         }
 
         // TODO: Issue #144
-        match epoch.verify_signature(self.cfg.verifying_key) {
-            Ok(_) => trace!("valid signature for epoch {}", epoch.height),
-            Err(e) => panic!("invalid signature in epoch {}: {:?}", epoch.height, e),
-        }
+        epoch.verify_signature(self.cfg.verifying_key.clone())
+            .with_context(|| format!("Invalid signature in epoch {}", epoch.height))?;
+        trace!("valid signature for epoch {}", epoch.height);
 
         let prev_commitment = self.db.get_commitment(&current_epoch)?;
 

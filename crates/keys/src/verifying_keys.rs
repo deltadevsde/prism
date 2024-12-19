@@ -14,9 +14,10 @@ use sha2::Digest as _;
 use std::{
     self,
     hash::{Hash, Hasher},
+    str::FromStr,
 };
 
-use crate::{Signature, SigningKey};
+use crate::{Signature, SigningKey, KeyAlgorithm};
 use prism_serde::{
     base64::{FromBase64, ToBase64},
     CryptoPayload,
@@ -63,29 +64,30 @@ impl VerifyingKey {
         }
     }
 
-    pub fn from_algorithm_and_bytes(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+    pub fn from_algorithm_and_bytes(algorithm: KeyAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            "ed25519" => Ed25519VerifyingKey::try_from(bytes)
+            KeyAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
                 .map(VerifyingKey::Ed25519)
                 .map_err(|e| e.into()),
-            "secp256k1" => Secp256k1VerifyingKey::from_slice(bytes)
+            KeyAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_slice(bytes)
                 .map(VerifyingKey::Secp256k1)
                 .map_err(|e| e.into()),
-            "secp256r1" => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
+            KeyAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::Secp256r1)
                 .map_err(|e| e.into()),
-            _ => bail!("Unexpected algorithm for VerifyingKey"),
+            _ => bail!("Unexpected algorithm for VerifyingKey: {}", algorithm),
         }
     }
 
-    pub fn algorithm(&self) -> &'static str {
+    pub fn algorithm(&self) -> KeyAlgorithm {
         match self {
-            VerifyingKey::Ed25519(_) => "ed25519",
-            VerifyingKey::Secp256k1(_) => "secp256k1",
-            VerifyingKey::Secp256r1(_) => "secp256r1",
+            VerifyingKey::Ed25519(_) => KeyAlgorithm::Ed25519,
+            VerifyingKey::Secp256k1(_) => KeyAlgorithm::Secp256k1,
+            VerifyingKey::Secp256r1(_) => KeyAlgorithm::Secp256r1,
         }
     }
 
+    
     pub fn verify_signature(&self, message: &[u8], signature: &Signature) -> Result<()> {
         match self {
             VerifyingKey::Ed25519(vk) => {
@@ -125,7 +127,10 @@ impl TryFrom<CryptoPayload> for VerifyingKey {
     type Error = anyhow::Error;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
-        VerifyingKey::from_algorithm_and_bytes(&value.algorithm, &value.bytes)
+        VerifyingKey::from_algorithm_and_bytes(
+            KeyAlgorithm::from_str(&value.algorithm).map_err(|_| anyhow::anyhow!("Invalid algorithm: {}", value.algorithm))?,
+            &value.bytes,
+        )
     }
 }
 
@@ -195,8 +200,8 @@ impl FromBase64 for VerifyingKey {
     ///
     /// Depending on the length of the input string, the function will attempt to
     /// decode it and create a `VerifyingKey` instance. According to the specifications,
-    /// the input string should be either [32 bytes (Ed25519)](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.5) or [33/65 bytes (Secp256k1)](https://www.secg.org/sec1-v2.pdf).
-    /// The secp256k1 key can be either compressed (33 bytes) or uncompressed (65 bytes).
+    /// the input string should be either [32 bytes (Ed25519)](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.5) or [33/65 bytes (Secp256k1 or Secp256r1)](https://www.secg.org/sec1-v2.pdf).
+    /// The secp256k1 and secp256r1 keys can be either compressed (33 bytes) or uncompressed (65 bytes).
     ///
     /// # Returns
     ///
@@ -212,9 +217,13 @@ impl FromBase64 for VerifyingKey {
                 Ok(VerifyingKey::Ed25519(vk))
             }
             33 | 65 => {
-                let vk = Secp256k1VerifyingKey::from_slice(bytes.as_slice())
-                    .map_err(|e| anyhow!("Invalid Secp256k1 key: {}", e))?;
-                Ok(VerifyingKey::Secp256k1(vk))
+                if let Ok(vk) = Secp256k1VerifyingKey::from_slice(bytes.as_slice()) {
+                    Ok(VerifyingKey::Secp256k1(vk))
+                } else if let Ok(vk) = Secp256r1VerifyingKey::from_sec1_bytes(bytes.as_slice()) {
+                    Ok(VerifyingKey::Secp256r1(vk))
+                } else {
+                    Err(anyhow!("Invalid curve type"))
+                }
             }
             _ => Err(anyhow!("Invalid public key length")),
         }
