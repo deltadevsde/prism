@@ -168,6 +168,11 @@ provision_bridge_nodes() {
   echo "Provisioning finished."
 }
 
+provision() {
+  provision_bridge_nodes
+  provision_light_nodes
+}
+
 # Set up the validator for a private alone network.
 # Based on
 # https://github.com/celestiaorg/celestia-app/blob/main/scripts/single-node.sh
@@ -204,8 +209,7 @@ setup_private_validator() {
 main() {
   # Configure stuff
   setup_private_validator
-  provision_bridge_nodes &
-  provision_light_nodes &
+  provision &
   # Start the celestia-app
   echo "Configuration finished. Running a validator node..."
   celestia-appd start --api.enable --grpc.enable --force-no-bbr
