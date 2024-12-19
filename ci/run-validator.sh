@@ -99,7 +99,8 @@ provision_light_nodes() {
         "$NODE_NAME" \
         "$light_address" \
         "$BRIDGE_COINS" \
-        --fees 21000utia
+        --fees 21000utia \
+        --broadcast-mode block
     done
 
     echo "Provisioning finished."
@@ -160,10 +161,16 @@ provision_bridge_nodes() {
       "$NODE_NAME" \
       "$bridge_address" \
       "$BRIDGE_COINS" \
-      --fees 21000utia
+      --fees 21000utia \
+      --broadcast-mode block
   done
 
   echo "Provisioning finished."
+}
+
+provision() {
+  provision_bridge_nodes
+  provision_light_nodes
 }
 
 # Set up the validator for a private alone network.
@@ -202,8 +209,7 @@ setup_private_validator() {
 main() {
   # Configure stuff
   setup_private_validator
-  provision_bridge_nodes &
-  provision_light_nodes &
+  provision &
   # Start the celestia-app
   echo "Configuration finished. Running a validator node..."
   celestia-appd start --api.enable --grpc.enable --force-no-bbr

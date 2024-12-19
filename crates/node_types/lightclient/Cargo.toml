@@ -13,11 +13,11 @@ test_utils = []
 mock_prover = []
 
 [dependencies]
-ed25519-consensus = { workspace = true }
 tokio = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-errors = { workspace = true }
 prism-da = { workspace = true }
+prism-keys = { workspace = true }
 sp1-sdk = { workspace = true }

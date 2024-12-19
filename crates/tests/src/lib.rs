@@ -4,7 +4,6 @@
 extern crate log;
 
 use anyhow::Result;
-use keystore_rs::create_signing_key;
 use prism_common::transaction_builder::TransactionBuilder;
 use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
@@ -12,10 +11,12 @@ use prism_da::{
 };
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
+use prism_keys::{SigningKey, KeyAlgorithm};
 use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
+use std::env;
 
 use tempfile::TempDir;
 
@@ -29,9 +30,18 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 async fn test_light_client_prover_talking() -> Result<()> {
     std::env::set_var(
         "RUST_LOG",
-        "DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
+        "INFO,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
     );
     pretty_env_logger::init();
+
+    let algorithm = match env::var("CURVE_ALGORITHM").unwrap_or_else(|_| "ed25519".to_string()).as_str() {
+        "ed25519" => KeyAlgorithm::Ed25519,
+        "secp256k1" => KeyAlgorithm::Secp256k1,
+        "secp256r1" => KeyAlgorithm::Secp256r1,
+        _ => panic!("Unsupported curve"),
+    };
+
+    info!("testing algorithm: {}", algorithm);
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://localhost:26658".to_string(),
@@ -45,8 +55,8 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
     let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());
     let db = setup_db();
-    let signing_key = create_signing_key();
-    let pubkey = signing_key.verification_key();
+    let signing_key = SigningKey::new_with_algorithm(algorithm)?;
+    let pubkey = signing_key.verifying_key();
 
     let prover_cfg = prism_prover::Config {
         signing_key,
@@ -78,7 +88,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
         let mut transaction_builder = TransactionBuilder::new();
         let register_service_req =
-            transaction_builder.register_service_with_random_keys("test_service").commit();
+            transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
 
         let mut i = 0;
 
@@ -91,7 +101,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
             for _ in 0..num_new_accounts {
                 let random_user_id = format!("{}@gmail.com", i);
                 let new_acc = transaction_builder
-                    .create_account_with_random_key_signed(random_user_id.as_str(), "test_service")
+                    .create_account_with_random_key_signed(algorithm, random_user_id.as_str(), "test_service")
                     .commit();
                 match prover.clone().validate_and_queue_update(new_acc).await {
                     Ok(_) => {
@@ -110,7 +120,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
                         .map_or("Could not find random account id", |id| id.as_str());
 
                     let update_acc =
-                        transaction_builder.add_random_key_verified_with_root(acc_id).commit();
+                        transaction_builder.add_random_key_verified_with_root(algorithm, acc_id).commit();
 
                     match prover.clone().validate_and_queue_update(update_acc).await {
                         Ok(_) => (),
@@ -127,7 +137,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let initial_height = rx.recv().await.unwrap();
     while let Ok(height) = rx.recv().await {
         debug!("received height {}", height);
-        if height >= initial_height + 100 {
+        if height >= initial_height + 50 {
             break;
         }
     }

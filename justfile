@@ -67,14 +67,14 @@ integration-test:
   #!/usr/bin/env bash
   set -euo pipefail
 
-  just celestia-up
+  for curve in ed25519 secp256k1 secp256r1; do
+    just celestia-up
 
-  echo "Running integration tests..."
-  if ! cargo test -p prism-tests --lib --release --features mock_prover; then
-    echo "Integration tests failed."
-  fi
+    echo "Running integration tests for curve $curve..."
+    CURVE_ALGORITHM=$curve cargo test -p prism-tests --lib --release --features mock_prover
 
-  just celestia-down
+    just celestia-down
+  done
 
 check:
   @echo "Running cargo udeps..."
