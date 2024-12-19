@@ -99,7 +99,8 @@ provision_light_nodes() {
         "$NODE_NAME" \
         "$light_address" \
         "$BRIDGE_COINS" \
-        --fees 21000utia
+        --fees 21000utia \
+        --broadcast-mode block
     done
 
     echo "Provisioning finished."
@@ -160,7 +161,8 @@ provision_bridge_nodes() {
       "$NODE_NAME" \
       "$bridge_address" \
       "$BRIDGE_COINS" \
-      --fees 21000utia
+      --fees 21000utia \
+      --broadcast-mode block
   done
 
   echo "Provisioning finished."
