@@ -71,7 +71,8 @@ async fn main() -> std::io::Result<()> {
 
             let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
-            let signing_key = SigningKey::from_algorithm_and_bytes(verifying_key_algorithm, signing_key_chain.as_bytes()).unwrap();
+            let signing_key = SigningKey::from_algorithm_and_bytes(verifying_key_algorithm, signing_key_chain.as_bytes())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("invalid signing key: {}", e)))?;
             let verifying_key = signing_key.verifying_key();
 
             let prover_cfg = prism_prover::Config {
@@ -120,7 +121,8 @@ async fn main() -> std::io::Result<()> {
 
             let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
-            let signing_key = SigningKey::from_algorithm_and_bytes(verifying_key_algorithm, signing_key_chain.as_bytes()).unwrap();
+            let signing_key = SigningKey::from_algorithm_and_bytes(verifying_key_algorithm, signing_key_chain.as_bytes())
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("invalid signing key: {}", e)))?;
 
             let prover_vk = config
                 .verifying_key

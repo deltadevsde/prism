@@ -46,21 +46,6 @@ async fn test_validate_and_queue_update(algorithm: &str) {
     assert_eq!(pending_transactions.len(), 2);
 }
 
-#[tokio::test]
-async fn test_validate_and_queue_update_ed25519() {
-    test_validate_and_queue_update("ed25519").await;
-}
-
-#[tokio::test]
-async fn test_validate_and_queue_update_secp256k1() {
-    test_validate_and_queue_update("secp256k1").await;
-}
-
-#[tokio::test]
-async fn test_validate_and_queue_update_secp256r1() {
-    test_validate_and_queue_update("secp256r1").await;
-}
-
 async fn test_process_transactions(algorithm: &str) {
     let prover = create_test_prover(algorithm).await;
 
@@ -99,21 +84,6 @@ async fn test_process_transactions(algorithm: &str) {
     assert!(matches!(proof, Proof::Update(_)));
 }
 
-#[tokio::test]
-async fn test_process_transactions_ed25519() {
-    test_process_transactions("ed25519").await;
-}
-
-#[tokio::test]
-async fn test_process_transactions_secp256k1() {
-    test_process_transactions("secp256k1").await;
-}
-
-#[tokio::test]
-async fn test_process_transactions_secp256r1() {
-    test_process_transactions("secp256r1").await;
-}
-
 async fn test_execute_block_with_invalid_tx(algorithm: &str) {
     let prover = create_test_prover(algorithm).await;
 
@@ -138,21 +108,6 @@ async fn test_execute_block_with_invalid_tx(algorithm: &str) {
     assert_eq!(proofs.len(), 4);
 }
 
-#[tokio::test]
-async fn test_execute_block_with_invalid_tx_ed25519() {
-    test_execute_block_with_invalid_tx("ed25519").await;
-}
-
-#[tokio::test]
-async fn test_execute_block_with_invalid_tx_secp256k1() {
-    test_execute_block_with_invalid_tx("secp256k1").await;
-}
-
-#[tokio::test]
-async fn test_execute_block_with_invalid_tx_secp256r1() {
-    test_execute_block_with_invalid_tx("secp256r1").await;
-}
-
 async fn test_execute_block(algorithm: &str) {
     let prover = create_test_prover(algorithm).await;
 
@@ -160,21 +115,6 @@ async fn test_execute_block(algorithm: &str) {
 
     let proofs = prover.execute_block(transactions).await.unwrap();
     assert_eq!(proofs.len(), 4);
-}
-
-#[tokio::test]
-async fn test_execute_block_ed25519() {
-    test_execute_block("ed25519").await;
-}
-
-#[tokio::test]
-async fn test_execute_block_secp256k1() {
-    test_execute_block("secp256k1").await;
-}
-
-#[tokio::test]
-async fn test_execute_block_secp256r1() {
-    test_execute_block("secp256r1").await;
 }
 
 async fn test_finalize_new_epoch(algorithm: &str) {
@@ -186,21 +126,6 @@ async fn test_finalize_new_epoch(algorithm: &str) {
 
     let new_commitment = prover.get_commitment().await.unwrap();
     assert_ne!(prev_commitment, new_commitment);
-}
-
-#[tokio::test]
-async fn test_finalize_new_epoch_ed25519() {
-    test_finalize_new_epoch("ed25519").await;
-}
-
-#[tokio::test]
-async fn test_finalize_new_epoch_secp256k1() {
-    test_finalize_new_epoch("secp256k1").await;
-}
-
-#[tokio::test]
-async fn test_finalize_new_epoch_secp256r1() {
-    test_finalize_new_epoch("secp256r1").await;
 }
 
 async fn test_restart_sync_from_scratch(algorithm: &str) {
@@ -246,21 +171,6 @@ async fn test_restart_sync_from_scratch(algorithm: &str) {
     }
 }
 
-#[tokio::test]
-async fn test_restart_sync_from_scratch_ed25519() {
-    test_restart_sync_from_scratch("ed25519").await;
-}
-
-#[tokio::test]
-async fn test_restart_sync_from_scratch_secp256k1() {
-    test_restart_sync_from_scratch("secp256k1").await;
-}
-
-#[tokio::test]
-async fn test_restart_sync_from_scratch_secp256r1() {
-    test_restart_sync_from_scratch("secp256r1").await;
-}
-
 async fn test_load_persisted_state(algorithm: &str) {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
@@ -297,17 +207,31 @@ async fn test_load_persisted_state(algorithm: &str) {
     );
 }
 
-#[tokio::test]
-async fn test_load_persisted_state_ed25519() {
-    test_load_persisted_state("ed25519").await;
+macro_rules! generate_algorithm_tests {
+    ($test_fn:ident) => {
+        paste::paste! {
+            #[tokio::test]
+            async fn [<$test_fn _ed25519>]() {
+                $test_fn("ed25519").await;
+            }
+
+            #[tokio::test]
+            async fn [<$test_fn _secp256k1>]() {
+                $test_fn("secp256k1").await;
+            }
+
+            #[tokio::test]
+            async fn [<$test_fn _secp256r1>]() {
+                $test_fn("secp256r1").await;
+            }
+        }
+    };
 }
 
-#[tokio::test]
-async fn test_load_persisted_state_secp256k1() {
-    test_load_persisted_state("secp256k1").await;
-}
-
-#[tokio::test]
-async fn test_load_persisted_state_secp256r1() {
-    test_load_persisted_state("secp256r1").await;
-}
+generate_algorithm_tests!(test_validate_and_queue_update);
+generate_algorithm_tests!(test_process_transactions);
+generate_algorithm_tests!(test_execute_block_with_invalid_tx);
+generate_algorithm_tests!(test_execute_block);
+generate_algorithm_tests!(test_finalize_new_epoch);
+generate_algorithm_tests!(test_restart_sync_from_scratch);
+generate_algorithm_tests!(test_load_persisted_state);

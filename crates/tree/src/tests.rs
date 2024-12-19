@@ -40,21 +40,6 @@ fn test_insert_and_get(algorithm: &str) {
     assert!(membership_proof.verify().is_ok());
 }
 
-#[test]
-fn test_insert_and_get_ed25519() {
-    test_insert_and_get("ed25519");
-}
-
-#[test]
-fn test_insert_and_get_secp256k1() {
-    test_insert_and_get("secp256k1");
-}
-
-#[test]
-fn test_insert_and_get_secp256r1() {
-    test_insert_and_get("secp256r1");
-}
-
 fn test_insert_for_nonexistent_service_fails(algorithm: &str) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
@@ -72,21 +57,6 @@ fn test_insert_for_nonexistent_service_fails(algorithm: &str) {
 
     let insertion_result = tree.process_transaction(invalid_account_tx);
     assert!(insertion_result.is_err());
-}
-
-#[test]
-fn test_insert_for_nonexistent_service_fails_ed25519() {
-    test_insert_for_nonexistent_service_fails("ed25519");
-}
-
-#[test]
-fn test_insert_for_nonexistent_service_fails_secp256k1() {
-    test_insert_for_nonexistent_service_fails("secp256k1");
-}
-
-#[test]
-fn test_insert_for_nonexistent_service_fails_secp256r1() {
-    test_insert_for_nonexistent_service_fails("secp256r1");
 }
 
 fn test_insert_with_invalid_service_challenge_fails(algorithm: &str) {
@@ -119,21 +89,6 @@ fn test_insert_with_invalid_service_challenge_fails(algorithm: &str) {
     assert!(create_account_result.is_err());
 }
 
-#[test]
-fn test_insert_with_invalid_service_challenge_fails_ed25519() {
-    test_insert_with_invalid_service_challenge_fails("ed25519");
-}
-
-#[test]
-fn test_insert_with_invalid_service_challenge_fails_secp256k1() {
-    test_insert_with_invalid_service_challenge_fails("secp256k1");
-}
-
-#[test]
-fn test_insert_with_invalid_service_challenge_fails_secp256r1() {
-    test_insert_with_invalid_service_challenge_fails("secp256r1");
-}
-
 fn test_insert_duplicate_key(algorithm: &str) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
@@ -156,21 +111,6 @@ fn test_insert_duplicate_key(algorithm: &str) {
 
     let create_acc_with_same_id_result = tree.process_transaction(account_with_same_id_tx);
     assert!(create_acc_with_same_id_result.is_err());
-}
-
-#[test]
-fn test_insert_duplicate_key_ed25519() {
-    test_insert_duplicate_key("ed25519");
-}
-
-#[test]
-fn test_insert_duplicate_key_secp256k1() {
-    test_insert_duplicate_key("secp256k1");
-}
-
-#[test]
-fn test_insert_duplicate_key_secp256r1() {
-    test_insert_duplicate_key("secp256r1");
 }
 
 fn test_update_existing_key(algorithm: &str) {
@@ -196,21 +136,6 @@ fn test_update_existing_key(algorithm: &str) {
     assert!(matches!(get_result, Found(hc, _) if &hc == test_hashchain));
 }
 
-#[test]
-fn test_update_existing_key_ed25519() {
-    test_update_existing_key("ed25519");
-}
-
-#[test]
-fn test_update_existing_key_secp256k1() {
-    test_update_existing_key("secp256k1");
-}
-
-#[test]
-fn test_update_existing_key_secp256r1() {
-    test_update_existing_key("secp256r1");
-}
-
 fn test_update_non_existing_key(algorithm: &str) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
@@ -226,34 +151,6 @@ fn test_update_non_existing_key(algorithm: &str) {
 
     let result = tree.process_transaction(invalid_key_tx);
     assert!(result.is_err());
-}
-
-#[test]
-fn test_update_non_existing_key_ed25519() {
-    test_update_non_existing_key("ed25519");
-}
-
-#[test]
-fn test_update_non_existing_key_secp256k1() {
-    test_update_non_existing_key("secp256k1");
-}
-
-#[test]
-fn test_update_non_existing_key_secp256r1() {
-    test_update_non_existing_key("secp256r1");
-}
-
-#[test]
-fn test_get_non_existing_key() {
-    let tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-
-    let result = tree.get(KeyHash::with::<TreeHasher>("non_existing_id")).unwrap();
-
-    let NotFound(non_membership_proof) = result else {
-        panic!("Hashchain found for key while it was expected to be missing");
-    };
-
-    assert!(non_membership_proof.verify().is_ok());
 }
 
 fn test_multiple_inserts_and_updates(algorithm: &str) {
@@ -292,21 +189,6 @@ fn test_multiple_inserts_and_updates(algorithm: &str) {
     assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
 }
 
-#[test]
-fn test_multiple_inserts_and_updates_ed25519() {
-    test_multiple_inserts_and_updates("ed25519");
-}
-
-#[test]
-fn test_multiple_inserts_and_updates_secp256k1() {
-    test_multiple_inserts_and_updates("secp256k1");
-}
-
-#[test]
-fn test_multiple_inserts_and_updates_secp256r1() {
-    test_multiple_inserts_and_updates("secp256r1");
-}
-
 fn test_interleaved_inserts_and_updates(algorithm: &str) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
@@ -342,21 +224,6 @@ fn test_interleaved_inserts_and_updates(algorithm: &str) {
     assert_eq!(update_proof.new_root, tree.get_commitment().unwrap());
 }
 
-#[test]
-fn test_interleaved_inserts_and_updates_ed25519() {
-    test_interleaved_inserts_and_updates("ed25519");
-}
-
-#[test]
-fn test_interleaved_inserts_and_updates_secp256k1() {
-    test_interleaved_inserts_and_updates("secp256k1");
-}
-
-#[test]
-fn test_interleaved_inserts_and_updates_secp256r1() {
-    test_interleaved_inserts_and_updates("secp256r1");
-}
-
 fn test_root_hash_changes(algorithm: &str) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
@@ -372,21 +239,6 @@ fn test_root_hash_changes(algorithm: &str) {
     let root_after = tree.get_current_root().unwrap();
 
     assert_ne!(root_before, root_after);
-}
-
-#[test]
-fn test_root_hash_changes_ed25519() {
-    test_root_hash_changes("ed25519");
-}
-
-#[test]
-fn test_root_hash_changes_secp256k1() {
-    test_root_hash_changes("secp256k1");
-}
-
-#[test]
-fn test_root_hash_changes_secp256r1() {
-    test_root_hash_changes("secp256r1");
 }
 
 fn test_batch_writing(algorithm: &str) {
@@ -429,17 +281,47 @@ fn test_batch_writing(algorithm: &str) {
     assert!(matches!(get_result2, Found(hc, _) if &hc == test_hashchain_acc2));
 }
 
-#[test]
-fn test_batch_writing_ed25519() {
-    test_batch_writing("ed25519");
+macro_rules! generate_algorithm_tests {
+    ($test_fn:ident) => {
+        paste::paste! {
+            #[test]
+            fn [<$test_fn _ed25519>]() {
+                $test_fn("ed25519");
+            }
+
+            #[test]
+            fn [<$test_fn _secp256k1>]() {
+                $test_fn("secp256k1");
+            }
+
+            #[test]
+            fn [<$test_fn _secp256r1>]() {
+                $test_fn("secp256r1");
+            }
+        }
+    };
 }
 
-#[test]
-fn test_batch_writing_secp256k1() {
-    test_batch_writing("secp256k1");
-}
+generate_algorithm_tests!(test_insert_and_get);
+generate_algorithm_tests!(test_insert_for_nonexistent_service_fails);
+generate_algorithm_tests!(test_insert_with_invalid_service_challenge_fails);
+generate_algorithm_tests!(test_insert_duplicate_key);
+generate_algorithm_tests!(test_update_existing_key);
+generate_algorithm_tests!(test_update_non_existing_key);
+generate_algorithm_tests!(test_multiple_inserts_and_updates);
+generate_algorithm_tests!(test_interleaved_inserts_and_updates);
+generate_algorithm_tests!(test_root_hash_changes);
+generate_algorithm_tests!(test_batch_writing);
 
 #[test]
-fn test_batch_writing_secp256r1() {
-    test_batch_writing("secp256r1");
+fn test_get_non_existing_key() {
+    let tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+
+    let result = tree.get(KeyHash::with::<TreeHasher>("non_existing_id")).unwrap();
+
+    let NotFound(non_membership_proof) = result else {
+        panic!("Hashchain found for key while it was expected to be missing");
+    };
+
+    assert!(non_membership_proof.verify().is_ok());
 }
