@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use ed25519_consensus::Signature as Ed25519Signature;
 use p256::ecdsa::Signature as Secp256r1Signature;
 use secp256k1::ecdsa::Signature as Secp256k1Signature;
@@ -32,6 +32,18 @@ impl Signature {
             CryptoAlgorithm::Ed25519 => {
                 Ed25519Signature::try_from(bytes).map(Signature::Ed25519).map_err(|e| e.into())
             }
+            CryptoAlgorithm::Secp256k1 => Secp256k1Signature::from_compact(bytes)
+                .map(Signature::Secp256k1)
+                .map_err(|e| e.into()),
+            CryptoAlgorithm::Secp256r1 => Secp256r1Signature::from_slice(bytes)
+                .map(Signature::Secp256r1)
+                .map_err(|e| e.into()),
+        }
+    }
+
+    pub fn from_algorithm_and_der(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
+        match algorithm {
+            CryptoAlgorithm::Ed25519 => bail!("Ed25519 sig from DER format is not implemented"),
             CryptoAlgorithm::Secp256k1 => {
                 Secp256k1Signature::from_der(bytes).map(Signature::Secp256k1).map_err(|e| e.into())
             }
