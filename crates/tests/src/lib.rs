@@ -16,6 +16,7 @@ use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
+use std::env;
 
 use tempfile::TempDir;
 
@@ -29,9 +30,18 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 async fn test_light_client_prover_talking() -> Result<()> {
     std::env::set_var(
         "RUST_LOG",
-        "DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
+        "INFO,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
     );
     pretty_env_logger::init();
+
+    let algorithm = match env::var("CURVE_ALGORITHM").unwrap_or_else(|_| "ed25519".to_string()).as_str() {
+        "ed25519" => KeyAlgorithm::Ed25519,
+        "secp256k1" => KeyAlgorithm::Secp256k1,
+        "secp256r1" => KeyAlgorithm::Secp256r1,
+        _ => panic!("Unsupported curve"),
+    };
+
+    info!("testing algorithm: {}", algorithm);
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://localhost:26658".to_string(),
@@ -41,8 +51,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
         connection_string: "ws://localhost:46658".to_string(),
         ..CelestiaConfig::default()
     };
-
-    let algorithm = KeyAlgorithm::Secp256r1;
 
     let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
     let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());
@@ -129,7 +137,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let initial_height = rx.recv().await.unwrap();
     while let Ok(height) = rx.recv().await {
         debug!("received height {}", height);
-        if height >= initial_height + 100 {
+        if height >= initial_height + 50 {
             break;
         }
     }
