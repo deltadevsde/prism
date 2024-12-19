@@ -1,11 +1,11 @@
 use super::*;
-use prism_common::{transaction_builder::TransactionBuilder, tree::Proof};
+use prism_common::transaction_builder::TransactionBuilder;
 use prism_keys::{SigningKey, VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
 use prism_da::memory::InMemoryDataAvailabilityLayer;
-use prism_storage::{inmemory::InMemoryDatabase, Database};
+use prism_storage::inmemory::InMemoryDatabase;
 
 // Helper function to create a test prover instance
 async fn create_test_prover(algorithm: &str) -> Arc<Prover> {

@@ -4,12 +4,12 @@ use jmt::{
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
     JellyfishMerkleTree, KeyHash, RootHash,
 };
+use prism_common::digest::Digest;
 use std::sync::Arc;
 
-use crate::{digest::Digest, hasher::Hasher};
+use crate::hasher::TreeHasher;
 
-pub const SPARSE_MERKLE_PLACEHOLDER_HASH: Digest =
-    Digest::new(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
+pub const SPARSE_MERKLE_PLACEHOLDER_HASH: KeyHash = KeyHash(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
 /// Wraps a [`JellyfishMerkleTree`] to provide a key-value store for [`Hashchain`]s with batched insertions.
 /// This is prism's primary data structure for storing and retrieving [`Hashchain`]s.
@@ -17,7 +17,7 @@ pub struct KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter,
 {
-    pub(crate) jmt: JellyfishMerkleTree<Arc<S>, Hasher>,
+    pub(crate) jmt: JellyfishMerkleTree<Arc<S>, TreeHasher>,
     pub(crate) epoch: u64,
     pending_batch: Option<NodeBatch>,
     db: Arc<S>,
@@ -30,7 +30,7 @@ where
     pub fn new(store: Arc<S>) -> Self {
         let tree = Self {
             db: store.clone(),
-            jmt: JellyfishMerkleTree::<Arc<S>, Hasher>::new(store),
+            jmt: JellyfishMerkleTree::<Arc<S>, TreeHasher>::new(store),
             pending_batch: None,
             epoch: 0,
         };
@@ -48,7 +48,7 @@ where
         }
         Self {
             db: store.clone(),
-            jmt: JellyfishMerkleTree::<Arc<S>, Hasher>::new(store),
+            jmt: JellyfishMerkleTree::<Arc<S>, TreeHasher>::new(store),
             pending_batch: None,
             epoch,
         }

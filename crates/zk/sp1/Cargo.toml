@@ -8,4 +8,5 @@ repository.workspace = true
 
 [dependencies]
 prism-common = { workspace = true }
+prism-tree = { workspace = true }
 sp1-zkvm = { workspace = true }

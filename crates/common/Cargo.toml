@@ -8,7 +8,6 @@ repository.workspace = true
 
 [dependencies]
 # prism
-prism-errors.workspace = true
 prism-keys.workspace = true
 
 # serde
@@ -18,13 +17,11 @@ serde.workspace = true
 # celestia
 celestia-types.workspace = true
 
-# tree
-jmt.workspace = true
+# digest
 sha2.workspace = true
 
 # misc
 anyhow.workspace = true
-log.workspace = true
 rand.workspace = true
 
 [features]
