@@ -288,7 +288,7 @@ fn test_multiple_inserts_and_updates(algorithm: &str) {
     tree.process_transaction(key_1_tx).unwrap();
 
     let data_1_tx =
-        tx_builder.add_unsigned_data_verified_with_root(algorithm, "acc_2", b"unsigned".to_vec()).commit();
+        tx_builder.add_unsigned_data_verified_with_root("acc_2", b"unsigned".to_vec()).commit();
     tree.process_transaction(data_1_tx).unwrap();
 
     let data_2_tx = tx_builder
