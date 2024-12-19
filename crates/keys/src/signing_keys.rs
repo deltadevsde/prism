@@ -31,12 +31,12 @@ impl SigningKey {
         SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng))
     }
 
-    pub fn new_with_algorithm(algorithm: &str) -> Self {
+    pub fn new_with_algorithm(algorithm: &str) -> Result<Self> {
         match algorithm {
-            "ed25519" => SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))),
-            "secp256k1" => SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)),
-            "secp256r1" => SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng)),
-            _ => panic!("Unexpected key algorithm for SigningKey: {}", algorithm),
+            "ed25519" => Ok(SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng)))),
+            "secp256k1" => Ok(SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng))),
+            "secp256r1" => Ok(SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng))),
+            _ => bail!("Unexpected key algorithm for SigningKey: '{}'. Expected one of: ed25519, secp256k1, secp256r1", algorithm),
         }
     }
 

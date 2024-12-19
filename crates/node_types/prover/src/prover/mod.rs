@@ -282,10 +282,9 @@ impl Prover {
         }
 
         // TODO: Issue #144
-        match epoch.verify_signature(self.cfg.verifying_key.clone()) {
-            Ok(_) => trace!("valid signature for epoch {}", epoch.height),
-            Err(e) => panic!("invalid signature in epoch {}: {:?}", epoch.height, e),
-        }
+        epoch.verify_signature(&self.cfg.verifying_key)
+            .with_context(|| format!("Invalid signature in epoch {}", epoch.height))?;
+        trace!("valid signature for epoch {}", epoch.height);
 
         let prev_commitment = self.db.get_commitment(&current_epoch)?;
 

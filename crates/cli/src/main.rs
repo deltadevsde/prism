@@ -37,17 +37,14 @@ async fn main() -> std::io::Result<()> {
                 )
             })?;
 
-            let verifying_key_algorithm = config.verifying_key_algorithm.as_str();
+            let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
-            if verifying_key_algorithm.is_empty() {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "verifying key algorithm is required"));
-            }
-
-            if !["ed25519", "secp256k1", "secp256r1"].contains(&verifying_key_algorithm) {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid verifying key algorithm"));
-            }
-
-            let prover_vk = VerifyingKey::from_algorithm_and_bytes(verifying_key_algorithm, config.verifying_key.unwrap().as_bytes()).unwrap();
+            let prover_vk = VerifyingKey::from_algorithm_and_bytes(
+                verifying_key_algorithm,
+                config.verifying_key.unwrap().as_bytes(),
+            ).map_err(|e| std::io::Error::new(
+              std::io::ErrorKind::InvalidData, format!("invalid prover verifying key: {}", e),
+            ))?;
 
             Arc::new(LightClient::new(da, celestia_config, Some(prover_vk)))
         }
@@ -72,14 +69,7 @@ async fn main() -> std::io::Result<()> {
                 .get_signing_key()
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-            let verifying_key_algorithm = config.verifying_key_algorithm.as_str();
-            if verifying_key_algorithm.is_empty() {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "verifying key algorithm is required"));
-            }
-
-            if !["ed25519", "secp256k1", "secp256r1"].contains(&verifying_key_algorithm) {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid verifying key algorithm"));
-            }
+            let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
             let signing_key = SigningKey::from_algorithm_and_bytes(verifying_key_algorithm, signing_key_chain.as_bytes()).unwrap();
             let verifying_key = signing_key.verifying_key();
@@ -128,16 +118,7 @@ async fn main() -> std::io::Result<()> {
                 .get_signing_key()
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-            // error if config.verifying_key_algorithm.as_str() is not present in config or invalid
-            if config.verifying_key_algorithm.is_empty() {
-              return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "verifying key algorithm is required"));
-            }
-
-            let verifying_key_algorithm = config.verifying_key_algorithm.as_str();
-
-            if !["ed25519", "secp256k1", "secp256r1"].contains(&verifying_key_algorithm) {
-              return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid verifying key algorithm"));
-            }
+            let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
             let signing_key = SigningKey::from_algorithm_and_bytes(verifying_key_algorithm, signing_key_chain.as_bytes()).unwrap();
 
@@ -149,10 +130,10 @@ async fn main() -> std::io::Result<()> {
                         "prover verifying key not found",
                     )
                 })
-                .and_then(|vk| VerifyingKey::from_algorithm_and_bytes(verifying_key_algorithm, vk.as_bytes()).map_err(|_| {
+                .and_then(|vk| VerifyingKey::from_algorithm_and_bytes(verifying_key_algorithm, vk.as_bytes()).map_err(|e| {
                     std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
-                        "invalid prover verifying key",
+                        format!("invalid prover verifying key: {}", e),
                     )
                 }))?;
 
@@ -177,4 +158,16 @@ async fn main() -> std::io::Result<()> {
     };
 
     node.start().await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+}
+
+fn validate_algorithm(algorithm: &str) -> Result<&str, std::io::Error> {
+    if algorithm.is_empty() {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "verifying key algorithm is required"));
+    }
+
+    if !["ed25519", "secp256k1", "secp256r1"].contains(&algorithm) {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid verifying key algorithm"));
+    }
+
+    Ok(algorithm)
 }
