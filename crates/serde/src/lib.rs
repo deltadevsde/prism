@@ -2,15 +2,6 @@ pub mod base64;
 pub mod binary;
 pub mod hex;
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-pub struct CryptoPayload {
-    pub algorithm: String,
-    #[serde(with = "raw_or_b64")]
-    pub bytes: Vec<u8>,
-}
-
 pub mod raw_or_hex {
     use std::fmt::Display;
 

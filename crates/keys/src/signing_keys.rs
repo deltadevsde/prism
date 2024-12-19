@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use p256::ecdsa::{
     signature::DigestSigner, Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey,
@@ -8,8 +8,7 @@ use secp256k1::{Message as Secp256k1Message, SecretKey as Secp256k1SigningKey, S
 
 use sha2::Digest as _;
 
-use crate::{Signature, VerifyingKey};
-use prism_serde::CryptoPayload;
+use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, VerifyingKey};
 
 #[derive(Clone, Debug)]
 pub enum SigningKey {
@@ -43,26 +42,25 @@ impl SigningKey {
         }
     }
 
-    pub fn from_algorithm_and_bytes(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+    pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            "ed25519" => Ed25519SigningKey::try_from(bytes)
+            CryptoAlgorithm::Ed25519 => Ed25519SigningKey::try_from(bytes)
                 .map(|sk| SigningKey::Ed25519(Box::new(sk)))
                 .map_err(|e| e.into()),
-            "secp256k1" => Secp256k1SigningKey::from_slice(bytes)
+            CryptoAlgorithm::Secp256k1 => Secp256k1SigningKey::from_slice(bytes)
                 .map(SigningKey::Secp256k1)
                 .map_err(|e| e.into()),
-            "secp256r1" => Secp256r1SigningKey::from_slice(bytes)
+            CryptoAlgorithm::Secp256r1 => Secp256r1SigningKey::from_slice(bytes)
                 .map(SigningKey::Secp256r1)
                 .map_err(|e| e.into()),
-            _ => bail!("Unexpected algorithm for VerifyingKey"),
         }
     }
 
-    pub fn algorithm(&self) -> &'static str {
+    pub fn algorithm(&self) -> CryptoAlgorithm {
         match self {
-            SigningKey::Ed25519(_) => "ed25519",
-            SigningKey::Secp256k1(_) => "secp256k1",
-            SigningKey::Secp256r1(_) => "secp256r1",
+            SigningKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
+            SigningKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
+            SigningKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
         }
     }
 
@@ -100,14 +98,14 @@ impl TryFrom<CryptoPayload> for SigningKey {
     type Error = anyhow::Error;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
-        SigningKey::from_algorithm_and_bytes(&value.algorithm, &value.bytes)
+        SigningKey::from_algorithm_and_bytes(value.algorithm, &value.bytes)
     }
 }
 
 impl From<SigningKey> for CryptoPayload {
     fn from(signing_key: SigningKey) -> Self {
         CryptoPayload {
-            algorithm: signing_key.algorithm().to_string(),
+            algorithm: signing_key.algorithm(),
             bytes: signing_key.to_bytes(),
         }
     }
