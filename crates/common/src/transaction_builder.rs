@@ -85,7 +85,7 @@ impl TransactionBuilder {
         algorithm: KeyAlgorithm,
         id: &str,
     ) -> UncommittedTransaction {
-        let random_service_challenge_key = SigningKey::new_with_algorithm(algorithm.clone()).expect("Failed to create challenge key");
+        let random_service_challenge_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create challenge key");
         let random_service_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
         self.register_service(id, random_service_challenge_key, random_service_signing_key)
     }

@@ -88,7 +88,7 @@ async fn main() -> std::io::Result<()> {
 
             info!(
                 "prover verifying key: {}",
-                VerifyingKey::from(prover_cfg.verifying_key.clone())
+                prover_cfg.verifying_key.clone()
             );
 
             Arc::new(
