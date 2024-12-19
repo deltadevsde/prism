@@ -21,8 +21,8 @@ impl Signature {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Signature::Ed25519(sig) => sig.to_bytes().to_vec(),
-            Signature::Secp256k1(sig) => sig.serialize_der().to_vec(),
-            Signature::Secp256r1(sig) => sig.to_der().as_bytes().to_vec(),
+            Signature::Secp256k1(sig) => sig.serialize_compact().to_vec(),
+            Signature::Secp256r1(sig) => sig.to_vec(),
             Signature::Placeholder => vec![],
         }
     }
