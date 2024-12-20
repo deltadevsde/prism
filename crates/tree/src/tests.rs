@@ -17,7 +17,7 @@ fn test_insert_and_get(algorithm: CryptoAlgorithm) {
     let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
         panic!("Processing transaction did not return the expected insert proof");
     };
-    assert!(insert_proof.verify().is_ok());
+    assert!(insert_proof.verify(None).is_ok());
 
     let account_tx =
         tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
@@ -25,7 +25,8 @@ fn test_insert_and_get(algorithm: CryptoAlgorithm) {
     let Proof::Insert(insert_proof) = tree.process_transaction(account_tx).unwrap() else {
         panic!("Processing transaction did not return the expected insert proof");
     };
-    assert!(insert_proof.verify().is_ok());
+    let service_challenge = tx_builder.get_account("service_1").unwrap().service_challenge();
+    assert!(insert_proof.verify(service_challenge).is_ok());
 
     let Found(account, membership_proof) = tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap()
     else {
@@ -85,7 +86,7 @@ fn test_insert_with_invalid_service_challenge_fails(algorithm: CryptoAlgorithm) 
     let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
         panic!("Processing service registration failed")
     };
-    assert!(insert_proof.verify().is_ok());
+    assert!(insert_proof.verify(None).is_ok());
 
     let create_account_result = tree.process_transaction(acc_with_invalid_challenge_tx);
     assert!(create_account_result.is_err());
@@ -104,12 +105,13 @@ fn test_insert_duplicate_key(algorithm: CryptoAlgorithm) {
     let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
         panic!("Processing service registration failed")
     };
-    assert!(insert_proof.verify().is_ok());
+    assert!(insert_proof.verify(None).is_ok());
 
     let Proof::Insert(insert_proof) = tree.process_transaction(account_tx).unwrap() else {
         panic!("Processing Account creation failed")
     };
-    assert!(insert_proof.verify().is_ok());
+    let service_challenge = tx_builder.get_account("service_1").unwrap().service_challenge();
+    assert!(insert_proof.verify(service_challenge).is_ok());
 
     let create_acc_with_same_id_result = tree.process_transaction(account_with_same_id_tx);
     assert!(create_acc_with_same_id_result.is_err());
