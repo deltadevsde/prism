@@ -4,7 +4,7 @@ mod node_types;
 use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-use prism_keys::{SigningKey, VerifyingKey, CryptoAlgorithm, SUPPORTED_ALGORITHMS};
+use prism_keys::{SigningKey, VerifyingKey, CryptoAlgorithm};
 
 use node_types::NodeType;
 use prism_lightclient::LightClient;
@@ -38,16 +38,11 @@ async fn main() -> std::io::Result<()> {
             })?;
 
             let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
-            let prover_vk = VerifyingKey::from_algorithm_and_bytes(
-                CryptoAlgorithm::from_str(verifying_key_algorithm)
-                    .map_err(|e| std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        format!("Failed to create verifying key: {:?}", e)
-                    ))?,
+            let prover_vk = create_key_from_algorithm(
+                verifying_key_algorithm,
                 config.verifying_key.unwrap().as_bytes(),
-            ).map_err(|e| std::io::Error::new(
-              std::io::ErrorKind::InvalidData, format!("invalid prover verifying key: {:?}", e),
-            ))?;
+                VerifyingKey::from_algorithm_and_bytes,
+            )?;
 
             Arc::new(LightClient::new(da, celestia_config, Some(prover_vk)))
         }
@@ -74,14 +69,11 @@ async fn main() -> std::io::Result<()> {
 
             let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
-            let signing_key = SigningKey::from_algorithm_and_bytes(
-              CryptoAlgorithm::from_str(verifying_key_algorithm)
-                  .map_err(|e| std::io::Error::new(
-                      std::io::ErrorKind::InvalidData,
-                      format!("Failed to create verifying key: {:?}", e)
-                  ))?,
-              signing_key_chain.as_bytes())
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("invalid signing key: {:?}", e)))?;
+            let signing_key = create_key_from_algorithm(
+                verifying_key_algorithm,
+                signing_key_chain.as_bytes(),
+                SigningKey::from_algorithm_and_bytes,
+            )?;
             let verifying_key = signing_key.verifying_key();
 
             let prover_cfg = prism_prover::Config {
@@ -130,14 +122,11 @@ async fn main() -> std::io::Result<()> {
 
             let verifying_key_algorithm = validate_algorithm(&config.verifying_key_algorithm)?;
 
-            let signing_key = SigningKey::from_algorithm_and_bytes(
-              CryptoAlgorithm::from_str(verifying_key_algorithm)
-                  .map_err(|e| std::io::Error::new(
-                      std::io::ErrorKind::InvalidData,
-                      format!("Failed to create verifying key: {:?}", e)
-                  ))?,
-              signing_key_chain.as_bytes())
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("invalid signing key: {:?}", e)))?;
+            let signing_key = create_key_from_algorithm(
+                verifying_key_algorithm,
+                signing_key_chain.as_bytes(),
+                SigningKey::from_algorithm_and_bytes,
+            )?;
 
             let prover_vk = config
                 .verifying_key
@@ -147,18 +136,11 @@ async fn main() -> std::io::Result<()> {
                         "prover verifying key not found",
                     )
                 })
-                .and_then(|vk| VerifyingKey::from_algorithm_and_bytes(
-                  CryptoAlgorithm::from_str(verifying_key_algorithm)
-                      .map_err(|e| std::io::Error::new(
-                          std::io::ErrorKind::InvalidData,
-                          format!("Failed to create verifying key: {:?}", e)
-                      ))?,
-                  vk.as_bytes()).map_err(|e| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        format!("invalid prover verifying key: {:?}", e),
-                    )
-                }))?;
+                .and_then(|vk| create_key_from_algorithm(
+                    verifying_key_algorithm,
+                    vk.as_bytes(),
+                    VerifyingKey::from_algorithm_and_bytes,
+                ))?;
 
             let prover_cfg = prism_prover::Config {
                 prover: false,
@@ -188,9 +170,27 @@ fn validate_algorithm(algorithm: &str) -> Result<&str, std::io::Error> {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "verifying key algorithm is required"));
     }
 
-    if !SUPPORTED_ALGORITHMS.contains(&CryptoAlgorithm::from_str(algorithm).unwrap()) {
-        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid verifying key algorithm"));
+    if CryptoAlgorithm::from_str(algorithm).is_err() {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid verifying key algorithm format"));
     }
 
     Ok(algorithm)
+}
+
+fn create_key_from_algorithm<T>(
+    algorithm: &str,
+    bytes: &[u8],
+    creator: impl FnOnce(CryptoAlgorithm, &[u8]) -> Result<T, anyhow::Error>,
+) -> std::io::Result<T> {
+    let key_algorithm = CryptoAlgorithm::from_str(algorithm)
+        .map_err(|e| std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("Failed to create key: {:?}", e)
+        ))?;
+    
+    creator(key_algorithm, bytes)
+        .map_err(|e| std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("Invalid key: {:?}", e)
+        ))
 }

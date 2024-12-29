@@ -20,5 +20,3 @@ impl std::str::FromStr for CryptoAlgorithm {
       }
   }
 }
-
-pub const SUPPORTED_ALGORITHMS: &[CryptoAlgorithm] = &[CryptoAlgorithm::Ed25519, CryptoAlgorithm::Secp256k1, CryptoAlgorithm::Secp256r1];
