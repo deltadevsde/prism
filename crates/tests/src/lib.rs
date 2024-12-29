@@ -11,7 +11,7 @@ use prism_da::{
 };
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
-use prism_keys::{SigningKey, KeyAlgorithm};
+use prism_keys::{SigningKey, CryptoAlgorithm};
 use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
@@ -35,13 +35,13 @@ async fn test_light_client_prover_talking() -> Result<()> {
     pretty_env_logger::init();
 
     let algorithm = match env::var("CURVE_ALGORITHM").unwrap_or_else(|_| "ed25519".to_string()).as_str() {
-        "ed25519" => KeyAlgorithm::Ed25519,
-        "secp256k1" => KeyAlgorithm::Secp256k1,
-        "secp256r1" => KeyAlgorithm::Secp256r1,
+        "ed25519" => CryptoAlgorithm::Ed25519,
+        "secp256k1" => CryptoAlgorithm::Secp256k1,
+        "secp256r1" => CryptoAlgorithm::Secp256r1,
         _ => panic!("Unsupported curve"),
     };
 
-    info!("testing algorithm: {}", algorithm);
+    info!("testing algorithm: {:?}", algorithm);
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://localhost:26658".to_string(),

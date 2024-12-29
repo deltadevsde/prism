@@ -2,14 +2,14 @@ use std::sync::Arc;
 
 use jmt::{mock::MockTreeStore, KeyHash};
 use prism_common::transaction_builder::TransactionBuilder;
-use prism_keys::{SigningKey, KeyAlgorithm};
+use prism_keys::{SigningKey, CryptoAlgorithm};
 
 use crate::{
     hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
     snarkable_tree::SnarkableTree, AccountResponse::*,
 };
 
-fn test_insert_and_get(algorithm: KeyAlgorithm) {
+fn test_insert_and_get(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -39,7 +39,7 @@ fn test_insert_and_get(algorithm: KeyAlgorithm) {
     assert!(membership_proof.verify_existence(&account).is_ok());
 }
 
-fn test_insert_for_nonexistent_service_fails(algorithm: KeyAlgorithm) {
+fn test_insert_for_nonexistent_service_fails(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -58,7 +58,7 @@ fn test_insert_for_nonexistent_service_fails(algorithm: KeyAlgorithm) {
     assert!(insertion_result.is_err());
 }
 
-fn test_insert_with_invalid_service_challenge_fails(algorithm: KeyAlgorithm) {
+fn test_insert_with_invalid_service_challenge_fails(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -88,7 +88,7 @@ fn test_insert_with_invalid_service_challenge_fails(algorithm: KeyAlgorithm) {
     assert!(create_account_result.is_err());
 }
 
-fn test_insert_duplicate_key(algorithm: KeyAlgorithm) {
+fn test_insert_duplicate_key(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -112,7 +112,7 @@ fn test_insert_duplicate_key(algorithm: KeyAlgorithm) {
     assert!(create_acc_with_same_id_result.is_err());
 }
 
-fn test_update_existing_key(algorithm: KeyAlgorithm) {
+fn test_update_existing_key(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -135,7 +135,7 @@ fn test_update_existing_key(algorithm: KeyAlgorithm) {
     assert!(matches!(get_result, Found(acc, _) if *acc == *test_account));
 }
 
-fn test_update_non_existing_key(algorithm: KeyAlgorithm) {
+fn test_update_non_existing_key(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -152,7 +152,7 @@ fn test_update_non_existing_key(algorithm: KeyAlgorithm) {
     assert!(result.is_err());
 }
 
-fn test_multiple_inserts_and_updates(algorithm: KeyAlgorithm) {
+fn test_multiple_inserts_and_updates(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -189,7 +189,7 @@ fn test_multiple_inserts_and_updates(algorithm: KeyAlgorithm) {
     assert!(matches!(get_result2, Found(acc, _) if *acc == *test_acc2));
 }
 
-fn test_interleaved_inserts_and_updates(algorithm: KeyAlgorithm) {
+fn test_interleaved_inserts_and_updates(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -224,7 +224,7 @@ fn test_interleaved_inserts_and_updates(algorithm: KeyAlgorithm) {
     assert_eq!(update_proof.new_root, tree.get_commitment().unwrap());
 }
 
-fn test_root_hash_changes(algorithm: KeyAlgorithm) {
+fn test_root_hash_changes(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -241,7 +241,7 @@ fn test_root_hash_changes(algorithm: KeyAlgorithm) {
     assert_ne!(root_before, root_after);
 }
 
-fn test_batch_writing(algorithm: KeyAlgorithm) {
+fn test_batch_writing(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
@@ -286,17 +286,17 @@ macro_rules! generate_algorithm_tests {
         paste::paste! {
             #[test]
             fn [<$test_fn _ed25519>]() {
-                $test_fn(KeyAlgorithm::Ed25519);
+                $test_fn(CryptoAlgorithm::Ed25519);
             }
 
             #[test]
             fn [<$test_fn _secp256k1>]() {
-                $test_fn(KeyAlgorithm::Secp256k1);
+                $test_fn(CryptoAlgorithm::Secp256k1);
             }
 
             #[test]
             fn [<$test_fn _secp256r1>]() {
-                $test_fn(KeyAlgorithm::Secp256r1);
+                $test_fn(CryptoAlgorithm::Secp256r1);
             }
         }
     };

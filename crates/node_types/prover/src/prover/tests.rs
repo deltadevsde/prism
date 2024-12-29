@@ -1,6 +1,6 @@
 use super::*;
 use prism_common::transaction_builder::TransactionBuilder;
-use prism_keys::{SigningKey, VerifyingKey, KeyAlgorithm};
+use prism_keys::{SigningKey, VerifyingKey, CryptoAlgorithm};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
@@ -8,7 +8,7 @@ use prism_da::memory::InMemoryDataAvailabilityLayer;
 use prism_storage::inmemory::InMemoryDatabase;
 
 // Helper function to create a test prover instance
-async fn create_test_prover(algorithm: KeyAlgorithm) -> Arc<Prover> {
+async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
     let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
@@ -16,7 +16,7 @@ async fn create_test_prover(algorithm: KeyAlgorithm) -> Arc<Prover> {
     Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
 }
 
-fn create_mock_transactions(algorithm: KeyAlgorithm, service_id: String) -> Vec<Transaction> {
+fn create_mock_transactions(algorithm: CryptoAlgorithm, service_id: String) -> Vec<Transaction> {
     let mut transaction_builder = TransactionBuilder::new();
 
     vec![
@@ -31,7 +31,7 @@ fn create_mock_transactions(algorithm: KeyAlgorithm, service_id: String) -> Vec<
     ]
 }
 
-async fn test_validate_and_queue_update(algorithm: KeyAlgorithm) {
+async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
 
     let mut transaction_builder = TransactionBuilder::new();
@@ -46,7 +46,7 @@ async fn test_validate_and_queue_update(algorithm: KeyAlgorithm) {
     assert_eq!(pending_transactions.len(), 2);
 }
 
-async fn test_process_transactions(algorithm: KeyAlgorithm) {
+async fn test_process_transactions(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
 
     let mut transaction_builder = TransactionBuilder::new();
@@ -83,7 +83,7 @@ async fn test_process_transactions(algorithm: KeyAlgorithm) {
     assert!(matches!(proof, Proof::Update(_)));
 }
 
-async fn test_execute_block_with_invalid_tx(algorithm: KeyAlgorithm) {
+async fn test_execute_block_with_invalid_tx(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
 
     let mut tx_builder = TransactionBuilder::new();
@@ -107,7 +107,7 @@ async fn test_execute_block_with_invalid_tx(algorithm: KeyAlgorithm) {
     assert_eq!(proofs.len(), 4);
 }
 
-async fn test_execute_block(algorithm: KeyAlgorithm) {
+async fn test_execute_block(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
 
     let transactions = create_mock_transactions(algorithm, "test_service".to_string());
@@ -116,7 +116,7 @@ async fn test_execute_block(algorithm: KeyAlgorithm) {
     assert_eq!(proofs.len(), 4);
 }
 
-async fn test_finalize_new_epoch(algorithm: KeyAlgorithm) {
+async fn test_finalize_new_epoch(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
     let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
@@ -127,7 +127,7 @@ async fn test_finalize_new_epoch(algorithm: KeyAlgorithm) {
     assert_ne!(prev_commitment, new_commitment);
 }
 
-async fn test_restart_sync_from_scratch(algorithm: KeyAlgorithm) {
+async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
@@ -170,7 +170,7 @@ async fn test_restart_sync_from_scratch(algorithm: KeyAlgorithm) {
     }
 }
 
-async fn test_load_persisted_state(algorithm: KeyAlgorithm) {
+async fn test_load_persisted_state(algorithm: CryptoAlgorithm) {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
@@ -211,17 +211,17 @@ macro_rules! generate_algorithm_tests {
         paste::paste! {
             #[tokio::test]
             async fn [<$test_fn _ed25519>]() {
-                $test_fn(KeyAlgorithm::Ed25519).await;
+                $test_fn(CryptoAlgorithm::Ed25519).await;
             }
 
             #[tokio::test]
             async fn [<$test_fn _secp256k1>]() {
-                $test_fn(KeyAlgorithm::Secp256k1).await;
+                $test_fn(CryptoAlgorithm::Secp256k1).await;
             }
 
             #[tokio::test]
             async fn [<$test_fn _secp256r1>]() {
-                $test_fn(KeyAlgorithm::Secp256r1).await;
+                $test_fn(CryptoAlgorithm::Secp256r1).await;
             }
         }
     };

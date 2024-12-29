@@ -13,15 +13,11 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::{
     self,
-    hash::{Hash, Hasher},
-    str::FromStr,
+    hash::{Hash, Hasher}
 };
 
-use crate::{Signature, SigningKey, KeyAlgorithm};
-use prism_serde::{
-    base64::{FromBase64, ToBase64},
-    CryptoPayload,
-};
+use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, SigningKey};
+use prism_serde::base64::{FromBase64, ToBase64};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
@@ -64,26 +60,25 @@ impl VerifyingKey {
         }
     }
 
-    pub fn from_algorithm_and_bytes(algorithm: KeyAlgorithm, bytes: &[u8]) -> Result<Self> {
+    pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            KeyAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
+            CryptoAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
                 .map(VerifyingKey::Ed25519)
                 .map_err(|e| e.into()),
-            KeyAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_slice(bytes)
+            CryptoAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_slice(bytes)
                 .map(VerifyingKey::Secp256k1)
                 .map_err(|e| e.into()),
-            KeyAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
+            CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::Secp256r1)
                 .map_err(|e| e.into()),
-            _ => bail!("Unexpected algorithm for VerifyingKey: {}", algorithm),
         }
     }
 
-    pub fn algorithm(&self) -> KeyAlgorithm {
+    pub fn algorithm(&self) -> CryptoAlgorithm {
         match self {
-            VerifyingKey::Ed25519(_) => KeyAlgorithm::Ed25519,
-            VerifyingKey::Secp256k1(_) => KeyAlgorithm::Secp256k1,
-            VerifyingKey::Secp256r1(_) => KeyAlgorithm::Secp256r1,
+            VerifyingKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
+            VerifyingKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
+            VerifyingKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
         }
     }
 
@@ -127,18 +122,15 @@ impl TryFrom<CryptoPayload> for VerifyingKey {
     type Error = anyhow::Error;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
-        VerifyingKey::from_algorithm_and_bytes(
-            KeyAlgorithm::from_str(&value.algorithm).map_err(|_| anyhow::anyhow!("Invalid algorithm: {}", value.algorithm))?,
-            &value.bytes,
-        )
+        VerifyingKey::from_algorithm_and_bytes(value.algorithm, &value.bytes)
     }
 }
 
 impl From<VerifyingKey> for CryptoPayload {
-    fn from(signature: VerifyingKey) -> Self {
+    fn from(verifying_key: VerifyingKey) -> Self {
         CryptoPayload {
-            algorithm: signature.algorithm().to_string(),
-            bytes: signature.to_bytes(),
+            algorithm: verifying_key.algorithm(),
+            bytes: verifying_key.to_bytes(),
         }
     }
 }
