@@ -39,7 +39,7 @@ We are currently experimenting with various proof systems and have handwritten g
 
 ### Install Dependencies
 
-We use `just` as a task runner. Once installed, you can install the rest of the dependencies with:
+We use [`just`](https://github.com/casey/just?tab=readme-ov-file#packages) as a task runner. Once installed, you can install the rest of the dependencies with:
 
 ```bash
 just install-deps

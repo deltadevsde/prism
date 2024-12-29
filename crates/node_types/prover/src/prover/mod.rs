@@ -2,18 +2,16 @@ use anyhow::{anyhow, bail, Context, Result};
 use ed25519_consensus::{SigningKey, VerificationKey};
 use jmt::KeyHash;
 use keystore_rs::create_signing_key;
-use prism_common::{
-    digest::Digest,
-    hashchain::Hashchain,
-    hasher::Hasher,
-    transaction::Transaction,
-    tree::{
-        Batch,
-        HashchainResponse::{self, *},
-        KeyDirectoryTree, Proof, SnarkableTree,
-    },
-};
+use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
+use prism_storage::database::Database;
+use prism_tree::{
+    hasher::TreeHasher,
+    key_directory_tree::KeyDirectoryTree,
+    proofs::{Batch, Proof},
+    snarkable_tree::SnarkableTree,
+    AccountResponse::{self, *},
+};
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::{
     sync::{broadcast, RwLock},
@@ -23,7 +21,6 @@ use tokio::{
 use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
-use prism_storage::Database;
 use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
@@ -457,9 +454,9 @@ impl Prover {
         tree.get_commitment().context("Failed to get commitment")
     }
 
-    pub async fn get_hashchain(&self, id: &String) -> Result<HashchainResponse> {
+    pub async fn get_account(&self, id: &String) -> Result<AccountResponse> {
         let tree = self.tree.read().await;
-        let key_hash = KeyHash::with::<Hasher>(id);
+        let key_hash = KeyHash::with::<TreeHasher>(id);
 
         tree.get(key_hash)
     }
@@ -479,19 +476,19 @@ impl Prover {
             bail!("Batcher is disabled, cannot queue transactions");
         }
 
-        // validate against existing hashchain if necessary, including signature checks
-        match transaction.entry.operation {
+        // validate against existing account if necessary, including signature checks
+        match transaction.operation {
             Operation::RegisterService { .. } | Operation::CreateAccount { .. } => {
-                Hashchain::empty().add_entry(transaction.entry.clone())?
+                Account::default().process_transaction(&transaction)?;
             }
             Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
-                let hc_response = self.get_hashchain(&transaction.id).await?;
+                let account_response = self.get_account(&transaction.id).await?;
 
-                let Found(mut hc, _) = hc_response else {
-                    bail!("Hashchain not found for id: {}", transaction.id)
+                let Found(mut account, _) = account_response else {
+                    bail!("Account not found for id: {}", transaction.id)
                 };
 
-                hc.add_entry(transaction.entry.clone())?;
+                account.process_transaction(&transaction)?;
             }
         };
 

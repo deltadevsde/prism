@@ -27,31 +27,12 @@ pub enum Operation {
     AddData {
         #[serde(with = "raw_or_b64")]
         data: Vec<u8>,
-        data_signature: Option<SignatureBundle>,
+        data_signature: SignatureBundle,
     },
     /// Adds a key to an existing account.
     AddKey { key: VerifyingKey },
     /// Revokes a key from an existing account.
     RevokeKey { key: VerifyingKey },
-}
-
-#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
-/// Represents a signature bundle, which includes the index of the key
-/// in the user's hashchain and the associated signature.
-pub struct HashchainSignatureBundle {
-    /// Index of the key in the hashchain
-    pub key_idx: usize,
-    /// The actual signature
-    pub signature: Signature,
-}
-
-impl HashchainSignatureBundle {
-    pub fn empty_with_idx(idx: usize) -> Self {
-        HashchainSignatureBundle {
-            key_idx: idx,
-            signature: Signature::Placeholder,
-        }
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]

@@ -18,9 +18,9 @@ BRIDGE_COINS="200000000000000utia"
 VALIDATOR_COINS="1000000000000000utia"
 # a directory and the files shared with the bridge nodes
 CREDENTIALS_DIR="/credentials"
-# directory where validator will write the genesis hash
-GENESIS_DIR="/genesis"
-GENESIS_HASH_FILE="$GENESIS_DIR/genesis_hash"
+# directory where validator will write the genesis hash and the bridge node their peers addresses
+SHARED_DIR="/shared"
+GENESIS_HASH_FILE="$SHARED_DIR/genesis_hash"
 
 # Get the address of the node of given name
 node_address() {
@@ -191,14 +191,12 @@ setup_private_validator() {
   # If you encounter: `sed: -I or -i may not be used with stdin` on MacOS you can mitigate by installing gnu-sed
   # https://gist.github.com/andre3k1/e3a1a7133fded5de5a9ee99c87c6fa0d?permalink_comment_id=3082272#gistcomment-3082272
   sed -i'.bak' 's|"tcp://127.0.0.1:26657"|"tcp://0.0.0.0:26657"|g' "$CONFIG_DIR/config/config.toml"
-  sed -i'.bak' 's|"null"|"kv"|g' "$CONFIG_DIR/config/config.toml"
+  # enable transaction indexing
+  sed -i'.bak' 's|indexer = .*|indexer = "kv"|g' "$CONFIG_DIR/config/config.toml"
 
   # reduce the time of commiting the proposed block
   # bringing this value too low results in errors
   sed -i'.bak' 's|^timeout_commit.*|timeout_commit = "1s"|g' "$CONFIG_DIR/config/config.toml"
-
-  # Set app version to 1
-  sed -i'.bak' 's|"app_version": "2"|"app_version": "1"|g' "$CONFIG_DIR/config/genesis.json"
 }
 
 main() {
@@ -208,7 +206,7 @@ main() {
   provision_light_nodes &
   # Start the celestia-app
   echo "Configuration finished. Running a validator node..."
-  celestia-appd start --api.enable --grpc.enable
+  celestia-appd start --api.enable --grpc.enable --force-no-bbr
 }
 
 main

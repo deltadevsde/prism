@@ -1,0 +1,25 @@
+[package]
+name = "prism-tree"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+readme.workspace = true
+
+[dependencies]
+jmt.workspace = true
+sha2.workspace = true
+serde.workspace = true
+log.workspace = true
+anyhow.workspace = true
+prism-common = { workspace = true, features = ["test_utils"] }
+prism-errors.workspace = true
+prism-keys.workspace = true
+prism-serde.workspace = true
+
+[features]
+default = []

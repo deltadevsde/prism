@@ -26,6 +26,7 @@ default-members = [
     "crates/da",
     "crates/serde",
     "crates/keys",
+    "crates/tree",
 ]
 
 members = [
@@ -40,6 +41,7 @@ members = [
     "crates/da",
     "crates/serde",
     "crates/keys",
+    "crates/tree",
 ]
 resolver = "2"
 
@@ -96,8 +98,8 @@ p256 = { version = "0.13.2", features = ["serde", "ecdsa"] }
 ecdsa = { version = "0.16.0", features = ["der"] }
 
 # celestia
-celestia-rpc = "=0.4.0"
-celestia-types = "=0.4.0"
+celestia-rpc = "=0.8.0"
+celestia-types = "=0.9.0"
 
 # misc
 jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit", features = [
@@ -117,6 +119,7 @@ prism-prover = { path = "crates/node_types/prover" }
 prism-tests = { path = "crates/tests" }
 prism-keys = { path = "crates/keys" }
 prism-serde = { path = "crates/serde" }
+prism-tree = { path = "crates/tree" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 
 [patch.crates-io]

@@ -2,7 +2,7 @@ use crate::{DataAvailabilityLayer, FinalizedEpoch};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
-use celestia_types::{nmt::Namespace, Blob, TxConfig};
+use celestia_types::{nmt::Namespace, Blob, TxConfig, AppVersion};
 use log::{debug, error, trace, warn};
 use prism_common::transaction::Transaction;
 use prism_errors::{DataAvailabilityError, GeneralError};
@@ -160,7 +160,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
             )))
         })?;
 
-        let blob = Blob::new(self.snark_namespace, data).map_err(|e| {
+        let blob = Blob::new(self.snark_namespace, data, AppVersion::V3).map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
         })?;
 
@@ -221,7 +221,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         ))
                     })?;
 
-                Blob::new(self.operation_namespace, data)
+                Blob::new(self.operation_namespace, data, AppVersion::V3)
                     .context(format!(
                         "Failed to create blob for transaction {:?}",
                         transaction

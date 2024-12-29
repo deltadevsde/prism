@@ -11,7 +11,7 @@ services:
       - LIGHT_COUNT=1
     volumes:
       - credentials:/credentials
-      - genesis:/genesis
+      - shared:/shared
 
   bridge-0:
     image: bridge
@@ -23,12 +23,16 @@ services:
       # provide an id for the bridge node (default: 0)
       # each node should have a next natural number starting from 0
       - NODE_ID=0
+      # setting SKIP_AUTH to true disables the use of JWT for authentication
       - SKIP_AUTH=true
+      # this must match the service name in the docker-compose.yml file
+      # used for the trusted peers string for the light node
+      - CONTAINER_NAME=bridge-0
     ports:
       - 26658:26658
     volumes:
       - credentials:/credentials
-      - genesis:/genesis
+      - shared:/shared
 
   bridge-1:
     image: bridge
@@ -42,11 +46,14 @@ services:
       - NODE_ID=1
       # setting SKIP_AUTH to true disables the use of JWT for authentication
       - SKIP_AUTH=true
+      # this must match the service name in the docker-compose.yml file
+      # used for the trusted peers string for the light node
+      - CONTAINER_NAME=bridge-1
     ports:
       - 36658:26658
     volumes:
       - credentials:/credentials
-      - genesis:/genesis
+      - shared:/shared
 
   light-0:
     image: light
@@ -55,33 +62,19 @@ services:
       context: .
       dockerfile: Dockerfile.lightnode
     environment:
-      # provide an id for the bridge node (default: 0)
+      # provide an id for the light node (default: 0)
       # each node should have a next natural number starting from 0
       - NODE_ID=0
+      # setting SKIP_AUTH to true disables the use of JWT for authentication
       - SKIP_AUTH=true
+      # depending on the number of bridge nodes, provide the count
+      # is used for the trusted peers string for the light node
+      - BRIDGE_COUNT=2
     ports:
       - 46658:26658
     volumes:
       - credentials:/credentials
-      - genesis:/genesis
-
-  # Uncomment for another bridge node
-  # remember to adjust services.validator.command
-  # bridge-1:
-  #   image: bridge
-  #   platform: "linux/amd64"
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.bridge
-  #   environment:
-  #     # provide an id for the bridge node (default: 0)
-  #     # each node should have a next natural number starting from 0
-  #     - NODE_ID=1
-  #   ports:
-  #     - 36658:26658
-  #   volumes:
-  #     - credentials:/credentials
-  #     - genesis:/genesis
+      - shared:/shared
 
 volumes:
   # local volume where node's credentials can persist
@@ -91,8 +84,8 @@ volumes:
       type: "none"
       o: "bind"
       device: "./credentials"
-  # a temporary fs where the genesis hash is announced
-  genesis:
+  # a temporary fs where the nodes share data
+  shared:
     driver_opts:
       type: tmpfs
       device: tmpfs

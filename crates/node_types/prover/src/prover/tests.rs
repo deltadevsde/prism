@@ -1,11 +1,11 @@
 use super::*;
-use prism_common::{transaction_builder::TransactionBuilder, tree::Proof};
+use prism_common::transaction_builder::TransactionBuilder;
 use prism_keys::{SigningKey, VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
 use prism_da::memory::InMemoryDataAvailabilityLayer;
-use prism_storage::{inmemory::InMemoryDatabase, Database};
+use prism_storage::inmemory::InMemoryDatabase;
 
 // Helper function to create a test prover instance
 async fn create_test_prover() -> Arc<Prover> {
@@ -77,9 +77,8 @@ async fn test_process_transactions() {
     let revoke_transaction = transaction_builder
         .revoke_key(
             "test_account",
-            create_account_transaction.entry.operation.get_public_key().cloned().unwrap(),
+            create_account_transaction.operation.get_public_key().cloned().unwrap(),
             &new_key,
-            1,
         )
         .commit();
     let proof = prover.process_transaction(revoke_transaction).await.unwrap();
@@ -104,7 +103,7 @@ async fn test_execute_block_with_invalid_tx() {
         tx_builder.revoke_key_verified_with_root("account_id", new_key_vk).commit(),
         // and adding in same block.
         // both of these transactions are valid individually, but when processed together it will fail.
-        tx_builder.add_random_key("account_id", &new_key_1, 1).build(),
+        tx_builder.add_random_key("account_id", &new_key_1).build(),
     ];
 
     let proofs = prover.execute_block(transactions).await.unwrap();
