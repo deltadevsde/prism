@@ -4,6 +4,9 @@ DOCKER_COMPOSE_FILE := "ci/docker-compose.yml"
 # Helper function to use correct docker compose command
 docker_compose_cmd := if `uname -s` == "Linux" { "docker compose" } else { "docker-compose" }
 
+# Check if running as root by examining the effective user ID
+is_root := if `id -u` == "0" { "true" } else { "false" }
+
 celestia-up:
   #!/usr/bin/env bash
   set -euo pipefail
@@ -130,8 +133,13 @@ install-deps:
     for package in build-essential pkg-config libssl-dev libclang-dev clang; do \
       if ! dpkg -s $package > /dev/null 2>&1; then \
         echo "Installing $package..."; \
-        sudo apt update; \
-        sudo apt install $package -y; \
+        if {{is_root}}; then \
+          apt update; \
+          apt install $package -y; \
+        else \
+          sudo apt update; \
+          sudo apt install $package -y; \
+        fi; \
       else \
         echo "$package is already installed."; \
       fi; \
@@ -148,8 +156,13 @@ install-deps:
       fi; \
       brew install redis; \
     elif [ "$OS" = "Linux" ]; then \
-      sudo apt update; \
-      sudo apt install redis-server -y; \
+      if {{is_root}}; then \
+        apt update; \
+        apt install redis-server -y; \
+      else \
+        sudo apt update; \
+        sudo apt install redis-server -y; \
+      fi; \
     fi; \
     echo "Redis installation complete!"; \
   else \
@@ -182,5 +195,7 @@ install-deps:
       echo "$tool is already installed."; \
     fi; \
   done
+
+  source ~/.bashrc || source ~/.bash_profile || source ~/.zshrc
 
   echo "All dependencies installed successfully!"

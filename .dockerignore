@@ -1,9 +1,13 @@
 .github/
+.git/
+.gitignore
 adr/
 assets/
 benches/
 ci/
 coverage_report/
 doc/
-elf/
 target/
+
+Dockerfile
+.dockerignore
