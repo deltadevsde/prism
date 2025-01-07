@@ -89,7 +89,10 @@ where
 
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof> {
         match &transaction.operation {
-            Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
+            Operation::AddKey { .. }
+            | Operation::RevokeKey { .. }
+            | Operation::AddData { .. }
+            | Operation::SetData { .. } => {
                 let key_hash = KeyHash::with::<TreeHasher>(&transaction.id);
 
                 debug!("updating account for user id {}", transaction.id);

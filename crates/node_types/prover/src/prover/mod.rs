@@ -491,7 +491,10 @@ impl Prover {
             Operation::RegisterService { .. } | Operation::CreateAccount { .. } => {
                 Account::default().process_transaction(&transaction)?;
             }
-            Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {
+            Operation::AddKey { .. }
+            | Operation::RevokeKey { .. }
+            | Operation::AddData { .. }
+            | Operation::SetData { .. } => {
                 let account_response = self.get_account(&transaction.id).await?;
 
                 let Found(mut account, _) = account_response else {

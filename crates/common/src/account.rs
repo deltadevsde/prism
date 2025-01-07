@@ -131,6 +131,10 @@ impl Account {
             Operation::AddData {
                 data,
                 data_signature,
+            }
+            | Operation::SetData {
+                data,
+                data_signature,
             } => {
                 // we only need to do a single signature verification if the
                 // user signs transaction and data with their own key
@@ -169,6 +173,15 @@ impl Account {
                     data_signature.verifying_key.clone(),
                     data.clone(),
                 ));
+            }
+            Operation::SetData {
+                data,
+                data_signature,
+            } => {
+                self.signed_data = vec![SignedData(
+                    data_signature.verifying_key.clone(),
+                    data.clone(),
+                )];
             }
             Operation::CreateAccount { id, key, .. } => {
                 self.id = id.clone();
