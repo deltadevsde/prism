@@ -207,7 +207,9 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         }),
         da_layer: config.da_layer,
         verifying_key: args.verifying_key.or(config.verifying_key),
-        verifying_key_algorithm: args.verifying_key_algorithm.unwrap_or(config.verifying_key_algorithm),
+        verifying_key_algorithm: args
+            .verifying_key_algorithm
+            .unwrap_or(config.verifying_key_algorithm),
     }
 }
 

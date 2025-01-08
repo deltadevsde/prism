@@ -13,7 +13,6 @@ test_utils = []
 mock_prover = []
 
 [dependencies]
-paste = { workspace = true }
 axum = { workspace = true }
 tower-http = { workspace = true }
 utoipa = { workspace = true }
@@ -30,3 +29,6 @@ prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-da = { workspace = true }
 sp1-sdk = { workspace = true }
+
+[dev-dependencies]
+paste = { workspace = true }

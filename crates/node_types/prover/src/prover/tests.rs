@@ -1,6 +1,6 @@
 use super::*;
 use prism_common::transaction_builder::TransactionBuilder;
-use prism_keys::{SigningKey, VerifyingKey, CryptoAlgorithm};
+use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
@@ -27,7 +27,9 @@ fn create_mock_transactions(algorithm: CryptoAlgorithm, service_id: String) -> V
         transaction_builder
             .create_account_with_random_key_signed(algorithm, "user2@example.com", &service_id)
             .commit(),
-        transaction_builder.add_random_key_verified_with_root(algorithm, "user1@example.com").commit(),
+        transaction_builder
+            .add_random_key_verified_with_root(algorithm, "user1@example.com")
+            .commit(),
     ]
 }
 
@@ -93,7 +95,9 @@ async fn test_execute_block_with_invalid_tx(algorithm: CryptoAlgorithm) {
 
     let transactions = vec![
         tx_builder.register_service_with_random_keys(algorithm, "service_id").commit(),
-        tx_builder.create_account_with_random_key_signed(algorithm, "account_id", "service_id").commit(),
+        tx_builder
+            .create_account_with_random_key_signed(algorithm, "account_id", "service_id")
+            .commit(),
         // add new key, so it will be index = 1
         tx_builder.add_key_verified_with_root("account_id", new_key_vk.clone()).commit(),
         // revoke new key again

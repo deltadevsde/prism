@@ -70,8 +70,7 @@ integration-test:
   for curve in ed25519 secp256k1 secp256r1; do
     just celestia-up
 
-    echo "Running integration tests for curve $curve..."
-    CURVE_ALGORITHM=$curve cargo test -p prism-tests --lib --release --features mock_prover
+    cargo test -p prism-tests --lib --release --features mock_prover
 
     just celestia-down
   done

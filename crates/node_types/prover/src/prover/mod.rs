@@ -1,8 +1,8 @@
 use anyhow::{anyhow, bail, Context, Result};
-use prism_keys::{SigningKey, VerifyingKey, CryptoAlgorithm};
 use jmt::KeyHash;
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
+use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::database::Database;
 use prism_tree::{
     hasher::TreeHasher,
@@ -67,15 +67,15 @@ impl Default for Config {
 #[allow(dead_code)]
 impl Config {
     /// Creates a new Config instance with the specified key algorithm.
-    /// 
+    ///
     /// # Arguments
     /// * `algorithm` - The key algorithm to use for signing and verification
-    /// 
+    ///
     /// # Returns
     /// A Result containing the Config or an error if key creation fails
     fn default_with_key_algorithm(algorithm: CryptoAlgorithm) -> Result<Self> {
-        let signing_key = SigningKey::new_with_algorithm(algorithm)
-            .context("Failed to create signing key")?;
+        let signing_key =
+            SigningKey::new_with_algorithm(algorithm).context("Failed to create signing key")?;
 
         Ok(Config {
             prover: true,
@@ -290,7 +290,8 @@ impl Prover {
         }
 
         // TODO: Issue #144
-        epoch.verify_signature(self.cfg.verifying_key.clone())
+        epoch
+            .verify_signature(self.cfg.verifying_key.clone())
             .with_context(|| format!("Invalid signature in epoch {}", epoch.height))?;
         trace!("valid signature for epoch {}", epoch.height);
 

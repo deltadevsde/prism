@@ -11,7 +11,6 @@ keywords.workspace = true
 readme.workspace = true
 
 [dependencies]
-paste = { workspace = true }
 jmt.workspace = true
 sha2.workspace = true
 serde.workspace = true
@@ -21,6 +20,9 @@ prism-common = { workspace = true, features = ["test_utils"] }
 prism-errors.workspace = true
 prism-keys.workspace = true
 prism-serde.workspace = true
+
+[dev-dependencies]
+paste = { workspace = true }
 
 [features]
 default = []

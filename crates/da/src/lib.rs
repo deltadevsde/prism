@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use prism_keys::{SigningKey, VerifyingKey, Signature};
 use prism_common::{digest::Digest, transaction::Transaction};
+use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
     binary::ToBinary,
     hex::{FromHex, ToHex},
@@ -50,8 +50,9 @@ impl FinalizedEpoch {
         let signature_bytes = Vec::<u8>::from_hex(signature)
             .map_err(|e| anyhow::anyhow!("Failed to decode signature: {}", e))?;
 
-        let signature: Signature = Signature::from_algorithm_and_bytes(vk.algorithm(), signature_bytes.as_slice())
-            .map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
+        let signature: Signature =
+            Signature::from_algorithm_and_bytes(vk.algorithm(), signature_bytes.as_slice())
+                .map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
 
         vk.verify_signature(&message, &signature)
             .map_err(|e| anyhow::anyhow!("Signature verification failed: {}", e))?;

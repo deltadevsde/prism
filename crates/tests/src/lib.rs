@@ -9,14 +9,13 @@ use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
     DataAvailabilityLayer,
 };
+use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
-use prism_keys::{SigningKey, CryptoAlgorithm};
 use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
-use std::env;
 
 use tempfile::TempDir;
 
@@ -30,18 +29,9 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 async fn test_light_client_prover_talking() -> Result<()> {
     std::env::set_var(
         "RUST_LOG",
-        "INFO,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
+        "DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
     );
     pretty_env_logger::init();
-
-    let algorithm = match env::var("CURVE_ALGORITHM").unwrap_or_else(|_| "ed25519".to_string()).as_str() {
-        "ed25519" => CryptoAlgorithm::Ed25519,
-        "secp256k1" => CryptoAlgorithm::Secp256k1,
-        "secp256r1" => CryptoAlgorithm::Secp256r1,
-        _ => panic!("Unsupported curve"),
-    };
-
-    info!("testing algorithm: {:?}", algorithm);
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://localhost:26658".to_string(),
@@ -52,10 +42,14 @@ async fn test_light_client_prover_talking() -> Result<()> {
         ..CelestiaConfig::default()
     };
 
+    let mut rng = StdRng::from_entropy();
+    let prover_algorithm = CryptoAlgorithm::Ed25519;
+    let service_algorithm = random_algorithm(&mut rng);
+
     let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
     let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());
     let db = setup_db();
-    let signing_key = SigningKey::new_with_algorithm(algorithm)?;
+    let signing_key = SigningKey::new_with_algorithm(prover_algorithm).unwrap();
     let pubkey = signing_key.verifying_key();
 
     let prover_cfg = prism_prover::Config {
@@ -84,11 +78,10 @@ async fn test_light_client_prover_talking() -> Result<()> {
     });
 
     spawn(async move {
-        let mut rng = StdRng::from_entropy();
-
         let mut transaction_builder = TransactionBuilder::new();
-        let register_service_req =
-            transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
+        let register_service_req = transaction_builder
+            .register_service_with_random_keys(service_algorithm, "test_service")
+            .commit();
 
         let mut i = 0;
 
@@ -101,7 +94,11 @@ async fn test_light_client_prover_talking() -> Result<()> {
             for _ in 0..num_new_accounts {
                 let random_user_id = format!("{}@gmail.com", i);
                 let new_acc = transaction_builder
-                    .create_account_with_random_key_signed(algorithm, random_user_id.as_str(), "test_service")
+                    .create_account_with_random_key_signed(
+                        random_algorithm(&mut rng),
+                        random_user_id.as_str(),
+                        "test_service",
+                    )
                     .commit();
                 match prover.clone().validate_and_queue_update(new_acc).await {
                     Ok(_) => {
@@ -119,8 +116,9 @@ async fn test_light_client_prover_talking() -> Result<()> {
                         .get(rng.gen_range(0..added_account_ids.len()))
                         .map_or("Could not find random account id", |id| id.as_str());
 
-                    let update_acc =
-                        transaction_builder.add_random_key_verified_with_root(algorithm, acc_id).commit();
+                    let update_acc = transaction_builder
+                        .add_random_key_verified_with_root(random_algorithm(&mut rng), acc_id)
+                        .commit();
 
                     match prover.clone().validate_and_queue_update(update_acc).await {
                         Ok(_) => (),
@@ -129,7 +127,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
                 }
             }
 
-            tokio::time::sleep(Duration::from_millis(5000)).await;
+            tokio::time::sleep(Duration::from_secs(5)).await;
         }
     });
 
@@ -143,4 +141,12 @@ async fn test_light_client_prover_talking() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn random_algorithm(rng: &mut StdRng) -> CryptoAlgorithm {
+    [
+        CryptoAlgorithm::Ed25519,
+        CryptoAlgorithm::Secp256k1,
+        CryptoAlgorithm::Secp256r1,
+    ][rng.gen_range(0..3)]
 }

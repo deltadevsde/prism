@@ -6,7 +6,7 @@ use crate::{
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::Transaction,
 };
-use prism_keys::{SigningKey, VerifyingKey, CryptoAlgorithm};
+use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 enum PostCommitAction {
     UpdateStorageOnly,
     RememberServiceKey(String, SigningKey),
@@ -85,8 +85,10 @@ impl TransactionBuilder {
         algorithm: CryptoAlgorithm,
         id: &str,
     ) -> UncommittedTransaction {
-        let random_service_challenge_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create challenge key");
-        let random_service_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
+        let random_service_challenge_key =
+            SigningKey::new_with_algorithm(algorithm).expect("Failed to create challenge key");
+        let random_service_signing_key =
+            SigningKey::new_with_algorithm(algorithm).expect("Failed to create signing key");
         self.register_service(id, random_service_challenge_key, random_service_signing_key)
     }
 
@@ -119,7 +121,8 @@ impl TransactionBuilder {
         id: &str,
         service_id: &str,
     ) -> UncommittedTransaction {
-        let account_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create account signing key");
+        let account_signing_key = SigningKey::new_with_algorithm(algorithm)
+            .expect("Failed to create account signing key");
         self.create_account_signed(id, service_id, account_signing_key)
     }
 
@@ -143,7 +146,8 @@ impl TransactionBuilder {
         service_id: &str,
         service_signing_key: &SigningKey,
     ) -> UncommittedTransaction {
-        let account_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create account signing key");
+        let account_signing_key = SigningKey::new_with_algorithm(algorithm)
+            .expect("Failed to create account signing key");
         self.create_account(id, service_id, service_signing_key, account_signing_key)
     }
 
@@ -176,7 +180,11 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn add_random_key_verified_with_root(&mut self, algorithm: CryptoAlgorithm, id: &str) -> UncommittedTransaction {
+    pub fn add_random_key_verified_with_root(
+        &mut self,
+        algorithm: CryptoAlgorithm,
+        id: &str,
+    ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -188,9 +196,10 @@ impl TransactionBuilder {
         &mut self,
         algorithm: CryptoAlgorithm,
         id: &str,
-        signing_key: &SigningKey
+        signing_key: &SigningKey,
     ) -> UncommittedTransaction {
-        let random_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create random key").into();
+        let random_key =
+            SigningKey::new_with_algorithm(algorithm).expect("Failed to create random key").into();
         self.add_key(id, random_key, signing_key)
     }
 
@@ -261,7 +270,8 @@ impl TransactionBuilder {
         value: Vec<u8>,
         signing_key: &SigningKey,
     ) -> UncommittedTransaction {
-        let value_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
+        let value_signing_key =
+            SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.add_signed_data(id, value, &value_signing_key, signing_key)
     }
 
@@ -271,7 +281,8 @@ impl TransactionBuilder {
         id: &str,
         value: Vec<u8>,
     ) -> UncommittedTransaction {
-        let value_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
+        let value_signing_key =
+            SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.add_signed_data_verified_with_root(id, value, &value_signing_key)
     }
 

@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
-use prism_keys::VerifyingKey;
 use prism_common::digest::Digest;
 use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
 use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_keys::VerifyingKey;
 use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};

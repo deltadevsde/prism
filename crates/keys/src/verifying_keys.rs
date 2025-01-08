@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::{
     self,
-    hash::{Hash, Hasher}
+    hash::{Hash, Hasher},
 };
 
 use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, SigningKey};
@@ -82,7 +82,6 @@ impl VerifyingKey {
         }
     }
 
-    
     pub fn verify_signature(&self, message: &[u8], signature: &Signature) -> Result<()> {
         match self {
             VerifyingKey::Ed25519(vk) => {

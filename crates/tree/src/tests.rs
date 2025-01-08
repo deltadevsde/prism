@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use jmt::{mock::MockTreeStore, KeyHash};
 use prism_common::transaction_builder::TransactionBuilder;
-use prism_keys::{SigningKey, CryptoAlgorithm};
+use prism_keys::{CryptoAlgorithm, SigningKey};
 
 use crate::{
     hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
@@ -43,7 +43,8 @@ fn test_insert_for_nonexistent_service_fails(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
     let mut tx_builder = TransactionBuilder::new();
 
-    let service_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create service signing key");
+    let service_signing_key =
+        SigningKey::new_with_algorithm(algorithm).expect("Failed to create service signing key");
 
     let invalid_account_tx = tx_builder
         .create_account_with_random_key(
@@ -66,9 +67,11 @@ fn test_insert_with_invalid_service_challenge_fails(algorithm: CryptoAlgorithm) 
 
     // The correct way was to use the key from service registration,
     // but here we want things to break
-    let incorrect_service_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create service signing key");
+    let incorrect_service_signing_key =
+        SigningKey::new_with_algorithm(algorithm).expect("Failed to create service signing key");
 
-    let initial_acc_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create account signing key");
+    let initial_acc_signing_key =
+        SigningKey::new_with_algorithm(algorithm).expect("Failed to create account signing key");
 
     let acc_with_invalid_challenge_tx = tx_builder
         .create_account(
@@ -117,7 +120,8 @@ fn test_update_existing_key(algorithm: CryptoAlgorithm) {
     let mut tx_builder = TransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
-    let acc_tx = tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
+    let acc_tx =
+        tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
 
     tree.process_transaction(service_tx).unwrap();
     tree.process_transaction(acc_tx).unwrap();
@@ -144,7 +148,8 @@ fn test_update_non_existing_key(algorithm: CryptoAlgorithm) {
     tree.process_transaction(service_tx).unwrap();
 
     // This is a signing key not known to the storage yet
-    let random_signing_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create random signing key");
+    let random_signing_key =
+        SigningKey::new_with_algorithm(algorithm).expect("Failed to create random signing key");
     // This transaction shall be invalid, because it is signed with an unknown key
     let invalid_key_tx = tx_builder.add_random_key(algorithm, "acc_1", &random_signing_key).build();
 
@@ -157,8 +162,10 @@ fn test_multiple_inserts_and_updates(algorithm: CryptoAlgorithm) {
     let mut tx_builder = TransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
-    let acc1_tx = tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
-    let acc2_tx = tx_builder.create_account_with_random_key_signed(algorithm, "acc_2", "service_1").commit();
+    let acc1_tx =
+        tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
+    let acc2_tx =
+        tx_builder.create_account_with_random_key_signed(algorithm, "acc_2", "service_1").commit();
 
     tree.process_transaction(service_tx).unwrap();
 
@@ -194,8 +201,10 @@ fn test_interleaved_inserts_and_updates(algorithm: CryptoAlgorithm) {
     let mut tx_builder = TransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
-    let acc1_tx = tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
-    let acc2_tx = tx_builder.create_account_with_random_key_signed(algorithm, "acc_2", "service_1").commit();
+    let acc1_tx =
+        tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
+    let acc2_tx =
+        tx_builder.create_account_with_random_key_signed(algorithm, "acc_2", "service_1").commit();
 
     tree.process_transaction(service_tx).unwrap();
     tree.process_transaction(acc1_tx).unwrap();
