@@ -3,7 +3,6 @@ use prism_common::digest::Digest;
 use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
-use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};
 
@@ -13,8 +12,7 @@ pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
     pub prover_pubkey: Option<VerifyingKey>,
-    pub client: ProverClient,
-    pub verifying_key: SP1VerifyingKey,
+    pub vkey_bytes: String,
     pub start_height: u64,
 }
 
@@ -24,17 +22,11 @@ impl LightClient {
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: CelestiaConfig,
         prover_pubkey: Option<VerifyingKey>,
+        vkey_bytes: String,
     ) -> LightClient {
-        #[cfg(feature = "mock_prover")]
-        let client = ProverClient::mock();
-        #[cfg(not(feature = "mock_prover"))]
-        let client = ProverClient::local();
-        let (_, verifying_key) = client.setup(PRISM_ELF);
-
         LightClient {
             da,
-            verifying_key,
-            client,
+            vkey_bytes,
             prover_pubkey,
             start_height: cfg.start_height,
         }
@@ -72,19 +64,28 @@ impl LightClient {
 
                                     // TODO: Issue #144
                                     if let Some(pubkey) = &self.prover_pubkey {
-                                        match finalized_epoch.verify_signature(pubkey.clone()) {
-                                            Ok(_) => trace!("valid signature for epoch {}", finalized_epoch.height),
-                                            Err(e) => panic!("invalid signature in epoch {}: {:?}", i, e),
+                                        match finalized_epoch.verify_signature(*pubkey) {
+                                            Ok(_) => trace!(
+                                                "valid signature for epoch {}",
+                                                finalized_epoch.height
+                                            ),
+                                            Err(e) => {
+                                                panic!("invalid signature in epoch {}: {:?}", i, e)
+                                            }
                                         }
                                     }
 
                                     // Commitment verification
                                     let prev_commitment = &finalized_epoch.prev_commitment;
                                     let current_commitment = &finalized_epoch.current_commitment;
-                                    let mut public_values = finalized_epoch.proof.public_values.clone();
-                                    let proof_prev_commitment: Digest = public_values.read();
-                                    let proof_current_commitment: Digest = public_values.read();
+                                    let public_values = finalized_epoch.proof.public_values.clone();
 
+                                    let mut slice = [0u8; 32];
+                                    slice.copy_from_slice(&public_values.as_slice()[..32]);
+                                    let proof_prev_commitment: Digest = Digest::from(slice);
+                                    let mut slice = [0u8; 32];
+                                    slice.copy_from_slice(&public_values.to_vec()[32..64]);
+                                    let proof_current_commitment: Digest = Digest::from(slice);
                                     if prev_commitment != &proof_prev_commitment
                                         || current_commitment != &proof_current_commitment
                                     {
@@ -99,26 +100,40 @@ impl LightClient {
                                     }
 
                                     // SNARK verification
-                                    match self.client.verify(&finalized_epoch.proof, &self.verifying_key) {
-                                        Ok(_) => info!("zkSNARK for epoch {} was validated successfully", finalized_epoch.height),
-                                        Err(err) => panic!("failed to validate epoch at height {}: {:?}", finalized_epoch.height, err),
+                                    #[cfg(feature = "mock_prover")]
+                                    info!("mock_prover is activated, skipping proof verification");
+                                    #[cfg(not(feature = "mock_prover"))]
+                                    match sp1_verifier::Groth16Verifier::verify(
+                                        &finalized_epoch.proof.bytes(),
+                                        public_values.as_slice(),
+                                        &self.vkey_bytes,
+                                        &sp1_verifier::GROTH16_VK_BYTES,
+                                    ) {
+                                        Ok(_) => info!(
+                                            "zkSNARK for epoch {} was validated successfully",
+                                            finalized_epoch.height
+                                        ),
+                                        Err(err) => panic!(
+                                            "failed to validate epoch at height {}: {:?}",
+                                            finalized_epoch.height, err
+                                        ),
                                     }
-                                },
+                                }
                                 Ok(None) => {
                                     debug!("no finalized epoch found at height: {}", i + 1);
-                                },
+                                }
                                 Err(e) => debug!("light client: getting epoch: {}", e),
                             };
                         }
                         current_position = target;
-                    },
+                    }
                     Err(broadcast::error::RecvError::Closed) => {
                         error!("Height channel closed unexpectedly");
                         break;
-                    },
+                    }
                     Err(broadcast::error::RecvError::Lagged(skipped)) => {
                         warn!("Lagged behind by {} messages", skipped);
-                    },
+                    }
                 }
             }
         })
