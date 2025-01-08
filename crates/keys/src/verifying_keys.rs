@@ -16,11 +16,8 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::{Signature, SigningKey};
-use prism_serde::{
-    base64::{FromBase64, ToBase64},
-    CryptoPayload,
-};
+use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, SigningKey};
+use prism_serde::base64::{FromBase64, ToBase64};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
@@ -63,26 +60,25 @@ impl VerifyingKey {
         }
     }
 
-    pub fn from_algorithm_and_bytes(algorithm: &str, bytes: &[u8]) -> Result<Self> {
+    pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            "ed25519" => Ed25519VerifyingKey::try_from(bytes)
+            CryptoAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
                 .map(VerifyingKey::Ed25519)
                 .map_err(|e| e.into()),
-            "secp256k1" => Secp256k1VerifyingKey::from_slice(bytes)
+            CryptoAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_slice(bytes)
                 .map(VerifyingKey::Secp256k1)
                 .map_err(|e| e.into()),
-            "secp256r1" => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
+            CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::Secp256r1)
                 .map_err(|e| e.into()),
-            _ => bail!("Unexpected algorithm for VerifyingKey"),
         }
     }
 
-    pub fn algorithm(&self) -> &'static str {
+    pub fn algorithm(&self) -> CryptoAlgorithm {
         match self {
-            VerifyingKey::Ed25519(_) => "ed25519",
-            VerifyingKey::Secp256k1(_) => "secp256k1",
-            VerifyingKey::Secp256r1(_) => "secp256r1",
+            VerifyingKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
+            VerifyingKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
+            VerifyingKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
         }
     }
 
@@ -125,15 +121,15 @@ impl TryFrom<CryptoPayload> for VerifyingKey {
     type Error = anyhow::Error;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
-        VerifyingKey::from_algorithm_and_bytes(&value.algorithm, &value.bytes)
+        VerifyingKey::from_algorithm_and_bytes(value.algorithm, &value.bytes)
     }
 }
 
 impl From<VerifyingKey> for CryptoPayload {
-    fn from(signature: VerifyingKey) -> Self {
+    fn from(verifying_key: VerifyingKey) -> Self {
         CryptoPayload {
-            algorithm: signature.algorithm().to_string(),
-            bytes: signature.to_bytes(),
+            algorithm: verifying_key.algorithm(),
+            bytes: verifying_key.to_bytes(),
         }
     }
 }
