@@ -91,6 +91,27 @@ mod key_tests {
     }
 
     #[test]
+    fn test_reparsed_der_signatures_are_equal_to_original() {
+        let message = b"test message";
+
+        let signature_secp256k1 = SigningKey::new_secp256k1().sign(message);
+        let re_parsed_signature = Signature::from_algorithm_and_der(
+            signature_secp256k1.algorithm(),
+            &signature_secp256k1.to_der().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_signature, signature_secp256k1);
+
+        let signature_secp256r1 = SigningKey::new_secp256r1().sign(message);
+        let re_parsed_signature = Signature::from_algorithm_and_der(
+            signature_secp256r1.algorithm(),
+            &signature_secp256r1.to_der().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_signature, signature_secp256r1);
+    }
+
+    #[test]
     fn test_verifying_key_from_string_ed25519() {
         let original_key: VerifyingKey =
             SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).into();

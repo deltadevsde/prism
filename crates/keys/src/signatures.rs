@@ -27,6 +27,16 @@ impl Signature {
         }
     }
 
+    pub fn to_der(&self) -> Result<Vec<u8>> {
+        let der = match self {
+            Signature::Ed25519(_) => bail!("Ed25519 sig from DER format is not implemented"),
+            Signature::Secp256k1(sig) => sig.serialize_der().to_vec(),
+            Signature::Secp256r1(sig) => sig.to_der().as_bytes().to_vec(),
+            Signature::Placeholder => vec![],
+        };
+        Ok(der)
+    }
+
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => {
