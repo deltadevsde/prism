@@ -35,6 +35,19 @@ mod key_tests {
     }
 
     #[test]
+    fn test_reparsed_der_verifying_keys_are_equal_to_original() {
+        // Not implemented for ec25519 / secp256k1 - skipping that
+
+        let verifying_key_secp256r1 = SigningKey::new_secp256r1().verifying_key();
+        let re_parsed_verifying_key = VerifyingKey::from_algorithm_and_der(
+            verifying_key_secp256r1.algorithm(),
+            &verifying_key_secp256r1.to_der().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(re_parsed_verifying_key, verifying_key_secp256r1);
+    }
+
+    #[test]
     fn test_reparsed_signing_keys_are_equal_to_original() {
         let signing_key_ed25519 = SigningKey::new_ed25519();
         let re_parsed_signing_key = SigningKey::from_algorithm_and_bytes(

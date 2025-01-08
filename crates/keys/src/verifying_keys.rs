@@ -5,7 +5,7 @@ use p256::{
         signature::DigestVerifier, SigningKey as Secp256r1SigningKey,
         VerifyingKey as Secp256r1VerifyingKey,
     },
-    pkcs8::DecodePublicKey,
+    pkcs8::{DecodePublicKey, EncodePublicKey},
 };
 use secp256k1::{
     Message as Secp256k1Message, PublicKey as Secp256k1VerifyingKey,
@@ -61,6 +61,15 @@ impl VerifyingKey {
             VerifyingKey::Secp256k1(vk) => vk.serialize().to_vec(),
             VerifyingKey::Secp256r1(vk) => vk.to_sec1_bytes().to_vec(),
         }
+    }
+
+    pub fn to_der(&self) -> Result<Vec<u8>> {
+        let der = match self {
+            VerifyingKey::Ed25519(_) => bail!("Ed25519 vk to DER format is not implemented"),
+            VerifyingKey::Secp256k1(_) => bail!("Secp256k1 vk to DER format is not implemented"),
+            VerifyingKey::Secp256r1(vk) => vk.to_public_key_der()?.into_vec(),
+        };
+        Ok(der)
     }
 
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
