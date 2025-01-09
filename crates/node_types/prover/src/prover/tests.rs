@@ -1,6 +1,6 @@
 use super::*;
 use prism_common::transaction_builder::TransactionBuilder;
-use prism_keys::{SigningKey, VerifyingKey};
+use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
@@ -8,36 +8,37 @@ use prism_da::memory::InMemoryDataAvailabilityLayer;
 use prism_storage::inmemory::InMemoryDatabase;
 
 // Helper function to create a test prover instance
-async fn create_test_prover() -> Arc<Prover> {
+async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
     let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default();
+    let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
     Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
 }
 
-fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
+fn create_mock_transactions(algorithm: CryptoAlgorithm, service_id: String) -> Vec<Transaction> {
     let mut transaction_builder = TransactionBuilder::new();
 
     vec![
-        transaction_builder.register_service_with_random_keys(&service_id).commit(),
+        transaction_builder.register_service_with_random_keys(algorithm, &service_id).commit(),
         transaction_builder
-            .create_account_with_random_key_signed("user1@example.com", &service_id)
+            .create_account_with_random_key_signed(algorithm, "user1@example.com", &service_id)
             .commit(),
         transaction_builder
-            .create_account_with_random_key_signed("user2@example.com", &service_id)
+            .create_account_with_random_key_signed(algorithm, "user2@example.com", &service_id)
             .commit(),
-        transaction_builder.add_random_key_verified_with_root("user1@example.com").commit(),
+        transaction_builder
+            .add_random_key_verified_with_root(algorithm, "user1@example.com")
+            .commit(),
     ]
 }
 
-#[tokio::test]
-async fn test_validate_and_queue_update() {
-    let prover = create_test_prover().await;
+async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
+    let prover = create_test_prover(algorithm).await;
 
     let mut transaction_builder = TransactionBuilder::new();
     let transaction =
-        transaction_builder.register_service_with_random_keys("test_service").commit();
+        transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
 
     prover.clone().validate_and_queue_update(transaction.clone()).await.unwrap();
 
@@ -47,15 +48,14 @@ async fn test_validate_and_queue_update() {
     assert_eq!(pending_transactions.len(), 2);
 }
 
-#[tokio::test]
-async fn test_process_transactions() {
-    let prover = create_test_prover().await;
+async fn test_process_transactions(algorithm: CryptoAlgorithm) {
+    let prover = create_test_prover(algorithm).await;
 
     let mut transaction_builder = TransactionBuilder::new();
     let register_service_transaction =
-        transaction_builder.register_service_with_random_keys("test_service").commit();
+        transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
     let create_account_transaction = transaction_builder
-        .create_account_with_random_key_signed("test_account", "test_service")
+        .create_account_with_random_key_signed(algorithm, "test_account", "test_service")
         .commit();
 
     let proof = prover.process_transaction(register_service_transaction).await.unwrap();
@@ -64,7 +64,7 @@ async fn test_process_transactions() {
     let proof = prover.process_transaction(create_account_transaction.clone()).await.unwrap();
     assert!(matches!(proof, Proof::Insert(_)));
 
-    let new_key = SigningKey::new_ed25519();
+    let new_key = SigningKey::new_with_algorithm(algorithm).expect("Failed to create new key");
     let add_key_transaction = transaction_builder
         .add_key_verified_with_root("test_account", new_key.clone().into())
         .commit();
@@ -85,45 +85,44 @@ async fn test_process_transactions() {
     assert!(matches!(proof, Proof::Update(_)));
 }
 
-#[tokio::test]
-async fn test_execute_block_with_invalid_tx() {
-    let prover = create_test_prover().await;
+async fn test_execute_block_with_invalid_tx(algorithm: CryptoAlgorithm) {
+    let prover = create_test_prover(algorithm).await;
 
     let mut tx_builder = TransactionBuilder::new();
 
-    let new_key_1 = SigningKey::new_ed25519();
+    let new_key_1 = SigningKey::new_with_algorithm(algorithm).expect("Failed to create new key");
     let new_key_vk: VerifyingKey = new_key_1.clone().into();
 
     let transactions = vec![
-        tx_builder.register_service_with_random_keys("service_id").commit(),
-        tx_builder.create_account_with_random_key_signed("account_id", "service_id").commit(),
+        tx_builder.register_service_with_random_keys(algorithm, "service_id").commit(),
+        tx_builder
+            .create_account_with_random_key_signed(algorithm, "account_id", "service_id")
+            .commit(),
         // add new key, so it will be index = 1
         tx_builder.add_key_verified_with_root("account_id", new_key_vk.clone()).commit(),
         // revoke new key again
         tx_builder.revoke_key_verified_with_root("account_id", new_key_vk).commit(),
         // and adding in same block.
         // both of these transactions are valid individually, but when processed together it will fail.
-        tx_builder.add_random_key("account_id", &new_key_1).build(),
+        tx_builder.add_random_key(algorithm, "account_id", &new_key_1).build(),
     ];
 
     let proofs = prover.execute_block(transactions).await.unwrap();
     assert_eq!(proofs.len(), 4);
 }
 
-#[tokio::test]
-async fn test_execute_block() {
-    let prover = create_test_prover().await;
+async fn test_execute_block(algorithm: CryptoAlgorithm) {
+    let prover = create_test_prover(algorithm).await;
 
-    let transactions = create_mock_transactions("test_service".to_string());
+    let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     let proofs = prover.execute_block(transactions).await.unwrap();
     assert_eq!(proofs.len(), 4);
 }
 
-#[tokio::test]
-async fn test_finalize_new_epoch() {
-    let prover = create_test_prover().await;
-    let transactions = create_mock_transactions("test_service".to_string());
+async fn test_finalize_new_epoch(algorithm: CryptoAlgorithm) {
+    let prover = create_test_prover(algorithm).await;
+    let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     let prev_commitment = prover.get_commitment().await.unwrap();
     prover.finalize_new_epoch(0, transactions).await.unwrap();
@@ -132,13 +131,12 @@ async fn test_finalize_new_epoch() {
     assert_ne!(prev_commitment, new_commitment);
 }
 
-#[tokio::test]
-async fn test_restart_sync_from_scratch() {
+async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default();
+    let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
     let prover = Arc::new(Prover::new(db1.clone(), da_layer.clone(), &cfg).unwrap());
 
     let runner = prover.clone();
@@ -146,7 +144,7 @@ async fn test_restart_sync_from_scratch() {
         runner.run().await.unwrap();
     });
 
-    let transactions = create_mock_transactions("test_service".to_string());
+    let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     for transaction in transactions {
         prover.clone().validate_and_queue_update(transaction).await.unwrap();
@@ -176,12 +174,11 @@ async fn test_restart_sync_from_scratch() {
     }
 }
 
-#[tokio::test]
-async fn test_load_persisted_state() {
+async fn test_load_persisted_state(algorithm: CryptoAlgorithm) {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default();
+    let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
     let prover = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
 
     let runner = prover.clone();
@@ -189,7 +186,7 @@ async fn test_load_persisted_state() {
         runner.run().await.unwrap();
     });
 
-    let transactions = create_mock_transactions("test_service".to_string());
+    let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     for transaction in transactions {
         prover.clone().validate_and_queue_update(transaction).await.unwrap();
@@ -212,3 +209,32 @@ async fn test_load_persisted_state() {
         prover2.get_commitment().await.unwrap()
     );
 }
+
+macro_rules! generate_algorithm_tests {
+    ($test_fn:ident) => {
+        paste::paste! {
+            #[tokio::test]
+            async fn [<$test_fn _ed25519>]() {
+                $test_fn(CryptoAlgorithm::Ed25519).await;
+            }
+
+            #[tokio::test]
+            async fn [<$test_fn _secp256k1>]() {
+                $test_fn(CryptoAlgorithm::Secp256k1).await;
+            }
+
+            #[tokio::test]
+            async fn [<$test_fn _secp256r1>]() {
+                $test_fn(CryptoAlgorithm::Secp256r1).await;
+            }
+        }
+    };
+}
+
+generate_algorithm_tests!(test_validate_and_queue_update);
+generate_algorithm_tests!(test_process_transactions);
+generate_algorithm_tests!(test_execute_block_with_invalid_tx);
+generate_algorithm_tests!(test_execute_block);
+generate_algorithm_tests!(test_finalize_new_epoch);
+generate_algorithm_tests!(test_restart_sync_from_scratch);
+generate_algorithm_tests!(test_load_persisted_state);

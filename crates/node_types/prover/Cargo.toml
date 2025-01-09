@@ -18,10 +18,8 @@ tower-http = { workspace = true }
 utoipa = { workspace = true }
 utoipa-swagger-ui = { workspace = true }
 serde = { workspace = true }
-ed25519-consensus = { workspace = true }
 tokio = { workspace = true }
 log = { workspace = true }
-keystore-rs = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
@@ -31,3 +29,6 @@ prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-da = { workspace = true }
 sp1-sdk = { workspace = true }
+
+[dev-dependencies]
+paste = { workspace = true }

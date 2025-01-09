@@ -4,7 +4,6 @@ use p256::ecdsa::Signature as Secp256r1Signature;
 use secp256k1::ecdsa::Signature as Secp256k1Signature;
 
 use serde::{Deserialize, Serialize};
-use std::{self};
 
 use crate::{payload::CryptoPayload, CryptoAlgorithm};
 
