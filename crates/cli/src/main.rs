@@ -91,8 +91,6 @@ async fn main() -> std::io::Result<()> {
                 start_height: config.celestia_config.unwrap_or_default().start_height,
             };
 
-            info!("prover verifying key: {}", prover_cfg.verifying_key.clone());
-
             Arc::new(
                 Prover::new(Arc::new(Box::new(redis_connections)), da, &prover_cfg).map_err(
                     |e| {
