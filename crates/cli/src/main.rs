@@ -5,6 +5,7 @@ use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
+use sp1_sdk::{HashableKey, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
@@ -54,7 +55,7 @@ async fn main() -> std::io::Result<()> {
             Arc::new(LightClient::new(
                 da,
                 celestia_config,
-                prover_vk,
+                Some(prover_vk),
                 vk.bytes32(),
             ))
         }

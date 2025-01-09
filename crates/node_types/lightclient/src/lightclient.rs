@@ -68,7 +68,7 @@ impl LightClient {
 
                                     // TODO: Issue #144
                                     if let Some(pubkey) = &self.prover_pubkey {
-                                        match finalized_epoch.verify_signature(*pubkey) {
+                                        match finalized_epoch.verify_signature(pubkey.clone()) {
                                             Ok(_) => trace!(
                                                 "valid signature for epoch {}",
                                                 finalized_epoch.height
@@ -114,7 +114,7 @@ impl LightClient {
                                     match Groth16Verifier::verify(
                                         &finalized_epoch.proof.bytes(),
                                         public_values.as_slice(),
-                                        &self.vkey_bytes,
+                                        &self.sp1_vkey,
                                         &sp1_verifier::GROTH16_VK_BYTES,
                                     ) {
                                         Ok(_) => info!(
