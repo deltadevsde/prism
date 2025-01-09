@@ -34,24 +34,24 @@ async fn main() -> std::io::Result<()> {
                 Error::new(ErrorKind::NotFound, "celestia configuration not found")
             })?;
 
-            validate_algorithm(&config.verifying_key_algorithm).or_else(|_| {
-                Err(Error::new(
+            validate_algorithm(&config.verifying_key_algorithm).map_err(|_| {
+                Error::new(
                     ErrorKind::InvalidInput,
                     "invalid verifying key algorithm format",
-                ))
+                )
             })?;
             let verifying_key_algorithm =
-                CryptoAlgorithm::from_str(&config.verifying_key_algorithm).or_else(|_| {
-                    Err(Error::new(
+                CryptoAlgorithm::from_str(&config.verifying_key_algorithm).map_err(|_| {
+                    Error::new(
                         ErrorKind::InvalidInput,
                         "invalid verifying key algorithm format",
-                    ))
+                    )
                 })?;
             let prover_vk = VerifyingKey::from_algorithm_and_bytes(
                 verifying_key_algorithm,
                 config.verifying_key.unwrap().as_bytes(),
             )
-            .or_else(|e| Err(Error::new(ErrorKind::InvalidInput, e.to_string())))?;
+            .map_err(|e| Error::new(ErrorKind::InvalidInput, e.to_string()))?;
 
             Arc::new(LightClient::new(da, celestia_config, Some(prover_vk)))
         }
@@ -74,24 +74,24 @@ async fn main() -> std::io::Result<()> {
                 .get_signing_key()
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            validate_algorithm(&config.verifying_key_algorithm).or_else(|_| {
-                Err(Error::new(
+            validate_algorithm(&config.verifying_key_algorithm).map_err(|_| {
+                Error::new(
                     ErrorKind::InvalidInput,
                     "invalid verifying key algorithm format",
-                ))
+                )
             })?;
             let verifying_key_algorithm =
-                CryptoAlgorithm::from_str(&config.verifying_key_algorithm).or_else(|_| {
-                    Err(Error::new(
+                CryptoAlgorithm::from_str(&config.verifying_key_algorithm).map_err(|_| {
+                    Error::new(
                         ErrorKind::InvalidInput,
                         "invalid verifying key algorithm format",
-                    ))
+                    )
                 })?;
             let signing_key = SigningKey::from_algorithm_and_bytes(
                 verifying_key_algorithm,
                 signing_key_chain.as_bytes(),
             )
-            .or_else(|_| Err(Error::new(ErrorKind::InvalidInput, "invalid signing key")))?;
+            .map_err(|_| Error::new(ErrorKind::InvalidInput, "invalid signing key"))?;
             let verifying_key = signing_key.verifying_key();
 
             let prover_cfg = prism_prover::Config {
@@ -133,24 +133,24 @@ async fn main() -> std::io::Result<()> {
                 .get_signing_key()
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            validate_algorithm(&config.verifying_key_algorithm).or_else(|_| {
-                Err(Error::new(
+            validate_algorithm(&config.verifying_key_algorithm).map_err(|_| {
+                Error::new(
                     ErrorKind::InvalidInput,
                     "invalid verifying key algorithm format",
-                ))
+                )
             })?;
             let verifying_key_algorithm =
-                CryptoAlgorithm::from_str(&config.verifying_key_algorithm).or_else(|_| {
-                    Err(Error::new(
+                CryptoAlgorithm::from_str(&config.verifying_key_algorithm).map_err(|_| {
+                    Error::new(
                         ErrorKind::InvalidInput,
                         "invalid verifying key algorithm format",
-                    ))
+                    )
                 })?;
             let signing_key = SigningKey::from_algorithm_and_bytes(
                 verifying_key_algorithm,
                 signing_key_chain.as_bytes(),
             )
-            .or_else(|_| Err(Error::new(ErrorKind::InvalidInput, "invalid signing key")))?;
+            .map_err(|_| Error::new(ErrorKind::InvalidInput, "invalid signing key"))?;
 
             let prover_vk = config
                 .verifying_key

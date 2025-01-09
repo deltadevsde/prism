@@ -83,6 +83,8 @@ async fn test_light_client_prover_talking() -> Result<()> {
             .register_service_with_random_keys(service_algorithm, "test_service")
             .commit();
 
+        println!("builder accounts: {:?}", transaction_builder.get_account("test_service"));
+
         let mut i = 0;
 
         prover.clone().validate_and_queue_update(register_service_req).await.unwrap();
@@ -100,6 +102,8 @@ async fn test_light_client_prover_talking() -> Result<()> {
                         "test_service",
                     )
                     .commit();
+
+                log::info!("builder accounts: {:?}", transaction_builder.get_account(&random_user_id));
                 match prover.clone().validate_and_queue_update(new_acc).await {
                     Ok(_) => {
                         i += 1;
