@@ -49,7 +49,8 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
     let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());
     let db = setup_db();
-    let signing_key = SigningKey::new_with_algorithm(prover_algorithm).unwrap();
+    let signing_key = SigningKey::new_with_algorithm(prover_algorithm)
+        .map_err(|e| anyhow::anyhow!("Failed to generate signing key: {}", e))?;
     let pubkey = signing_key.verifying_key();
 
     let prover_cfg = prism_prover::Config {

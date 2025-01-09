@@ -34,12 +34,6 @@ async fn main() -> std::io::Result<()> {
                 Error::new(ErrorKind::NotFound, "celestia configuration not found")
             })?;
 
-            validate_algorithm(&config.verifying_key_algorithm).map_err(|_| {
-                Error::new(
-                    ErrorKind::InvalidInput,
-                    "invalid verifying key algorithm format",
-                )
-            })?;
             let verifying_key_algorithm =
                 CryptoAlgorithm::from_str(&config.verifying_key_algorithm).map_err(|_| {
                     Error::new(
@@ -74,12 +68,6 @@ async fn main() -> std::io::Result<()> {
                 .get_signing_key()
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            validate_algorithm(&config.verifying_key_algorithm).map_err(|_| {
-                Error::new(
-                    ErrorKind::InvalidInput,
-                    "invalid verifying key algorithm format",
-                )
-            })?;
             let verifying_key_algorithm =
                 CryptoAlgorithm::from_str(&config.verifying_key_algorithm).map_err(|_| {
                     Error::new(
@@ -91,7 +79,7 @@ async fn main() -> std::io::Result<()> {
                 verifying_key_algorithm,
                 signing_key_chain.as_bytes(),
             )
-            .map_err(|_| Error::new(ErrorKind::InvalidInput, "invalid signing key"))?;
+            .map_err(|e| Error::new(ErrorKind::InvalidInput, format!("Invalid signing key: {}", e)))?;
             let verifying_key = signing_key.verifying_key();
 
             let prover_cfg = prism_prover::Config {
@@ -133,12 +121,6 @@ async fn main() -> std::io::Result<()> {
                 .get_signing_key()
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            validate_algorithm(&config.verifying_key_algorithm).map_err(|_| {
-                Error::new(
-                    ErrorKind::InvalidInput,
-                    "invalid verifying key algorithm format",
-                )
-            })?;
             let verifying_key_algorithm =
                 CryptoAlgorithm::from_str(&config.verifying_key_algorithm).map_err(|_| {
                     Error::new(
@@ -150,7 +132,7 @@ async fn main() -> std::io::Result<()> {
                 verifying_key_algorithm,
                 signing_key_chain.as_bytes(),
             )
-            .map_err(|_| Error::new(ErrorKind::InvalidInput, "invalid signing key"))?;
+            .map_err(|e| Error::new(ErrorKind::InvalidInput, format!("Invalid signing key: {}", e)))?;
 
             let prover_vk = config
                 .verifying_key
@@ -181,22 +163,4 @@ async fn main() -> std::io::Result<()> {
     };
 
     node.start().await.map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
-}
-
-fn validate_algorithm(algorithm: &str) -> Result<&str, Error> {
-    if algorithm.is_empty() {
-        return Err(Error::new(
-            ErrorKind::InvalidInput,
-            "verifying key algorithm is required",
-        ));
-    }
-
-    if CryptoAlgorithm::from_str(algorithm).is_err() {
-        return Err(Error::new(
-            ErrorKind::InvalidInput,
-            "invalid verifying key algorithm format",
-        ));
-    }
-
-    Ok(algorithm)
 }
