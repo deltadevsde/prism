@@ -30,6 +30,14 @@ impl SigningKey {
         SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng))
     }
 
+    pub fn new_with_algorithm(algorithm: CryptoAlgorithm) -> Result<Self> {
+        match algorithm {
+            CryptoAlgorithm::Ed25519 => Ok(SigningKey::new_ed25519()),
+            CryptoAlgorithm::Secp256k1 => Ok(SigningKey::new_secp256k1()),
+            CryptoAlgorithm::Secp256r1 => Ok(SigningKey::new_secp256r1()),
+        }
+    }
+
     pub fn verifying_key(&self) -> VerifyingKey {
         self.clone().into()
     }

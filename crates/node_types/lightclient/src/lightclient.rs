@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
-use ed25519_consensus::VerificationKey as VerifyingKey;
 use prism_common::digest::Digest;
 use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
 use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_keys::VerifyingKey;
 use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};
@@ -72,7 +72,7 @@ impl LightClient {
 
                                     // TODO: Issue #144
                                     if let Some(pubkey) = &self.prover_pubkey {
-                                        match finalized_epoch.verify_signature(*pubkey) {
+                                        match finalized_epoch.verify_signature(pubkey.clone()) {
                                             Ok(_) => trace!("valid signature for epoch {}", finalized_epoch.height),
                                             Err(e) => panic!("invalid signature in epoch {}: {:?}", i, e),
                                         }

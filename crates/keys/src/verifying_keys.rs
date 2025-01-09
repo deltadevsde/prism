@@ -191,8 +191,8 @@ impl FromBase64 for VerifyingKey {
     ///
     /// Depending on the length of the input string, the function will attempt to
     /// decode it and create a `VerifyingKey` instance. According to the specifications,
-    /// the input string should be either [32 bytes (Ed25519)](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.5) or [33/65 bytes (Secp256k1)](https://www.secg.org/sec1-v2.pdf).
-    /// The secp256k1 key can be either compressed (33 bytes) or uncompressed (65 bytes).
+    /// the input string should be either [32 bytes (Ed25519)](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.5) or [33/65 bytes (Secp256k1 or Secp256r1)](https://www.secg.org/sec1-v2.pdf).
+    /// The secp256k1 and secp256r1 keys can be either compressed (33 bytes) or uncompressed (65 bytes).
     ///
     /// # Returns
     ///
@@ -208,9 +208,13 @@ impl FromBase64 for VerifyingKey {
                 Ok(VerifyingKey::Ed25519(vk))
             }
             33 | 65 => {
-                let vk = Secp256k1VerifyingKey::from_slice(bytes.as_slice())
-                    .map_err(|e| anyhow!("Invalid Secp256k1 key: {}", e))?;
-                Ok(VerifyingKey::Secp256k1(vk))
+                if let Ok(vk) = Secp256k1VerifyingKey::from_slice(bytes.as_slice()) {
+                    Ok(VerifyingKey::Secp256k1(vk))
+                } else if let Ok(vk) = Secp256r1VerifyingKey::from_sec1_bytes(bytes.as_slice()) {
+                    Ok(VerifyingKey::Secp256r1(vk))
+                } else {
+                    Err(anyhow!("Invalid curve type"))
+                }
             }
             _ => Err(anyhow!("Invalid public key length")),
         }

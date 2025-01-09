@@ -2,7 +2,7 @@ use crate::{DataAvailabilityLayer, FinalizedEpoch};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
-use celestia_types::{nmt::Namespace, Blob, TxConfig, AppVersion};
+use celestia_types::{nmt::Namespace, AppVersion, Blob, TxConfig};
 use log::{debug, error, trace, warn};
 use prism_common::transaction::Transaction;
 use prism_errors::{DataAvailabilityError, GeneralError};

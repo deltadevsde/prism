@@ -21,5 +21,8 @@ prism-errors.workspace = true
 prism-keys.workspace = true
 prism-serde.workspace = true
 
+[dev-dependencies]
+paste = { workspace = true }
+
 [features]
 default = []

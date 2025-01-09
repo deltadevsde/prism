@@ -92,14 +92,9 @@ impl TreeWriter for InMemoryDatabase {
 
 impl Database for InMemoryDatabase {
     fn get_commitment(&self, epoch: &u64) -> Result<Digest> {
-        self.commitments
-            .lock()
-            .unwrap()
-            .get(epoch)
-            .cloned()
-            .ok_or_else(|| {
-                DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch)).into()
-            })
+        self.commitments.lock().unwrap().get(epoch).cloned().ok_or_else(|| {
+            DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch)).into()
+        })
     }
 
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()> {
