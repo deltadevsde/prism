@@ -36,7 +36,9 @@ pub struct CommandArgs {
     #[arg(long)]
     verifying_key: Option<String>,
 
-    /// Can be one of: ed25519, secp256k1, secp256r1
+    /// The algorithm used for the verifying key.
+    ///
+    /// Can be one of: `ed25519`, `secp256k1`, `secp256r1`.
     #[arg(long, default_value = "ed25519")]
     verifying_key_algorithm: Option<String>,
 
