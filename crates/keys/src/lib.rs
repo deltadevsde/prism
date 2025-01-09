@@ -9,5 +9,5 @@ pub use signatures::*;
 pub use signing_keys::*;
 pub use verifying_keys::*;
 
-#[cfg(any(test, doctest))]
+#[cfg(test)]
 mod tests;
