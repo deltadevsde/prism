@@ -43,10 +43,18 @@ impl Batch {
             match proof {
                 Proof::Insert(insert_proof) => {
                     let challenge = match &insert_proof.tx.operation {
-                        Operation::CreateAccount { service_id, .. } => self
-                            .services
-                            .get(service_id)
-                            .and_then(|service_proof| service_proof.service_challenge()),
+                        Operation::CreateAccount { service_id, .. } => {
+                            dbg!("keys: {}", self.services.keys());
+                            let service_proof = self
+                                .services
+                                .get(service_id)
+                                .and_then(|service_proof| service_proof.service_challenge());
+                            if service_proof.is_none() {
+                                return Err(anyhow!("Service proof for {} is missing from batch for CreateAccount verification", service_id));
+                            }
+                            service_proof
+                        }
+
                         _ => None,
                     };
                     insert_proof.verify(challenge)?;
