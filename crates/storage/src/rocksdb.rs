@@ -109,23 +109,21 @@ impl TreeReader for RocksDBConnection {
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
         let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
-        let iter = self.connection.prefix_iterator(value_key.as_bytes());
+        let max_version_bytes = max_version.to_be_bytes();
+        let max_key = format!("{}:{}", value_key, max_version_bytes.to_hex());
 
-        let mut latest_value = None;
-        let mut latest_version = 0;
+        let mut iter = self.connection.iterator(rocksdb::IteratorMode::From(
+            max_key.as_bytes(),
+            rocksdb::Direction::Reverse,
+        ));
 
-        for item in iter {
-            let (key, value) = item?;
-            let version =
-                Version::decode_from_bytes(&Vec::<u8>::from_hex(&key[value_key.len() + 1..])?)?;
-
-            if version <= max_version && version > latest_version {
-                latest_version = version;
-                latest_value = Some(value);
+        if let Some(Ok((key, value))) = iter.next() {
+            if key.starts_with(value_key.as_bytes()) {
+                return OwnedValue::decode_from_bytes(&value).map(Some).map_err(|e| e.into());
             }
         }
 
-        latest_value.map(|v| OwnedValue::decode_from_bytes(&v).map_err(|e| e.into())).transpose()
+        Ok(None)
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
@@ -159,14 +157,14 @@ impl TreeWriter for RocksDBConnection {
 
         for ((version, key_hash), value) in node_batch.values() {
             let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
-            let version_key = format!("{}:{}", value_key, version.encode_to_bytes()?.to_hex());
+            let encoded_value =
+                value.as_ref().map(|v| v.encode_to_bytes()).transpose()?.unwrap_or_default();
+            let version_bytes = version.to_be_bytes();
 
-            if let Some(v) = value {
-                let serialized_value = v.encode_to_bytes()?;
-                batch.put(version_key.as_bytes(), &serialized_value);
-            } else {
-                batch.delete(version_key.as_bytes());
-            }
+            batch.put(
+                format!("{}:{}", value_key, version_bytes.to_hex()).as_bytes(),
+                &encoded_value,
+            );
         }
 
         self.connection.write(batch)?;

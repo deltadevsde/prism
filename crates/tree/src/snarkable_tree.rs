@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use anyhow::{bail, ensure, Result};
 use jmt::{
@@ -66,7 +66,6 @@ where
 
         let mut batch = Batch::init(prev_commitment, current_commitment, proofs);
 
-        let mut service_proofs: HashMap<String, ServiceProof> = HashMap::new();
         for service in services {
             let service_key_hash = KeyHash::with::<TreeHasher>(&service);
             let response = self.get(service_key_hash)?;
@@ -77,15 +76,13 @@ where
                         service: *account,
                         proof: proof.proof,
                     };
-                    service_proofs.insert(service.clone(), service_proof);
+                    batch.services.insert(service.clone(), service_proof);
                 }
                 NotFound(proof) => {
                     bail!("Service account not found: {:?}", proof);
                 }
             }
         }
-
-        batch.services = service_proofs;
 
         Ok(batch)
     }
