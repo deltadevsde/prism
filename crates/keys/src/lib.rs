@@ -9,7 +9,7 @@ pub use signatures::*;
 pub use signing_keys::*;
 pub use verifying_keys::*;
 
-#[cfg(any(test, doctest))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use ed25519_consensus::SigningKey as Ed25519SigningKey;
