@@ -14,10 +14,13 @@ use prism_lightclient::LightClient;
 use prism_prover::Prover;
 use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
+use sp1_sdk::{HashableKey, ProverClient};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
 
 use tempfile::TempDir;
+
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
 fn setup_db() -> Arc<Box<dyn Database>> {
     let temp_dir = TempDir::new().unwrap();
@@ -32,6 +35,10 @@ async fn test_light_client_prover_talking() -> Result<()> {
         "DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
     );
     pretty_env_logger::init();
+
+    let prover_client = ProverClient::mock();
+
+    let (_, vk) = prover_client.setup(PRISM_ELF);
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://localhost:26658".to_string(),
@@ -64,7 +71,12 @@ async fn test_light_client_prover_talking() -> Result<()> {
         &prover_cfg,
     )?);
 
-    let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), lc_cfg, Some(pubkey)));
+    let lightclient = Arc::new(LightClient::new(
+        lc_da_layer.clone(),
+        lc_cfg,
+        Some(pubkey),
+        vk.bytes32(),
+    ));
 
     let prover_clone = prover.clone();
     spawn(async move {

@@ -28,6 +28,7 @@ dirs = { workspace = true }
 anyhow = { workspace = true }
 prism-storage = { workspace = true }
 prism-errors = { workspace = true }
+sp1-sdk = { workspace = true }
 prism-prover = { workspace = true }
 prism-lightclient = { workspace = true }
 prism-da = { workspace = true }

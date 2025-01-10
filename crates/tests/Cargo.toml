@@ -21,7 +21,8 @@ prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage.workspace = true
 prism-prover = { workspace = true, features = ["mock_prover"] }
 prism-keys = { workspace = true }
-prism-lightclient.workspace = true
+prism-lightclient = { workspace = true, features = ["mock_prover"] }
+sp1-sdk.workspace = true
 prism-da.workspace = true
 rand.workspace = true
 tokio.workspace = true

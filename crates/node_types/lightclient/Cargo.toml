@@ -20,4 +20,4 @@ prism-common = { workspace = true, features = ["test_utils"] }
 prism-errors = { workspace = true }
 prism-da = { workspace = true }
 prism-keys = { workspace = true }
-sp1-sdk = { workspace = true }
+sp1-verifier = { workspace = true }

@@ -84,8 +84,9 @@ dotenvy = "0.15.7"
 
 # zk
 rand = "0.8.5"
-sp1-zkvm = { version = "3.0.0-rc1" }
-sp1-sdk = { version = "3.0.0-rc1" }
+sp1-zkvm = { version = "3.2.1" }
+sp1-sdk = { version = "3.2.1" }
+sp1-verifier = { version = "3.2.1", default-features = false }
 
 # curves
 ed25519-consensus = "2.1.0"
