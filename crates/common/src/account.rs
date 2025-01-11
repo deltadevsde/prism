@@ -4,7 +4,7 @@ use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    operation::{Operation, ServiceChallenge},
+    operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::Transaction,
 };
 
@@ -76,6 +76,120 @@ impl Account {
         tx.sign(sk)?;
 
         Ok(tx)
+    }
+
+    /// Creates a [`Transaction`] to create the account.
+    /// The transaction produced could be invalid, and will be
+    /// validated before being processed.
+    pub fn prepare_create_account_transaction(
+        &self,
+        account_id: String,
+        id: String,
+        service_id: String,
+        challenge: ServiceChallengeInput,
+        key: VerifyingKey,
+        sk: &SigningKey,
+    ) -> Result<Transaction> {
+        if account_id.is_empty() || id.is_empty() || service_id.is_empty() {
+            return Err(anyhow!("account_id, id or service_id cannot be empty"));
+        }
+
+        self.prepare_transaction(
+            account_id,
+            Operation::CreateAccount {
+                id,
+                service_id,
+                challenge,
+                key,
+            },
+            sk,
+        )
+    }
+
+    /// Creates a [`Transaction`] to register the account.
+    /// The transaction produced could be invalid, and will be
+    /// validated before being processed.
+    pub fn prepare_register_account_transaction(
+        &self,
+        account_id: String,
+        id: String,
+        creation_gate: ServiceChallenge,
+        key: VerifyingKey,
+        sk: &SigningKey,
+    ) -> Result<Transaction> {
+        self.prepare_transaction(
+            account_id,
+            Operation::RegisterService {
+                id,
+                creation_gate,
+                key,
+            },
+            sk,
+        )
+    }
+
+    /// Creates a [`Transaction`] to add data.
+    /// The transaction produced could be invalid, and will be
+    /// validated before being processed.
+    pub fn prepare_add_data_transaction(
+        &self,
+        account_id: String,
+        data: Vec<u8>,
+        data_signature: SignatureBundle,
+        sk: &SigningKey,
+    ) -> Result<Transaction> {
+        let vk = sk.verifying_key();
+        if vk.verify_signature(&data, &data_signature.signature).is_err() {
+            panic!("Signature verification failed {}", account_id);
+        }
+
+        self.prepare_transaction(
+            account_id,
+            Operation::AddData {
+                data,
+                data_signature,
+            },
+            sk,
+        )
+    }
+
+    /// Creates a [`Transaction`] to add key.
+    /// The transaction produced could be invalid, and will be
+    /// validated before being processed.
+    pub fn prepare_add_key_transaction(
+        &self,
+        account_id: String,
+        key: VerifyingKey,
+        sk: &SigningKey,
+    ) -> Result<Transaction> {
+        if self.valid_keys().contains(&key) {
+            panic!("Key alread added!");
+        }
+
+        self.prepare_transaction(account_id, Operation::AddKey { key }, sk)
+    }
+
+    /// Creates a [`Transaction`] to revoke the key.
+    /// The transaction produced could be invalid, and will be
+    /// validated before being processed.
+    pub fn prepare_revoke_key_transaction(
+        &self,
+        account_id: String,
+        key: VerifyingKey,
+        sk: &SigningKey,
+    ) -> Result<Transaction> {
+        let vk = sk.verifying_key();
+
+        if !self.valid_keys.contains(&key) {
+            return Err(anyhow!("Key does not exist"));
+        }
+        if self.valid_keys.len() <= 1 {
+            return Err(anyhow!("Cannot revoke last key"));
+        }
+        if key == vk {
+            return Err(anyhow!("Cannot revoke key used to sign this transaction"));
+        }
+        self.prepare_transaction(account_id, Operation::RevokeKey { key }, sk)
     }
 
     /// Validates and processes an incoming [`Transaction`], updating the account state.
