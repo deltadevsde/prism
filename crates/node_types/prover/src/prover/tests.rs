@@ -1,6 +1,6 @@
 use super::*;
 use prism_common::transaction_builder::TransactionBuilder;
-use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
+use prism_keys::{CryptoAlgorithm, SigningKey, PublicKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 
@@ -91,7 +91,7 @@ async fn test_execute_block_with_invalid_tx(algorithm: CryptoAlgorithm) {
     let mut tx_builder = TransactionBuilder::new();
 
     let new_key_1 = SigningKey::new_with_algorithm(algorithm).expect("Failed to create new key");
-    let new_key_vk: VerifyingKey = new_key_1.clone().into();
+    let new_key_vk: PublicKey = new_key_1.clone().into();
 
     let transactions = vec![
         tx_builder.register_service_with_random_keys(algorithm, "service_id").commit(),

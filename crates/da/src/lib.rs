@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::{digest::Digest, transaction::Transaction};
-use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_keys::{Signature, SigningKey, PublicKey};
 use prism_serde::{
     binary::ToBinary,
     hex::{FromHex, ToHex},
@@ -31,7 +31,7 @@ impl FinalizedEpoch {
         self.signature = Some(signature.to_bytes().to_hex());
     }
 
-    pub fn verify_signature(&self, vk: VerifyingKey) -> Result<()> {
+    pub fn verify_signature(&self, vk: PublicKey) -> Result<()> {
         let epoch_without_signature = FinalizedEpoch {
             height: self.height,
             prev_commitment: self.prev_commitment,

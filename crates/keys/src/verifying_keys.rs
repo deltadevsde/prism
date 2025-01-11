@@ -25,7 +25,7 @@ use prism_serde::base64::{FromBase64, ToBase64};
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
 /// Represents a public key.
-pub enum VerifyingKey {
+pub enum PublicKey {
     /// Bitcoin, Ethereum
     Secp256k1(Secp256k1VerifyingKey),
     /// Cosmos, OpenSSH, GnuPG
@@ -34,18 +34,18 @@ pub enum VerifyingKey {
     Secp256r1(Secp256r1VerifyingKey),
 }
 
-impl Hash for VerifyingKey {
+impl Hash for PublicKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
-            VerifyingKey::Ed25519(_) => {
+            PublicKey::Ed25519(_) => {
                 state.write_u8(0);
                 self.to_bytes().hash(state);
             }
-            VerifyingKey::Secp256k1(_) => {
+            PublicKey::Secp256k1(_) => {
                 state.write_u8(1);
                 self.to_bytes().hash(state);
             }
-            VerifyingKey::Secp256r1(_) => {
+            PublicKey::Secp256r1(_) => {
                 state.write_u8(2);
                 self.to_bytes().hash(state);
             }
@@ -53,21 +53,21 @@ impl Hash for VerifyingKey {
     }
 }
 
-impl VerifyingKey {
+impl PublicKey {
     /// Returns the byte representation of the public key.
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
-            VerifyingKey::Ed25519(vk) => vk.to_bytes().to_vec(),
-            VerifyingKey::Secp256k1(vk) => vk.serialize().to_vec(),
-            VerifyingKey::Secp256r1(vk) => vk.to_sec1_bytes().to_vec(),
+            PublicKey::Ed25519(vk) => vk.to_bytes().to_vec(),
+            PublicKey::Secp256k1(vk) => vk.serialize().to_vec(),
+            PublicKey::Secp256r1(vk) => vk.to_sec1_bytes().to_vec(),
         }
     }
 
     pub fn to_der(&self) -> Result<Vec<u8>> {
         let der = match self {
-            VerifyingKey::Ed25519(_) => bail!("Ed25519 vk to DER format is not implemented"),
-            VerifyingKey::Secp256k1(_) => bail!("Secp256k1 vk to DER format is not implemented"),
-            VerifyingKey::Secp256r1(vk) => vk.to_public_key_der()?.into_vec(),
+            PublicKey::Ed25519(_) => bail!("Ed25519 vk to DER format is not implemented"),
+            PublicKey::Secp256k1(_) => bail!("Secp256k1 vk to DER format is not implemented"),
+            PublicKey::Secp256r1(vk) => vk.to_public_key_der()?.into_vec(),
         };
         Ok(der)
     }
@@ -75,13 +75,13 @@ impl VerifyingKey {
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
-                .map(VerifyingKey::Ed25519)
+                .map(PublicKey::Ed25519)
                 .map_err(|e| e.into()),
             CryptoAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_slice(bytes)
-                .map(VerifyingKey::Secp256k1)
+                .map(PublicKey::Secp256k1)
                 .map_err(|e| e.into()),
             CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
-                .map(VerifyingKey::Secp256r1)
+                .map(PublicKey::Secp256r1)
                 .map_err(|e| e.into()),
         }
     }
@@ -91,22 +91,22 @@ impl VerifyingKey {
             CryptoAlgorithm::Ed25519 => bail!("Ed25519 vk from DER format is not implemented"),
             CryptoAlgorithm::Secp256k1 => bail!("Secp256k1 vk from DER format is not implemented"),
             CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_public_key_der(bytes)
-                .map(VerifyingKey::Secp256r1)
+                .map(PublicKey::Secp256r1)
                 .map_err(|e| e.into()),
         }
     }
 
     pub fn algorithm(&self) -> CryptoAlgorithm {
         match self {
-            VerifyingKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
-            VerifyingKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
-            VerifyingKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
+            PublicKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
+            PublicKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
+            PublicKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
         }
     }
 
     pub fn verify_signature(&self, message: &[u8], signature: &Signature) -> Result<()> {
         match self {
-            VerifyingKey::Ed25519(vk) => {
+            PublicKey::Ed25519(vk) => {
                 let Signature::Ed25519(signature) = signature else {
                     bail!("Invalid signature type");
                 };
@@ -114,7 +114,7 @@ impl VerifyingKey {
                 vk.verify(signature, message)
                     .map_err(|e| anyhow!("Failed to verify signature: {}", e))
             }
-            VerifyingKey::Secp256k1(vk) => {
+            PublicKey::Secp256k1(vk) => {
                 let Signature::Secp256k1(signature) = signature else {
                     bail!("Invalid signature type");
                 };
@@ -124,7 +124,7 @@ impl VerifyingKey {
                 vk.verify(SECP256K1, &message, signature)
                     .map_err(|e| anyhow!("Failed to verify signature: {}", e))
             }
-            VerifyingKey::Secp256r1(vk) => {
+            PublicKey::Secp256r1(vk) => {
                 let Signature::Secp256r1(signature) = signature else {
                     bail!("Invalid signature type");
                 };
@@ -138,16 +138,16 @@ impl VerifyingKey {
     }
 }
 
-impl TryFrom<CryptoPayload> for VerifyingKey {
+impl TryFrom<CryptoPayload> for PublicKey {
     type Error = anyhow::Error;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
-        VerifyingKey::from_algorithm_and_bytes(value.algorithm, &value.bytes)
+        PublicKey::from_algorithm_and_bytes(value.algorithm, &value.bytes)
     }
 }
 
-impl From<VerifyingKey> for CryptoPayload {
-    fn from(verifying_key: VerifyingKey) -> Self {
+impl From<PublicKey> for CryptoPayload {
+    fn from(verifying_key: PublicKey) -> Self {
         CryptoPayload {
             algorithm: verifying_key.algorithm(),
             bytes: verifying_key.to_bytes(),
@@ -155,43 +155,43 @@ impl From<VerifyingKey> for CryptoPayload {
     }
 }
 
-impl From<Ed25519VerifyingKey> for VerifyingKey {
+impl From<Ed25519VerifyingKey> for PublicKey {
     fn from(vk: Ed25519VerifyingKey) -> Self {
-        VerifyingKey::Ed25519(vk)
+        PublicKey::Ed25519(vk)
     }
 }
 
-impl From<Secp256k1VerifyingKey> for VerifyingKey {
+impl From<Secp256k1VerifyingKey> for PublicKey {
     fn from(vk: Secp256k1VerifyingKey) -> Self {
-        VerifyingKey::Secp256k1(vk)
+        PublicKey::Secp256k1(vk)
     }
 }
 
-impl From<Secp256r1VerifyingKey> for VerifyingKey {
+impl From<Secp256r1VerifyingKey> for PublicKey {
     fn from(vk: Secp256r1VerifyingKey) -> Self {
-        VerifyingKey::Secp256r1(vk)
+        PublicKey::Secp256r1(vk)
     }
 }
 
-impl From<Ed25519SigningKey> for VerifyingKey {
+impl From<Ed25519SigningKey> for PublicKey {
     fn from(sk: Ed25519SigningKey) -> Self {
-        VerifyingKey::Ed25519(sk.verification_key())
+        PublicKey::Ed25519(sk.verification_key())
     }
 }
 
-impl From<Secp256k1SigningKey> for VerifyingKey {
+impl From<Secp256k1SigningKey> for PublicKey {
     fn from(sk: Secp256k1SigningKey) -> Self {
-        VerifyingKey::Secp256k1(sk.public_key(SECP256K1))
+        PublicKey::Secp256k1(sk.public_key(SECP256K1))
     }
 }
 
-impl From<Secp256r1SigningKey> for VerifyingKey {
+impl From<Secp256r1SigningKey> for PublicKey {
     fn from(sk: Secp256r1SigningKey) -> Self {
-        VerifyingKey::Secp256r1(sk.verifying_key().to_owned())
+        PublicKey::Secp256r1(sk.verifying_key().to_owned())
     }
 }
 
-impl From<SigningKey> for VerifyingKey {
+impl From<SigningKey> for PublicKey {
     fn from(sk: SigningKey) -> Self {
         match sk {
             SigningKey::Ed25519(sk) => (*sk).into(),
@@ -201,7 +201,7 @@ impl From<SigningKey> for VerifyingKey {
     }
 }
 
-impl FromBase64 for VerifyingKey {
+impl FromBase64 for PublicKey {
     type Error = anyhow::Error;
 
     /// Attempts to create a `VerifyingKey` from a base64-encoded string.
@@ -226,13 +226,13 @@ impl FromBase64 for VerifyingKey {
             32 => {
                 let vk = Ed25519VerifyingKey::try_from(bytes.as_slice())
                     .map_err(|e| anyhow!("Invalid Ed25519 key: {}", e))?;
-                Ok(VerifyingKey::Ed25519(vk))
+                Ok(PublicKey::Ed25519(vk))
             }
             33 | 65 => {
                 if let Ok(vk) = Secp256k1VerifyingKey::from_slice(bytes.as_slice()) {
-                    Ok(VerifyingKey::Secp256k1(vk))
+                    Ok(PublicKey::Secp256k1(vk))
                 } else if let Ok(vk) = Secp256r1VerifyingKey::from_sec1_bytes(bytes.as_slice()) {
-                    Ok(VerifyingKey::Secp256r1(vk))
+                    Ok(PublicKey::Secp256r1(vk))
                 } else {
                     Err(anyhow!("Invalid curve type"))
                 }
@@ -242,7 +242,7 @@ impl FromBase64 for VerifyingKey {
     }
 }
 
-impl TryFrom<String> for VerifyingKey {
+impl TryFrom<String> for PublicKey {
     type Error = anyhow::Error;
 
     fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
@@ -250,7 +250,7 @@ impl TryFrom<String> for VerifyingKey {
     }
 }
 
-impl std::fmt::Display for VerifyingKey {
+impl std::fmt::Display for PublicKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let encoded = self.to_bytes().to_base64();
         write!(f, "{}", encoded)
