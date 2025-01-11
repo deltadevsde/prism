@@ -2,7 +2,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use jmt::KeyHash;
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
-use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
+use prism_keys::{CryptoAlgorithm, SigningKey, PublicKey};
 use prism_storage::database::Database;
 use prism_tree::{
     hasher::TreeHasher,
@@ -43,7 +43,7 @@ pub struct Config {
 
     /// Key used to verify incoming [`FinalizedEpochs`].
     /// This is not necessarily the counterpart to signing_key, as fullnodes must use the [`verifying_key`] of the prover.
-    pub verifying_key: VerifyingKey,
+    pub verifying_key: PublicKey,
 
     /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,

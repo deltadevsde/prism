@@ -6,7 +6,7 @@ use crate::{
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::Transaction,
 };
-use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
+use prism_keys::{CryptoAlgorithm, SigningKey, PublicKey};
 enum PostCommitAction {
     UpdateStorageOnly,
     RememberServiceKey(String, SigningKey),
@@ -98,7 +98,7 @@ impl TransactionBuilder {
         challenge_key: SigningKey,
         signing_key: SigningKey,
     ) -> UncommittedTransaction {
-        let vk: VerifyingKey = signing_key.clone().into();
+        let vk: PublicKey = signing_key.clone().into();
         let op = Operation::RegisterService {
             id: id.to_string(),
             creation_gate: ServiceChallenge::Signed(challenge_key.verifying_key()),
@@ -206,7 +206,7 @@ impl TransactionBuilder {
     pub fn add_key_verified_with_root(
         &mut self,
         id: &str,
-        key: VerifyingKey,
+        key: PublicKey,
     ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
@@ -218,7 +218,7 @@ impl TransactionBuilder {
     pub fn add_key(
         &mut self,
         id: &str,
-        key: VerifyingKey,
+        key: PublicKey,
         signing_key: &SigningKey,
     ) -> UncommittedTransaction {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
@@ -236,7 +236,7 @@ impl TransactionBuilder {
     pub fn revoke_key_verified_with_root(
         &mut self,
         id: &str,
-        key: VerifyingKey,
+        key: PublicKey,
     ) -> UncommittedTransaction {
         let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
@@ -248,7 +248,7 @@ impl TransactionBuilder {
     pub fn revoke_key(
         &mut self,
         id: &str,
-        key: VerifyingKey,
+        key: PublicKey,
         signing_key: &SigningKey,
     ) -> UncommittedTransaction {
         let account = self.accounts.get(id).cloned().unwrap_or_default();

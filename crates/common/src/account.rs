@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_keys::{Signature, SigningKey, PublicKey};
 use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
 
@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct SignedData(pub VerifyingKey, #[serde(with = "raw_or_b64")] pub Vec<u8>);
+pub struct SignedData(pub PublicKey, #[serde(with = "raw_or_b64")] pub Vec<u8>);
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
 /// Represents an account or service on prism, making up the values of our state
@@ -23,7 +23,7 @@ pub struct Account {
 
     /// The current set of valid keys for the account. Any of these keys can be
     /// used to sign transactions.
-    valid_keys: Vec<VerifyingKey>,
+    valid_keys: Vec<PublicKey>,
 
     /// Arbitrary signed data associated with the account, used for bookkeeping
     /// externally signed data from keys that don't live on Prism.
@@ -42,7 +42,7 @@ impl Account {
         self.nonce
     }
 
-    pub fn valid_keys(&self) -> &[VerifyingKey] {
+    pub fn valid_keys(&self) -> &[PublicKey] {
         &self.valid_keys
     }
 

@@ -8,7 +8,7 @@ use secp256k1::{Message as Secp256k1Message, SecretKey as Secp256k1SigningKey, S
 
 use sha2::Digest as _;
 
-use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, VerifyingKey};
+use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, PublicKey};
 
 #[derive(Clone, Debug)]
 pub enum SigningKey {
@@ -38,7 +38,7 @@ impl SigningKey {
         }
     }
 
-    pub fn verifying_key(&self) -> VerifyingKey {
+    pub fn verifying_key(&self) -> PublicKey {
         self.clone().into()
     }
 

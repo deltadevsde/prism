@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use prism_common::digest::Digest;
 use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
 use prism_errors::{DataAvailabilityError, GeneralError};
-use prism_keys::VerifyingKey;
+use prism_keys::PublicKey;
 use sp1_sdk::{ProverClient, SP1VerifyingKey};
 use std::{self, sync::Arc};
 use tokio::{sync::broadcast, task::spawn};
@@ -12,7 +12,7 @@ pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-
 #[allow(dead_code)]
 pub struct LightClient {
     pub da: Arc<dyn DataAvailabilityLayer>,
-    pub prover_pubkey: Option<VerifyingKey>,
+    pub prover_pubkey: Option<PublicKey>,
     pub client: ProverClient,
     pub verifying_key: SP1VerifyingKey,
     pub start_height: u64,
@@ -23,7 +23,7 @@ impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: CelestiaConfig,
-        prover_pubkey: Option<VerifyingKey>,
+        prover_pubkey: Option<PublicKey>,
     ) -> LightClient {
         #[cfg(feature = "mock_prover")]
         let client = ProverClient::mock();

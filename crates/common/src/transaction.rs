@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use celestia_types::Blob;
-use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_keys::{Signature, SigningKey, PublicKey};
 use prism_serde::binary::{FromBinary, ToBinary};
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +19,7 @@ pub struct Transaction {
     pub signature: Signature,
     /// The verifying key of the signer of this transaction. This vk must be
     /// included in the account's valid_keys set.
-    pub vk: VerifyingKey,
+    pub vk: PublicKey,
 }
 
 impl Transaction {

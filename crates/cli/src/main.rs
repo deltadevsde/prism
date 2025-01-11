@@ -4,7 +4,7 @@ mod node_types;
 use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
-use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
+use prism_keys::{CryptoAlgorithm, SigningKey, PublicKey};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
@@ -41,7 +41,7 @@ async fn main() -> std::io::Result<()> {
                         "invalid verifying key algorithm format",
                     )
                 })?;
-            let prover_vk = VerifyingKey::from_algorithm_and_bytes(
+            let prover_vk = PublicKey::from_algorithm_and_bytes(
                 verifying_key_algorithm,
                 config.verifying_key.unwrap().as_bytes(),
             )
@@ -136,7 +136,7 @@ async fn main() -> std::io::Result<()> {
                 .verifying_key
                 .ok_or_else(|| Error::new(ErrorKind::NotFound, "prover verifying key not found"))
                 .and_then(|vk| {
-                    VerifyingKey::from_algorithm_and_bytes(verifying_key_algorithm, vk.as_bytes())
+                    PublicKey::from_algorithm_and_bytes(verifying_key_algorithm, vk.as_bytes())
                         .map_err(|e| Error::new(ErrorKind::InvalidInput, e.to_string()))
                 })?;
 

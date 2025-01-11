@@ -3,7 +3,7 @@ use anyhow::{bail, ensure, Result};
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
 
-use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_keys::{Signature, SigningKey, PublicKey};
 use prism_serde::raw_or_b64;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -15,13 +15,13 @@ pub enum Operation {
         id: String,
         service_id: String,
         challenge: ServiceChallengeInput,
-        key: VerifyingKey,
+        key: PublicKey,
     },
     /// Registers a new service with the given id.
     RegisterService {
         id: String,
         creation_gate: ServiceChallenge,
-        key: VerifyingKey,
+        key: PublicKey,
     },
     /// Adds arbitrary signed data to an existing account.
     AddData {
@@ -30,16 +30,16 @@ pub enum Operation {
         data_signature: SignatureBundle,
     },
     /// Adds a key to an existing account.
-    AddKey { key: VerifyingKey },
+    AddKey { key: PublicKey },
     /// Revokes a key from an existing account.
-    RevokeKey { key: VerifyingKey },
+    RevokeKey { key: PublicKey },
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Represents a signature including its.
 pub struct SignatureBundle {
     /// The key that can be used to verify the signature
-    pub verifying_key: VerifyingKey,
+    pub verifying_key: PublicKey,
     /// The actual signature
     pub signature: Signature,
 }
@@ -53,7 +53,7 @@ pub enum ServiceChallengeInput {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ServiceChallenge {
-    Signed(VerifyingKey),
+    Signed(PublicKey),
 }
 
 impl From<SigningKey> for ServiceChallenge {
@@ -63,7 +63,7 @@ impl From<SigningKey> for ServiceChallenge {
 }
 
 impl Operation {
-    pub fn get_public_key(&self) -> Option<&VerifyingKey> {
+    pub fn get_public_key(&self) -> Option<&PublicKey> {
         match self {
             Operation::RevokeKey { key }
             | Operation::AddKey { key }
