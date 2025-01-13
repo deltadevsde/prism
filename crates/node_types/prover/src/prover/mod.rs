@@ -464,7 +464,7 @@ impl Prover {
         tree.get_commitment().context("Failed to get commitment")
     }
 
-    pub async fn get_account(&self, id: &String) -> Result<AccountResponse> {
+    pub async fn get_account(&self, id: &str) -> Result<AccountResponse> {
         let tree = self.tree.read().await;
         let key_hash = KeyHash::with::<TreeHasher>(id);
 
