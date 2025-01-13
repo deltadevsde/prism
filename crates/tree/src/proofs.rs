@@ -44,7 +44,6 @@ impl Batch {
                 Proof::Insert(insert_proof) => {
                     let challenge = match &insert_proof.tx.operation {
                         Operation::CreateAccount { service_id, .. } => {
-                            dbg!("keys: {}", self.services.keys());
                             let service_proof = self
                                 .services
                                 .get(service_id)
