@@ -27,7 +27,7 @@ use crate::{
 /// The methods of this trait are NOT run in circuit: they are used to create verifiable inputs for the circuit.
 /// This distinction is critical because the returned proofs must contain all information necessary to verify the operations.
 pub trait SnarkableTree: Send + Sync {
-    fn execute_batch(&mut self, transactions: Vec<Transaction>) -> Result<Batch>;
+    fn process_batch(&mut self, transactions: Vec<Transaction>) -> Result<Batch>;
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof>;
     fn insert(&mut self, key: KeyHash, tx: Transaction) -> Result<InsertProof>;
     fn update(&mut self, key: KeyHash, tx: Transaction) -> Result<UpdateProof>;
@@ -38,7 +38,7 @@ impl<S> SnarkableTree for KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter + Send + Sync,
 {
-    fn execute_batch(&mut self, transactions: Vec<Transaction>) -> Result<Batch> {
+    fn process_batch(&mut self, transactions: Vec<Transaction>) -> Result<Batch> {
         debug!("creating block with {} transactions", transactions.len());
         let prev_commitment = self.get_commitment()?;
         let mut services = HashSet::new();
@@ -76,7 +76,7 @@ where
                         service: *account,
                         proof: proof.proof,
                     };
-                    batch.services.insert(service.clone(), service_proof);
+                    batch.service_proofs.insert(service.clone(), service_proof);
                 }
                 NotFound(proof) => {
                     bail!("Service account not found: {:?}", proof);

@@ -378,7 +378,7 @@ impl Prover {
         transactions: Vec<Transaction>,
     ) -> Result<()> {
         let mut tree = self.tree.write().await;
-        let batch = tree.execute_batch(transactions)?;
+        let batch = tree.process_batch(transactions)?;
         batch.verify()?;
 
         let finalized_epoch = self.prove_epoch(epoch_height, &batch).await?;

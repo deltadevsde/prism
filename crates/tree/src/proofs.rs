@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 use jmt::{
     proof::{SparseMerkleProof, UpdateMerkleProof},
     KeyHash, RootHash,
@@ -23,7 +23,7 @@ pub struct Batch {
     pub prev_root: Digest,
     pub new_root: Digest,
 
-    pub services: HashMap<String, ServiceProof>,
+    pub service_proofs: HashMap<String, ServiceProof>,
     pub proofs: Vec<Proof>,
 }
 
@@ -32,7 +32,7 @@ impl Batch {
         Batch {
             prev_root,
             new_root: next_root,
-            services: HashMap::new(),
+            service_proofs: HashMap::new(),
             proofs,
         }
     }
@@ -42,16 +42,17 @@ impl Batch {
         for proof in &self.proofs {
             match proof {
                 Proof::Insert(insert_proof) => {
+                    // When verifying account creation, ensure service challenge is verified as well
                     let challenge = match &insert_proof.tx.operation {
                         Operation::CreateAccount { service_id, .. } => {
-                            let service_proof = self
-                                .services
+                            let service_challenge = self
+                                .service_proofs
                                 .get(service_id)
                                 .and_then(|service_proof| service_proof.service_challenge());
-                            if service_proof.is_none() {
-                                return Err(anyhow!("Service proof for {} is missing from batch for CreateAccount verification", service_id));
+                            if service_challenge.is_none() {
+                                bail!("Service proof for {} is missing from batch for CreateAccount verification", service_id);
                             }
-                            service_proof
+                            service_challenge
                         }
 
                         _ => None,
@@ -67,7 +68,7 @@ impl Batch {
         }
 
         assert_eq!(root, self.new_root);
-        for (id, service_proof) in &self.services {
+        for (id, service_proof) in &self.service_proofs {
             let keyhash = KeyHash::with::<TreeHasher>(&id);
             let serialized_account = service_proof.service.encode_to_bytes()?;
             service_proof.proof.verify_existence(RootHash(root.0), keyhash, serialized_account)?;
@@ -135,9 +136,7 @@ impl InsertProof {
             let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &key.to_bytes()]);
 
             if service_challenge.is_none() {
-                return Err(anyhow!(
-                    "Service challenge is missing for CreateAccount verification"
-                ));
+                bail!("Service challenge is missing for CreateAccount verification");
             }
 
             let ServiceChallenge::Signed(challenge_vk) = service_challenge.unwrap();
