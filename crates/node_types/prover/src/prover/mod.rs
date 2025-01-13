@@ -4,12 +4,13 @@ use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::database::Database;
+pub use prism_tree::AccountResponse;
 use prism_tree::{
     hasher::TreeHasher,
     key_directory_tree::KeyDirectoryTree,
     proofs::{Batch, Proof},
     snarkable_tree::SnarkableTree,
-    AccountResponse::{self, *},
+    AccountResponse::*,
 };
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::{
