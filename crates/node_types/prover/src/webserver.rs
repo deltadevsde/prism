@@ -76,6 +76,11 @@ pub struct JmtProofResponse {
     pub siblings: Vec<Digest>,
 }
 
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct CommitmentResponse {
+    commitment: Digest,
+}
+
 impl From<SparseMerkleProof<TreeHasher>> for JmtProofResponse {
     fn from(proof: SparseMerkleProof<TreeHasher>) -> Self {
         let leaf_hash = proof.leaf().map(|node| node.hash::<TreeHasher>()).map(Digest::new);
@@ -232,7 +237,7 @@ async fn get_account(
 )]
 async fn get_commitment(State(session): State<Arc<Prover>>) -> impl IntoResponse {
     match session.get_commitment().await {
-        Ok(commitment) => (StatusCode::OK, Json(commitment)).into_response(),
+        Ok(commitment) => (StatusCode::OK, Json(CommitmentResponse { commitment })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
