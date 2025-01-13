@@ -1,9 +1,11 @@
+use std::collections::HashSet;
+
 use anyhow::{bail, ensure, Result};
 use jmt::{
     storage::{TreeReader, TreeWriter},
     KeyHash,
 };
-use log::debug;
+use log::{debug, warn};
 use prism_errors::DatabaseError;
 use prism_serde::binary::{FromBinary, ToBinary};
 
@@ -17,7 +19,7 @@ use prism_common::{
 use crate::{
     hasher::TreeHasher,
     key_directory_tree::KeyDirectoryTree,
-    proofs::{InsertProof, MerkleProof, Proof, UpdateProof},
+    proofs::{Batch, InsertProof, MerkleProof, Proof, ServiceProof, UpdateProof},
     AccountResponse::{self, *},
 };
 
@@ -25,6 +27,7 @@ use crate::{
 /// The methods of this trait are NOT run in circuit: they are used to create verifiable inputs for the circuit.
 /// This distinction is critical because the returned proofs must contain all information necessary to verify the operations.
 pub trait SnarkableTree: Send + Sync {
+    fn process_batch(&mut self, transactions: Vec<Transaction>) -> Result<Batch>;
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof>;
     fn insert(&mut self, key: KeyHash, tx: Transaction) -> Result<InsertProof>;
     fn update(&mut self, key: KeyHash, tx: Transaction) -> Result<UpdateProof>;
@@ -35,6 +38,55 @@ impl<S> SnarkableTree for KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter + Send + Sync,
 {
+    fn process_batch(&mut self, transactions: Vec<Transaction>) -> Result<Batch> {
+        debug!("creating block with {} transactions", transactions.len());
+        let prev_commitment = self.get_commitment()?;
+        let mut services = HashSet::new();
+
+        let mut proofs = Vec::new();
+        for transaction in transactions {
+            match self.process_transaction(transaction.clone()) {
+                Ok(proof) => {
+                    if let Operation::CreateAccount { service_id, .. } = transaction.operation {
+                        services.insert(service_id);
+                    }
+                    proofs.push(proof)
+                }
+                Err(e) => {
+                    // Log the error and continue with the next transaction
+                    warn!(
+                        "Failed to process transaction: {:?}. Error: {}",
+                        transaction, e
+                    );
+                }
+            }
+        }
+
+        let current_commitment = self.get_commitment()?;
+
+        let mut batch = Batch::init(prev_commitment, current_commitment, proofs);
+
+        for service in services {
+            let service_key_hash = KeyHash::with::<TreeHasher>(&service);
+            let response = self.get(service_key_hash)?;
+            match response {
+                Found(account, proof) => {
+                    let service_proof = ServiceProof {
+                        root: current_commitment,
+                        service: *account,
+                        proof: proof.proof,
+                    };
+                    batch.service_proofs.insert(service.clone(), service_proof);
+                }
+                NotFound(proof) => {
+                    bail!("Service account not found: {:?}", proof);
+                }
+            }
+        }
+
+        Ok(batch)
+    }
+
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof> {
         match &transaction.operation {
             Operation::AddKey { .. } | Operation::RevokeKey { .. } | Operation::AddData { .. } => {

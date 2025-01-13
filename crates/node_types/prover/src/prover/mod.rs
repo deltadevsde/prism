@@ -349,6 +349,8 @@ impl Prover {
         Ok(())
     }
 
+    // should only be called for testing and historical sync, it does not
+    // generate the Batch object for proof generation.
     async fn execute_block(&self, transactions: Vec<Transaction>) -> Result<Vec<Proof>> {
         debug!("executing block with {} transactions", transactions.len());
 
@@ -375,19 +377,16 @@ impl Prover {
         epoch_height: u64,
         transactions: Vec<Transaction>,
     ) -> Result<()> {
-        let prev_commitment = self.get_commitment().await?;
+        let mut tree = self.tree.write().await;
+        let batch = tree.process_batch(transactions)?;
+        batch.verify()?;
 
-        let proofs = self.execute_block(transactions).await?;
-
-        let new_commitment = self.get_commitment().await?;
-
-        let finalized_epoch =
-            self.prove_epoch(epoch_height, prev_commitment, new_commitment, proofs).await?;
+        let finalized_epoch = self.prove_epoch(epoch_height, &batch).await?;
 
         self.da.submit_finalized_epoch(finalized_epoch).await?;
 
         let new_epoch_height = epoch_height + 1;
-        self.db.set_commitment(&new_epoch_height, &new_commitment)?;
+        self.db.set_commitment(&new_epoch_height, &batch.new_root)?;
         self.db.set_epoch(&new_epoch_height)?;
 
         info!("finalized new epoch at height {}", epoch_height);
@@ -395,19 +394,7 @@ impl Prover {
         Ok(())
     }
 
-    async fn prove_epoch(
-        &self,
-        epoch_height: u64,
-        prev_commitment: Digest,
-        new_commitment: Digest,
-        proofs: Vec<Proof>,
-    ) -> Result<FinalizedEpoch> {
-        let batch = Batch {
-            prev_root: prev_commitment,
-            new_root: new_commitment,
-            proofs,
-        };
-
+    async fn prove_epoch(&self, epoch_height: u64, batch: &Batch) -> Result<FinalizedEpoch> {
         let mut stdin = SP1Stdin::new();
         stdin.write(&batch);
         let client = self.prover_client.read().await;
@@ -425,8 +412,8 @@ impl Prover {
 
         let mut epoch_json = FinalizedEpoch {
             height: epoch_height,
-            prev_commitment,
-            current_commitment: new_commitment,
+            prev_commitment: batch.prev_root,
+            current_commitment: batch.new_root,
             proof,
             signature: None,
         };
