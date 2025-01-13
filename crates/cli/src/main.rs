@@ -5,6 +5,7 @@ use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
+use sp1_sdk::{HashableKey, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
@@ -12,6 +13,7 @@ use prism_lightclient::LightClient;
 use prism_prover::Prover;
 use prism_storage::RedisConnection;
 use std::{str::FromStr, sync::Arc};
+
 #[macro_use]
 extern crate log;
 
@@ -47,7 +49,15 @@ async fn main() -> std::io::Result<()> {
             )
             .map_err(|e| Error::new(ErrorKind::InvalidInput, e.to_string()))?;
 
-            Arc::new(LightClient::new(da, celestia_config, Some(prover_vk)))
+            let client = ProverClient::mock();
+            let (_, vk) = client.setup(PRISM_ELF);
+
+            Arc::new(LightClient::new(
+                da,
+                celestia_config,
+                Some(prover_vk),
+                vk.bytes32(),
+            ))
         }
         Commands::Prover(args) => {
             let config = load_config(args.clone())
@@ -79,7 +89,12 @@ async fn main() -> std::io::Result<()> {
                 verifying_key_algorithm,
                 signing_key_chain.as_bytes(),
             )
-            .map_err(|e| Error::new(ErrorKind::InvalidInput, format!("Invalid signing key: {}", e)))?;
+            .map_err(|e| {
+                Error::new(
+                    ErrorKind::InvalidInput,
+                    format!("Invalid signing key: {}", e),
+                )
+            })?;
             let verifying_key = signing_key.verifying_key();
 
             let prover_cfg = prism_prover::Config {
@@ -130,7 +145,12 @@ async fn main() -> std::io::Result<()> {
                 verifying_key_algorithm,
                 signing_key_chain.as_bytes(),
             )
-            .map_err(|e| Error::new(ErrorKind::InvalidInput, format!("Invalid signing key: {}", e)))?;
+            .map_err(|e| {
+                Error::new(
+                    ErrorKind::InvalidInput,
+                    format!("Invalid signing key: {}", e),
+                )
+            })?;
 
             let prover_vk = config
                 .verifying_key
