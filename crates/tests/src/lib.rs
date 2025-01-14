@@ -114,7 +114,10 @@ async fn test_light_client_prover_talking() -> Result<()> {
                     )
                     .commit();
 
-                log::info!("builder accounts: {:?}", transaction_builder.get_account(&random_user_id));
+                log::info!(
+                    "builder accounts: {:?}",
+                    transaction_builder.get_account(&random_user_id)
+                );
                 match prover.clone().validate_and_queue_update(new_acc).await {
                     Ok(_) => {
                         i += 1;
@@ -131,9 +134,26 @@ async fn test_light_client_prover_talking() -> Result<()> {
                         .get(rng.gen_range(0..added_account_ids.len()))
                         .map_or("Could not find random account id", |id| id.as_str());
 
-                    let update_acc = transaction_builder
-                        .add_random_key_verified_with_root(random_algorithm(&mut rng), acc_id)
-                        .commit();
+                    let algorithm = random_algorithm(&mut rng);
+                    let update_acc = match rng.gen_range(0..3) {
+                        0 => transaction_builder
+                            .add_random_key_verified_with_root(algorithm, acc_id)
+                            .commit(),
+                        1 => transaction_builder
+                            .add_randomly_signed_data_verified_with_root(
+                                algorithm,
+                                acc_id,
+                                b"test data".to_vec(),
+                            )
+                            .commit(),
+                        _ => transaction_builder
+                            .set_randomly_signed_data_verified_with_root(
+                                algorithm,
+                                acc_id,
+                                b"test data".to_vec(),
+                            )
+                            .commit(),
+                    };
 
                     match prover.clone().validate_and_queue_update(update_acc).await {
                         Ok(_) => (),
