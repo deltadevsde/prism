@@ -396,4 +396,89 @@ impl TransactionBuilder {
             post_commit_action: PostCommitAction::UpdateStorageOnly,
         }
     }
+
+    pub fn set_randomly_signed_data(
+        &mut self,
+        algorithm: CryptoAlgorithm,
+        id: &str,
+        value: Vec<u8>,
+        signing_key: &SigningKey,
+    ) -> UncommittedTransaction {
+        let value_signing_key =
+            SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
+        self.set_signed_data(id, value, &value_signing_key, signing_key)
+    }
+
+    pub fn set_randomly_signed_data_verified_with_root(
+        &mut self,
+        algorithm: CryptoAlgorithm,
+        id: &str,
+        value: Vec<u8>,
+    ) -> UncommittedTransaction {
+        let value_signing_key =
+            SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
+        self.set_signed_data_verified_with_root(id, value, &value_signing_key)
+    }
+
+    pub fn set_signed_data(
+        &mut self,
+        id: &str,
+        value: Vec<u8>,
+        value_signing_key: &SigningKey,
+        signing_key: &SigningKey,
+    ) -> UncommittedTransaction {
+        let value_signature_bundle = SignatureBundle {
+            verifying_key: value_signing_key.verifying_key(),
+            signature: value_signing_key.sign(&value),
+        };
+        self.set_pre_signed_data(id, value, value_signature_bundle, signing_key)
+    }
+
+    pub fn set_signed_data_verified_with_root(
+        &mut self,
+        id: &str,
+        value: Vec<u8>,
+        value_signing_key: &SigningKey,
+    ) -> UncommittedTransaction {
+        let value_signature_bundle = SignatureBundle {
+            verifying_key: value_signing_key.verifying_key(),
+            signature: value_signing_key.sign(&value),
+        };
+        self.set_pre_signed_data_verified_with_root(id, value, value_signature_bundle)
+    }
+
+    pub fn set_pre_signed_data_verified_with_root(
+        &mut self,
+        id: &str,
+        value: Vec<u8>,
+        value_signature: SignatureBundle,
+    ) -> UncommittedTransaction {
+        let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
+            panic!("No existing account key for {}", id)
+        };
+
+        self.set_pre_signed_data(id, value, value_signature, &account_signing_key)
+    }
+
+    pub fn set_pre_signed_data(
+        &mut self,
+        id: &str,
+        data: Vec<u8>,
+        data_signature: SignatureBundle,
+        signing_key: &SigningKey,
+    ) -> UncommittedTransaction {
+        let account = self.accounts.get(id).cloned().unwrap_or_default();
+        let op = Operation::SetData {
+            data,
+            data_signature,
+        };
+
+        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+
+        UncommittedTransaction {
+            transaction,
+            builder: self,
+            post_commit_action: PostCommitAction::UpdateStorageOnly,
+        }
+    }
 }

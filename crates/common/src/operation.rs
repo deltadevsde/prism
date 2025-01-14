@@ -29,6 +29,12 @@ pub enum Operation {
         data: Vec<u8>,
         data_signature: SignatureBundle,
     },
+    /// Set arbitrary signed data to an existing account. Replaces all existing data.
+    SetData {
+        #[serde(with = "raw_or_b64")]
+        data: Vec<u8>,
+        data_signature: SignatureBundle,
+    },
     /// Adds a key to an existing account.
     AddKey { key: VerifyingKey },
     /// Revokes a key from an existing account.
@@ -69,7 +75,7 @@ impl Operation {
             | Operation::AddKey { key }
             | Operation::CreateAccount { key, .. }
             | Operation::RegisterService { key, .. } => Some(key),
-            Operation::AddData { .. } => None,
+            Operation::AddData { .. } | Operation::SetData { .. } => None,
         }
     }
 
@@ -94,7 +100,7 @@ impl Operation {
                 Ok(())
             }
             Operation::AddKey { .. } | Operation::RevokeKey { .. } => Ok(()),
-            Operation::AddData { data, .. } => {
+            Operation::AddData { data, .. } | Operation::SetData { data, .. } => {
                 let data_len = data.len();
                 // TODO determine proper max data size here
                 ensure!(data_len < usize::MAX, "Incoming data size is {}", data_len);

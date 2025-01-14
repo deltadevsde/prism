@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use jmt::{mock::MockTreeStore, KeyHash};
-use prism_common::transaction_builder::TransactionBuilder;
+use prism_common::{operation::SignatureBundle, transaction_builder::TransactionBuilder};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 
 use crate::{
@@ -157,6 +157,91 @@ fn test_update_non_existing_key(algorithm: CryptoAlgorithm) {
 
     let result = tree.process_transaction(invalid_key_tx);
     assert!(result.is_err());
+}
+
+fn test_data_ops(algorithm: CryptoAlgorithm) {
+    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+    let mut tx_builder = TransactionBuilder::new();
+
+    let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
+    tree.process_transaction(service_tx).unwrap();
+
+    let acc1_tx =
+        tx_builder.create_account_with_random_key_signed(algorithm, "acc_1", "service_1").commit();
+    tree.process_transaction(acc1_tx).unwrap();
+
+    let add_data_1_tx = tx_builder
+        .add_internally_signed_data_verified_with_root("acc_1", b"test data 1".to_vec())
+        .commit();
+    let Proof::Update(update_proof) = tree.process_transaction(add_data_1_tx).unwrap() else {
+        panic!("Processing data update failed");
+    };
+    assert!(update_proof.verify().is_ok());
+
+    let add_data_2_tx = tx_builder
+        .add_randomly_signed_data_verified_with_root(algorithm, "acc_1", b"test data 2".to_vec())
+        .commit();
+    let Proof::Update(update_proof) = tree.process_transaction(add_data_2_tx).unwrap() else {
+        panic!("Processing signed data update failed");
+    };
+    assert!(update_proof.verify().is_ok());
+
+    // Verify account data after updates
+    let Found(account, membership_proof) = tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap()
+    else {
+        panic!("Expected account to be found after data updates");
+    };
+
+    let test_account = tx_builder.get_account("acc_1").unwrap();
+
+    // Verify account matches expected state
+    assert_eq!(*account, *test_account);
+    assert!(membership_proof.verify_existence(&account).is_ok());
+
+    // Verify data contents
+    assert_eq!(account.signed_data()[0].1, b"test data 1".to_vec());
+    assert_eq!(account.signed_data()[1].1, b"test data 2".to_vec());
+    assert_eq!(account.signed_data().len(), 2);
+
+    // Ensure that setData replaces, not appends
+    let set_data_1_tx = tx_builder
+        .set_randomly_signed_data_verified_with_root(
+            algorithm,
+            "acc_1",
+            b"replacement data".to_vec(),
+        )
+        .commit();
+    let Proof::Update(update_proof) = tree.process_transaction(set_data_1_tx).unwrap() else {
+        panic!("Processing signed data update failed");
+    };
+    assert!(update_proof.verify().is_ok());
+
+    let Found(account, _) = tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap() else {
+        panic!("Expected account to be found after data updates");
+    };
+
+    // Verify data contents - should only have latest value
+    assert_eq!(account.signed_data()[0].1, b"replacement data".to_vec());
+    assert_eq!(account.signed_data().len(), 1);
+
+    // Ensure incorrectly signed data leads to error
+
+    let random_signing_key = SigningKey::new_with_algorithm(algorithm).unwrap();
+    // invalid, because it does not sign the exact data we will add below
+    let invalid_signature = random_signing_key.sign(b"abc");
+    let invalid_signature_bundle = SignatureBundle {
+        verifying_key: random_signing_key.verifying_key(),
+        signature: invalid_signature,
+    };
+
+    let invalid_data_tx = tx_builder
+        .add_pre_signed_data_verified_with_root(
+            "acc_1",
+            b"some other data".to_vec(),
+            invalid_signature_bundle,
+        )
+        .build();
+    assert!(tree.process_transaction(invalid_data_tx).is_err());
 }
 
 fn test_multiple_inserts_and_updates(algorithm: CryptoAlgorithm) {
@@ -319,6 +404,7 @@ generate_algorithm_tests!(test_insert_with_invalid_service_challenge_fails);
 generate_algorithm_tests!(test_insert_duplicate_key);
 generate_algorithm_tests!(test_update_existing_key);
 generate_algorithm_tests!(test_update_non_existing_key);
+generate_algorithm_tests!(test_data_ops);
 generate_algorithm_tests!(test_multiple_inserts_and_updates);
 generate_algorithm_tests!(test_interleaved_inserts_and_updates);
 generate_algorithm_tests!(test_root_hash_changes);
