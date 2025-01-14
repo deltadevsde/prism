@@ -86,7 +86,7 @@ check:
 
 build:
   @echo "Building the project..."
-  cargo build --release
+  cargo build --release --features "mock_prover"
   @echo "Building SP1..."
   cd crates/zk/sp1 && cargo prove build
 
