@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::Database;
 use anyhow::{anyhow, Result};
+use dirs::home_dir;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
@@ -13,12 +14,37 @@ use prism_serde::{
     hex::{FromHex, ToHex},
 };
 use rocksdb::{DBWithThreadMode, MultiThreaded, Options, DB};
+use serde::{Deserialize, Serialize};
 
 const KEY_PREFIX_COMMITMENTS: &str = "commitments:epoch_";
 const KEY_PREFIX_NODE: &str = "node:";
 const KEY_PREFIX_VALUE_HISTORY: &str = "value_history:";
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RocksDBConfig {
+    pub path: String,
+}
+
+impl RocksDBConfig {
+    pub fn new(path: &str) -> Self {
+        Self {
+            path: path.to_string(),
+        }
+    }
+}
+
+impl Default for RocksDBConfig {
+    fn default() -> Self {
+        Self {
+            path: home_dir()
+                .map(|path| format!("{}/.prism/db/", path.to_string_lossy()))
+                .unwrap()
+                .to_string(),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct RocksDBConnection {
@@ -27,7 +53,8 @@ pub struct RocksDBConnection {
 }
 
 impl RocksDBConnection {
-    pub fn new(path: &str) -> Result<RocksDBConnection> {
+    pub fn new(cfg: &RocksDBConfig) -> Result<RocksDBConnection> {
+        let path = &cfg.path;
         let db = DB::open_default(path)?;
 
         Ok(Self {
@@ -180,7 +207,8 @@ mod tests {
 
     fn setup_db() -> (TempDir, RocksDBConnection) {
         let temp_dir = TempDir::new().unwrap();
-        let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
+        let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
+        let db = RocksDBConnection::new(&cfg).unwrap();
         (temp_dir, db)
     }
 

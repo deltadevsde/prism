@@ -4761,6 +4761,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "auto_impl",
+ "dirs 5.0.1",
  "jmt",
  "log",
  "prism-common",

@@ -11,7 +11,7 @@ use std::io::{Error, ErrorKind};
 use node_types::NodeType;
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
-use prism_storage::RedisConnection;
+use prism_storage::rocksdb::RocksDBConnection;
 use std::{str::FromStr, sync::Arc};
 
 #[macro_use]
@@ -67,11 +67,11 @@ async fn main() -> std::io::Result<()> {
                 .await
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            let redis_config = config
-                .clone()
-                .redis_config
-                .ok_or_else(|| Error::new(ErrorKind::NotFound, "redis configuration not found"))?;
-            let redis_connections = RedisConnection::new(&redis_config)
+            let rocksdb_config = config.clone().rocksdb_config.ok_or_else(|| {
+                Error::new(ErrorKind::NotFound, "rocksdb configuration not found")
+            })?;
+
+            let rocksdb = RocksDBConnection::new(&rocksdb_config)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
@@ -107,12 +107,10 @@ async fn main() -> std::io::Result<()> {
             };
 
             Arc::new(
-                Prover::new(Arc::new(Box::new(redis_connections)), da, &prover_cfg).map_err(
-                    |e| {
-                        error!("error initializing prover: {}", e);
-                        Error::new(ErrorKind::Other, e.to_string())
-                    },
-                )?,
+                Prover::new(Arc::new(Box::new(rocksdb)), da, &prover_cfg).map_err(|e| {
+                    error!("error initializing prover: {}", e);
+                    Error::new(ErrorKind::Other, e.to_string())
+                })?,
             )
         }
         Commands::FullNode(args) => {
@@ -123,11 +121,11 @@ async fn main() -> std::io::Result<()> {
                 .await
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            let redis_config = config
-                .clone()
-                .redis_config
-                .ok_or_else(|| Error::new(ErrorKind::NotFound, "redis configuration not found"))?;
-            let redis_connections = RedisConnection::new(&redis_config)
+            let rocksdb_config = config.clone().rocksdb_config.ok_or_else(|| {
+                Error::new(ErrorKind::NotFound, "rocksdb configuration not found")
+            })?;
+
+            let rocksdb = RocksDBConnection::new(&rocksdb_config)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
@@ -170,12 +168,10 @@ async fn main() -> std::io::Result<()> {
             };
 
             Arc::new(
-                Prover::new(Arc::new(Box::new(redis_connections)), da, &prover_cfg).map_err(
-                    |e| {
-                        error!("error initializing prover: {}", e);
-                        Error::new(ErrorKind::Other, e.to_string())
-                    },
-                )?,
+                Prover::new(Arc::new(Box::new(rocksdb)), da, &prover_cfg).map_err(|e| {
+                    error!("error initializing prover: {}", e);
+                    Error::new(ErrorKind::Other, e.to_string())
+                })?,
             )
         }
     };

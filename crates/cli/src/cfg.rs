@@ -6,7 +6,7 @@ use dotenvy::dotenv;
 use log::{error, warn};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_prover::webserver::WebServerConfig;
-use prism_storage::redis::RedisConfig;
+use prism_storage::rocksdb::RocksDBConfig;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
@@ -31,7 +31,7 @@ pub struct CommandArgs {
     log_level: String,
 
     #[arg(short = 'r', long)]
-    redis_client: Option<String>,
+    rocksdb_path: Option<String>,
 
     #[arg(long)]
     verifying_key: Option<String>,
@@ -101,7 +101,7 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub celestia_config: Option<CelestiaConfig>,
     pub da_layer: DALayerOption,
-    pub redis_config: Option<RedisConfig>,
+    pub rocksdb_config: Option<RocksDBConfig>,
     pub verifying_key: Option<String>,
     pub verifying_key_algorithm: String,
 }
@@ -112,7 +112,7 @@ impl Default for Config {
             webserver: Some(WebServerConfig::default()),
             celestia_config: Some(CelestiaConfig::default()),
             da_layer: DALayerOption::default(),
-            redis_config: Some(RedisConfig::default()),
+            rocksdb_config: Some(RocksDBConfig::default()),
             verifying_key: None,
             verifying_key_algorithm: "ed25519".to_string(),
         }
@@ -151,13 +151,17 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
     Ok(final_config)
 }
 
-fn get_config_path(args: &CommandArgs) -> Result<String> {
+fn get_prism_home(args: &CommandArgs) -> Result<String> {
     args.config_path
         .clone()
-        .or_else(|| home_dir().map(|path| format!("{}/.prism/config.toml", path.to_string_lossy())))
+        .or_else(|| home_dir().map(|path| format!("{}/.prism/", path.to_string_lossy())))
         .ok_or_else(|| {
             GeneralError::MissingArgumentError("could not determine config path".to_string()).into()
         })
+}
+
+fn get_config_path(args: &CommandArgs) -> Result<String> {
+    get_prism_home(args).map(|path| format!("{}/config.toml", path))
 }
 
 fn ensure_config_file_exists(config_path: &str) -> Result<()> {
@@ -177,7 +181,7 @@ fn ensure_config_file_exists(config_path: &str) -> Result<()> {
 
 fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
     let webserver_config = &config.webserver.unwrap_or_default();
-    let redis_config = &config.redis_config.unwrap_or_default();
+    let rocksdb_config = &config.rocksdb_config.unwrap_or_default();
     let celestia_config = &config.celestia_config.unwrap_or_default();
 
     Config {
@@ -186,8 +190,8 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             host: args.webserver.host.unwrap_or(webserver_config.host.clone()),
             port: args.webserver.port.unwrap_or(webserver_config.port),
         }),
-        redis_config: Some(RedisConfig {
-            connection_string: args.redis_client.unwrap_or(redis_config.connection_string.clone()),
+        rocksdb_config: Some(RocksDBConfig {
+            path: args.rocksdb_path.unwrap_or(rocksdb_config.path.clone()),
         }),
         celestia_config: Some(CelestiaConfig {
             connection_string: args
