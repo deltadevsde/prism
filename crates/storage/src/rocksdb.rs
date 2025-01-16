@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::Database;
 use anyhow::{anyhow, Result};
-use dirs::home_dir;
 use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
@@ -22,7 +21,7 @@ const KEY_PREFIX_VALUE_HISTORY: &str = "value_history:";
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct RocksDBConfig {
     pub path: String,
 }
@@ -31,17 +30,6 @@ impl RocksDBConfig {
     pub fn new(path: &str) -> Self {
         Self {
             path: path.to_string(),
-        }
-    }
-}
-
-impl Default for RocksDBConfig {
-    fn default() -> Self {
-        Self {
-            path: home_dir()
-                .map(|path| format!("{}/.prism/db/", path.to_string_lossy()))
-                .unwrap()
-                .to_string(),
         }
     }
 }

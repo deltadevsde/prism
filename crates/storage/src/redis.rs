@@ -23,7 +23,7 @@ use prism_errors::DatabaseError;
 use crate::database::{convert_to_connection_error, Database};
 use log::debug;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct RedisConfig {
     pub connection_string: String,
 }

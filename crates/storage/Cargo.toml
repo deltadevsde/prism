@@ -12,7 +12,6 @@ readme.workspace = true
 
 [dependencies]
 serde = { workspace = true }
-dirs = { workspace = true }
 redis = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
