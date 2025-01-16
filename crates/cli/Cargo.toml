@@ -33,3 +33,5 @@ prism-prover = { workspace = true }
 prism-lightclient = { workspace = true }
 prism-da = { workspace = true }
 prism-keys = { workspace = true }
+ed25519-consensus = { workspace = true }
+rand = { workspace = true }

@@ -3,10 +3,12 @@ mod node_types;
 
 use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
-use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
+use keystore_rs::{KeyChain, KeyStore, FileStore};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use sp1_sdk::{HashableKey, ProverClient};
 use std::io::{Error, ErrorKind};
+use ed25519_consensus::SigningKey as SigningKeyEd;
+use rand::rngs::OsRng;
 
 use node_types::NodeType;
 use prism_lightclient::LightClient;
@@ -18,6 +20,8 @@ use std::{str::FromStr, sync::Arc};
 extern crate log;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
+
+pub const SIGNING_KEY_ID: &str = "prism";
 
 /// The main function that initializes and runs a prism client.
 #[tokio::main()]
@@ -74,9 +78,25 @@ async fn main() -> std::io::Result<()> {
             let redis_connections = RedisConnection::new(&redis_config)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
-                .get_signing_key()
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let keystore: Box<dyn KeyStore> = match config.keystore_type.as_str() {
+                "file" => Box::new(FileStore::new(config.keystore_path.clone().into())),
+                "keychain" | _ => Box::new(KeyChain),
+            };
+
+            // let signing_key = match keystore.get_signing_key("prism") {
+            //     Ok(key) => key,
+            //     Err(_) => {
+            //         let signing_key_new = SigningKeyEd::new(OsRng);
+            //         keystore.add_signing_key(SIGNING_KEY_ID, &signing_key_new).map_err(|e| {
+            //             Error::new(ErrorKind::Other, format!("Failed to add signing key: {}", e))
+            //         })?;
+            //         signing_key_new
+            //     }
+            // };
+
+            let signing_key = keystore.get_or_create_signing_key(SIGNING_KEY_ID).map_err(|e| {
+                Error::new(ErrorKind::Other, format!("Failed to get or create signing key: {}", e))
+            })?;
 
             let verifying_key_algorithm =
                 CryptoAlgorithm::from_str(&config.verifying_key_algorithm).map_err(|_| {
@@ -87,7 +107,7 @@ async fn main() -> std::io::Result<()> {
                 })?;
             let signing_key = SigningKey::from_algorithm_and_bytes(
                 verifying_key_algorithm,
-                signing_key_chain.as_bytes(),
+                signing_key.as_bytes(),
             )
             .map_err(|e| {
                 Error::new(
@@ -96,6 +116,8 @@ async fn main() -> std::io::Result<()> {
                 )
             })?;
             let verifying_key = signing_key.verifying_key();
+
+            info!("verifying key: {:?}", verifying_key);
 
             let prover_cfg = prism_prover::Config {
                 prover: true,
@@ -130,8 +152,13 @@ async fn main() -> std::io::Result<()> {
             let redis_connections = RedisConnection::new(&redis_config)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
-                .get_signing_key()
+            let keystore: Box<dyn KeyStore> = match config.keystore_type.as_str() {
+                "file" => Box::new(FileStore::new(config.keystore_path.clone().into())),
+                "keychain" | _ => Box::new(KeyChain),
+            };
+
+            let signing_key_chain = keystore
+                .get_or_create_signing_key(SIGNING_KEY_ID)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let verifying_key_algorithm =

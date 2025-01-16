@@ -1,0 +1,89 @@
+services:
+  consensus-full:
+    image: ghcr.io/celestiaorg/celestia-app:v3.0.2
+    volumes:
+      - ./data/consensus-full:/home/celestia
+    command:
+      - start
+    restart: always
+  da-bridge:
+    image: ghcr.io/celestiaorg/celestia-node:v0.20.4
+    volumes:
+      - ./data/da-bridge:/home/celestia
+    environment:
+      - NODE_TYPE=bridge
+      - P2P_NETWORK=mocha-4
+    command:
+      - celestia
+      - bridge
+      - start
+      - --core.ip=consensus-full-mocha-4.celestia-mocha.com # TODO: point to local consensus
+      - --p2p.network=mocha-4
+      - --archival
+      - --rpc.skip-auth # TODO: remove
+    restart: always
+  da-light:
+    image: ghcr.io/celestiaorg/celestia-node:v0.20.4
+    volumes:
+      - ./data/da-light:/home/celestia
+    environment:
+      - NODE_TYPE=light
+      - P2P_NETWORK=mocha-4
+    command:
+      - celestia
+      - light
+      - start
+      - --core.ip=consensus-full-mocha-4.celestia-mocha.com # TODO: point to local consensus
+      - --p2p.network=mocha-4
+      - --rpc.skip-auth # TODO: remove
+    restart: always
+  redis:
+    image: redis:latest
+    restart: always
+    volumes:
+      - ./data/redis:/data
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+  prism-prover:
+    image: ghcr.io/deltadevsde/prism:pr-205
+    volumes:
+      - ./data/prism-prover:/root/.prism
+    restart: always
+    entrypoint: ["sleep", "infinity"]
+    # command:
+    #   - prover
+    #   - --celestia-client=ws://da-bridge:26658
+    #   - --celestia-start-height=4180975
+    #   - --redis-client=redis://redis:6379
+    #   - --operation-namespace-id=000000000000000000000000000000000000707269736d6f70657261
+    #   - --snark-namespace-id=000000000000000000000000000000000000707269736d736f61726b
+  prism-full:
+    image: ghcr.io/deltadevsde/prism:pr-205
+    volumes:
+      - ./data/prism-full:/root/.prism
+    restart: always
+    command:
+      - full-node
+      - --verifying-key
+      - --celestia-client=ws://da-bridge:26658
+      - --celestia-start-height=4180975
+      - --operation-namespace-id=000000000000000000000000000000000000707269736d6f70657261
+      - --snark-namespace-id=000000000000000000000000000000000000707269736d736f61726b
+      - --verifying-key=
+  prism-light:
+    image: ghcr.io/deltadevsde/prism:pr-205
+    volumes:
+      - ./data/prism-light:/root/.prism
+    restart: always
+    command:
+      - light-client
+      - --verifying-key
+      - --celestia-client=ws://da-bridge:26658
+      - --celestia-start-height=4180975
+      - --operation-namespace-id=000000000000000000000000000000000000707269736d6f70657261
+      - --snark-namespace-id=000000000000000000000000000000000000707269736d736f61726b
+
+# /dns/da-bridge/tcp/2121/p2p/12D3KooWDek5ZWNVpgKBXcBn7dajueYhLDm4SubTgwJj6MKKyudq
+
+
+# curl --max-time 0.5 -s -X POST -H "Content-type: application/json" -H "Accept: application/json" -d '{"id":1,"jsonrpc":"2.0","method":"header.Subscribe","params":[]}' "http://localhost:26658"
+# curl --max-time 0.5 -s -X POST -H "Content-type: application/json" -H "Accept: application/json" -H "Authorization: Bearer $AUTH_TOKEN" -d '{"id":1,"jsonrpc":"2.0","method":"header.Subscribe","params":[]}' "http://localhost:26658"

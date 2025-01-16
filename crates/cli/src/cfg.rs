@@ -45,6 +45,18 @@ pub struct CommandArgs {
     #[arg(long)]
     config_path: Option<String>,
 
+    /// The type of keystore to use.
+    ///
+    /// Can be one of: `keychain`, `file`.
+    #[arg(long, default_value = "keychain")]
+    keystore_type: String,
+
+    /// The path to the keystore.
+    ///
+    /// This is only used if the keystore type is `file`.
+    #[arg(long, default_value = "~/.prism/keystore.json")]
+    keystore_path: String,
+
     #[command(flatten)]
     celestia: CelestiaArgs,
 
@@ -100,6 +112,8 @@ pub struct Config {
     pub webserver: Option<WebServerConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub celestia_config: Option<CelestiaConfig>,
+    pub keystore_type: String,
+    pub keystore_path: String,
     pub da_layer: DALayerOption,
     pub redis_config: Option<RedisConfig>,
     pub verifying_key: Option<String>,
@@ -111,6 +125,8 @@ impl Default for Config {
         Config {
             webserver: Some(WebServerConfig::default()),
             celestia_config: Some(CelestiaConfig::default()),
+            keystore_type: "keychain".to_string(),
+            keystore_path: "~/.prism/keystore.json".to_string(),
             da_layer: DALayerOption::default(),
             redis_config: Some(RedisConfig::default()),
             verifying_key: None,
@@ -160,6 +176,24 @@ fn get_config_path(args: &CommandArgs) -> Result<String> {
         })
 }
 
+// fn get_keystore_type(args: &CommandArgs) -> Result<String> {
+//     args.keystore_type
+//         .clone()
+//         .or_else(|| Some("keychain".to_string()))
+//         .ok_or_else(|| {
+//             GeneralError::MissingArgumentError("could not determine keystore type".to_string()).into()
+//         })
+// }
+
+// fn get_keystore_path(args: &CommandArgs) -> Result<String> {
+//     args.keystore_path
+//         .clone()
+//         .or_else(|| home_dir().map(|path| format!("{}/.prism/keystore.json", path.to_string_lossy())))
+//         .ok_or_else(|| {
+//             GeneralError::MissingArgumentError("could not determine keystore path".to_string()).into()
+//         })
+// }
+
 fn ensure_config_file_exists(config_path: &str) -> Result<()> {
     if !Path::new(config_path).exists() {
         if let Some(parent) = Path::new(config_path).parent() {
@@ -207,6 +241,8 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
                 .operation_namespace_id
                 .unwrap_or(celestia_config.operation_namespace_id.clone()),
         }),
+        keystore_type: args.keystore_type,
+        keystore_path: args.keystore_path,
         da_layer: config.da_layer,
         verifying_key: args.verifying_key.or(config.verifying_key),
         verifying_key_algorithm: args

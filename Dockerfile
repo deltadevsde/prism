@@ -25,9 +25,14 @@ EXPOSE 8080
 
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends libssl3 && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libssl3 \
+        gnome-keyring \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/src/myapp/target/release/prism-cli /usr/local/bin/prism-cli
 
 ENTRYPOINT ["prism-cli"]
-
