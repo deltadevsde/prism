@@ -5,7 +5,7 @@ use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
-use sp1_sdk::{HashableKey, ProverClient};
+use sp1_sdk::{HashableKey, Prover as _, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
@@ -49,7 +49,7 @@ async fn main() -> std::io::Result<()> {
             )
             .map_err(|e| Error::new(ErrorKind::InvalidInput, e.to_string()))?;
 
-            let client = ProverClient::mock();
+            let client = ProverClient::builder().mock().build();
             let (_, vk) = client.setup(PRISM_ELF);
 
             Arc::new(LightClient::new(
