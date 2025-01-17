@@ -3,12 +3,10 @@ mod node_types;
 
 use cfg::{initialize_da_layer, load_config, Cli, Commands};
 use clap::Parser;
-use keystore_rs::{KeyChain, KeyStore, FileStore};
+use keystore_rs::{FileStore, KeyChain, KeyStore};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use sp1_sdk::{HashableKey, ProverClient};
 use std::io::{Error, ErrorKind};
-use ed25519_consensus::SigningKey as SigningKeyEd;
-use rand::rngs::OsRng;
 
 use node_types::NodeType;
 use prism_lightclient::LightClient;
@@ -79,7 +77,12 @@ async fn main() -> std::io::Result<()> {
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let keystore: Box<dyn KeyStore> = match config.keystore_type.as_str() {
-                "file" => Box::new(FileStore::new(config.keystore_path.clone().into())),
+                "file" => Box::new(FileStore::new(config.keystore_path).map_err(|e| {
+                    Error::new(
+                        ErrorKind::Other,
+                        format!("Failed to create FileStore: {}", e),
+                    )
+                })?),
                 "keychain" | _ => Box::new(KeyChain),
             };
 
@@ -95,7 +98,10 @@ async fn main() -> std::io::Result<()> {
             // };
 
             let signing_key = keystore.get_or_create_signing_key(SIGNING_KEY_ID).map_err(|e| {
-                Error::new(ErrorKind::Other, format!("Failed to get or create signing key: {}", e))
+                Error::new(
+                    ErrorKind::Other,
+                    format!("Failed to get or create signing key: {}", e),
+                )
             })?;
 
             let verifying_key_algorithm =
@@ -153,7 +159,12 @@ async fn main() -> std::io::Result<()> {
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let keystore: Box<dyn KeyStore> = match config.keystore_type.as_str() {
-                "file" => Box::new(FileStore::new(config.keystore_path.clone().into())),
+                "file" => Box::new(FileStore::new(config.keystore_path).map_err(|e| {
+                    Error::new(
+                        ErrorKind::Other,
+                        format!("Failed to create FileStore: {}", e),
+                    )
+                })?),
                 "keychain" | _ => Box::new(KeyChain),
             };
 

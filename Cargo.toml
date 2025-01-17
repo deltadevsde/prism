@@ -73,7 +73,7 @@ thiserror = "1.0.62"
 anyhow = "1.0.44"
 
 # cli
-keystore-rs = "0.3.0"
+keystore-rs = { git = "https://github.com/deltadevsde/keystore.git", branch = "fix-filebackend" }
 log = "0.4"
 pretty_env_logger = "0.5.0"
 clap = { version = "4.3.2", features = ["derive"] }
@@ -81,6 +81,8 @@ config = "0.14.0"
 toml = "0.8.14"
 dirs = "5.0.1"
 dotenvy = "0.15.7"
+generic-array = "=1.1.1"
+
 
 # zk
 rand = "0.8.5"
