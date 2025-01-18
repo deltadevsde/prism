@@ -2,7 +2,7 @@ services:
   docs-redirect:
     image: nginx:alpine
     volumes:
-      - ./data/docs-redirect/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./data/docs-redirect/default.conf:/etc/nginx/conf.d/default.conf
     ports:
       - 80:80
     restart: always
@@ -69,6 +69,8 @@ services:
       - --redis-client=redis://redis:6379
       - --operation-namespace-id=000000000000000000000000000000000000707269736d5350456f70
       - --snark-namespace-id=000000000000000000000000000000000000707269736d535045736e
+      - --webserver-active=true
+      - --host=0.0.0.0
       - --port=41997
   prism-full:
     image: ghcr.io/deltadevsde/prism:pr-205
@@ -86,6 +88,8 @@ services:
       - --verifying-key=L2ilppK59Kq3aAMB/wpxdVGaI53DHPMdY6fcRodyFaA=
       - --operation-namespace-id=000000000000000000000000000000000000707269736d5350456f70
       - --snark-namespace-id=000000000000000000000000000000000000707269736d535045736e
+      - --webserver-active=true
+      - --host=0.0.0.0
       - --port=41997
   prism-light:
     image: ghcr.io/deltadevsde/prism:pr-205
@@ -99,6 +103,8 @@ services:
       - --verifying-key=L2ilppK59Kq3aAMB/wpxdVGaI53DHPMdY6fcRodyFaA=
       - --operation-namespace-id=000000000000000000000000000000000000707269736d5350456f70
       - --snark-namespace-id=000000000000000000000000000000000000707269736d535045736e
+      - --webserver-active=true
+      - --host=0.0.0.0
       - --port=41997
 
 # /dns/da-bridge/tcp/2121/p2p/12D3KooWDek5ZWNVpgKBXcBn7dajueYhLDm4SubTgwJj6MKKyudq

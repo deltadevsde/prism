@@ -102,8 +102,12 @@ struct WebserverArgs {
     host: Option<String>,
 
     /// Port number for the webserver to listen on
-    #[arg(short, long, requires = "webserver_active")]
+    #[arg(short, long, requires = "webserver_active", default_value = "41997")]
     port: Option<u16>,
+
+    /// Prefix for the webserver to listen on
+    #[arg(long, requires = "webserver_active")]
+    prefix: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -219,6 +223,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             enabled: args.webserver.webserver_active.unwrap_or(webserver_config.enabled),
             host: args.webserver.host.unwrap_or(webserver_config.host.clone()),
             port: args.webserver.port.unwrap_or(webserver_config.port),
+            prefix: args.webserver.prefix.unwrap_or(webserver_config.prefix.clone()),
         }),
         redis_config: Some(RedisConfig {
             connection_string: args.redis_client.unwrap_or(redis_config.connection_string.clone()),
