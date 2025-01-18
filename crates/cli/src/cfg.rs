@@ -121,7 +121,7 @@ impl Config {
             webserver: Some(WebServerConfig::default()),
             celestia_config: Some(CelestiaConfig::default()),
             da_layer: DALayerOption::default(),
-            db: StorageBackend::RocksDB(RocksDBConfig::new(path)),
+            db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}/data", path))),
             verifying_key: None,
             verifying_key_algorithm: "ed25519".to_string(),
         }
@@ -164,7 +164,12 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
     pretty_env_logger::init();
 
     let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
+
     ensure_config_file_exists(&home_path).context("Failed to ensure config file exists")?;
+
+    if let Some(rocksdb_path) = &args.database.rocksdb_path {
+        fs::create_dir_all(rocksdb_path).context("Failed to create RocksDB directory")?;
+    }
 
     let config_source = ConfigBuilder::<DefaultState>::default()
         .add_source(File::with_name(&format!("{}/config.toml", home_path)))
@@ -224,7 +229,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         }),
         db: match args.database.db_type {
             DBValues::RocksDB => StorageBackend::RocksDB(RocksDBConfig {
-                path: args.database.rocksdb_path.unwrap_or(prism_home),
+                path: args.database.rocksdb_path.unwrap_or_else(|| format!("{}/data", prism_home)),
             }),
             DBValues::Redis => StorageBackend::Redis(RedisConfig {
                 connection_string: args.database.redis_url.unwrap_or_default(),
