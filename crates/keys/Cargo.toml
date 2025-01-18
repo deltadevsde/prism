@@ -10,6 +10,7 @@ repository.workspace = true
 # serde
 prism-serde.workspace = true
 serde.workspace = true
+base64.workspace = true
 
 # curves
 ed25519-consensus.workspace = true

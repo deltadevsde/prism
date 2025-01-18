@@ -250,9 +250,15 @@ impl TryFrom<String> for VerifyingKey {
     }
 }
 
+impl ToBase64 for VerifyingKey {
+    fn to_base64(&self) -> String {
+        self.to_bytes().to_base64()
+    }
+}
+
 impl std::fmt::Display for VerifyingKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let encoded = self.to_bytes().to_base64();
+        let encoded = self.to_base64();
         write!(f, "{}", encoded)
     }
 }

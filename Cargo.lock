@@ -4861,6 +4861,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "clap",
  "config",
  "dirs 5.0.1",
@@ -4874,6 +4875,7 @@ dependencies = [
  "prism-keys",
  "prism-lightclient",
  "prism-prover",
+ "prism-serde",
  "prism-storage",
  "rand",
  "serde",
@@ -4926,6 +4928,7 @@ name = "prism-keys"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "ecdsa 0.16.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "ed25519-consensus",
  "p256",
