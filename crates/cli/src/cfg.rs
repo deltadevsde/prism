@@ -145,15 +145,16 @@ pub enum DBValues {
 
 #[derive(Args, Deserialize, Clone, Debug)]
 pub struct DatabaseArgs {
-    #[arg(long, value_enum)]
-    db_type: Option<DBValues>,
+    #[arg(long, value_enum, default_value_t = DBValues::RocksDB)]
+    /// Storage backend to use. Default: `rocks-db`
+    db_type: DBValues,
 
     /// Path to the RocksDB database, used when `db_type` is `rocks-db`
     #[arg(long)]
     rocksdb_path: Option<String>,
 
     /// Connection string to Redis, used when `db_type` is `redis`
-    #[arg(long)]
+    #[arg(long, required_if_eq("db_type", "redis"))]
     redis_url: Option<String>,
 }
 
@@ -222,13 +223,13 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             port: args.webserver.port.unwrap_or(webserver_config.port),
         }),
         db: match args.database.db_type {
-            None | Some(DBValues::RocksDB) => StorageBackend::RocksDB(RocksDBConfig {
+            DBValues::RocksDB => StorageBackend::RocksDB(RocksDBConfig {
                 path: args.database.rocksdb_path.unwrap_or(prism_home),
             }),
-            Some(DBValues::Redis) => StorageBackend::Redis(RedisConfig {
+            DBValues::Redis => StorageBackend::Redis(RedisConfig {
                 connection_string: args.database.redis_url.unwrap_or_default(),
             }),
-            Some(DBValues::InMemory) => StorageBackend::InMemory,
+            DBValues::InMemory => StorageBackend::InMemory,
         },
         celestia_config: Some(CelestiaConfig {
             connection_string: args
