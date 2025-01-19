@@ -9,6 +9,7 @@
 * [Jellyfish Merkle Proofs](jellyfish-merkle-proofs.md)
 * [Development Status](state.md)
 * [Architecture](architecture.md)
+* [Specter Devnet](specter-devnet.md)
 
 -----------
 # Prerequites
