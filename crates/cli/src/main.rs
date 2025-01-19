@@ -11,6 +11,7 @@ use std::io::{Error, ErrorKind};
 use node_types::NodeType;
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
+use prism_serde::base64::{FromBase64, ToBase64};
 use prism_storage::RedisConnection;
 use std::{str::FromStr, sync::Arc};
 
@@ -36,18 +37,18 @@ async fn main() -> std::io::Result<()> {
                 Error::new(ErrorKind::NotFound, "celestia configuration not found")
             })?;
 
-            let verifying_key_algorithm =
+            let _verifying_key_algorithm =
                 CryptoAlgorithm::from_str(&config.verifying_key_algorithm).map_err(|_| {
                     Error::new(
                         ErrorKind::InvalidInput,
                         "invalid verifying key algorithm format",
                     )
                 })?;
-            let prover_vk = VerifyingKey::from_algorithm_and_bytes(
-                verifying_key_algorithm,
-                config.verifying_key.unwrap().as_bytes(),
-            )
-            .map_err(|e| Error::new(ErrorKind::InvalidInput, e.to_string()))?;
+            let verifying_key_base64 = config
+                .verifying_key
+                .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "verifying key not found"))?;
+            let prover_vk = VerifyingKey::from_base64(verifying_key_base64)
+                .map_err(|e: anyhow::Error| Error::new(ErrorKind::InvalidInput, e.to_string()))?;
 
             let client = ProverClient::mock();
             let (_, vk) = client.setup(PRISM_ELF);
@@ -96,6 +97,8 @@ async fn main() -> std::io::Result<()> {
                 )
             })?;
             let verifying_key = signing_key.verifying_key();
+
+            info!("verifying key: {}", verifying_key.to_base64());
 
             let prover_cfg = prism_prover::Config {
                 prover: true,
@@ -152,13 +155,11 @@ async fn main() -> std::io::Result<()> {
                 )
             })?;
 
-            let prover_vk = config
+            let verifying_key_base64 = config
                 .verifying_key
-                .ok_or_else(|| Error::new(ErrorKind::NotFound, "prover verifying key not found"))
-                .and_then(|vk| {
-                    VerifyingKey::from_algorithm_and_bytes(verifying_key_algorithm, vk.as_bytes())
-                        .map_err(|e| Error::new(ErrorKind::InvalidInput, e.to_string()))
-                })?;
+                .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "verifying key not found"))?;
+            let prover_vk = VerifyingKey::from_base64(verifying_key_base64)
+                .map_err(|e: anyhow::Error| Error::new(ErrorKind::InvalidInput, e.to_string()))?;
 
             let prover_cfg = prism_prover::Config {
                 prover: false,
