@@ -25,7 +25,6 @@ pub struct WebServerConfig {
     pub enabled: bool,
     pub host: String,
     pub port: u16,
-    pub prefix: String,
 }
 
 impl Default for WebServerConfig {
@@ -34,7 +33,6 @@ impl Default for WebServerConfig {
             enabled: true,
             host: "127.0.0.1".to_string(),
             port: 0,
-            prefix: "".to_string(),
         }
     }
 }
@@ -120,10 +118,10 @@ impl WebServer {
         }
 
         let app = Router::new()
-            .route(&format!("{}/transaction", self.cfg.prefix), post(post_transaction))
-            .route(&format!("{}/get-account", self.cfg.prefix), post(get_account))
-            .route(&format!("{}/get-current-commitment", self.cfg.prefix), get(get_commitment))
-            .merge(SwaggerUi::new(format!("{}/swagger-ui", self.cfg.prefix)).url(format!("{}/api-docs/openapi.json", self.cfg.prefix), ApiDoc::openapi()))
+            .route("/transaction", post(post_transaction))
+            .route("/get-account", post(get_account))
+            .route("/get-current-commitment", get(get_commitment))
+            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
             .layer(CorsLayer::permissive())
             .with_state(self.session.clone());
 
