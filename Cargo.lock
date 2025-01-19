@@ -4839,6 +4839,7 @@ dependencies = [
  "prism-keys",
  "prism-lightclient",
  "prism-prover",
+ "prism-serde",
  "prism-storage",
  "serde",
  "sp1-sdk",
