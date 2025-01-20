@@ -57,10 +57,7 @@ impl WasmCelestiaClient {
             .map_err(|e| JsError::new(&format!("Failed to open blockstore: {}", e)))?;
 
         let mut bootnodes: Vec<Multiaddr> = vec![
-                "/dnsaddr/da-bridge-mocha-4.celestia-mocha.com/p2p/12D3KooWCBAbQbJSpCpCGKzqz3rAN4ixYbc63K68zJg9aisuAajg",
-                "/dnsaddr/da-bridge-mocha-4-2.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G",
-                "/dnsaddr/da-full-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCUHPLqQXZzpTx1x3TAsdn3vYmTNDhzg66yG8hqoxGGN8",
-                "/dnsaddr/da-full-2-mocha-4.celestia-mocha.com/p2p/12D3KooWR6SHsXPkkvhCRn6vp1RqSefgaT1X1nMNvrVjU2o3GoYy",
+                "/dnsaddr/da-bridge-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCBAbQbJSpCpCGKzqz3rAN4ixYbc63K68zJg9aisuAajg",
             ].into_iter().map(str::parse).collect::<Result<_, _>>()?;
 
         console::log_2(&"🚀 Bootnodes:".into(), &to_value(&bootnodes).unwrap());
@@ -76,6 +73,7 @@ impl WasmCelestiaClient {
         let (node, event_subscriber) = NodeBuilder::new()
             .store(store)
             .blockstore(blockstore)
+            .bootnodes(bootnodes)
             .network(network.clone())
             .sync_batch_size(128)
             .start_subscribed()
@@ -113,7 +111,6 @@ impl WasmCelestiaClient {
     }
 
     async fn process_event(&self, event: NodeEvent) -> Result<(), JsError> {
-        console::log_1(&format!("Received event: {:?}", event).into());
         match event {
             NodeEvent::ShareSamplingResult {
                 height, accepted, ..
@@ -130,7 +127,6 @@ impl WasmCelestiaClient {
                 self.port.post_message(&message);
             }
             _ => {
-                // log the event with console.log
                 console::log_1(&format!("Received event: {:?}", event).into());
             }
         }
