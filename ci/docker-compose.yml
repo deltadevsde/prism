@@ -29,6 +29,7 @@ services:
       # used for the trusted peers string for the light node
       - CONTAINER_NAME=bridge-0
     ports:
+      - 2121:2121
       - 26658:26658
     volumes:
       - credentials:/credentials

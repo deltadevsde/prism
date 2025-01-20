@@ -1,0 +1,38 @@
+[package]
+name = "prism-wasm-lightclient" # or should we call it prasm-lightclient?
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+target = "wasm32-unknown-unknown"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+libp2p = { version = "0.54.0", features = ["serde"] }
+anyhow = { workspace = true }
+bincode = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+sp1-verifier.workspace = true
+celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
+prism-errors = { workspace = true }
+tokio = { version = "*", features = ["sync"] }
+wasm-bindgen = "0.2"
+lumina-node = { path = "../../../../lumina/node"}
+lumina-node-wasm = { path = "../../../../lumina/node-wasm"}
+celestia-types = { path = "../../../../lumina/types" }
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "BroadcastChannel",
+    "console",
+    "MessageChannel",
+    "MessageEvent",
+    "MessagePort",
+    "Worker",
+] }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+wasm-bindgen-futures = "0.4"

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Light Client Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f9fafb;
+            color: #1f2937;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f3f4f6;
+            border-radius: 6px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            transition: background-color 0.3s;
+        }
+        .status-dot.running {
+            background: #10b981;
+        }
+        .height {
+            font-size: 1.1em;
+            font-weight: 500;
+            margin: 1rem 0;
+        }
+        #log {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            height: 200px;
+            overflow-y: auto;
+            font-family: ui-monospace, monospace;
+            font-size: 14px;
+            margin: 1rem 0;
+        }
+        .log-entry {
+            margin: 4px 0;
+            color: #4b5563;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Light Client Test</h1>
+        
+        <div class="status">
+            <div id="statusDot" class="status-dot"></div>
+            <span id="statusText">Not started</span>
+        </div>
+        <div id="log"></div>
+        <button id="startBtn">Start Light Client</button>
+    </div>
+
+    <script type="module">
+        import init, { LightClientWorker, WasmLightClient } from '../pkg/prism_wasm_lightclient.js';
+
+        let running = false;
+        let client = null;
+        let currentHeight = 0;
+        let syncStartHeight = 0;
+        
+        const logEl = document.getElementById('log');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+        const startBtn = document.getElementById('startBtn');
+
+        function log(msg) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function updateStatus(status) {
+            statusText.textContent = status;
+            statusDot.classList.toggle('running', running);
+            startBtn.disabled = running;
+        }
+
+        async function verifyEpochRange(from, to) {
+            for (let height = from; height <= to; height++) {
+                try {
+                    await client.verifyEpoch(height);
+                    log(`✅ Verified historical epoch at height ${height}`);
+                } catch (error) {
+                    if (!error.message.includes("No epoch data found")) {
+                        log(`❌ Error verifying historical epoch at ${height}: ${error.message}`);
+                    }
+                }
+            }
+        }
+
+        async function processEvent(event) {
+            const data = event.data;
+            if (typeof data === 'object' && data.type === 'added_header_from_header_sub') {
+                const height = data.height;
+                currentHeight = height;
+
+                // If this is a new height and we haven't synced old epochs yet
+                if (syncStartHeight === 0) {
+                    // Start from a reasonable point in the past (e.g., 100 blocks ago)
+                    syncStartHeight = Math.max(1, height - 100);
+                    log(`Starting historical sync from height ${syncStartHeight} to ${height}`);
+                    await verifyEpochRange(syncStartHeight, height);
+                } else if (height > syncStartHeight) {
+                    // Verify just the new epoch
+                    try {
+                        await client.verifyEpoch(height);
+                        log(`✅ Verified new epoch at height ${height}`);
+                    } catch (error) {
+                        if (!error.message.includes("No epoch data found")) {
+                            log(`❌ Error verifying new epoch at ${height}: ${error.message}`);
+                        }
+                    }
+                }
+            }
+        }
+
+        async function startLightClient() {
+            if (running) return;
+            
+            try {                
+                updateStatus('Initializing...');
+                await init();
+                log('WASM initialized successfully');
+
+                const channel = new MessageChannel();
+                
+                const worker = await new LightClientWorker(channel.port1);
+                worker.run();
+                log('Worker started successfully');
+                
+                client = await new WasmLightClient(channel.port2);
+                log('Light client connected');
+                
+                running = true;
+                updateStatus('Running');
+
+                channel.port1.onmessage = (event) => {
+                    log(`1Worker: ${JSON.stringify(event.data)}`);
+                }
+
+                channel.port2.onmessage = (event) => {
+                    log(`Worker: ${JSON.stringify(event.data)}`);
+                };
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                updateStatus(`Error: ${error.message}`);
+                running = false;
+            }
+        }
+        
+        startBtn.addEventListener('click', startLightClient);
+        log('System ready - click Start Light Client to begin');
+    </script>
+</body>
+</html>
