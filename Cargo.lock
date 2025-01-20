@@ -1508,8 +1508,37 @@ dependencies = [
 [[package]]
 name = "celestia-proto"
 version = "0.6.0"
+dependencies = [
+ "bytes",
+ "prost 0.13.4",
+ "prost-build",
+ "prost-types",
+ "protox",
+ "serde",
+ "subtle-encoding",
+ "tendermint-proto",
+]
+
+[[package]]
+name = "celestia-proto"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c71c3cf9caaf35a7530ea5ac2bab226c9e5c1bad3d661d3527a3951d6f80cbcc"
+dependencies = [
+ "bytes",
+ "prost 0.13.4",
+ "prost-build",
+ "prost-types",
+ "protox",
+ "serde",
+ "subtle-encoding",
+ "tendermint-proto",
+]
+
+[[package]]
+name = "celestia-proto"
+version = "0.6.0"
+source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
 dependencies = [
  "bytes",
  "prost 0.13.4",
@@ -1528,13 +1557,45 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0970073d9e74fc74a417c5157146bbc122462c1dc7b2d5c442fe0b67be40e2cb"
 dependencies = [
  "async-trait",
- "celestia-types",
+ "celestia-types 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "http 1.2.0",
  "jsonrpsee",
  "prost 0.13.4",
  "serde",
  "thiserror 1.0.69",
  "tracing",
+]
+
+[[package]]
+name = "celestia-types"
+version = "0.9.0"
+dependencies = [
+ "base64 0.22.1",
+ "bech32",
+ "bitvec",
+ "blockstore",
+ "bytes",
+ "celestia-proto 0.6.0",
+ "cid",
+ "const_format",
+ "enum_dispatch",
+ "js-sys",
+ "leopard-codec",
+ "libp2p-identity",
+ "multiaddr",
+ "multihash",
+ "nmt-rs",
+ "prost 0.13.4",
+ "ruint",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_repr",
+ "sha2 0.10.8",
+ "tendermint",
+ "tendermint-proto",
+ "thiserror 1.0.69",
+ "time",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1548,7 +1609,7 @@ dependencies = [
  "bitvec",
  "blockstore",
  "bytes",
- "celestia-proto",
+ "celestia-proto 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cid",
  "const_format",
  "enum_dispatch",
@@ -1566,6 +1627,39 @@ dependencies = [
  "tendermint-proto",
  "thiserror 1.0.69",
  "time",
+]
+
+[[package]]
+name = "celestia-types"
+version = "0.9.0"
+source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
+dependencies = [
+ "base64 0.22.1",
+ "bech32",
+ "bitvec",
+ "blockstore",
+ "bytes",
+ "celestia-proto 0.6.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "cid",
+ "const_format",
+ "enum_dispatch",
+ "js-sys",
+ "leopard-codec",
+ "libp2p-identity",
+ "multiaddr",
+ "multihash",
+ "nmt-rs",
+ "prost 0.13.4",
+ "ruint",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_repr",
+ "sha2 0.10.8",
+ "tendermint",
+ "tendermint-proto",
+ "thiserror 1.0.69",
+ "time",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1780,6 +1874,16 @@ dependencies = [
  "once_cell",
  "unicode-width 0.2.0",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "console_error_panic_hook"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
+dependencies = [
+ "cfg-if",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -3132,6 +3236,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
+name = "gloo-net"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c06f627b1a58ca3d42b45d6104bf1e1a03799df472df00988b6ba21accc10580"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-sink",
+ "gloo-utils",
+ "http 1.2.0",
+ "js-sys",
+ "pin-project",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "gloo-timers"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3153,6 +3278,19 @@ dependencies = [
  "futures-core",
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "gloo-utils"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b5555354113b18c547c1d3a98fbf7fb32a9ff4f6fa112ce823a21641a0ba3aa"
+dependencies = [
+ "js-sys",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -4136,6 +4274,7 @@ dependencies = [
  "jsonrpsee-http-client",
  "jsonrpsee-proc-macros",
  "jsonrpsee-types",
+ "jsonrpsee-wasm-client",
  "jsonrpsee-ws-client",
  "tracing",
 ]
@@ -4147,7 +4286,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "def0fd41e2f53118bd1620478d12305b2c75feef57ea1f93ef70568c98081b7e"
 dependencies = [
  "base64 0.22.1",
+ "futures-channel",
  "futures-util",
+ "gloo-net",
  "http 1.2.0",
  "jsonrpsee-core",
  "pin-project",
@@ -4185,6 +4326,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -4239,6 +4381,17 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "jsonrpsee-wasm-client"
+version = "0.24.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a01cd500915d24ab28ca17527e23901ef1be6d659a2322451e1045532516c25"
+dependencies = [
+ "jsonrpsee-client-transport",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
 ]
 
 [[package]]
@@ -4529,6 +4682,7 @@ dependencies = [
  "quick-protobuf",
  "rand",
  "rw-stream-sink",
+ "serde",
  "smallvec",
  "thiserror 1.0.69",
  "tracing",
@@ -4581,6 +4735,7 @@ dependencies = [
  "quick-protobuf-codec",
  "rand",
  "regex",
+ "serde",
  "sha2 0.10.8",
  "smallvec",
  "tracing",
@@ -4623,6 +4778,7 @@ dependencies = [
  "multihash",
  "quick-protobuf",
  "rand",
+ "serde",
  "sha2 0.10.8",
  "thiserror 1.0.69",
  "tracing",
@@ -4649,6 +4805,7 @@ dependencies = [
  "quick-protobuf",
  "quick-protobuf-codec",
  "rand",
+ "serde",
  "sha2 0.10.8",
  "smallvec",
  "thiserror 1.0.69",
@@ -5123,15 +5280,13 @@ dependencies = [
 [[package]]
 name = "lumina-node"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76043c46bc03eac4e471419ad88a90cc0f3f07599177a4fb30e983fa366052fa"
 dependencies = [
  "async-trait",
  "backoff",
  "beetswap",
  "blockstore",
- "celestia-proto",
- "celestia-types",
+ "celestia-proto 0.6.0",
+ "celestia-types 0.9.0",
  "cid",
  "dashmap 5.5.3",
  "futures",
@@ -5165,6 +5320,79 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-time",
+]
+
+[[package]]
+name = "lumina-node"
+version = "0.8.0"
+source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
+dependencies = [
+ "async-trait",
+ "backoff",
+ "beetswap",
+ "blockstore",
+ "celestia-proto 0.6.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "cid",
+ "dashmap 5.5.3",
+ "futures",
+ "getrandom",
+ "gloo-timers 0.3.0",
+ "js-sys",
+ "libp2p",
+ "libp2p-websocket-websys 0.3.3",
+ "pin-project",
+ "prost 0.13.4",
+ "rand",
+ "redb",
+ "rexie",
+ "rustls-pemfile",
+ "rustls-pki-types",
+ "send_wrapper 0.6.0",
+ "serde",
+ "serde-wasm-bindgen",
+ "smallvec",
+ "tendermint",
+ "tendermint-proto",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "void",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-time",
+]
+
+[[package]]
+name = "lumina-node-wasm"
+version = "0.7.0"
+dependencies = [
+ "anyhow",
+ "blockstore",
+ "celestia-types 0.9.0",
+ "console_error_panic_hook",
+ "enum-as-inner",
+ "futures",
+ "gloo-timers 0.3.0",
+ "instant",
+ "js-sys",
+ "libp2p",
+ "lumina-node 0.8.0",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "serde_repr",
+ "tendermint",
+ "thiserror 1.0.69",
+ "time",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "tracing-web",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
@@ -6541,14 +6769,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "celestia-types",
+ "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
  "clap",
  "config",
  "dirs",
  "dotenvy",
  "keystore-rs",
  "log",
- "lumina-node",
+ "lumina-node 0.8.0 (git+https://github.com/deltadevsde/lumina.git)",
  "pretty_env_logger",
  "prism-da",
  "prism-errors",
@@ -6568,7 +6796,7 @@ name = "prism-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "celestia-types",
+ "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
  "prism-keys",
  "prism-serde",
  "rand",
@@ -6584,7 +6812,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "celestia-rpc",
- "celestia-types",
+ "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
  "log",
  "prism-common",
  "prism-errors",
@@ -6729,6 +6957,30 @@ dependencies = [
  "serde",
  "sha2 0.10.8",
  "utoipa",
+]
+
+[[package]]
+name = "prism-wasm-lightclient"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "celestia-rpc",
+ "celestia-types 0.9.0",
+ "hex",
+ "js-sys",
+ "libp2p",
+ "lumina-node 0.8.0",
+ "lumina-node-wasm",
+ "prism-errors",
+ "serde",
+ "serde-wasm-bindgen",
+ "sp1-verifier",
+ "thiserror 1.0.69",
+ "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
@@ -9533,9 +9785,23 @@ dependencies = [
  "sharded-slab",
  "smallvec",
  "thread_local",
+ "time",
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "tracing-web"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9e6a141feebd51f8d91ebfd785af50fca223c570b86852166caa3b141defe7c"
+dependencies = [
+ "js-sys",
+ "tracing-core",
+ "tracing-subscriber",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
