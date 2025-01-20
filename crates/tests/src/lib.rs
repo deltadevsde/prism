@@ -14,7 +14,7 @@ use prism_lightclient::LightClient;
 use prism_prover::Prover;
 use prism_storage::{rocksdb::RocksDBConnection, Database};
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use sp1_sdk::{HashableKey, ProverClient};
+use sp1_sdk::{HashableKey, Prover as _, ProverClient};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
 
@@ -36,7 +36,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     );
     pretty_env_logger::init();
 
-    let prover_client = ProverClient::mock();
+    let prover_client = ProverClient::builder().mock().build();
 
     let (_, vk) = prover_client.setup(PRISM_ELF);
 
