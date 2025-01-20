@@ -1,12 +1,18 @@
 use anyhow::{Context, Result};
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use config::{builder::DefaultState, ConfigBuilder, File};
 use dirs::home_dir;
 use dotenvy::dotenv;
 use log::{error, warn};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_prover::webserver::WebServerConfig;
-use prism_storage::redis::RedisConfig;
+use prism_storage::{
+    database::StorageBackend,
+    inmemory::InMemoryDatabase,
+    redis::RedisConfig,
+    rocksdb::{RocksDBConfig, RocksDBConnection},
+    Database, RedisConnection,
+};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, sync::Arc};
 
@@ -30,8 +36,8 @@ pub struct CommandArgs {
     #[arg(short, long, default_value = "INFO")]
     log_level: String,
 
-    #[arg(short = 'r', long)]
-    redis_client: Option<String>,
+    #[arg(short = 'n', long, default_value = "local")]
+    network_name: Option<String>,
 
     #[arg(long)]
     verifying_key: Option<String>,
@@ -43,7 +49,10 @@ pub struct CommandArgs {
     verifying_key_algorithm: Option<String>,
 
     #[arg(long)]
-    config_path: Option<String>,
+    home_path: Option<String>,
+
+    #[command(flatten)]
+    database: DatabaseArgs,
 
     #[command(flatten)]
     celestia: CelestiaArgs,
@@ -74,7 +83,7 @@ struct CelestiaArgs {
     #[arg(long)]
     operation_namespace_id: Option<String>,
 
-    // Height to start searching the DA layer for SNARKs on
+    /// Height to start searching the DA layer for SNARKs on
     #[arg(short = 's', long)]
     celestia_start_height: Option<u64>,
 }
@@ -101,18 +110,18 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub celestia_config: Option<CelestiaConfig>,
     pub da_layer: DALayerOption,
-    pub redis_config: Option<RedisConfig>,
+    pub db: StorageBackend,
     pub verifying_key: Option<String>,
     pub verifying_key_algorithm: String,
 }
 
-impl Default for Config {
-    fn default() -> Self {
+impl Config {
+    fn with_home(path: &str) -> Self {
         Config {
             webserver: Some(WebServerConfig::default()),
             celestia_config: Some(CelestiaConfig::default()),
             da_layer: DALayerOption::default(),
-            redis_config: Some(RedisConfig::default()),
+            db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}/data", path))),
             verifying_key: None,
             verifying_key_algorithm: "ed25519".to_string(),
         }
@@ -126,16 +135,44 @@ pub enum DALayerOption {
     InMemory,
 }
 
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, ValueEnum)]
+pub enum DBValues {
+    #[default]
+    RocksDB,
+    InMemory,
+    Redis,
+}
+
+#[derive(Args, Deserialize, Clone, Debug)]
+pub struct DatabaseArgs {
+    #[arg(long, value_enum, default_value_t = DBValues::RocksDB)]
+    /// Storage backend to use. Default: `rocks-db`
+    db_type: DBValues,
+
+    /// Path to the RocksDB database, used when `db_type` is `rocks-db`
+    #[arg(long)]
+    rocksdb_path: Option<String>,
+
+    /// Connection string to Redis, used when `db_type` is `redis`
+    #[arg(long, required_if_eq("db_type", "redis"))]
+    redis_url: Option<String>,
+}
+
 pub fn load_config(args: CommandArgs) -> Result<Config> {
     dotenv().ok();
     std::env::set_var("RUST_LOG", args.clone().log_level);
     pretty_env_logger::init();
 
-    let config_path = get_config_path(&args).context("Failed to determine config path")?;
-    ensure_config_file_exists(&config_path).context("Failed to ensure config file exists")?;
+    let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
+
+    ensure_config_file_exists(&home_path).context("Failed to ensure config file exists")?;
+
+    if let Some(rocksdb_path) = &args.database.rocksdb_path {
+        fs::create_dir_all(rocksdb_path).context("Failed to create RocksDB directory")?;
+    }
 
     let config_source = ConfigBuilder::<DefaultState>::default()
-        .add_source(File::with_name(&config_path))
+        .add_source(File::with_name(&format!("{}/config.toml", home_path)))
         .build()
         .context("Failed to build config")?;
 
@@ -151,22 +188,26 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
     Ok(final_config)
 }
 
-fn get_config_path(args: &CommandArgs) -> Result<String> {
-    args.config_path
+fn get_prism_home(args: &CommandArgs) -> Result<String> {
+    let network_name = args.network_name.clone().unwrap_or_else(|| "custom".to_string());
+    args.home_path
         .clone()
-        .or_else(|| home_dir().map(|path| format!("{}/.prism/config.toml", path.to_string_lossy())))
+        .or_else(|| {
+            home_dir().map(|path| format!("{}/.prism/{}/", path.to_string_lossy(), network_name))
+        })
         .ok_or_else(|| {
             GeneralError::MissingArgumentError("could not determine config path".to_string()).into()
         })
 }
 
-fn ensure_config_file_exists(config_path: &str) -> Result<()> {
+fn ensure_config_file_exists(home_path: &str) -> Result<()> {
+    let config_path = &format!("{}/config.toml", home_path);
     if !Path::new(config_path).exists() {
         if let Some(parent) = Path::new(config_path).parent() {
             fs::create_dir_all(parent).context("Failed to create config directory")?;
         }
 
-        let default_config = Config::default();
+        let default_config = Config::with_home(home_path);
         let config_toml =
             toml::to_string(&default_config).context("Failed to serialize default config")?;
 
@@ -177,8 +218,8 @@ fn ensure_config_file_exists(config_path: &str) -> Result<()> {
 
 fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
     let webserver_config = &config.webserver.unwrap_or_default();
-    let redis_config = &config.redis_config.unwrap_or_default();
     let celestia_config = &config.celestia_config.unwrap_or_default();
+    let prism_home = get_prism_home(&args.clone()).unwrap();
 
     Config {
         webserver: Some(WebServerConfig {
@@ -186,9 +227,15 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             host: args.webserver.host.unwrap_or(webserver_config.host.clone()),
             port: args.webserver.port.unwrap_or(webserver_config.port),
         }),
-        redis_config: Some(RedisConfig {
-            connection_string: args.redis_client.unwrap_or(redis_config.connection_string.clone()),
-        }),
+        db: match args.database.db_type {
+            DBValues::RocksDB => StorageBackend::RocksDB(RocksDBConfig {
+                path: args.database.rocksdb_path.unwrap_or_else(|| format!("{}/data", prism_home)),
+            }),
+            DBValues::Redis => StorageBackend::Redis(RedisConfig {
+                connection_string: args.database.redis_url.unwrap_or_default(),
+            }),
+            DBValues::InMemory => StorageBackend::InMemory,
+        },
         celestia_config: Some(CelestiaConfig {
             connection_string: args
                 .celestia
@@ -212,6 +259,27 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         verifying_key_algorithm: args
             .verifying_key_algorithm
             .unwrap_or(config.verifying_key_algorithm),
+    }
+}
+
+pub fn initialize_db(cfg: &Config) -> Result<Arc<Box<dyn Database>>> {
+    match &cfg.db {
+        StorageBackend::RocksDB(cfg) => {
+            let db = RocksDBConnection::new(cfg)
+                .map_err(|e| GeneralError::InitializationError(e.to_string()))
+                .context("Failed to initialize RocksDB")?;
+
+            Ok(Arc::new(Box::new(db) as Box<dyn Database>))
+        }
+        StorageBackend::InMemory => Ok(Arc::new(
+            Box::new(InMemoryDatabase::new()) as Box<dyn Database>
+        )),
+        StorageBackend::Redis(cfg) => {
+            let db = RedisConnection::new(cfg)
+                .map_err(|e| GeneralError::InitializationError(e.to_string()))
+                .context("Failed to initialize Redis")?;
+            Ok(Arc::new(Box::new(db) as Box<dyn Database>))
+        }
     }
 }
 

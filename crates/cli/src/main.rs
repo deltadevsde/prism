@@ -1,7 +1,7 @@
 mod cfg;
 mod node_types;
 
-use cfg::{initialize_da_layer, load_config, Cli, Commands};
+use cfg::{initialize_da_layer, initialize_db, load_config, Cli, Commands};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
@@ -11,7 +11,6 @@ use std::io::{Error, ErrorKind};
 use node_types::NodeType;
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
-use prism_storage::RedisConnection;
 use std::{str::FromStr, sync::Arc};
 
 #[macro_use]
@@ -67,12 +66,8 @@ async fn main() -> std::io::Result<()> {
                 .await
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            let redis_config = config
-                .clone()
-                .redis_config
-                .ok_or_else(|| Error::new(ErrorKind::NotFound, "redis configuration not found"))?;
-            let redis_connections = RedisConnection::new(&redis_config)
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let db =
+                initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
                 .get_signing_key()
@@ -106,14 +101,10 @@ async fn main() -> std::io::Result<()> {
                 start_height: config.celestia_config.unwrap_or_default().start_height,
             };
 
-            Arc::new(
-                Prover::new(Arc::new(Box::new(redis_connections)), da, &prover_cfg).map_err(
-                    |e| {
-                        error!("error initializing prover: {}", e);
-                        Error::new(ErrorKind::Other, e.to_string())
-                    },
-                )?,
-            )
+            Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
+                error!("error initializing prover: {}", e);
+                Error::new(ErrorKind::Other, e.to_string())
+            })?)
         }
         Commands::FullNode(args) => {
             let config = load_config(args.clone())
@@ -123,12 +114,8 @@ async fn main() -> std::io::Result<()> {
                 .await
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            let redis_config = config
-                .clone()
-                .redis_config
-                .ok_or_else(|| Error::new(ErrorKind::NotFound, "redis configuration not found"))?;
-            let redis_connections = RedisConnection::new(&redis_config)
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let db =
+                initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
                 .get_signing_key()
@@ -169,14 +156,10 @@ async fn main() -> std::io::Result<()> {
                 start_height: config.celestia_config.unwrap_or_default().start_height,
             };
 
-            Arc::new(
-                Prover::new(Arc::new(Box::new(redis_connections)), da, &prover_cfg).map_err(
-                    |e| {
-                        error!("error initializing prover: {}", e);
-                        Error::new(ErrorKind::Other, e.to_string())
-                    },
-                )?,
-            )
+            Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
+                error!("error initializing prover: {}", e);
+                Error::new(ErrorKind::Other, e.to_string())
+            })?)
         }
     };
 
