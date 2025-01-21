@@ -2,6 +2,8 @@ use anyhow::{Error as AnyhowError, Result};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use thiserror::Error;
 
+// TODO: use the error types and improve them (use prism errors)
+
 #[derive(Error, Debug)]
 pub enum WasmLightClientError {
     #[error(transparent)]

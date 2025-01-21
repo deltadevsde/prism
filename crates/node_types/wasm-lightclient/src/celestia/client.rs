@@ -1,5 +1,4 @@
 use crate::commands::WorkerResponse;
-use anyhow::Error;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
 use lumina_node::{
@@ -11,11 +10,9 @@ use lumina_node::{
 };
 use lumina_node_wasm::utils::{resolve_dnsaddr_multiaddress, Network};
 
-use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::to_value;
 use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
 use std::{
-    net::{IpAddr, Ipv4Addr},
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -23,35 +20,30 @@ use std::{
     time::Duration,
 };
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
-use web_sys::{console, MessagePort, RequestInit, RequestMode};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::{console, MessagePort};
 
-use super::{CelestiaConfig, FinalizedEpoch};
+use super::FinalizedEpoch;
 
 #[derive(Clone)]
 pub struct WasmCelestiaClient {
-    pub config: CelestiaConfig,
     pub node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
     pub current_height: Arc<AtomicU64>,
     pub port: MessagePort,
 }
 
 impl WasmCelestiaClient {
-    pub async fn new(port: MessagePort, config: CelestiaConfig) -> Result<Arc<Self>, JsError> {
-        let current_height = Arc::new(AtomicU64::new(config.start_height));
+    // TODO: config handling
+    pub async fn new(port: MessagePort) -> Result<Arc<Self>, JsError> {
+        // config start height and namespace id, hardcoded for now
+        let current_height = Arc::new(AtomicU64::new(4180975));
 
         let network = LuminaNetwork::from(Network::Mocha);
-
-        console::log_2(
-            &"🚀 Starting node with network:".into(),
-            &network.id().into(),
-        );
         let network_id = network.id();
 
         let store = IndexedDbStore::new(network_id)
             .await
             .map_err(|e| JsError::new(&format!("Failed to open store: {}", e)))?;
-
         let blockstore = IndexedDbBlockstore::new(&format!("{network_id}-blockstore"))
             .await
             .map_err(|e| JsError::new(&format!("Failed to open blockstore: {}", e)))?;
@@ -60,15 +52,10 @@ impl WasmCelestiaClient {
                 "/dnsaddr/da-bridge-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCBAbQbJSpCpCGKzqz3rAN4ixYbc63K68zJg9aisuAajg",
             ].into_iter().map(str::parse).collect::<Result<_, _>>()?;
 
-        console::log_2(&"🚀 Bootnodes:".into(), &to_value(&bootnodes).unwrap());
-
         for addr in bootnodes.clone() {
             let resolved_addrs = resolve_dnsaddr_multiaddress(addr).await.unwrap();
             bootnodes.extend(resolved_addrs);
         }
-
-        // log bootnodes
-        console::log_2(&"🚀 Bootnodes:".into(), &to_value(&bootnodes).unwrap());
 
         let (node, event_subscriber) = NodeBuilder::new()
             .store(store)
@@ -80,19 +67,10 @@ impl WasmCelestiaClient {
             .await
             .map_err(|e| JsError::new(&format!("Failed to start node: {}", e)))?;
 
-        // print canonical bootnodes
-        /* console::log_2(
-            &"🚀 Bootnodes:".into(),
-            &to_value(&network.clone().canonical_bootnodes().collect::<Vec<_>>())
-                .map_err(|e| JsError::new(&format!("Failed to serialize bootnodes: {:?}", e)))?,
-        ); */
-
         console::log_1(&"🚀 Node started".into());
 
         let node = Arc::new(node);
-
         let client = Arc::new(Self {
-            config,
             node,
             current_height,
             port,
@@ -106,7 +84,9 @@ impl WasmCelestiaClient {
 
     async fn handle_events(&self, mut event_subscriber: EventSubscriber) {
         while let Ok(event_info) = event_subscriber.recv().await {
-            self.process_event(event_info.event).await;
+            if let Err(e) = self.process_event(event_info.event).await {
+                console::error_1(&format!("Failed to process event: {:?}", e).into());
+            }
         }
     }
 
@@ -115,15 +95,20 @@ impl WasmCelestiaClient {
             NodeEvent::ShareSamplingResult {
                 height, accepted, ..
             } => {
-                let message = to_value(&WorkerResponse::SamplingResult { height, accepted })
-                    .map_err(|e| {
-                        JsError::new(&format!("Failed to serialize sampling result: {:?}", e))
-                    })?;
+                let message = to_value(&WorkerResponse::SamplingResult { height, accepted })?;
                 self.port.post_message(&message);
             }
             NodeEvent::AddedHeaderFromHeaderSub { height } => {
-                let epoch_verified = self.verify_epoch(height).await?;
-                let message = to_value(&WorkerResponse::EpochVerified(epoch_verified))?;
+                let current_position = self.current_height.load(Ordering::Relaxed);
+
+                for i in current_position..height {
+                    let epoch_verified = self.verify_epoch(i + 1).await?;
+                    let message = to_value(&WorkerResponse::EpochVerified(epoch_verified))?;
+                    self.port.post_message(&message);
+                }
+
+                self.current_height.store(height, Ordering::Relaxed);
+                let message = to_value(&WorkerResponse::CurrentHeight(height))?;
                 self.port.post_message(&message);
             }
             _ => {
@@ -134,8 +119,9 @@ impl WasmCelestiaClient {
     }
 
     pub async fn verify_epoch(&self, height: u64) -> Result<bool, JsError> {
-        let namespace = hex::decode(&self.config.snark_namespace_id)
-            .map_err(|e| JsError::new(&format!("Invalid namespace: {}", e)))?;
+        let namespace =
+            hex::decode("000000000000000000000000000000000000707269736d5350457330".to_string())
+                .map_err(|e| JsError::new(&format!("Invalid namespace: {}", e)))?;
         let header = self.node.get_header_by_height(height).await?;
 
         match self

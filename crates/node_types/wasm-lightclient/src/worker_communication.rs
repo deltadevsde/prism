@@ -49,7 +49,6 @@ impl WorkerClient {
     }
 }
 
-// Doesn't need Mutex because it's designed to process one command at a time sequentially
 pub struct WorkerServer {
     port: MessagePort,
     command_rx: mpsc::UnboundedReceiver<LightClientCommand>,

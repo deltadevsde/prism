@@ -2,7 +2,7 @@ use std::sync::Arc;
 use web_sys::{console, MessagePort};
 
 use crate::{
-    celestia::{client::WasmCelestiaClient, CelestiaConfig},
+    celestia::client::WasmCelestiaClient,
     commands::{LightClientCommand, WorkerResponse},
     worker_communication::WorkerServer,
 };
@@ -20,7 +20,7 @@ impl LightClientWorker {
     pub async fn new(port: MessagePort) -> Result<LightClientWorker, JsError> {
         Ok(Self {
             server: WorkerServer::new(port.clone())?,
-            celestia: WasmCelestiaClient::new(port, CelestiaConfig::default()).await?,
+            celestia: WasmCelestiaClient::new(port).await?,
         })
     }
 
@@ -39,7 +39,7 @@ impl LightClientWorker {
                 LightClientCommand::GetCurrentHeight => {
                     WorkerResponse::CurrentHeight(self.celestia.get_current_height().await)
                 }
-                LightClientCommand::SetProverKey(_) => WorkerResponse::ProverKeySet, // TODO if needed
+                LightClientCommand::GetAccount(account_id) => WorkerResponse::GetAccount(None), // TODO: implement this
             };
 
             self.server.respond(response);
