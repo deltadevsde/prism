@@ -30,7 +30,10 @@ impl LightClientWorker {
             let response = match command {
                 LightClientCommand::VerifyEpoch { height } => {
                     match self.celestia.verify_epoch(height).await {
-                        Ok(value) => WorkerResponse::EpochVerified(value),
+                        Ok(value) => WorkerResponse::EpochVerified {
+                            verified: value,
+                            height,
+                        },
                         Err(e) => {
                             WorkerResponse::Error(format!("Failed to verify epoch...{:?}", e,))
                         }

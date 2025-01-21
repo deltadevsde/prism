@@ -36,7 +36,7 @@ impl WasmCelestiaClient {
     // TODO: config handling
     pub async fn new(port: MessagePort) -> Result<Arc<Self>, JsError> {
         // config start height and namespace id, hardcoded for now
-        let current_height = Arc::new(AtomicU64::new(4180975));
+        let current_height = Arc::new(AtomicU64::new(4279075));
 
         let network = LuminaNetwork::from(Network::Mocha);
         let network_id = network.id();
@@ -49,7 +49,7 @@ impl WasmCelestiaClient {
             .map_err(|e| JsError::new(&format!("Failed to open blockstore: {}", e)))?;
 
         let mut bootnodes: Vec<Multiaddr> = vec![
-                "/dnsaddr/da-bridge-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCBAbQbJSpCpCGKzqz3rAN4ixYbc63K68zJg9aisuAajg",
+                "/dnsaddr/da-bridge-2-mocha-4.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G",
             ].into_iter().map(str::parse).collect::<Result<_, _>>()?;
 
         for addr in bootnodes.clone() {
@@ -63,6 +63,7 @@ impl WasmCelestiaClient {
             .bootnodes(bootnodes)
             .network(network.clone())
             .sync_batch_size(128)
+            .sampling_window(Duration::from_secs(60 * 60 * 24 * 30))
             .start_subscribed()
             .await
             .map_err(|e| JsError::new(&format!("Failed to start node: {}", e)))?;
@@ -99,11 +100,18 @@ impl WasmCelestiaClient {
                 self.port.post_message(&message);
             }
             NodeEvent::AddedHeaderFromHeaderSub { height } => {
+                console::log_2(
+                    &"Added header from header sub at height:".into(),
+                    &height.into(),
+                );
                 let current_position = self.current_height.load(Ordering::Relaxed);
 
                 for i in current_position..height {
-                    let epoch_verified = self.verify_epoch(i + 1).await?;
-                    let message = to_value(&WorkerResponse::EpochVerified(epoch_verified))?;
+                    let epoch_verified = self.verify_epoch(i).await?;
+                    let message = to_value(&WorkerResponse::EpochVerified {
+                        verified: epoch_verified,
+                        height: i,
+                    })?;
                     self.port.post_message(&message);
                 }
 
@@ -135,10 +143,8 @@ impl WasmCelestiaClient {
         {
             Ok(blob) => {
                 if blob.is_empty() {
-                    // no blobs found
                     return Ok(true);
                 }
-                console::log_2(&"🔍 Verifying epoch at height:".into(), &height.into());
                 for b in blob {
                     let epoch = FinalizedEpoch::try_from(&b).map_err(|_| {
                         JsError::new(&format!("Failed to decode blob into FinalizedEpoch"))
