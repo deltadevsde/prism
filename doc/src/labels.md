@@ -6,7 +6,7 @@ Once a new user is added to the JMT, we know that all updates to a hashchain are
 
 The entries in the transparency dictionary are indexed by labels. These labels are arbitrary strings, and in the majority of the documentation we simplify the type of label to an email address.
 
-But to add a new email address/phone number for a user, the owner of that resource must be able to prove that they own it. This is done by means of a centralized service that verifies resource ownership. Once a user has verified ownership of an email address, the sequencer adds an entry to the hashchain.
+But to add a new email address/phone number for a user, the owner of that resource must be able to prove that they own it. This is done by means of a centralized service that verifies resource ownership. Once a user has verified ownership of an email address, the sequencer adds an entry to the account.
 
 We must move away from this, as it is both not scalable and not trust-minimized. We will register services such as [zkEmail](https://prove.email/) and [TLSNotary](https://tlsnotary.org/) to provide resource ownership proofs. This will allow us to move to a trust-minimized system where the user can add their own account to the state directly by posting to the DA layer.
 
@@ -16,11 +16,10 @@ See more in [adr-002 (Account Sources)](https://github.com/deltadevsde/prism/blo
 In the current design, account creation is managed through [registered services](https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md). Here's how it works:
 
 1. Services must be registered in the system via a `RegisterService` operation.
-2. Initially, service registration will be permissioned, requiring a signature from the prover.
-3. Each service defines a specific challenge that must be completed to create an account. This could be either a signature check or providing a groth16 proof.
-4. Users create accounts by completing the service-specific challenge.
+2. Each service defines a specific challenge that must be completed to create an account. This could be either a signature check or providing a groth16 proof.
+3. Users create accounts by completing the service-specific challenge.
 
-This approach allows for flexibility while maintaining control over account creation. It also paves the way for more decentralized account creation methods in the future.
+This approach allows for flexibility while maintaining control over account creation.
 
 ## Other Considerations
 
