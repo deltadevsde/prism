@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cryptographic Commitments - Prism Documentation</title>
+        <title>Web Proofs - Prism Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -87,7 +87,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item "><a href="../index.html">Introduction</a></li><li class="chapter-item "><a href="../quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="../rollup.html">Rollup Construction</a></li><li class="chapter-item "><a href="../datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="../labels.html">Account Sources</a></li><li class="chapter-item "><a href="../insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item "><a href="../jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="../state.html">Development Status</a></li><li class="chapter-item "><a href="../architecture.html">Architecture</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Mammothon</li><li class="chapter-item "><a href="../tutorial.html">Tutorial</a></li><li class="chapter-item "><a href="../mammothon/ct-service.html">CT Browser Extension</a></li><li class="chapter-item "><a href="../mammothon/reclaim.html">Web Proofs</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item expanded "><a href="../crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="../crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item expanded "><a href="../crypto-intro/cryptographic_commitment.html" class="active">Cryptographic Commitments</a></li><li class="chapter-item "><a href="../crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="../informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="../zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="../resources.html">Resources</a></li></ol>
+                <ol class="chapter"><li class="chapter-item "><a href="../index.html">Introduction</a></li><li class="chapter-item "><a href="../quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="../rollup.html">Rollup Construction</a></li><li class="chapter-item "><a href="../datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="../labels.html">Account Sources</a></li><li class="chapter-item "><a href="../insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item "><a href="../jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="../state.html">Development Status</a></li><li class="chapter-item "><a href="../architecture.html">Architecture</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Mammothon</li><li class="chapter-item "><a href="../tutorial.html">Tutorial</a></li><li class="chapter-item "><a href="../mammothon/ct-service.html">CT Browser Extension</a></li><li class="chapter-item expanded "><a href="../mammothon/reclaim.html" class="active">Web Proofs</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item "><a href="../crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="../crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="../crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="../crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="../crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="../informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="../zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="../resources.html">Resources</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -176,27 +176,35 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="cryptographic-commitments"><a class="header" href="#cryptographic-commitments">Cryptographic commitments</a></h1>
-<p>maybe for the crypto intro</p>
-<p>We again imagine a scenario for cryptographic commtiments in which Alice and Bob interact with each other. Alice has a secret that she does not want to tell Bob. She hashes her secret and puts this secret in a safe, giving the key for the safe to Bob. This means that Alice cannot change the secret in the safe afterwards, so she is bound to it (<strong>= a cryptographic commitment scheme is binding</strong>). Bob can open the safe at a later time and see the secret, but as we have seen above, Bob cannot determine anything else from the hashed secret (<strong>= a cryptographic commitment scheme is hiding</strong>). These are the required properties of a cryptographic commitment: they should bind to a value, i.e., they should not be modifiable afterwards, and they should say nothing about the value to which one has committed.</p>
+<h1 id="idea-2-accounts-from-web-sources"><a class="header" href="#idea-2-accounts-from-web-sources">Idea 2: Accounts From Web Sources</a></h1>
 <blockquote>
-<p>Informally speaking, a cryptographic commitment scheme enables a sender to commit itself to a value by sending a short commitment and then later reveal the value such that the commitment scheme is binding (i.e., the sender cannot reveal a value different from what it originally committed), and hiding (i.e., a commitment does not reveal anything about the committed value).</p>
+<p>Note: This is only a rough outline and will be expanded upon with verified interest.</p>
 </blockquote>
-<p><img src="../img/merkle-tree.jpeg" alt="Merkle Tree" /></p>
-<p>If we now consider how the root of a Merkle tree behaves from these points of view, we take another step forward. We have seen that in the tree above the hashes of the names Greta, Theo, Jana, and Torben were stored in the leaves and then hashed together in pairs upwards until only one hash remains, which then represents the root of the Merkle tree. If we replace the value of the leaf "Torben" (SHA256 value: <em>d38f...d39</em>) with the value "Johnanna" (SHA256 value: <em>4c7...7f1</em>), obviously not only the value of the leaf changes, but also all other values on the way from the leaf to the root and the root itself.</p>
-<p><img src="../img/merkle-johanna-tree.jpeg" alt="Merkle Johanna Tree" /></p>
-<p>This means that we are <strong>bound</strong> by the root to the values of the individual leaves and if we only have the root, we have no idea which actual values or leaves are present in the Merkle tree, so they are <strong>hidden</strong> (binding and hiding). Long story short: the root of a Merkle tree is excellent for a cryptographic commitment.
-So now that we understand cryptographic commitments, we can look at what the proofs of membership or non-membership look like in Merkle trees.</p>
+<h2 id="problem"><a class="header" href="#problem">Problem</a></h2>
+<p>Every time users join a new platform, they face the challenge of starting from scratch to build their network and establish trust in their identity. This fragmentation creates friction in maintaining relationships across digital spaces and verifying authenticity.</p>
+<p>The hackathon track aims to solve this by enabling users to connect their social media accounts to Prism, bridging their identities into a unified profile. This ensures their contacts can easily verify and locate them across platforms.</p>
+<h2 id="solution"><a class="header" href="#solution">Solution</a></h2>
+<p>The first iteration of bringing external accounts into Prism can use the reclaim protocol.</p>
+<p>The project has these rough requirements:</p>
+<ol>
+<li>Provide a frontend that allows a user to create a reclaim proof with an external account source (e.g. Twitter)</li>
+<li>Create a prism service that lets users create prism accounts using a valid reclaim proof using the <code>AddData</code> operation.</li>
+</ol>
+<h2 id="resources"><a class="header" href="#resources">Resources</a></h2>
+<ul>
+<li><a href="https://www.reclaimprotocol.org">Reclaim Protocol</a></li>
+<li><a href="./labels.html">Prism Account Sources</a></li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../crypto-intro/merkle-trees.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../mammothon/ct-service.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../crypto-intro/general-merkle-proofs.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../crypto-intro/intro.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -206,11 +214,11 @@ So now that we understand cryptographic commitments, we can look at what the pro
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../crypto-intro/merkle-trees.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../mammothon/ct-service.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../crypto-intro/general-merkle-proofs.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../crypto-intro/intro.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
