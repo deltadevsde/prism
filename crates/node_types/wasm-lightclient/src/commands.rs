@@ -9,7 +9,7 @@ pub enum LightClientCommand {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum WorkerResponse {
-    EpochVerified(bool),
+    EpochVerified { verified: bool, height: u64 },
     CurrentHeight(u64),
     GetAccount(Option<String>), // TODO: get real account (AccountResponse or smth)
     SamplingResult { height: u64, accepted: bool },

@@ -24,8 +24,8 @@ impl WasmLightClient {
     #[wasm_bindgen(js_name = verifyEpoch)]
     pub async fn verify_epoch(&self, height: u64) -> Result<(), JsError> {
         match self.worker.exec(LightClientCommand::VerifyEpoch { height }).await? {
-            WorkerResponse::EpochVerified(value) => {
-                if value {
+            WorkerResponse::EpochVerified { verified, height } => {
+                if verified {
                     Ok(())
                 } else {
                     Err(JsError::new("Epoch verification failed"))
