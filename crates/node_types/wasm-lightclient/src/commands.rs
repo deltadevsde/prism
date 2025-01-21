@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 pub enum LightClientCommand {
     VerifyEpoch { height: u64 },
     GetCurrentHeight,
-    SetProverKey(Vec<u8>),
+    GetAccount(String), // account id
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum WorkerResponse {
     EpochVerified(bool),
     CurrentHeight(u64),
-    ProverKeySet,
+    GetAccount(Option<String>), // TODO: get real account (AccountResponse or smth)
     SamplingResult { height: u64, accepted: bool },
     NoEpochFound { height: u64 },
     Error(String),
