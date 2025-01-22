@@ -49,8 +49,11 @@ impl WasmCelestiaClient {
             .map_err(|e| JsError::new(&format!("Failed to open blockstore: {}", e)))?;
 
         let mut bootnodes: Vec<Multiaddr> = vec![
-                "/dnsaddr/da-bridge-2-mocha-4.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G",
-            ].into_iter().map(str::parse).collect::<Result<_, _>>()?;
+            "/dnsaddr/da-bridge-2-mocha-4.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G",
+        ]
+        .into_iter()
+        .map(str::parse)
+        .collect::<Result<_, _>>()?;
 
         for addr in bootnodes.clone() {
             let resolved_addrs = resolve_dnsaddr_multiaddress(addr).await.unwrap();
