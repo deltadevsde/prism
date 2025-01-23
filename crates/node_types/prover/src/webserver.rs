@@ -176,7 +176,7 @@ async fn post_transaction(
     path = "/get-account",
     request_body = UserKeyRequest,
     responses(
-        (status = 200, description = "Successfully retrieved valid keys", body = UpdateKeyResponse),
+        (status = 200, description = "Successfully retrieved valid keys", body = UserKeyResponse),
         (status = 400, description = "Bad request")
     )
 )]
