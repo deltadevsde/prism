@@ -1,23 +1,18 @@
 use crate::Prover;
 use anyhow::{bail, Context, Result};
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use jmt::proof::{SparseMerkleNode, SparseMerkleProof};
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
-use prism_tree::{
-    hasher::TreeHasher,
-    proofs::{Proof, UpdateProof},
-    AccountResponse,
-};
+use prism_tree::{hasher::TreeHasher, AccountResponse};
 use serde::{Deserialize, Serialize};
-use std::{self, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
+use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-use utoipa::{OpenApi, ToSchema};
+use utoipa::{
+    openapi::{Info, OpenApiBuilder},
+    OpenApi, ToSchema,
+};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -98,18 +93,6 @@ impl From<SparseMerkleProof<TreeHasher>> for JmtProofResponse {
 }
 
 #[derive(OpenApi)]
-#[openapi(
-    paths(post_transaction, get_account, get_commitment),
-    components(schemas(
-        TransactionRequest,
-        EpochData,
-        UpdateProofResponse,
-        Hash,
-        UserKeyRequest,
-        UserKeyResponse,
-        JmtProofResponse
-    ))
-)]
 struct ApiDoc;
 
 impl WebServer {
@@ -122,18 +105,26 @@ impl WebServer {
             bail!("Webserver is disabled")
         }
 
-        let app = Router::new()
-            .route("/transaction", post(post_transaction))
-            .route("/get-account", post(get_account))
-            .route("/get-current-commitment", get(get_commitment))
-            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+            .routes(routes!(get_account))
+            .routes(routes!(post_transaction))
+            .routes(routes!(get_commitment))
             .layer(CorsLayer::permissive())
-            .with_state(self.session.clone());
+            .with_state(self.session.clone())
+            .split_for_parts();
 
-        let addr = format!("{}:{}", self.cfg.host, self.cfg.port);
-        let server = axum::Server::bind(&addr.parse().unwrap()).serve(app.into_make_service());
+        let api = OpenApiBuilder::from(api).info(Info::new("Prism Full Node API", "0.1.0")).build();
 
-        let socket_addr = server.local_addr();
+        let router = router.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api));
+
+        let addr = SocketAddr::new(
+            self.cfg.host.parse().expect("IP address can be parsed"),
+            self.cfg.port,
+        );
+        let listener = TcpListener::bind(addr).await.expect("Binding to address works");
+        let server = axum::serve(listener, router.into_make_service());
+
+        let socket_addr = server.local_addr()?;
         info!(
             "Starting webserver on {}:{}",
             self.cfg.host,
