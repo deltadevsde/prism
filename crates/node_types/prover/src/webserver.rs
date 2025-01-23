@@ -37,19 +37,8 @@ pub struct WebServer {
     pub session: Arc<Prover>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct EpochData {
-    epoch_number: u64,
-    previous_commitment: String,
-    current_commitment: String,
-    proofs: Vec<Proof>,
-}
-
 #[derive(Deserialize, Debug, ToSchema)]
 pub struct TransactionRequest(Transaction);
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct UpdateProofResponse(UpdateProof);
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Hash(Digest);
