@@ -37,6 +37,7 @@ members = [
     "crates/common",
     "crates/errors",
     "crates/zk/sp1",
+    "crates/zk/sp1-script",
     "crates/storage",
     "crates/da",
     "crates/serde",
