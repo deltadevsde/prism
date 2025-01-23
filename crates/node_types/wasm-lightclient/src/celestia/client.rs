@@ -36,7 +36,7 @@ impl WasmCelestiaClient {
     // TODO: config handling
     pub async fn new(port: MessagePort) -> Result<Arc<Self>, JsError> {
         // config start height and namespace id, hardcoded for now
-        let current_height = Arc::new(AtomicU64::new(4279075));
+        let current_height = Arc::new(AtomicU64::new(4312728));
 
         let network = LuminaNetwork::from(Network::Mocha);
         let network_id = network.id();
@@ -50,6 +50,12 @@ impl WasmCelestiaClient {
 
         let mut bootnodes: Vec<Multiaddr> = vec![
             "/dnsaddr/da-bridge-2-mocha-4.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G",
+            "/dnsaddr/da-bridge-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCBAbQbJSpCpCGKzqz3rAN4ixYbc63K68zJg9aisuAajg",
+            "/dnsaddr/da-bridge-2-mocha-4.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G",
+            "/dnsaddr/da-full-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCUHPLqQXZzpTx1x3TAsdn3vYmTNDhzg66yG8hqoxGGN8",
+            "/dnsaddr/da-full-2-mocha-4.celestia-mocha.com/p2p/12D3KooWR6SHsXPkkvhCRn6vp1RqSefgaT1X1nMNvrVjU2o3GoYy",
+            "/dnsaddr/mocha-boot.pops.one/p2p/12D3KooWDzNyDSvTBdKQAmnsUdAyQCQWwM3ReXTmPaaf6LzfNwRs",
+            "/dnsaddr/celestia-mocha.qubelabs.io/p2p/12D3KooWQVmHy7JpfxpKZfLjvn12GjvMgKrWdsHkFbV2kKqQFBCG",
         ]
         .into_iter()
         .map(str::parse)

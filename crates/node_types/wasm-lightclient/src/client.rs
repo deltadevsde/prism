@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::MessagePort;
 
 use crate::{
+    celestia::VerifyEpochResult,
     commands::{LightClientCommand, WorkerResponse},
     worker_communication::WorkerClient,
 };
@@ -22,11 +23,11 @@ impl WasmLightClient {
     }
 
     #[wasm_bindgen(js_name = verifyEpoch)]
-    pub async fn verify_epoch(&self, height: u64) -> Result<(), JsError> {
+    pub async fn verify_epoch(&self, height: u64) -> Result<VerifyEpochResult, JsError> {
         match self.worker.exec(LightClientCommand::VerifyEpoch { height }).await? {
             WorkerResponse::EpochVerified { verified, height } => {
                 if verified {
-                    Ok(())
+                    Ok(VerifyEpochResult::new(verified, height))
                 } else {
                     Err(JsError::new("Epoch verification failed"))
                 }
