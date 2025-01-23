@@ -11,6 +11,9 @@ repository.workspace = true
 prism-serde.workspace = true
 serde.workspace = true
 
+# OAS spec
+utoipa.workspace = true
+
 # curves
 ed25519-consensus.workspace = true
 secp256k1.workspace = true

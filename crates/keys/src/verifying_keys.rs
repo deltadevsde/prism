@@ -16,7 +16,12 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::{
     self,
+    borrow::Cow,
     hash::{Hash, Hasher},
+};
+use utoipa::{
+    openapi::{RefOr, Schema},
+    PartialSchema, ToSchema,
 };
 
 use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, SigningKey};
@@ -254,5 +259,24 @@ impl std::fmt::Display for VerifyingKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let encoded = self.to_bytes().to_base64();
         write!(f, "{}", encoded)
+    }
+}
+
+/// Necessary to represent `VerifyingKey` as `CryptoPayload` in the OpenAPI spec.
+/// Workaround, because `schema(as = CryptoPayload)` currently requires all wrapped
+/// native key types in the enum variants to implement `ToSchema` as well.
+impl ToSchema for VerifyingKey {
+    fn name() -> Cow<'static, str> {
+        Cow::Borrowed("CryptoPayload")
+    }
+
+    fn schemas(_schemas: &mut Vec<(String, RefOr<Schema>)>) {
+        CryptoPayload::schemas(_schemas);
+    }
+}
+
+impl PartialSchema for VerifyingKey {
+    fn schema() -> RefOr<Schema> {
+        CryptoPayload::schema()
     }
 }
