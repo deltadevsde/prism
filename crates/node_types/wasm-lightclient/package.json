@@ -1,0 +1,35 @@
+{
+	"name": "prism-wasm-lightclient",
+	"version": "0.1.1",
+	"type": "module",
+	"files": [
+	  "pkg/prism_wasm_lightclient_bg.wasm",
+	  "pkg/prism_wasm_lightclient.js",
+	  "pkg/prism_wasm_lightclient.d.ts"
+	],
+	"module": "pkg/prism_wasm_lightclient.js",
+	"types": "pkg/prism_wasm_lightclient.d.ts",
+	"sideEffects": [
+	  "./pkg/prism_wasm_lightclient.js"
+	],
+	"exports": {
+	  ".": {
+		"types": "./pkg/prism_wasm_lightclient.d.ts",
+		"default": "./pkg/prism_wasm_lightclient.js"
+	  }
+	},
+	"scripts": {
+	  "build": "wasm-pack build --target web",
+	  "dev": "wasm-pack build --target web && npm link",
+	  "prepublishOnly": "npm run build"
+	},
+	"keywords": [
+	  "wasm",
+	  "rust",
+	  "prism",
+	  "lightclient"
+	],
+	"publishConfig": {
+	  "access": "public"
+	}
+  }
