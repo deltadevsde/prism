@@ -7,8 +7,9 @@ use prism_serde::{
     raw_or_hex,
 };
 use sha2::{Digest as _, Sha256};
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy, ToSchema)]
 pub struct Digest(#[serde(with = "raw_or_hex")] pub [u8; 32]);
 
 impl Digest {

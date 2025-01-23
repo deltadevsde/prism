@@ -2,11 +2,12 @@ use anyhow::{bail, ensure, Result};
 
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
+use utoipa::ToSchema;
 
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::raw_or_b64;
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
 /// An [`Operation`] represents a state transition in the system.
 /// In a blockchain analogy, this would be the full set of our transaction types.
 pub enum Operation {
@@ -41,8 +42,8 @@ pub enum Operation {
     RevokeKey { key: VerifyingKey },
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-/// Represents a signature including its.
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
+/// Represents a signature and the key to verify it.
 pub struct SignatureBundle {
     /// The key that can be used to verify the signature
     pub verifying_key: VerifyingKey,
@@ -50,14 +51,14 @@ pub struct SignatureBundle {
     pub signature: Signature,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
 /// Input required to complete a challenge for account creation.
 pub enum ServiceChallengeInput {
     /// Signature bytes
     Signed(Signature),
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
 pub enum ServiceChallenge {
     Signed(VerifyingKey),
 }
