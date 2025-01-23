@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use prism_common::digest::Digest;
-use prism_da::{celestia::CelestiaConfig, DataAvailabilityLayer};
+use prism_da::DataAvailabilityLayer;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
 use std::{self, sync::Arc};
@@ -24,7 +24,7 @@ pub struct LightClient {
 impl LightClient {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
-        cfg: CelestiaConfig,
+        start_height: u64,
         prover_pubkey: Option<VerifyingKey>,
         sp1_vkey: String,
     ) -> LightClient {
@@ -32,7 +32,7 @@ impl LightClient {
             da,
             sp1_vkey,
             prover_pubkey,
-            start_height: cfg.start_height,
+            start_height,
         }
     }
 

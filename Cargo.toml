@@ -101,6 +101,10 @@ ecdsa = { version = "0.16.0", features = ["der"] }
 # celestia
 celestia-rpc = "=0.8.0"
 celestia-types = "=0.9.0"
+lumina-node = "=0.8.0"
+
+# p2p
+libp2p = "0.54.1"
 
 # misc
 jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit", features = [
