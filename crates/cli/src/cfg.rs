@@ -112,12 +112,12 @@ pub struct Config {
 }
 
 impl Config {
-    fn with_home(path: &str) -> Self {
+    fn initialize(path: &str, network_name: &str) -> Self {
         Config {
             webserver: Some(WebServerConfig::default()),
-            network: NetworkConfig::default(),
+            network: Network::from_str(network_name).unwrap().config(),
             da_layer: DALayerOption::default(),
-            db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}/data", path))),
+            db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
         }
     }
 }
@@ -159,7 +159,11 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
 
     let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
 
-    ensure_config_file_exists(&home_path).context("Failed to ensure config file exists")?;
+    ensure_config_file_exists(
+        &home_path,
+        &args.clone().network_name.unwrap_or("custom".to_string()),
+    )
+    .context("Failed to ensure config file exists")?;
 
     if let Some(rocksdb_path) = &args.database.rocksdb_path {
         fs::create_dir_all(rocksdb_path).context("Failed to create RocksDB directory")?;
@@ -194,14 +198,14 @@ fn get_prism_home(args: &CommandArgs) -> Result<String> {
         })
 }
 
-fn ensure_config_file_exists(home_path: &str) -> Result<()> {
+fn ensure_config_file_exists(home_path: &str, network_name: &str) -> Result<()> {
     let config_path = &format!("{}/config.toml", home_path);
     if !Path::new(config_path).exists() {
         if let Some(parent) = Path::new(config_path).parent() {
             fs::create_dir_all(parent).context("Failed to create config directory")?;
         }
 
-        let default_config = Config::with_home(home_path);
+        let default_config = Config::initialize(home_path, network_name);
         let config_toml =
             toml::to_string(&default_config).context("Failed to serialize default config")?;
 
