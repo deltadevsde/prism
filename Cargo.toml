@@ -113,6 +113,9 @@ tempfile = "3.14.0"
 auto_impl = "1.2.0"
 paste = "1.0.15"
 
+# plotting
+plotters = "0.3.7"
+
 # prism
 prism-common = { path = "crates/common" }
 prism-storage = { path = "crates/storage" }
