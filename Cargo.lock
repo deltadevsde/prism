@@ -6457,6 +6457,7 @@ name = "sp1-script"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "futures",
  "hex",
  "jmt",
  "keystore-rs",
@@ -6470,6 +6471,7 @@ dependencies = [
  "sha2 0.10.8",
  "sp1-sdk",
  "sp1-zkvm",
+ "tokio",
 ]
 
 [[package]]

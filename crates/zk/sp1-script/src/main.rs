@@ -11,13 +11,18 @@
 //! ```
 
 use clap::Parser;
-use prism_tree::{proofs::Batch, snarkable_tree::SnarkableTree};
-use sp1_sdk::{ProverClient, SP1Stdin};
-use prism_common::transaction_builder::TransactionBuilder;
-use prism_tree::key_directory_tree::KeyDirectoryTree;
-use std::sync::Arc;
 use jmt::mock::MockTreeStore;
-use sha2::Digest;
+use prism_common::transaction_builder::TransactionBuilder;
+use prism_keys::SigningKey;
+use prism_tree::{
+    key_directory_tree::KeyDirectoryTree, proofs::Batch, snarkable_tree::SnarkableTree,
+};
+use rand::Rng;
+use sha2::{Digest, Sha256, Sha512};
+use sp1_sdk::{ProverClient, SP1Stdin};
+use std::sync::Arc;
+use tokio::{self, task};
+use prism_keys::CryptoAlgorithm;
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
@@ -31,59 +36,190 @@ struct Args {
 
     #[clap(long)]
     prove: bool,
+
+    #[clap(long)]
+    tag: Option<String>,
 }
 
-fn create_automated_batch(_initial_leaf_count: usize, num_accounts: usize, num_operations: usize) -> Batch {
-    let mut builder = TransactionBuilder::new();
-    let mut transactions = Vec::with_capacity(num_accounts + num_operations);
+#[derive(Debug, Clone)]
+struct SimulationConfig {
+    tags: Vec<String>,
+    num_simulations: usize,
+    algorithms: Vec<CryptoAlgorithm>,
+    num_existing_services: usize,
+    num_existing_accounts: usize,
+    num_new_services: usize,
+    num_new_accounts: usize,
+    num_add_keys: usize,
+    num_revoke_key: usize,
+    num_add_data: usize,
+    num_set_data: usize,
+}
 
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-
-    let transaction = builder.register_service_with_random_keys(
-        prism_keys::CryptoAlgorithm::Ed25519,
-        "service_id",
-    ).commit();
-    transactions.push(transaction);
-
-    let mut account_ids = Vec::new();
-    let algorithms = [
-        prism_keys::CryptoAlgorithm::Ed25519,
-        prism_keys::CryptoAlgorithm::Secp256k1,
-        prism_keys::CryptoAlgorithm::Secp256r1,
-    ];
-    let mut algo_iter = algorithms.iter().cycle();
-
-    for i in 0..num_accounts {
-        let account_id = format!("account_{}", hex::encode(sha2::Sha256::digest(&i.to_le_bytes())));
-        let algorithm = algo_iter.next().unwrap();
-        let transaction = builder.create_account_with_random_key_signed(
-            *algorithm,
-            &account_id,
-            "service_id",
-        ).commit();
-        transactions.push(transaction);
-        account_ids.push(account_id);
-    }
-
-    let mut account_iter = account_ids.iter().cycle();
-    for _ in 0..num_operations {
-        if let Some(account_id) = account_iter.next() {
-            let algorithm = algo_iter.next().unwrap();
-            let transaction = builder.add_random_key_verified_with_root(
-                *algorithm,
-                account_id,
-            ).commit();
-            transactions.push(transaction);
+impl Default for SimulationConfig {
+    fn default() -> Self {
+        SimulationConfig {
+            tags: vec![],
+            num_simulations: 1,
+            algorithms: vec![CryptoAlgorithm::Ed25519, CryptoAlgorithm::Secp256k1, CryptoAlgorithm::Secp256r1],
+            num_existing_services: 3,
+            num_existing_accounts: 100,
+            num_new_services: 1,
+            num_new_accounts: 3,
+            num_add_keys: 3,
+            num_revoke_key: 1,
+            num_add_data: 1,
+            num_set_data: 1,
         }
     }
-
-    let batch = tree.process_batch(transactions).unwrap();
-
-    println!("done");
-    batch
 }
 
-fn main() {
+#[derive(Debug)]
+struct SimulationResult {
+    config: SimulationConfig,
+    min_cycles: u64,
+    max_cycles: u64,
+    avg_cycles: f64,
+    median_cycles: u64,
+    std_dev: f64,
+    std_dev_percentage: f64,
+}
+
+fn get_random_service_id(rng: &mut impl Rng, builder: &TransactionBuilder) -> String {
+    let service_keys = builder.get_service_keys().clone();
+    let service_id = service_keys.keys().nth(rng.gen_range(0..service_keys.len())).unwrap();
+    service_id.to_string()
+}
+
+fn get_service_key(builder: &TransactionBuilder, service_id: &str) -> SigningKey {
+    let service_keys = builder.get_service_keys().clone();
+    let service_key = service_keys.get(service_id).unwrap();
+    service_key.clone()
+}
+
+fn get_random_account_id(rng: &mut impl Rng, builder: &TransactionBuilder) -> String {
+    let account_keys = builder.get_account_keys().clone();
+    let account_id = account_keys.keys().nth(rng.gen_range(0..account_keys.len())).unwrap();
+    account_id.to_string()
+}
+
+fn get_first_account_key(builder: &TransactionBuilder, account_id: &str) -> SigningKey {
+    let account_keys_map = builder.get_account_keys().clone();
+    let account_keys = account_keys_map.get(account_id).unwrap();
+    account_keys.first().unwrap().clone()
+}
+
+fn create_preparation_batch(
+    builder: &mut TransactionBuilder,
+    tree: &mut KeyDirectoryTree<MockTreeStore>,
+    config: &SimulationConfig,
+) -> Batch {
+    let mut transactions = Vec::with_capacity(config.num_existing_services + config.num_existing_accounts);
+
+    let mut rng = rand::thread_rng();
+
+    for i in 0..config.num_existing_services {
+        let algorithm = config.algorithms[i % config.algorithms.len()];
+        let service_id = format!(
+            "service_{}",
+            hex::encode(Sha256::digest(algorithm.to_string().as_bytes()))
+        );
+        let transaction =
+            builder.register_service_with_random_keys(algorithm, &service_id).commit();
+        transactions.push(transaction);
+    }
+
+    for i in 0..config.num_existing_accounts {
+        let algorithm = config.algorithms[i % config.algorithms.len()];
+        let account_id = format!("account_{}", hex::encode(Sha256::digest(i.to_le_bytes())));
+        let service_id = get_random_service_id(&mut rng, builder);
+        let transaction = builder
+            .create_account_with_random_key_signed(algorithm, &account_id, &service_id)
+            .commit();
+        transactions.push(transaction);
+    }
+
+    tree.process_batch(transactions).unwrap()
+}
+
+fn create_benchmark_batch(
+    builder: &mut TransactionBuilder,
+    tree: &mut KeyDirectoryTree<MockTreeStore>,
+    config: &SimulationConfig,
+) -> Batch {
+    let mut transactions = Vec::new();
+
+    let mut rng = rand::thread_rng();
+
+    // Create new services
+    let service_keys = builder.get_service_keys().clone();
+    for i in 0..config.num_new_services {
+        let algorithm = config.algorithms[i % config.algorithms.len()];
+        let service_id = format!(
+            "service_{}",
+            hex::encode(Sha256::digest((i + service_keys.len()).to_le_bytes()))
+        );
+        let transaction =
+            builder.register_service_with_random_keys(algorithm, &service_id).commit();
+        transactions.push(transaction);
+    }
+
+    // Create new accounts
+    let account_keys = builder.get_account_keys().clone();
+    for i in 0..config.num_new_accounts {
+        let algorithm = config.algorithms[i % config.algorithms.len()];
+        let account_id = format!(
+            "account_{}",
+            hex::encode(Sha256::digest((i + account_keys.len()).to_le_bytes()))
+        );
+        let service_id = get_random_service_id(&mut rng, builder);
+        let transaction = builder
+            .create_account_with_random_key_signed(algorithm, &account_id, &service_id)
+            .commit();
+        transactions.push(transaction);
+    }
+
+    // Add keys to accounts
+    for i in 0..config.num_add_keys {
+        let algorithm = config.algorithms[i % config.algorithms.len()];
+        let account_id = get_random_account_id(&mut rng, builder);
+        let transaction =
+            builder.add_random_key_verified_with_root(algorithm, &account_id).commit();
+        transactions.push(transaction);
+    }
+
+    // Revoke keys from accounts
+    for _ in 0..config.num_revoke_key {
+        let account_id = get_random_account_id(&mut rng, builder);
+        let account_key = get_first_account_key(builder, &account_id);
+        let transaction =
+            builder.revoke_key_verified_with_root(&account_id, account_key.clone().into()).commit();
+        transactions.push(transaction);
+    }
+
+    // Add data to accounts
+    for _ in 0..config.num_add_data {
+        let account_id = get_random_account_id(&mut rng, builder);
+        let data = Sha512::digest(b"boo").to_vec();
+        let transaction =
+            builder.add_internally_signed_data_verified_with_root(&account_id, data).commit();
+        transactions.push(transaction);
+    }
+
+    // Set data to accounts
+    for _ in 0..config.num_set_data {
+        let account_id = get_random_account_id(&mut rng, builder);
+        let data = Sha512::digest(b"boo").to_vec();
+        let transaction =
+            builder.set_internally_signed_data_verified_with_root(&account_id, data).commit();
+        transactions.push(transaction);
+    }
+
+    tree.process_batch(transactions).unwrap()
+}
+
+#[tokio::main]
+async fn main() {
     // Setup the logger.
     sp1_sdk::utils::setup_logger();
 
@@ -95,98 +231,195 @@ fn main() {
         std::process::exit(1);
     }
 
-    // Setup the prover client.
-    let client = ProverClient::from_env();
-
     if args.execute {
+        let num_simulations = 100; // Number of times to run each configuration
+
+        // Define default configuration
+        let default_config = SimulationConfig::default();
+
         // Define different configurations for num_accounts and num_operations
         let configurations = vec![
-            (100, 10),
-            (1000, 10),
-            (10000, 10),
-            (5000, 50),
+            SimulationConfig {
+                tags: vec!["green".to_string()],
+                num_simulations: num_simulations,
+                num_existing_accounts: 1,
+                ..default_config.clone()
+            },
+            SimulationConfig {
+                tags: vec!["green".to_string()],
+                num_simulations: num_simulations,
+                num_existing_accounts: 100,
+                ..default_config.clone()
+            },
+            SimulationConfig {
+                tags: vec!["green".to_string()],
+                num_simulations: num_simulations,
+                num_existing_accounts: 1000,
+                ..default_config.clone()
+            },
+            SimulationConfig {
+                tags: vec!["green".to_string()],
+                num_simulations: num_simulations,
+                num_existing_accounts: 5000,
+                ..default_config.clone()
+            },
+            SimulationConfig {
+                tags: vec!["green".to_string()],
+                num_simulations: num_simulations,
+                num_existing_accounts: 10000,
+                ..default_config.clone()
+            },
+            // SimulationConfig {
+            //     tags: vec!["yellow".to_string()],
+            //     num_simulations: num_simulations,
+            //     algorithms: vec![CryptoAlgorithm::Ed25519],
+            //     num_existing_services: 1,
+            //     ..default_config.clone()
+            // },
+            // SimulationConfig {
+            //     tags: vec!["yellow".to_string()],
+            //     num_simulations: num_simulations,
+            //     algorithms: vec![CryptoAlgorithm::Secp256k1],
+            //     num_existing_services: 1,
+            //     ..default_config.clone()
+            // },
+            // SimulationConfig {
+            //     tags: vec!["yellow".to_string()],
+            //     num_simulations: num_simulations,
+            //     algorithms: vec![CryptoAlgorithm::Secp256r1],
+            //     num_existing_services: 1,
+            //     ..default_config.clone()
+            // },
+            // Add more configurations as needed
         ];
 
-        let num_simulations = 3; // Number of times to run each configuration
-        let mut all_results = Vec::new(); // Store results for all configurations
+        let mut results = Vec::new(); // Store results for all configurations
 
-        for (num_accounts, num_operations) in &configurations {
-            println!("Testing configuration: num_accounts = {}, num_operations = {}", num_accounts, num_operations);
-
-            let mut cycles_results = Vec::new();
-
-            for _ in 0..num_simulations {
-                // Setup the inputs for each configuration.
-                let mut stdin = SP1Stdin::new();
-                let batch = create_automated_batch(1, *num_accounts, *num_operations);
-                stdin.write(&batch);
-
-                // Execute the program
-                let (output, report) = client.execute(PRISM_ELF, &stdin).run().unwrap();
-                println!("Program executed successfully.");
-
-                // Read the output.
-                let decoded = output.as_slice();
-                let final_commitment = hex::encode(decoded);
-                println!("final_commitment: {}", final_commitment);
-
-                // assert_eq!(final_commitment, batch.new_root.to_hex());
-                println!("Values are correct!");
-
-                // Record the number of cycles executed.
-                let cycles = report.total_instruction_count();
-                println!("Number of cycles: {}", cycles);
-
-                // Store the cycles result for analysis
-                cycles_results.push(cycles);
+        for config in &configurations {
+            if let Some(ref tag) = args.tag {
+                if !config.tags.contains(tag) {
+                    continue;
+                }
             }
 
+            println!("Testing configuration: {:?}", config);
+
+            let mut tasks = Vec::new();
+
+            for _ in 0..num_simulations {
+                let config = config.clone();
+
+                tasks.push(task::spawn(async move {
+                    // Setup the prover client.
+                    let client = ProverClient::from_env();
+
+                    let mut builder = TransactionBuilder::new();
+                    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+
+                    // Setup the inputs for each configuration.
+                    let initial_batch = create_preparation_batch(
+                        &mut builder,
+                        &mut tree,
+                        &config,
+                    );
+
+                    // Execute the initial batch to add accounts (only once per configuration)
+                    let mut stdin = SP1Stdin::new();
+                    stdin.write(&initial_batch);
+
+                    // Create operations batch
+                    let operations_batch = create_benchmark_batch(
+                        &mut builder,
+                        &mut tree,
+                        &config,
+                    );
+
+                    // Reset stdin by creating a new instance and write the operations batch
+                    let mut stdin = SP1Stdin::new();
+                    stdin.write(&operations_batch);
+
+                    // Execute the operations batch
+                    let (_, report) = client.execute(PRISM_ELF, &stdin).run().unwrap();
+                    println!("Operations batch executed successfully.");
+
+                    // Record the number of cycles executed.
+                    report.total_instruction_count()
+                }));
+            }
+
+            let cycles_vec: Vec<u64> = futures::future::join_all(tasks)
+                .await
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect();
+
             // Calculate statistics
-            cycles_results.sort();
-            let min_cycles = *cycles_results.first().unwrap();
-            let max_cycles = *cycles_results.last().unwrap();
-            let median_cycles = cycles_results[cycles_results.len() / 2];
-            let avg_cycles: f64 = cycles_results.iter().sum::<u64>() as f64 / cycles_results.len() as f64;
+            let (min_cycles, max_cycles, avg_cycles, median_cycles, std_dev, std_dev_percentage) = {
+                let min_cycles = *cycles_vec.iter().min().unwrap();
+                let max_cycles = *cycles_vec.iter().max().unwrap();
+                let avg_cycles = cycles_vec.iter().sum::<u64>() as f64 / num_simulations as f64;
+                let median_cycles = {
+                    let mut sorted = cycles_vec.clone();
+                    sorted.sort();
+                    sorted[num_simulations / 2]
+                };
+                let std_dev = {
+                    let variance =
+                        cycles_vec.iter().map(|&x| (x as f64 - avg_cycles).powi(2)).sum::<f64>()
+                            / num_simulations as f64;
+                    variance.sqrt()
+                };
+                let std_dev_percentage = (std_dev / avg_cycles) * 100.0;
+                (
+                    min_cycles,
+                    max_cycles,
+                    avg_cycles,
+                    median_cycles,
+                    std_dev,
+                    std_dev_percentage,
+                )
+            };
 
-            // Calculate standard deviation
-            let variance: f64 = cycles_results.iter()
-                .map(|&x| (x as f64 - avg_cycles).powi(2))
-                .sum::<f64>() / cycles_results.len() as f64;
-            let std_dev = variance.sqrt();
-
-            // Calculate the percentage of std_dev from avg_cycles
-            let std_dev_percentage = (std_dev / avg_cycles) * 100.0;
-
-            // Store the results for the current configuration
-            all_results.push((num_accounts, num_operations, min_cycles, max_cycles, median_cycles, avg_cycles, std_dev, std_dev_percentage));
+            // Store the results for this configuration
+            results.push(SimulationResult {
+                config: config.clone(),
+                min_cycles,
+                max_cycles,
+                avg_cycles,
+                median_cycles,
+                std_dev,
+                std_dev_percentage,
+            });
         }
 
-        // Show the results after all configurations have been run
-        println!("\nSummary of all configurations:");
-        println!("Ran all configurations {} times", num_simulations);
-        for (num_accounts, num_operations, min_cycles, max_cycles, median_cycles, avg_cycles, std_dev, std_dev_percentage) in all_results {
-            println!("Config: accounts = {}, ops = {}, min = {}, max = {}, median = {}, avg = {:.2}, std_dev = {:.2}, std_dev_percentage = {:.2}%", num_accounts, num_operations, min_cycles, max_cycles, median_cycles, avg_cycles, std_dev, std_dev_percentage);
+        println!("Running {} simulations for each configuration", num_simulations);
+
+        // Print all results after all configurations have been run
+        for result in results {
+            println!("--------------------------------");
+            println!("Results for configuration: {:?} which had {} runs", result.config, result.config.num_simulations);
+            println!("Min: {}, Max: {}, Avg: {:.2}, Median: {}, Std dev: {:.2}, Std dev percentage: {:.2}%", result.min_cycles, result.max_cycles, result.avg_cycles, result.median_cycles, result.std_dev, result.std_dev_percentage);
         }
     } else {
-        // Setup the inputs for a single configuration for proof generation.
-        let mut stdin = SP1Stdin::new();
-        let batch = create_automated_batch(1, 1, 10);
-        stdin.write(&batch);
+        // // Setup the inputs for a single configuration for proof generation.
+        // let mut stdin = SP1Stdin::new();
+        // let operations_batch,  = create_operations_batch(&vec!["account_1".to_string()], 10);
+        // stdin.write(&operations_batch);
 
-        // Setup the program for proving.
-        let (pk, vk) = client.setup(PRISM_ELF);
+        // // Setup the program for proving.
+        // let (pk, vk) = client.setup(PRISM_ELF);
 
-        // Generate the proof
-        let proof = client
-            .prove(&pk, &stdin)
-            .groth16()
-            .run()
-            .expect("failed to generate proof");
+        // // Generate the proof
+        // let proof = client
+        //     .prove(&pk, &stdin)
+        //     .groth16()
+        //     .run()
+        //     .expect("failed to generate proof");
 
-        println!("Successfully generated proof!");
+        // println!("Successfully generated proof!");
 
-        // Verify the proof.
-        client.verify(&proof, &vk).expect("failed to verify proof");
-        println!("Successfully verified proof!");
+        // // Verify the proof.
+        // client.verify(&proof, &vk).expect("failed to verify proof");
+        // println!("Successfully verified proof!");
     }
 }
