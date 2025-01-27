@@ -36,9 +36,6 @@ pub struct WebServer {
     pub session: Arc<Prover>,
 }
 
-#[derive(Deserialize, Debug, ToSchema)]
-pub struct TransactionRequest(Transaction);
-
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Hash(Digest);
 
