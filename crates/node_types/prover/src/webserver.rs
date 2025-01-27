@@ -131,7 +131,7 @@ impl WebServer {
 #[utoipa::path(
     post,
     path = "/transaction",
-    request_body = TransactionRequest,
+    request_body = Transaction,
     responses(
         (status = 200, description = "Entry update queued for insertion into next epoch"),
         (status = 400, description = "Bad request"),
@@ -140,9 +140,9 @@ impl WebServer {
 )]
 async fn post_transaction(
     State(session): State<Arc<Prover>>,
-    Json(tx_request): Json<TransactionRequest>,
+    Json(transaction): Json<Transaction>,
 ) -> impl IntoResponse {
-    match session.validate_and_queue_update(tx_request.0).await {
+    match session.validate_and_queue_update(transaction).await {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",
