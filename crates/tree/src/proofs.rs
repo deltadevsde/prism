@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::{bail, Context, Result};
 use jmt::{
-    proof::{SparseMerkleProof, UpdateMerkleProof},
+    proof::{SparseMerkleNode, SparseMerkleProof, UpdateMerkleProof},
     KeyHash, RootHash,
 };
 use prism_common::{
@@ -13,6 +13,7 @@ use prism_common::{
 };
 use prism_serde::binary::ToBinary;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::hasher::TreeHasher;
 
@@ -215,5 +216,31 @@ impl MerkleProof {
 
     pub fn verify_nonexistence(&self) -> Result<()> {
         self.proof.verify_nonexistence(RootHash(self.root.0), self.key)
+    }
+
+    pub fn hashed(self) -> HashedMerkleProof {
+        self.proof.into()
+    }
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct HashedMerkleProof {
+    pub leaf: Option<Digest>,
+    pub siblings: Vec<Digest>,
+}
+
+impl From<SparseMerkleProof<TreeHasher>> for HashedMerkleProof {
+    fn from(proof: SparseMerkleProof<TreeHasher>) -> Self {
+        let leaf_hash = proof.leaf().map(|node| node.hash::<TreeHasher>()).map(Digest::new);
+        let sibling_hashes = proof
+            .siblings()
+            .iter()
+            .map(SparseMerkleNode::hash::<TreeHasher>)
+            .map(Digest::new)
+            .collect();
+        Self {
+            leaf: leaf_hash,
+            siblings: sibling_hashes,
+        }
     }
 }

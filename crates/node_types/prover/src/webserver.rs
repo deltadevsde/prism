@@ -1,9 +1,8 @@
 use crate::Prover;
 use anyhow::{bail, Context, Result};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use jmt::proof::{SparseMerkleNode, SparseMerkleProof};
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
-use prism_tree::{hasher::TreeHasher, AccountResponse};
+use prism_tree::{proofs::HashedMerkleProof, AccountResponse as TreeAccountResponse};
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
@@ -49,36 +48,14 @@ pub struct UserKeyRequest {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct UserKeyResponse {
+pub struct AccountResponse {
     pub account: Option<Account>,
-    pub proof: JmtProofResponse,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct JmtProofResponse {
-    pub leaf: Option<Digest>,
-    pub siblings: Vec<Digest>,
+    pub proof: HashedMerkleProof,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct CommitmentResponse {
     commitment: Digest,
-}
-
-impl From<SparseMerkleProof<TreeHasher>> for JmtProofResponse {
-    fn from(proof: SparseMerkleProof<TreeHasher>) -> Self {
-        let leaf_hash = proof.leaf().map(|node| node.hash::<TreeHasher>()).map(Digest::new);
-        let sibling_hashes = proof
-            .siblings()
-            .iter()
-            .map(SparseMerkleNode::hash::<TreeHasher>)
-            .map(Digest::new)
-            .collect();
-        Self {
-            leaf: leaf_hash,
-            siblings: sibling_hashes,
-        }
-    }
 }
 
 #[derive(OpenApi)]
@@ -165,7 +142,7 @@ async fn post_transaction(
     path = "/get-account",
     request_body = UserKeyRequest,
     responses(
-        (status = 200, description = "Successfully retrieved valid keys", body = UserKeyResponse),
+        (status = 200, description = "Successfully retrieved valid keys", body = AccountResponse),
         (status = 400, description = "Bad request")
     )
 )]
@@ -186,19 +163,19 @@ async fn get_account(
     };
 
     match account_response {
-        AccountResponse::Found(account, membership_proof) => (
+        TreeAccountResponse::Found(account, membership_proof) => (
             StatusCode::OK,
-            Json(UserKeyResponse {
+            Json(AccountResponse {
                 account: Some(*account),
-                proof: JmtProofResponse::from(membership_proof.proof),
+                proof: membership_proof.hashed(),
             }),
         )
             .into_response(),
-        AccountResponse::NotFound(non_membership_proof) => (
+        TreeAccountResponse::NotFound(non_membership_proof) => (
             StatusCode::OK,
-            Json(UserKeyResponse {
+            Json(AccountResponse {
                 account: None,
-                proof: JmtProofResponse::from(non_membership_proof.proof),
+                proof: non_membership_proof.hashed(),
             }),
         )
             .into_response(),
