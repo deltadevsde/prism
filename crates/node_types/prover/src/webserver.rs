@@ -37,9 +37,6 @@ pub struct WebServer {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct Hash(Digest);
-
-#[derive(Serialize, Deserialize, ToSchema)]
 pub struct UserKeyRequest {
     pub id: String,
 }
@@ -185,7 +182,7 @@ async fn get_account(
     get,
     path = "/get-current-commitment",
     responses(
-        (status = 200, description = "Successfully retrieved current commitment", body = Hash),
+        (status = 200, description = "Successfully retrieved current commitment", body = CommitmentResponse),
         (status = 500, description = "Internal server error")
     )
 )]
