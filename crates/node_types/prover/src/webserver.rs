@@ -37,18 +37,25 @@ pub struct WebServer {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct UserKeyRequest {
+/// Request to retrieve account information
+pub struct AccountRequest {
+    /// Identifier for the account to look up
     pub id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+/// Response containing account data and a corresponding Merkle proof
 pub struct AccountResponse {
+    /// The account if found, or None if not found
     pub account: Option<Account>,
+    /// Merkle proof for account membership or non-membership
     pub proof: HashedMerkleProof,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+/// Response representing a cryptographic commitment towards the current state of prism
 pub struct CommitmentResponse {
+    /// Commitment as root hash of Merkle tree
     commitment: Digest,
 }
 
@@ -134,7 +141,7 @@ async fn post_transaction(
 #[utoipa::path(
     post,
     path = "/get-account",
-    request_body = UserKeyRequest,
+    request_body = AccountRequest,
     responses(
         (status = 200, description = "Successfully retrieved valid keys", body = AccountResponse),
         (status = 400, description = "Bad request")
@@ -142,7 +149,7 @@ async fn post_transaction(
 )]
 async fn get_account(
     State(session): State<Arc<Prover>>,
-    Json(request): Json<UserKeyRequest>,
+    Json(request): Json<AccountRequest>,
 ) -> impl IntoResponse {
     let get_account_result = session.get_account(&request.id).await;
     let Ok(account_response) = get_account_result else {

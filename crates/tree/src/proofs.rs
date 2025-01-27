@@ -224,8 +224,20 @@ impl MerkleProof {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+#[schema(example = r#"{
+    "leaf": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "siblings": [
+        "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        "9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba"
+    ]
+}"#)]
+/// A compact representation of a Merkle proof where the nodes are represented by their hash values.
+/// Used to verify the inclusion or exclusion of data in a Merkle tree.
 pub struct HashedMerkleProof {
+    /// The hash of the leaf node being proven, if it exists.
+    /// None if proving non-existence.
     pub leaf: Option<Digest>,
+    /// The hashes of sibling nodes along the path from the leaf to the root.
     pub siblings: Vec<Digest>,
 }
 

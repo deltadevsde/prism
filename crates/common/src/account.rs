@@ -10,8 +10,15 @@ use crate::{
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
+/// A structure representing data signed by an (external) key.
 pub struct SignedData {
+    /// The key that signed the data
     pub key: VerifyingKey,
+    /// The signed data as bytes
+    #[schema(
+        value_type = String,
+        format = Byte,
+        example = "jMaZEeHpjIrpO33dkS223jPhurSFixoDJUzNWBAiZKA")]
     #[serde(with = "raw_or_b64")]
     pub data: Vec<u8>,
 }
