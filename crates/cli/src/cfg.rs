@@ -5,7 +5,9 @@ use dirs::home_dir;
 use dotenvy::dotenv;
 use log::{error, warn};
 use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_keys::VerifyingKey;
 use prism_prover::webserver::WebServerConfig;
+use prism_serde::base64::FromBase64;
 use prism_storage::{
     database::StorageBackend,
     inmemory::InMemoryDatabase,
@@ -14,7 +16,7 @@ use prism_storage::{
     Database, RedisConnection,
 };
 use serde::{Deserialize, Serialize};
-use std::{fs, path::Path, sync::Arc};
+use std::{fs, path::Path, str::FromStr, sync::Arc};
 
 use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
@@ -22,6 +24,8 @@ use prism_da::{
     memory::InMemoryDataAvailabilityLayer,
     DataAvailabilityLayer,
 };
+
+use crate::network::{Network, NetworkConfig};
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
@@ -40,13 +44,8 @@ pub struct CommandArgs {
     network_name: Option<String>,
 
     #[arg(long)]
+    /// Prover's verifying key, used to verify epoch signatures. Expected to be a base64-encoded string.
     verifying_key: Option<String>,
-
-    /// The algorithm used for the verifying key.
-    ///
-    /// Can be one of: `ed25519`, `secp256k1`, `secp256r1`.
-    #[arg(long, default_value = "ed25519")]
-    verifying_key_algorithm: Option<String>,
 
     #[arg(long)]
     home_path: Option<String>,
@@ -107,23 +106,18 @@ struct WebserverArgs {
 pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub webserver: Option<WebServerConfig>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub celestia_config: Option<CelestiaConfig>,
+    pub network: NetworkConfig,
     pub da_layer: DALayerOption,
     pub db: StorageBackend,
-    pub verifying_key: Option<String>,
-    pub verifying_key_algorithm: String,
 }
 
 impl Config {
-    fn with_home(path: &str) -> Self {
+    fn initialize(path: &str, network_name: &str) -> Self {
         Config {
             webserver: Some(WebServerConfig::default()),
-            celestia_config: Some(CelestiaConfig::default()),
+            network: Network::from_str(network_name).unwrap().config(),
             da_layer: DALayerOption::default(),
-            db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}/data", path))),
-            verifying_key: None,
-            verifying_key_algorithm: "ed25519".to_string(),
+            db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
         }
     }
 }
@@ -165,7 +159,11 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
 
     let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
 
-    ensure_config_file_exists(&home_path).context("Failed to ensure config file exists")?;
+    ensure_config_file_exists(
+        &home_path,
+        &args.clone().network_name.unwrap_or("custom".to_string()),
+    )
+    .context("Failed to ensure config file exists")?;
 
     if let Some(rocksdb_path) = &args.database.rocksdb_path {
         fs::create_dir_all(rocksdb_path).context("Failed to create RocksDB directory")?;
@@ -181,8 +179,8 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
 
     let final_config = apply_command_line_args(loaded_config, args);
 
-    if final_config.verifying_key.is_none() {
-        warn!("prover's public key was not provided. this is not recommended and epoch signatures will not be verified.");
+    if final_config.network.verifying_key.is_none() {
+        warn!("prover's verifying key was not provided. this is not recommended and epoch signatures will not be verified.");
     }
 
     Ok(final_config)
@@ -200,14 +198,14 @@ fn get_prism_home(args: &CommandArgs) -> Result<String> {
         })
 }
 
-fn ensure_config_file_exists(home_path: &str) -> Result<()> {
+fn ensure_config_file_exists(home_path: &str, network_name: &str) -> Result<()> {
     let config_path = &format!("{}/config.toml", home_path);
     if !Path::new(config_path).exists() {
         if let Some(parent) = Path::new(config_path).parent() {
             fs::create_dir_all(parent).context("Failed to create config directory")?;
         }
 
-        let default_config = Config::with_home(home_path);
+        let default_config = Config::initialize(home_path, network_name);
         let config_toml =
             toml::to_string(&default_config).context("Failed to serialize default config")?;
 
@@ -218,8 +216,31 @@ fn ensure_config_file_exists(home_path: &str) -> Result<()> {
 
 fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
     let webserver_config = &config.webserver.unwrap_or_default();
-    let celestia_config = &config.celestia_config.unwrap_or_default();
+    let network_config = &config.network.network.config();
     let prism_home = get_prism_home(&args.clone()).unwrap();
+
+    let default_celestia_config = CelestiaConfig::default();
+    let celestia_config = match config.da_layer {
+        DALayerOption::Celestia => Some(CelestiaConfig {
+            connection_string: args
+                .celestia
+                .celestia_client
+                .unwrap_or(default_celestia_config.connection_string),
+            start_height: args
+                .celestia
+                .celestia_start_height
+                .unwrap_or(default_celestia_config.start_height),
+            snark_namespace_id: args
+                .celestia
+                .snark_namespace_id
+                .unwrap_or(default_celestia_config.snark_namespace_id),
+            operation_namespace_id: args
+                .celestia
+                .operation_namespace_id
+                .unwrap_or(default_celestia_config.operation_namespace_id),
+        }),
+        DALayerOption::InMemory => None,
+    };
 
     Config {
         webserver: Some(WebServerConfig {
@@ -236,29 +257,16 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             }),
             DBValues::InMemory => StorageBackend::InMemory,
         },
-        celestia_config: Some(CelestiaConfig {
-            connection_string: args
-                .celestia
-                .celestia_client
-                .unwrap_or(celestia_config.connection_string.clone()),
-            start_height: args
-                .celestia
-                .celestia_start_height
-                .unwrap_or(celestia_config.start_height),
-            snark_namespace_id: args
-                .celestia
-                .snark_namespace_id
-                .unwrap_or(celestia_config.snark_namespace_id.clone()),
-            operation_namespace_id: args
-                .celestia
-                .operation_namespace_id
-                .unwrap_or(celestia_config.operation_namespace_id.clone()),
-        }),
+        network: NetworkConfig {
+            network: Network::from_str(&args.network_name.unwrap_or_default()).unwrap(),
+            celestia_network: network_config.celestia_network,
+            verifying_key: args
+                .verifying_key
+                .and_then(|x| VerifyingKey::from_base64(x).ok())
+                .or(network_config.clone().verifying_key),
+            celestia_config,
+        },
         da_layer: config.da_layer,
-        verifying_key: args.verifying_key.or(config.verifying_key),
-        verifying_key_algorithm: args
-            .verifying_key_algorithm
-            .unwrap_or(config.verifying_key_algorithm),
     }
 }
 
@@ -288,8 +296,11 @@ pub async fn initialize_da_layer(
 ) -> Result<Arc<dyn DataAvailabilityLayer + 'static>> {
     match config.da_layer {
         DALayerOption::Celestia => {
-            let celestia_conf =
-                config.celestia_config.clone().context("Celestia configuration not found")?;
+            let celestia_conf = config
+                .network
+                .celestia_config
+                .clone()
+                .context("Celestia configuration not found")?;
 
             for attempt in 1..=DA_RETRY_COUNT {
                 match CelestiaConnection::new(&celestia_conf, None).await {

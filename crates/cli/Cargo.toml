@@ -14,6 +14,7 @@ test_utils = []
 mock_prover = []
 
 [dependencies]
+lumina-node = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
@@ -33,3 +34,5 @@ prism-prover = { workspace = true }
 prism-lightclient = { workspace = true }
 prism-da = { workspace = true }
 prism-keys = { workspace = true }
+prism-serde = { workspace = true }
+celestia-types = { workspace = true }
