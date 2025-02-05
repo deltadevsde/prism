@@ -20,9 +20,11 @@ use prism_tree::{
 };
 use rand::Rng;
 use sha2::{Digest, Sha256, Sha512};
-use sp1_sdk::{ProverClient, SP1Stdin};
+use sp1_sdk::{ProverClient, SP1Stdin, Prover};
 use std::sync::Arc;
 use tokio::{self, task};
+use std::time::Instant;
+
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -248,26 +250,34 @@ async fn main() {
     if args.execute {
         execute_simulations(args).await;
     } else {
-        // // Setup the inputs for a single configuration for proof generation.
-        // let mut stdin = SP1Stdin::new();
-        // let operations_batch,  = create_operations_batch(&vec!["account_1".to_string()], 10);
-        // stdin.write(&operations_batch);
+        // Setup the prover client with CUDA support.
+        let client = ProverClient::builder().cuda().build();
 
-        // // Setup the program for proving.
-        // let (pk, vk) = client.setup(PRISM_ELF);
+        // Setup the inputs for a single configuration for proof generation.
+        let mut stdin = SP1Stdin::new();
+        let mut builder = TransactionBuilder::new();
+        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+        let config = SimulationConfig::default();
+        let operations_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
+        stdin.write(&operations_batch);
 
-        // // Generate the proof
-        // let proof = client
-        //     .prove(&pk, &stdin)
-        //     .groth16()
-        //     .run()
-        //     .expect("failed to generate proof");
+        // Setup the program for proving.
+        let (pk, vk) = client.setup(PRISM_ELF);
 
-        // println!("Successfully generated proof!");
+        // Measure the time taken to generate the proof
+        let start = Instant::now();
+        let proof = client
+            .prove(&pk, &stdin)
+            .groth16()
+            .run()
+            .expect("failed to generate proof");
+        let duration = start.elapsed();
 
-        // // Verify the proof.
-        // client.verify(&proof, &vk).expect("failed to verify proof");
-        // println!("Successfully verified proof!");
+        println!("Successfully generated proof in {:.2?} seconds!", duration);
+
+        // Verify the proof.
+        client.verify(&proof, &vk).expect("failed to verify proof");
+        println!("Successfully verified proof!");
     }
 }
 
