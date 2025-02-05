@@ -12,9 +12,12 @@ use prism_da::{
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
-use prism_storage::{rocksdb::RocksDBConnection, Database};
+use prism_storage::{
+    rocksdb::{RocksDBConfig, RocksDBConnection},
+    Database,
+};
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use sp1_sdk::{HashableKey, ProverClient};
+use sp1_sdk::{HashableKey, Prover as _, ProverClient};
 use std::sync::Arc;
 use tokio::{spawn, time::Duration};
 
@@ -24,7 +27,8 @@ pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkv
 
 fn setup_db() -> Arc<Box<dyn Database>> {
     let temp_dir = TempDir::new().unwrap();
-    let db = RocksDBConnection::new(temp_dir.path().to_str().unwrap()).unwrap();
+    let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
+    let db = RocksDBConnection::new(&cfg).unwrap();
     Arc::new(Box::new(db) as Box<dyn Database>)
 }
 
@@ -36,7 +40,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     );
     pretty_env_logger::init();
 
-    let prover_client = ProverClient::mock();
+    let prover_client = ProverClient::builder().mock().build();
 
     let (_, vk) = prover_client.setup(PRISM_ELF);
 
@@ -73,7 +77,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     let lightclient = Arc::new(LightClient::new(
         lc_da_layer.clone(),
-        lc_cfg,
+        lc_cfg.start_height,
         Some(pubkey),
         vk.bytes32(),
     ));

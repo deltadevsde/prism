@@ -145,29 +145,6 @@ install-deps:
     done; \
   fi
 
-  # Install Redis if not present
-  if ! command -v redis-server > /dev/null; then \
-    echo "Installing Redis..."; \
-    if [ "$OS" = "Mac" ]; then \
-      if ! command -v brew > /dev/null; then \
-        echo "Homebrew is not installed. Please install Homebrew first."; \
-        exit 1; \
-      fi; \
-      brew install redis; \
-    elif [ "$OS" = "Linux" ]; then \
-      if {{is_root}}; then \
-        apt update; \
-        apt install redis-server -y; \
-      else \
-        sudo apt update; \
-        sudo apt install redis-server -y; \
-      fi; \
-    fi; \
-    echo "Redis installation complete!"; \
-  else \
-    echo "Redis is already installed."; \
-  fi
-
   if ! cargo prove --version > /dev/null 2>&1; then \
     echo "Installing SP1..."
     curl -L https://sp1.succinct.xyz | bash; \

@@ -9,7 +9,11 @@ use crate::{
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct SignedData(pub VerifyingKey, #[serde(with = "raw_or_b64")] pub Vec<u8>);
+pub struct SignedData {
+    pub key: VerifyingKey,
+    #[serde(with = "raw_or_b64")]
+    pub data: Vec<u8>,
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
 /// Represents an account or service on prism, making up the values of our state
@@ -169,19 +173,19 @@ impl Account {
                 data,
                 data_signature,
             } => {
-                self.signed_data.push(SignedData(
-                    data_signature.verifying_key.clone(),
-                    data.clone(),
-                ));
+                self.signed_data.push(SignedData {
+                    key: data_signature.verifying_key.clone(),
+                    data: data.clone(),
+                });
             }
             Operation::SetData {
                 data,
                 data_signature,
             } => {
-                self.signed_data = vec![SignedData(
-                    data_signature.verifying_key.clone(),
-                    data.clone(),
-                )];
+                self.signed_data = vec![SignedData {
+                    key: data_signature.verifying_key.clone(),
+                    data: data.clone(),
+                }];
             }
             Operation::CreateAccount { id, key, .. } => {
                 self.id = id.clone();
