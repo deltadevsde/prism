@@ -1,23 +1,17 @@
 use crate::Prover;
 use anyhow::{bail, Context, Result};
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
-use jmt::proof::{SparseMerkleNode, SparseMerkleProof};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
-use prism_tree::{
-    hasher::TreeHasher,
-    proofs::{Proof, UpdateProof},
-    AccountResponse,
-};
+use prism_tree::{proofs::HashedMerkleProof, AccountResponse as TreeAccountResponse};
 use serde::{Deserialize, Serialize};
-use std::{self, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
+use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-use utoipa::{OpenApi, ToSchema};
+use utoipa::{
+    openapi::{Info, OpenApiBuilder},
+    OpenApi, ToSchema,
+};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -43,73 +37,29 @@ pub struct WebServer {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct EpochData {
-    epoch_number: u64,
-    previous_commitment: String,
-    current_commitment: String,
-    proofs: Vec<Proof>,
-}
-
-#[derive(Deserialize, Debug, ToSchema)]
-pub struct TransactionRequest(Transaction);
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct UpdateProofResponse(UpdateProof);
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct Hash(Digest);
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct UserKeyRequest {
+/// Request to retrieve account information
+pub struct AccountRequest {
+    /// Identifier for the account to look up
     pub id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct UserKeyResponse {
+/// Response containing account data and a corresponding Merkle proof
+pub struct AccountResponse {
+    /// The account if found, or None if not found
     pub account: Option<Account>,
-    pub proof: JmtProofResponse,
+    /// Merkle proof for account membership or non-membership
+    pub proof: HashedMerkleProof,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct JmtProofResponse {
-    pub leaf: Option<Digest>,
-    pub siblings: Vec<Digest>,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
+/// Response representing a cryptographic commitment towards the current state of prism
 pub struct CommitmentResponse {
+    /// Commitment as root hash of Merkle tree
     commitment: Digest,
 }
 
-impl From<SparseMerkleProof<TreeHasher>> for JmtProofResponse {
-    fn from(proof: SparseMerkleProof<TreeHasher>) -> Self {
-        let leaf_hash = proof.leaf().map(|node| node.hash::<TreeHasher>()).map(Digest::new);
-        let sibling_hashes = proof
-            .siblings()
-            .iter()
-            .map(SparseMerkleNode::hash::<TreeHasher>)
-            .map(Digest::new)
-            .collect();
-        Self {
-            leaf: leaf_hash,
-            siblings: sibling_hashes,
-        }
-    }
-}
-
 #[derive(OpenApi)]
-#[openapi(
-    paths(post_transaction, get_account, get_commitment),
-    components(schemas(
-        TransactionRequest,
-        EpochData,
-        UpdateProofResponse,
-        Hash,
-        UserKeyRequest,
-        UserKeyResponse,
-        JmtProofResponse
-    ))
-)]
 struct ApiDoc;
 
 impl WebServer {
@@ -122,18 +72,26 @@ impl WebServer {
             bail!("Webserver is disabled")
         }
 
-        let app = Router::new()
-            .route("/transaction", post(post_transaction))
-            .route("/get-account", post(get_account))
-            .route("/get-current-commitment", get(get_commitment))
-            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+            .routes(routes!(get_account))
+            .routes(routes!(post_transaction))
+            .routes(routes!(get_commitment))
             .layer(CorsLayer::permissive())
-            .with_state(self.session.clone());
+            .with_state(self.session.clone())
+            .split_for_parts();
 
-        let addr = format!("{}:{}", self.cfg.host, self.cfg.port);
-        let server = axum::Server::bind(&addr.parse().unwrap()).serve(app.into_make_service());
+        let api = OpenApiBuilder::from(api).info(Info::new("Prism Full Node API", "0.1.0")).build();
 
-        let socket_addr = server.local_addr();
+        let router = router.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api));
+
+        let addr = SocketAddr::new(
+            self.cfg.host.parse().expect("IP address can be parsed"),
+            self.cfg.port,
+        );
+        let listener = TcpListener::bind(addr).await.expect("Binding to address works");
+        let server = axum::serve(listener, router.into_make_service());
+
+        let socket_addr = server.local_addr()?;
         info!(
             "Starting webserver on {}:{}",
             self.cfg.host,
@@ -151,7 +109,7 @@ impl WebServer {
 #[utoipa::path(
     post,
     path = "/transaction",
-    request_body = TransactionRequest,
+    request_body = Transaction,
     responses(
         (status = 200, description = "Entry update queued for insertion into next epoch"),
         (status = 400, description = "Bad request"),
@@ -160,9 +118,9 @@ impl WebServer {
 )]
 async fn post_transaction(
     State(session): State<Arc<Prover>>,
-    Json(tx_request): Json<TransactionRequest>,
+    Json(transaction): Json<Transaction>,
 ) -> impl IntoResponse {
-    match session.validate_and_queue_update(tx_request.0).await {
+    match session.validate_and_queue_update(transaction).await {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",
@@ -183,15 +141,15 @@ async fn post_transaction(
 #[utoipa::path(
     post,
     path = "/get-account",
-    request_body = UserKeyRequest,
+    request_body = AccountRequest,
     responses(
-        (status = 200, description = "Successfully retrieved valid keys", body = UpdateKeyResponse),
+        (status = 200, description = "Successfully retrieved valid keys", body = AccountResponse),
         (status = 400, description = "Bad request")
     )
 )]
 async fn get_account(
     State(session): State<Arc<Prover>>,
-    Json(request): Json<UserKeyRequest>,
+    Json(request): Json<AccountRequest>,
 ) -> impl IntoResponse {
     let get_account_result = session.get_account(&request.id).await;
     let Ok(account_response) = get_account_result else {
@@ -206,19 +164,19 @@ async fn get_account(
     };
 
     match account_response {
-        AccountResponse::Found(account, membership_proof) => (
+        TreeAccountResponse::Found(account, membership_proof) => (
             StatusCode::OK,
-            Json(UserKeyResponse {
+            Json(AccountResponse {
                 account: Some(*account),
-                proof: JmtProofResponse::from(membership_proof.proof),
+                proof: membership_proof.hashed(),
             }),
         )
             .into_response(),
-        AccountResponse::NotFound(non_membership_proof) => (
+        TreeAccountResponse::NotFound(non_membership_proof) => (
             StatusCode::OK,
-            Json(UserKeyResponse {
+            Json(AccountResponse {
                 account: None,
-                proof: JmtProofResponse::from(non_membership_proof.proof),
+                proof: non_membership_proof.hashed(),
             }),
         )
             .into_response(),
@@ -231,7 +189,7 @@ async fn get_account(
     get,
     path = "/get-current-commitment",
     responses(
-        (status = 200, description = "Successfully retrieved current commitment", body = Hash),
+        (status = 200, description = "Successfully retrieved current commitment", body = CommitmentResponse),
         (status = 500, description = "Internal server error")
     )
 )]

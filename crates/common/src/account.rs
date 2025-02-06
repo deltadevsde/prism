@@ -2,20 +2,28 @@ use anyhow::{anyhow, Result};
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::{
     operation::{Operation, ServiceChallenge},
     transaction::Transaction,
 };
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
+/// A structure representing data signed by an (external) key.
 pub struct SignedData {
+    /// The key that signed the data
     pub key: VerifyingKey,
+    /// The signed data as bytes
+    #[schema(
+        value_type = String,
+        format = Byte,
+        example = "jMaZEeHpjIrpO33dkS223jPhurSFixoDJUzNWBAiZKA")]
     #[serde(with = "raw_or_b64")]
     pub data: Vec<u8>,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default, ToSchema)]
 /// Represents an account or service on prism, making up the values of our state
 /// tree.
 pub struct Account {

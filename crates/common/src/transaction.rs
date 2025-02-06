@@ -3,10 +3,11 @@ use celestia_types::Blob;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::binary::{FromBinary, ToBinary};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::operation::Operation;
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
 /// Represents a prism transaction that can be applied to an account.
 pub struct Transaction {
     /// The account id that this transaction is for
