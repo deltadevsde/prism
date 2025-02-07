@@ -2132,7 +2132,16 @@ version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
 dependencies = [
- "dirs-sys",
+ "dirs-sys 0.4.1",
+]
+
+[[package]]
+name = "dirs"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
+dependencies = [
+ "dirs-sys 0.5.0",
 ]
 
 [[package]]
@@ -2143,8 +2152,20 @@ checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users",
+ "redox_users 0.4.6",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users 0.5.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3906,13 +3927,14 @@ dependencies = [
 
 [[package]]
 name = "keystore-rs"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98b6fe982f4172201ea382c153201116de382d7839aef45ccde60707b1318c93"
+checksum = "f2896e336f64269ac8b40be9f9316c2704388584636d901488c531e897f31347"
 dependencies = [
  "aes-gcm",
  "anyhow",
  "base64 0.22.1",
+ "dirs 6.0.0",
  "dotenvy",
  "ed25519-consensus",
  "hex",
@@ -3920,6 +3942,8 @@ dependencies = [
  "mockall",
  "rand",
  "security-framework 3.2.0",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -5980,7 +6004,7 @@ dependencies = [
  "celestia-types",
  "clap",
  "config",
- "dirs",
+ "dirs 5.0.1",
  "dotenvy",
  "keystore-rs",
  "log",
@@ -6594,6 +6618,17 @@ dependencies = [
  "getrandom 0.2.15",
  "libredox",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "redox_users"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd6f9d3d47bdd2ad6945c5015a226ec6155d0bcdfd8f7cd29f86b71f8de99d2b"
+dependencies = [
+ "getrandom 0.2.15",
+ "libredox",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -7614,7 +7649,7 @@ dependencies = [
  "cargo_metadata",
  "chrono",
  "clap",
- "dirs",
+ "dirs 5.0.1",
 ]
 
 [[package]]
@@ -7800,7 +7835,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "clap",
- "dirs",
+ "dirs 5.0.1",
  "downloader",
  "eyre",
  "hex",
@@ -7984,7 +8019,7 @@ dependencies = [
  "backoff",
  "bincode",
  "cfg-if",
- "dirs",
+ "dirs 5.0.1",
  "futures",
  "hashbrown 0.14.5",
  "hex",

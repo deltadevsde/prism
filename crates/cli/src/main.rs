@@ -57,7 +57,7 @@ async fn main() -> std::io::Result<()> {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            info!("keystore type: {:?}", config.keystore_type);
+            info!("keystore type: {:?}", config.clone().keystore_type.unwrap_or_default());
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
             let verifying_key = signing_key.verifying_key();
@@ -85,7 +85,7 @@ async fn main() -> std::io::Result<()> {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            info!("keystore type: {:?}", config.keystore_type);
+            info!("keystore type: {:?}", config.clone().keystore_type.unwrap_or_default());
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
 
@@ -118,7 +118,11 @@ fn get_signing_key(
     keystore_path: Option<String>,
 ) -> std::io::Result<SigningKey> {
     let keystore: Box<dyn KeyStore> = match keystore_type.unwrap_or_default().as_str() {
-        "file" => Box::new(FileStore::new(keystore_path.unwrap_or_default().into())),
+        "file" => {
+            let file_store = FileStore::new(keystore_path.unwrap_or_default())
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            Box::new(file_store)
+        }
         "keychain" => Box::new(KeyChain),
         _ => {
             return Err(Error::new(ErrorKind::InvalidInput, "invalid keystore type"));
