@@ -43,6 +43,8 @@ async fn main() -> std::io::Result<()> {
         Commands::LightClient(_) => {
             let verifying_key = config.network.verifying_key;
 
+            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
+
             let client = ProverClient::from_env();
             let (_, vk) = client.setup(PRISM_ELF);
 
@@ -61,6 +63,8 @@ async fn main() -> std::io::Result<()> {
                 "keystore type: {:?}",
                 config.clone().keystore_type.unwrap_or_default()
             );
+
+            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
             let verifying_key = signing_key.verifying_key();
@@ -92,6 +96,8 @@ async fn main() -> std::io::Result<()> {
                 "keystore type: {:?}",
                 config.clone().keystore_type.unwrap_or_default()
             );
+
+            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
 
