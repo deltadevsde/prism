@@ -7,7 +7,7 @@ use clap::Parser;
 use keystore_rs::{FileStore, KeyChain, KeyStore};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
-use sp1_sdk::{HashableKey, Prover as _, ProverClient};
+use sp1_sdk::{HashableKey, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
@@ -43,7 +43,7 @@ async fn main() -> std::io::Result<()> {
         Commands::LightClient(_) => {
             let verifying_key = config.network.verifying_key;
 
-            let client = ProverClient::builder().mock().build();
+            let client = ProverClient::from_env();
             let (_, vk) = client.setup(PRISM_ELF);
 
             Arc::new(LightClient::new(
