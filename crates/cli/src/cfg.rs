@@ -130,7 +130,7 @@ impl Config {
         Config {
             webserver: Some(WebServerConfig::default()),
             keystore_type: Some("keychain".to_string()),
-            keystore_path: Some("~/.prism/keystore.json".to_string()),
+            keystore_path: Some(format!("{}keystore.json", path)),
             network: Network::from_str(network_name).unwrap().config(),
             da_layer: DALayerOption::default(),
             db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
