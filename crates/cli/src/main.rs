@@ -57,7 +57,10 @@ async fn main() -> std::io::Result<()> {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            info!("keystore type: {:?}", config.clone().keystore_type.unwrap_or_default());
+            info!(
+                "keystore type: {:?}",
+                config.clone().keystore_type.unwrap_or_default()
+            );
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
             let verifying_key = signing_key.verifying_key();
@@ -85,7 +88,10 @@ async fn main() -> std::io::Result<()> {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            info!("keystore type: {:?}", config.clone().keystore_type.unwrap_or_default());
+            info!(
+                "keystore type: {:?}",
+                config.clone().keystore_type.unwrap_or_default()
+            );
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
 
