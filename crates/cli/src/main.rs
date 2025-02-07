@@ -57,6 +57,8 @@ async fn main() -> std::io::Result<()> {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
+            info!("keystore type: {:?}", config.keystore_type);
+
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
             let verifying_key = signing_key.verifying_key();
 
@@ -82,6 +84,8 @@ async fn main() -> std::io::Result<()> {
         Commands::FullNode(_) => {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+
+            info!("keystore type: {:?}", config.keystore_type);
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
 
@@ -134,7 +138,7 @@ fn get_signing_key(
             .map_err(|e| {
                 Error::new(
                     ErrorKind::Other,
-                    format!("Failed to create signing key: {}", e),
+                    format!("Failed to parse signing key: {}", e),
                 )
             })?;
 
