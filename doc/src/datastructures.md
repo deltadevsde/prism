@@ -1,27 +1,36 @@
 # Prism Datastructures
 
-The main data structures we introduce here are [append-only hashchains](#append-only-hashchains) and [Jellyfish Merkle Trees](#jellyfish-merkle-trees).
+## Accounts
 
-## Append-only hashchains
+In Prism, Accounts are the values stored in the leaves of the key directory.
 
-In Prism, Hashchains are the values stored in the leaves of the key directory.
+```rust
+/// Represents an account or service on prism, making up the values of our state
+/// tree.
+pub struct Account {
+    /// The unique identifier for the account.
+    id: String,
 
-[Verdict](https://eprint.iacr.org/2021/1263.pdf) provides a good introductory definition of append-only hashchains:
+    /// The transaction nonce for the account.
+    nonce: u64,
 
-> In Verdict's transparency dictionary, the value associated with a label is an append-only hashchain of operations, where nodes store raw operations requested on the label, as well as the cryptographic hash of the previous node in the chain. For example, in the context of key transparency, a hashchain records two types of operations: (1) adding a new key; and (2) revoking an existing key [...]
+    /// The current set of valid keys for the account. Any of these keys can be
+    /// used to sign transactions.
+    valid_keys: Vec<VerifyingKey>,
 
-However, they do not provide a reference implementation. An implementation would conceivably include the following values:
+    /// Arbitrary signed data associated with the account, used for bookkeeping
+    /// externally signed data from keys that don't live on Prism.
+    signed_data: Vec<SignedData>,
 
-- **hash**: the following three elements are hashed in a hash function and the value is stored in this field
-- **previous hash**: a unique reference to the previous entry in the list, which depends on the contents of the entry as it contains the hashed values.
-- **operation**: The executed operation, or "transaction type". For the traditional key transparency use case, these operations are `ADD` and `REVOKE`.
-- **value**: Since we are still dealing with public keys, we need to know which keys are added or revoked in order to generate a list of valid, unrevoked keys from the operations.
+    /// The service challenge for the account, if it is a service.
+    service_challenge: Option<ServiceChallenge>,
+}
+
+```
 
 Users can register a unique ID in Prism using various [account sources](./labels.md). Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.
 
-<img class="theme-dependent-image" data-light-src="./img/hashchain_light.png" data-dark-src="./img/hashchain_dark.png" alt="Theme-dependent hashchain">
-
-The image above shows an example of a hashchain. An identifier refers to this hashchain. The individual elements of the hashchain contain the operation performed and the value that is added or revoked with the operation. In addition, each element contains a previous hash value, which makes the data structure a chain, since each element points to its predecessor. The first element of the hashchain has 0000... as its previous hash, which is comparable to a genesis block of a blockchain. Each element of the hashchain is uniquely identifiable by a hash value. This is created by giving all other values of the element into a hash function H: _H(previous Hash, operation, value) = hash_
+In addition to adding and revoking keys, we also support adding arbitrary data with the `AddData` and `SetData` operation. This data must either be signed by one of the user's own valid keys, or supplemented with an external key that applications can interpret themselves. This data is stored in the account and can be used for various purposes, such as storing metadata or other information.
 
 ## Jellyfish Merkle Trees
 

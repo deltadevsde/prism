@@ -199,8 +199,8 @@ fn test_data_ops(algorithm: CryptoAlgorithm) {
     assert!(membership_proof.verify_existence(&account).is_ok());
 
     // Verify data contents
-    assert_eq!(account.signed_data()[0].1, b"test data 1".to_vec());
-    assert_eq!(account.signed_data()[1].1, b"test data 2".to_vec());
+    assert_eq!(account.signed_data()[0].data, b"test data 1".to_vec());
+    assert_eq!(account.signed_data()[1].data, b"test data 2".to_vec());
     assert_eq!(account.signed_data().len(), 2);
 
     // Ensure that setData replaces, not appends
@@ -221,7 +221,7 @@ fn test_data_ops(algorithm: CryptoAlgorithm) {
     };
 
     // Verify data contents - should only have latest value
-    assert_eq!(account.signed_data()[0].1, b"replacement data".to_vec());
+    assert_eq!(account.signed_data()[0].data, b"replacement data".to_vec());
     assert_eq!(account.signed_data().len(), 1);
 
     // Ensure incorrectly signed data leads to error

@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="rollup.html">Rollup Construction</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
+                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="rollup.html">Rollup Construction</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Mammothon</li><li class="chapter-item "><a href="tutorial.html">Tutorial</a></li><li class="chapter-item "><a href="mammothon/ct-service.html">CT Browser Extension</a></li><li class="chapter-item "><a href="mammothon/reclaim.html">Web Proofs</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -258,23 +258,34 @@
 <p>This integration with Celestia not only bolsters Prism's scalability and security but also establishes a robust framework for end-to-end encrypted communication systems that rely on a decentralized key directory.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="prism-datastructures"><a class="header" href="#prism-datastructures">Prism Datastructures</a></h1>
-<p>The main data structures we introduce here are <a href="datastructures.html#append-only-hashchains">append-only hashchains</a> and <a href="datastructures.html#jellyfish-merkle-trees">Jellyfish Merkle Trees</a>.</p>
-<h2 id="append-only-hashchains"><a class="header" href="#append-only-hashchains">Append-only hashchains</a></h2>
-<p>In Prism, Hashchains are the values stored in the leaves of the key directory.</p>
-<p><a href="https://eprint.iacr.org/2021/1263.pdf">Verdict</a> provides a good introductory definition of append-only hashchains:</p>
-<blockquote>
-<p>In Verdict's transparency dictionary, the value associated with a label is an append-only hashchain of operations, where nodes store raw operations requested on the label, as well as the cryptographic hash of the previous node in the chain. For example, in the context of key transparency, a hashchain records two types of operations: (1) adding a new key; and (2) revoking an existing key [...]</p>
-</blockquote>
-<p>However, they do not provide a reference implementation. An implementation would conceivably include the following values:</p>
-<ul>
-<li><strong>hash</strong>: the following three elements are hashed in a hash function and the value is stored in this field</li>
-<li><strong>previous hash</strong>: a unique reference to the previous entry in the list, which depends on the contents of the entry as it contains the hashed values.</li>
-<li><strong>operation</strong>: The executed operation, or "transaction type". For the traditional key transparency use case, these operations are <code>ADD</code> and <code>REVOKE</code>.</li>
-<li><strong>value</strong>: Since we are still dealing with public keys, we need to know which keys are added or revoked in order to generate a list of valid, unrevoked keys from the operations.</li>
-</ul>
+<h2 id="accounts"><a class="header" href="#accounts">Accounts</a></h2>
+<p>In Prism, Accounts are the values stored in the leaves of the key directory.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Represents an account or service on prism, making up the values of our state
+/// tree.
+pub struct Account {
+    /// The unique identifier for the account.
+    id: String,
+
+    /// The transaction nonce for the account.
+    nonce: u64,
+
+    /// The current set of valid keys for the account. Any of these keys can be
+    /// used to sign transactions.
+    valid_keys: Vec&lt;VerifyingKey&gt;,
+
+    /// Arbitrary signed data associated with the account, used for bookkeeping
+    /// externally signed data from keys that don't live on Prism.
+    signed_data: Vec&lt;SignedData&gt;,
+
+    /// The service challenge for the account, if it is a service.
+    service_challenge: Option&lt;ServiceChallenge&gt;,
+}
+
+<span class="boring">}</span></code></pre></pre>
 <p>Users can register a unique ID in Prism using various <a href="./labels.html">account sources</a>. Any number of additional public keys can then be added, and keys that have already been added can be revoked. The prerequisite for adding new keys or revoking existing keys is that the operation has been signed with a private key associated with some unrevoked public key of that ID.</p>
-<img class="theme-dependent-image" data-light-src="./img/hashchain_light.png" data-dark-src="./img/hashchain_dark.png" alt="Theme-dependent hashchain">
-<p>The image above shows an example of a hashchain. An identifier refers to this hashchain. The individual elements of the hashchain contain the operation performed and the value that is added or revoked with the operation. In addition, each element contains a previous hash value, which makes the data structure a chain, since each element points to its predecessor. The first element of the hashchain has 0000... as its previous hash, which is comparable to a genesis block of a blockchain. Each element of the hashchain is uniquely identifiable by a hash value. This is created by giving all other values of the element into a hash function H: <em>H(previous Hash, operation, value) = hash</em></p>
+<p>In addition to adding and revoking keys, we also support adding arbitrary data with the <code>AddData</code> and <code>SetData</code> operation. This data must either be signed by one of the user's own valid keys, or supplemented with an external key that applications can interpret themselves. This data is stored in the account and can be used for various purposes, such as storing metadata or other information.</p>
 <h2 id="jellyfish-merkle-trees"><a class="header" href="#jellyfish-merkle-trees">Jellyfish Merkle Trees</a></h2>
 <p>Prism uses <a href="https://developers.diem.com/papers/jellyfish-merkle-tree/2021-01-14.pdf">Jellyfish Merkle Trees</a> (JMT) instead of indexed Merkle trees. JMTs are a space-and-computation-efficient sparse Merkle tree optimized for Log-Structured Merge-tree (LSM-tree) based key-value storage.</p>
 <p>Key features of Jellyfish Merkle Trees include:</p>
@@ -318,18 +329,17 @@
 <p>Once a new user is added to the JMT, we know that all updates to a hashchain are valid by construction - updates must be signed by an already existing key in the hashchain. But who gets to add the first key for a user? Why should we trust that the first key added actually comes from the user?</p>
 <h2 id="high-level-overview"><a class="header" href="#high-level-overview">High Level Overview</a></h2>
 <p>The entries in the transparency dictionary are indexed by labels. These labels are arbitrary strings, and in the majority of the documentation we simplify the type of label to an email address.</p>
-<p>But to add a new email address/phone number for a user, the owner of that resource must be able to prove that they own it. This is done by means of a centralized service that verifies resource ownership. Once a user has verified ownership of an email address, the sequencer adds an entry to the hashchain.</p>
+<p>But to add a new email address/phone number for a user, the owner of that resource must be able to prove that they own it. This is done by means of a centralized service that verifies resource ownership. Once a user has verified ownership of an email address, the sequencer adds an entry to the account.</p>
 <p>We must move away from this, as it is both not scalable and not trust-minimized. We will register services such as <a href="https://prove.email/">zkEmail</a> and <a href="https://tlsnotary.org/">TLSNotary</a> to provide resource ownership proofs. This will allow us to move to a trust-minimized system where the user can add their own account to the state directly by posting to the DA layer.</p>
 <p>See more in <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-002-create-account-op.md">adr-002 (Account Sources)</a> and <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">adr-003 (Service Registration)</a>.</p>
 <h2 id="account-creation-and-service-registration"><a class="header" href="#account-creation-and-service-registration">Account Creation and Service Registration</a></h2>
 <p>In the current design, account creation is managed through <a href="https://github.com/deltadevsde/prism/blob/main/adr/adr-003-service-registration.md">registered services</a>. Here's how it works:</p>
 <ol>
 <li>Services must be registered in the system via a <code>RegisterService</code> operation.</li>
-<li>Initially, service registration will be permissioned, requiring a signature from the prover.</li>
 <li>Each service defines a specific challenge that must be completed to create an account. This could be either a signature check or providing a groth16 proof.</li>
 <li>Users create accounts by completing the service-specific challenge.</li>
 </ol>
-<p>This approach allows for flexibility while maintaining control over account creation. It also paves the way for more decentralized account creation methods in the future.</p>
+<p>This approach allows for flexibility while maintaining control over account creation.</p>
 <h2 id="other-considerations"><a class="header" href="#other-considerations">Other Considerations</a></h2>
 <p>If all labels were stored in plaintext, services would be vulnerable to enumeration attacks. A simple protection against this is to hash identifiers, meaning users must know the ID plaintext before resolving the user's hashchain. However, this is not a strong attack prevention, as hash functions are publically known.</p>
 <p>For this reason, we distinguish between the notion of public  and private services.</p>
@@ -348,7 +358,7 @@
 <p>This construction allows for some interesting application-layer protocols that can be added. For example, we are adding a transaction type for registering a service. These services register with a public key or groth16 verifying key and service identifier. Then, a validity rule is added for full nodes that new entries to the JMT, if preceded by the service identifier, must be signed by the service provider's keypair or provide a valid groth16 proof for the corresponding verifying key.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="adherance-to-application-specific-guidelines"><a class="header" href="#adherance-to-application-specific-guidelines">Adherance to application-specific guidelines</a></h1>
-<p>We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Because Prism uses append-only hashchains, and all state transition circuits do not allow for label removal, the monotonic growth of the labels is ensured by the epoch proofs.</p>
+<p>We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the account's current keyset is valid given the history of addition and removal operations performed on the account.</p>
 <h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
 <p>JMT incorporates versioning, which is crucial for its operations. Each update to the tree creates a new version, allowing for efficient historical queries and updates. The version is part of the node key structure:</p>
 <pre><code class="language-bash">version || nibble path
@@ -371,13 +381,9 @@ Once we have found the location, there are two possibilities: either it is an in
 <p><strong>Update ancestors version</strong>
 The versions of all nodes that have been traversed along the way are then updated to the latest version.</p>
 <h2 id="proof-of-update"><a class="header" href="#proof-of-update">Proof-of-Update</a></h2>
-<p>The proof that an update operation was executed correctly, i.e. a proof-of-update, means that the operation list (hashchain) for an already existing identifier has been updated by one operation correctly. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier. In any case, this means that another entry has been added to the hashchain in which the operations are stored.</p>
-<blockquote>
-<p><strong>Note</strong>
-Obviously, this means that the last hash of the hashchain, which is crucial for the label-value pair in the Merkle tree, also has a new value.</p>
-</blockquote>
-<p>The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
-To proof the update, it is sufficient if we consider the old root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf, so to say. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.</p>
+<p>The proof that an update operation was executed correctly, i.e. a proof-of-update, means that the key set for an already existing identifier has been updated by one operation correctly. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier.</p>
+<p>The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (e.g., an e-mail address).
+To prove the update, it is sufficient if we consider the previous state root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.</p>
 <p>In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.</p>
 <h2 id="proof-of-insert"><a class="header" href="#proof-of-insert">Proof-of-Insert</a></h2>
 <p>Insertion proofs consist of the inserted key, a non-membership proof of the node in the current tree, a membership proof of the new node in the JMT, and the updated merkle root.</p>
@@ -521,6 +527,388 @@ We're actively working on the next steps:</p>
 </ol>
 <p><img src="./img/architecturehor-08.png" alt="Architecture" /></p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="basic-service-tutorial"><a class="header" href="#basic-service-tutorial">Basic Service Tutorial</a></h1>
+<h2 id="introduction"><a class="header" href="#introduction">Introduction</a></h2>
+<p>This tutorial will guide you through initializing a prism service - not one that does anything useful, but it will give an example for what interacting with prism in a primitive way looks like.</p>
+<blockquote>
+<p>Note: This tutorial is only a rough outline, and we recommend <a href="https://telegram.me/distractedm1nd">reaching out</a> with any questions that come up. The sdk/api is in a very early alpha state and is subject to change.</p>
+</blockquote>
+<p>Prism services are the basis for creating new accounts in the prism protocol.
+To learn more, see <a href="./labels.html">labels</a>.</p>
+<p>We will cover:</p>
+<ol>
+<li>Starting a <a href="./architechture.html">local prism devnet</a></li>
+<li>Registering a test <a href="./labels.html">service</a></li>
+<li>Creating <a href="./datastructures.html">accounts</a> from your service</li>
+<li>Adding keys and data to existing accounts</li>
+</ol>
+<h2 id="step-1-create-a-new-project"><a class="header" href="#step-1-create-a-new-project">Step 1: Create a new project</a></h2>
+<p>We will start by using the <a href="https://github.com/deltadevsde/prism-service-example">prism starter template</a> to create a new project, then walk through the boilerplate code.</p>
+<p>Clone the repo <a href="https://github.com/deltadevsde/prism-service-example">here</a> and install our dependencies using <code>just</code></p>
+<pre><code class="language-bash">just install-deps
+</code></pre>
+<h2 id="step-2-starting-a-local-prism-devnet"><a class="header" href="#step-2-starting-a-local-prism-devnet">Step 2: Starting a local prism devnet</a></h2>
+<p>Let's examine the <code>main.rs</code> file of the template.</p>
+<p>All this code does is start a local prism devnet, using a local in-memory database and in-memory data availability layer. We will add a guide shortly on how to use our devnet.</p>
+<p>This prover instance is what we will create a service against, and where we will forward our transactions.</p>
+<blockquote>
+<p>NOTE: With our <a href="./architecture.html">architecture</a>, you can also submit transactions directly to the DA layer, and they will also be processed.</p>
+</blockquote>
+<pre><pre class="playground"><code class="language-rust">mod service_registration;
+
+use anyhow::{anyhow, Result};
+use keystore_rs::{KeyChain, KeyStore};
+use log::debug;
+use prism_da::{memory::InMemoryDataAvailabilityLayer, DataAvailabilityLayer};
+use prism_keys::SigningKey;
+use prism_storage::inmemory::InMemoryDatabase;
+use std::sync::Arc;
+use tokio::spawn;
+
+use prism_prover::{webserver::WebServerConfig, Config, Prover};
+
+pub static SERVICE_ID: &amp;str = "test_service";
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    /// Setup logging
+    std::env::set_var(
+            "RUST_LOG",
+            "DEBUG,ctclient::internal=off,reqwest=off,hyper=off,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
+        );
+    pretty_env_logger::init();
+
+    /// For testing purposes, we use an ephemeral storage backend that gets wiped on restart.
+    /// You can also use our Redis or RocksDB implementations for a persistent data store.
+    let db = InMemoryDatabase::new();
+
+    /// We use an in-memory data availability layer for testing purposes as well.
+    /// Here we set the blocktime to 5 seconds.
+    let (da_layer, _, _) = InMemoryDataAvailabilityLayer::new(5);
+
+    /// Here we retrieve/create a keypair that will be used by our service.
+    /// This uses our keystore-rs crate, which uses the OS keyring by default.
+    let keystore_sk = KeyChain
+        .get_signing_key(SERVICE_ID)
+        .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+    let sk = SigningKey::Ed25519(Box::new(keystore_sk.clone()));
+
+    let cfg = Config {
+        // Enable proof generation
+        prover: true,
+        // Enable batching transactions
+        batcher: true,
+        // Enable the webserver for state requests
+        webserver: WebServerConfig {
+            enabled: true,
+            host: "127.0.0.1".to_string(),
+            port: 50524,
+        },
+        signing_key: sk.clone(),
+        verifying_key: sk.verifying_key(),
+        // Starts syncing from block height 1 on the DA layer
+        start_height: 1,
+    };
+
+    // Initialize the prover node
+    let prover = Arc::new(
+        Prover::new(
+            Arc::new(Box::new(db)),
+            Arc::new(da_layer) as Arc&lt;dyn DataAvailabilityLayer&gt;,
+            &amp;cfg,
+        )
+        .unwrap(),
+    );
+
+    // Start the prover node and give it a handle
+    let runner = prover.clone();
+    let runner_handle = spawn(async move {
+        debug!("starting prover");
+        if let Err(e) = runner.run().await {
+            log::error!("Error occurred while running prover: {:?}", e);
+        }
+    });
+
+    tokio::select! {
+        _ = runner_handle =&gt; {
+            println!("Prover runner task completed");
+        }
+    }
+
+    Ok(())
+}
+</code></pre></pre>
+<h2 id="step-3-registering-your-service"><a class="header" href="#step-3-registering-your-service">Step 3: Registering your service</a></h2>
+<p>Here is some example code that would handle registering a test service on prism. To learn more about what a service represents, see <a href="./labels.html">labels</a>.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn register_service(prover: Arc&lt;Prover&gt;) -&gt; Result&lt;()&gt; {
+    // First, we make sure the service is not already registered.
+    if let Found(_, _) = prover.get_account(&amp;SERVICE_ID.to_string()).await? {
+        debug!("Service already registered.");
+        return Ok(());
+    };
+
+    // Next we use our keystore crate to get/create a new private key for the service.
+    // By default, this is stored in the operating system's keychain.
+    let keystore_sk = KeyChain
+        .get_signing_key(SERVICE_ID)
+        .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+
+    let sk = SigningKey::Ed25519(Box::new(keystore_sk));
+    let vk: VerifyingKey = sk.verifying_key();
+
+    // Now we create the operation to register the service. Under the hood, this
+    // creates a prism account that links the service's public key to the
+    // service id -- only allowing this keypair to authorize account creations
+    // from the service.
+    let register_op = Operation::RegisterService {
+        id: SERVICE_ID.to_string(),
+        creation_gate: ServiceChallenge::Signed(vk.clone()),
+        key: vk,
+    };
+
+    // Because the account is new (the service does not yet exist), we create an
+    // empty account to store the transaction.
+    let mut service_account = Account::default();
+
+    // Here we prepare the operation into a transaction by signing it with the service's private key.
+    let register_tx =
+        service_account.prepare_transaction(SERVICE_ID.to_string(), register_op, &amp;sk)?;
+
+    debug!("Submitting transaction to register test service");
+    prover
+        .clone()
+        .validate_and_queue_update(register_tx)
+        .await?;
+
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="step-4-creating-accounts-from-your-service"><a class="header" href="#step-4-creating-accounts-from-your-service">Step 4: Creating accounts from your service</a></h2>
+<p>Here we handle creating an account from a test service. You can learn more about accounts <a href="./datastructures.html">here</a>.</p>
+<blockquote>
+<p>Note: In a real-world scenario, the keypair and user signing would be handled client-side. Also, the service would require the user to prove ownership of a resource before creating an account (see <a href="./labels.html">labels</a>).</p>
+</blockquote>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn create_account(user_id: String, prover: Arc&lt;Prover&gt;) -&gt; Result&lt;Account&gt; {
+    // First, we make sure the account is not already registered.
+    if let Found(account, _) = prover.get_account(&amp;user_id).await? {
+        debug!("Account {} exists already", &amp;user_id);
+        return Ok(*account);
+    };
+
+    // We retrieve the test service's private key to authorize the account creation.
+    let service_keystore = KeyChain
+        .get_signing_key(SERVICE_ID)
+        .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+
+    let service_sk = SigningKey::Ed25519(Box::new(service_keystore));
+
+    // We retrieve/create the user's keypair to create the account.
+    // Note: Obviously, in the real world, the keypair would be handled client side.
+    let user_keystore = KeyChain
+        .get_signing_key(&amp;format!("{}/{}", user_id, SERVICE_ID))
+        .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+    let user_sk = SigningKey::Ed25519(Box::new(user_keystore));
+    let user_vk: VerifyingKey = user_sk.verifying_key();
+
+    // Sign account creation credentials with test service's signing key.
+    // This is set as the "challenge" in the CreateAccount operation, which is
+    // what gets verified+proved by the prover before inclusion
+    let hash = Digest::hash_items(&amp;[
+        user_id.as_bytes(),
+        SERVICE_ID.as_bytes(),
+        &amp;user_vk.to_bytes(),
+    ]);
+    let signature = service_sk.sign(&amp;hash.to_bytes());
+
+    // Now that the service has authorized the account creation, we can
+    // construct, prepare, and submit the transaction to create the account.
+    let create_acc_op = Operation::CreateAccount {
+        id: user_id.clone(),
+        service_id: SERVICE_ID.to_string(),
+        challenge: ServiceChallengeInput::Signed(signature),
+        key: user_vk,
+    };
+
+    // Because the account is new, we create an empty account to store the transaction.
+    let mut account = Account::default();
+    let create_acc_tx = account.prepare_transaction(user_id.clone(), create_acc_op, &amp;user_sk)?;
+
+    debug!("Submitting transaction to create account {}", &amp;user_id);
+    prover
+        .clone()
+        .validate_and_queue_update(create_acc_tx.clone())
+        .await?;
+
+    account.process_transaction(&amp;create_acc_tx)?;
+    Ok(account)
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="step-5-adding-keys-and-data-to-existing-accounts"><a class="header" href="#step-5-adding-keys-and-data-to-existing-accounts">Step 5: Adding keys and data to existing accounts</a></h2>
+<p>Prism has a minimal state machine - the only operations (transaction types) defined are:</p>
+<ol>
+<li><code>RegisterService</code></li>
+<li><code>CreateAccount</code></li>
+<li><code>AddKey</code></li>
+<li><code>AddData</code></li>
+<li><code>SetData</code></li>
+<li><code>RevokeKey</code></li>
+</ol>
+<p>In the above sections, we handled <code>RegisterService</code> and <code>CreateAccount</code>. Here we will handle <code>AddKey</code> and <code>AddData</code>. You can learn more about these operations <a href="./datastructures.html">here</a>.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn add_key(
+    user_id: String,
+    prover: Arc&lt;Prover&gt;,
+    signing_key: SigningKey,
+    new_key: VerifyingKey,
+) -&gt; Result&lt;Account&gt; {
+    if let Found(account, _) = prover.get_account(&amp;user_id).await? {
+        // We first create the operation object to be signed.
+        let add_key_op = Operation::AddKey { key: new_key };
+
+        // Then we prepare the transaction by signing the operation with the user's already existing private key.
+        let mut account = account.clone();
+        let add_key_tx = account.prepare_transaction(user_id.clone(), add_key_op, &amp;signing_key)?;
+
+        debug!("Submitting transaction to add key to account {}", &amp;user_id);
+        prover
+            .clone()
+            .validate_and_queue_update(add_key_tx.clone())
+            .await?;
+
+        // Finally, we process the transaction locally to avoid fetching the account again.
+        account.process_transaction(&amp;add_key_tx)?;
+        return Ok(*account);
+    };
+
+    Err(anyhow!("Account {} not found", &amp;user_id))
+}
+
+async fn add_data(
+    user_id: String,
+    prover: Arc&lt;Prover&gt;,
+    signing_key: SigningKey,
+    data: Vec&lt;u8&gt;,
+    data_signature: SignatureBundle,
+) -&gt; Result&lt;Account&gt; {
+    if let Found(account, _) = prover.get_account(&amp;user_id).await? {
+        // We first create the operation object to be signed.
+        // The source of this data can either be signed by one of the user's
+        // existing keys, or from an external signer referenced in
+        // data_signature.
+        let add_data_op = Operation::AddData {
+            data,
+            data_signature,
+        };
+
+        // Then we prepare the transaction by signing the operation with the user's existing private key.
+        let mut account = account.clone();
+        let add_data_tx =
+            account.prepare_transaction(user_id.clone(), add_data_op, &amp;signing_key)?;
+
+        debug!("Submitting transaction to add data to account {}", &amp;user_id);
+        prover
+            .clone()
+            .validate_and_queue_update(add_data_tx.clone())
+            .await?;
+
+        // Finally, we process the transaction locally to avoid fetching the account again.
+        account.process_transaction(&amp;add_data_tx)?;
+        return Ok(*account);
+    };
+
+    Err(anyhow!("Account {} not found", &amp;user_id))
+}
+<span class="boring">}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="idea-1-certificate-transparency-browser-extension"><a class="header" href="#idea-1-certificate-transparency-browser-extension">Idea 1: Certificate Transparency Browser Extension</a></h1>
+<h2 id="problem"><a class="header" href="#problem">Problem</a></h2>
+<p>Certificate transparency (CT) was designed to allow users to directly verify TLS certificates and ensure secure connections. However, the current system relies heavily on the honesty of log operators, introducing vulnerabilities and a lack of trust in end-to-end encryption.</p>
+<p>The hackathon track addresses this gap by building a browser extension that restores user trust in TLS verification and enhances online security.</p>
+<p><a href="https://x.com/distractedm1nd/status/1842159919082176689">This</a> twitter thread highlights the current problems with certificate transparency that your project will aim to solve.</p>
+<p>We have already built this internally as a prototype, so please <a href="https://telegram.me/distractedm1nd">reach out</a> with any questions that come up.
+This document intends to only be a rough outline of the architecture and flow of the project.</p>
+<h2 id="solution"><a class="header" href="#solution">Solution</a></h2>
+<p>The browser extension consists of two parts:</p>
+<ol>
+<li>A prism service that monitors the CT logs for new roots and stores them in prism accounts corresponding to each log</li>
+<li>A browser extension that retrieves the logs' accounts depending on the certificates of the websites visited by the user</li>
+</ol>
+<h3 id="prism-service"><a class="header" href="#prism-service">Prism Service</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant CTS as ct-service
+    participant Prism
+    participant X2024 as Xenon2024
+
+    CTS-&gt;&gt;Prism: RegisterService(xenon2024, pubkey)
+
+    loop
+        CTS-&gt;&gt;X2024: Poll for new root
+        X2024--&gt;&gt;CTS: New root
+        CTS-&gt;&gt;Prism: SetData(xenon2024, SignedTreeHead)
+    end
+</pre>
+<h3 id="browser-extension"><a class="header" href="#browser-extension">Browser Extension</a></h3>
+<pre class="mermaid">sequenceDiagram
+    actor Bob
+    participant Google as google.com
+    participant WLN as Wasm Light Node
+    participant CTS as Prism Full Node
+    participant X2024 as Xenon2024
+
+    Bob-&gt;&gt;Google: HTTPS Request
+    activate Bob
+    Google--&gt;&gt;Bob: TLS Certificate
+    deactivate Bob
+    Note left of Bob: contains SignedCertificateTimestamp&lt;br/&gt;from multiple logs
+
+    Bob-&gt;&gt;CTS: Request latest account of Xenon2024
+    activate Bob
+    CTS--&gt;&gt;Bob: AccountResponse for Xenon2024
+    deactivate Bob
+    Note left of Bob: Contains latest Xenon2024 root as SignedData,&lt;br/&gt;and merkle proof of Account under Prism root
+
+    Bob-&gt;&gt;WLN: Request latest verified Prism root
+    activate Bob
+    WLN--&gt;&gt;Bob: Prism root
+    Bob-&gt;&gt;Bob: Verify merkle proof against &lt;br/&gt; AccountResponse and Prism root
+    deactivate Bob
+
+    Bob-&gt;&gt;X2024: Request merkle proof of TLS certificate under root
+    activate Bob
+    X2024--&gt;&gt;Bob: Merkle proof of TLS certificate under root
+    Bob-&gt;&gt;Bob: Verify Log merkle proof against &lt;br/&gt;Xenon2024 root from AccountResponse
+    deactivate Bob
+</pre>
+<h2 id="resources"><a class="header" href="#resources">Resources</a></h2>
+<ul>
+<li><a href="https://docs.rs/ctclient/latest/ctclient/">Rust CTClient</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="idea-2-accounts-from-web-sources"><a class="header" href="#idea-2-accounts-from-web-sources">Idea 2: Accounts From Web Sources</a></h1>
+<blockquote>
+<p>Note: This is only a rough outline and will be expanded upon with verified interest.</p>
+</blockquote>
+<h2 id="problem-1"><a class="header" href="#problem-1">Problem</a></h2>
+<p>Every time users join a new platform, they face the challenge of starting from scratch to build their network and establish trust in their identity. This fragmentation creates friction in maintaining relationships across digital spaces and verifying authenticity.</p>
+<p>The hackathon track aims to solve this by enabling users to connect their social media accounts to Prism, bridging their identities into a unified profile. This ensures their contacts can easily verify and locate them across platforms.</p>
+<h2 id="solution-1"><a class="header" href="#solution-1">Solution</a></h2>
+<p>The first iteration of bringing external accounts into Prism can use the reclaim protocol.</p>
+<p>The project has these rough requirements:</p>
+<ol>
+<li>Provide a frontend that allows a user to create a reclaim proof with an external account source (e.g. Twitter)</li>
+<li>Create a prism service that lets users create prism accounts using a valid reclaim proof using the <code>AddData</code> operation.</li>
+</ol>
+<h2 id="resources-1"><a class="header" href="#resources-1">Resources</a></h2>
+<ul>
+<li><a href="https://www.reclaimprotocol.org">Reclaim Protocol</a></li>
+<li><a href="mammothon/./labels.html">Prism Account Sources</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="introduction-to-cryptography"><a class="header" href="#introduction-to-cryptography">Introduction to Cryptography</a></h1>
 <p>This section deals with basic concepts of cryptography and explains them from a high level. This has no profound explanations, but tries to provide a superficial, simplified basis to give the reader a general idea for the advanced concepts of Prism. Feel free to skip this introduction, as it covers general cryptographic basics of Prism and is intended to serve as a quick reference.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
@@ -641,7 +1029,7 @@ A person (or an algorithm; the prover) wants to prove to another person (or anot
 <p><span class="katex-display"><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord text"><span class="mord">Commitment</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.207em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.207em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">...</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1864em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord text"><span class="mord">Commitment</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p>
 <p>Where all operations after epoch <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6984em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> (i.e. within epoch <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span>) are of the form <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0636em;vertical-align:-0.3802em;"></span><span class="mord"><span class="mord text"><span class="mord">Operation</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.242em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">#epoch</span></span><span class="mord text mtight"><span class="mord mtight">#operation</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3802em;"><span></span></span></span></span></span></span></span></span></span>. We have already seen that the application-specific policy is satisfied by valid insert and update proofs. Thus, without the SNARK, everyone would have to perform all the resulting Merkle proofs (underlying the insert and update proofs) themselves, resulting in a huge computational overhead. By using SNARKs, anyone can independently (since we are talking about non-interactive protocols) efficiently verify the proof, which is publicly provided by the service (the prover in this case) and thus convince themselves of the honest behavior of the service.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-<h1 id="resources"><a class="header" href="#resources">Resources</a></h1>
+<h1 id="resources-2"><a class="header" href="#resources-2">Resources</a></h1>
 <p>Here's a list of different resources that contain in-depth content on the relevant topics. The list is not exhaustive and is constantly updated.</p>
 <h2 id="podcasts"><a class="header" href="#podcasts">Podcasts</a></h2>
 <ul>

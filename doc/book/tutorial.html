@@ -1,0 +1,546 @@
+<!DOCTYPE HTML>
+<html lang="en" class="ayu" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Tutorial - Prism Documentation</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "ayu";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('ayu')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item "><a href="index.html">Introduction</a></li><li class="chapter-item "><a href="quickstart.html">Prism Quickstart</a></li><li class="chapter-item "><a href="rollup.html">Rollup Construction</a></li><li class="chapter-item "><a href="datastructures.html">Datastructures</a></li><li class="chapter-item "><a href="labels.html">Account Sources</a></li><li class="chapter-item "><a href="insert-update-proofs.html">Inserts and Updates</a></li><li class="chapter-item "><a href="jellyfish-merkle-proofs.html">Jellyfish Merkle Proofs</a></li><li class="chapter-item "><a href="state.html">Development Status</a></li><li class="chapter-item "><a href="architecture.html">Architecture</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Mammothon</li><li class="chapter-item expanded "><a href="tutorial.html" class="active">Tutorial</a></li><li class="chapter-item "><a href="mammothon/ct-service.html">CT Browser Extension</a></li><li class="chapter-item "><a href="mammothon/reclaim.html">Web Proofs</a></li><li class="chapter-item affix "><li class="spacer"></li><li class="chapter-item affix "><li class="part-title">Prerequites</li><li class="chapter-item "><a href="crypto-intro/intro.html">Introduction to Cryptography</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="crypto-intro/symmetric.html">Symmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/asymmetric.html">Asymmetric Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hybrid.html">Hybrid Encryption</a></li><li class="chapter-item "><a href="crypto-intro/hash-functions.html">Hash Functions</a></li><li class="chapter-item "><a href="crypto-intro/merkle-trees.html">Merkle Trees</a></li><li class="chapter-item "><a href="crypto-intro/cryptographic_commitment.html">Cryptographic Commitments</a></li><li class="chapter-item "><a href="crypto-intro/general-merkle-proofs.html">Merkle Proofs</a></li><li class="chapter-item "><a href="informal-zkps.html">Zero Knowledge Proofs (Informal)</a></li><li class="chapter-item "><a href="zkp-basics.html">Zero Knowledge Proofs (Basics)</a></li></ol></li><li class="chapter-item "><a href="resources.html">Resources</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Prism Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/deltadevsde/prism" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<h1 id="basic-service-tutorial"><a class="header" href="#basic-service-tutorial">Basic Service Tutorial</a></h1>
+<h2 id="introduction"><a class="header" href="#introduction">Introduction</a></h2>
+<p>This tutorial will guide you through initializing a prism service - not one that does anything useful, but it will give an example for what interacting with prism in a primitive way looks like.</p>
+<blockquote>
+<p>Note: This tutorial is only a rough outline, and we recommend <a href="https://telegram.me/distractedm1nd">reaching out</a> with any questions that come up. The sdk/api is in a very early alpha state and is subject to change.</p>
+</blockquote>
+<p>Prism services are the basis for creating new accounts in the prism protocol.
+To learn more, see <a href="./labels.html">labels</a>.</p>
+<p>We will cover:</p>
+<ol>
+<li>Starting a <a href="./architechture.html">local prism devnet</a></li>
+<li>Registering a test <a href="./labels.html">service</a></li>
+<li>Creating <a href="./datastructures.html">accounts</a> from your service</li>
+<li>Adding keys and data to existing accounts</li>
+</ol>
+<h2 id="step-1-create-a-new-project"><a class="header" href="#step-1-create-a-new-project">Step 1: Create a new project</a></h2>
+<p>We will start by using the <a href="https://github.com/deltadevsde/prism-service-example">prism starter template</a> to create a new project, then walk through the boilerplate code.</p>
+<p>Clone the repo <a href="https://github.com/deltadevsde/prism-service-example">here</a> and install our dependencies using <code>just</code></p>
+<pre><code class="language-bash">just install-deps
+</code></pre>
+<h2 id="step-2-starting-a-local-prism-devnet"><a class="header" href="#step-2-starting-a-local-prism-devnet">Step 2: Starting a local prism devnet</a></h2>
+<p>Let's examine the <code>main.rs</code> file of the template.</p>
+<p>All this code does is start a local prism devnet, using a local in-memory database and in-memory data availability layer. We will add a guide shortly on how to use our devnet.</p>
+<p>This prover instance is what we will create a service against, and where we will forward our transactions.</p>
+<blockquote>
+<p>NOTE: With our <a href="./architecture.html">architecture</a>, you can also submit transactions directly to the DA layer, and they will also be processed.</p>
+</blockquote>
+<pre><pre class="playground"><code class="language-rust">mod service_registration;
+
+use anyhow::{anyhow, Result};
+use keystore_rs::{KeyChain, KeyStore};
+use log::debug;
+use prism_da::{memory::InMemoryDataAvailabilityLayer, DataAvailabilityLayer};
+use prism_keys::SigningKey;
+use prism_storage::inmemory::InMemoryDatabase;
+use std::sync::Arc;
+use tokio::spawn;
+
+use prism_prover::{webserver::WebServerConfig, Config, Prover};
+
+pub static SERVICE_ID: &amp;str = "test_service";
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    /// Setup logging
+    std::env::set_var(
+            "RUST_LOG",
+            "DEBUG,ctclient::internal=off,reqwest=off,hyper=off,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
+        );
+    pretty_env_logger::init();
+
+    /// For testing purposes, we use an ephemeral storage backend that gets wiped on restart.
+    /// You can also use our Redis or RocksDB implementations for a persistent data store.
+    let db = InMemoryDatabase::new();
+
+    /// We use an in-memory data availability layer for testing purposes as well.
+    /// Here we set the blocktime to 5 seconds.
+    let (da_layer, _, _) = InMemoryDataAvailabilityLayer::new(5);
+
+    /// Here we retrieve/create a keypair that will be used by our service.
+    /// This uses our keystore-rs crate, which uses the OS keyring by default.
+    let keystore_sk = KeyChain
+        .get_signing_key(SERVICE_ID)
+        .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+    let sk = SigningKey::Ed25519(Box::new(keystore_sk.clone()));
+
+    let cfg = Config {
+        // Enable proof generation
+        prover: true,
+        // Enable batching transactions
+        batcher: true,
+        // Enable the webserver for state requests
+        webserver: WebServerConfig {
+            enabled: true,
+            host: "127.0.0.1".to_string(),
+            port: 50524,
+        },
+        signing_key: sk.clone(),
+        verifying_key: sk.verifying_key(),
+        // Starts syncing from block height 1 on the DA layer
+        start_height: 1,
+    };
+
+    // Initialize the prover node
+    let prover = Arc::new(
+        Prover::new(
+            Arc::new(Box::new(db)),
+            Arc::new(da_layer) as Arc&lt;dyn DataAvailabilityLayer&gt;,
+            &amp;cfg,
+        )
+        .unwrap(),
+    );
+
+    // Start the prover node and give it a handle
+    let runner = prover.clone();
+    let runner_handle = spawn(async move {
+        debug!("starting prover");
+        if let Err(e) = runner.run().await {
+            log::error!("Error occurred while running prover: {:?}", e);
+        }
+    });
+
+    tokio::select! {
+        _ = runner_handle =&gt; {
+            println!("Prover runner task completed");
+        }
+    }
+
+    Ok(())
+}
+</code></pre></pre>
+<h2 id="step-3-registering-your-service"><a class="header" href="#step-3-registering-your-service">Step 3: Registering your service</a></h2>
+<p>Here is some example code that would handle registering a test service on prism. To learn more about what a service represents, see <a href="./labels.html">labels</a>.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn register_service(prover: Arc&lt;Prover&gt;) -&gt; Result&lt;()&gt; {
+    // First, we make sure the service is not already registered.
+    if let Found(_, _) = prover.get_account(&amp;SERVICE_ID.to_string()).await? {
+        debug!("Service already registered.");
+        return Ok(());
+    };
+
+    // Next we use our keystore crate to get/create a new private key for the service.
+    // By default, this is stored in the operating system's keychain.
+    let keystore_sk = KeyChain
+        .get_signing_key(SERVICE_ID)
+        .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+
+    let sk = SigningKey::Ed25519(Box::new(keystore_sk));
+    let vk: VerifyingKey = sk.verifying_key();
+
+    // Now we create the operation to register the service. Under the hood, this
+    // creates a prism account that links the service's public key to the
+    // service id -- only allowing this keypair to authorize account creations
+    // from the service.
+    let register_op = Operation::RegisterService {
+        id: SERVICE_ID.to_string(),
+        creation_gate: ServiceChallenge::Signed(vk.clone()),
+        key: vk,
+    };
+
+    // Because the account is new (the service does not yet exist), we create an
+    // empty account to store the transaction.
+    let mut service_account = Account::default();
+
+    // Here we prepare the operation into a transaction by signing it with the service's private key.
+    let register_tx =
+        service_account.prepare_transaction(SERVICE_ID.to_string(), register_op, &amp;sk)?;
+
+    debug!("Submitting transaction to register test service");
+    prover
+        .clone()
+        .validate_and_queue_update(register_tx)
+        .await?;
+
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="step-4-creating-accounts-from-your-service"><a class="header" href="#step-4-creating-accounts-from-your-service">Step 4: Creating accounts from your service</a></h2>
+<p>Here we handle creating an account from a test service. You can learn more about accounts <a href="./datastructures.html">here</a>.</p>
+<blockquote>
+<p>Note: In a real-world scenario, the keypair and user signing would be handled client-side. Also, the service would require the user to prove ownership of a resource before creating an account (see <a href="./labels.html">labels</a>).</p>
+</blockquote>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn create_account(user_id: String, prover: Arc&lt;Prover&gt;) -&gt; Result&lt;Account&gt; {
+    // First, we make sure the account is not already registered.
+    if let Found(account, _) = prover.get_account(&amp;user_id).await? {
+        debug!("Account {} exists already", &amp;user_id);
+        return Ok(*account);
+    };
+
+    // We retrieve the test service's private key to authorize the account creation.
+    let service_keystore = KeyChain
+        .get_signing_key(SERVICE_ID)
+        .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+
+    let service_sk = SigningKey::Ed25519(Box::new(service_keystore));
+
+    // We retrieve/create the user's keypair to create the account.
+    // Note: Obviously, in the real world, the keypair would be handled client side.
+    let user_keystore = KeyChain
+        .get_signing_key(&amp;format!("{}/{}", user_id, SERVICE_ID))
+        .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+    let user_sk = SigningKey::Ed25519(Box::new(user_keystore));
+    let user_vk: VerifyingKey = user_sk.verifying_key();
+
+    // Sign account creation credentials with test service's signing key.
+    // This is set as the "challenge" in the CreateAccount operation, which is
+    // what gets verified+proved by the prover before inclusion
+    let hash = Digest::hash_items(&amp;[
+        user_id.as_bytes(),
+        SERVICE_ID.as_bytes(),
+        &amp;user_vk.to_bytes(),
+    ]);
+    let signature = service_sk.sign(&amp;hash.to_bytes());
+
+    // Now that the service has authorized the account creation, we can
+    // construct, prepare, and submit the transaction to create the account.
+    let create_acc_op = Operation::CreateAccount {
+        id: user_id.clone(),
+        service_id: SERVICE_ID.to_string(),
+        challenge: ServiceChallengeInput::Signed(signature),
+        key: user_vk,
+    };
+
+    // Because the account is new, we create an empty account to store the transaction.
+    let mut account = Account::default();
+    let create_acc_tx = account.prepare_transaction(user_id.clone(), create_acc_op, &amp;user_sk)?;
+
+    debug!("Submitting transaction to create account {}", &amp;user_id);
+    prover
+        .clone()
+        .validate_and_queue_update(create_acc_tx.clone())
+        .await?;
+
+    account.process_transaction(&amp;create_acc_tx)?;
+    Ok(account)
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="step-5-adding-keys-and-data-to-existing-accounts"><a class="header" href="#step-5-adding-keys-and-data-to-existing-accounts">Step 5: Adding keys and data to existing accounts</a></h2>
+<p>Prism has a minimal state machine - the only operations (transaction types) defined are:</p>
+<ol>
+<li><code>RegisterService</code></li>
+<li><code>CreateAccount</code></li>
+<li><code>AddKey</code></li>
+<li><code>AddData</code></li>
+<li><code>SetData</code></li>
+<li><code>RevokeKey</code></li>
+</ol>
+<p>In the above sections, we handled <code>RegisterService</code> and <code>CreateAccount</code>. Here we will handle <code>AddKey</code> and <code>AddData</code>. You can learn more about these operations <a href="./datastructures.html">here</a>.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn add_key(
+    user_id: String,
+    prover: Arc&lt;Prover&gt;,
+    signing_key: SigningKey,
+    new_key: VerifyingKey,
+) -&gt; Result&lt;Account&gt; {
+    if let Found(account, _) = prover.get_account(&amp;user_id).await? {
+        // We first create the operation object to be signed.
+        let add_key_op = Operation::AddKey { key: new_key };
+
+        // Then we prepare the transaction by signing the operation with the user's already existing private key.
+        let mut account = account.clone();
+        let add_key_tx = account.prepare_transaction(user_id.clone(), add_key_op, &amp;signing_key)?;
+
+        debug!("Submitting transaction to add key to account {}", &amp;user_id);
+        prover
+            .clone()
+            .validate_and_queue_update(add_key_tx.clone())
+            .await?;
+
+        // Finally, we process the transaction locally to avoid fetching the account again.
+        account.process_transaction(&amp;add_key_tx)?;
+        return Ok(*account);
+    };
+
+    Err(anyhow!("Account {} not found", &amp;user_id))
+}
+
+async fn add_data(
+    user_id: String,
+    prover: Arc&lt;Prover&gt;,
+    signing_key: SigningKey,
+    data: Vec&lt;u8&gt;,
+    data_signature: SignatureBundle,
+) -&gt; Result&lt;Account&gt; {
+    if let Found(account, _) = prover.get_account(&amp;user_id).await? {
+        // We first create the operation object to be signed.
+        // The source of this data can either be signed by one of the user's
+        // existing keys, or from an external signer referenced in
+        // data_signature.
+        let add_data_op = Operation::AddData {
+            data,
+            data_signature,
+        };
+
+        // Then we prepare the transaction by signing the operation with the user's existing private key.
+        let mut account = account.clone();
+        let add_data_tx =
+            account.prepare_transaction(user_id.clone(), add_data_op, &amp;signing_key)?;
+
+        debug!("Submitting transaction to add data to account {}", &amp;user_id);
+        prover
+            .clone()
+            .validate_and_queue_update(add_data_tx.clone())
+            .await?;
+
+        // Finally, we process the transaction locally to avoid fetching the account again.
+        account.process_transaction(&amp;add_data_tx)?;
+        return Ok(*account);
+    };
+
+    Err(anyhow!("Account {} not found", &amp;user_id))
+}
+<span class="boring">}</span></code></pre></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="architecture.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="mammothon/ct-service.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="architecture.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="mammothon/ct-service.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="custom.js"></script>
+        <script src="mermaid.min.js"></script>
+        <script src="mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

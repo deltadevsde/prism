@@ -4,12 +4,13 @@ use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::database::Database;
+pub use prism_tree::AccountResponse;
 use prism_tree::{
     hasher::TreeHasher,
     key_directory_tree::KeyDirectoryTree,
     proofs::{Batch, Proof},
     snarkable_tree::SnarkableTree,
-    AccountResponse::{self, *},
+    AccountResponse::*,
 };
 use std::{self, collections::VecDeque, sync::Arc};
 use tokio::{
@@ -20,7 +21,7 @@ use tokio::{
 use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
-use sp1_sdk::{ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
+use sp1_sdk::{CpuProver, Prover as _, ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -102,7 +103,7 @@ pub struct Prover {
     /// [`tree`] is the representation of the JMT, prism's state tree. It is accessed via the [`db`].
     tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
 
-    prover_client: Arc<RwLock<ProverClient>>,
+    prover_client: Arc<RwLock<CpuProver>>,
     proving_key: SP1ProvingKey,
     verifying_key: SP1VerifyingKey,
 }
@@ -126,9 +127,9 @@ impl Prover {
         let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(db.clone(), saved_epoch)));
 
         #[cfg(feature = "mock_prover")]
-        let prover_client = ProverClient::mock();
+        let prover_client = ProverClient::builder().mock().build();
         #[cfg(not(feature = "mock_prover"))]
-        let prover_client = ProverClient::local();
+        let prover_client = ProverClient::builder().cpu().build();
 
         let (pk, vk) = prover_client.setup(PRISM_ELF);
 
@@ -401,10 +402,10 @@ impl Prover {
 
         info!("generating proof for epoch at height {}", epoch_height);
         #[cfg(not(feature = "groth16"))]
-        let proof = client.prove(&self.proving_key, stdin).run()?;
+        let proof = client.prove(&self.proving_key, &stdin).run()?;
 
         #[cfg(feature = "groth16")]
-        let proof = client.prove(&self.proving_key, stdin).groth16().run()?;
+        let proof = client.prove(&self.proving_key, &stdin).groth16().run()?;
         info!("successfully generated proof for epoch {}", epoch_height);
 
         client.verify(&proof, &self.verifying_key)?;
@@ -464,7 +465,7 @@ impl Prover {
         tree.get_commitment().context("Failed to get commitment")
     }
 
-    pub async fn get_account(&self, id: &String) -> Result<AccountResponse> {
+    pub async fn get_account(&self, id: &str) -> Result<AccountResponse> {
         let tree = self.tree.read().await;
         let key_hash = KeyHash::with::<TreeHasher>(id);
 

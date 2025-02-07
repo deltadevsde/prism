@@ -3,6 +3,14 @@ use auto_impl::auto_impl;
 use jmt::storage::{TreeReader, TreeWriter};
 use prism_common::digest::Digest;
 use prism_errors::{DatabaseError, PrismError};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum StorageBackend {
+    RocksDB(crate::rocksdb::RocksDBConfig),
+    InMemory,
+    Redis(crate::redis::RedisConfig),
+}
 
 #[auto_impl(&, Box, Arc)]
 pub trait Database: Send + Sync + TreeReader + TreeWriter {

@@ -1,6 +1,6 @@
 # Adherance to application-specific guidelines
 
-We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the labels grow monotonically. Because Prism uses append-only hashchains, and all state transition circuits do not allow for label removal, the monotonic growth of the labels is ensured by the epoch proofs.
+We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the account's current keyset is valid given the history of addition and removal operations performed on the account.
 
 ## Versioning
 
@@ -33,13 +33,10 @@ The versions of all nodes that have been traversed along the way are then update
 
 ## Proof-of-Update
 
-The proof that an update operation was executed correctly, i.e. a proof-of-update, means that the operation list (hashchain) for an already existing identifier has been updated by one operation correctly. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier. In any case, this means that another entry has been added to the hashchain in which the operations are stored.
+The proof that an update operation was executed correctly, i.e. a proof-of-update, means that the key set for an already existing identifier has been updated by one operation correctly. For example, an already existing key could be revoked or a new public key could have been added for the respective identifier.
 
-> **Note**
-> Obviously, this means that the last hash of the hashchain, which is crucial for the label-value pair in the Merkle tree, also has a new value.
-
-The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (the e-mail address). We know that when the input to a hash function changes, the output also changes. Since the "value" field is part of the input of the hash of the leaf, the hash of the leaf changes accordingly.
-To proof the update, it is sufficient if we consider the old root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf, so to say. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.
+The value of the leaf of the Merkle tree changes, but the index of the leaf remains the same, because it depends on the identifier (e.g., an e-mail address).
+To prove the update, it is sufficient if we consider the previous state root (the cryptographic commitment) and perform a proof-of-membership before the value was updated, with the "old" leaf. The verification of the proof then involves performing a proof-of-membership of the leaf with the updated value and using this to calculate the new root and compare it with the current root.
 
 In Jellyfish Merkle trees, a new version of the tree is created with each update, enabling efficient history recording while maintaining the integrity of previous states. This versioning system ensures that updates can be tracked and verified across different states of the tree and also allows reuse of unmodified parts, which helps to increase efficiency. Accordingly, when updates are made, all nodes along the updated path are given a higher version, so the verifier needs to know which version to check the update against.
 
