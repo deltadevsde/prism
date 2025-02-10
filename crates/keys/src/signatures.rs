@@ -1,9 +1,15 @@
+use std::borrow::Cow;
+
 use anyhow::{bail, Result};
 use ed25519_consensus::Signature as Ed25519Signature;
 use p256::ecdsa::Signature as Secp256r1Signature;
 use secp256k1::ecdsa::Signature as Secp256k1Signature;
 
 use serde::{Deserialize, Serialize};
+use utoipa::{
+    openapi::{RefOr, Schema},
+    PartialSchema, ToSchema,
+};
 
 use crate::{payload::CryptoPayload, CryptoAlgorithm};
 
@@ -87,5 +93,24 @@ impl From<Signature> for CryptoPayload {
             algorithm: signature.algorithm(),
             bytes: signature.to_bytes(),
         }
+    }
+}
+
+/// Necessary to represent `Signature` as `CryptoPayload` in the OpenAPI spec.
+/// Workaround, because `schema(as = CryptoPayload)` currently requires all wrapped
+/// native signature types in the enum variants to implement `ToSchema` as well.
+impl ToSchema for Signature {
+    fn name() -> Cow<'static, str> {
+        Cow::Borrowed("CryptoPayload")
+    }
+
+    fn schemas(_schemas: &mut Vec<(String, RefOr<Schema>)>) {
+        CryptoPayload::schemas(_schemas);
+    }
+}
+
+impl PartialSchema for Signature {
+    fn schema() -> RefOr<Schema> {
+        CryptoPayload::schema()
     }
 }

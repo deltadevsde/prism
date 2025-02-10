@@ -7,8 +7,14 @@ use prism_serde::{
     raw_or_hex,
 };
 use sha2::{Digest as _, Sha256};
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy, ToSchema)]
+#[schema(
+    value_type = String,
+    format = "hex",
+    example = "bb4c8eb92b6ec7b9055c94a397581544693c61da0f8f6cbb808681ccd0d9ce9b")]
+/// A cryptographic digest that provides a fixed-size hash value representation.
 pub struct Digest(#[serde(with = "raw_or_hex")] pub [u8; 32]);
 
 impl Digest {

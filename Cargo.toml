@@ -56,10 +56,11 @@ bincode = "1.3.3"
 hex = "0.4.3"
 
 # webserver
-axum = "0.6"
-tower-http = { version = "0.4", features = ["cors"] }
-utoipa = { version = "3.3", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
+utoipa = { version = "5.3", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9.0", features = ["axum"] }
+utoipa-axum = { version = "0.2.0" }
 
 # database
 redis = "0.24.0"
@@ -103,6 +104,7 @@ ecdsa = { version = "0.16.0", features = ["der"] }
 # celestia
 celestia-rpc = "=0.8.0"
 celestia-types = "=0.9.0"
+lumina-node = "=0.8.0"
 
 # misc
 jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit", features = [

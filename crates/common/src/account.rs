@@ -2,16 +2,28 @@ use anyhow::{anyhow, Result};
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::{
     operation::{Operation, ServiceChallenge},
     transaction::Transaction,
 };
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct SignedData(pub VerifyingKey, #[serde(with = "raw_or_b64")] pub Vec<u8>);
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
+/// A structure representing data signed by an (external) key.
+pub struct SignedData {
+    /// The key that signed the data
+    pub key: VerifyingKey,
+    /// The signed data as bytes
+    #[schema(
+        value_type = String,
+        format = Byte,
+        example = "jMaZEeHpjIrpO33dkS223jPhurSFixoDJUzNWBAiZKA")]
+    #[serde(with = "raw_or_b64")]
+    pub data: Vec<u8>,
+}
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default, ToSchema)]
 /// Represents an account or service on prism, making up the values of our state
 /// tree.
 pub struct Account {
@@ -169,19 +181,19 @@ impl Account {
                 data,
                 data_signature,
             } => {
-                self.signed_data.push(SignedData(
-                    data_signature.verifying_key.clone(),
-                    data.clone(),
-                ));
+                self.signed_data.push(SignedData {
+                    key: data_signature.verifying_key.clone(),
+                    data: data.clone(),
+                });
             }
             Operation::SetData {
                 data,
                 data_signature,
             } => {
-                self.signed_data = vec![SignedData(
-                    data_signature.verifying_key.clone(),
-                    data.clone(),
-                )];
+                self.signed_data = vec![SignedData {
+                    key: data_signature.verifying_key.clone(),
+                    data: data.clone(),
+                }];
             }
             Operation::CreateAccount { id, key, .. } => {
                 self.id = id.clone();
