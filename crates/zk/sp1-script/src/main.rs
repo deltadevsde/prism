@@ -257,27 +257,43 @@ async fn main() {
         let mut stdin = SP1Stdin::new();
         let mut builder = TransactionBuilder::new();
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-        let config = SimulationConfig::default();
+        let config = SimulationConfig {
+            tags: vec![],
+            num_simulations: 1,
+            algorithms: vec![
+                CryptoAlgorithm::Secp256r1,
+            ],
+            num_existing_services: 1,
+            num_existing_accounts: 1000,
+            num_new_services: 1,
+            num_new_accounts: 3,
+            num_add_keys: 3,
+            num_revoke_key: 1,
+            num_add_data: 1,
+            num_set_data: 1,
+        };
+        println!("Starting to create benchmark batch");
         let operations_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
+        println!("Done creating benchmark batch");
         stdin.write(&operations_batch);
 
         // Setup the program for proving.
         let (pk, vk) = client.setup(PRISM_ELF);
 
         // Measure the time taken to generate the proof
+        println!("Starting to generate proof");
         let start = Instant::now();
         let proof = client
             .prove(&pk, &stdin)
-            .groth16()
             .run()
             .expect("failed to generate proof");
         let duration = start.elapsed();
-
-        println!("Successfully generated proof in {:.2?} seconds!", duration);
+        println!("Done generating proof in {:.2?} seconds!", duration);
 
         // Verify the proof.
+        println!("Starting to verify proof");
         client.verify(&proof, &vk).expect("failed to verify proof");
-        println!("Successfully verified proof!");
+        println!("Done verifying proof!");
     }
 }
 
