@@ -20,10 +20,9 @@ use prism_tree::{
 };
 use rand::Rng;
 use sha2::{Digest, Sha256, Sha512};
-use sp1_sdk::{ProverClient, SP1Stdin, Prover};
-use std::sync::Arc;
+use sp1_sdk::{Prover, ProverClient, SP1Stdin};
+use std::{sync::Arc, time::Instant};
 use tokio::{self, task};
-use std::time::Instant;
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
@@ -260,9 +259,7 @@ async fn main() {
         let config = SimulationConfig {
             tags: vec![],
             num_simulations: 1,
-            algorithms: vec![
-                CryptoAlgorithm::Secp256r1,
-            ],
+            algorithms: vec![CryptoAlgorithm::Secp256r1],
             num_existing_services: 1,
             num_existing_accounts: 1000,
             num_new_services: 1,
@@ -283,10 +280,7 @@ async fn main() {
         // Measure the time taken to generate the proof
         println!("Starting to generate proof");
         let start = Instant::now();
-        let proof = client
-            .prove(&pk, &stdin)
-            .run()
-            .expect("failed to generate proof");
+        let proof = client.prove(&pk, &stdin).run().expect("failed to generate proof");
         let duration = start.elapsed();
         println!("Done generating proof in {:.2?} seconds!", duration);
 
@@ -546,7 +540,7 @@ fn calculate_statistics(
 
 /// Plot results for green configurations
 fn plot_green_configurations(
-    results:&[SimulationResult],
+    results: &[SimulationResult],
 ) -> Result<(), Box<dyn std::error::Error>> {
     let green_results: Vec<&SimulationResult> =
         results.iter().filter(|res| res.config.tags.contains(&"green".to_string())).collect();
@@ -875,10 +869,7 @@ fn plot_orange_configurations_algorithm(
 
     let mut chart = ChartBuilder::on(&root_area)
         .caption(
-            format!(
-                "Average Cycles per Operation Type for {}",
-                algorithm
-            ),
+            format!("Average Cycles per Operation Type for {}", algorithm),
             ("sans-serif", 20),
         )
         .margin(10)

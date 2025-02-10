@@ -446,7 +446,7 @@ impl TransactionBuilder {
         self.set_signed_data_verified_with_root(id, value, &value_signing_key)
     }
 
-    pub fn set_internally_signed_data_verified_with_root  (
+    pub fn set_internally_signed_data_verified_with_root(
         &mut self,
         id: &str,
         value: Vec<u8>,
@@ -463,7 +463,6 @@ impl TransactionBuilder {
 
         self.set_pre_signed_data(id, value, bundle, account_signing_key)
     }
-
 
     pub fn set_signed_data(
         &mut self,
