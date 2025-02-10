@@ -129,7 +129,7 @@ install-deps:
 
   # On Linux, ensure essential packages are installed
   if [ "$OS" = "Linux" ]; then \
-    for package in build-essential pkg-config libssl-dev libclang-dev clang; do \
+    for package in build-essential pkg-config libssl-dev libclang-dev libfontconfig1-dev clang; do \
       if ! dpkg -s $package > /dev/null 2>&1; then \
         echo "Installing $package..."; \
         if {{is_root}}; then \

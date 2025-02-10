@@ -37,6 +37,7 @@ members = [
     "crates/common",
     "crates/errors",
     "crates/zk/sp1",
+    "crates/zk/sp1-script",
     "crates/storage",
     "crates/da",
     "crates/serde",
@@ -68,6 +69,7 @@ rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
 # async
 async-trait = "0.1.68"
 tokio = { version = "1.16.1", features = ["full"] }
+futures = "0.3.31"
 
 # errors
 thiserror = "1.0.62"
@@ -112,6 +114,9 @@ sha2 = "0.10.8"
 tempfile = "3.14.0"
 auto_impl = "1.2.0"
 paste = "1.0.15"
+
+# plotting
+plotters = "0.3.7"
 
 # prism
 prism-common = { path = "crates/common" }
