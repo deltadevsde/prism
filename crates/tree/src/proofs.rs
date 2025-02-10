@@ -241,6 +241,15 @@ pub struct HashedMerkleProof {
     pub siblings: Vec<Digest>,
 }
 
+impl HashedMerkleProof {
+    pub fn empty() -> Self {
+        Self {
+            leaf: None,
+            siblings: vec![],
+        }
+    }
+}
+
 impl From<SparseMerkleProof<TreeHasher>> for HashedMerkleProof {
     fn from(proof: SparseMerkleProof<TreeHasher>) -> Self {
         let leaf_hash = proof.leaf().map(|node| node.hash::<TreeHasher>()).map(Digest::new);
