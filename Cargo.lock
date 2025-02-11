@@ -691,7 +691,11 @@ checksum = "965c2d33e53cb6b267e148a4cb0760bc01f4904c1cd4bb4002a085bb016d1490"
 dependencies = [
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.98",
+=======
+ "syn 2.0.95",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "synstructure",
 ]
 
@@ -703,7 +707,11 @@ checksum = "7b18050c2cd6fe86c3a76584ef5e0baf286d038cda203eb6223df2cc413565f7"
 dependencies = [
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.98",
+=======
+ "syn 2.0.95",
+>>>>>>> 593084b (feat: adding NetworkConfig)
 ]
 
 [[package]]
@@ -783,6 +791,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "asynchronous-codec"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a860072022177f903e59730004fb5dc13db9275b79bb2aef7ba8ce831956c233"
+dependencies = [
+ "bytes",
+ "futures-sink",
+ "futures-util",
+ "memchr",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -791,6 +812,20 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 [[package]]
 name = "attohttpc"
 version = "0.24.1"
+<<<<<<< HEAD
+=======
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d9a9bf8b79a749ee0b911b91b671cc2b6c670bdbc7e3dfd537576ddc94bb2a2"
+dependencies = [
+ "http 0.2.12",
+ "log",
+ "url",
+]
+
+[[package]]
+name = "auto_impl"
+version = "1.2.0"
+>>>>>>> 593084b (feat: adding NetworkConfig)
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d9a9bf8b79a749ee0b911b91b671cc2b6c670bdbc7e3dfd537576ddc94bb2a2"
 dependencies = [
@@ -1142,6 +1177,17 @@ name = "blake2s_simd"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e90f7deecfac93095eb874a40febd69427776e24e1bd7f87f33ac62d6f0174df"
+dependencies = [
+ "arrayref",
+ "arrayvec",
+ "constant_time_eq",
+]
+
+[[package]]
+name = "blake2s_simd"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94230421e395b9920d23df13ea5d77a20e1725331f90fbbf6df6040b33f756ae"
 dependencies = [
  "arrayref",
  "arrayvec",
@@ -1924,7 +1970,11 @@ checksum = "f46882e17999c6cc590af592290432be3bce0428cb0d5f8b6715e4dc7b383eb3"
 dependencies = [
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.98",
+=======
+ "syn 2.0.95",
+>>>>>>> 593084b (feat: adding NetworkConfig)
 ]
 
 [[package]]
@@ -2390,7 +2440,11 @@ dependencies = [
  "heck 0.5.0",
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.98",
+=======
+ "syn 2.0.95",
+>>>>>>> 593084b (feat: adding NetworkConfig)
 ]
 
 [[package]]
@@ -2800,6 +2854,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-rustls"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f2f12607f92c69b12ed746fabf9ca4f5c482cba46679c1a75b874ed7c26adb"
+dependencies = [
+ "futures-io",
+ "rustls",
+ "rustls-pki-types",
+]
+
+[[package]]
 name = "futures-sink"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3012,7 +3077,11 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http 0.2.12",
+<<<<<<< HEAD
  "indexmap 2.7.1",
+=======
+ "indexmap 2.7.0",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "slab",
  "tokio",
  "tokio-util",
@@ -3363,7 +3432,11 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
+<<<<<<< HEAD
  "webpki-roots 0.26.8",
+=======
+ "webpki-roots 0.26.7",
+>>>>>>> 593084b (feat: adding NetworkConfig)
 ]
 
 [[package]]
@@ -3573,6 +3646,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "idb"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3afe8830d5802f769dc0be20a87f9f116798c896650cb6266eb5c19a3c109eed"
+dependencies = [
+ "js-sys",
+ "num-traits",
+ "thiserror 1.0.69",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "idna"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3623,7 +3710,11 @@ dependencies = [
  "rtnetlink",
  "system-configuration",
  "tokio",
+<<<<<<< HEAD
  "windows 0.53.0",
+=======
+ "windows",
+>>>>>>> 593084b (feat: adding NetworkConfig)
 ]
 
 [[package]]
@@ -3646,6 +3737,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "image"
 version = "0.24.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3660,6 +3752,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> 593084b (feat: adding NetworkConfig)
 name = "impl-codec"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4164,7 +4258,11 @@ dependencies = [
  "either",
  "futures",
  "futures-timer",
+<<<<<<< HEAD
  "getrandom 0.2.15",
+=======
+ "getrandom",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "libp2p-allow-block-list",
  "libp2p-autonat",
  "libp2p-connection-limits",
@@ -4330,7 +4428,11 @@ dependencies = [
  "fnv",
  "futures",
  "futures-ticker",
+<<<<<<< HEAD
  "getrandom 0.2.15",
+=======
+ "getrandom",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "hex_fmt",
  "libp2p-core 0.42.0",
  "libp2p-identity",
@@ -4555,7 +4657,11 @@ dependencies = [
  "fnv",
  "futures",
  "futures-timer",
+<<<<<<< HEAD
  "getrandom 0.2.15",
+=======
+ "getrandom",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "libp2p-core 0.42.0",
  "libp2p-identity",
  "libp2p-swarm-derive",
@@ -4580,7 +4686,11 @@ dependencies = [
  "heck 0.5.0",
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.98",
+=======
+ "syn 2.0.95",
+>>>>>>> 593084b (feat: adding NetworkConfig)
 ]
 
 [[package]]
@@ -4872,7 +4982,11 @@ dependencies = [
  "cid",
  "dashmap 5.5.3",
  "futures",
+<<<<<<< HEAD
  "getrandom 0.2.15",
+=======
+ "getrandom",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "gloo-timers 0.3.0",
  "js-sys",
  "libp2p",
@@ -5128,7 +5242,11 @@ dependencies = [
  "proc-macro-crate 3.2.0",
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.98",
+=======
+ "syn 2.0.95",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "synstructure",
 ]
 
@@ -5191,16 +5309,26 @@ dependencies = [
 
 [[package]]
 name = "netlink-proto"
+<<<<<<< HEAD
 version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72452e012c2f8d612410d89eea01e2d9b56205274abb35d53f60200b2ec41d60"
+=======
+version = "0.11.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2741a6c259755922e3ed29ebce3b299cc2160c4acae94b465b5938ab02c2bbe"
+>>>>>>> 593084b (feat: adding NetworkConfig)
 dependencies = [
  "bytes",
  "futures",
  "log",
  "netlink-packet-core",
  "netlink-sys",
+<<<<<<< HEAD
  "thiserror 2.0.11",
+=======
+ "thiserror 2.0.10",
+>>>>>>> 593084b (feat: adding NetworkConfig)
 ]
 
 [[package]]
@@ -6039,6 +6167,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 
 [[package]]
+<<<<<<< HEAD
 name = "plotters"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6098,6 +6227,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> 593084b (feat: adding NetworkConfig)
 name = "polling"
 version = "3.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6489,7 +6620,11 @@ checksum = "440f724eba9f6996b75d63681b0a92b06947f1457076d503a4d2e2c8f56442b8"
 dependencies = [
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
  "syn 2.0.98",
+=======
+ "syn 2.0.95",
+>>>>>>> 593084b (feat: adding NetworkConfig)
 ]
 
 [[package]]
@@ -6684,7 +6819,11 @@ dependencies = [
  "getrandom 0.2.15",
  "rand",
  "ring 0.17.8",
+<<<<<<< HEAD
  "rustc-hash 2.1.1",
+=======
+ "rustc-hash 2.1.0",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "rustls",
  "rustls-pki-types",
  "slab",
@@ -6933,7 +7072,11 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
+<<<<<<< HEAD
  "webpki-roots 0.26.8",
+=======
+ "webpki-roots 0.26.7",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "windows-registry",
 ]
 
@@ -7210,6 +7353,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusticata-macros"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "faf0c4a6ece9950b9abdb62b1cfcf2a68b3b67a10ba445b3bb85be2a293d0632"
+dependencies = [
+ "nom",
+]
+
+[[package]]
 name = "rustix"
 version = "0.38.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7297,7 +7449,11 @@ dependencies = [
  "rustls-webpki 0.102.8",
  "security-framework 2.11.1",
  "security-framework-sys",
+<<<<<<< HEAD
  "webpki-roots 0.26.8",
+=======
+ "webpki-roots 0.26.7",
+>>>>>>> 593084b (feat: adding NetworkConfig)
  "winapi",
 ]
 
@@ -7349,6 +7505,20 @@ dependencies = [
 [[package]]
 name = "rw-stream-sink"
 version = "0.4.0"
+<<<<<<< HEAD
+=======
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8c9026ff5d2f23da5e45bbc283f156383001bfb09c4e44256d02c1a685fe9a1"
+dependencies = [
+ "futures",
+ "pin-project",
+ "static_assertions",
+]
+
+[[package]]
+name = "ryu"
+version = "1.0.18"
+>>>>>>> 593084b (feat: adding NetworkConfig)
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c9026ff5d2f23da5e45bbc283f156383001bfb09c4e44256d02c1a685fe9a1"
 dependencies = [
@@ -8572,6 +8742,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "system-configuration"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c879d448e9d986b661742763247d3693ed13609438cf3d006f51f5368a5ba6b"
+dependencies = [
+ "bitflags 2.6.0",
+ "core-foundation 0.9.4",
+ "system-configuration-sys",
+]
+
+[[package]]
+name = "system-configuration-sys"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
+dependencies = [
+ "core-foundation-sys",
+ "libc",
+]
+
+[[package]]
 name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9330,6 +9521,15 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "void"
 version = "1.0.2"
+<<<<<<< HEAD
+=======
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
+
+[[package]]
+name = "wait-timeout"
+version = "0.2.0"
+>>>>>>> 593084b (feat: adding NetworkConfig)
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
@@ -9483,6 +9683,15 @@ dependencies = [
 [[package]]
 name = "webpki-roots"
 version = "0.25.4"
+<<<<<<< HEAD
+=======
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
+
+[[package]]
+name = "webpki-roots"
+version = "0.26.7"
+>>>>>>> 593084b (feat: adding NetworkConfig)
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 
@@ -9496,12 +9705,15 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "weezl"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 
 [[package]]
+=======
+>>>>>>> 593084b (feat: adding NetworkConfig)
 name = "widestring"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9793,6 +10005,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "wio"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9811,6 +10024,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> 593084b (feat: adding NetworkConfig)
 name = "write16"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9927,6 +10142,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "yeslogic-fontconfig-sys"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9938,6 +10154,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> 593084b (feat: adding NetworkConfig)
 name = "yoke"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
