@@ -1,4 +1,4 @@
-use prism_da::{celestia::LightClientConnection, config::Network};
+use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
 use prism_lightclient::LightClient;
 use std::{str::FromStr, sync::Arc};
 use web_sys::{console, MessagePort};

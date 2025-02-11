@@ -5,7 +5,9 @@ use dirs::home_dir;
 use dotenvy::dotenv;
 use log::{error, warn};
 use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_keys::VerifyingKey;
 use prism_prover::webserver::WebServerConfig;
+use prism_serde::base64::FromBase64;
 use prism_storage::{
     database::StorageBackend,
     inmemory::InMemoryDatabase,
@@ -17,8 +19,10 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc};
 
 use prism_da::{
-    celestia::CelestiaConnection,
-    config::{CelestiaConfig, Network, NetworkConfig},
+    celestia::{
+        full_node::CelestiaConnection,
+        utils::{CelestiaConfig, Network, NetworkConfig},
+    },
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
     FullNodeDataAvailabilityLayer,
@@ -257,7 +261,10 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         network: NetworkConfig {
             network: Network::from_str(&args.network_name.unwrap_or_default()).unwrap(),
             celestia_network: network_config.celestia_network.clone(),
-            verifying_key: network_config.clone().verifying_key,
+            verifying_key: args
+                .verifying_key
+                .and_then(|x| VerifyingKey::from_base64(x).ok())
+                .or(network_config.clone().verifying_key),
             celestia_config,
         },
         da_layer: config.da_layer,

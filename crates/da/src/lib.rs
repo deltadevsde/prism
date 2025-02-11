@@ -13,7 +13,6 @@ use tokio::sync::broadcast;
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
 
 pub mod celestia;
-pub mod config;
 pub mod consts;
 pub mod memory;
 
