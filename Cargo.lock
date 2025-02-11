@@ -1508,6 +1508,8 @@ dependencies = [
 [[package]]
 name = "celestia-proto"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c71c3cf9caaf35a7530ea5ac2bab226c9e5c1bad3d661d3527a3951d6f80cbcc"
 dependencies = [
  "bytes",
  "prost 0.13.4",
@@ -1522,8 +1524,7 @@ dependencies = [
 [[package]]
 name = "celestia-proto"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c71c3cf9caaf35a7530ea5ac2bab226c9e5c1bad3d661d3527a3951d6f80cbcc"
+source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
 dependencies = [
  "bytes",
  "prost 0.13.4",
@@ -1564,38 +1565,6 @@ dependencies = [
  "serde",
  "thiserror 1.0.69",
  "tracing",
-]
-
-[[package]]
-name = "celestia-types"
-version = "0.9.0"
-dependencies = [
- "base64 0.22.1",
- "bech32",
- "bitvec",
- "blockstore",
- "bytes",
- "celestia-proto 0.6.0",
- "cid",
- "const_format",
- "enum_dispatch",
- "js-sys",
- "leopard-codec",
- "libp2p-identity",
- "multiaddr",
- "multihash",
- "nmt-rs",
- "prost 0.13.4",
- "ruint",
- "serde",
- "serde-wasm-bindgen",
- "serde_repr",
- "sha2 0.10.8",
- "tendermint",
- "tendermint-proto",
- "thiserror 1.0.69",
- "time",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -3737,7 +3706,7 @@ dependencies = [
  "iana-time-zone-haiku",
  "js-sys",
  "wasm-bindgen",
- "windows-core 0.52.0",
+ "windows-core",
 ]
 
 [[package]]
@@ -3971,6 +3940,7 @@ dependencies = [
  "tokio",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "windows 0.53.0",
 =======
  "windows",
@@ -3978,6 +3948,9 @@ dependencies = [
 =======
  "windows 0.53.0",
 >>>>>>> c6fe320 (fixes)
+=======
+ "windows",
+>>>>>>> 84aebec (refac(wasm): use setup function for now with built in bootnodes)
 ]
 
 [[package]]
@@ -5280,13 +5253,14 @@ dependencies = [
 [[package]]
 name = "lumina-node"
 version = "0.8.0"
+source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
 dependencies = [
  "async-trait",
  "backoff",
  "beetswap",
  "blockstore",
- "celestia-proto 0.6.0",
- "celestia-types 0.9.0",
+ "celestia-proto 0.6.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
  "cid",
  "dashmap 5.5.3",
  "futures",
@@ -5367,10 +5341,11 @@ dependencies = [
 [[package]]
 name = "lumina-node-wasm"
 version = "0.7.0"
+source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
 dependencies = [
  "anyhow",
  "blockstore",
- "celestia-types 0.9.0",
+ "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
  "console_error_panic_hook",
  "enum-as-inner",
  "futures",
@@ -6966,7 +6941,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "celestia-rpc",
- "celestia-types 0.9.0",
+ "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
  "hex",
  "js-sys",
  "libp2p",
@@ -9224,6 +9199,7 @@ dependencies = [
  "ntapi",
  "once_cell",
  "rayon",
+<<<<<<< HEAD
  "windows 0.52.0",
 <<<<<<< HEAD
 ]
@@ -9249,6 +9225,9 @@ dependencies = [
  "libc",
 =======
 >>>>>>> c6fe320 (fixes)
+=======
+ "windows",
+>>>>>>> 84aebec (refac(wasm): use setup function for now with built in bootnodes)
 ]
 
 [[package]]
@@ -10324,17 +10303,7 @@ version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e48a53791691ab099e5e2ad123536d0fff50652600abaf43bbf952894110d0be"
 dependencies = [
- "windows-core 0.52.0",
- "windows-targets 0.52.6",
-]
-
-[[package]]
-name = "windows"
-version = "0.53.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efc5cf48f83140dcaab716eeaea345f9e93d0018fb81162753a3f76c3397b538"
-dependencies = [
- "windows-core 0.53.0",
+ "windows-core",
  "windows-targets 0.52.6",
 ]
 
@@ -10348,32 +10317,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "windows-core"
-version = "0.53.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dcc5b895a6377f1ab9fa55acedab1fd5ac0db66ad1e6c7f47e28a22e446a5dd"
-dependencies = [
- "windows-result 0.1.2",
- "windows-targets 0.52.6",
-]
-
-[[package]]
 name = "windows-registry"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e400001bb720a623c1c69032f8e3e4cf09984deec740f007dd2b03ec864804b0"
 dependencies = [
- "windows-result 0.2.0",
+ "windows-result",
  "windows-strings",
- "windows-targets 0.52.6",
-]
-
-[[package]]
-name = "windows-result"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e383302e8ec8515204254685643de10811af0ed97ea37210dc26fb0032647f8"
-dependencies = [
  "windows-targets 0.52.6",
 ]
 
@@ -10392,7 +10342,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4cd9b125c486025df0eabcb585e62173c6c9eddcec5d117d3b6e8c30e2ee4d10"
 dependencies = [
- "windows-result 0.2.0",
+ "windows-result",
  "windows-targets 0.52.6",
 ]
 

@@ -108,6 +108,9 @@ celestia-rpc = "=0.8.0"
 celestia-types = { git = "https://github.com/deltadevsde/lumina.git" }
 lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
 
+# p2p
+libp2p = "0.54.1"
+
 # misc
 jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit", features = [
     "mocks",

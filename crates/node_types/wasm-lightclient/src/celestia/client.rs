@@ -4,11 +4,11 @@ use libp2p::Multiaddr;
 use lumina_node::{
     blockstore::IndexedDbBlockstore,
     events::{EventSubscriber, NodeEvent},
-    network::Network as LuminaNetwork,
+    network::Network,
     store::IndexedDbStore,
     Node, NodeBuilder,
 };
-use lumina_node_wasm::utils::{resolve_dnsaddr_multiaddress, Network};
+use lumina_node_wasm::utils::resolve_dnsaddr_multiaddress;
 
 use serde_wasm_bindgen::to_value;
 use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
@@ -33,56 +33,15 @@ pub struct WasmCelestiaClient {
 }
 
 impl WasmCelestiaClient {
-    // TODO: config handling
+    // TODO: config handling after merging https://github.com/deltadevsde/prism/pull/225
     pub async fn new(port: MessagePort) -> Result<Arc<Self>, JsError> {
-        // config start height and namespace id, hardcoded for now
-        let current_height = Arc::new(AtomicU64::new(4312728));
-
-        let network = LuminaNetwork::from(Network::Mocha);
-        let network_id = network.id();
-
-        let store = IndexedDbStore::new(network_id)
-            .await
-            .map_err(|e| JsError::new(&format!("Failed to open store: {}", e)))?;
-        let blockstore = IndexedDbBlockstore::new(&format!("{network_id}-blockstore"))
-            .await
-            .map_err(|e| JsError::new(&format!("Failed to open blockstore: {}", e)))?;
-
-        let mut bootnodes: Vec<Multiaddr> = vec![
-            "/dnsaddr/da-bridge-2-mocha-4.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G",
-            "/dnsaddr/da-bridge-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCBAbQbJSpCpCGKzqz3rAN4ixYbc63K68zJg9aisuAajg",
-            "/dnsaddr/da-bridge-2-mocha-4.celestia-mocha.com/p2p/12D3KooWK6wJkScGQniymdWtBwBuU36n6BRXp9rCDDUD6P5gJr3G",
-            "/dnsaddr/da-full-1-mocha-4.celestia-mocha.com/p2p/12D3KooWCUHPLqQXZzpTx1x3TAsdn3vYmTNDhzg66yG8hqoxGGN8",
-            "/dnsaddr/da-full-2-mocha-4.celestia-mocha.com/p2p/12D3KooWR6SHsXPkkvhCRn6vp1RqSefgaT1X1nMNvrVjU2o3GoYy",
-            "/dnsaddr/mocha-boot.pops.one/p2p/12D3KooWDzNyDSvTBdKQAmnsUdAyQCQWwM3ReXTmPaaf6LzfNwRs",
-            "/dnsaddr/celestia-mocha.qubelabs.io/p2p/12D3KooWQVmHy7JpfxpKZfLjvn12GjvMgKrWdsHkFbV2kKqQFBCG",
-        ]
-        .into_iter()
-        .map(str::parse)
-        .collect::<Result<_, _>>()?;
-
-        for addr in bootnodes.clone() {
-            let resolved_addrs = resolve_dnsaddr_multiaddress(addr).await.unwrap();
-            bootnodes.extend(resolved_addrs);
-        }
-
-        let (node, event_subscriber) = NodeBuilder::new()
-            .store(store)
-            .blockstore(blockstore)
-            .bootnodes(bootnodes)
-            .network(network.clone())
-            .sync_batch_size(128)
-            .sampling_window(Duration::from_secs(60 * 60 * 24 * 30))
-            .start_subscribed()
-            .await
-            .map_err(|e| JsError::new(&format!("Failed to start node: {}", e)))?;
-
+        let (node, event_subscriber) = Self::setup_node().await?;
         console::log_1(&"🚀 Node started".into());
 
         let node = Arc::new(node);
         let client = Arc::new(Self {
             node,
-            current_height,
+            current_height: Arc::new(AtomicU64::new(4279075)),
             port,
         });
 
@@ -90,6 +49,43 @@ impl WasmCelestiaClient {
         spawn_local(async move { client_clone.handle_events(event_subscriber).await });
 
         Ok(client)
+    }
+
+    async fn setup_node(
+    ) -> Result<(Node<IndexedDbBlockstore, IndexedDbStore>, EventSubscriber), JsError> {
+        let network = Network::Mocha; // config handling
+        let network_id = network.id();
+
+        // Get canonical bootnodes
+        let mut bootnodes = network.canonical_bootnodes().collect::<Vec<Multiaddr>>();
+
+        // Resolve DNS addresses (for now, will be fixed in the future (will be handled by nodebuilder eventually: https://github.com/eigerco/lumina/issues/515))
+        for addr in bootnodes.clone() {
+            let resolved_addrs = resolve_dnsaddr_multiaddress(addr)
+                .await
+                .map_err(|e| JsError::new(&format!("Failed to resolve DNS: {}", e)))?;
+            bootnodes.extend(resolved_addrs);
+        }
+
+        // Setup storage
+        let store = IndexedDbStore::new(network_id)
+            .await
+            .map_err(|e| JsError::new(&format!("Failed to open store: {}", e)))?;
+        let blockstore = IndexedDbBlockstore::new(&format!("{network_id}-blockstore"))
+            .await
+            .map_err(|e| JsError::new(&format!("Failed to open blockstore: {}", e)))?;
+
+        // Configure and start node
+        NodeBuilder::new()
+            .store(store)
+            .blockstore(blockstore)
+            .bootnodes(bootnodes)
+            .network(network)
+            .sync_batch_size(128)
+            .sampling_window(Duration::from_secs(60 * 60 * 24 * 30))
+            .start_subscribed()
+            .await
+            .map_err(|e| JsError::new(&format!("Failed to start node: {}", e)))
     }
 
     async fn handle_events(&self, mut event_subscriber: EventSubscriber) {
