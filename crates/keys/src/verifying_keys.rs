@@ -7,6 +7,8 @@ use p256::{
     },
     pkcs8::{DecodePublicKey, EncodePublicKey},
 };
+
+#[cfg(not(target_arch = "wasm32"))]
 use secp256k1::{
     Message as Secp256k1Message, PublicKey as Secp256k1VerifyingKey,
     SecretKey as Secp256k1SigningKey, SECP256K1,
@@ -31,6 +33,7 @@ use prism_serde::base64::{FromBase64, ToBase64};
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
 /// Represents a public key.
 pub enum VerifyingKey {
+    #[cfg(not(target_arch = "wasm32"))]
     /// Bitcoin, Ethereum
     Secp256k1(Secp256k1VerifyingKey),
     /// Cosmos, OpenSSH, GnuPG
@@ -46,6 +49,7 @@ impl Hash for VerifyingKey {
                 state.write_u8(0);
                 self.to_bytes().hash(state);
             }
+            #[cfg(not(target_arch = "wasm32"))]
             VerifyingKey::Secp256k1(_) => {
                 state.write_u8(1);
                 self.to_bytes().hash(state);
@@ -63,6 +67,7 @@ impl VerifyingKey {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             VerifyingKey::Ed25519(vk) => vk.to_bytes().to_vec(),
+            #[cfg(not(target_arch = "wasm32"))]
             VerifyingKey::Secp256k1(vk) => vk.serialize().to_vec(),
             VerifyingKey::Secp256r1(vk) => vk.to_sec1_bytes().to_vec(),
         }
@@ -71,6 +76,7 @@ impl VerifyingKey {
     pub fn to_der(&self) -> Result<Vec<u8>> {
         let der = match self {
             VerifyingKey::Ed25519(_) => bail!("Ed25519 vk to DER format is not implemented"),
+            #[cfg(not(target_arch = "wasm32"))]
             VerifyingKey::Secp256k1(_) => bail!("Secp256k1 vk to DER format is not implemented"),
             VerifyingKey::Secp256r1(vk) => vk.to_public_key_der()?.into_vec(),
         };
@@ -82,6 +88,7 @@ impl VerifyingKey {
             CryptoAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
                 .map(VerifyingKey::Ed25519)
                 .map_err(|e| e.into()),
+            #[cfg(not(target_arch = "wasm32"))]
             CryptoAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_slice(bytes)
                 .map(VerifyingKey::Secp256k1)
                 .map_err(|e| e.into()),
@@ -94,6 +101,7 @@ impl VerifyingKey {
     pub fn from_algorithm_and_der(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => bail!("Ed25519 vk from DER format is not implemented"),
+            #[cfg(not(target_arch = "wasm32"))]
             CryptoAlgorithm::Secp256k1 => bail!("Secp256k1 vk from DER format is not implemented"),
             CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_public_key_der(bytes)
                 .map(VerifyingKey::Secp256r1)
@@ -104,6 +112,7 @@ impl VerifyingKey {
     pub fn algorithm(&self) -> CryptoAlgorithm {
         match self {
             VerifyingKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
+            #[cfg(not(target_arch = "wasm32"))]
             VerifyingKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
             VerifyingKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
         }
@@ -119,6 +128,7 @@ impl VerifyingKey {
                 vk.verify(signature, message)
                     .map_err(|e| anyhow!("Failed to verify signature: {}", e))
             }
+            #[cfg(not(target_arch = "wasm32"))]
             VerifyingKey::Secp256k1(vk) => {
                 let Signature::Secp256k1(signature) = signature else {
                     bail!("Invalid signature type");
@@ -126,8 +136,9 @@ impl VerifyingKey {
 
                 let digest = sha2::Sha256::digest(message);
                 let message = Secp256k1Message::from_digest(digest.into());
-                vk.verify(SECP256K1, &message, signature)
-                    .map_err(|e| anyhow!("Failed to verify signature: {}", e))
+                let verify_result = vk.verify(SECP256K1, &message, signature);
+
+                verify_result.map_err(|e| anyhow!("Failed to verify signature: {}", e))
             }
             VerifyingKey::Secp256r1(vk) => {
                 let Signature::Secp256r1(signature) = signature else {
@@ -166,6 +177,7 @@ impl From<Ed25519VerifyingKey> for VerifyingKey {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl From<Secp256k1VerifyingKey> for VerifyingKey {
     fn from(vk: Secp256k1VerifyingKey) -> Self {
         VerifyingKey::Secp256k1(vk)
@@ -184,6 +196,7 @@ impl From<Ed25519SigningKey> for VerifyingKey {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl From<Secp256k1SigningKey> for VerifyingKey {
     fn from(sk: Secp256k1SigningKey) -> Self {
         VerifyingKey::Secp256k1(sk.public_key(SECP256K1))
@@ -200,6 +213,7 @@ impl From<SigningKey> for VerifyingKey {
     fn from(sk: SigningKey) -> Self {
         match sk {
             SigningKey::Ed25519(sk) => (*sk).into(),
+            #[cfg(not(target_arch = "wasm32"))]
             SigningKey::Secp256k1(sk) => sk.into(),
             SigningKey::Secp256r1(sk) => sk.into(),
         }
@@ -233,10 +247,19 @@ impl FromBase64 for VerifyingKey {
                     .map_err(|e| anyhow!("Invalid Ed25519 key: {}", e))?;
                 Ok(VerifyingKey::Ed25519(vk))
             }
+            #[cfg(not(target_arch = "wasm32"))]
             33 | 65 => {
                 if let Ok(vk) = Secp256k1VerifyingKey::from_slice(bytes.as_slice()) {
                     Ok(VerifyingKey::Secp256k1(vk))
                 } else if let Ok(vk) = Secp256r1VerifyingKey::from_sec1_bytes(bytes.as_slice()) {
+                    Ok(VerifyingKey::Secp256r1(vk))
+                } else {
+                    Err(anyhow!("Invalid curve type"))
+                }
+            }
+            #[cfg(target_arch = "wasm32")]
+            33 | 65 => {
+                if let Ok(vk) = Secp256r1VerifyingKey::from_sec1_bytes(bytes.as_slice()) {
                     Ok(VerifyingKey::Secp256r1(vk))
                 } else {
                     Err(anyhow!("Invalid curve type"))

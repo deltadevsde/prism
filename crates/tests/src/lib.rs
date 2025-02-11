@@ -7,7 +7,7 @@ use anyhow::Result;
 use prism_common::transaction_builder::TransactionBuilder;
 use prism_da::{
     celestia::{CelestiaConfig, CelestiaConnection},
-    DataAvailabilityLayer,
+    FullNodeDataAvailabilityLayer,
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_lightclient::LightClient;

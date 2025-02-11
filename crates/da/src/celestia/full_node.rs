@@ -1,16 +1,11 @@
-use crate::{DataAvailabilityLayer, FinalizedEpoch};
+#![cfg(not(target_arch = "wasm32"))]
+
+use crate::FinalizedEpoch;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use celestia_rpc::{BlobClient, Client, HeaderClient};
-use celestia_types::{nmt::Namespace, AppVersion, Blob, TxConfig};
-use log::{debug, error, trace, warn};
-use prism_common::transaction::Transaction;
+use celestia_types::{nmt::Namespace, Blob};
+use log::{error, trace};
 use prism_errors::{DataAvailabilityError, GeneralError};
-use prism_serde::{
-    binary::{FromBinary, ToBinary},
-    hex::FromHex,
-};
-use serde::{Deserialize, Serialize};
 use std::{
     self,
     sync::{
@@ -18,38 +13,18 @@ use std::{
         Arc,
     },
 };
-use tokio::{sync::broadcast, task::spawn};
 
-impl TryFrom<&Blob> for FinalizedEpoch {
-    type Error = anyhow::Error;
+use tokio::sync::broadcast;
 
-    fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
-            anyhow!(format!(
-                "Failed to decode blob into FinalizedEpoch: {value:?}"
-            ))
-        })
-    }
-}
+use crate::FullNodeDataAvailabilityLayer;
+use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
+use celestia_types::AppVersion;
+use log::{debug, warn};
+use prism_common::transaction::Transaction;
+use prism_serde::binary::ToBinary;
+use tokio::task::spawn;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CelestiaConfig {
-    pub connection_string: String,
-    pub start_height: u64,
-    pub snark_namespace_id: String,
-    pub operation_namespace_id: String,
-}
-
-impl Default for CelestiaConfig {
-    fn default() -> Self {
-        CelestiaConfig {
-            connection_string: "ws://localhost:26658".to_string(),
-            start_height: 1,
-            snark_namespace_id: "00000000000000de1008".to_string(),
-            operation_namespace_id: "00000000000000de1009".to_string(),
-        }
-    }
-}
+use super::utils::{create_namespace, CelestiaConfig};
 
 pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
@@ -90,20 +65,8 @@ impl CelestiaConnection {
     }
 }
 
-fn create_namespace(namespace_hex: &str) -> Result<Namespace> {
-    let decoded_hex = Vec::<u8>::from_hex(namespace_hex).context(format!(
-        "Failed to decode namespace hex '{}'",
-        namespace_hex
-    ))?;
-
-    Namespace::new_v0(&decoded_hex).context(format!(
-        "Failed to create namespace from '{}'",
-        namespace_hex
-    ))
-}
-
 #[async_trait]
-impl DataAvailabilityLayer for CelestiaConnection {
+impl FullNodeDataAvailabilityLayer for CelestiaConnection {
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(self.sync_target.load(Ordering::Relaxed))
     }

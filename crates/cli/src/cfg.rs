@@ -19,13 +19,14 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc};
 
 use prism_da::{
-    celestia::{CelestiaConfig, CelestiaConnection},
+    celestia::{
+        full_node::CelestiaConnection,
+        utils::{CelestiaConfig, Network, NetworkConfig},
+    },
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
-    DataAvailabilityLayer,
+    FullNodeDataAvailabilityLayer,
 };
-
-use crate::network::{Network, NetworkConfig};
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
@@ -259,7 +260,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         },
         network: NetworkConfig {
             network: Network::from_str(&args.network_name.unwrap_or_default()).unwrap(),
-            celestia_network: network_config.celestia_network,
+            celestia_network: network_config.celestia_network.clone(),
             verifying_key: args
                 .verifying_key
                 .and_then(|x| VerifyingKey::from_base64(x).ok())
@@ -293,7 +294,7 @@ pub fn initialize_db(cfg: &Config) -> Result<Arc<Box<dyn Database>>> {
 
 pub async fn initialize_da_layer(
     config: &Config,
-) -> Result<Arc<dyn DataAvailabilityLayer + 'static>> {
+) -> Result<Arc<dyn FullNodeDataAvailabilityLayer + 'static>> {
     match config.da_layer {
         DALayerOption::Celestia => {
             let celestia_conf = config
@@ -304,7 +305,9 @@ pub async fn initialize_da_layer(
 
             for attempt in 1..=DA_RETRY_COUNT {
                 match CelestiaConnection::new(&celestia_conf, None).await {
-                    Ok(da) => return Ok(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
+                    Ok(da) => {
+                        return Ok(Arc::new(da) as Arc<dyn FullNodeDataAvailabilityLayer + 'static>)
+                    }
                     Err(e) => {
                         if attempt == DA_RETRY_COUNT {
                             return Err(DataAvailabilityError::NetworkError(format!(
@@ -322,7 +325,7 @@ pub async fn initialize_da_layer(
         }
         DALayerOption::InMemory => {
             let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
-            Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
+            Ok(Arc::new(da_layer) as Arc<dyn FullNodeDataAvailabilityLayer + 'static>)
         }
     }
 }
