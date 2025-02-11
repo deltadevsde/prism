@@ -16,6 +16,7 @@ readme = "README.md"
 
 [workspace]
 default-members = [
+    "crates/api",
     "crates/cli",
     "crates/tests",
     "crates/node_types/prover",
@@ -31,6 +32,7 @@ default-members = [
 ]
 
 members = [
+    "crates/api",
     "crates/cli",
     "crates/tests",
     "crates/node_types/prover",
@@ -129,6 +131,7 @@ prism-common = { path = "crates/common" }
 prism-storage = { path = "crates/storage" }
 prism-da = { path = "crates/da" }
 prism-errors = { path = "crates/errors" }
+prism-api = { path = "crates/api" }
 prism-cli = { path = "crates/cli" }
 prism-prover = { path = "crates/node_types/prover" }
 prism-tests = { path = "crates/tests" }

@@ -1,0 +1,21 @@
+[package]
+name = "prism-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+# prism
+prism-common.workspace = true
+
+# serde
+serde.workspace = true
+
+# OAS spec
+utoipa.workspace = true
+
+[features]
+default = []
+test_utils = []

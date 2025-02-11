@@ -1,15 +1,16 @@
 use crate::Prover;
 use anyhow::{bail, Context, Result};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use prism_common::{account::Account, digest::Digest, transaction::Transaction};
-use prism_tree::{proofs::HashedMerkleProof, AccountResponse as TreeAccountResponse};
+use prism_api::{AccountRequest, AccountResponse, CommitmentResponse};
+use prism_common::transaction::Transaction;
+use prism_tree::AccountResponse::*;
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use utoipa::{
     openapi::{Info, OpenApiBuilder},
-    OpenApi, ToSchema,
+    OpenApi,
 };
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
@@ -34,29 +35,6 @@ impl Default for WebServerConfig {
 pub struct WebServer {
     pub cfg: WebServerConfig,
     pub session: Arc<Prover>,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-/// Request to retrieve account information
-pub struct AccountRequest {
-    /// Identifier for the account to look up
-    pub id: String,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-/// Response containing account data and a corresponding Merkle proof
-pub struct AccountResponse {
-    /// The account if found, or None if not found
-    pub account: Option<Account>,
-    /// Merkle proof for account membership or non-membership
-    pub proof: HashedMerkleProof,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-/// Response representing a cryptographic commitment towards the current state of prism
-pub struct CommitmentResponse {
-    /// Commitment as root hash of Merkle tree
-    commitment: Digest,
 }
 
 #[derive(OpenApi)]
@@ -164,22 +142,20 @@ async fn get_account(
     };
 
     match account_response {
-        TreeAccountResponse::Found(account, membership_proof) => (
-            StatusCode::OK,
-            Json(AccountResponse {
+        Found(account, membership_proof) => {
+            let response = AccountResponse {
                 account: Some(*account),
                 proof: membership_proof.hashed(),
-            }),
-        )
-            .into_response(),
-        TreeAccountResponse::NotFound(non_membership_proof) => (
-            StatusCode::OK,
-            Json(AccountResponse {
+            };
+            (StatusCode::OK, Json(response)).into_response()
+        }
+        NotFound(non_membership_proof) => {
+            let response = AccountResponse {
                 account: None,
                 proof: non_membership_proof.hashed(),
-            }),
-        )
-            .into_response(),
+            };
+            (StatusCode::OK, Json(response)).into_response()
+        }
     }
 }
 
