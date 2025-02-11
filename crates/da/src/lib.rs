@@ -1,18 +1,27 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use prism_common::{digest::Digest, transaction::Transaction};
+use prism_common::digest::Digest;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
     binary::ToBinary,
     hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
-use sp1_sdk::SP1ProofWithPublicValues;
 use tokio::sync::broadcast;
 
+#[cfg(not(target_arch = "wasm32"))]
+use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
+
 pub mod celestia;
+pub mod config;
 pub mod consts;
 pub mod memory;
+
+#[cfg(target_arch = "wasm32")]
+type Proof = Vec<u8>;
+
+#[cfg(not(target_arch = "wasm32"))]
+type Proof = SP1ProofWithPublicValues;
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -20,7 +29,7 @@ pub struct FinalizedEpoch {
     pub height: u64,
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
-    pub proof: SP1ProofWithPublicValues,
+    pub proof: Proof,
     pub signature: Option<String>,
 }
 
@@ -60,8 +69,17 @@ impl FinalizedEpoch {
     }
 }
 
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+pub trait LightClientDataAvailabilityLayer {
+    async fn start(&self) -> Result<()>;
+    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64>;
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
-pub trait DataAvailabilityLayer: Send + Sync {
+pub trait FullNodeDataAvailabilityLayer: Send + Sync {
     async fn get_latest_height(&self) -> Result<u64>;
     async fn initialize_sync_target(&self) -> Result<u64>;
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;

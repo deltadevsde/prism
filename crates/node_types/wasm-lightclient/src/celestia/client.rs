@@ -1,4 +1,4 @@
-use crate::commands::WorkerResponse;
+/* use crate::commands::WorkerResponse;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
 use lumina_node::{
@@ -10,6 +10,7 @@ use lumina_node::{
 };
 use lumina_node_wasm::utils::resolve_dnsaddr_multiaddress;
 
+use prism_lightclient::LightClient;
 use serde_wasm_bindgen::to_value;
 use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
 use std::{
@@ -27,13 +28,11 @@ use super::FinalizedEpoch;
 
 #[derive(Clone)]
 pub struct WasmCelestiaClient {
-    pub node: Arc<Node<IndexedDbBlockstore, IndexedDbStore>>,
-    pub current_height: Arc<AtomicU64>,
+    pub light_client: Arc<LightClient>,
     pub port: MessagePort,
 }
 
 impl WasmCelestiaClient {
-    // TODO: config handling after merging https://github.com/deltadevsde/prism/pull/225
     pub async fn new(port: MessagePort) -> Result<Arc<Self>, JsError> {
         let (node, event_subscriber) = Self::setup_node().await?;
         console::log_1(&"🚀 Node started".into());
@@ -186,3 +185,4 @@ impl WasmCelestiaClient {
         self.current_height.load(Ordering::Relaxed)
     }
 }
+ */

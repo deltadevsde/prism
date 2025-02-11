@@ -2,10 +2,22 @@ use wasm_bindgen::prelude::*;
 use web_sys::MessagePort;
 
 use crate::{
-    celestia::VerifyEpochResult,
     commands::{LightClientCommand, WorkerResponse},
     worker_communication::WorkerClient,
 };
+
+#[wasm_bindgen]
+pub struct VerifyEpochResult {
+    pub verified: bool,
+    pub height: u64,
+}
+
+#[wasm_bindgen]
+impl VerifyEpochResult {
+    pub fn new(verified: bool, height: u64) -> Self {
+        Self { verified, height }
+    }
+}
 
 // lives in main thread, communicates with worker
 #[wasm_bindgen]

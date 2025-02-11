@@ -163,7 +163,7 @@
 
                 const channel = new MessageChannel();
                 
-                const worker = await new LightClientWorker(channel.port1);
+                const worker = await new LightClientWorker(channel.port1, "specter");
                 worker.run();
                 log('Worker started successfully');
                 

@@ -20,7 +20,7 @@ use tokio::{
 
 use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
-use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
+use prism_da::{FinalizedEpoch, FullNodeDataAvailabilityLayer};
 use sp1_sdk::{CpuProver, Prover as _, ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
@@ -92,7 +92,7 @@ impl Config {
 #[allow(dead_code)]
 pub struct Prover {
     pub db: Arc<dyn Database>,
-    pub da: Arc<dyn DataAvailabilityLayer>,
+    pub da: Arc<dyn FullNodeDataAvailabilityLayer>,
 
     pub cfg: Config,
 
@@ -112,7 +112,7 @@ pub struct Prover {
 impl Prover {
     pub fn new(
         db: Arc<Box<dyn Database>>,
-        da: Arc<dyn DataAvailabilityLayer>,
+        da: Arc<dyn FullNodeDataAvailabilityLayer>,
         cfg: &Config,
     ) -> Result<Prover> {
         let saved_epoch = match db.get_epoch() {

@@ -273,10 +273,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -363,10 +367,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -383,10 +391,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "syn-solidity",
  "tiny-keccak",
 ]
@@ -403,10 +415,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "syn-solidity",
 ]
 
@@ -418,10 +434,14 @@ checksum = "a971129d242338d92009470a2f750d3b2630bc5da00a40a94d51f5d456b5712f"
 dependencies = [
  "serde",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "winnow 0.7.1",
 =======
  "winnow 0.6.24",
 >>>>>>> c6fe320 (fixes)
+=======
+ "winnow 0.7.1",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -713,6 +733,7 @@ dependencies = [
  "quote",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.95",
@@ -720,6 +741,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "synstructure",
 ]
 
@@ -733,6 +757,7 @@ dependencies = [
  "quote",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.95",
@@ -740,6 +765,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -792,10 +820,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -806,6 +838,7 @@ checksum = "644dd749086bf3771a2fbc5f256fdb982d53f011c7d5d560304eafeecebce79d"
 dependencies = [
  "proc-macro2",
  "quote",
+<<<<<<< HEAD
 <<<<<<< HEAD
  "syn 2.0.98",
 ]
@@ -824,6 +857,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -884,10 +920,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -1133,10 +1173,14 @@ dependencies = [
  "rustc-hash 1.1.0",
  "shlex",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -1157,10 +1201,14 @@ dependencies = [
  "rustc-hash 1.1.0",
  "shlex",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -1219,6 +1267,7 @@ name = "blake2b_simd"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06e903a20b159e944f91ec8499fe1e55651480c541ea0a584f5d967c49ad9d99"
+<<<<<<< HEAD
 dependencies = [
  "arrayref",
  "arrayvec",
@@ -1230,6 +1279,8 @@ name = "blake2s_simd"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e90f7deecfac93095eb874a40febd69427776e24e1bd7f87f33ac62d6f0174df"
+=======
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 dependencies = [
  "arrayref",
  "arrayvec",
@@ -1238,9 +1289,9 @@ dependencies = [
 
 [[package]]
 name = "blake2s_simd"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94230421e395b9920d23df13ea5d77a20e1725331f90fbbf6df6040b33f756ae"
+checksum = "e90f7deecfac93095eb874a40febd69427776e24e1bd7f87f33ac62d6f0174df"
 dependencies = [
  "arrayref",
  "arrayvec",
@@ -1341,10 +1392,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -1386,10 +1441,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -1480,16 +1539,21 @@ dependencies = [
  "serde",
  "serde_json",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "tempfile",
  "toml",
 ]
 
 [[package]]
 name = "cc"
+<<<<<<< HEAD
 <<<<<<< HEAD
 version = "1.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1499,6 +1563,11 @@ version = "1.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13208fcbb66eaeffe09b99fffbe1af420f00a7b35aa99ad683dfc1aa76145229"
 >>>>>>> c6fe320 (fixes)
+=======
+version = "1.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "755717a7de9ec452bf7f3f1a3099085deabd7f2962b861dae91ecd7a365903d2"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 dependencies = [
  "jobserver",
  "libc",
@@ -1506,25 +1575,48 @@ dependencies = [
 ]
 
 [[package]]
-name = "celestia-proto"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c71c3cf9caaf35a7530ea5ac2bab226c9e5c1bad3d661d3527a3951d6f80cbcc"
+name = "celestia-grpc"
+version = "0.2.0"
+source = "git+https://github.com/deltadevsde/lumina.git#89955f8ba285bcdb036b3fc9fdfbd84853f5067f"
 dependencies = [
  "bytes",
+ "celestia-grpc-macros",
+ "celestia-proto",
+ "celestia-types",
+ "futures",
+ "getrandom 0.2.15",
+ "gloo-timers 0.3.0",
+ "hex",
+ "http-body 1.0.1",
+ "js-sys",
+ "k256",
  "prost 0.13.4",
- "prost-build",
- "prost-types",
- "protox",
+ "send_wrapper 0.6.0",
  "serde",
- "subtle-encoding",
+ "tendermint",
  "tendermint-proto",
+ "thiserror 1.0.69",
+ "tokio",
+ "tonic",
+ "tonic-web-wasm-client",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "celestia-grpc-macros"
+version = "0.2.0"
+source = "git+https://github.com/deltadevsde/lumina.git#89955f8ba285bcdb036b3fc9fdfbd84853f5067f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
 ]
 
 [[package]]
 name = "celestia-proto"
-version = "0.6.0"
-source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
+version = "0.7.0"
+source = "git+https://github.com/deltadevsde/lumina.git#89955f8ba285bcdb036b3fc9fdfbd84853f5067f"
 dependencies = [
  "bytes",
  "prost 0.13.4",
@@ -1534,16 +1626,18 @@ dependencies = [
  "serde",
  "subtle-encoding",
  "tendermint-proto",
+ "tonic",
+ "tonic-build",
 ]
 
 [[package]]
 name = "celestia-rpc"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0970073d9e74fc74a417c5157146bbc122462c1dc7b2d5c442fe0b67be40e2cb"
+checksum = "dc214d362b640e22d255b1c8684c0a364dd71b52c78d3203b40e19d4083df75a"
 dependencies = [
  "async-trait",
- "celestia-types 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "celestia-types",
  "http 1.2.0",
  "jsonrpsee",
  "prost 0.13.4",
@@ -1554,46 +1648,15 @@ dependencies = [
 
 [[package]]
 name = "celestia-types"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a70717cd176178cb3feb43795dd40a6a29ad5e48fae4222d8ba45182b93acbae"
+version = "0.10.0"
+source = "git+https://github.com/deltadevsde/lumina.git#89955f8ba285bcdb036b3fc9fdfbd84853f5067f"
 dependencies = [
  "base64 0.22.1",
  "bech32",
  "bitvec",
  "blockstore",
  "bytes",
- "celestia-proto 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cid",
- "const_format",
- "enum_dispatch",
- "leopard-codec",
- "libp2p-identity",
- "multiaddr",
- "multihash",
- "nmt-rs",
- "prost 0.13.4",
- "ruint",
- "serde",
- "serde_repr",
- "sha2 0.10.8",
- "tendermint",
- "tendermint-proto",
- "thiserror 1.0.69",
- "time",
-]
-
-[[package]]
-name = "celestia-types"
-version = "0.9.0"
-source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
-dependencies = [
- "base64 0.22.1",
- "bech32",
- "bitvec",
- "blockstore",
- "bytes",
- "celestia-proto 0.6.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "celestia-proto",
  "cid",
  "const_format",
  "enum_dispatch",
@@ -1720,6 +1783,7 @@ dependencies = [
 [[package]]
 name = "clap"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "4.5.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e77c3243bd94243c03672cb5154667347c457ca271254724f9f393aee1c05ff"
@@ -1728,6 +1792,11 @@ version = "4.5.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "769b0145982b4b48713e01ec42d61614425f27b7058bda7180a3a41f30104796"
 >>>>>>> c6fe320 (fixes)
+=======
+version = "4.5.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e77c3243bd94243c03672cb5154667347c457ca271254724f9f393aee1c05ff"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1755,10 +1824,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -2111,6 +2184,7 @@ dependencies = [
  "quote",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.95",
@@ -2118,6 +2192,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -2263,10 +2340,14 @@ checksum = "1145d32e826a7748b69ee8fc62d3e6355ff7f1051df53141e7048162fc90481b"
 dependencies = [
  "data-encoding",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -2343,10 +2424,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "unicode-xid",
 ]
 
@@ -2401,6 +2486,7 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 ]
 
@@ -2414,6 +2500,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -2597,6 +2686,7 @@ dependencies = [
  "quote",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.95",
@@ -2604,6 +2694,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -2625,10 +2718,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -2641,10 +2738,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -3007,6 +3108,7 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 ]
 
@@ -3022,6 +3124,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -3642,10 +3747,14 @@ dependencies = [
  "tokio-rustls",
  "tower-service",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "webpki-roots 0.26.8",
 =======
  "webpki-roots 0.26.7",
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+ "webpki-roots 0.26.8",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -3838,6 +3947,7 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 ]
 
@@ -3856,6 +3966,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -3996,10 +4109,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -4327,10 +4444,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -4347,9 +4468,9 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-wasm-client"
-version = "0.24.7"
+version = "0.24.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a01cd500915d24ab28ca17527e23901ef1be6d659a2322451e1045532516c25"
+checksum = "42e41af42ca39657313748174d02766e5287d3a57356f16756dbd8065b933977"
 dependencies = [
  "jsonrpsee-client-transport",
  "jsonrpsee-core",
@@ -4513,10 +4634,14 @@ dependencies = [
  "futures",
  "futures-timer",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "getrandom 0.2.15",
 =======
  "getrandom",
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+ "getrandom 0.2.15",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "libp2p-allow-block-list",
  "libp2p-autonat",
  "libp2p-connection-limits",
@@ -4684,10 +4809,14 @@ dependencies = [
  "futures",
  "futures-ticker",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "getrandom 0.2.15",
 =======
  "getrandom",
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+ "getrandom 0.2.15",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "hex_fmt",
  "libp2p-core 0.42.0",
  "libp2p-identity",
@@ -4916,10 +5045,14 @@ dependencies = [
  "futures",
  "futures-timer",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "getrandom 0.2.15",
 =======
  "getrandom",
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+ "getrandom 0.2.15",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "libp2p-core 0.42.0",
  "libp2p-identity",
  "libp2p-swarm-derive",
@@ -4946,6 +5079,7 @@ dependencies = [
  "quote",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.95",
@@ -4953,6 +5087,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -5206,10 +5343,14 @@ dependencies = [
  "quote",
  "regex-syntax 0.8.5",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -5241,19 +5382,19 @@ dependencies = [
 
 [[package]]
 name = "lumina-node"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76043c46bc03eac4e471419ad88a90cc0f3f07599177a4fb30e983fa366052fa"
+version = "0.9.0"
+source = "git+https://github.com/deltadevsde/lumina.git#89955f8ba285bcdb036b3fc9fdfbd84853f5067f"
 dependencies = [
  "async-trait",
  "backoff",
  "beetswap",
  "blockstore",
- "celestia-proto 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "celestia-types 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "celestia-proto",
+ "celestia-types",
  "cid",
  "dashmap 5.5.3",
  "futures",
+<<<<<<< HEAD
 <<<<<<< HEAD
  "getrandom 0.2.15",
 =======
@@ -5301,6 +5442,9 @@ dependencies = [
  "dashmap 5.5.3",
  "futures",
  "getrandom",
+=======
+ "getrandom 0.2.15",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "gloo-timers 0.3.0",
  "js-sys",
  "libp2p",
@@ -5330,12 +5474,13 @@ dependencies = [
 
 [[package]]
 name = "lumina-node-wasm"
-version = "0.7.0"
-source = "git+https://github.com/deltadevsde/lumina.git#0d8db70f5a873a4decb6d5e07fb6f833aa6e5611"
+version = "0.8.0"
+source = "git+https://github.com/deltadevsde/lumina.git#89955f8ba285bcdb036b3fc9fdfbd84853f5067f"
 dependencies = [
  "anyhow",
  "blockstore",
- "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "celestia-grpc",
+ "celestia-types",
  "console_error_panic_hook",
  "enum-as-inner",
  "futures",
@@ -5343,7 +5488,7 @@ dependencies = [
  "instant",
  "js-sys",
  "libp2p",
- "lumina-node 0.8.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "lumina-node",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
@@ -5430,10 +5575,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -5510,10 +5659,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -5598,6 +5751,7 @@ dependencies = [
  "quote",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.95",
@@ -5605,6 +5759,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "synstructure",
 ]
 
@@ -5668,6 +5825,7 @@ dependencies = [
 [[package]]
 name = "netlink-proto"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72452e012c2f8d612410d89eea01e2d9b56205274abb35d53f60200b2ec41d60"
@@ -5676,6 +5834,11 @@ version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2741a6c259755922e3ed29ebce3b299cc2160c4acae94b465b5938ab02c2bbe"
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+version = "0.11.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72452e012c2f8d612410d89eea01e2d9b56205274abb35d53f60200b2ec41d60"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 dependencies = [
  "bytes",
  "futures",
@@ -6457,10 +6620,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -6502,10 +6669,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -6701,10 +6872,14 @@ checksum = "6924ced06e1f7dfe3fa48d57b9f74f55d8915f5036121bef647ef4b204895fac"
 dependencies = [
  "proc-macro2",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -6734,14 +6909,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "celestia-types 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "celestia-types",
  "clap",
  "config",
  "dirs",
  "dotenvy",
  "keystore-rs",
  "log",
- "lumina-node 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lumina-node",
  "pretty_env_logger",
  "prism-da",
  "prism-errors",
@@ -6761,7 +6936,7 @@ name = "prism-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "celestia-types 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "celestia-types",
  "prism-keys",
  "prism-serde",
  "rand",
@@ -6777,15 +6952,24 @@ dependencies = [
  "anyhow",
  "async-trait",
  "celestia-rpc",
- "celestia-types 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "celestia-types",
+ "ed25519-consensus",
+ "libp2p",
  "log",
+ "lumina-node",
+ "lumina-node-wasm",
  "prism-common",
  "prism-errors",
  "prism-keys",
  "prism-serde",
+ "redb",
  "serde",
+ "serde-wasm-bindgen",
  "sp1-sdk",
  "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
@@ -6803,6 +6987,7 @@ dependencies = [
  "anyhow",
  "ecdsa",
  "ed25519-consensus",
+ "getrandom 0.2.15",
  "p256",
  "prism-serde",
  "rand",
@@ -6824,6 +7009,7 @@ dependencies = [
  "prism-keys",
  "sp1-verifier",
  "tokio",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -6931,13 +7117,13 @@ dependencies = [
  "anyhow",
  "bincode",
  "celestia-rpc",
- "celestia-types 0.9.0 (git+https://github.com/deltadevsde/lumina.git)",
  "hex",
  "js-sys",
  "libp2p",
- "lumina-node 0.8.0 (git+https://github.com/deltadevsde/lumina.git)",
  "lumina-node-wasm",
+ "prism-da",
  "prism-errors",
+ "prism-lightclient",
  "serde",
  "serde-wasm-bindgen",
  "sp1-verifier",
@@ -6965,6 +7151,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecf48c7ca261d60b74ab1a7b20da18bede46776b2e55535cb958eb595c5fa7b"
 dependencies = [
  "toml_edit 0.22.23",
+<<<<<<< HEAD
+=======
+]
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -6987,10 +7200,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -7024,6 +7241,7 @@ dependencies = [
  "quote",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.95",
@@ -7031,6 +7249,9 @@ dependencies = [
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -7090,10 +7311,14 @@ dependencies = [
  "prost-types",
  "regex",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "tempfile",
 ]
 
@@ -7108,10 +7333,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -7125,10 +7354,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -7238,10 +7471,14 @@ dependencies = [
  "rand",
  "ring 0.17.8",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "rustc-hash 2.1.1",
 =======
  "rustc-hash 2.1.0",
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+ "rustc-hash 2.1.1",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "rustls",
  "rustls-pki-types",
  "slab",
@@ -7491,10 +7728,14 @@ dependencies = [
  "wasm-streams",
  "web-sys",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "webpki-roots 0.26.8",
 =======
  "webpki-roots 0.26.7",
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+ "webpki-roots 0.26.8",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "windows-registry",
 ]
 
@@ -7699,8 +7940,12 @@ dependencies = [
  "syn 2.0.98",
 =======
  "shellexpand",
+<<<<<<< HEAD
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "walkdir",
 ]
 
@@ -7803,6 +8048,7 @@ dependencies = [
 [[package]]
 name = "rustls"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "0.23.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fb9263ab4eb695e42321db096e3b8fbd715a59b154d5c88d82db2175b681ba7"
@@ -7811,6 +8057,11 @@ version = "0.23.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f287924602bf649d949c63dc8ac8b235fa5387d394020705b80c4eb597ce5b8"
 >>>>>>> c6fe320 (fixes)
+=======
+version = "0.23.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fb9263ab4eb695e42321db096e3b8fbd715a59b154d5c88d82db2175b681ba7"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 dependencies = [
  "log",
  "once_cell",
@@ -7882,10 +8133,14 @@ dependencies = [
  "security-framework 2.11.1",
  "security-framework-sys",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "webpki-roots 0.26.8",
 =======
  "webpki-roots 0.26.7",
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+ "webpki-roots 0.26.8",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "winapi",
 ]
 
@@ -7949,6 +8204,7 @@ dependencies = [
 
 [[package]]
 name = "ryu"
+<<<<<<< HEAD
 version = "1.0.18"
 >>>>>>> 593084b (feat: adding NetworkConfig)
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7963,6 +8219,10 @@ dependencies = [
 name = "ryu"
 version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+=======
+version = "1.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 checksum = "6ea1a2d0a644769cc99faa24c3ad26b379b786fe7c36fd3c546254801650e6dd"
 
 [[package]]
@@ -7996,10 +8256,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -8185,14 +8449,19 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
 name = "serde_json"
+<<<<<<< HEAD
 <<<<<<< HEAD
 version = "1.0.138"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8202,6 +8471,11 @@ version = "1.0.137"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "930cfb6e6abf99298aaad7d29abbef7a9999a9a8806a40088f55f0dcec03146b"
 >>>>>>> c6fe320 (fixes)
+=======
+version = "1.0.138"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d434192e7da787e94a6ea7e9670b26a036d0ca41e0b7efb2676dd32bae872949"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 dependencies = [
  "itoa",
  "memchr",
@@ -8228,10 +8502,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -8288,10 +8566,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9053,10 +9335,14 @@ dependencies = [
  "quote",
  "rustversion",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9123,6 +9409,7 @@ dependencies = [
 [[package]]
 name = "syn"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "2.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36147f1a48ae0ec2b5b3bc5b537d267457555a10dc06f3dbc8cb11ba3006d3b1"
@@ -9131,6 +9418,11 @@ version = "2.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5d0adab1ae378d7f53bdebc67a39f1f151407ef230f0ce2883572f5d8985c80"
 >>>>>>> c6fe320 (fixes)
+=======
+version = "2.0.98"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36147f1a48ae0ec2b5b3bc5b537d267457555a10dc06f3dbc8cb11ba3006d3b1"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 dependencies = [
  "proc-macro2",
  "quote",
@@ -9147,10 +9439,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9171,10 +9467,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9352,10 +9652,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9367,10 +9671,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9487,10 +9795,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9571,10 +9883,14 @@ dependencies = [
  "serde_spanned",
  "toml_datetime",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "winnow 0.7.1",
 =======
  "winnow 0.6.24",
 >>>>>>> c6fe320 (fixes)
+=======
+ "winnow 0.7.1",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9608,6 +9924,45 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "tonic-build"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9557ce109ea773b399c9b9e5dca39294110b74f1f342cb347a80d1fce8c26a11"
+dependencies = [
+ "prettyplease",
+ "proc-macro2",
+ "prost-build",
+ "prost-types",
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
+name = "tonic-web-wasm-client"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c191f6613df48874158b6af303313eadf25d1b7a534216b62a1f049d77cd2711"
+dependencies = [
+ "base64 0.22.1",
+ "byteorder",
+ "bytes",
+ "futures-util",
+ "http 1.2.0",
+ "http-body 1.0.1",
+ "http-body-util",
+ "httparse",
+ "js-sys",
+ "pin-project",
+ "thiserror 1.0.69",
+ "tonic",
+ "tower-service",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-streams",
+ "web-sys",
 ]
 
 [[package]]
@@ -9705,10 +10060,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -9850,6 +10209,7 @@ checksum = "75b844d17643ee918803943289730bec8aac480150456169e647ed0b576ba539"
 [[package]]
 name = "unicode-ident"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a210d160f08b701c8721ba1c726c11662f877ea6b7094007e1ca9a1041945034"
@@ -9858,6 +10218,11 @@ version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11cd88e12b17c6494200a9c1b683a04fcac9573ed74cd1b62aeb2727c5592243"
 >>>>>>> c6fe320 (fixes)
+=======
+version = "1.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a210d160f08b701c8721ba1c726c11662f877ea6b7094007e1ca9a1041945034"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 
 [[package]]
 name = "unicode-segmentation"
@@ -9981,10 +10346,14 @@ dependencies = [
  "quote",
  "regex",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -10055,6 +10424,7 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "wait-timeout"
+<<<<<<< HEAD
 version = "0.2.0"
 >>>>>>> 593084b (feat: adding NetworkConfig)
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10064,6 +10434,10 @@ checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 name = "wait-timeout"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+=======
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 checksum = "09ac3b126d3914f9849036f826e054cbabdc8519970b8998ddaf3b5bd3c65f11"
 dependencies = [
  "libc",
@@ -10096,6 +10470,9 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 name = "wasi"
 version = "0.13.3+wasi-0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10132,10 +10509,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "wasm-bindgen-shared",
 ]
 
@@ -10171,10 +10552,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -10231,6 +10616,7 @@ checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 
 [[package]]
 name = "webpki-roots"
+<<<<<<< HEAD
 version = "0.26.7"
 >>>>>>> 593084b (feat: adding NetworkConfig)
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10240,6 +10626,10 @@ checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 name = "webpki-roots"
 version = "0.26.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+=======
+version = "0.26.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 checksum = "2210b291f7ea53617fbafcc4939f10914214ec15aace5ba62293a668f322c5c9"
 dependencies = [
  "rustls-pki-types",
@@ -10529,6 +10919,7 @@ dependencies = [
 [[package]]
 name = "winnow"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86e376c75f4f43f44db463cf729e0d3acbf954d13e22c51e26e4c264b4ab545f"
@@ -10537,6 +10928,11 @@ version = "0.6.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d71a593cc5c42ad7876e2c1fda56f314f3754c084128833e64f1345ff8a03a"
 >>>>>>> c6fe320 (fixes)
+=======
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86e376c75f4f43f44db463cf729e0d3acbf954d13e22c51e26e4c264b4ab545f"
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 dependencies = [
  "memchr",
 ]
@@ -10553,6 +10949,7 @@ dependencies = [
 
 [[package]]
 <<<<<<< HEAD
+<<<<<<< HEAD
 name = "wio"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10562,6 +10959,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 name = "wit-bindgen-rt"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10571,8 +10970,11 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 =======
 >>>>>>> 593084b (feat: adding NetworkConfig)
+=======
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 name = "write16"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10723,10 +11125,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "synstructure",
 ]
 
@@ -10749,10 +11155,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -10773,10 +11183,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
  "synstructure",
 ]
 
@@ -10798,10 +11212,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]
@@ -10824,10 +11242,14 @@ dependencies = [
  "proc-macro2",
  "quote",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "syn 2.0.98",
 =======
  "syn 2.0.96",
 >>>>>>> c6fe320 (fixes)
+=======
+ "syn 2.0.98",
+>>>>>>> a324d16 (feat: implement lumina for lightclient, mess but have to save it as commit here)
 ]
 
 [[package]]

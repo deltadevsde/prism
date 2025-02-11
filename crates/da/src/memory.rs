@@ -1,4 +1,5 @@
-use crate::{DataAvailabilityLayer, FinalizedEpoch};
+#![cfg(not(target_arch = "wasm32"))]
+use crate::{FinalizedEpoch, FullNodeDataAvailabilityLayer};
 use anyhow::Result;
 use async_trait::async_trait;
 use log::debug;
@@ -80,7 +81,7 @@ impl InMemoryDataAvailabilityLayer {
 }
 
 #[async_trait]
-impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+impl FullNodeDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
         self.height_update_tx.subscribe()
     }
