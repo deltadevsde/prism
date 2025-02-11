@@ -66,8 +66,8 @@ utoipa-axum = { version = "0.2.0" }
 
 # database
 redis = "0.24.0"
-redb = "2.4.0"
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
+redb = "2.4.0"
 
 # async
 async-trait = "0.1.68"
