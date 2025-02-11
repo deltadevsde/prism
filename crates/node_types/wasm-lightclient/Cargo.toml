@@ -21,8 +21,9 @@ celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
 prism-errors = { workspace = true }
 tokio = { version = "*", features = ["sync"] }
 wasm-bindgen = "0.2"
-lumina-node = { workspace = true }
-celestia-types = { workspace = true, features = ["wasm-bindgen"] }
+# we cant use the inherited version of lumina, because the wasm part is built on top of the latest lumina version which isnt published yet and leads to distinct types
+lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
+celestia-types = { git = "https://github.com/deltadevsde/lumina.git" }
 lumina-node-wasm = { git = "https://github.com/deltadevsde/lumina.git" } 
 
 js-sys = "0.3"
