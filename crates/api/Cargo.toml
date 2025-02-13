@@ -7,8 +7,12 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+# async sleep
+tokio.workspace = true
+
 # prism
 prism-common.workspace = true
+prism-keys.workspace = true
 
 # serde
 serde.workspace = true
