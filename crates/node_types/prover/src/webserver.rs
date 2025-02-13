@@ -1,9 +1,8 @@
 use crate::Prover;
 use anyhow::{bail, Context, Result};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use prism_api::{AccountRequest, AccountResponse, CommitmentResponse};
+use prism_api::{api::PrismApi, AccountRequest, AccountResponse, CommitmentResponse};
 use prism_common::transaction::Transaction;
-use prism_tree::AccountResponse::*;
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
@@ -141,22 +140,7 @@ async fn get_account(
             .into_response();
     };
 
-    match account_response {
-        Found(account, membership_proof) => {
-            let response = AccountResponse {
-                account: Some(*account),
-                proof: membership_proof.hashed(),
-            };
-            (StatusCode::OK, Json(response)).into_response()
-        }
-        NotFound(non_membership_proof) => {
-            let response = AccountResponse {
-                account: None,
-                proof: non_membership_proof.hashed(),
-            };
-            (StatusCode::OK, Json(response)).into_response()
-        }
-    }
+    (StatusCode::OK, Json(account_response)).into_response()
 }
 
 /// Returns the commitment (tree root) of the IndexedMerkleTree initialized from the database.
@@ -171,7 +155,7 @@ async fn get_account(
 )]
 async fn get_commitment(State(session): State<Arc<Prover>>) -> impl IntoResponse {
     match session.get_commitment().await {
-        Ok(commitment) => (StatusCode::OK, Json(CommitmentResponse { commitment })).into_response(),
+        Ok(commitment_response) => (StatusCode::OK, Json(commitment_response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
