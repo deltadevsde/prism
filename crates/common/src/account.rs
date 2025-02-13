@@ -121,9 +121,7 @@ impl Account {
             }
         }
 
-        let msg = tx.get_signature_payload()?;
-        tx.vk.verify_signature(&msg, &tx.signature)?;
-
+        tx.verify_signature()?;
         Ok(())
     }
 
