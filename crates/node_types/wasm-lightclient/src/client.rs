@@ -1,8 +1,9 @@
 use wasm_bindgen::prelude::*;
-use web_sys::MessagePort;
+use web_sys::BroadcastChannel;
 
 use crate::{
     commands::{LightClientCommand, WorkerResponse},
+    worker::MessagePortLike,
     worker_communication::WorkerClient,
 };
 
@@ -22,39 +23,34 @@ impl VerifyEpochResult {
 // lives in main thread, communicates with worker
 #[wasm_bindgen]
 pub struct WasmLightClient {
-    worker: WorkerClient,
+    worker_client: WorkerClient,
 }
 
 #[wasm_bindgen]
 impl WasmLightClient {
     #[wasm_bindgen(constructor)]
-    pub async fn new(port: MessagePort) -> Result<WasmLightClient, JsError> {
-        Ok(Self {
-            worker: WorkerClient::new(port)?,
-        })
+    pub async fn new(worker_js: JsValue) -> Result<WasmLightClient, JsError> {
+        let worker_client = WorkerClient::new(worker_js.unchecked_into::<MessagePortLike>())?;
+
+        Ok(Self { worker_client })
     }
 
-    #[wasm_bindgen(js_name = verifyEpoch)]
-    pub async fn verify_epoch(&self, height: u64) -> Result<VerifyEpochResult, JsError> {
-        match self.worker.exec(LightClientCommand::VerifyEpoch { height }).await? {
-            WorkerResponse::EpochVerified { verified, height } => {
-                if verified {
-                    Ok(VerifyEpochResult::new(verified, height))
-                } else {
-                    Err(JsError::new("Epoch verification failed"))
-                }
-            }
+    #[wasm_bindgen(js_name = getCurrentCommitment)]
+    pub async fn get_current_commitment(&self) -> Result<String, JsError> {
+        match self.worker_client.exec(LightClientCommand::GetCurrentCommitment).await? {
+            WorkerResponse::CurrentCommitment(commitment) => Ok(commitment),
             WorkerResponse::Error(e) => Err(JsError::new(&e)),
             _ => Err(JsError::new("Unexpected response")),
         }
     }
 
-    #[wasm_bindgen(js_name = getCurrentHeight)]
-    pub async fn get_current_height(&self) -> Result<u64, JsError> {
-        match self.worker.exec(LightClientCommand::GetCurrentHeight).await? {
-            WorkerResponse::CurrentHeight(height) => Ok(height),
+    #[wasm_bindgen(js_name = "eventsChannel")]
+    pub async fn events_channel(&self) -> Result<BroadcastChannel, JsError> {
+        match self.worker_client.exec(LightClientCommand::GetEventsChannelName).await? {
+            WorkerResponse::EventsChannelName(name) => BroadcastChannel::new(&name)
+                .map_err(|_| JsError::new("Failed to create events channel")),
             WorkerResponse::Error(e) => Err(JsError::new(&e)),
-            _ => Err(JsError::new("Unexpected response")),
+            _ => Err(JsError::new("Unexpected response type")),
         }
     }
 }

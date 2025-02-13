@@ -1,26 +1,73 @@
+use js_sys::Function;
 use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
-use prism_lightclient::LightClient;
+use prism_lightclient::{
+    events::{EventChannel, EventPublisher, EventSubscriber},
+    LightClient,
+};
 use std::{str::FromStr, sync::Arc};
-use web_sys::{console, MessagePort};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::{console, BroadcastChannel, MessagePort};
 
 use crate::{
     commands::{LightClientCommand, WorkerResponse},
-    worker_communication::WorkerServer,
+    worker_communication::{random_id, WorkerServer},
 };
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{prelude::*, JsCast};
 
 #[wasm_bindgen]
 pub struct LightClientWorker {
     server: WorkerServer,
     light_client: Arc<LightClient>,
+    events_channel_name: String,
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub type MessagePortLike;
+
+    #[wasm_bindgen(catch, method, structural, js_name = postMessage)]
+    pub fn post_message(this: &MessagePortLike, message: &JsValue) -> Result<(), JsValue>;
+
+    #[wasm_bindgen(catch, method, structural, js_name = postMessage)]
+    pub fn post_message_with_transferable(
+        this: &MessagePortLike,
+        message: &JsValue,
+        transferable: &JsValue,
+    ) -> Result<(), JsValue>;
+
+    #[wasm_bindgen(method, structural, setter, js_name = onmessage)]
+    pub fn set_onmessage(this: &MessagePortLike, handler: Option<&Function>);
+}
+
+impl From<MessagePort> for MessagePortLike {
+    fn from(port: MessagePort) -> Self {
+        JsValue::from(port).into()
+    }
 }
 
 #[wasm_bindgen]
 impl LightClientWorker {
-    // todo: better config handling
     #[wasm_bindgen(constructor)]
-    pub async fn new(port: MessagePort, network: &str) -> Result<LightClientWorker, JsError> {
-        console::log_1(&"LightClientWorker starting...".into());
+    pub async fn new(port_value: JsValue, network: &str) -> Result<LightClientWorker, JsError> {
+        let port: MessagePort = port_value
+            .dyn_into::<MessagePort>()
+            .map_err(|_| JsError::new("Provided value is not a valid MessagePort"))?;
+        let port_like: MessagePortLike = port.into();
+
+        let server = WorkerServer::new(port_like)?;
+
+        let (
+            events_channel_name,
+            light_client_event_publisher,
+            light_client_event_subscriber,
+            js_channel,
+        ) = initialize_event_channel()?;
+
+        // forward the internal light client events to the main thread
+        spawn_local(forward_events(
+            light_client_event_subscriber,
+            js_channel.clone(),
+        ));
 
         // Initialize network and DA layer
         let network = Network::from_str(network)
@@ -33,10 +80,11 @@ impl LightClientWorker {
                 .map_err(|e| JsError::new(&format!("Failed to connect to light client: {}", e)))?,
         );
 
-        console::log_1(&"DA layer initialized".into());
-
-        let start_height =
-            network_config.celestia_config.as_ref().map(|cfg| cfg.start_height).unwrap_or(4279075);
+        let start_height = network_config
+            .celestia_config
+            .as_ref()
+            .map(|cfg| cfg.start_height)
+            .expect("Start height not set");
 
         let verifying_key = network_config.verifying_key;
         let sp1_vkey = network_config
@@ -45,17 +93,18 @@ impl LightClientWorker {
             .map(|cfg| cfg.snark_namespace_id.clone())
             .unwrap_or_else(|| "default_sp1_vkey".to_string());
 
-        // Create the light client
-        let light_client = Arc::new(LightClient::new(da, start_height, verifying_key, sp1_vkey));
-
-        // Initialize the worker server for message handling
-        let server = WorkerServer::new(port)?;
-
-        console::log_1(&"LightClientWorker initialized".into());
+        let light_client = Arc::new(LightClient::new(
+            da,
+            start_height,
+            verifying_key,
+            sp1_vkey,
+            light_client_event_publisher,
+        ));
 
         Ok(Self {
             server,
             light_client,
+            events_channel_name: events_channel_name.to_string(),
         })
     }
 
@@ -67,25 +116,49 @@ impl LightClientWorker {
             .map_err(|e| JsError::new(&format!("Light client error: {}", e)))?;
 
         while let Ok(command) = self.server.recv().await {
-            // Todo: here we can add more / real commands
             let response = match command {
-                LightClientCommand::VerifyEpoch { height } => {
-                    match self.light_client.da.get_finalized_epoch(height).await {
-                        Ok(Some(epoch)) => WorkerResponse::EpochVerified {
-                            verified: true,
-                            height,
-                        },
-                        Ok(None) => WorkerResponse::NoEpochFound { height },
-                        Err(e) => WorkerResponse::Error(e.to_string()),
+                LightClientCommand::GetCurrentCommitment => {
+                    match self.light_client.get_latest_commitment().await {
+                        Some(commitment) => {
+                            WorkerResponse::CurrentCommitment(commitment.to_string())
+                        }
+                        None => WorkerResponse::Error("No commitment available yet".to_string()),
                     }
                 }
-                LightClientCommand::GetCurrentHeight => WorkerResponse::CurrentHeight(0),
-                LightClientCommand::GetAccount(_) => WorkerResponse::GetAccount(None),
+                LightClientCommand::GetEventsChannelName => {
+                    WorkerResponse::EventsChannelName(self.events_channel_name.clone())
+                }
             };
 
             self.server.respond(response)?;
         }
 
         Ok(())
+    }
+}
+
+fn initialize_event_channel(
+) -> Result<(String, EventPublisher, EventSubscriber, BroadcastChannel), JsError> {
+    let events_channel_name = format!("lightclient-events-{}", random_id());
+    let light_client_event_channel = EventChannel::new();
+    let event_publisher = light_client_event_channel.publisher();
+    let event_subscriber = light_client_event_channel.subscribe();
+    let js_channel = BroadcastChannel::new(events_channel_name.as_str())
+        .map_err(|e| JsError::new(&format!("Failed to create broadcast channel: {:?}", e)))?;
+    Ok((
+        events_channel_name,
+        event_publisher,
+        event_subscriber,
+        js_channel,
+    ))
+}
+
+async fn forward_events(mut subscriber: EventSubscriber, channel: BroadcastChannel) {
+    while let Ok(event) = subscriber.recv().await {
+        if let Ok(event_json) = serde_wasm_bindgen::to_value(&event) {
+            if let Err(e) = channel.post_message(&event_json) {
+                console::error_1(&format!("Failed to post message: {:?}", e).into());
+            }
+        }
     }
 }

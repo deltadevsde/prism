@@ -8,6 +8,7 @@ pub enum CryptoAlgorithm {
     /// Edwards-curve Digital Signature Algorithm (EdDSA) using SHA-512 and Curve25519
     Ed25519,
     #[cfg(not(target_arch = "wasm32"))]
+    /// ECDSA signatures using the secp256k1 curve (used in Bitcoin/Ethereum)
     Secp256k1,
     /// ECDSA signatures using the NIST P-256 curve, also known as prime256v1
     Secp256r1,

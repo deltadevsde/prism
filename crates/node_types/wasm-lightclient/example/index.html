@@ -78,7 +78,7 @@
 <body>
     <div class="container">
         <h1>Light Client Test</h1>
-        
+
         <div class="status">
             <div id="statusDot" class="status-dot"></div>
             <span id="statusText">Not started</span>
@@ -89,12 +89,13 @@
 
     <script type="module">
         import init, { LightClientWorker, WasmLightClient } from '../pkg/prism_wasm_lightclient.js';
+        import { spawnWorker } from '/example/index.js';
 
         let running = false;
         let client = null;
         let currentHeight = 0;
         let syncStartHeight = 0;
-        
+
         const logEl = document.getElementById('log');
         const statusText = document.getElementById('statusText');
         const statusDot = document.getElementById('statusDot');
@@ -155,38 +156,31 @@
 
         async function startLightClient() {
             if (running) return;
-            
-            try {                
+
+            try {
                 updateStatus('Initializing...');
                 await init();
                 log('WASM initialized successfully');
 
                 const channel = new MessageChannel();
-                
-                const worker = await new LightClientWorker(channel.port1, "specter");
-                worker.run();
+
+                const worker = await spawnWorker();
                 log('Worker started successfully');
-                
-                client = await new WasmLightClient(channel.port2);
+
+                client = await new WasmLightClient(worker);
                 log('Light client connected');
-                
+
                 running = true;
                 updateStatus('Running');
 
-                channel.port1.onmessage = (event) => {
-                    log(`1Worker: ${JSON.stringify(event.data)}`);
-                }
-
-                channel.port2.onmessage = (event) => {
-                    log(`Worker: ${JSON.stringify(event.data)}`);
-                };
+                worker.onmessage = processEvent;
             } catch (error) {
                 log(`Error: ${error.message}`);
                 updateStatus(`Error: ${error.message}`);
                 running = false;
             }
         }
-        
+
         startBtn.addEventListener('click', startLightClient);
         log('System ready - click Start Light Client to begin');
     </script>

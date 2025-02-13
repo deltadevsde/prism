@@ -1,5 +1,4 @@
 mod cfg;
-mod network;
 mod node_types;
 
 use cfg::{initialize_da_layer, initialize_db, load_config, Cli, Commands};

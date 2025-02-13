@@ -1,13 +1,14 @@
-use std::{future::Future, str::FromStr};
+use std::{str::FromStr, time::Duration};
 
-use anyhow::{anyhow, Context, Result};
-use celestia_types::{nmt::Namespace, Blob};
-use lumina_node::network::Network as CelestiaNetwork;
+use anyhow::{Context, Result};
+use celestia_types::nmt::Namespace;
+use lumina_node::{
+    network::Network as CelestiaNetwork,
+    node::{DEFAULT_PRUNING_DELAY, DEFAULT_SAMPLING_WINDOW},
+};
 use prism_keys::VerifyingKey;
-use prism_serde::{self, base64::FromBase64, binary::FromBinary, hex::FromHex};
+use prism_serde::{self, base64::FromBase64, hex::FromHex};
 use serde::{Deserialize, Serialize};
-
-use crate::FinalizedEpoch;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CelestiaConfig {
@@ -15,6 +16,8 @@ pub struct CelestiaConfig {
     pub start_height: u64,
     pub snark_namespace_id: String,
     pub operation_namespace_id: String,
+    pub sampling_window: Duration,
+    pub pruning_delay: Duration,
 }
 
 impl Default for CelestiaConfig {
@@ -22,6 +25,8 @@ impl Default for CelestiaConfig {
         CelestiaConfig {
             connection_string: "ws://localhost:26658".to_string(),
             start_height: 4616930,
+            sampling_window: DEFAULT_SAMPLING_WINDOW,
+            pruning_delay: DEFAULT_PRUNING_DELAY,
             snark_namespace_id: "00000000000000de1008".to_string(),
             operation_namespace_id: "00000000000000de1009".to_string(),
         }
@@ -46,8 +51,8 @@ pub struct NetworkConfig {
 impl Default for NetworkConfig {
     fn default() -> Self {
         NetworkConfig {
-            network: Network::Specter,
-            celestia_network: CelestiaNetwork::Mocha,
+            network: Network::Custom("custom".to_string()),
+            celestia_network: CelestiaNetwork::custom("private").unwrap(),
             verifying_key: None,
             celestia_config: None,
         }
@@ -76,7 +81,7 @@ impl Network {
                         .unwrap(),
                 ),
                 celestia_config: Some(CelestiaConfig {
-                    start_height: 4180975,
+                    start_height: 4667138,
                     snark_namespace_id: "000000000000000000000000000000000000707269736d5350457330"
                         .to_string(),
                     operation_namespace_id:
@@ -102,30 +107,4 @@ pub fn create_namespace(namespace_hex: &str) -> Result<Namespace> {
         "Failed to create namespace from '{}'",
         namespace_hex
     ))
-}
-
-impl TryFrom<&Blob> for FinalizedEpoch {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
-            anyhow!(format!(
-                "Failed to decode blob into FinalizedEpoch: {value:?}"
-            ))
-        })
-    }
-}
-
-pub fn spawn_task<F>(future: F)
-where
-    F: Future<Output = ()> + Send + 'static,
-{
-    #[cfg(target_arch = "wasm32")]
-    {
-        wasm_bindgen_futures::spawn_local(future);
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        tokio::spawn(future);
-    }
 }

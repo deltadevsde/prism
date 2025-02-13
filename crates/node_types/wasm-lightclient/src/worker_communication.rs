@@ -1,37 +1,44 @@
+use js_sys::Math;
 use serde_wasm_bindgen::{from_value, to_value};
 use tokio::sync::{mpsc, Mutex};
 use wasm_bindgen::{closure::Closure, prelude::*};
-use web_sys::{console, MessageEvent, MessagePort};
+use web_sys::{console, MessageEvent};
 
-use crate::commands::{LightClientCommand, WorkerResponse};
+use crate::{
+    commands::{LightClientCommand, WorkerResponse},
+    worker::MessagePortLike,
+};
+
+pub fn random_id() -> u32 {
+    (Math::random() * f64::from(u32::MAX)) as u32
+}
 
 // WorkerClient: Sends commands and receives responses in the main thread
 // WorkerServer: Receives commands and sends responses in the worker thread
 
 pub struct WorkerClient {
-    port: MessagePort,
+    port: MessagePortLike,
     response_channel: Mutex<mpsc::UnboundedReceiver<Result<WorkerResponse, JsError>>>,
-    onmessage: Closure<dyn Fn(MessageEvent)>,
 }
 
 impl WorkerClient {
-    pub fn new(port: MessagePort) -> Result<Self, JsError> {
+    pub fn new(port: MessagePortLike) -> Result<Self, JsError> {
         let (response_tx, response_rx) = mpsc::unbounded_channel();
 
-        let onmessage = Closure::new(move |message_event: MessageEvent| {
-            if let Ok(response) = from_value(message_event.data()) {
-                if response_tx.send(Ok(response)).is_err() {
-                    console::error_1(&format!("Failed to forward response").into());
+        let onmessage: Closure<dyn Fn(MessageEvent)> =
+            Closure::new(move |message_event: MessageEvent| {
+                if let Ok(response) = from_value(message_event.data()) {
+                    if response_tx.send(Ok(response)).is_err() {
+                        console::error_1(&"Failed to forward response".into());
+                    }
                 }
-            }
-        });
+            });
 
         port.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
 
         Ok(WorkerClient {
             port,
             response_channel: Mutex::new(response_rx),
-            onmessage,
         })
     }
 
@@ -50,31 +57,27 @@ impl WorkerClient {
 }
 
 pub struct WorkerServer {
-    port: MessagePort,
+    port: MessagePortLike,
     command_rx: mpsc::UnboundedReceiver<LightClientCommand>,
-    onmessage: Closure<dyn Fn(MessageEvent)>,
 }
 
 impl WorkerServer {
-    pub fn new(port: MessagePort) -> Result<Self, JsError> {
+    pub fn new(port: MessagePortLike) -> Result<Self, JsError> {
         let (command_tx, command_rx) = mpsc::unbounded_channel();
 
-        let onmessage = Closure::new(move |message_event: MessageEvent| {
-            if let Ok(command) = from_value(message_event.data()) {
-                if let Err(e) = command_tx.send(command) {
-                    console::error_1(&format!("Failed to process command: {}", e).into());
+        let onmessage: Closure<dyn Fn(MessageEvent)> =
+            Closure::new(move |message_event: MessageEvent| {
+                if let Ok(command) = from_value(message_event.data()) {
+                    if let Err(e) = command_tx.send(command) {
+                        console::error_1(&format!("Failed to process command: {}", e).into());
+                    }
                 }
-            }
-        });
+            });
 
         port.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
 
         console::log_1(&"✅ WorkerServer initialized".into());
-        Ok(WorkerServer {
-            port,
-            command_rx,
-            onmessage,
-        })
+        Ok(WorkerServer { port, command_rx })
     }
 
     pub async fn recv(&mut self) -> Result<LightClientCommand, JsError> {

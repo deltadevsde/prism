@@ -1,5 +1,5 @@
 [package]
-name = "prism-wasm-lightclient" # or should we call it prasm-lightclient?
+name = "prism-wasm-lightclient"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,22 +10,21 @@ repository.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-libp2p = { version = "0.54.0", features = ["serde"] }
+libp2p = { workspace = true, features = ["serde"] }
 anyhow = { workspace = true }
 bincode = { workspace = true }
 hex = { workspace = true }
 thiserror = { workspace = true }
-sp1-verifier.workspace = true
+sp1-verifier = { workspace = true }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
 prism-errors = { workspace = true }
 prism-lightclient = { workspace = true }
 prism-da = { workspace = true }
-tokio = { version = "*", features = ["sync"] }
-wasm-bindgen = "0.2"
-lumina-node-wasm = { git = "https://github.com/deltadevsde/lumina.git" } 
-
-js-sys = "0.3"
-web-sys = { version = "0.3", features = [
+tokio = { workspace = true, features = ["sync"] }
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+lumina-node-wasm = { workspace = true }
+web-sys = { workspace = true, features = [
     "BroadcastChannel",
     "console",
     "MessageChannel",
@@ -33,6 +32,6 @@ web-sys = { version = "0.3", features = [
     "MessagePort",
     "Worker",
 ] }
-serde = { version = "1.0", features = ["derive"] }
-serde-wasm-bindgen = "0.6.5"
-wasm-bindgen-futures = "0.4"
+serde = { workspace = true}
+serde-wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }

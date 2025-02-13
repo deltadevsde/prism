@@ -1,5 +1,5 @@
-use super::utils::{create_namespace, spawn_task, NetworkConfig};
-use crate::{FinalizedEpoch, LightClientDataAvailabilityLayer};
+use super::utils::{create_namespace, NetworkConfig};
+use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
@@ -12,6 +12,7 @@ use lumina_node::{
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
     self,
+    future::Future,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -23,7 +24,6 @@ use tokio::sync::{broadcast, Mutex, RwLock};
 use {
     lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore},
     lumina_node_wasm::utils::resolve_dnsaddr_multiaddress,
-    web_sys::console,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -32,6 +32,20 @@ use {
     redb::Database,
     tokio::task::spawn_blocking,
 };
+
+fn spawn_task<F>(future: F)
+where
+    F: Future<Output = ()> + Send + 'static,
+{
+    #[cfg(target_arch = "wasm32")]
+    {
+        wasm_bindgen_futures::spawn_local(future);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        tokio::spawn(future);
+    }
+}
 
 #[cfg(target_arch = "wasm32")]
 pub async fn resolve_bootnodes(bootnodes: &Vec<Multiaddr>) -> Result<Vec<Multiaddr>> {
@@ -107,6 +121,8 @@ impl LightClientConnection {
             .store(store)
             .blockstore(blockstore)
             .bootnodes(bootnodes)
+            .pruning_delay(celestia_config.pruning_delay)
+            .sampling_window(celestia_config.sampling_window)
             .start_subscribed()
             .await?;
 
@@ -118,14 +134,14 @@ impl LightClientConnection {
             event_subscriber: Arc::new(Mutex::new(event_subscriber)),
             snark_namespace,
             height_update_tx,
-            sync_target: Arc::new(AtomicU64::new(4500000)),
+            sync_target: Arc::new(AtomicU64::new(celestia_config.start_height)),
         })
     }
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-impl LightClientDataAvailabilityLayer for LightClientConnection {
+impl LightDataAvailabilityLayer for LightClientConnection {
     async fn start(&self) -> Result<()> {
         let sync_target = self.sync_target.clone();
         let height_update_tx = self.height_update_tx.clone();
@@ -187,9 +203,7 @@ async fn handle_events(
                     trace!("updated sync target for height {}", height);
                 }
                 _ => {
-                    #[cfg(target_arch = "wasm32")]
-                    console::log_1(&format!("event: {:?}", event_info.event).into());
-
+                    #[cfg(not(target_arch = "wasm32"))]
                     trace!("event: {:?}", event_info.event);
                 }
             },

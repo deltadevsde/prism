@@ -1,9 +1,10 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use celestia_types::Blob;
 use prism_common::digest::Digest;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
-    binary::ToBinary,
+    binary::{FromBinary, ToBinary},
     hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
@@ -17,10 +18,10 @@ pub mod consts;
 pub mod memory;
 
 #[cfg(target_arch = "wasm32")]
-type Proof = Vec<u8>;
+type Groth16Proof = Vec<u8>;
 
 #[cfg(not(target_arch = "wasm32"))]
-type Proof = SP1ProofWithPublicValues;
+type Groth16Proof = SP1ProofWithPublicValues;
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -28,7 +29,7 @@ pub struct FinalizedEpoch {
     pub height: u64,
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
-    pub proof: Proof,
+    pub proof: Groth16Proof,
     pub signature: Option<String>,
 }
 
@@ -68,9 +69,21 @@ impl FinalizedEpoch {
     }
 }
 
+impl TryFrom<&Blob> for FinalizedEpoch {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &Blob) -> Result<Self, Self::Error> {
+        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
+            anyhow!(format!(
+                "Failed to decode blob into FinalizedEpoch: {value:?}"
+            ))
+        })
+    }
+}
+
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-pub trait LightClientDataAvailabilityLayer {
+pub trait LightDataAvailabilityLayer {
     async fn start(&self) -> Result<()>;
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64>;
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
@@ -78,13 +91,10 @@ pub trait LightClientDataAvailabilityLayer {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
-pub trait FullNodeDataAvailabilityLayer: Send + Sync {
+pub trait DataAvailabilityLayer: LightDataAvailabilityLayer + Send + Sync {
     async fn get_latest_height(&self) -> Result<u64>;
     async fn initialize_sync_target(&self) -> Result<u64>;
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64>;
     async fn get_transactions(&self, height: u64) -> Result<Vec<Transaction>>;
     async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<u64>;
-    async fn start(&self) -> Result<()>;
-    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64>;
 }

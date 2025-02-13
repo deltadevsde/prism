@@ -23,7 +23,7 @@ celestia-types = { workspace = true }
 prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-common = { workspace = true }
-libp2p = { version = "0.54.0", features = ["serde"] }
+libp2p = { workspace = true, features = ["serde"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 celestia-rpc = { workspace = true }
@@ -33,15 +33,7 @@ tokio = { workspace = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { workspace = true, default-features = false, features = ["sync"] }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
-wasm-bindgen-futures = "0.4"
-wasm-bindgen = "0.2"
-lumina-node-wasm = { git = "https://github.com/deltadevsde/lumina.git" } 
-serde-wasm-bindgen = "0.6.5"
-web-sys = { version = "0.3", features = [
-    "BroadcastChannel",
-    "console",
-    "MessageChannel",
-    "MessageEvent",
-    "MessagePort",
-    "Worker",
-] }
+wasm-bindgen-futures = { workspace = true }
+wasm-bindgen = { workspace = true }
+lumina-node-wasm = { workspace = true}
+serde-wasm-bindgen = { workspace = true }

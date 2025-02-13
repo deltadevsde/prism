@@ -1,5 +1,5 @@
 #![cfg(not(target_arch = "wasm32"))]
-use crate::{FinalizedEpoch, FullNodeDataAvailabilityLayer};
+use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::Result;
 use async_trait::async_trait;
 use log::debug;
@@ -81,17 +81,9 @@ impl InMemoryDataAvailabilityLayer {
 }
 
 #[async_trait]
-impl FullNodeDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
         self.height_update_tx.subscribe()
-    }
-
-    async fn get_latest_height(&self) -> Result<u64> {
-        Ok(*self.latest_height.read().await)
-    }
-
-    async fn initialize_sync_target(&self) -> Result<u64> {
-        self.get_latest_height().await
     }
 
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
@@ -101,6 +93,25 @@ impl FullNodeDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
             .find(|block| block.height == height)
             .map(|block| block.epoch.clone())
             .unwrap_or_default())
+    }
+
+    async fn start(&self) -> Result<()> {
+        let this = Arc::new(self.clone());
+        tokio::spawn(async move {
+            this.produce_blocks().await;
+        });
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+    async fn get_latest_height(&self) -> Result<u64> {
+        Ok(*self.latest_height.read().await)
+    }
+
+    async fn initialize_sync_target(&self) -> Result<u64> {
+        self.get_latest_height().await
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
@@ -122,13 +133,5 @@ impl FullNodeDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         let mut pending_transactions = self.pending_transactions.write().await;
         pending_transactions.extend(transactions);
         self.get_latest_height().await
-    }
-
-    async fn start(&self) -> Result<()> {
-        let this = Arc::new(self.clone());
-        tokio::spawn(async move {
-            this.produce_blocks().await;
-        });
-        Ok(())
     }
 }
