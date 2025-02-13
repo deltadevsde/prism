@@ -479,10 +479,7 @@ impl Prover {
     }
 
     /// Adds an transaction to be posted to the DA layer and applied in the next epoch.
-    pub async fn validate_and_queue_update(
-        self: Arc<Self>,
-        transaction: Transaction,
-    ) -> Result<()> {
+    pub async fn validate_and_queue_update(&self, transaction: Transaction) -> Result<()> {
         if !self.cfg.batcher {
             bail!("Batcher is disabled, cannot queue transactions");
         }
