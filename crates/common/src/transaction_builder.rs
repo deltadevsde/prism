@@ -4,7 +4,7 @@ use crate::{
     account::Account,
     digest::Digest,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
-    transaction::Transaction,
+    transaction::{Transaction, UnsignedTransaction},
 };
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 enum PostCommitAction {
@@ -126,8 +126,13 @@ impl TransactionBuilder {
             key: vk.clone(),
         };
 
-        let account = Account::default();
-        let transaction = account.prepare_transaction(id.to_string(), op, &signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: id.to_string(),
+            operation: op,
+            nonce: 0,
+        };
+
+        let transaction = unsigned_tx.sign(&signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -191,8 +196,13 @@ impl TransactionBuilder {
             key: vk.clone(),
         };
 
-        let account = Account::default();
-        let transaction = account.prepare_transaction(id.to_string(), op, &signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: id.to_string(),
+            operation: op,
+            nonce: 0,
+        };
+
+        let transaction = unsigned_tx.sign(&signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -247,7 +257,13 @@ impl TransactionBuilder {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::AddKey { key: key.clone() };
 
-        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: account.id().to_string(),
+            operation: op,
+            nonce: account.nonce(),
+        };
+
+        let transaction = unsigned_tx.sign(signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -278,7 +294,13 @@ impl TransactionBuilder {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::RevokeKey { key: key.clone() };
 
-        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: account.id().to_string(),
+            operation: op,
+            nonce: account.nonce(),
+        };
+
+        let transaction = unsigned_tx.sign(signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -414,7 +436,13 @@ impl TransactionBuilder {
             data_signature,
         };
 
-        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: account.id().to_string(),
+            operation: op,
+            nonce: account.nonce(),
+        };
+
+        let transaction = unsigned_tx.sign(signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -518,7 +546,13 @@ impl TransactionBuilder {
             data_signature,
         };
 
-        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: account.id().to_string(),
+            operation: op,
+            nonce: account.nonce(),
+        };
+
+        let transaction = unsigned_tx.sign(signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
