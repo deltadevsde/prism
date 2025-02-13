@@ -1,10 +1,10 @@
 use anyhow::{anyhow, bail, Context, Result};
 use jmt::KeyHash;
+use prism_api::{api::PrismApi, AccountResponse, CommitmentResponse};
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::database::Database;
-pub use prism_tree::AccountResponse;
 use prism_tree::{
     hasher::TreeHasher,
     key_directory_tree::KeyDirectoryTree,
@@ -200,7 +200,7 @@ impl Prover {
         let saved_epoch = self.db.get_epoch()?;
 
         if saved_epoch == 0 {
-            let initial_commitment = self.get_commitment().await?;
+            let initial_commitment = self.get_commitment_from_tree().await?;
             self.db.set_commitment(&0, &initial_commitment)?;
         }
 
@@ -318,7 +318,7 @@ impl Prover {
             self.execute_block(all_transactions).await?;
         }
 
-        let new_commitment = self.get_commitment().await?;
+        let new_commitment = self.get_commitment_from_tree().await?;
         if epoch.current_commitment != new_commitment {
             return Err(anyhow!(
                 "new commitment mismatch at epoch {}",
@@ -460,12 +460,12 @@ impl Prover {
         }
     }
 
-    pub async fn get_commitment(&self) -> Result<Digest> {
+    async fn get_commitment_from_tree(&self) -> Result<Digest> {
         let tree = self.tree.read().await;
         tree.get_commitment().context("Failed to get commitment")
     }
 
-    pub async fn get_account(&self, id: &str) -> Result<AccountResponse> {
+    async fn get_account_from_tree(&self, id: &str) -> Result<prism_tree::AccountResponse> {
         let tree = self.tree.read().await;
         let key_hash = KeyHash::with::<TreeHasher>(id);
 
@@ -493,7 +493,7 @@ impl Prover {
             | Operation::RevokeKey { .. }
             | Operation::AddData { .. }
             | Operation::SetData { .. } => {
-                let account_response = self.get_account(&transaction.id).await?;
+                let account_response = self.get_account_from_tree(&transaction.id).await?;
 
                 let Found(mut account, _) = account_response else {
                     bail!("Account not found for id: {}", transaction.id)
@@ -506,6 +506,33 @@ impl Prover {
         let mut pending = self.pending_transactions.write().await;
         pending.push(transaction);
         Ok(())
+    }
+}
+
+impl PrismApi for Prover {
+    type Error = anyhow::Error;
+
+    async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error> {
+        let acc_response = match self.get_account_from_tree(id).await? {
+            Found(account, inclusion_proof) => AccountResponse {
+                account: Some(*account),
+                proof: inclusion_proof.hashed(),
+            },
+            NotFound(non_inclusion_proof) => AccountResponse {
+                account: None,
+                proof: non_inclusion_proof.hashed(),
+            },
+        };
+        Ok(acc_response)
+    }
+
+    async fn get_commitment(&self) -> Result<CommitmentResponse, Self::Error> {
+        let commitment = self.get_commitment_from_tree().await?;
+        Ok(CommitmentResponse { commitment })
+    }
+
+    async fn post_transaction(&self, tx: &Transaction) -> Result<(), Self::Error> {
+        self.validate_and_queue_update(tx.clone()).await
     }
 }
 
