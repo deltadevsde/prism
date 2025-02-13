@@ -4,19 +4,12 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
-use log::{error, trace};
-use lumina_node::{
-    events::{EventSubscriber, NodeEvent},
-    Node, NodeBuilder,
-};
+use log::trace;
+use lumina_node::{events::EventSubscriber, Node, NodeBuilder};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
     self,
-    future::Future,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
+    sync::{atomic::AtomicU64, Arc},
 };
 use tokio::sync::{broadcast, Mutex, RwLock};
 
@@ -32,20 +25,6 @@ use {
     redb::Database,
     tokio::task::spawn_blocking,
 };
-
-fn spawn_task<F>(future: F)
-where
-    F: Future<Output = ()> + Send + 'static,
-{
-    #[cfg(target_arch = "wasm32")]
-    {
-        wasm_bindgen_futures::spawn_local(future);
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        tokio::spawn(future);
-    }
-}
 
 #[cfg(target_arch = "wasm32")]
 pub async fn resolve_bootnodes(bootnodes: &Vec<Multiaddr>) -> Result<Vec<Multiaddr>> {
@@ -70,7 +49,6 @@ pub struct LightClientConnection {
     pub event_subscriber: Arc<Mutex<EventSubscriber>>,
     pub snark_namespace: Namespace,
     height_update_tx: broadcast::Sender<u64>,
-    sync_target: Arc<AtomicU64>,
 }
 
 impl LightClientConnection {
@@ -134,7 +112,6 @@ impl LightClientConnection {
             event_subscriber: Arc::new(Mutex::new(event_subscriber)),
             snark_namespace,
             height_update_tx,
-            sync_target: Arc::new(AtomicU64::new(celestia_config.start_height)),
         })
     }
 }
@@ -142,18 +119,9 @@ impl LightClientConnection {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for LightClientConnection {
-    async fn start(&self) -> Result<()> {
-        let sync_target = self.sync_target.clone();
-        let height_update_tx = self.height_update_tx.clone();
-        let event_subscriber = self.event_subscriber.clone();
-
-        spawn_task(handle_events(
-            sync_target,
-            height_update_tx,
-            event_subscriber,
-        ));
-
-        Ok(())
+    // since the lumina node is already started in the constructor, we don't need to start it again. We need the event_subscriber to start forwarding events.
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
+        Some(self.event_subscriber.clone())
     }
 
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
@@ -184,33 +152,5 @@ impl LightDataAvailabilityLayer for LightClientConnection {
 
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
         self.height_update_tx.subscribe()
-    }
-}
-
-async fn handle_events(
-    sync_target: Arc<AtomicU64>,
-    height_update_tx: broadcast::Sender<u64>,
-    event_subscriber: Arc<Mutex<EventSubscriber>>,
-) {
-    loop {
-        let mut event_subscriber = event_subscriber.lock().await;
-
-        match event_subscriber.recv().await {
-            Ok(event_info) => match event_info.event {
-                NodeEvent::AddedHeaderFromHeaderSub { height } => {
-                    sync_target.store(height, Ordering::Relaxed);
-                    let _ = height_update_tx.send(height);
-                    trace!("updated sync target for height {}", height);
-                }
-                _ => {
-                    #[cfg(not(target_arch = "wasm32"))]
-                    trace!("event: {:?}", event_info.event);
-                }
-            },
-            Err(e) => {
-                error!("Error receiving event: {:?}", e);
-                break;
-            }
-        }
     }
 }

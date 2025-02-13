@@ -22,6 +22,7 @@ prism-keys = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
 serde = { workspace = true }
 web-time = { workspace = true, features = ["serde"]}
+lumina-node = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { workspace = true }

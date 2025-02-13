@@ -3,10 +3,14 @@ use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::Result;
 use async_trait::async_trait;
 use log::debug;
+use lumina_node::events::EventSubscriber;
 use prism_common::transaction::Transaction;
-use std::{collections::VecDeque, sync::Arc};
+use std::{
+    collections::VecDeque,
+    sync::{atomic::AtomicU64, Arc},
+};
 use tokio::{
-    sync::{broadcast, RwLock},
+    sync::{broadcast, Mutex, RwLock},
     time::{interval, Duration},
 };
 
@@ -95,6 +99,13 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
             .unwrap_or_default())
     }
 
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
+        None
+    }
+}
+
+#[async_trait]
+impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn start(&self) -> Result<()> {
         let this = Arc::new(self.clone());
         tokio::spawn(async move {
@@ -102,10 +113,7 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         });
         Ok(())
     }
-}
 
-#[async_trait]
-impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(*self.latest_height.read().await)
     }

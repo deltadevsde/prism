@@ -10,7 +10,7 @@ use sp1_sdk::{HashableKey, Prover as _, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
-use prism_lightclient::LightClient;
+use prism_lightclient::{events::EventChannel, LightClient};
 use prism_prover::Prover;
 use std::sync::Arc;
 
@@ -42,12 +42,14 @@ async fn main() -> std::io::Result<()> {
 
             let client = ProverClient::builder().mock().build();
             let (_, vk) = client.setup(PRISM_ELF);
+            let event_channel = EventChannel::new();
 
             Arc::new(LightClient::new(
                 da,
                 start_height,
                 verifying_key,
                 vk.bytes32(),
+                event_channel.publisher(),
             ))
         }
         Commands::Prover(_) => {

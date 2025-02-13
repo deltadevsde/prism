@@ -1,7 +1,7 @@
 use js_sys::Function;
 use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
 use prism_lightclient::{
-    events::{EventChannel, EventPublisher, EventSubscriber},
+    events::{EventChannel, EventPublisher, EventSubscriber, LightClientEvent},
     LightClient,
 };
 use std::{str::FromStr, sync::Arc};
@@ -49,12 +49,9 @@ impl From<MessagePort> for MessagePortLike {
 impl LightClientWorker {
     #[wasm_bindgen(constructor)]
     pub async fn new(port_value: JsValue, network: &str) -> Result<LightClientWorker, JsError> {
-        let port: MessagePort = port_value
-            .dyn_into::<MessagePort>()
-            .map_err(|_| JsError::new("Provided value is not a valid MessagePort"))?;
-        let port_like: MessagePortLike = port.into();
+        let port: MessagePortLike = port_value.unchecked_into::<MessagePortLike>();
 
-        let server = WorkerServer::new(port_like)?;
+        let server = WorkerServer::new(port)?;
 
         let (
             events_channel_name,
@@ -156,6 +153,10 @@ fn initialize_event_channel(
 async fn forward_events(mut subscriber: EventSubscriber, channel: BroadcastChannel) {
     while let Ok(event) = subscriber.recv().await {
         if let Ok(event_json) = serde_wasm_bindgen::to_value(&event) {
+            match &event.event {
+                LightClientEvent::LuminaEvent { .. } => {} // Do nothing for Lumina events
+                _ => console::log_2(&"📨 Forwarding event".into(), &event_json),
+            }
             if let Err(e) = channel.post_message(&event_json) {
                 console::error_1(&format!("Failed to post message: {:?}", e).into());
             }

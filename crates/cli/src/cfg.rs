@@ -25,7 +25,7 @@ use prism_da::{
     },
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
-    FullNodeDataAvailabilityLayer,
+    DataAvailabilityLayer,
 };
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
@@ -239,6 +239,8 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
                 .celestia
                 .operation_namespace_id
                 .unwrap_or(default_celestia_config.operation_namespace_id),
+            pruning_delay: default_celestia_config.pruning_delay,
+            sampling_window: default_celestia_config.sampling_window,
         }),
         DALayerOption::InMemory => None,
     };
@@ -294,7 +296,7 @@ pub fn initialize_db(cfg: &Config) -> Result<Arc<Box<dyn Database>>> {
 
 pub async fn initialize_da_layer(
     config: &Config,
-) -> Result<Arc<dyn FullNodeDataAvailabilityLayer + 'static>> {
+) -> Result<Arc<dyn DataAvailabilityLayer + 'static>> {
     match config.da_layer {
         DALayerOption::Celestia => {
             let celestia_conf = config
@@ -305,9 +307,7 @@ pub async fn initialize_da_layer(
 
             for attempt in 1..=DA_RETRY_COUNT {
                 match CelestiaConnection::new(&celestia_conf, None).await {
-                    Ok(da) => {
-                        return Ok(Arc::new(da) as Arc<dyn FullNodeDataAvailabilityLayer + 'static>)
-                    }
+                    Ok(da) => return Ok(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
                     Err(e) => {
                         if attempt == DA_RETRY_COUNT {
                             return Err(DataAvailabilityError::NetworkError(format!(
@@ -325,7 +325,7 @@ pub async fn initialize_da_layer(
         }
         DALayerOption::InMemory => {
             let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
-            Ok(Arc::new(da_layer) as Arc<dyn FullNodeDataAvailabilityLayer + 'static>)
+            Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
         }
     }
 }

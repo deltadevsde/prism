@@ -1,15 +1,32 @@
 use anyhow::{Context, Result};
 use prism_common::digest::Digest;
 use prism_da::LightDataAvailabilityLayer;
-use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_errors::GeneralError;
 use prism_keys::VerifyingKey;
-use std::{self, sync::Arc};
+use std::{self, future::Future, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
 
-use crate::events::{EventPublisher, LightClientEvent};
+use crate::events::{
+    forward_lumina_events, forward_lumina_events_and_update_height, EventPublisher,
+    LightClientEvent,
+};
+
+fn spawn_task<F>(future: F)
+where
+    F: Future<Output = ()> + Send + 'static,
+{
+    #[cfg(target_arch = "wasm32")]
+    {
+        wasm_bindgen_futures::spawn_local(future);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        tokio::spawn(future);
+    }
+}
 
 pub struct LightClient {
     #[cfg(not(target_arch = "wasm32"))]
@@ -50,11 +67,19 @@ impl LightClient {
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
-        self.da
-            .start()
-            .await
-            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))
-            .context("Failed to start DataAvailabilityLayer")?;
+        if let Some(lumina_event_subscriber) = self.da.event_subscriber() {
+            let event_publisher = self.event_publisher.clone();
+
+            spawn_task(async move {
+                forward_lumina_events_and_update_height(
+                    lumina_event_subscriber,
+                    event_publisher,
+                    sync_target,
+                    height_update_tx,
+                )
+                .await;
+            });
+        }
 
         self.event_publisher.send(LightClientEvent::SyncStarted {
             height: self.start_height,
@@ -142,7 +167,7 @@ impl LightClient {
                                 });
                                 #[cfg(not(feature = "mock_prover"))]
                                 match Groth16Verifier::verify(
-                                    &finalized_epoch.proof,
+                                    &finalized_epoch.proof.as_slice(),
                                     public_values,
                                     &self.sp1_vkey,
                                     &sp1_verifier::GROTH16_VK_BYTES,

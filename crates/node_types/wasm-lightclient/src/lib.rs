@@ -1,4 +1,3 @@
-pub mod celestia;
 pub mod client;
 pub mod commands;
 pub mod error;

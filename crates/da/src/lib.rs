@@ -1,6 +1,9 @@
+use std::sync::{atomic::AtomicU64, Arc};
+
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use celestia_types::Blob;
+use lumina_node::events::EventSubscriber;
 use prism_common::digest::Digest;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
@@ -8,7 +11,7 @@ use prism_serde::{
     hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, Mutex};
 
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
@@ -84,14 +87,15 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
-    async fn start(&self) -> Result<()>;
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64>;
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>; // the start of the event subscriber, optional because inmemoory and rpc based fullnode still need the start function and won't need this event subscriber
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 pub trait DataAvailabilityLayer: LightDataAvailabilityLayer + Send + Sync {
+    async fn start(&self) -> Result<()>;
     async fn get_latest_height(&self) -> Result<u64>;
     async fn initialize_sync_target(&self) -> Result<u64>;
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64>;

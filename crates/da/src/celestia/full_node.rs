@@ -5,6 +5,7 @@ use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use celestia_types::{nmt::Namespace, Blob};
 use log::{error, trace};
+use lumina_node::events::EventSubscriber;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
     self,
@@ -14,7 +15,7 @@ use std::{
     },
 };
 
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, Mutex};
 
 use crate::DataAvailabilityLayer;
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
@@ -103,6 +104,13 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
         self.height_update_tx.subscribe()
     }
 
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
+        None
+    }
+}
+
+#[async_trait]
+impl DataAvailabilityLayer for CelestiaConnection {
     async fn start(&self) -> Result<()> {
         let mut header_sub = HeaderClient::header_subscribe(&self.client)
             .await
@@ -129,10 +137,7 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
         });
         Ok(())
     }
-}
 
-#[async_trait]
-impl DataAvailabilityLayer for CelestiaConnection {
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(self.sync_target.load(Ordering::Relaxed))
     }
