@@ -7,11 +7,8 @@ use libp2p::Multiaddr;
 use log::trace;
 use lumina_node::{events::EventSubscriber, Node, NodeBuilder};
 use prism_errors::{DataAvailabilityError, GeneralError};
-use std::{
-    self,
-    sync::{atomic::AtomicU64, Arc},
-};
-use tokio::sync::{broadcast, Mutex, RwLock};
+use std::{self, sync::Arc};
+use tokio::sync::{Mutex, RwLock};
 
 #[cfg(target_arch = "wasm32")]
 use {
@@ -48,7 +45,6 @@ pub struct LightClientConnection {
     pub node: Arc<RwLock<LuminaNode>>,
     pub event_subscriber: Arc<Mutex<EventSubscriber>>,
     pub snark_namespace: Namespace,
-    height_update_tx: broadcast::Sender<u64>,
 }
 
 impl LightClientConnection {
@@ -78,7 +74,6 @@ impl LightClientConnection {
         Ok((blockstore, store))
     }
 
-    // Todo: NodeBuilder Coniguration
     pub async fn new(config: &NetworkConfig) -> Result<Self> {
         let bootnodes = config.celestia_network.canonical_bootnodes().collect::<Vec<Multiaddr>>();
         #[cfg(target_arch = "wasm32")]
@@ -105,13 +100,11 @@ impl LightClientConnection {
             .await?;
 
         let snark_namespace = create_namespace(&celestia_config.snark_namespace_id)?;
-        let (height_update_tx, _) = broadcast::channel(100);
 
         Ok(LightClientConnection {
             node: Arc::new(RwLock::new(node)),
             event_subscriber: Arc::new(Mutex::new(event_subscriber)),
             snark_namespace,
-            height_update_tx,
         })
     }
 }
@@ -148,9 +141,5 @@ impl LightDataAvailabilityLayer for LightClientConnection {
                 format!("getting epoch from da layer: {}", e)
             ))),
         }
-    }
-
-    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
-        self.height_update_tx.subscribe()
     }
 }

@@ -1,14 +1,8 @@
-use lumina_node::events::{EventSubscriber as LuminaEventSubscriber, NodeEvent};
+use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
 use serde::Serialize;
-use std::{
-    fmt,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
-};
-use tokio::sync::{broadcast, Mutex};
+use std::fmt;
+use tokio::sync::broadcast;
 use web_time::SystemTime;
 
 const EVENT_CHANNEL_CAPACITY: usize = 1024;
@@ -18,6 +12,7 @@ const EVENT_CHANNEL_CAPACITY: usize = 1024;
 #[serde(rename_all = "snake_case")]
 pub enum LightClientEvent {
     SyncStarted { height: u64 },
+    UpdateDAHeight { height: u64 },
     EpochVerificationStarted { height: u64 },
     EpochVerified { height: u64 },
     EpochVerificationFailed { height: u64, error: String },
@@ -37,6 +32,9 @@ impl fmt::Display for LightClientEvent {
         match self {
             LightClientEvent::SyncStarted { height } => {
                 write!(f, "Starting sync at height {}", height)
+            }
+            LightClientEvent::UpdateDAHeight { height } => {
+                write!(f, "Updated DA height to {}", height)
             }
             LightClientEvent::EpochVerificationStarted { height } => {
                 write!(f, "Starting verification of epoch {}", height)
@@ -124,27 +122,5 @@ pub struct EventSubscriber {
 impl EventSubscriber {
     pub async fn recv(&mut self) -> Result<EventInfo, broadcast::error::RecvError> {
         self.rx.recv().await
-    }
-}
-
-pub async fn forward_lumina_events_and_update_height(
-    event_subscriber: Arc<Mutex<LuminaEventSubscriber>>,
-    event_publisher: EventPublisher,
-    sync_target: Arc<AtomicU64>,
-    height_update_tx: broadcast::Sender<u64>,
-) {
-    let mut subscriber = event_subscriber.lock().await;
-
-    // TODO: we need to add the height to the sync target when we receive a new header
-    while let Ok(event_info) = subscriber.recv().await {
-        if let NodeEvent::AddedHeaderFromHeaderSub { height } = &event_info.event {
-            sync_target.store(*height, Ordering::Relaxed);
-            let _ = height_update_tx.send(*height);
-            trace!("updated sync target for height {}", height);
-        }
-
-        event_publisher.send(LightClientEvent::LuminaEvent {
-            event: event_info.event,
-        });
     }
 }

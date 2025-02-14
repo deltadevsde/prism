@@ -100,10 +100,6 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
-        self.height_update_tx.subscribe()
-    }
-
     fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
         None
     }
@@ -136,6 +132,10 @@ impl DataAvailabilityLayer for CelestiaConnection {
             }
         });
         Ok(())
+    }
+
+    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
+        self.height_update_tx.subscribe()
     }
 
     async fn get_latest_height(&self) -> Result<u64> {

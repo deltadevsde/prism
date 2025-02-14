@@ -86,10 +86,6 @@ impl InMemoryDataAvailabilityLayer {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
-    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
-        self.height_update_tx.subscribe()
-    }
-
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
         let blocks = self.blocks.read().await;
         Ok(blocks
@@ -112,6 +108,10 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
             this.produce_blocks().await;
         });
         Ok(())
+    }
+
+    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
+        self.height_update_tx.subscribe()
     }
 
     async fn get_latest_height(&self) -> Result<u64> {

@@ -24,7 +24,7 @@ impl Default for CelestiaConfig {
     fn default() -> Self {
         CelestiaConfig {
             connection_string: "ws://localhost:26658".to_string(),
-            start_height: 4616930,
+            start_height: 4683905,
             sampling_window: DEFAULT_SAMPLING_WINDOW,
             pruning_delay: DEFAULT_PRUNING_DELAY,
             snark_namespace_id: "00000000000000de1008".to_string(),
@@ -81,7 +81,7 @@ impl Network {
                         .unwrap(),
                 ),
                 celestia_config: Some(CelestiaConfig {
-                    start_height: 4667138,
+                    start_height: 4683905,
                     snark_namespace_id: "000000000000000000000000000000000000707269736d5350457330"
                         .to_string(),
                     operation_namespace_id:

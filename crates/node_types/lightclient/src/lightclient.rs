@@ -1,31 +1,37 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
+use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
-use prism_da::LightDataAvailabilityLayer;
-use prism_errors::GeneralError;
+use prism_da::{FinalizedEpoch, LightDataAvailabilityLayer};
 use prism_keys::VerifyingKey;
-use std::{self, future::Future, sync::Arc};
-use tokio::sync::{broadcast, RwLock};
+use std::{
+    self,
+    future::Future,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
+use tokio::sync::RwLock;
 
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
 
-use crate::events::{
-    forward_lumina_events, forward_lumina_events_and_update_height, EventPublisher,
-    LightClientEvent,
-};
+use crate::events::{EventPublisher, LightClientEvent};
 
+#[cfg(target_arch = "wasm32")]
+fn spawn_task<F>(future: F)
+where
+    F: Future<Output = ()> + 'static,
+{
+    wasm_bindgen_futures::spawn_local(future);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn spawn_task<F>(future: F)
 where
     F: Future<Output = ()> + Send + 'static,
 {
-    #[cfg(target_arch = "wasm32")]
-    {
-        wasm_bindgen_futures::spawn_local(future);
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        tokio::spawn(future);
-    }
+    tokio::spawn(future);
 }
 
 pub struct LightClient {
@@ -43,6 +49,7 @@ pub struct LightClient {
     pub event_publisher: EventPublisher,
     // The latest commitment.
     latest_commitment: Arc<RwLock<Option<Digest>>>,
+    sync_target: Arc<AtomicU64>,
 }
 
 #[allow(dead_code)]
@@ -62,194 +69,166 @@ impl LightClient {
             start_height,
             event_publisher,
             latest_commitment: Arc::new(RwLock::new(None)),
+            sync_target: Arc::new(AtomicU64::new(start_height)),
         }
     }
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
         if let Some(lumina_event_subscriber) = self.da.event_subscriber() {
-            let event_publisher = self.event_publisher.clone();
+            let light_client = self.clone();
 
-            spawn_task(async move {
-                forward_lumina_events_and_update_height(
-                    lumina_event_subscriber,
-                    event_publisher,
-                    sync_target,
-                    height_update_tx,
-                )
-                .await;
-            });
-        }
+            spawn_task({
+                let lumina_event_subscriber = lumina_event_subscriber.clone();
+                async move {
+                    let mut current_height = light_client.start_height;
+                    let mut subscriber = lumina_event_subscriber.lock().await;
 
-        self.event_publisher.send(LightClientEvent::SyncStarted {
-            height: self.start_height,
-        });
+                    while let Ok(event_info) = subscriber.recv().await {
+                        light_client.event_publisher.send(LightClientEvent::LuminaEvent {
+                            event: event_info.event.clone(),
+                        });
 
-        self.sync_loop()
-            .await
-            .map_err(|e| GeneralError::InitializationError(e.to_string()))
-            .context("Sync loop failed")
-    }
+                        if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
+                            light_client.sync_target.store(height, Ordering::Relaxed);
+                            light_client
+                                .event_publisher
+                                .send(LightClientEvent::UpdateDAHeight { height });
 
-    async fn process_heights(&self, mut current_position: u64) {
-        let mut height_rx = self.da.subscribe_to_heights();
-        self.event_publisher.send(LightClientEvent::EpochVerificationStarted {
-            height: current_position,
-        });
-
-        loop {
-            match height_rx.recv().await {
-                Ok(target) => {
-                    for i in current_position..target {
-                        match self.da.get_finalized_epoch(i + 1).await {
-                            Ok(Some(finalized_epoch)) => {
-                                if let Some(pubkey) = &self.prover_pubkey {
-                                    match finalized_epoch.verify_signature(pubkey.clone()) {
-                                        Ok(_) => trace!(
-                                            "valid signature for epoch {}",
-                                            finalized_epoch.height
-                                        ),
-                                        Err(e) => {
-                                            panic!("invalid signature in epoch {}: {:?}", i, e)
-                                        }
-                                    }
-                                }
-
-                                let public_values = match &finalized_epoch.proof {
-                                    #[cfg(target_arch = "wasm32")]
-                                    proof => proof.as_slice(),
-                                    #[cfg(not(target_arch = "wasm32"))]
-                                    proof => proof.public_values.as_slice(),
-                                };
-
-                                if public_values.len() < 64 {
-                                    panic!(
-                                        "public_values length is less than 64 bytes in epoch {}",
-                                        finalized_epoch.height
-                                    );
-                                }
-
-                                let mut slice = [0u8; 32];
-                                slice.copy_from_slice(&public_values[..32]);
-                                let proof_prev_commitment: Digest = Digest::from(slice);
-                                let mut slice = [0u8; 32];
-                                slice.copy_from_slice(&public_values[32..64]);
-                                let proof_current_commitment: Digest = Digest::from(slice);
-                                self.latest_commitment
-                                    .write()
-                                    .await
-                                    .replace(proof_current_commitment);
-
-                                if finalized_epoch.prev_commitment != proof_prev_commitment
-                                    || finalized_epoch.current_commitment
-                                        != proof_current_commitment
-                                {
-                                    error!(
-                                        "Commitment mismatch:
-                                        prev_commitment: {:?}, proof_prev_commitment: {:?},
-                                        current_commitment: {:?}, proof_current_commitment: {:?}",
-                                        finalized_epoch.prev_commitment,
-                                        proof_prev_commitment,
-                                        finalized_epoch.current_commitment,
-                                        proof_current_commitment
-                                    );
-                                    panic!(
-                                        "Commitment mismatch in epoch {}",
-                                        finalized_epoch.height
-                                    );
-                                }
-
-                                // SNARK verification
-                                #[cfg(feature = "mock_prover")]
-                                info!("mock_prover is activated, skipping proof verification");
-                                self.event_publisher.send(LightClientEvent::EpochVerified {
-                                    height: finalized_epoch.height,
-                                });
-                                #[cfg(not(feature = "mock_prover"))]
-                                match Groth16Verifier::verify(
-                                    &finalized_epoch.proof.as_slice(),
-                                    public_values,
-                                    &self.sp1_vkey,
-                                    &sp1_verifier::GROTH16_VK_BYTES,
-                                ) {
-                                    Ok(_) => {
-                                        self.event_publisher.send(
-                                            LightClientEvent::EpochVerified {
-                                                height: finalized_epoch.height,
-                                            },
+                            if height > current_height {
+                                for h in current_height..height {
+                                    if let Err(e) = light_client.process_epoch(h + 1).await {
+                                        error!(
+                                            "Failed to process epoch at height {}: {}",
+                                            h + 1,
+                                            e
                                         );
-                                        info!(
-                                            "zkSNARK for epoch {} was validated successfully",
-                                            finalized_epoch.height
-                                        )
-                                    }
-                                    Err(err) => {
-                                        self.event_publisher.send(
-                                            LightClientEvent::EpochVerificationFailed {
-                                                height: finalized_epoch.height,
-                                                error: format!("{}", err),
-                                            },
-                                        );
-                                        panic!(
-                                            "failed to validate epoch at height {}: {:?}",
-                                            finalized_epoch.height, err
-                                        )
                                     }
                                 }
+                                current_height = height;
                             }
-                            Ok(None) => {
-                                self.event_publisher
-                                    .send(LightClientEvent::NoEpochFound { height: i + 1 });
-                                debug!("no finalized epoch found at height: {}", i + 1);
-                            }
-                            Err(e) => {
-                                self.event_publisher.send(
-                                    LightClientEvent::EpochVerificationFailed {
-                                        height: i + 1,
-                                        error: format!("{}", e),
-                                    },
-                                );
-                                debug!("light client: getting epoch: {}", e)
-                            }
-                        };
+                        }
                     }
-                    current_position = target;
                 }
-                Err(broadcast::error::RecvError::Closed) => {
-                    self.event_publisher.send(LightClientEvent::HeightChannelClosed);
-                    error!("Height channel closed unexpectedly");
-                    break;
-                }
-                Err(broadcast::error::RecvError::Lagged(skipped)) => {
-                    warn!("Lagged behind by {} messages", skipped);
-                }
-            }
-        }
-    }
-
-    async fn sync_loop(self: Arc<Self>) -> Result<()> {
-        info!("starting SNARK sync loop");
-        let light_client = self.clone();
-        let start_height = self.start_height;
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            wasm_bindgen_futures::spawn_local(async move {
-                light_client.process_heights(start_height).await;
             });
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            tokio::spawn(async move {
-                light_client.process_heights(start_height).await;
-            })
-            .await
-            .map_err(|e| anyhow::anyhow!("Task failed: {:?}", e))?;
         }
 
         Ok(())
     }
 
+    async fn process_epoch(&self, height: u64) -> Result<()> {
+        self.event_publisher.send(LightClientEvent::EpochVerificationStarted { height });
+
+        match self.da.get_finalized_epoch(height).await {
+            Ok(Some(finalized_epoch)) => {
+                if let Some(pubkey) = &self.prover_pubkey {
+                    finalized_epoch
+                        .verify_signature(pubkey.clone())
+                        .map_err(|e| anyhow::anyhow!("Invalid signature: {:?}", e))?;
+                }
+
+                // Get public values from proof
+                let public_values = match &finalized_epoch.proof {
+                    #[cfg(target_arch = "wasm32")]
+                    proof => proof.as_slice(),
+                    #[cfg(not(target_arch = "wasm32"))]
+                    proof => proof.public_values.as_slice(),
+                };
+
+                if public_values.len() < 64 {
+                    return Err(anyhow::anyhow!(
+                        "Public values length is less than 64 bytes"
+                    ));
+                }
+
+                // Extract and verify commitments
+                let (proof_prev_commitment, proof_current_commitment) =
+                    self.extract_commitments(public_values)?;
+
+                self.verify_commitments(
+                    &finalized_epoch,
+                    proof_prev_commitment,
+                    proof_current_commitment,
+                )?;
+
+                // Update latest commitment
+                self.latest_commitment.write().await.replace(proof_current_commitment);
+
+                // Verify SNARK proof
+                #[cfg(not(feature = "mock_prover"))]
+                self.verify_snark_proof(&finalized_epoch, public_values)?;
+
+                #[cfg(feature = "mock_prover")]
+                info!("mock_prover is activated, skipping proof verification");
+                // lets say the mocked proof is valid
+                self.event_publisher.send(LightClientEvent::EpochVerified {
+                    height: finalized_epoch.height,
+                });
+
+                Ok(())
+            }
+            Ok(None) => {
+                self.event_publisher.send(LightClientEvent::NoEpochFound { height });
+                Ok(())
+            }
+            Err(e) => {
+                let error = format!("Failed to get epoch: {}", e);
+                self.event_publisher.send(LightClientEvent::EpochVerificationFailed {
+                    height,
+                    error: error.clone(),
+                });
+                Err(anyhow::anyhow!(error))
+            }
+        }
+    }
+
+    fn extract_commitments(&self, public_values: &[u8]) -> Result<(Digest, Digest)> {
+        let mut slice = [0u8; 32];
+        slice.copy_from_slice(&public_values[..32]);
+        let proof_prev_commitment = Digest::from(slice);
+
+        let mut slice = [0u8; 32];
+        slice.copy_from_slice(&public_values[32..64]);
+        let proof_current_commitment = Digest::from(slice);
+
+        Ok((proof_prev_commitment, proof_current_commitment))
+    }
+
+    fn verify_commitments(
+        &self,
+        finalized_epoch: &FinalizedEpoch,
+        proof_prev_commitment: Digest,
+        proof_current_commitment: Digest,
+    ) -> Result<()> {
+        if finalized_epoch.prev_commitment != proof_prev_commitment
+            || finalized_epoch.current_commitment != proof_current_commitment
+        {
+            // maybe we should forwards events for these kind of errors as well.
+            return Err(anyhow::anyhow!(
+                "Commitment mismatch: prev={:?}/{:?}, current={:?}/{:?}",
+                finalized_epoch.prev_commitment,
+                proof_prev_commitment,
+                finalized_epoch.current_commitment,
+                proof_current_commitment
+            ));
+        }
+        Ok(())
+    }
+
+    #[cfg(not(feature = "mock_prover"))]
+    fn verify_snark_proof(
+        &self,
+        finalized_epoch: &FinalizedEpoch,
+        public_values: &[u8],
+    ) -> Result<()> {
+        Groth16Verifier::verify(
+            &finalized_epoch.proof.as_slice(),
+            public_values,
+            &self.sp1_vkey,
+            &sp1_verifier::GROTH16_VK_BYTES,
+        )
+        .map_err(|e| anyhow::anyhow!("SNARK verification failed: {:?}", e))
+    }
     pub async fn get_latest_commitment(&self) -> Option<Digest> {
         *self.latest_commitment.read().await
     }
