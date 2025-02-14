@@ -126,7 +126,7 @@ impl VerifyingKey {
                 };
 
                 vk.verify(signature, message)
-                    .map_err(|e| anyhow!("Failed to verify signature: {}", e))
+                    .map_err(|e| anyhow!("Failed to verify ed25519 signature: {}", e))
             }
             #[cfg(not(target_arch = "wasm32"))]
             VerifyingKey::Secp256k1(vk) => {
@@ -136,9 +136,9 @@ impl VerifyingKey {
 
                 let digest = sha2::Sha256::digest(message);
                 let message = Secp256k1Message::from_digest(digest.into());
-                let verify_result = vk.verify(SECP256K1, &message, signature);
 
-                verify_result.map_err(|e| anyhow!("Failed to verify signature: {}", e))
+                vk.verify(SECP256K1, &message, signature)
+                    .map_err(|e| anyhow!("Failed to verify secp256k1 signature: {}", e))
             }
             VerifyingKey::Secp256r1(vk) => {
                 let Signature::Secp256r1(signature) = signature else {
@@ -148,7 +148,7 @@ impl VerifyingKey {
                 digest.update(message);
 
                 vk.verify_digest(digest, signature)
-                    .map_err(|e| anyhow!("Failed to verify signature: {}", e))
+                    .map_err(|e| anyhow!("Failed to verify secp256r1 signature: {}", e))
             }
         }
     }
