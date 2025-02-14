@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use jmt::{mock::MockTreeStore, KeyHash};
-use prism_common::{operation::SignatureBundle, transaction_builder::TransactionBuilder};
+use prism_common::{operation::SignatureBundle, test_transaction_builder::TestTransactionBuilder};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
 
 fn test_insert_and_get(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
     let Proof::Insert(insert_proof) = tree.process_transaction(service_tx).unwrap() else {
@@ -42,7 +42,7 @@ fn test_insert_and_get(algorithm: CryptoAlgorithm) {
 
 fn test_insert_for_nonexistent_service_fails(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_signing_key =
         SigningKey::new_with_algorithm(algorithm).expect("Failed to create service signing key");
@@ -62,7 +62,7 @@ fn test_insert_for_nonexistent_service_fails(algorithm: CryptoAlgorithm) {
 
 fn test_insert_with_invalid_service_challenge_fails(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
 
@@ -94,7 +94,7 @@ fn test_insert_with_invalid_service_challenge_fails(algorithm: CryptoAlgorithm) 
 
 fn test_insert_duplicate_key(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
     let account_tx =
@@ -119,7 +119,7 @@ fn test_insert_duplicate_key(algorithm: CryptoAlgorithm) {
 
 fn test_update_existing_key(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
     let acc_tx =
@@ -143,7 +143,7 @@ fn test_update_existing_key(algorithm: CryptoAlgorithm) {
 
 fn test_update_non_existing_key(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
 
@@ -161,7 +161,7 @@ fn test_update_non_existing_key(algorithm: CryptoAlgorithm) {
 
 fn test_data_ops(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
     tree.process_transaction(service_tx).unwrap();
@@ -246,7 +246,7 @@ fn test_data_ops(algorithm: CryptoAlgorithm) {
 
 fn test_multiple_inserts_and_updates(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
     let acc1_tx =
@@ -285,7 +285,7 @@ fn test_multiple_inserts_and_updates(algorithm: CryptoAlgorithm) {
 
 fn test_interleaved_inserts_and_updates(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
     let acc1_tx =
@@ -322,7 +322,7 @@ fn test_interleaved_inserts_and_updates(algorithm: CryptoAlgorithm) {
 
 fn test_root_hash_changes(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
     let account1_tx =
@@ -339,7 +339,7 @@ fn test_root_hash_changes(algorithm: CryptoAlgorithm) {
 
 fn test_batch_writing(algorithm: CryptoAlgorithm) {
     let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
     let account1_tx =

@@ -1,5 +1,5 @@
 use super::*;
-use prism_common::transaction_builder::TransactionBuilder;
+use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
@@ -17,7 +17,7 @@ async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
 }
 
 fn create_mock_transactions(algorithm: CryptoAlgorithm, service_id: String) -> Vec<Transaction> {
-    let mut transaction_builder = TransactionBuilder::new();
+    let mut transaction_builder = TestTransactionBuilder::new();
 
     vec![
         transaction_builder.register_service_with_random_keys(algorithm, &service_id).commit(),
@@ -36,7 +36,7 @@ fn create_mock_transactions(algorithm: CryptoAlgorithm, service_id: String) -> V
 async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
 
-    let mut transaction_builder = TransactionBuilder::new();
+    let mut transaction_builder = TestTransactionBuilder::new();
     let transaction =
         transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
 
@@ -51,7 +51,7 @@ async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
 async fn test_process_transactions(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
 
-    let mut transaction_builder = TransactionBuilder::new();
+    let mut transaction_builder = TestTransactionBuilder::new();
     let register_service_transaction =
         transaction_builder.register_service_with_random_keys(algorithm, "test_service").commit();
     let create_account_transaction = transaction_builder
@@ -88,7 +88,7 @@ async fn test_process_transactions(algorithm: CryptoAlgorithm) {
 async fn test_execute_block_with_invalid_tx(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
 
-    let mut tx_builder = TransactionBuilder::new();
+    let mut tx_builder = TestTransactionBuilder::new();
 
     let new_key_1 = SigningKey::new_with_algorithm(algorithm).expect("Failed to create new key");
     let new_key_vk: VerifyingKey = new_key_1.clone().into();

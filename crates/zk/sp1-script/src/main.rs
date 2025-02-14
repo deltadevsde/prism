@@ -13,7 +13,7 @@
 use clap::Parser;
 use jmt::mock::MockTreeStore;
 use plotters::prelude::*;
-use prism_common::transaction_builder::TransactionBuilder;
+use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_tree::{
     key_directory_tree::KeyDirectoryTree, proofs::Batch, snarkable_tree::SnarkableTree,
@@ -90,28 +90,28 @@ struct SimulationResult {
 }
 
 /// Get a random service ID from the transaction builder
-fn get_random_service_id(rng: &mut impl Rng, builder: &TransactionBuilder) -> String {
+fn get_random_service_id(rng: &mut impl Rng, builder: &TestTransactionBuilder) -> String {
     let service_keys = builder.get_service_keys().clone();
     let service_id = service_keys.keys().nth(rng.gen_range(0..service_keys.len())).unwrap();
     service_id.to_string()
 }
 
 /// Get the service key for a given service ID from the transaction builder
-fn _get_service_key(builder: &TransactionBuilder, service_id: &str) -> SigningKey {
+fn _get_service_key(builder: &TestTransactionBuilder, service_id: &str) -> SigningKey {
     let service_keys = builder.get_service_keys().clone();
     let service_key = service_keys.get(service_id).unwrap();
     service_key.clone()
 }
 
 /// Get a random account ID from the transaction builder
-fn get_random_account_id(rng: &mut impl Rng, builder: &TransactionBuilder) -> String {
+fn get_random_account_id(rng: &mut impl Rng, builder: &TestTransactionBuilder) -> String {
     let account_keys = builder.get_account_keys().clone();
     let account_id = account_keys.keys().nth(rng.gen_range(0..account_keys.len())).unwrap();
     account_id.to_string()
 }
 
 /// Get the first account key for a given account ID from the transaction builder
-fn get_first_account_key(builder: &TransactionBuilder, account_id: &str) -> SigningKey {
+fn get_first_account_key(builder: &TestTransactionBuilder, account_id: &str) -> SigningKey {
     let account_keys_map = builder.get_account_keys().clone();
     let account_keys = account_keys_map.get(account_id).unwrap();
     account_keys.first().unwrap().clone()
@@ -119,7 +119,7 @@ fn get_first_account_key(builder: &TransactionBuilder, account_id: &str) -> Sign
 
 /// Create a batch of transactions to prepare the initial state of the tree
 fn create_preparation_batch(
-    builder: &mut TransactionBuilder,
+    builder: &mut TestTransactionBuilder,
     tree: &mut KeyDirectoryTree<MockTreeStore>,
     config: &SimulationConfig,
 ) -> Batch {
@@ -156,7 +156,7 @@ fn create_preparation_batch(
 
 /// Create a batch of transactions to benchmark the performance of the tree
 fn create_benchmark_batch(
-    builder: &mut TransactionBuilder,
+    builder: &mut TestTransactionBuilder,
     tree: &mut KeyDirectoryTree<MockTreeStore>,
     config: &SimulationConfig,
 ) -> Batch {
@@ -254,7 +254,7 @@ async fn main() {
 
         // Setup the inputs for a single configuration for proof generation.
         let mut stdin = SP1Stdin::new();
-        let mut builder = TransactionBuilder::new();
+        let mut builder = TestTransactionBuilder::new();
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let config = SimulationConfig {
             tags: vec![],
@@ -321,7 +321,7 @@ async fn execute_simulations(args: Args) {
                 // Setup the prover client.
                 let client = ProverClient::from_env();
 
-                let mut builder = TransactionBuilder::new();
+                let mut builder = TestTransactionBuilder::new();
                 let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
 
                 // Setup the inputs for each configuration.

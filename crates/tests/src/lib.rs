@@ -4,7 +4,7 @@
 extern crate log;
 
 use anyhow::Result;
-use prism_common::transaction_builder::TransactionBuilder;
+use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
     celestia::{full_node::CelestiaConnection, utils::CelestiaConfig},
     DataAvailabilityLayer,
@@ -98,7 +98,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     });
 
     spawn(async move {
-        let mut transaction_builder = TransactionBuilder::new();
+        let mut transaction_builder = TestTransactionBuilder::new();
         let register_service_req = transaction_builder
             .register_service_with_random_keys(service_algorithm, "test_service")
             .commit();

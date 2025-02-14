@@ -16,7 +16,7 @@ enum PostCommitAction {
 
 pub struct UncommittedTransaction<'a> {
     transaction: Transaction,
-    builder: &'a mut TransactionBuilder,
+    builder: &'a mut TestTransactionBuilder,
     post_commit_action: PostCommitAction,
 }
 
@@ -57,7 +57,7 @@ impl UncommittedTransaction<'_> {
     }
 }
 
-pub struct TransactionBuilder {
+pub struct TestTransactionBuilder {
     /// Simulated account storage that is mutated when transactions are applied
     accounts: HashMap<String, Account>,
     /// Remembers private keys of services to simulate account creation via an external service
@@ -66,7 +66,7 @@ pub struct TransactionBuilder {
     account_keys: HashMap<String, Vec<SigningKey>>,
 }
 
-impl Default for TransactionBuilder {
+impl Default for TestTransactionBuilder {
     fn default() -> Self {
         let accounts = HashMap::new();
         let service_keys = HashMap::new();
@@ -80,7 +80,7 @@ impl Default for TransactionBuilder {
     }
 }
 
-impl TransactionBuilder {
+impl TestTransactionBuilder {
     pub fn new() -> Self {
         Self::default()
     }
