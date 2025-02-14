@@ -146,11 +146,11 @@ where
         Self { prism, transaction }
     }
 
-    pub async fn wait(&self) -> Result<(), P::Error> {
+    pub async fn wait(&self) -> Result<Account, P::Error> {
         self.wait_with_interval(Self::DEFAULT_POLLING_INTERVAL).await
     }
 
-    pub async fn wait_with_interval(&self, interval: Duration) -> Result<(), P::Error> {
+    pub async fn wait_with_interval(&self, interval: Duration) -> Result<Account, P::Error> {
         loop {
             if let AccountResponse {
                 account: Some(account),
@@ -158,7 +158,7 @@ where
             } = self.prism.get_account(&self.transaction.id).await?
             {
                 if account.nonce() > self.transaction.nonce {
-                    return Ok(());
+                    return Ok(account);
                 }
             };
             sleep(interval).await;
