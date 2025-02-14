@@ -221,8 +221,14 @@ impl LightClient {
         finalized_epoch: &FinalizedEpoch,
         public_values: &[u8],
     ) -> Result<()> {
+        #[cfg(target_arch = "wasm32")]
+        let finalized_epoch_proof = &finalized_epoch.proof;
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let finalized_epoch_proof = &finalized_epoch.proof.bytes();
+
         Groth16Verifier::verify(
-            &finalized_epoch.proof.as_slice(),
+            &finalized_epoch_proof,
             public_values,
             &self.sp1_vkey,
             &sp1_verifier::GROTH16_VK_BYTES,

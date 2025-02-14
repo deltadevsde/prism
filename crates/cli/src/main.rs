@@ -1,7 +1,9 @@
 mod cfg;
 mod node_types;
 
-use cfg::{initialize_da_layer, initialize_db, load_config, Cli, Commands};
+use cfg::{
+    initialize_da_layer, initialize_db, initialize_light_da_layer, load_config, Cli, Commands,
+};
 use clap::Parser;
 use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
 use prism_keys::{CryptoAlgorithm, SigningKey};
@@ -30,15 +32,16 @@ async fn main() -> std::io::Result<()> {
     let config =
         load_config(args.clone()).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-    let da = initialize_da_layer(&config)
-        .await
-        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-
     let start_height = config.clone().network.celestia_config.unwrap_or_default().start_height;
 
     let node: Arc<dyn NodeType> = match cli.command {
         Commands::LightClient(_) => {
             let verifying_key = config.network.verifying_key;
+
+            let da = initialize_light_da_layer(&config).await.map_err(|e| {
+                error!("error initializing light da layer: {}", e);
+                Error::new(ErrorKind::Other, e.to_string())
+            })?;
 
             let client = ProverClient::builder().mock().build();
             let (_, vk) = client.setup(PRISM_ELF);
@@ -55,6 +58,10 @@ async fn main() -> std::io::Result<()> {
         Commands::Prover(_) => {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+
+            let da = initialize_da_layer(&config)
+                .await
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let signing_key = get_signing_key()?;
             let verifying_key = signing_key.verifying_key();

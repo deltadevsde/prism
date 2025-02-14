@@ -21,11 +21,12 @@ use std::{fs, path::Path, str::FromStr, sync::Arc};
 use prism_da::{
     celestia::{
         full_node::CelestiaConnection,
+        light_client::LightClientConnection,
         utils::{CelestiaConfig, Network, NetworkConfig},
     },
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
-    DataAvailabilityLayer,
+    DataAvailabilityLayer, LightDataAvailabilityLayer,
 };
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
@@ -326,6 +327,23 @@ pub async fn initialize_da_layer(
         DALayerOption::InMemory => {
             let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
             Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
+        }
+    }
+}
+
+pub async fn initialize_light_da_layer(
+    config: &Config,
+) -> Result<Arc<dyn LightDataAvailabilityLayer + 'static>> {
+    match config.da_layer {
+        DALayerOption::Celestia => {
+            let connection = LightClientConnection::new(&config.network)
+                .await
+                .context("Failed to initialize light client connection")?;
+            Ok(Arc::new(connection) as Arc<dyn LightDataAvailabilityLayer + 'static>)
+        }
+        DALayerOption::InMemory => {
+            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
+            Ok(Arc::new(da_layer))
         }
     }
 }
