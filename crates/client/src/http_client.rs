@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use prism_api::{
     api::PrismApi,
     types::{AccountRequest, AccountResponse, CommitmentResponse},
@@ -59,6 +60,7 @@ impl PrismHttpClient {
     }
 }
 
+#[async_trait]
 impl PrismApi for PrismHttpClient {
     type Error = PrismHttpClientError;
 

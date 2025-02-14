@@ -7,8 +7,9 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-# async sleep
+# async
 tokio.workspace = true
+async-trait.workspace = true
 
 # prism
 prism-common.workspace = true

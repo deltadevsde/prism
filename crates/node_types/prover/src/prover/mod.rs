@@ -1,4 +1,5 @@
 use anyhow::{anyhow, bail, Context, Result};
+use async_trait::async_trait;
 use jmt::KeyHash;
 use prism_api::{
     api::PrismApi,
@@ -512,6 +513,7 @@ impl Prover {
     }
 }
 
+#[async_trait]
 impl PrismApi for Prover {
     type Error = anyhow::Error;
 

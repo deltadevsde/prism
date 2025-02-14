@@ -16,6 +16,9 @@ prism-keys.workspace = true
 reqwest.workspace = true
 url.workspace = true
 
+# async
+async-trait.workspace = true
+
 # serde
 serde.workspace = true
 

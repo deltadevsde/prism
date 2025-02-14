@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use async_trait::async_trait;
 use prism_common::{
     account::Account,
     operation::SignatureBundle,
@@ -13,6 +14,7 @@ use crate::{
     types::{AccountResponse, CommitmentResponse},
 };
 
+#[async_trait]
 pub trait PrismApi
 where
     Self: Sized + Send + Sync,
