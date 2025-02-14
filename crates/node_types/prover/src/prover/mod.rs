@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use jmt::KeyHash;
 use prism_api::{
     api::PrismApi,
-    types::{AccountResponse, CommitmentResponse},
+    types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
 };
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
@@ -519,14 +519,26 @@ impl PrismApi for Prover {
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error> {
         let acc_response = match self.get_account_from_tree(id).await? {
-            Found(account, inclusion_proof) => AccountResponse {
-                account: Some(*account),
-                proof: inclusion_proof.hashed(),
-            },
-            NotFound(non_inclusion_proof) => AccountResponse {
-                account: None,
-                proof: non_inclusion_proof.hashed(),
-            },
+            Found(account, inclusion_proof) => {
+                let hashed_inclusion_proof = inclusion_proof.hashed();
+                AccountResponse {
+                    account: Some(*account),
+                    proof: HashedMerkleProof {
+                        leaf: hashed_inclusion_proof.leaf,
+                        siblings: hashed_inclusion_proof.siblings,
+                    },
+                }
+            }
+            NotFound(non_inclusion_proof) => {
+                let hashed_non_inclusion = non_inclusion_proof.hashed();
+                AccountResponse {
+                    account: None,
+                    proof: HashedMerkleProof {
+                        leaf: hashed_non_inclusion.leaf,
+                        siblings: hashed_non_inclusion.siblings,
+                    },
+                }
+            }
         };
         Ok(acc_response)
     }

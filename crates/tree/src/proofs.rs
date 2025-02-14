@@ -5,7 +5,6 @@ use jmt::{
     proof::{SparseMerkleNode, SparseMerkleProof, UpdateMerkleProof},
     KeyHash, RootHash,
 };
-use prism_api::types::HashedMerkleProof;
 use prism_common::{
     account::Account,
     digest::Digest,
@@ -236,4 +235,10 @@ impl MerkleProof {
             siblings: sibling_hashes,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct HashedMerkleProof {
+    pub leaf: Option<Digest>,
+    pub siblings: Vec<Digest>,
 }

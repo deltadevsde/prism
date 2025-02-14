@@ -6657,7 +6657,6 @@ dependencies = [
  "jmt",
  "log",
  "paste",
- "prism-api",
  "prism-common",
  "prism-errors",
  "prism-keys",

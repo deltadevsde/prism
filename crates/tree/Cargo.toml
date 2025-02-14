@@ -12,7 +12,6 @@ readme.workspace = true
 
 [dependencies]
 # prism
-prism-api.workspace = true
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-errors.workspace = true
 prism-keys.workspace = true
