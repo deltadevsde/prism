@@ -333,13 +333,16 @@ pub async fn initialize_da_layer(
 
 pub async fn initialize_light_da_layer(
     config: &Config,
-) -> Result<Arc<dyn LightDataAvailabilityLayer + 'static>> {
+) -> Result<Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>> {
     match config.da_layer {
         DALayerOption::Celestia => {
             let connection = LightClientConnection::new(&config.network)
                 .await
                 .context("Failed to initialize light client connection")?;
-            Ok(Arc::new(connection) as Arc<dyn LightDataAvailabilityLayer + 'static>)
+            Ok(Arc::new(connection)
+                as Arc<
+                    dyn LightDataAvailabilityLayer + Send + Sync + 'static,
+                >)
         }
         DALayerOption::InMemory => {
             let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);

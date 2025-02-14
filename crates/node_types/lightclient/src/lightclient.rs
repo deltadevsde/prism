@@ -228,7 +228,7 @@ impl LightClient {
         let finalized_epoch_proof = &finalized_epoch.proof.bytes();
 
         Groth16Verifier::verify(
-            &finalized_epoch_proof,
+            finalized_epoch_proof,
             public_values,
             &self.sp1_vkey,
             &sp1_verifier::GROTH16_VK_BYTES,

@@ -19,6 +19,9 @@ pub fn random_id() -> u32 {
 pub struct WorkerClient {
     port: MessagePortLike,
     response_channel: Mutex<mpsc::UnboundedReceiver<Result<WorkerResponse, JsError>>>,
+    #[allow(dead_code)]
+    // This field is kept to maintain the Closure and prevent the message handler from being dropped.
+    onmessage: Closure<dyn Fn(MessageEvent)>,
 }
 
 impl WorkerClient {
@@ -39,6 +42,7 @@ impl WorkerClient {
         Ok(WorkerClient {
             port,
             response_channel: Mutex::new(response_rx),
+            onmessage,
         })
     }
 
@@ -59,6 +63,9 @@ impl WorkerClient {
 pub struct WorkerServer {
     port: MessagePortLike,
     command_rx: mpsc::UnboundedReceiver<LightClientCommand>,
+    #[allow(dead_code)]
+    // This field is kept to maintain the Closure and prevent the message handler from being dropped.
+    onmessage: Closure<dyn Fn(MessageEvent)>,
 }
 
 impl WorkerServer {
@@ -77,7 +84,11 @@ impl WorkerServer {
         port.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
 
         console::log_1(&"✅ WorkerServer initialized".into());
-        Ok(WorkerServer { port, command_rx })
+        Ok(WorkerServer {
+            port,
+            command_rx,
+            onmessage,
+        })
     }
 
     pub async fn recv(&mut self) -> Result<LightClientCommand, JsError> {
