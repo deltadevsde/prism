@@ -1,4 +1,7 @@
-use prism_api::{api::PrismApi, AccountRequest, AccountResponse, CommitmentResponse};
+use prism_api::{
+    api::PrismApi,
+    types::{AccountRequest, AccountResponse, CommitmentResponse},
+};
 use prism_common::transaction::{Transaction, TransactionError};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::{Display, Formatter};

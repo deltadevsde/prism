@@ -8,7 +8,10 @@ use prism_common::{
 use prism_keys::{SigningKey, VerifyingKey};
 use tokio::time::sleep;
 
-use crate::{builder::RequestBuilder, AccountResponse, CommitmentResponse};
+use crate::{
+    builder::RequestBuilder,
+    types::{AccountResponse, CommitmentResponse},
+};
 
 pub trait PrismApi
 where

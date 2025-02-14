@@ -1,6 +1,9 @@
 use anyhow::{anyhow, bail, Context, Result};
 use jmt::KeyHash;
-use prism_api::{api::PrismApi, AccountResponse, CommitmentResponse};
+use prism_api::{
+    api::PrismApi,
+    types::{AccountResponse, CommitmentResponse},
+};
 use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};

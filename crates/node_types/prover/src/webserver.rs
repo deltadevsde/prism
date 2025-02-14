@@ -1,7 +1,10 @@
 use crate::Prover;
 use anyhow::{bail, Context, Result};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use prism_api::{api::PrismApi, AccountRequest, AccountResponse, CommitmentResponse};
+use prism_api::{
+    api::PrismApi,
+    types::{AccountRequest, AccountResponse, CommitmentResponse},
+};
 use prism_common::transaction::Transaction;
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, sync::Arc};

@@ -5,7 +5,7 @@ use jmt::{
     proof::{SparseMerkleNode, SparseMerkleProof, UpdateMerkleProof},
     KeyHash, RootHash,
 };
-use prism_api::HashedMerkleProof;
+use prism_api::types::HashedMerkleProof;
 use prism_common::{
     account::Account,
     digest::Digest,
