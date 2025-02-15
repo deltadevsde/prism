@@ -88,7 +88,7 @@ build:
   @echo "Building the project..."
   cargo build --release
   @echo "Building SP1..."
-  cd crates/zk/sp1 && cargo prove build
+  cd crates/zk/sp1 && cargo prove build --output-directory ../../../elf/ --elf-name riscv32im-succinct-zkvm-elf
 
 unit-test:
   @echo "Running unit tests..."
