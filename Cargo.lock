@@ -6549,7 +6549,6 @@ name = "prism-keys"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "ecdsa 0.16.9 (git+https://github.com/sp1-patches/signatures?tag=patch-0.16.9-sp1-4.0.0)",
  "ed25519-consensus",
  "getrandom 0.2.15",
  "p256",

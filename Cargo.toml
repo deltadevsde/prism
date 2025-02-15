@@ -110,7 +110,6 @@ secp256k1 = { version = "0.29.1", features = [
   "serde",
 ] }
 p256 = { version = "0.13.2", features = ["serde", "ecdsa"] }
-ecdsa = { version = "0.16.0", features = ["der"] }
 
 # celestia
 celestia-rpc = "=0.9.0"
