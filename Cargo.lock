@@ -6561,7 +6561,6 @@ dependencies = [
  "hex",
  "js-sys",
  "libp2p",
- "lumina-node-wasm",
  "prism-da",
  "prism-errors",
  "prism-lightclient",

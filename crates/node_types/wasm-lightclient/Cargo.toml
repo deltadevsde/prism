@@ -23,7 +23,6 @@ prism-da = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }
-lumina-node-wasm = { workspace = true }
 web-sys = { workspace = true, features = [
     "BroadcastChannel",
     "console",

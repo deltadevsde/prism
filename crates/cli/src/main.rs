@@ -36,8 +36,7 @@ async fn main() -> std::io::Result<()> {
 
     let node: Arc<dyn NodeType> = match cli.command {
         Commands::LightClient(_) => {
-            let verifying_key = config.network.verifying_key;
-            let config = config.clone();
+            let verifying_key = config.network.verifying_key.clone();
 
             let da = initialize_light_da_layer(&config).await.map_err(|e| {
                 error!("error initializing light da layer: {}", e);
