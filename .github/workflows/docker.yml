@@ -50,7 +50,10 @@ jobs:
             type=ref,event=branch,enable=true
             type=ref,event=pr,enable=true
             type=semver,pattern={{version}},enable=true
-
+      - name: Install dependencies
+        run: |
+              sudo apt-get update
+              sudo apt-get install -y fontconfig libfontconfig1-dev
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6
