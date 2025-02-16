@@ -13,7 +13,6 @@ use prism_common::{
 };
 use prism_serde::binary::ToBinary;
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 
 use crate::hasher::TreeHasher;
 
@@ -219,51 +218,27 @@ impl MerkleProof {
     pub fn verify_nonexistence(&self) -> Result<()> {
         self.proof.verify_nonexistence(RootHash(self.root.0), self.key)
     }
+}
 
+impl MerkleProof {
     pub fn hashed(self) -> HashedMerkleProof {
-        self.proof.into()
-    }
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-#[schema(example = r#"{
-    "leaf": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-    "siblings": [
-        "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-        "9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba"
-    ]
-}"#)]
-/// A compact representation of a Merkle proof where the nodes are represented by their hash values.
-/// Used to verify the inclusion or exclusion of data in a Merkle tree.
-pub struct HashedMerkleProof {
-    /// The hash of the leaf node being proven, if it exists.
-    /// None if proving non-existence.
-    pub leaf: Option<Digest>,
-    /// The hashes of sibling nodes along the path from the leaf to the root.
-    pub siblings: Vec<Digest>,
-}
-
-impl HashedMerkleProof {
-    pub fn empty() -> Self {
-        Self {
-            leaf: None,
-            siblings: vec![],
-        }
-    }
-}
-
-impl From<SparseMerkleProof<TreeHasher>> for HashedMerkleProof {
-    fn from(proof: SparseMerkleProof<TreeHasher>) -> Self {
-        let leaf_hash = proof.leaf().map(|node| node.hash::<TreeHasher>()).map(Digest::new);
-        let sibling_hashes = proof
+        let leaf_hash = self.proof.leaf().map(|node| node.hash::<TreeHasher>()).map(Digest::new);
+        let sibling_hashes = self
+            .proof
             .siblings()
             .iter()
             .map(SparseMerkleNode::hash::<TreeHasher>)
             .map(Digest::new)
             .collect();
-        Self {
+        HashedMerkleProof {
             leaf: leaf_hash,
             siblings: sibling_hashes,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct HashedMerkleProof {
+    pub leaf: Option<Digest>,
+    pub siblings: Vec<Digest>,
 }

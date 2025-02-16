@@ -17,7 +17,6 @@ utoipa.workspace = true
 # curves
 ed25519-consensus.workspace = true
 p256.workspace = true
-ecdsa.workspace = true             # needed transitively to enable der feature
 
 # misc
 anyhow.workspace = true

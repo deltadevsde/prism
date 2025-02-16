@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_keys::VerifyingKey;
 use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -66,30 +66,6 @@ impl Account {
         self.service_challenge.as_ref()
     }
 
-    /// Creates a [`Transaction`] that can be used to update or create the
-    /// account. The transaction produced could be invalid, and will be
-    /// validated before being processed.
-    pub fn prepare_transaction(
-        &self,
-        account_id: String,
-        operation: Operation,
-        sk: &SigningKey,
-    ) -> Result<Transaction> {
-        let vk = sk.verifying_key();
-
-        let mut tx = Transaction {
-            id: account_id,
-            nonce: self.nonce,
-            operation,
-            signature: Signature::Placeholder,
-            vk,
-        };
-
-        tx.sign(sk)?;
-
-        Ok(tx)
-    }
-
     /// Validates and processes an incoming [`Transaction`], updating the account state.
     pub fn process_transaction(&mut self, tx: &Transaction) -> Result<()> {
         self.validate_transaction(tx)?;
@@ -121,9 +97,7 @@ impl Account {
             }
         }
 
-        let msg = tx.get_signature_payload()?;
-        tx.vk.verify_signature(&msg, &tx.signature)?;
-
+        tx.verify_signature()?;
         Ok(())
     }
 

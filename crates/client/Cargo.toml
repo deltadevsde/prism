@@ -1,0 +1,30 @@
+[package]
+name = "prism-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+# prism
+prism-api.workspace = true
+prism-common.workspace = true
+prism-keys.workspace = true
+
+# webclient
+reqwest.workspace = true
+url.workspace = true
+
+# async
+async-trait.workspace = true
+
+# serde
+serde.workspace = true
+
+# misc
+anyhow.workspace = true
+
+[features]
+default = []
+test_utils = []
