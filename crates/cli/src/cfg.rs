@@ -19,13 +19,15 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc};
 
 use prism_da::{
-    celestia::{CelestiaConfig, CelestiaConnection},
+    celestia::{
+        full_node::CelestiaConnection,
+        light_client::LightClientConnection,
+        utils::{CelestiaConfig, Network, NetworkConfig},
+    },
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
-    DataAvailabilityLayer,
+    DataAvailabilityLayer, LightDataAvailabilityLayer,
 };
-
-use crate::network::{Network, NetworkConfig};
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
 pub enum Commands {
@@ -238,6 +240,8 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
                 .celestia
                 .operation_namespace_id
                 .unwrap_or(default_celestia_config.operation_namespace_id),
+            pruning_delay: default_celestia_config.pruning_delay,
+            sampling_window: default_celestia_config.sampling_window,
         }),
         DALayerOption::InMemory => None,
     };
@@ -259,7 +263,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         },
         network: NetworkConfig {
             network: Network::from_str(&args.network_name.unwrap_or_default()).unwrap(),
-            celestia_network: network_config.celestia_network,
+            celestia_network: network_config.celestia_network.clone(),
             verifying_key: args
                 .verifying_key
                 .and_then(|x| VerifyingKey::from_base64(x).ok())
@@ -323,6 +327,26 @@ pub async fn initialize_da_layer(
         DALayerOption::InMemory => {
             let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
             Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
+        }
+    }
+}
+
+pub async fn initialize_light_da_layer(
+    config: &Config,
+) -> Result<Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>> {
+    match config.da_layer {
+        DALayerOption::Celestia => {
+            let connection = LightClientConnection::new(&config.network)
+                .await
+                .context("Failed to initialize light client connection")?;
+            Ok(Arc::new(connection)
+                as Arc<
+                    dyn LightDataAvailabilityLayer + Send + Sync + 'static,
+                >)
+        }
+        DALayerOption::InMemory => {
+            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
+            Ok(Arc::new(da_layer))
         }
     }
 }

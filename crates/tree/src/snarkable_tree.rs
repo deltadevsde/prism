@@ -24,6 +24,7 @@ use crate::{
 };
 
 /// Represents a tree that can be used to verifiably store and retrieve [`Account`]s.
+///
 /// The methods of this trait are NOT run in circuit: they are used to create verifiable inputs for the circuit.
 /// This distinction is critical because the returned proofs must contain all information necessary to verify the operations.
 pub trait SnarkableTree: Send + Sync {

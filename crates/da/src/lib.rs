@@ -1,18 +1,30 @@
-use anyhow::Result;
+use std::sync::Arc;
+
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use prism_common::{digest::Digest, transaction::Transaction};
+use celestia_types::Blob;
+use lumina_node::events::EventSubscriber;
+use prism_common::digest::Digest;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
-    binary::ToBinary,
+    binary::{FromBinary, ToBinary},
     hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
-use sp1_sdk::SP1ProofWithPublicValues;
-use tokio::sync::broadcast;
+use tokio::sync::Mutex;
+
+#[cfg(not(target_arch = "wasm32"))]
+use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
 
 pub mod celestia;
 pub mod consts;
 pub mod memory;
+
+#[cfg(target_arch = "wasm32")]
+type Groth16Proof = Vec<u8>;
+
+#[cfg(not(target_arch = "wasm32"))]
+type Groth16Proof = SP1ProofWithPublicValues;
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -20,7 +32,7 @@ pub struct FinalizedEpoch {
     pub height: u64,
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
-    pub proof: SP1ProofWithPublicValues,
+    pub proof: Groth16Proof,
     pub signature: Option<String>,
 }
 
@@ -60,14 +72,33 @@ impl FinalizedEpoch {
     }
 }
 
+impl TryFrom<&Blob> for FinalizedEpoch {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &Blob) -> Result<Self, Self::Error> {
+        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
+            anyhow!(format!(
+                "Failed to decode blob into FinalizedEpoch: {value:?}"
+            ))
+        })
+    }
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+pub trait LightDataAvailabilityLayer {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>; // the start of the event subscriber, optional because inmemoory and rpc based fullnode still need the start function and won't need this event subscriber
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
-pub trait DataAvailabilityLayer: Send + Sync {
+pub trait DataAvailabilityLayer: LightDataAvailabilityLayer + Send + Sync {
+    async fn start(&self) -> Result<()>;
     async fn get_latest_height(&self) -> Result<u64>;
     async fn initialize_sync_target(&self) -> Result<u64>;
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64>;
     async fn get_transactions(&self, height: u64) -> Result<Vec<Transaction>>;
     async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<u64>;
-    async fn start(&self) -> Result<()>;
-    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64>;
+    fn subscribe_to_heights(&self) -> tokio::sync::broadcast::Receiver<u64>;
 }

@@ -20,6 +20,7 @@ default-members = [
     "crates/tests",
     "crates/node_types/prover",
     "crates/node_types/lightclient",
+    "crates/node_types/wasm-lightclient",
     "crates/common",
     "crates/errors",
     "crates/storage",
@@ -34,6 +35,7 @@ members = [
     "crates/tests",
     "crates/node_types/prover",
     "crates/node_types/lightclient",
+    "crates/node_types/wasm-lightclient",
     "crates/common",
     "crates/errors",
     "crates/zk/sp1",
@@ -65,11 +67,12 @@ utoipa-axum = { version = "0.2.0" }
 # database
 redis = "0.24.0"
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
+redb = "2.4.0"
 
 # async
 async-trait = "0.1.68"
-tokio = { version = "1.16.1", features = ["full"] }
 futures = "0.3.31"
+tokio = { version = "1.16.1", default-features = false }
 
 # errors
 thiserror = "1.0.62"
@@ -102,9 +105,12 @@ p256 = { version = "0.13.2", features = ["serde", "ecdsa"] }
 ecdsa = { version = "0.16.0", features = ["der"] }
 
 # celestia
-celestia-rpc = "=0.8.0"
-celestia-types = "=0.9.0"
-lumina-node = "=0.8.0"
+celestia-rpc = "=0.9.0"
+celestia-types = "=0.10.0"
+lumina-node = "=0.9.0"
+
+# p2p
+libp2p = "0.54.1"
 
 # misc
 jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit", features = [
@@ -131,11 +137,22 @@ prism-serde = { path = "crates/serde" }
 prism-tree = { path = "crates/tree" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 
+# wasm
+lumina-node-wasm = { git = "https://github.com/deltadevsde/lumina.git" }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = "0.3"
+serde-wasm-bindgen = "0.6.5"
+wasm-bindgen-futures = "0.4"
+web-time = "1.1.0"
+
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.8-sp1-4.0.0" }
 curve25519-dalek-ng = { git = "https://github.com/sp1-patches/curve25519-dalek-ng", tag = "patch-4.1.1-sp1-4.0.0" }
 secp256k1 = { git = "https://github.com/sp1-patches/rust-secp256k1", tag = "patch-0.29.1-sp1-4.0.0" }
 ecdsa-core = { git = "https://github.com/sp1-patches/signatures", package = "ecdsa", tag = "patch-0.16.9-sp1-4.0.0" }
+celestia-types = { git = "https://github.com/deltadevsde/lumina.git" }
+lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
 
 [workspace.features]
 default = []
