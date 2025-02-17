@@ -5,6 +5,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
+    api::{
+        builder::{ModifyAccountRequestBuilder, RequestBuilder},
+        noop::NoopPrismApi,
+        PrismApi,
+    },
     operation::{Operation, ServiceChallenge},
     transaction::Transaction,
 };
@@ -64,6 +69,36 @@ impl Account {
 
     pub fn service_challenge(&self) -> Option<&ServiceChallenge> {
         self.service_challenge.as_ref()
+    }
+
+    /// Creates a new request builder with the default NoopPrismApi implementation.
+    /// This is useful for local testing and validation without a real API connection.
+    pub fn builder<'a>() -> RequestBuilder<'a, NoopPrismApi> {
+        RequestBuilder::new()
+    }
+
+    /// Creates a new request builder using the provided PrismApi implementation.
+    /// This allows interaction with a specific API instance.
+    pub fn builder_via_api<P>(prism: &P) -> RequestBuilder<'_, P>
+    where
+        P: PrismApi,
+    {
+        RequestBuilder::new_with_prism(prism)
+    }
+
+    /// Creates a modification request builder for this account using the default NoopPrismApi.
+    /// This is useful for local testing and validation without a real API connection.
+    pub fn modify(&self) -> ModifyAccountRequestBuilder<NoopPrismApi> {
+        RequestBuilder::new().to_modify_account(self)
+    }
+
+    /// Creates a modification request builder for this account using the provided PrismApi implementation.
+    /// This allows building and submitting transactions that modify the current account state through a specific API.
+    pub fn modify_via_api<'a, P>(&self, prism: &'a P) -> ModifyAccountRequestBuilder<'a, P>
+    where
+        P: PrismApi,
+    {
+        RequestBuilder::new_with_prism(prism).to_modify_account(self)
     }
 
     /// Validates and processes an incoming [`Transaction`], updating the account state.
