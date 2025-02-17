@@ -4,7 +4,8 @@ mod timer;
 pub use http_client::{PrismHttpClient, PrismHttpClientError};
 pub use prism_common::{
     account::Account,
-    api::{builder, PendingTransaction, PrismApi},
+    api::{PendingTransaction, PrismApi},
+    builder,
     digest::Digest,
     operation::{ServiceChallenge, ServiceChallengeInput},
 };

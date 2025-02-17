@@ -1,5 +1,6 @@
 pub mod account;
 pub mod api;
+pub mod builder;
 pub mod digest;
 pub mod operation;
 pub mod transaction;

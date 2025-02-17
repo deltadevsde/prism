@@ -5,11 +5,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    api::{
-        builder::{ModifyAccountRequestBuilder, RequestBuilder},
-        noop::NoopPrismApi,
-        PrismApi,
-    },
+    api::{noop::NoopPrismApi, PrismApi},
+    builder::{ModifyAccountRequestBuilder, RequestBuilder},
     operation::{Operation, ServiceChallenge},
     transaction::Transaction,
 };

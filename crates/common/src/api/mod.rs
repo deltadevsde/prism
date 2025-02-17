@@ -1,14 +1,13 @@
-pub mod builder;
 pub mod noop;
 pub mod types;
 
 use async_trait::async_trait;
-use builder::RequestBuilder;
 use prism_keys::{SigningKey, VerifyingKey};
 use std::{future::Future, time::Duration};
 
 use crate::{
     account::Account,
+    builder::RequestBuilder,
     operation::SignatureBundle,
     transaction::{Transaction, TransactionError},
 };
