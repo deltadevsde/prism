@@ -2,10 +2,10 @@
 mod key_tests {
     use crate::{Signature, SigningKey, VerifyingKey};
     use ed25519_consensus::SigningKey as Ed25519SigningKey;
+    use k256::ecdsa::SigningKey as Secp256k1SigningKey;
     use p256::ecdsa::SigningKey as Secp256r1SigningKey;
     use prism_serde::base64::ToBase64;
     use rand::rngs::OsRng;
-    use secp256k1::SecretKey as Secp256k1SigningKey;
 
     #[test]
     fn test_reparsed_verifying_keys_are_equal_to_original() {
@@ -140,7 +140,7 @@ mod key_tests {
     #[test]
     fn test_verifying_key_from_string_secp256k1() {
         let original_key: VerifyingKey =
-            SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng)).into();
+            SigningKey::Secp256k1(Secp256k1SigningKey::random(&mut OsRng)).into();
         let encoded = original_key.to_bytes().to_base64();
 
         let result = VerifyingKey::try_from(encoded);
