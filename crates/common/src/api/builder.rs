@@ -1,4 +1,4 @@
-use prism_common::{
+use crate::{
     account::Account,
     digest::Digest,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},

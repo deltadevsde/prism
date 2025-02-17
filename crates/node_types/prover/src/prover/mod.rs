@@ -3,11 +3,15 @@ mod timer;
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use jmt::KeyHash;
-use prism_api::{
-    api::PrismApi,
-    types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
+use prism_common::{
+    account::Account,
+    api::{
+        types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
+        PrismApi,
+    },
+    digest::Digest,
+    transaction::Transaction,
 };
-use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::database::Database;

@@ -1,9 +1,11 @@
 use async_trait::async_trait;
-use prism_api::{
-    api::PrismApi,
-    types::{AccountRequest, AccountResponse, CommitmentResponse},
+use prism_common::{
+    api::{
+        types::{AccountRequest, AccountResponse, CommitmentResponse},
+        PrismApi,
+    },
+    transaction::{Transaction, TransactionError},
 };
-use prism_common::transaction::{Transaction, TransactionError};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::{Display, Formatter};
 

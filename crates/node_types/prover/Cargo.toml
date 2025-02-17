@@ -24,7 +24,6 @@ tokio = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
-prism-api = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage = { workspace = true }
 prism-tree = { workspace = true }

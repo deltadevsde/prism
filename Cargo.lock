@@ -6443,17 +6443,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prism-api"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "prism-common",
- "prism-keys",
- "serde",
- "utoipa",
-]
-
-[[package]]
 name = "prism-cli"
 version = "0.1.0"
 dependencies = [
@@ -6487,7 +6476,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "prism-api",
  "prism-common",
  "prism-keys",
  "reqwest",
@@ -6501,6 +6489,7 @@ name = "prism-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "celestia-types",
  "prism-keys",
  "prism-serde",
@@ -6588,7 +6577,6 @@ dependencies = [
  "jmt",
  "log",
  "paste",
- "prism-api",
  "prism-common",
  "prism-da",
  "prism-errors",

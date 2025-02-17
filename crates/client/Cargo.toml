@@ -8,7 +8,6 @@ repository.workspace = true
 
 [dependencies]
 # prism
-prism-api.workspace = true
 prism-common.workspace = true
 prism-keys.workspace = true
 

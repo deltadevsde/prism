@@ -1,35 +1,47 @@
-use std::{future::Future, time::Duration};
+pub mod builder;
+pub mod noop;
+pub mod types;
 
 use async_trait::async_trait;
-use prism_common::{
+use builder::RequestBuilder;
+use prism_keys::{SigningKey, VerifyingKey};
+use std::{future::Future, time::Duration};
+
+use crate::{
     account::Account,
     operation::SignatureBundle,
     transaction::{Transaction, TransactionError},
 };
-use prism_keys::{SigningKey, VerifyingKey};
+use types::{AccountResponse, CommitmentResponse};
 
-use crate::{
-    builder::RequestBuilder,
-    types::{AccountResponse, CommitmentResponse},
-};
+pub trait PrismApiTimer {
+    fn sleep(duration: Duration) -> impl Future<Output = ()> + Send;
+}
 
 #[async_trait]
 pub trait PrismApi
 where
     Self: Sized + Send + Sync,
 {
-    type Error: From<TransactionError>;
+    type Error: Send + Sync + 'static + From<TransactionError>;
     type Timer: PrismApiTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error>;
 
     async fn get_commitment(&self) -> Result<CommitmentResponse, Self::Error>;
 
-    fn build_request(&self) -> RequestBuilder<Self> {
-        RequestBuilder::new(self)
-    }
-
     async fn post_transaction(&self, tx: &Transaction) -> Result<(), Self::Error>;
+
+    async fn post_transaction_and_wait(
+        &self,
+        transaction: Transaction,
+    ) -> Result<PendingTransaction<Self>, Self::Error> {
+        self.post_transaction(&transaction).await?;
+        Ok(PendingTransaction::new(self, transaction))
+    }
+    fn build_request(&self) -> RequestBuilder<Self> {
+        RequestBuilder::new_with_prism(self)
+    }
 
     async fn register_service(
         &self,
@@ -72,8 +84,7 @@ where
         signing_key: &SigningKey,
     ) -> Result<PendingTransaction<Self>, Self::Error> {
         self.build_request()
-            .modify_existing()
-            .for_account(account)
+            .to_modify_account(account)
             .add_key(key)?
             .sign(signing_key)?
             .send()
@@ -87,8 +98,7 @@ where
         signing_key: &SigningKey,
     ) -> Result<PendingTransaction<Self>, Self::Error> {
         self.build_request()
-            .modify_existing()
-            .for_account(account)
+            .to_modify_account(account)
             .revoke_key(key)?
             .sign(signing_key)?
             .send()
@@ -103,8 +113,7 @@ where
         signing_key: &SigningKey,
     ) -> Result<PendingTransaction<Self>, Self::Error> {
         self.build_request()
-            .modify_existing()
-            .for_account(account)
+            .to_modify_account(account)
             .add_data(data, data_signature)?
             .sign(signing_key)?
             .send()
@@ -119,17 +128,12 @@ where
         signing_key: &SigningKey,
     ) -> Result<PendingTransaction<Self>, Self::Error> {
         self.build_request()
-            .modify_existing()
-            .for_account(account)
+            .to_modify_account(account)
             .set_data(data, data_signature)?
             .sign(signing_key)?
             .send()
             .await
     }
-}
-
-pub trait PrismApiTimer {
-    fn sleep(duration: Duration) -> impl Future<Output = ()> + Send;
 }
 
 pub struct PendingTransaction<'a, P>

@@ -1,6 +1,7 @@
-use prism_common::{account::Account, digest::Digest};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+use crate::{account::Account, digest::Digest};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 /// Request to retrieve account information
