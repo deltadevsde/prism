@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use prism_keys::VerifyingKey;
 use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
@@ -117,14 +117,22 @@ impl Account {
             ));
         }
 
-        match tx.operation {
-            Operation::CreateAccount { .. } | Operation::RegisterService { .. } => {}
+        match &tx.operation {
+            Operation::CreateAccount { id, key, .. }
+            | Operation::RegisterService { id, key, .. } => {
+                if &tx.id != id {
+                    bail!("Transaction ID does not match operation ID");
+                }
+                if &tx.vk != key {
+                    bail!("Transaction key does not match operation key");
+                }
+            }
             _ => {
                 if tx.id != self.id {
-                    return Err(anyhow!("Transaction ID does not match account ID"));
+                    bail!("Transaction ID does not match account ID");
                 }
                 if !self.valid_keys.contains(&tx.vk) {
-                    return Err(anyhow!("Invalid key"));
+                    bail!("Invalid key");
                 }
             }
         }
