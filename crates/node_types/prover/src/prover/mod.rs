@@ -1,3 +1,5 @@
+mod timer;
+
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use jmt::KeyHash;
@@ -17,6 +19,7 @@ use prism_tree::{
     AccountResponse::*,
 };
 use std::{self, collections::VecDeque, sync::Arc};
+use timer::ProverTokioTimer;
 use tokio::{
     sync::{broadcast, RwLock},
     task::JoinSet,
@@ -516,6 +519,7 @@ impl Prover {
 #[async_trait]
 impl PrismApi for Prover {
     type Error = anyhow::Error;
+    type Timer = ProverTokioTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error> {
         let acc_response = match self.get_account_from_tree(id).await? {

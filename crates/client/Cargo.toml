@@ -18,6 +18,7 @@ url.workspace = true
 
 # async
 async-trait.workspace = true
+tokio.workspace = true
 
 # serde
 serde.workspace = true

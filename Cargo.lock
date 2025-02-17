@@ -6450,7 +6450,6 @@ dependencies = [
  "prism-common",
  "prism-keys",
  "serde",
- "tokio",
  "utoipa",
 ]
 
@@ -6493,6 +6492,7 @@ dependencies = [
  "prism-keys",
  "reqwest",
  "serde",
+ "tokio",
  "url",
 ]
 

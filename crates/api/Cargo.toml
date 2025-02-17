@@ -8,7 +8,6 @@ repository.workspace = true
 
 [dependencies]
 # async
-tokio.workspace = true
 async-trait.workspace = true
 
 # prism

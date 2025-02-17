@@ -1,4 +1,5 @@
 mod http_client;
+mod timer;
 
 pub use http_client::{PrismHttpClient, PrismHttpClientError};
 pub use prism_api::{

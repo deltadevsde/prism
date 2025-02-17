@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{future::Future, time::Duration};
 
 use async_trait::async_trait;
 use prism_common::{
@@ -7,7 +7,6 @@ use prism_common::{
     transaction::{Transaction, TransactionError},
 };
 use prism_keys::{SigningKey, VerifyingKey};
-use tokio::time::sleep;
 
 use crate::{
     builder::RequestBuilder,
@@ -20,6 +19,7 @@ where
     Self: Sized + Send + Sync,
 {
     type Error: From<TransactionError>;
+    type Timer: PrismApiTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error>;
 
@@ -128,6 +128,10 @@ where
     }
 }
 
+pub trait PrismApiTimer {
+    fn sleep(duration: Duration) -> impl Future<Output = ()> + Send;
+}
+
 pub struct PendingTransaction<'a, P>
 where
     P: PrismApi,
@@ -161,7 +165,7 @@ where
                     return Ok(account);
                 }
             };
-            sleep(interval).await;
+            P::Timer::sleep(interval).await;
         }
     }
 }
