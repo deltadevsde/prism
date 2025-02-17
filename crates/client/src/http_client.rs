@@ -7,7 +7,10 @@ use prism_common::{
     transaction::{Transaction, TransactionError},
 };
 use serde::{de::DeserializeOwned, Serialize};
-use std::fmt::{Display, Formatter};
+use std::{
+    error::Error,
+    fmt::{Display, Formatter},
+};
 
 use crate::timer::PrismHttpTokioTimer;
 
@@ -105,6 +108,8 @@ impl Display for PrismHttpClientError {
         }
     }
 }
+
+impl Error for PrismHttpClientError {}
 
 impl From<reqwest::Error> for PrismHttpClientError {
     fn from(err: reqwest::Error) -> Self {
