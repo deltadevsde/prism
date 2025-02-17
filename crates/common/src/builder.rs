@@ -346,7 +346,7 @@ where
 
     pub async fn send(self) -> Result<PendingTransaction<'a, P>, P::Error> {
         let Some(prism) = self.prism else {
-            return Err(TransactionError::MissingKey.into());
+            return Err(TransactionError::MissingSender.into());
         };
 
         prism.post_transaction_and_wait(self.transaction).await

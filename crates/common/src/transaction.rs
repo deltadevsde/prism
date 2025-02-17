@@ -84,6 +84,7 @@ pub enum TransactionError {
     MissingKey,
     EncodingFailed,
     SigningFailed,
+    MissingSender,
 }
 
 impl Display for TransactionError {
@@ -94,6 +95,7 @@ impl Display for TransactionError {
             TransactionError::MissingKey => write!(f, "Public Key for account is missing"),
             TransactionError::EncodingFailed => write!(f, "Encoding transaction failed"),
             TransactionError::SigningFailed => write!(f, "Signing transaction failed"),
+            TransactionError::MissingSender => write!(f, "Sender for transaction is missing"),
         }
     }
 }
