@@ -1,26 +1,27 @@
-use prism_common::{
+use prism_keys::{SigningKey, VerifyingKey};
+
+use crate::{
     account::Account,
+    api::{noop::NoopPrismApi, PendingTransaction, PrismApi},
     digest::Digest,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::{Transaction, TransactionError, UnsignedTransaction},
 };
-use prism_keys::{SigningKey, VerifyingKey};
 
-use crate::api::{PendingTransaction, PrismApi};
-
-pub struct RequestBuilder<'a, P>
-where
-    P: PrismApi,
-{
-    prism: &'a P,
+pub struct RequestBuilder<'a, P = NoopPrismApi> {
+    prism: Option<&'a P>,
 }
 
 impl<'a, P> RequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: &'a P) -> Self {
-        Self { prism }
+    pub fn new() -> Self {
+        Self { prism: None }
+    }
+
+    pub fn new_with_prism(prism: &'a P) -> Self {
+        Self { prism: Some(prism) }
     }
 
     pub fn create_account(self) -> CreateAccountRequestBuilder<'a, P> {
@@ -31,8 +32,17 @@ where
         RegisterServiceRequestBuilder::new(self.prism)
     }
 
-    pub fn modify_existing(self) -> ModifyAccountRequestBuilder<'a, P> {
-        ModifyAccountRequestBuilder::new(self.prism)
+    pub fn to_modify_account(self, account: &Account) -> ModifyAccountRequestBuilder<'a, P> {
+        ModifyAccountRequestBuilder::new(self.prism, account)
+    }
+}
+
+impl<P> Default for RequestBuilder<'_, P>
+where
+    P: PrismApi,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -40,7 +50,7 @@ pub struct CreateAccountRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    prism: &'a P,
+    prism: Option<&'a P>,
     id: String,
     service_id: String,
     key: Option<VerifyingKey>,
@@ -50,7 +60,7 @@ impl<'a, P> CreateAccountRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: &'a P) -> Self {
+    pub fn new(prism: Option<&'a P>) -> Self {
         Self {
             prism,
             id: String::new(),
@@ -115,7 +125,7 @@ pub struct RegisterServiceRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    prism: &'a P,
+    prism: Option<&'a P>,
     id: String,
     key: Option<VerifyingKey>,
 }
@@ -124,7 +134,7 @@ impl<'a, P> RegisterServiceRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: &'a P) -> Self {
+    pub fn new(prism: Option<&'a P>) -> Self {
         Self {
             prism,
             id: String::new(),
@@ -174,7 +184,7 @@ pub struct ModifyAccountRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    prism: &'a P,
+    prism: Option<&'a P>,
     id: String,
     nonce: u64,
 }
@@ -183,18 +193,12 @@ impl<'a, P> ModifyAccountRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: &'a P) -> Self {
+    pub fn new(prism: Option<&'a P>, account: &Account) -> Self {
         Self {
             prism,
-            id: String::new(),
-            nonce: 0,
+            id: account.id().to_string(),
+            nonce: account.nonce(),
         }
-    }
-
-    pub fn for_account(mut self, account: &Account) -> Self {
-        self.id = account.id().to_string();
-        self.nonce = account.nonce();
-        self
     }
 
     pub fn add_key(
@@ -296,7 +300,7 @@ pub struct SigningTransactionRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    prism: &'a P,
+    prism: Option<&'a P>,
     transaction: UnsignedTransaction,
 }
 
@@ -304,7 +308,7 @@ impl<'a, P> SigningTransactionRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: &'a P, transaction: UnsignedTransaction) -> Self {
+    pub fn new(prism: Option<&'a P>, transaction: UnsignedTransaction) -> Self {
         Self { prism, transaction }
     }
 
@@ -318,13 +322,17 @@ where
             transaction,
         ))
     }
+
+    pub fn transaction(self) -> UnsignedTransaction {
+        self.transaction
+    }
 }
 
 pub struct SendingTransactionRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    prism: &'a P,
+    prism: Option<&'a P>,
     transaction: Transaction,
 }
 
@@ -332,12 +340,19 @@ impl<'a, P> SendingTransactionRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: &'a P, transaction: Transaction) -> Self {
+    pub fn new(prism: Option<&'a P>, transaction: Transaction) -> Self {
         Self { prism, transaction }
     }
 
     pub async fn send(self) -> Result<PendingTransaction<'a, P>, P::Error> {
-        self.prism.post_transaction(&self.transaction).await?;
-        Ok(PendingTransaction::new(self.prism, self.transaction))
+        let Some(prism) = self.prism else {
+            return Err(TransactionError::MissingSender.into());
+        };
+
+        prism.post_transaction_and_wait(self.transaction).await
+    }
+
+    pub fn transaction(self) -> Transaction {
+        self.transaction
     }
 }

@@ -1,11 +1,17 @@
+mod timer;
+
 use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use jmt::KeyHash;
-use prism_api::{
-    api::PrismApi,
-    types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
+use prism_common::{
+    account::Account,
+    api::{
+        types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
+        PrismApi,
+    },
+    digest::Digest,
+    transaction::Transaction,
 };
-use prism_common::{account::Account, digest::Digest, transaction::Transaction};
 use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::database::Database;
@@ -17,6 +23,7 @@ use prism_tree::{
     AccountResponse::*,
 };
 use std::{self, collections::VecDeque, sync::Arc};
+use timer::ProverTokioTimer;
 use tokio::{
     sync::{broadcast, RwLock},
     task::JoinSet,
@@ -516,6 +523,7 @@ impl Prover {
 #[async_trait]
 impl PrismApi for Prover {
     type Error = anyhow::Error;
+    type Timer = ProverTokioTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error> {
         let acc_response = match self.get_account_from_tree(id).await? {

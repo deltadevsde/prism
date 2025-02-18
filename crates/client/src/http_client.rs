@@ -1,11 +1,18 @@
 use async_trait::async_trait;
-use prism_api::{
-    api::PrismApi,
-    types::{AccountRequest, AccountResponse, CommitmentResponse},
+use prism_common::{
+    api::{
+        types::{AccountRequest, AccountResponse, CommitmentResponse},
+        PrismApi,
+    },
+    transaction::{Transaction, TransactionError},
 };
-use prism_common::transaction::{Transaction, TransactionError};
 use serde::{de::DeserializeOwned, Serialize};
-use std::fmt::{Display, Formatter};
+use std::{
+    error::Error,
+    fmt::{Display, Formatter},
+};
+
+use crate::timer::PrismHttpTokioTimer;
 
 pub struct PrismHttpClient {
     client: reqwest::Client,
@@ -63,6 +70,7 @@ impl PrismHttpClient {
 #[async_trait]
 impl PrismApi for PrismHttpClient {
     type Error = PrismHttpClientError;
+    type Timer = PrismHttpTokioTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error> {
         let req = AccountRequest { id: id.to_string() };
@@ -100,6 +108,8 @@ impl Display for PrismHttpClientError {
         }
     }
 }
+
+impl Error for PrismHttpClientError {}
 
 impl From<reqwest::Error> for PrismHttpClientError {
     fn from(err: reqwest::Error) -> Self {
