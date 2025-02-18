@@ -166,7 +166,6 @@ impl From<Ed25519VerifyingKey> for VerifyingKey {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl From<Secp256k1VerifyingKey> for VerifyingKey {
     fn from(vk: Secp256k1VerifyingKey) -> Self {
         VerifyingKey::Secp256k1(vk)
@@ -201,7 +200,6 @@ impl From<SigningKey> for VerifyingKey {
     fn from(sk: SigningKey) -> Self {
         match sk {
             SigningKey::Ed25519(sk) => (*sk).into(),
-            #[cfg(not(target_arch = "wasm32"))]
             SigningKey::Secp256k1(sk) => sk.into(),
             SigningKey::Secp256r1(sk) => sk.into(),
         }
@@ -211,21 +209,6 @@ impl From<SigningKey> for VerifyingKey {
 impl FromBase64 for VerifyingKey {
     type Error = anyhow::Error;
 
-    /// Attempts to create a `VerifyingKey` from a base64-encoded string.
-    ///
-    /// # Arguments
-    ///
-    /// * `base64` - The base64-encoded string representation of the public key.
-    ///
-    /// Depending on the length of the input string, the function will attempt to
-    /// decode it and create a `VerifyingKey` instance. According to the specifications,
-    /// the input string should be either [32 bytes (Ed25519)](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.5) or [33/65 bytes (Secp256k1 or Secp256r1)](https://www.secg.org/sec1-v2.pdf).
-    /// The secp256k1 and secp256r1 keys can be either compressed (33 bytes) or uncompressed (65 bytes).
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(VerifyingKey)` if the conversion was successful.
-    /// * `Err` if the input is invalid or the conversion failed.
     fn from_base64<T: AsRef<[u8]>>(base64: T) -> Result<Self, Self::Error> {
         let bytes = Vec::<u8>::from_base64(base64)?;
 
@@ -235,16 +218,7 @@ impl FromBase64 for VerifyingKey {
                     .map_err(|e| anyhow!("Invalid Ed25519 key: {}", e))?;
                 Ok(VerifyingKey::Ed25519(vk))
             }
-            33 | 65 => {
-                if let Ok(vk) = Secp256r1VerifyingKey::from_sec1_bytes(bytes.as_slice()) {
-                    Ok(VerifyingKey::Secp256r1(vk))
-                } else if let Ok(vk) = Secp256k1VerifyingKey::from_sec1_bytes(bytes.as_slice()) {
-                    Ok(VerifyingKey::Secp256k1(vk))
-                } else {
-                    Err(anyhow!("Invalid curve type"))
-                }
-            }
-            _ => Err(anyhow!("Invalid public key length")),
+            _ => Err(anyhow!("Only Ed25519 keys can be initialized from base64")),
         }
     }
 }
