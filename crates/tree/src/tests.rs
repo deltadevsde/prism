@@ -306,7 +306,7 @@ fn test_interleaved_inserts_and_updates(algorithm: CryptoAlgorithm) {
 
     // Update account_2 using the correct key index
     let Proof::Update(update_proof) = last_proof else {
-        panic!("Expetced insert proof for transaction");
+        panic!("Expected insert proof for transaction");
     };
 
     let get_result1 = tree.get(KeyHash::with::<TreeHasher>("acc_1")).unwrap();
