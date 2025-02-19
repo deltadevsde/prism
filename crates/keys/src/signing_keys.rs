@@ -86,9 +86,9 @@ impl SigningKey {
         }
     }
 
-    pub fn sign(&self, message: &[u8]) -> Signature {
+    pub fn sign(&self, message: impl AsRef<[u8]>) -> Signature {
         match self {
-            SigningKey::Ed25519(sk) => Signature::Ed25519(sk.sign(message)),
+            SigningKey::Ed25519(sk) => Signature::Ed25519(sk.sign(message.as_ref())),
             SigningKey::Secp256k1(sk) => {
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);

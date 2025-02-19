@@ -187,7 +187,7 @@ impl TestTransactionBuilder {
         // Simulate some external service signing account creation credentials
         let vk = signing_key.verifying_key();
         let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.to_bytes()]);
-        let signature = service_signing_key.sign(&hash.to_bytes());
+        let signature = service_signing_key.sign(hash);
 
         let op = Operation::CreateAccount {
             id: id.to_string(),

@@ -98,7 +98,7 @@ where
             self.service_id.as_bytes(),
             &key.to_bytes(),
         ]);
-        let signature = service_signing_key.sign(&hash.to_bytes());
+        let signature = service_signing_key.sign(hash);
 
         let operation = Operation::CreateAccount {
             id: self.id.clone(),
