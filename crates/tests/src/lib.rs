@@ -4,13 +4,13 @@
 extern crate log;
 
 use anyhow::Result;
-use prism_common::transaction_builder::TransactionBuilder;
+use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
-    celestia::{CelestiaConfig, CelestiaConnection},
+    celestia::{full_node::CelestiaConnection, utils::CelestiaConfig},
     DataAvailabilityLayer,
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
-use prism_lightclient::LightClient;
+use prism_lightclient::{events::EventChannel, LightClient};
 use prism_prover::Prover;
 use prism_storage::{
     rocksdb::{RocksDBConfig, RocksDBConnection},
@@ -75,11 +75,14 @@ async fn test_light_client_prover_talking() -> Result<()> {
         &prover_cfg,
     )?);
 
+    let event_channel = EventChannel::new();
+
     let lightclient = Arc::new(LightClient::new(
         lc_da_layer.clone(),
         lc_cfg.start_height,
         Some(pubkey),
         vk.bytes32(),
+        event_channel.publisher(),
     ));
 
     let prover_clone = prover.clone();
@@ -95,7 +98,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     });
 
     spawn(async move {
-        let mut transaction_builder = TransactionBuilder::new();
+        let mut transaction_builder = TestTransactionBuilder::new();
         let register_service_req = transaction_builder
             .register_service_with_random_keys(service_algorithm, "test_service")
             .commit();

@@ -1,10 +1,12 @@
-use anyhow::{anyhow, Result};
-use prism_keys::{Signature, SigningKey, VerifyingKey};
+use anyhow::{anyhow, bail, Result};
+use prism_keys::VerifyingKey;
 use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
+    api::{noop::NoopPrismApi, PrismApi},
+    builder::{ModifyAccountRequestBuilder, RequestBuilder},
     operation::{Operation, ServiceChallenge},
     transaction::Transaction,
 };
@@ -66,28 +68,34 @@ impl Account {
         self.service_challenge.as_ref()
     }
 
-    /// Creates a [`Transaction`] that can be used to update or create the
-    /// account. The transaction produced could be invalid, and will be
-    /// validated before being processed.
-    pub fn prepare_transaction(
-        &self,
-        account_id: String,
-        operation: Operation,
-        sk: &SigningKey,
-    ) -> Result<Transaction> {
-        let vk = sk.verifying_key();
+    /// Creates a new request builder with the default NoopPrismApi implementation.
+    /// This is useful for local testing and validation without a real API connection.
+    pub fn builder<'a>() -> RequestBuilder<'a, NoopPrismApi> {
+        RequestBuilder::new()
+    }
 
-        let mut tx = Transaction {
-            id: account_id,
-            nonce: self.nonce,
-            operation,
-            signature: Signature::Placeholder,
-            vk,
-        };
+    /// Creates a new request builder using the provided PrismApi implementation.
+    /// This allows interaction with a specific API instance.
+    pub fn builder_via_api<P>(prism: &P) -> RequestBuilder<'_, P>
+    where
+        P: PrismApi,
+    {
+        RequestBuilder::new_with_prism(prism)
+    }
 
-        tx.sign(sk)?;
+    /// Creates a modification request builder for this account using the default NoopPrismApi.
+    /// This is useful for local testing and validation without a real API connection.
+    pub fn modify(&self) -> ModifyAccountRequestBuilder<NoopPrismApi> {
+        RequestBuilder::new().to_modify_account(self)
+    }
 
-        Ok(tx)
+    /// Creates a modification request builder for this account using the provided PrismApi implementation.
+    /// This allows building and submitting transactions that modify the current account state through a specific API.
+    pub fn modify_via_api<'a, P>(&self, prism: &'a P) -> ModifyAccountRequestBuilder<'a, P>
+    where
+        P: PrismApi,
+    {
+        RequestBuilder::new_with_prism(prism).to_modify_account(self)
     }
 
     /// Validates and processes an incoming [`Transaction`], updating the account state.
@@ -109,21 +117,27 @@ impl Account {
             ));
         }
 
-        match tx.operation {
-            Operation::CreateAccount { .. } | Operation::RegisterService { .. } => {}
+        match &tx.operation {
+            Operation::CreateAccount { id, key, .. }
+            | Operation::RegisterService { id, key, .. } => {
+                if &tx.id != id {
+                    bail!("Transaction ID does not match operation ID");
+                }
+                if &tx.vk != key {
+                    bail!("Transaction key does not match operation key");
+                }
+            }
             _ => {
                 if tx.id != self.id {
-                    return Err(anyhow!("Transaction ID does not match account ID"));
+                    bail!("Transaction ID does not match account ID");
                 }
                 if !self.valid_keys.contains(&tx.vk) {
-                    return Err(anyhow!("Invalid key"));
+                    bail!("Invalid key");
                 }
             }
         }
 
-        let msg = tx.get_signature_payload()?;
-        tx.vk.verify_signature(&msg, &tx.signature)?;
-
+        tx.verify_signature()?;
         Ok(())
     }
 

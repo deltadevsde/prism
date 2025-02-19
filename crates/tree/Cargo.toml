@@ -24,9 +24,6 @@ sha2.workspace = true
 prism-serde.workspace = true
 serde.workspace = true
 
-# OAS spec
-utoipa.workspace = true
-
 # misc
 anyhow.workspace = true
 log.workspace = true

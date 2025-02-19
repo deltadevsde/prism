@@ -13,13 +13,27 @@ readme.workspace = true
 [dependencies]
 async-trait = { workspace = true }
 serde = { workspace = true }
-tokio = { workspace = true }
 log = { workspace = true }
-celestia-rpc = { workspace = true }
-celestia-types = { workspace = true }
 anyhow = { workspace = true }
-prism-common = { workspace = true }
-prism-errors = { workspace = true }
+redb ={ workspace = true }
+lumina-node = { workspace = true }
 prism-serde = { workspace = true }
+ed25519-consensus = { workspace = true }
+celestia-types = { workspace = true }
+prism-errors = { workspace = true }
 prism-keys = { workspace = true }
+prism-common = { workspace = true }
+libp2p = { workspace = true, features = ["serde"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+celestia-rpc = { workspace = true }
 sp1-sdk = { workspace = true }
+tokio = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { workspace = true, default-features = false, features = ["sync"] }
+celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
+wasm-bindgen-futures = { workspace = true }
+wasm-bindgen = { workspace = true }
+lumina-node-wasm = { workspace = true}
+serde-wasm-bindgen = { workspace = true }

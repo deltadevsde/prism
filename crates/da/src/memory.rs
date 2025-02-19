@@ -1,11 +1,13 @@
-use crate::{DataAvailabilityLayer, FinalizedEpoch};
+#![cfg(not(target_arch = "wasm32"))]
+use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::Result;
 use async_trait::async_trait;
 use log::debug;
+use lumina_node::events::EventSubscriber;
 use prism_common::transaction::Transaction;
 use std::{collections::VecDeque, sync::Arc};
 use tokio::{
-    sync::{broadcast, RwLock},
+    sync::{broadcast, Mutex, RwLock},
     time::{interval, Duration},
 };
 
@@ -80,7 +82,31 @@ impl InMemoryDataAvailabilityLayer {
 }
 
 #[async_trait]
+impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
+        let blocks = self.blocks.read().await;
+        Ok(blocks
+            .iter()
+            .find(|block| block.height == height)
+            .map(|block| block.epoch.clone())
+            .unwrap_or_default())
+    }
+
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
+        None
+    }
+}
+
+#[async_trait]
 impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+    async fn start(&self) -> Result<()> {
+        let this = Arc::new(self.clone());
+        tokio::spawn(async move {
+            this.produce_blocks().await;
+        });
+        Ok(())
+    }
+
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
         self.height_update_tx.subscribe()
     }
@@ -91,15 +117,6 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
 
     async fn initialize_sync_target(&self) -> Result<u64> {
         self.get_latest_height().await
-    }
-
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
-        let blocks = self.blocks.read().await;
-        Ok(blocks
-            .iter()
-            .find(|block| block.height == height)
-            .map(|block| block.epoch.clone())
-            .unwrap_or_default())
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
@@ -121,13 +138,5 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         let mut pending_transactions = self.pending_transactions.write().await;
         pending_transactions.extend(transactions);
         self.get_latest_height().await
-    }
-
-    async fn start(&self) -> Result<()> {
-        let this = Arc::new(self.clone());
-        tokio::spawn(async move {
-            this.produce_blocks().await;
-        });
-        Ok(())
     }
 }

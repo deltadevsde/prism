@@ -43,6 +43,10 @@ impl Digest {
     pub fn to_bytes(&self) -> [u8; 32] {
         self.0
     }
+
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
 }
 
 // serializer and deserializer for rocksdb

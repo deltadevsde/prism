@@ -10,6 +10,9 @@ repository.workspace = true
 # prism
 prism-keys.workspace = true
 
+# async
+async-trait.workspace = true
+
 # serde
 prism-serde.workspace = true
 serde.workspace = true
