@@ -98,7 +98,7 @@ where
             self.service_id.as_bytes(),
             &key.to_bytes(),
         ]);
-        let signature = service_signing_key.sign(&hash.to_bytes());
+        let signature = service_signing_key.sign(hash);
 
         let operation = Operation::CreateAccount {
             id: self.id.clone(),
@@ -301,30 +301,43 @@ where
     P: PrismApi,
 {
     prism: Option<&'a P>,
-    transaction: UnsignedTransaction,
+    unsigned_transaction: UnsignedTransaction,
 }
 
 impl<'a, P> SigningTransactionRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: Option<&'a P>, transaction: UnsignedTransaction) -> Self {
-        Self { prism, transaction }
+    pub fn new(prism: Option<&'a P>, unsigned_transaction: UnsignedTransaction) -> Self {
+        Self {
+            prism,
+            unsigned_transaction,
+        }
     }
 
     pub fn sign(
         self,
         signing_key: &SigningKey,
     ) -> Result<SendingTransactionRequestBuilder<'a, P>, TransactionError> {
-        let transaction = self.transaction.sign(signing_key)?;
+        let transaction = self.unsigned_transaction.sign(signing_key)?;
         Ok(SendingTransactionRequestBuilder::new(
             self.prism,
             transaction,
         ))
     }
 
+    pub fn with_external_signature(
+        self,
+        signature_bundle: SignatureBundle,
+    ) -> SendingTransactionRequestBuilder<'a, P> {
+        SendingTransactionRequestBuilder::new(
+            self.prism,
+            self.unsigned_transaction.externally_signed(signature_bundle),
+        )
+    }
+
     pub fn transaction(self) -> UnsignedTransaction {
-        self.transaction
+        self.unsigned_transaction
     }
 }
 

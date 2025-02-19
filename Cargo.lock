@@ -6482,6 +6482,7 @@ dependencies = [
  "async-trait",
  "prism-common",
  "prism-keys",
+ "prism-serde",
  "reqwest",
  "serde",
  "tokio",
