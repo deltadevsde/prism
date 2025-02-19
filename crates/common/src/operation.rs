@@ -92,6 +92,16 @@ pub struct SignatureBundle {
     pub signature: Signature,
 }
 
+impl SignatureBundle {
+    /// Creates a new `SignatureBundle` with the given verifying key and signature.
+    pub fn new(verifying_key: VerifyingKey, signature: Signature) -> Self {
+        SignatureBundle {
+            verifying_key,
+            signature,
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
 /// Input required to complete a challenge for account creation.
 pub enum ServiceChallengeInput {
