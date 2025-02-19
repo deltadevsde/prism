@@ -90,7 +90,7 @@ impl TryFrom<&Blob> for Transaction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum TransactionError {
     InvalidOp(String),
     InvalidNonce(u64),
