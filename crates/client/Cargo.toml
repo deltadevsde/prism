@@ -10,6 +10,7 @@ repository.workspace = true
 # prism
 prism-common.workspace = true
 prism-keys.workspace = true
+prism-serde.workspace = true
 
 # webclient
 reqwest.workspace = true
