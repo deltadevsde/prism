@@ -357,12 +357,14 @@ where
         Self { prism, transaction }
     }
 
-    pub async fn send(self) -> Result<PendingTransaction<'a, P>, P::Error> {
+    pub async fn send(
+        self,
+    ) -> Result<impl PendingTransaction<Error = P::Error, Timer = P::Timer> + 'a, P::Error> {
         let Some(prism) = self.prism else {
             return Err(TransactionError::MissingSender.into());
         };
 
-        prism.post_transaction_and_wait(self.transaction).await
+        prism.post_transaction(self.transaction).await
     }
 
     pub fn transaction(self) -> Transaction {

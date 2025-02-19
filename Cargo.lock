@@ -6496,6 +6496,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "celestia-types",
+ "mockall",
  "prism-keys",
  "prism-serde",
  "rand",

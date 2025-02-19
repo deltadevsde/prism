@@ -1,5 +1,5 @@
 mod http_client;
-mod timer;
+mod prism_api;
 
 pub use http_client::{PrismHttpClient, PrismHttpClientError};
 pub use prism_common::{
@@ -12,3 +12,6 @@ pub use prism_common::{
 };
 pub use prism_keys::{Signature, SigningKey, VerifyingKey};
 pub use prism_serde::binary;
+
+#[cfg(feature = "mockall")]
+pub use prism_common::api::mock;

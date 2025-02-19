@@ -7,10 +7,10 @@ use prism_common::{
     account::Account,
     api::{
         types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
-        PrismApi,
+        PendingTransaction, PrismApi, PendingTransactionImpl,
     },
     digest::Digest,
-    transaction::Transaction,
+    transaction::{Transaction, TransactionError},
 };
 use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
@@ -22,7 +22,13 @@ use prism_tree::{
     snarkable_tree::SnarkableTree,
     AccountResponse::*,
 };
-use std::{self, collections::VecDeque, sync::Arc};
+use std::{
+    self,
+    collections::VecDeque,
+    error::Error,
+    fmt::{Display, Formatter},
+    sync::Arc,
+};
 use timer::ProverTokioTimer;
 use tokio::{
     sync::{broadcast, RwLock},
@@ -522,7 +528,7 @@ impl Prover {
 
 #[async_trait]
 impl PrismApi for Prover {
-    type Error = anyhow::Error;
+    type Error = ProverError;
     type Timer = ProverTokioTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error> {
@@ -556,8 +562,42 @@ impl PrismApi for Prover {
         Ok(CommitmentResponse { commitment })
     }
 
-    async fn post_transaction(&self, tx: &Transaction) -> Result<(), Self::Error> {
-        self.validate_and_queue_update(tx.clone()).await
+    async fn post_transaction(
+        &self,
+        transaction: Transaction,
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
+    {
+        self.validate_and_queue_update(transaction.clone()).await?;
+        Ok(PendingTransactionImpl::new(self, transaction))
+    }
+}
+
+#[derive(Debug)]
+pub enum ProverError {
+    Transaction(String),
+    Error(String),
+}
+
+impl Display for ProverError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProverError::Transaction(s) => write!(f, "Transaction error: {}", s),
+            ProverError::Error(s) => write!(f, "Generic prover error: {}", s),
+        }
+    }
+}
+
+impl Error for ProverError {}
+
+impl From<TransactionError> for ProverError {
+    fn from(err: TransactionError) -> Self {
+        ProverError::Error(err.to_string())
+    }
+}
+
+impl From<anyhow::Error> for ProverError {
+    fn from(err: anyhow::Error) -> Self {
+        ProverError::Error(err.to_string())
     }
 }
 
