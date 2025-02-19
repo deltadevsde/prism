@@ -1,4 +1,3 @@
-use prism_common::transaction::TransactionError;
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
     error::Error,
@@ -102,11 +101,5 @@ impl From<reqwest::Error> for PrismHttpClientError {
 impl From<url::ParseError> for PrismHttpClientError {
     fn from(err: url::ParseError) -> Self {
         PrismHttpClientError::Url(err.to_string())
-    }
-}
-
-impl From<TransactionError> for PrismHttpClientError {
-    fn from(_: TransactionError) -> Self {
-        PrismHttpClientError::Request
     }
 }

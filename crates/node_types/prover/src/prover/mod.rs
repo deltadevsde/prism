@@ -7,10 +7,10 @@ use prism_common::{
     account::Account,
     api::{
         types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
-        PendingTransaction, PrismApi, PendingTransactionImpl,
+        PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError,
     },
     digest::Digest,
-    transaction::{Transaction, TransactionError},
+    transaction::Transaction,
 };
 use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
@@ -22,13 +22,7 @@ use prism_tree::{
     snarkable_tree::SnarkableTree,
     AccountResponse::*,
 };
-use std::{
-    self,
-    collections::VecDeque,
-    error::Error,
-    fmt::{Display, Formatter},
-    sync::Arc,
-};
+use std::{self, collections::VecDeque, sync::Arc};
 use timer::ProverTokioTimer;
 use tokio::{
     sync::{broadcast, RwLock},
@@ -528,10 +522,9 @@ impl Prover {
 
 #[async_trait]
 impl PrismApi for Prover {
-    type Error = ProverError;
     type Timer = ProverTokioTimer;
 
-    async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error> {
+    async fn get_account(&self, id: &str) -> Result<AccountResponse, PrismApiError> {
         let acc_response = match self.get_account_from_tree(id).await? {
             Found(account, inclusion_proof) => {
                 let hashed_inclusion_proof = inclusion_proof.hashed();
@@ -557,7 +550,7 @@ impl PrismApi for Prover {
         Ok(acc_response)
     }
 
-    async fn get_commitment(&self) -> Result<CommitmentResponse, Self::Error> {
+    async fn get_commitment(&self) -> Result<CommitmentResponse, PrismApiError> {
         let commitment = self.get_commitment_from_tree().await?;
         Ok(CommitmentResponse { commitment })
     }
@@ -565,39 +558,9 @@ impl PrismApi for Prover {
     async fn post_transaction(
         &self,
         transaction: Transaction,
-    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
-    {
+    ) -> Result<impl PendingTransaction<Timer = Self::Timer>, PrismApiError> {
         self.validate_and_queue_update(transaction.clone()).await?;
         Ok(PendingTransactionImpl::new(self, transaction))
-    }
-}
-
-#[derive(Debug)]
-pub enum ProverError {
-    Transaction(String),
-    Error(String),
-}
-
-impl Display for ProverError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ProverError::Transaction(s) => write!(f, "Transaction error: {}", s),
-            ProverError::Error(s) => write!(f, "Generic prover error: {}", s),
-        }
-    }
-}
-
-impl Error for ProverError {}
-
-impl From<TransactionError> for ProverError {
-    fn from(err: TransactionError) -> Self {
-        ProverError::Error(err.to_string())
-    }
-}
-
-impl From<anyhow::Error> for ProverError {
-    fn from(err: anyhow::Error) -> Self {
-        ProverError::Error(err.to_string())
     }
 }
 
