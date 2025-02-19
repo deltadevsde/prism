@@ -7,7 +7,7 @@ use prism_serde::binary::{FromBinary, ToBinary};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::operation::Operation;
+use crate::operation::{Operation, SignatureBundle};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Represents a partial prism transaction that still needs to be signed.
@@ -33,6 +33,19 @@ impl UnsignedTransaction {
             signature,
             vk: sk.verifying_key(),
         })
+    }
+
+    /// Creates a full transaction by adding an externally provided signature.
+    /// Can be used to create a transaction that has been signed by an external source,
+    /// such as a wallet or a mobile app.
+    pub fn externally_signed(self, signature_bundle: SignatureBundle) -> Transaction {
+        Transaction {
+            id: self.id,
+            operation: self.operation,
+            nonce: self.nonce,
+            signature: signature_bundle.signature,
+            vk: signature_bundle.verifying_key,
+        }
     }
 }
 
