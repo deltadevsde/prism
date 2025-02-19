@@ -2,7 +2,7 @@ use prism_keys::{SigningKey, VerifyingKey};
 
 use crate::{
     account::Account,
-    api::{noop::NoopPrismApi, PendingTransaction, PrismApi},
+    api::{noop::NoopPrismApi, PendingTransaction, PrismApi, PrismApiError},
     digest::Digest,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::{Transaction, TransactionError, UnsignedTransaction},
@@ -359,7 +359,7 @@ where
 
     pub async fn send(
         self,
-    ) -> Result<impl PendingTransaction<Error = P::Error, Timer = P::Timer> + 'a, P::Error> {
+    ) -> Result<impl PendingTransaction<Timer = P::Timer> + 'a, PrismApiError> {
         let Some(prism) = self.prism else {
             return Err(TransactionError::MissingSender.into());
         };
