@@ -5,7 +5,7 @@ use cfg::{
     initialize_da_layer, initialize_db, initialize_light_da_layer, load_config, Cli, Commands,
 };
 use clap::Parser;
-use keystore_rs::{KeyChain, KeyStore, KeyStoreType};
+use keystore_rs::{FileStore, KeyChain, KeyStore};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
 use sp1_sdk::{HashableKey, Prover as _, ProverClient};
@@ -20,6 +20,8 @@ use std::sync::Arc;
 extern crate log;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
+
+pub const SIGNING_KEY_ID: &str = "prism";
 
 /// The main function that initializes and runs a prism client.
 #[tokio::main()]
@@ -62,8 +64,12 @@ async fn main() -> std::io::Result<()> {
             let da = initialize_da_layer(&config)
                 .await
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            info!(
+                "keystore type: {:?}",
+                config.clone().keystore_type.unwrap_or_default()
+            );
 
-            let signing_key = get_signing_key()?;
+            let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
             let verifying_key = signing_key.verifying_key();
 
             info!(
@@ -93,7 +99,12 @@ async fn main() -> std::io::Result<()> {
                 .await
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-            let signing_key = get_signing_key()?;
+            info!(
+                "keystore type: {:?}",
+                config.clone().keystore_type.unwrap_or_default()
+            );
+
+            let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
 
             let verifying_key = config
                 .network
@@ -119,16 +130,38 @@ async fn main() -> std::io::Result<()> {
     node.start().await.map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
 }
 
-fn get_signing_key() -> std::io::Result<SigningKey> {
-    let signing_key_chain = KeyStoreType::KeyChain(KeyChain)
-        .get_signing_key()
-        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+fn get_signing_key(
+    keystore_type: Option<String>,
+    keystore_path: Option<String>,
+) -> std::io::Result<SigningKey> {
+    let keystore: Box<dyn KeyStore> = match keystore_type.unwrap_or_default().as_str() {
+        "file" => {
+            let file_store = FileStore::new(keystore_path.unwrap_or_default())
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            Box::new(file_store)
+        }
+        "keychain" => Box::new(KeyChain),
+        _ => {
+            return Err(Error::new(ErrorKind::InvalidInput, "invalid keystore type"));
+        }
+    };
 
-    SigningKey::from_algorithm_and_bytes(CryptoAlgorithm::Ed25519, signing_key_chain.as_bytes())
-        .map_err(|e| {
-            Error::new(
-                ErrorKind::InvalidInput,
-                format!("Invalid signing key: {}", e),
-            )
-        })
+    let raw_signing_key = keystore.get_or_create_signing_key(SIGNING_KEY_ID).map_err(|e| {
+        Error::new(
+            ErrorKind::Other,
+            format!("Failed to get or create signing key: {}", e),
+        )
+    })?;
+
+    // Hardcoded ED25519 as keystore_rs only supports ED25519
+    let signing_key =
+        SigningKey::from_algorithm_and_bytes(CryptoAlgorithm::Ed25519, raw_signing_key.as_bytes())
+            .map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    format!("Failed to parse signing key: {}", e),
+                )
+            })?;
+
+    Ok(signing_key)
 }

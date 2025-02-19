@@ -2234,7 +2234,16 @@ version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
 dependencies = [
- "dirs-sys",
+ "dirs-sys 0.4.1",
+]
+
+[[package]]
+name = "dirs"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
+dependencies = [
+ "dirs-sys 0.5.0",
 ]
 
 [[package]]
@@ -2245,8 +2254,20 @@ checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users",
+ "redox_users 0.4.6",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users 0.5.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2691,7 +2712,7 @@ dependencies = [
  "core-foundation 0.9.4",
  "core-graphics",
  "core-text",
- "dirs",
+ "dirs 5.0.1",
  "dwrote",
  "float-ord",
  "freetype-sys",
@@ -4207,19 +4228,23 @@ dependencies = [
 
 [[package]]
 name = "keystore-rs"
-version = "0.1.2"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "150901c4c63e7bd1ec5c8075962591cb97a1761d146eed48446e09176ffb62bc"
+checksum = "f2896e336f64269ac8b40be9f9316c2704388584636d901488c531e897f31347"
 dependencies = [
  "aes-gcm",
+ "anyhow",
  "base64 0.22.1",
+ "dirs 6.0.0",
  "dotenvy",
  "ed25519-consensus",
  "hex",
  "keyring",
  "mockall",
  "rand",
- "security-framework 2.11.1",
+ "security-framework 3.2.0",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -5174,14 +5199,13 @@ checksum = "c9be0862c1b3f26a88803c4a49de6889c10e608b3ee9344e6ef5b45fb37ad3d1"
 
 [[package]]
 name = "mockall"
-version = "0.12.1"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43766c2b5203b10de348ffe19f7e54564b64f3d6018ff7648d1e2d6d3a0f0a48"
+checksum = "39a6bfcc6c8c7eed5ee98b9c3e33adc726054389233e201c95dab2d41a3839d2"
 dependencies = [
  "cfg-if",
  "downcast",
  "fragile",
- "lazy_static",
  "mockall_derive",
  "predicates",
  "predicates-tree",
@@ -5189,9 +5213,9 @@ dependencies = [
 
 [[package]]
 name = "mockall_derive"
-version = "0.12.1"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af7cbce79ec385a1d4f54baa90a76401eb15d9cab93685f62e7e9f942aa00ae2"
+checksum = "25ca3004c2efe9011bd4e461bd8256445052b9615405b4f7ea43fc8ca5c20898"
 dependencies = [
  "cfg-if",
  "proc-macro2",
@@ -6431,7 +6455,7 @@ dependencies = [
  "celestia-types",
  "clap",
  "config",
- "dirs",
+ "dirs 5.0.1",
  "dotenvy",
  "keystore-rs",
  "log",
@@ -7095,6 +7119,17 @@ dependencies = [
  "getrandom 0.2.15",
  "libredox",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "redox_users"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd6f9d3d47bdd2ad6945c5015a226ec6155d0bcdfd8f7cd29f86b71f8de99d2b"
+dependencies = [
+ "getrandom 0.2.15",
+ "libredox",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -8099,7 +8134,7 @@ dependencies = [
  "cargo_metadata",
  "chrono",
  "clap",
- "dirs",
+ "dirs 5.0.1",
 ]
 
 [[package]]
@@ -8286,7 +8321,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "clap",
- "dirs",
+ "dirs 5.0.1",
  "downloader",
  "eyre",
  "hex",
@@ -8494,7 +8529,7 @@ dependencies = [
  "backoff",
  "bincode",
  "cfg-if",
- "dirs",
+ "dirs 5.0.1",
  "futures",
  "hashbrown 0.14.5",
  "hex",

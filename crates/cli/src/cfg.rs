@@ -55,6 +55,18 @@ pub struct CommandArgs {
     #[command(flatten)]
     database: DatabaseArgs,
 
+    /// The type of keystore to use.
+    ///
+    /// Can be one of: `keychain`, `file`.
+    #[arg(long, default_value = "keychain")]
+    keystore_type: Option<String>,
+
+    /// The path to the keystore.
+    ///
+    /// This is only used if the keystore type is `file`.
+    #[arg(long, default_value = "~/.prism/keystore.json")]
+    keystore_path: Option<String>,
+
     #[command(flatten)]
     celestia: CelestiaArgs,
 
@@ -109,6 +121,8 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub webserver: Option<WebServerConfig>,
     pub network: NetworkConfig,
+    pub keystore_type: Option<String>,
+    pub keystore_path: Option<String>,
     pub da_layer: DALayerOption,
     pub db: StorageBackend,
 }
@@ -117,6 +131,8 @@ impl Config {
     fn initialize(path: &str, network_name: &str) -> Self {
         Config {
             webserver: Some(WebServerConfig::default()),
+            keystore_type: Some("keychain".to_string()),
+            keystore_path: Some(format!("{}keystore.json", path)),
             network: Network::from_str(network_name).unwrap().config(),
             da_layer: DALayerOption::default(),
             db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
@@ -270,6 +286,8 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
                 .or(network_config.clone().verifying_key),
             celestia_config,
         },
+        keystore_type: args.keystore_type.or(config.keystore_type),
+        keystore_path: args.keystore_path.or(config.keystore_path),
         da_layer: config.da_layer,
     }
 }
