@@ -3,14 +3,14 @@ use utoipa::ToSchema;
 
 use crate::{account::Account, digest::Digest};
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Default, Debug, Serialize, Deserialize, ToSchema)]
 /// Request to retrieve account information
 pub struct AccountRequest {
     /// Identifier for the account to look up
     pub id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Default, Debug, Serialize, Deserialize, ToSchema)]
 /// Response containing account data and a corresponding Merkle proof
 pub struct AccountResponse {
     /// The account if found, or None if not found
@@ -19,7 +19,7 @@ pub struct AccountResponse {
     pub proof: HashedMerkleProof,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, ToSchema)]
+#[derive(Default, Debug, Serialize, Deserialize, PartialEq, ToSchema)]
 /// Response representing a cryptographic commitment towards the current state of prism
 pub struct CommitmentResponse {
     /// Commitment as root hash of Merkle tree
@@ -49,5 +49,11 @@ impl HashedMerkleProof {
             leaf: None,
             siblings: vec![],
         }
+    }
+}
+
+impl Default for HashedMerkleProof {
+    fn default() -> Self {
+        Self::empty()
     }
 }
