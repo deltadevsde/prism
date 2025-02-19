@@ -6478,7 +6478,6 @@ dependencies = [
 name = "prism-client"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "prism-common",
  "prism-keys",

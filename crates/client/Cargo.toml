@@ -23,9 +23,6 @@ tokio.workspace = true
 # serde
 serde.workspace = true
 
-# misc
-anyhow.workspace = true
-
 [features]
 default = []
 mockall = ["prism-common/mockall"]
