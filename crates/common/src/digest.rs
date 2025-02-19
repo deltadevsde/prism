@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
@@ -49,6 +51,12 @@ impl Digest {
     }
 }
 
+impl Default for Digest {
+    fn default() -> Self {
+        Self::zero()
+    }
+}
+
 // serializer and deserializer for rocksdb
 // converts from bytearrays into digests
 // padds it with zero if it is too small
@@ -83,7 +91,7 @@ impl FromBase64 for Digest {
     }
 }
 
-impl std::fmt::Display for Digest {
+impl Display for Digest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_hex())
     }

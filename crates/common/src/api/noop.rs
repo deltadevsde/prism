@@ -8,11 +8,12 @@ use async_trait::async_trait;
 
 use super::{
     types::{AccountResponse, CommitmentResponse},
-    PrismApi, PrismApiTimer,
+    PendingTransaction, PrismApi, PrismApiTimer,
 };
-use crate::transaction::{Transaction, TransactionError};
-
-pub struct NoopPrismApi {}
+use crate::{
+    account::Account,
+    transaction::{Transaction, TransactionError},
+};
 
 #[derive(Debug)]
 pub struct NoopPrismError;
@@ -37,6 +38,20 @@ impl PrismApiTimer for NoopTimer {
     async fn sleep(_: Duration) {}
 }
 
+pub struct NoopPendingTransaction;
+
+#[async_trait]
+impl PendingTransaction for NoopPendingTransaction {
+    type Error = NoopPrismError;
+    type Timer = NoopTimer;
+
+    async fn wait_with_interval(&self, _: Duration) -> Result<Account, Self::Error> {
+        Err(NoopPrismError)
+    }
+}
+
+pub struct NoopPrismApi;
+
 #[async_trait]
 impl PrismApi for NoopPrismApi {
     type Error = NoopPrismError;
@@ -50,7 +65,11 @@ impl PrismApi for NoopPrismApi {
         Err(NoopPrismError)
     }
 
-    async fn post_transaction(&self, _: &Transaction) -> Result<(), Self::Error> {
-        Err(NoopPrismError)
+    async fn post_transaction(
+        &self,
+        _: Transaction,
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
+    {
+        Result::<NoopPendingTransaction, NoopPrismError>::Err(NoopPrismError)
     }
 }

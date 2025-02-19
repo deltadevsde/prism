@@ -1,9 +1,16 @@
+#[cfg(feature = "mockall")]
+pub mod mock;
 pub mod noop;
 pub mod types;
 
 use async_trait::async_trait;
 use prism_keys::{SigningKey, VerifyingKey};
-use std::{future::Future, time::Duration};
+use std::{
+    error::Error,
+    fmt::{Debug, Display},
+    future::Future,
+    time::Duration,
+};
 
 use crate::{
     account::Account,
@@ -13,31 +20,23 @@ use crate::{
 };
 use types::{AccountResponse, CommitmentResponse};
 
-pub trait PrismApiTimer {
-    fn sleep(duration: Duration) -> impl Future<Output = ()> + Send;
-}
-
 #[async_trait]
 pub trait PrismApi
 where
     Self: Sized + Send + Sync,
 {
-    type Error: Send + Sync + 'static + From<TransactionError>;
+    type Error: From<TransactionError> + Error + Debug + Display + Send + Sync + 'static;
     type Timer: PrismApiTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, Self::Error>;
 
     async fn get_commitment(&self) -> Result<CommitmentResponse, Self::Error>;
 
-    async fn post_transaction(&self, tx: &Transaction) -> Result<(), Self::Error>;
-
-    async fn post_transaction_and_wait(
+    async fn post_transaction(
         &self,
         transaction: Transaction,
-    ) -> Result<PendingTransaction<Self>, Self::Error> {
-        self.post_transaction(&transaction).await?;
-        Ok(PendingTransaction::new(self, transaction))
-    }
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>;
+
     fn build_request(&self) -> RequestBuilder<Self> {
         RequestBuilder::new_with_prism(self)
     }
@@ -47,7 +46,8 @@ where
         id: String,
         challenge_key: VerifyingKey,
         signing_key: &SigningKey,
-    ) -> Result<PendingTransaction<Self>, Self::Error> {
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
+    {
         self.build_request()
             .register_service()
             .with_id(id)
@@ -64,7 +64,8 @@ where
         service_id: String,
         service_signing_key: &SigningKey,
         signing_key: &SigningKey,
-    ) -> Result<PendingTransaction<Self>, Self::Error> {
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
+    {
         self.build_request()
             .create_account()
             .with_id(id)
@@ -81,7 +82,8 @@ where
         account: &Account,
         key: VerifyingKey,
         signing_key: &SigningKey,
-    ) -> Result<PendingTransaction<Self>, Self::Error> {
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
+    {
         self.build_request()
             .to_modify_account(account)
             .add_key(key)?
@@ -95,7 +97,8 @@ where
         account: &Account,
         key: VerifyingKey,
         signing_key: &SigningKey,
-    ) -> Result<PendingTransaction<Self>, Self::Error> {
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
+    {
         self.build_request()
             .to_modify_account(account)
             .revoke_key(key)?
@@ -110,7 +113,8 @@ where
         data: Vec<u8>,
         data_signature: SignatureBundle,
         signing_key: &SigningKey,
-    ) -> Result<PendingTransaction<Self>, Self::Error> {
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
+    {
         self.build_request()
             .to_modify_account(account)
             .add_data(data, data_signature)?
@@ -125,7 +129,8 @@ where
         data: Vec<u8>,
         data_signature: SignatureBundle,
         signing_key: &SigningKey,
-    ) -> Result<PendingTransaction<Self>, Self::Error> {
+    ) -> Result<impl PendingTransaction<Error = Self::Error, Timer = Self::Timer>, Self::Error>
+    {
         self.build_request()
             .to_modify_account(account)
             .set_data(data, data_signature)?
@@ -135,7 +140,28 @@ where
     }
 }
 
-pub struct PendingTransaction<'a, P>
+pub trait PrismApiTimer {
+    fn sleep(duration: Duration) -> impl Future<Output = ()> + Send;
+}
+
+const DEFAULT_POLLING_INTERVAL: Duration = Duration::from_secs(5);
+
+#[async_trait]
+pub trait PendingTransaction
+where
+    Self: Send + Sync,
+{
+    type Error: From<TransactionError> + Error + Debug + Display + Send + Sync + 'static;
+    type Timer: PrismApiTimer;
+
+    async fn wait(&self) -> Result<Account, Self::Error> {
+        self.wait_with_interval(DEFAULT_POLLING_INTERVAL).await
+    }
+
+    async fn wait_with_interval(&self, interval: Duration) -> Result<Account, Self::Error>;
+}
+
+pub struct PendingTransactionImpl<'a, P>
 where
     P: PrismApi,
 {
@@ -143,21 +169,24 @@ where
     transaction: Transaction,
 }
 
-impl<'a, P> PendingTransaction<'a, P>
+impl<'a, P> PendingTransactionImpl<'a, P>
 where
     P: PrismApi,
 {
-    const DEFAULT_POLLING_INTERVAL: Duration = Duration::from_secs(5);
-
     pub fn new(prism: &'a P, transaction: Transaction) -> Self {
         Self { prism, transaction }
     }
+}
 
-    pub async fn wait(&self) -> Result<Account, P::Error> {
-        self.wait_with_interval(Self::DEFAULT_POLLING_INTERVAL).await
-    }
+#[async_trait]
+impl<P> PendingTransaction for PendingTransactionImpl<'_, P>
+where
+    P: PrismApi,
+{
+    type Error = P::Error;
+    type Timer = P::Timer;
 
-    pub async fn wait_with_interval(&self, interval: Duration) -> Result<Account, P::Error> {
+    async fn wait_with_interval(&self, interval: Duration) -> Result<Account, Self::Error> {
         loop {
             if let AccountResponse {
                 account: Some(account),
@@ -168,7 +197,7 @@ where
                     return Ok(account);
                 }
             };
-            P::Timer::sleep(interval).await;
+            Self::Timer::sleep(interval).await;
         }
     }
 }

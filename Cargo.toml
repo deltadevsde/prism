@@ -139,6 +139,9 @@ prism-serde = { path = "crates/serde" }
 prism-tree = { path = "crates/tree" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 
+# testing
+mockall = "0.13.1"
+
 # wasm
 lumina-node-wasm = { git = "https://github.com/deltadevsde/lumina.git" }
 wasm-bindgen = "0.2"
