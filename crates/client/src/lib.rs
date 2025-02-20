@@ -4,7 +4,7 @@ mod prism_api;
 pub use http_client::{PrismHttpClient, PrismHttpClientError};
 pub use prism_common::{
     account::Account,
-    api::{types::*, PendingTransaction, PrismApi},
+    api::{types::*, PendingTransaction, PrismApi, PrismApiError},
     builder,
     digest::Digest,
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
