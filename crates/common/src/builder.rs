@@ -35,6 +35,13 @@ where
     pub fn to_modify_account(self, account: &Account) -> ModifyAccountRequestBuilder<'a, P> {
         ModifyAccountRequestBuilder::new(self.prism, account)
     }
+
+    pub fn continue_transaction(
+        self,
+        unsigned_transaction: UnsignedTransaction,
+    ) -> SigningTransactionRequestBuilder<'a, P> {
+        SigningTransactionRequestBuilder::new(self.prism, unsigned_transaction)
+    }
 }
 
 impl<P> Default for RequestBuilder<'_, P>
