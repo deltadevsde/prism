@@ -23,7 +23,7 @@ pub struct UnsignedTransaction {
 impl UnsignedTransaction {
     /// Signs the transaction with the given [`SigningKey`] and gives out a full [`Transaction`].
     pub fn sign(self, sk: &SigningKey) -> Result<Transaction, TransactionError> {
-        let bytes = self.encode_to_bytes().map_err(|_| TransactionError::EncodingFailed)?;
+        let bytes = self.signing_payload()?;
         let signature = sk.sign(&bytes);
 
         Ok(Transaction {
@@ -46,6 +46,11 @@ impl UnsignedTransaction {
             signature: signature_bundle.signature,
             vk: signature_bundle.verifying_key,
         }
+    }
+
+    /// Returns the transaction's payload that needs to be signed, or a TransactionError if encoding fails.
+    pub fn signing_payload(&self) -> Result<Vec<u8>, TransactionError> {
+        self.encode_to_bytes().map_err(|_| TransactionError::EncodingFailed)
     }
 }
 
