@@ -4,18 +4,19 @@ use crate::{
     account::Account,
     digest::Digest,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
-    transaction::Transaction,
+    transaction::{Transaction, UnsignedTransaction},
 };
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 enum PostCommitAction {
     UpdateStorageOnly,
     RememberServiceKey(String, SigningKey),
     RememberAccountKey(String, SigningKey),
+    RemoveAccountKey(String, VerifyingKey),
 }
 
 pub struct UncommittedTransaction<'a> {
     transaction: Transaction,
-    builder: &'a mut TransactionBuilder,
+    builder: &'a mut TestTransactionBuilder,
     post_commit_action: PostCommitAction,
 }
 
@@ -31,7 +32,15 @@ impl UncommittedTransaction<'_> {
         match self.post_commit_action {
             PostCommitAction::UpdateStorageOnly => (),
             PostCommitAction::RememberAccountKey(id, account_key) => {
-                self.builder.account_keys.insert(id, account_key);
+                self.builder.account_keys.entry(id).or_default().push(account_key);
+            }
+            PostCommitAction::RemoveAccountKey(id, key) => {
+                if let Some(keys) = self.builder.account_keys.get_mut(&id) {
+                    keys.retain(|k| k.verifying_key() != key);
+                    if keys.is_empty() {
+                        self.builder.account_keys.remove(&id);
+                    }
+                }
             }
             PostCommitAction::RememberServiceKey(id, service_key) => {
                 self.builder.service_keys.insert(id, service_key);
@@ -48,16 +57,16 @@ impl UncommittedTransaction<'_> {
     }
 }
 
-pub struct TransactionBuilder {
+pub struct TestTransactionBuilder {
     /// Simulated account storage that is mutated when transactions are applied
     accounts: HashMap<String, Account>,
     /// Remembers private keys of services to simulate account creation via an external service
     service_keys: HashMap<String, SigningKey>,
     /// Remembers private keys of accounts to simulate actions on behalf of these accounts
-    account_keys: HashMap<String, SigningKey>,
+    account_keys: HashMap<String, Vec<SigningKey>>,
 }
 
-impl Default for TransactionBuilder {
+impl Default for TestTransactionBuilder {
     fn default() -> Self {
         let accounts = HashMap::new();
         let service_keys = HashMap::new();
@@ -71,9 +80,21 @@ impl Default for TransactionBuilder {
     }
 }
 
-impl TransactionBuilder {
+impl TestTransactionBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn get_accounts(&self) -> &HashMap<String, Account> {
+        &self.accounts
+    }
+
+    pub fn get_service_keys(&self) -> &HashMap<String, SigningKey> {
+        &self.service_keys
+    }
+
+    pub fn get_account_keys(&self) -> &HashMap<String, Vec<SigningKey>> {
+        &self.account_keys
     }
 
     pub fn get_account(&self, id: &str) -> Option<&Account> {
@@ -105,8 +126,13 @@ impl TransactionBuilder {
             key: vk.clone(),
         };
 
-        let account = Account::default();
-        let transaction = account.prepare_transaction(id.to_string(), op, &signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: id.to_string(),
+            operation: op,
+            nonce: 0,
+        };
+
+        let transaction = unsigned_tx.sign(&signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -161,7 +187,7 @@ impl TransactionBuilder {
         // Simulate some external service signing account creation credentials
         let vk = signing_key.verifying_key();
         let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.to_bytes()]);
-        let signature = service_signing_key.sign(&hash.to_bytes());
+        let signature = service_signing_key.sign(hash);
 
         let op = Operation::CreateAccount {
             id: id.to_string(),
@@ -170,8 +196,13 @@ impl TransactionBuilder {
             key: vk.clone(),
         };
 
-        let account = Account::default();
-        let transaction = account.prepare_transaction(id.to_string(), op, &signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: id.to_string(),
+            operation: op,
+            nonce: 0,
+        };
+
+        let transaction = unsigned_tx.sign(&signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -185,11 +216,12 @@ impl TransactionBuilder {
         algorithm: CryptoAlgorithm,
         id: &str,
     ) -> UncommittedTransaction {
-        let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
+        let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
 
-        self.add_random_key(algorithm, id, &account_signing_key)
+        let account_signing_key = account_signing_keys.first().unwrap();
+        self.add_random_key(algorithm, id, account_signing_key)
     }
 
     pub fn add_random_key(
@@ -208,11 +240,12 @@ impl TransactionBuilder {
         id: &str,
         key: VerifyingKey,
     ) -> UncommittedTransaction {
-        let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
+        let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
 
-        self.add_key(id, key, &account_signing_key)
+        let account_signing_key = account_signing_keys.first().unwrap();
+        self.add_key(id, key, account_signing_key)
     }
 
     pub fn add_key(
@@ -224,7 +257,13 @@ impl TransactionBuilder {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::AddKey { key: key.clone() };
 
-        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: account.id().to_string(),
+            operation: op,
+            nonce: account.nonce(),
+        };
+
+        let transaction = unsigned_tx.sign(signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -238,11 +277,12 @@ impl TransactionBuilder {
         id: &str,
         key: VerifyingKey,
     ) -> UncommittedTransaction {
-        let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
+        let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
 
-        self.revoke_key(id, key, &account_signing_key)
+        let account_signing_key = account_signing_keys.first().unwrap();
+        self.revoke_key(id, key, account_signing_key)
     }
 
     pub fn revoke_key(
@@ -254,12 +294,18 @@ impl TransactionBuilder {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::RevokeKey { key: key.clone() };
 
-        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: account.id().to_string(),
+            operation: op,
+            nonce: account.nonce(),
+        };
+
+        let transaction = unsigned_tx.sign(signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
             builder: self,
-            post_commit_action: PostCommitAction::UpdateStorageOnly,
+            post_commit_action: PostCommitAction::RemoveAccountKey(id.to_string(), key),
         }
     }
 
@@ -350,10 +396,11 @@ impl TransactionBuilder {
         id: &str,
         value: Vec<u8>,
     ) -> UncommittedTransaction {
-        let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
+        let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
 
+        let account_signing_key = account_signing_keys.first().unwrap();
         let bundle = SignatureBundle {
             verifying_key: account_signing_key.verifying_key(),
             signature: account_signing_key.sign(&value),
@@ -368,11 +415,12 @@ impl TransactionBuilder {
         value: Vec<u8>,
         value_signature: SignatureBundle,
     ) -> UncommittedTransaction {
-        let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
+        let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
 
-        self.add_data(id, value, value_signature, &account_signing_key)
+        let account_signing_key = account_signing_keys.first().unwrap();
+        self.add_data(id, value, value_signature, account_signing_key)
     }
 
     fn add_data(
@@ -388,7 +436,13 @@ impl TransactionBuilder {
             data_signature,
         };
 
-        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: account.id().to_string(),
+            operation: op,
+            nonce: account.nonce(),
+        };
+
+        let transaction = unsigned_tx.sign(signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,
@@ -418,6 +472,24 @@ impl TransactionBuilder {
         let value_signing_key =
             SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.set_signed_data_verified_with_root(id, value, &value_signing_key)
+    }
+
+    pub fn set_internally_signed_data_verified_with_root(
+        &mut self,
+        id: &str,
+        value: Vec<u8>,
+    ) -> UncommittedTransaction {
+        let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
+            panic!("No existing account key for {}", id)
+        };
+
+        let account_signing_key = account_signing_keys.first().unwrap();
+        let bundle = SignatureBundle {
+            verifying_key: account_signing_key.verifying_key(),
+            signature: account_signing_key.sign(&value),
+        };
+
+        self.set_pre_signed_data(id, value, bundle, account_signing_key)
     }
 
     pub fn set_signed_data(
@@ -453,11 +525,12 @@ impl TransactionBuilder {
         value: Vec<u8>,
         value_signature: SignatureBundle,
     ) -> UncommittedTransaction {
-        let Some(account_signing_key) = self.account_keys.get(id).cloned() else {
+        let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
 
-        self.set_pre_signed_data(id, value, value_signature, &account_signing_key)
+        let account_signing_key = account_signing_keys.first().unwrap();
+        self.set_pre_signed_data(id, value, value_signature, account_signing_key)
     }
 
     pub fn set_pre_signed_data(
@@ -473,7 +546,13 @@ impl TransactionBuilder {
             data_signature,
         };
 
-        let transaction = account.prepare_transaction(id.to_string(), op, signing_key).unwrap();
+        let unsigned_tx = UnsignedTransaction {
+            id: account.id().to_string(),
+            operation: op,
+            nonce: account.nonce(),
+        };
+
+        let transaction = unsigned_tx.sign(signing_key).unwrap();
 
         UncommittedTransaction {
             transaction,

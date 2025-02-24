@@ -10,6 +10,9 @@ repository.workspace = true
 # prism
 prism-keys.workspace = true
 
+# async
+async-trait.workspace = true
+
 # serde
 prism-serde.workspace = true
 serde.workspace = true
@@ -27,6 +30,10 @@ sha2.workspace = true
 anyhow.workspace = true
 rand.workspace = true
 
+# testing
+mockall = { workspace = true, optional = true }
+
 [features]
 default = []
 test_utils = []
+mockall = ["dep:mockall"]

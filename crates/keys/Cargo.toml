@@ -16,16 +16,20 @@ utoipa.workspace = true
 
 # curves
 ed25519-consensus.workspace = true
-secp256k1.workspace = true
+k256.workspace = true
 p256.workspace = true
-ecdsa.workspace = true             # needed transitively to enable der feature
 
 # misc
 anyhow.workspace = true
 sha2.workspace = true
-rand.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rand = { version = "0.8.5", features = ["std"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+rand = { version = "0.8.5", features = ["std", "getrandom"] }
+getrandom = { version = "0.2", features = ["js"] }
 
 [features]
 default = []
 test_utils = []
-secp256k1 = ["secp256k1/global-context", "secp256k1/rand-std"]

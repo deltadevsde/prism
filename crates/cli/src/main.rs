@@ -1,8 +1,9 @@
 mod cfg;
-mod network;
 mod node_types;
 
-use cfg::{initialize_da_layer, initialize_db, load_config, Cli, Commands};
+use cfg::{
+    initialize_da_layer, initialize_db, initialize_light_da_layer, load_config, Cli, Commands,
+};
 use clap::Parser;
 use keystore_rs::{FileStore, KeyChain, KeyStore};
 use prism_keys::{CryptoAlgorithm, SigningKey};
@@ -11,7 +12,7 @@ use sp1_sdk::{HashableKey, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
-use prism_lightclient::LightClient;
+use prism_lightclient::{events::EventChannel, LightClient};
 use prism_prover::Prover;
 use std::sync::Arc;
 
@@ -33,32 +34,38 @@ async fn main() -> std::io::Result<()> {
     let config =
         load_config(args.clone()).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-    let da = initialize_da_layer(&config)
-        .await
-        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-
     let start_height = config.clone().network.celestia_config.unwrap_or_default().start_height;
 
     let node: Arc<dyn NodeType> = match cli.command {
         Commands::LightClient(_) => {
-            let verifying_key = config.network.verifying_key;
+            let verifying_key = config.network.verifying_key.clone();
+
+            let da = initialize_light_da_layer(&config).await.map_err(|e| {
+                error!("error initializing light da layer: {}", e);
+                Error::new(ErrorKind::Other, e.to_string())
+            })?;
 
             info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
 
             let client = ProverClient::from_env();
             let (_, vk) = client.setup(PRISM_ELF);
+            let event_channel = EventChannel::new();
 
             Arc::new(LightClient::new(
                 da,
                 start_height,
                 verifying_key,
                 vk.bytes32(),
+                event_channel.publisher(),
             ))
         }
         Commands::Prover(_) => {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
+            let da = initialize_da_layer(&config)
+                .await
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
             info!(
                 "keystore type: {:?}",
                 config.clone().keystore_type.unwrap_or_default()
@@ -91,6 +98,10 @@ async fn main() -> std::io::Result<()> {
         Commands::FullNode(_) => {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+
+            let da = initialize_da_layer(&config)
+                .await
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             info!(
                 "keystore type: {:?}",

@@ -1,14 +1,28 @@
 use anyhow::Result;
 use ed25519_consensus::SigningKey as Ed25519SigningKey;
-use p256::ecdsa::{
-    signature::DigestSigner, Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey,
+use k256::ecdsa::{
+    signature::DigestSigner as P256DigestSigner, Signature as Secp256k1Signature,
+    SigningKey as Secp256k1SigningKey,
 };
-use rand::rngs::OsRng;
-use secp256k1::{Message as Secp256k1Message, SecretKey as Secp256k1SigningKey, SECP256K1};
+use p256::ecdsa::{Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey};
 
 use sha2::Digest as _;
 
 use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, VerifyingKey};
+
+// We have to decide for now if we want to have conditional compilation here or in prism_common etc. because they're relying on SigningKey, thats why we can't comment the whole file out for wasm in the current setup
+#[cfg(target_arch = "wasm32")]
+fn get_rng() -> impl rand::RngCore + rand::CryptoRng {
+    use rand::SeedableRng;
+    let mut seed = [0u8; 32];
+    getrandom::getrandom(&mut seed).expect("Failed to get random seed");
+    rand::rngs::StdRng::from_seed(seed)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_rng() -> impl rand::RngCore + rand::CryptoRng {
+    rand::rngs::OsRng
+}
 
 #[derive(Clone, Debug)]
 pub enum SigningKey {
@@ -19,15 +33,15 @@ pub enum SigningKey {
 
 impl SigningKey {
     pub fn new_ed25519() -> Self {
-        SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng)))
+        SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(get_rng())))
     }
 
     pub fn new_secp256k1() -> Self {
-        SigningKey::Secp256k1(Secp256k1SigningKey::new(&mut OsRng))
+        SigningKey::Secp256k1(Secp256k1SigningKey::random(&mut get_rng()))
     }
 
     pub fn new_secp256r1() -> Self {
-        SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut OsRng))
+        SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut get_rng()))
     }
 
     pub fn new_with_algorithm(algorithm: CryptoAlgorithm) -> Result<Self> {
@@ -45,7 +59,7 @@ impl SigningKey {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             SigningKey::Ed25519(sk) => sk.to_bytes().to_vec(),
-            SigningKey::Secp256k1(sk) => sk.secret_bytes().to_vec(),
+            SigningKey::Secp256k1(sk) => sk.to_bytes().to_vec(),
             SigningKey::Secp256r1(sk) => sk.to_bytes().to_vec(),
         }
     }
@@ -72,14 +86,14 @@ impl SigningKey {
         }
     }
 
-    pub fn sign(&self, message: &[u8]) -> Signature {
+    pub fn sign(&self, message: impl AsRef<[u8]>) -> Signature {
         match self {
-            SigningKey::Ed25519(sk) => Signature::Ed25519(sk.sign(message)),
+            SigningKey::Ed25519(sk) => Signature::Ed25519(sk.sign(message.as_ref())),
             SigningKey::Secp256k1(sk) => {
-                let digest = sha2::Sha256::digest(message);
-                let message = Secp256k1Message::from_digest(digest.into());
-                let signature = SECP256K1.sign_ecdsa(&message, sk);
-                Signature::Secp256k1(signature)
+                let mut digest = sha2::Sha256::new();
+                digest.update(message);
+                let sig: Secp256k1Signature = sk.sign_digest(digest);
+                Signature::Secp256k1(sig)
             }
             SigningKey::Secp256r1(sk) => {
                 let mut digest = sha2::Sha256::new();

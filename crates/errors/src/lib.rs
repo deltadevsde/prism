@@ -46,7 +46,7 @@ pub enum DatabaseError {
     KeysError(String),
     #[error("{0} not found")]
     NotFoundError(String),
-    #[error("retreiving input order list")]
+    #[error("retrieving input order list")]
     GetInputOrderError,
     #[error("reading {0} from database")]
     ReadError(String),
