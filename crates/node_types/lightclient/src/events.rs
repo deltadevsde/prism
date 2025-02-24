@@ -65,6 +65,7 @@ impl fmt::Display for LightClientEvent {
 pub struct EventInfo {
     pub event: LightClientEvent,
     pub time: SystemTime,
+    pub formatted_log: String,
 }
 
 // The event channel that components use to broadcast events
@@ -105,9 +106,11 @@ pub struct EventPublisher {
 
 impl EventPublisher {
     pub fn send(&self, event: LightClientEvent) {
+        let formatted_log = format!("{}", event);
         let event_info = EventInfo {
             event,
             time: SystemTime::now(),
+            formatted_log,
         };
         let _ = self.tx.send(event_info);
     }
