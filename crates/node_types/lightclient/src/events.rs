@@ -110,7 +110,7 @@ impl EventPublisher {
         let event_info = EventInfo {
             event,
             time: SystemTime::now(),
-            formatted_log,
+            event.to_string()
         };
         let _ = self.tx.send(event_info);
     }
