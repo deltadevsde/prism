@@ -409,10 +409,6 @@ impl Prover {
         let client = self.prover_client.read().await;
 
         info!("generating proof for epoch at height {}", epoch_height);
-        #[cfg(feature = "mock_prover")]
-        let proof = client.prove(&self.proving_key, &stdin).run()?;
-
-        #[cfg(not(feature = "mock_prover"))]
         let proof = client.prove(&self.proving_key, &stdin).groth16().run()?;
         info!("successfully generated proof for epoch {}", epoch_height);
 
