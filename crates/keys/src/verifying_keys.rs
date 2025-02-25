@@ -109,14 +109,14 @@ impl VerifyingKey {
         }
     }
 
-    pub fn verify_signature(&self, message: &[u8], signature: &Signature) -> Result<()> {
+    pub fn verify_signature(&self, message: impl AsRef<[u8]>, signature: &Signature) -> Result<()> {
         match self {
             VerifyingKey::Ed25519(vk) => {
                 let Signature::Ed25519(signature) = signature else {
                     bail!("Invalid signature type");
                 };
 
-                vk.verify(signature, message)
+                vk.verify(signature, message.as_ref())
                     .map_err(|e| anyhow!("Failed to verify ed25519 signature: {}", e))
             }
             VerifyingKey::Secp256k1(vk) => {
