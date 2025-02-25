@@ -9,7 +9,10 @@ use p256::ecdsa::{Signature as Secp256r1Signature, SigningKey as Secp256r1Signin
 
 use sha2::Digest as _;
 
-use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, VerifyingKey};
+use crate::{
+    cosmos::cosmos_adr36_hash_message, payload::CryptoPayload, CryptoAlgorithm, Signature,
+    VerifyingKey,
+};
 
 // We have to decide for now if we want to have conditional compilation here or in prism_common etc. because they're relying on SigningKey, thats why we can't comment the whole file out for wasm in the current setup
 #[cfg(target_arch = "wasm32")]
@@ -31,6 +34,7 @@ pub enum SigningKey {
     Secp256k1(Secp256k1SigningKey),
     Secp256r1(Secp256r1SigningKey),
     Eip191(Secp256k1SigningKey),
+    CosmosAdr36(Secp256k1SigningKey),
 }
 
 impl SigningKey {
@@ -50,12 +54,17 @@ impl SigningKey {
         SigningKey::Eip191(Secp256k1SigningKey::random(&mut get_rng()))
     }
 
+    pub fn new_cosmos_adr36() -> Self {
+        SigningKey::CosmosAdr36(Secp256k1SigningKey::random(&mut get_rng()))
+    }
+
     pub fn new_with_algorithm(algorithm: CryptoAlgorithm) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => Ok(SigningKey::new_ed25519()),
             CryptoAlgorithm::Secp256k1 => Ok(SigningKey::new_secp256k1()),
             CryptoAlgorithm::Secp256r1 => Ok(SigningKey::new_secp256r1()),
             CryptoAlgorithm::Eip191 => Ok(SigningKey::new_eip191()),
+            CryptoAlgorithm::CosmosAdr36 => Ok(SigningKey::new_cosmos_adr36()),
         }
     }
 
@@ -69,6 +78,7 @@ impl SigningKey {
             SigningKey::Secp256k1(sk) => sk.to_bytes().to_vec(),
             SigningKey::Secp256r1(sk) => sk.to_bytes().to_vec(),
             SigningKey::Eip191(sk) => sk.to_bytes().to_vec(),
+            SigningKey::CosmosAdr36(sk) => sk.to_bytes().to_vec(),
         }
     }
 
@@ -86,6 +96,9 @@ impl SigningKey {
             CryptoAlgorithm::Eip191 => {
                 Secp256k1SigningKey::from_slice(bytes).map(SigningKey::Eip191).map_err(|e| e.into())
             }
+            CryptoAlgorithm::CosmosAdr36 => Secp256k1SigningKey::from_slice(bytes)
+                .map(SigningKey::CosmosAdr36)
+                .map_err(|e| e.into()),
         }
     }
 
@@ -95,6 +108,7 @@ impl SigningKey {
             SigningKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
             SigningKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
             SigningKey::Eip191(_) => CryptoAlgorithm::Eip191,
+            SigningKey::CosmosAdr36(_) => CryptoAlgorithm::CosmosAdr36,
         }
     }
 
@@ -115,6 +129,11 @@ impl SigningKey {
             }
             SigningKey::Eip191(sk) => {
                 let message = eip191_hash_message(message);
+                let sig: Secp256k1Signature = sk.sign_prehash(message.as_slice()).unwrap();
+                Signature::Secp256k1(sig)
+            }
+            SigningKey::CosmosAdr36(sk) => {
+                let message = cosmos_adr36_hash_message(message, sk.verifying_key()).unwrap();
                 let sig: Secp256k1Signature = sk.sign_prehash(message.as_slice()).unwrap();
                 Signature::Secp256k1(sig)
             }

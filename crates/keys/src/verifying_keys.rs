@@ -23,7 +23,10 @@ use utoipa::{
     PartialSchema, ToSchema,
 };
 
-use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, SigningKey};
+use crate::{
+    cosmos::cosmos_adr36_hash_message, payload::CryptoPayload, CryptoAlgorithm, Signature,
+    SigningKey,
+};
 use prism_serde::base64::{FromBase64, ToBase64};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -34,10 +37,12 @@ pub enum VerifyingKey {
     Secp256k1(Secp256k1VerifyingKey),
     /// Cosmos, OpenSSH, GnuPG
     Ed25519(Ed25519VerifyingKey),
-    // TLS, X.509 PKI, Passkeys
+    /// TLS, X.509 PKI, Passkeys
     Secp256r1(Secp256r1VerifyingKey),
     /// Verifies signatures according to EIP-191
     Eip191(Secp256k1VerifyingKey),
+    /// Verifies signatures according to Cosmos ADR-36
+    CosmosAdr36(Secp256k1VerifyingKey),
 }
 
 impl Hash for VerifyingKey {
@@ -59,6 +64,10 @@ impl Hash for VerifyingKey {
                 state.write_u8(3);
                 self.to_bytes().hash(state);
             }
+            VerifyingKey::CosmosAdr36(_) => {
+                state.write_u8(4);
+                self.to_bytes().hash(state);
+            }
         }
     }
 }
@@ -71,6 +80,7 @@ impl VerifyingKey {
             VerifyingKey::Secp256k1(vk) => vk.to_sec1_bytes().to_vec(),
             VerifyingKey::Secp256r1(vk) => vk.to_sec1_bytes().to_vec(),
             VerifyingKey::Eip191(vk) => vk.to_sec1_bytes().to_vec(),
+            VerifyingKey::CosmosAdr36(vk) => vk.to_sec1_bytes().to_vec(),
         }
     }
 
@@ -80,6 +90,9 @@ impl VerifyingKey {
             VerifyingKey::Secp256k1(vk) => vk.to_public_key_der()?.into_vec(),
             VerifyingKey::Secp256r1(vk) => vk.to_public_key_der()?.into_vec(),
             VerifyingKey::Eip191(_) => bail!("EIP-191 vk to DER format is not implemented"),
+            VerifyingKey::CosmosAdr36(_) => {
+                bail!("Cosmos ADR-36 vk to DER format is not implemented")
+            }
         };
         Ok(der)
     }
@@ -98,6 +111,9 @@ impl VerifyingKey {
             CryptoAlgorithm::Eip191 => Secp256k1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::Eip191)
                 .map_err(|e| e.into()),
+            CryptoAlgorithm::CosmosAdr36 => Secp256k1VerifyingKey::from_sec1_bytes(bytes)
+                .map(VerifyingKey::CosmosAdr36)
+                .map_err(|e| e.into()),
         }
     }
 
@@ -111,6 +127,9 @@ impl VerifyingKey {
                 .map(VerifyingKey::Secp256r1)
                 .map_err(|e| e.into()),
             CryptoAlgorithm::Eip191 => bail!("Eth vk from DER format is not implemented"),
+            CryptoAlgorithm::CosmosAdr36 => {
+                bail!("Cosmos ADR-36 vk from DER format is not implemented")
+            }
         }
     }
 
@@ -120,6 +139,7 @@ impl VerifyingKey {
             VerifyingKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
             VerifyingKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
             VerifyingKey::Eip191(_) => CryptoAlgorithm::Eip191,
+            VerifyingKey::CosmosAdr36(_) => CryptoAlgorithm::CosmosAdr36,
         }
     }
 
@@ -160,6 +180,14 @@ impl VerifyingKey {
                 let prehash = eip191_hash_message(message);
                 vk.verify_prehash(prehash.as_slice(), signature)
                     .map_err(|e| anyhow!("Failed to verify EIP-191 signature: {}", e))
+            }
+            VerifyingKey::CosmosAdr36(vk) => {
+                let Signature::Secp256k1(signature) = signature else {
+                    bail!("Verifying key for cosmos ADR-36 can only verify secp256k1 signatures");
+                };
+                let prehash = cosmos_adr36_hash_message(message, vk)?;
+                vk.verify_prehash(&prehash, signature)
+                    .map_err(|e| anyhow!("Failed to verify cosmos ADR-36 signature: {}", e))
             }
         }
     }
@@ -225,6 +253,7 @@ impl From<SigningKey> for VerifyingKey {
             SigningKey::Secp256k1(sk) => sk.into(),
             SigningKey::Secp256r1(sk) => sk.into(),
             SigningKey::Eip191(sk) => sk.into(),
+            SigningKey::CosmosAdr36(sk) => sk.into(),
         }
     }
 }

@@ -13,6 +13,8 @@ pub enum CryptoAlgorithm {
     Secp256r1,
     /// Signatures according to ethereum's EIP-191
     Eip191,
+    /// Signatures according to Cosmos' ADR-36
+    CosmosAdr36,
 }
 
 impl std::str::FromStr for CryptoAlgorithm {
@@ -24,6 +26,7 @@ impl std::str::FromStr for CryptoAlgorithm {
             "secp256k1" => Ok(CryptoAlgorithm::Secp256k1),
             "secp256r1" => Ok(CryptoAlgorithm::Secp256r1),
             "eip191" => Ok(CryptoAlgorithm::Eip191),
+            "cosmos_adr36" => Ok(CryptoAlgorithm::CosmosAdr36),
             _ => Err(()),
         }
     }
