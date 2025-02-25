@@ -11,6 +11,8 @@ pub enum CryptoAlgorithm {
     Secp256k1,
     /// ECDSA signatures using the NIST P-256 curve, also known as prime256v1
     Secp256r1,
+    /// Signatures according to ethereum's EIP-191
+    Eip191,
 }
 
 impl std::str::FromStr for CryptoAlgorithm {
@@ -21,6 +23,7 @@ impl std::str::FromStr for CryptoAlgorithm {
             "ed25519" => Ok(CryptoAlgorithm::Ed25519),
             "secp256k1" => Ok(CryptoAlgorithm::Secp256k1),
             "secp256r1" => Ok(CryptoAlgorithm::Secp256r1),
+            "eip191" => Ok(CryptoAlgorithm::Eip191),
             _ => Err(()),
         }
     }

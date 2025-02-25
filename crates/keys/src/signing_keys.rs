@@ -1,8 +1,9 @@
+use alloy_primitives::eip191_hash_message;
 use anyhow::Result;
 use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use k256::ecdsa::{
-    signature::DigestSigner as P256DigestSigner, Signature as Secp256k1Signature,
-    SigningKey as Secp256k1SigningKey,
+    signature::{hazmat::PrehashSigner, DigestSigner as P256DigestSigner},
+    Signature as Secp256k1Signature, SigningKey as Secp256k1SigningKey,
 };
 use p256::ecdsa::{Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey};
 
@@ -29,6 +30,7 @@ pub enum SigningKey {
     Ed25519(Box<Ed25519SigningKey>),
     Secp256k1(Secp256k1SigningKey),
     Secp256r1(Secp256r1SigningKey),
+    Eip191(Secp256k1SigningKey),
 }
 
 impl SigningKey {
@@ -44,11 +46,16 @@ impl SigningKey {
         SigningKey::Secp256r1(Secp256r1SigningKey::random(&mut get_rng()))
     }
 
+    pub fn new_eip191() -> Self {
+        SigningKey::Eip191(Secp256k1SigningKey::random(&mut get_rng()))
+    }
+
     pub fn new_with_algorithm(algorithm: CryptoAlgorithm) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => Ok(SigningKey::new_ed25519()),
             CryptoAlgorithm::Secp256k1 => Ok(SigningKey::new_secp256k1()),
             CryptoAlgorithm::Secp256r1 => Ok(SigningKey::new_secp256r1()),
+            CryptoAlgorithm::Eip191 => Ok(SigningKey::new_eip191()),
         }
     }
 
@@ -61,6 +68,7 @@ impl SigningKey {
             SigningKey::Ed25519(sk) => sk.to_bytes().to_vec(),
             SigningKey::Secp256k1(sk) => sk.to_bytes().to_vec(),
             SigningKey::Secp256r1(sk) => sk.to_bytes().to_vec(),
+            SigningKey::Eip191(sk) => sk.to_bytes().to_vec(),
         }
     }
 
@@ -75,6 +83,9 @@ impl SigningKey {
             CryptoAlgorithm::Secp256r1 => Secp256r1SigningKey::from_slice(bytes)
                 .map(SigningKey::Secp256r1)
                 .map_err(|e| e.into()),
+            CryptoAlgorithm::Eip191 => {
+                Secp256k1SigningKey::from_slice(bytes).map(SigningKey::Eip191).map_err(|e| e.into())
+            }
         }
     }
 
@@ -83,6 +94,7 @@ impl SigningKey {
             SigningKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
             SigningKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
             SigningKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
+            SigningKey::Eip191(_) => CryptoAlgorithm::Eip191,
         }
     }
 
@@ -100,6 +112,11 @@ impl SigningKey {
                 digest.update(message);
                 let sig: Secp256r1Signature = sk.sign_digest(digest);
                 Signature::Secp256r1(sig)
+            }
+            SigningKey::Eip191(sk) => {
+                let message = eip191_hash_message(message);
+                let sig: Secp256k1Signature = sk.sign_prehash(message.as_slice()).unwrap();
+                Signature::Secp256k1(sig)
             }
         }
     }

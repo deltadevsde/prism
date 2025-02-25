@@ -19,6 +19,9 @@ ed25519-consensus.workspace = true
 k256.workspace = true
 p256.workspace = true
 
+# signatures
+alloy-primitives.workspace = true
+
 # misc
 anyhow.workspace = true
 sha2.workspace = true
