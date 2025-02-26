@@ -1,15 +1,15 @@
 use alloy_primitives::eip191_hash_message;
 use anyhow::{anyhow, bail, Result};
-use ed25519_consensus::{SigningKey as Ed25519SigningKey, VerificationKey as Ed25519VerifyingKey};
+use ed25519_consensus::VerificationKey as Ed25519VerifyingKey;
 use p256::{
     ecdsa::{
         signature::{hazmat::PrehashVerifier, DigestVerifier},
-        SigningKey as Secp256r1SigningKey, VerifyingKey as Secp256r1VerifyingKey,
+        VerifyingKey as Secp256r1VerifyingKey,
     },
     pkcs8::{DecodePublicKey, EncodePublicKey},
 };
 
-use k256::ecdsa::{SigningKey as Secp256k1SigningKey, VerifyingKey as Secp256k1VerifyingKey};
+use k256::ecdsa::VerifyingKey as Secp256k1VerifyingKey;
 
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
@@ -210,50 +210,14 @@ impl From<VerifyingKey> for CryptoPayload {
     }
 }
 
-impl From<Ed25519VerifyingKey> for VerifyingKey {
-    fn from(vk: Ed25519VerifyingKey) -> Self {
-        VerifyingKey::Ed25519(vk)
-    }
-}
-
-impl From<Secp256k1VerifyingKey> for VerifyingKey {
-    fn from(vk: Secp256k1VerifyingKey) -> Self {
-        VerifyingKey::Secp256k1(vk)
-    }
-}
-
-impl From<Secp256r1VerifyingKey> for VerifyingKey {
-    fn from(vk: Secp256r1VerifyingKey) -> Self {
-        VerifyingKey::Secp256r1(vk)
-    }
-}
-
-impl From<Ed25519SigningKey> for VerifyingKey {
-    fn from(sk: Ed25519SigningKey) -> Self {
-        VerifyingKey::Ed25519(sk.verification_key())
-    }
-}
-
-impl From<Secp256k1SigningKey> for VerifyingKey {
-    fn from(sk: Secp256k1SigningKey) -> Self {
-        VerifyingKey::Secp256k1(sk.verifying_key().to_owned())
-    }
-}
-
-impl From<Secp256r1SigningKey> for VerifyingKey {
-    fn from(sk: Secp256r1SigningKey) -> Self {
-        VerifyingKey::Secp256r1(sk.verifying_key().to_owned())
-    }
-}
-
 impl From<SigningKey> for VerifyingKey {
     fn from(sk: SigningKey) -> Self {
         match sk {
-            SigningKey::Ed25519(sk) => (*sk).into(),
-            SigningKey::Secp256k1(sk) => sk.into(),
-            SigningKey::Secp256r1(sk) => sk.into(),
-            SigningKey::Eip191(sk) => sk.into(),
-            SigningKey::CosmosAdr36(sk) => sk.into(),
+            SigningKey::Ed25519(sk) => VerifyingKey::Ed25519((*sk).verification_key()),
+            SigningKey::Secp256k1(sk) => VerifyingKey::Secp256k1(sk.verifying_key().to_owned()),
+            SigningKey::Secp256r1(sk) => VerifyingKey::Secp256r1(sk.verifying_key().to_owned()),
+            SigningKey::Eip191(sk) => VerifyingKey::Eip191(sk.verifying_key().to_owned()),
+            SigningKey::CosmosAdr36(sk) => VerifyingKey::CosmosAdr36(sk.verifying_key().to_owned()),
         }
     }
 }
