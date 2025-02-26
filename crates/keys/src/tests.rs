@@ -168,6 +168,37 @@ mod key_tests {
     }
 
     #[test]
+    fn test_created_signatures_can_be_verified() {
+        let message = b"test message";
+
+        for algorithm in CryptoAlgorithm::all() {
+            let signing_key = SigningKey::new_with_algorithm(algorithm).unwrap();
+            let verifying_key = signing_key.verifying_key();
+
+            // Ensure a signature can be created with the signing key
+            let signature = signing_key.sign(message);
+
+            // Ensure the signature can be verified with the verifying key
+            let result = verifying_key.verify_signature(message, &signature);
+            assert!(
+                result.is_ok(),
+                "Verification failed for algorithm {:?}: {}",
+                algorithm,
+                result.err().unwrap()
+            );
+
+            // Verify that a tampered message fails
+            let tampered_message = b"tampered message";
+            let result = verifying_key.verify_signature(tampered_message, &signature);
+            assert!(
+                result.is_err(),
+                "Verification of tampered message should fail for algorithm: {:?}",
+                algorithm
+            );
+        }
+    }
+
+    #[test]
     fn test_eip191_wallet_signatures_can_be_verified() {
         // ETHEREUM EIP-191 Signatures
         // A hex encoded signature was created using metamask wallet.
