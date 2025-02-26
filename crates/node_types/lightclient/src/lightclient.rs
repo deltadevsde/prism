@@ -127,15 +127,7 @@ impl LightClient {
                         .map_err(|e| anyhow::anyhow!("Invalid signature: {:?}", e))?;
                 }
 
-                // Get public values from proof
-                let public_values = match &finalized_epoch.proof {
-                    #[cfg(target_arch = "wasm32")]
-                    proof => proof.as_slice(),
-                    #[cfg(not(target_arch = "wasm32"))]
-                    proof => proof.public_values.as_slice(),
-                };
-
-                if public_values.len() < 64 {
+                if finalized_epoch.public_values.len() < 64 {
                     return Err(anyhow::anyhow!(
                         "Public values length is less than 64 bytes"
                     ));
@@ -143,7 +135,7 @@ impl LightClient {
 
                 // Extract and verify commitments
                 let (proof_prev_commitment, proof_current_commitment) =
-                    self.extract_commitments(public_values)?;
+                    self.extract_commitments(&finalized_epoch.public_values)?;
 
                 self.verify_commitments(
                     &finalized_epoch,
@@ -156,7 +148,10 @@ impl LightClient {
 
                 // Verify SNARK proof
                 #[cfg(not(feature = "mock_prover"))]
-                self.verify_snark_proof(&finalized_epoch, public_values)?;
+                self.verify_snark_proof(
+                    &finalized_epoch,
+                    finalized_epoch.public_values.as_slice(),
+                )?;
 
                 #[cfg(feature = "mock_prover")]
                 info!("mock_prover is activated, skipping proof verification");
