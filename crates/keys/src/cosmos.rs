@@ -54,6 +54,17 @@ impl CosmosSignDoc {
     }
 }
 
+/// Hashes a message according to the Cosmos ADR-36 specification.
+///
+/// This function creates a standardized Cosmos sign doc from the provided message,
+/// serializes it according to ADR-36 requirements, and returns its SHA256 hash.
+///
+/// # Arguments
+/// * `message` - The message to be hashed, which can be any type that can be referenced as a byte slice
+/// * `verifying_key` - The Secp256k1 verifying key associated with the signer
+///
+/// # Returns
+/// * `Result<Vec<u8>>` - The SHA256 hash of the serialized sign doc or an error
 pub fn cosmos_adr36_hash_message(
     message: impl AsRef<[u8]>,
     verifying_key: &Secp256k1VerifyingKey,
@@ -69,6 +80,18 @@ pub fn cosmos_adr36_hash_message(
     Ok(hashed_sign_doc)
 }
 
+/// Creates a serialized Cosmos ADR-36 sign document.
+///
+/// This function constructs a CosmosSignDoc with the provided data and signer,
+/// serializes it to JSON, and escapes certain HTML special characters to comply
+/// with ADR-36 requirements.
+///
+/// # Arguments
+/// * `data` - The binary data to be included in the sign document
+/// * `signer` - The bech32-encoded address of the signer
+///
+/// # Returns
+/// * `Result<Vec<u8>>` - The serialized sign document as bytes or an error
 fn create_serialized_adr36_sign_doc(data: Vec<u8>, signer: String) -> Result<Vec<u8>> {
     let adr36_sign_doc = CosmosSignDoc::new(signer, data);
 
@@ -79,6 +102,20 @@ fn create_serialized_adr36_sign_doc(data: Vec<u8>, signer: String) -> Result<Vec
     Ok(sign_doc_str.into_bytes())
 }
 
+/// Derives a Cosmos bech32-encoded address from a Secp256k1 verifying key.
+///
+/// This follows the Cosmos address derivation process:
+/// 1. Takes the SEC1-encoded public key bytes
+/// 2. Computes SHA256 hash of those bytes
+/// 3. Computes RIPEMD160 hash of the SHA256 result
+/// 4. Encodes the resulting 20-byte hash with bech32 using the provided prefix
+///
+/// # Arguments
+/// * `address_prefix` - The bech32 human-readable part (e.g., "cosmos")
+/// * `verifying_key` - The Secp256k1 verifying key to derive the address from
+///
+/// # Returns
+/// * `Result<String>` - The bech32-encoded address or an error
 fn signer_from_key(address_prefix: &str, verifying_key: &Secp256k1VerifyingKey) -> Result<String> {
     let verifying_key_bytes = verifying_key.to_sec1_bytes();
     let hashed_key_bytes = Sha256::digest(verifying_key_bytes);
