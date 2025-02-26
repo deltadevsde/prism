@@ -17,6 +17,19 @@ pub enum CryptoAlgorithm {
     CosmosAdr36,
 }
 
+impl CryptoAlgorithm {
+    /// Returns a vector containing all variants of `CryptoAlgorithm`.
+    pub fn all() -> Vec<Self> {
+        vec![
+            Self::Ed25519,
+            Self::Secp256k1,
+            Self::Secp256r1,
+            Self::Eip191,
+            Self::CosmosAdr36,
+        ]
+    }
+}
+
 impl std::str::FromStr for CryptoAlgorithm {
     type Err = ();
 
