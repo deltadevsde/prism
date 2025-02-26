@@ -2,7 +2,7 @@ use alloy_primitives::eip191_hash_message;
 use anyhow::Result;
 use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use k256::ecdsa::{
-    signature::{hazmat::PrehashSigner, DigestSigner as P256DigestSigner},
+    signature::{hazmat::PrehashSigner, DigestSigner},
     Signature as Secp256k1Signature, SigningKey as Secp256k1SigningKey,
 };
 use p256::ecdsa::{Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey};
