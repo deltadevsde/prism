@@ -106,11 +106,11 @@ pub struct EventPublisher {
 
 impl EventPublisher {
     pub fn send(&self, event: LightClientEvent) {
-        let formatted_log = format!("{}", event);
+        let formatted_log = event.to_string();
         let event_info = EventInfo {
             event,
             time: SystemTime::now(),
-            event.to_string()
+            formatted_log,
         };
         let _ = self.tx.send(event_info);
     }
