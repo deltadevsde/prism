@@ -147,6 +147,8 @@ impl PartialEq for SigningKey {
             (SigningKey::Ed25519(a), SigningKey::Ed25519(b)) => a.as_bytes() == b.as_bytes(),
             (SigningKey::Secp256k1(a), SigningKey::Secp256k1(b)) => a == b,
             (SigningKey::Secp256r1(a), SigningKey::Secp256r1(b)) => a == b,
+            (SigningKey::Eip191(a), SigningKey::Eip191(b)) => a == b,
+            (SigningKey::CosmosAdr36(a), SigningKey::CosmosAdr36(b)) => a == b,
             _ => false,
         }
     }
