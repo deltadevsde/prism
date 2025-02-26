@@ -33,6 +33,7 @@ pub struct FinalizedEpoch {
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
     pub proof: Groth16Proof,
+    pub public_values: Vec<u8>,
     pub signature: Option<String>,
 }
 
@@ -50,6 +51,7 @@ impl FinalizedEpoch {
             prev_commitment: self.prev_commitment,
             current_commitment: self.current_commitment,
             proof: self.proof.clone(),
+            public_values: self.public_values.clone(),
             signature: None,
         };
 

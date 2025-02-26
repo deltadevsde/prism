@@ -2,9 +2,28 @@
 sp1_zkvm::entrypoint!(main);
 
 use prism_tree::proofs::Batch;
+use sp1_verifier::{Groth16Verifier, GROTH16_VK_BYTES};
 
 pub fn main() {
     println!("cycle-tracker-start: setup");
+
+    let has_previous_proof = sp1_zkvm::io::read::<bool>();
+    if has_previous_proof {
+        println!("recursive verification");
+
+        let proof = sp1_zkvm::io::read_vec();
+        let public_values = sp1_zkvm::io::read_vec();
+        let vkey_hash = sp1_zkvm::io::read::<String>();
+
+        let result = Groth16Verifier::verify(&proof, &public_values, &vkey_hash, &GROTH16_VK_BYTES);
+
+        if result.is_err() {
+            panic!("recursive verification failed");
+        }
+
+        println!("recursive verification succeeded");
+    }
+
     let batch = sp1_zkvm::io::read::<Batch>();
     println!("cycle-tracker-end: setup");
     sp1_zkvm::io::commit_slice(&batch.prev_root.0);

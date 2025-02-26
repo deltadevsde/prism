@@ -405,21 +405,43 @@ impl Prover {
 
     async fn prove_epoch(&self, epoch_height: u64, batch: &Batch) -> Result<FinalizedEpoch> {
         let mut stdin = SP1Stdin::new();
+        let has_previous_proof = epoch_height > 0;
+        stdin.write(&has_previous_proof);
+
+        if has_previous_proof {
+            if let Ok(Some(prev_epoch)) = self.da.get_finalized_epoch(epoch_height - 1).await {
+                stdin.write_vec(prev_epoch.proof.bytes());
+                stdin.write_vec(prev_epoch.public_values.to_vec());
+                stdin.write(&self.verifying_key.bytes32());
+            } else {
+                // No previous epoch found, update the flag
+                stdin.write(&false); // Overwrite has_previous_proof
+            }
+        }
+
         stdin.write(&batch);
+
         let client = self.prover_client.read().await;
 
         info!("generating proof for epoch at height {}", epoch_height);
+<<<<<<< HEAD
+=======
+
+>>>>>>> ec6be38 (feat: start with recursive snark)
         let proof = client.prove(&self.proving_key, &stdin).groth16().run()?;
         info!("successfully generated proof for epoch {}", epoch_height);
 
         client.verify(&proof, &self.verifying_key)?;
         info!("verified proof for epoch {}", epoch_height);
 
+        let public_values = proof.public_values.to_vec();
+
         let mut epoch_json = FinalizedEpoch {
             height: epoch_height,
             prev_commitment: batch.prev_root,
             current_commitment: batch.new_root,
             proof,
+            public_values,
             signature: None,
         };
 
