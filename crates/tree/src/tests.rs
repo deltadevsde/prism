@@ -228,7 +228,7 @@ fn test_data_ops(algorithm: CryptoAlgorithm) {
 
     let random_signing_key = SigningKey::new_with_algorithm(algorithm).unwrap();
     // invalid, because it does not sign the exact data we will add below
-    let invalid_signature = random_signing_key.sign(b"abc");
+    let invalid_signature = random_signing_key.sign(b"abc").unwrap();
     let invalid_signature_bundle = SignatureBundle {
         verifying_key: random_signing_key.verifying_key(),
         signature: invalid_signature,

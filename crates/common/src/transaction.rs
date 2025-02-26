@@ -24,7 +24,7 @@ impl UnsignedTransaction {
     /// Signs the transaction with the given [`SigningKey`] and gives out a full [`Transaction`].
     pub fn sign(self, sk: &SigningKey) -> Result<Transaction, TransactionError> {
         let bytes = self.signing_payload()?;
-        let signature = sk.sign(&bytes);
+        let signature = sk.sign(&bytes).map_err(|_| TransactionError::SigningFailed)?;
 
         Ok(Transaction {
             id: self.id,

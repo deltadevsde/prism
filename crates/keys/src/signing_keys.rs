@@ -112,30 +112,30 @@ impl SigningKey {
         }
     }
 
-    pub fn sign(&self, message: impl AsRef<[u8]>) -> Signature {
+    pub fn sign(&self, message: impl AsRef<[u8]>) -> Result<Signature> {
         match self {
-            SigningKey::Ed25519(sk) => Signature::Ed25519(sk.sign(message.as_ref())),
+            SigningKey::Ed25519(sk) => Ok(Signature::Ed25519(sk.sign(message.as_ref()))),
             SigningKey::Secp256k1(sk) => {
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
-                let sig: Secp256k1Signature = sk.sign_digest(digest);
-                Signature::Secp256k1(sig)
+                let sig: Secp256k1Signature = sk.try_sign_digest(digest)?;
+                Ok(Signature::Secp256k1(sig))
             }
             SigningKey::Secp256r1(sk) => {
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
-                let sig: Secp256r1Signature = sk.sign_digest(digest);
-                Signature::Secp256r1(sig)
+                let sig: Secp256r1Signature = sk.try_sign_digest(digest)?;
+                Ok(Signature::Secp256r1(sig))
             }
             SigningKey::Eip191(sk) => {
                 let message = eip191_hash_message(message);
-                let sig: Secp256k1Signature = sk.sign_prehash(message.as_slice()).unwrap();
-                Signature::Secp256k1(sig)
+                let sig: Secp256k1Signature = sk.sign_prehash(message.as_slice())?;
+                Ok(Signature::Secp256k1(sig))
             }
             SigningKey::CosmosAdr36(sk) => {
-                let message = cosmos_adr36_hash_message(message, sk.verifying_key()).unwrap();
-                let sig: Secp256k1Signature = sk.sign_prehash(message.as_slice()).unwrap();
-                Signature::Secp256k1(sig)
+                let message = cosmos_adr36_hash_message(message, sk.verifying_key())?;
+                let sig: Secp256k1Signature = sk.sign_prehash(message.as_slice())?;
+                Ok(Signature::Secp256k1(sig))
             }
         }
     }

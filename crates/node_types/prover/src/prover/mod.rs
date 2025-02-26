@@ -430,7 +430,7 @@ impl Prover {
             signature: None,
         };
 
-        epoch_json.insert_signature(&self.cfg.signing_key);
+        epoch_json.insert_signature(&self.cfg.signing_key)?;
         Ok(epoch_json)
     }
 

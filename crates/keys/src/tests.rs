@@ -117,7 +117,7 @@ mod key_tests {
     fn test_reparsed_signatures_are_equal_to_original() {
         let message = b"test message";
 
-        let signature_ed25519 = SigningKey::new_ed25519().sign(message);
+        let signature_ed25519 = SigningKey::new_ed25519().sign(message).unwrap();
         let re_parsed_signature = Signature::from_algorithm_and_bytes(
             signature_ed25519.algorithm(),
             &signature_ed25519.to_bytes(),
@@ -125,7 +125,7 @@ mod key_tests {
         .unwrap();
         assert_eq!(re_parsed_signature, signature_ed25519);
 
-        let signature_secp256k1 = SigningKey::new_secp256k1().sign(message);
+        let signature_secp256k1 = SigningKey::new_secp256k1().sign(message).unwrap();
         let re_parsed_signature = Signature::from_algorithm_and_bytes(
             signature_secp256k1.algorithm(),
             &signature_secp256k1.to_bytes(),
@@ -133,7 +133,7 @@ mod key_tests {
         .unwrap();
         assert_eq!(re_parsed_signature, signature_secp256k1);
 
-        let signature_secp256r1 = SigningKey::new_secp256r1().sign(message);
+        let signature_secp256r1 = SigningKey::new_secp256r1().sign(message).unwrap();
         let re_parsed_signature = Signature::from_algorithm_and_bytes(
             signature_secp256r1.algorithm(),
             &signature_secp256r1.to_bytes(),
@@ -148,7 +148,7 @@ mod key_tests {
     fn test_reparsed_der_signatures_are_equal_to_original() {
         let message = b"test message";
 
-        let signature_secp256k1 = SigningKey::new_secp256k1().sign(message);
+        let signature_secp256k1 = SigningKey::new_secp256k1().sign(message).unwrap();
         let re_parsed_signature = Signature::from_algorithm_and_der(
             signature_secp256k1.algorithm(),
             &signature_secp256k1.to_der().unwrap(),
@@ -156,7 +156,7 @@ mod key_tests {
         .unwrap();
         assert_eq!(re_parsed_signature, signature_secp256k1);
 
-        let signature_secp256r1 = SigningKey::new_secp256r1().sign(message);
+        let signature_secp256r1 = SigningKey::new_secp256r1().sign(message).unwrap();
         let re_parsed_signature = Signature::from_algorithm_and_der(
             signature_secp256r1.algorithm(),
             &signature_secp256r1.to_der().unwrap(),
@@ -176,7 +176,7 @@ mod key_tests {
             let verifying_key = signing_key.verifying_key();
 
             // Ensure a signature can be created with the signing key
-            let signature = signing_key.sign(message);
+            let signature = signing_key.sign(message).unwrap();
 
             // Ensure the signature can be verified with the verifying key
             let result = verifying_key.verify_signature(message, &signature);
