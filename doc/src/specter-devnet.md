@@ -1,13 +1,13 @@
 # 👻 Specter Devnet: Enter the Haunted Realm 👻
 
-Welcome, valiant explorer, to the Prism Specter Devnet—your gateway to the powerful capabilities of the based rollup on Celestia's Mocha testnet. Proceed with caution! This devnet is currently populated with mock proofs and is intended solely for development and testing purposes. **It is not suitable for production use.** Please be aware that the Specter Devnet may undergo changes at any time, including breaking modifications that could affect your work.
+Welcome, valiant explorer, to the Prism Specter Devnet—your gateway to the powerful capabilities of the based rollup on Celestia's Mocha testnet. Proceed with caution! **It is not suitable for production use.** Please be aware that the Specter Devnet may undergo changes at any time, including breaking modifications that could affect your work.
 
 ---
 
 ## 🛠️ Used Versions 🛠️
 
-- **Celestia DA**: `e11cd71`
-- **Prism**: `pr-205`
+- **Celestia DA**: `v0.12.5-mocha`
+- **Prism**: `pr-232`
 
 **Note:** These versions are current and may be updated as the devnet evolves.
 
@@ -22,7 +22,7 @@ Unlock the secrets of the Specter Devnet with this verifying key (for testing pu
 
 ---
 
-## 🌌 Celestial Namespaces 🌌
+## 🌌 Celestia Namespaces 🌌
 
 The Prism Specter Devnet haunts the Celestia Mocha testnet, weaving its spectral web across two distinct namespaces:
 
@@ -33,6 +33,8 @@ The Prism Specter Devnet haunts the Celestia Mocha testnet, weaving its spectral
   `000000000000000000000000000000000000707269736d5350457330`
 
 **Note:** These namespaces are subject to change as the devnet evolves.
+
+**Celestia Height Start**: `4857830`
 
 ---
 
@@ -53,12 +55,6 @@ To commune with the Specter Devnet, use the following network endpoints. **Pleas
 
 - **Swapper UI**:  
   [specter-api.prism.boo/swagger-ui](https://specter-api.prism.boo/swagger-ui)
-
-### 🧛 Celestia DA Bootnode 🧛
-
-Connect with the Celestia DA Bootnode through this haunted multiaddress:
-
-`/dnsaddr/specter-da.prism.boo/p2p/12D3KooWEZT41VXGhYJQEBEb3Hv9tzwCrWC9DtjYCJTsbXjTigLL`
 
 ---
 
