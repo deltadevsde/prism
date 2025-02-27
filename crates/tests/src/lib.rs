@@ -34,13 +34,7 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 
 #[tokio::test]
 async fn test_light_client_prover_talking() -> Result<()> {
-    std::env::set_var(
-        "RUST_LOG",
-        "DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
-    );
     pretty_env_logger::init();
-
-    std::env::set_var("SP1_PROVER", "mock");
 
     let prover_client = ProverClient::from_env();
 
