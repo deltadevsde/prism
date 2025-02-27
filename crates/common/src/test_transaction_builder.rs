@@ -187,7 +187,7 @@ impl TestTransactionBuilder {
         // Simulate some external service signing account creation credentials
         let vk = signing_key.verifying_key();
         let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.to_bytes()]);
-        let signature = service_signing_key.sign(hash);
+        let signature = service_signing_key.sign(hash).unwrap();
 
         let op = Operation::CreateAccount {
             id: id.to_string(),
@@ -341,7 +341,7 @@ impl TestTransactionBuilder {
     ) -> UncommittedTransaction {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
-            signature: value_signing_key.sign(&value),
+            signature: value_signing_key.sign(&value).unwrap(),
         };
         self.add_pre_signed_data(id, value, value_signature_bundle, signing_key)
     }
@@ -354,7 +354,7 @@ impl TestTransactionBuilder {
     ) -> UncommittedTransaction {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
-            signature: value_signing_key.sign(&value),
+            signature: value_signing_key.sign(&value).unwrap(),
         };
         self.add_pre_signed_data_verified_with_root(id, value, value_signature_bundle)
     }
@@ -386,7 +386,7 @@ impl TestTransactionBuilder {
     ) -> UncommittedTransaction {
         let bundle = SignatureBundle {
             verifying_key: signing_key.verifying_key(),
-            signature: signing_key.sign(&value),
+            signature: signing_key.sign(&value).unwrap(),
         };
         self.add_data(id, value, bundle, signing_key)
     }
@@ -403,7 +403,7 @@ impl TestTransactionBuilder {
         let account_signing_key = account_signing_keys.first().unwrap();
         let bundle = SignatureBundle {
             verifying_key: account_signing_key.verifying_key(),
-            signature: account_signing_key.sign(&value),
+            signature: account_signing_key.sign(&value).unwrap(),
         };
 
         self.add_data_verified_with_root(id, value, bundle)
@@ -486,7 +486,7 @@ impl TestTransactionBuilder {
         let account_signing_key = account_signing_keys.first().unwrap();
         let bundle = SignatureBundle {
             verifying_key: account_signing_key.verifying_key(),
-            signature: account_signing_key.sign(&value),
+            signature: account_signing_key.sign(&value).unwrap(),
         };
 
         self.set_pre_signed_data(id, value, bundle, account_signing_key)
@@ -501,7 +501,7 @@ impl TestTransactionBuilder {
     ) -> UncommittedTransaction {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
-            signature: value_signing_key.sign(&value),
+            signature: value_signing_key.sign(&value).unwrap(),
         };
         self.set_pre_signed_data(id, value, value_signature_bundle, signing_key)
     }
@@ -514,7 +514,7 @@ impl TestTransactionBuilder {
     ) -> UncommittedTransaction {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
-            signature: value_signing_key.sign(&value),
+            signature: value_signing_key.sign(&value).unwrap(),
         };
         self.set_pre_signed_data_verified_with_root(id, value, value_signature_bundle)
     }

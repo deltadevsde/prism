@@ -1,14 +1,15 @@
+use alloy_primitives::eip191_hash_message;
 use anyhow::{anyhow, bail, Result};
-use ed25519_consensus::{SigningKey as Ed25519SigningKey, VerificationKey as Ed25519VerifyingKey};
+use ed25519_consensus::VerificationKey as Ed25519VerifyingKey;
 use p256::{
     ecdsa::{
-        signature::DigestVerifier, SigningKey as Secp256r1SigningKey,
+        signature::{hazmat::PrehashVerifier, DigestVerifier},
         VerifyingKey as Secp256r1VerifyingKey,
     },
     pkcs8::{DecodePublicKey, EncodePublicKey},
 };
 
-use k256::ecdsa::{SigningKey as Secp256k1SigningKey, VerifyingKey as Secp256k1VerifyingKey};
+use k256::ecdsa::VerifyingKey as Secp256k1VerifyingKey;
 
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
@@ -22,7 +23,10 @@ use utoipa::{
     PartialSchema, ToSchema,
 };
 
-use crate::{payload::CryptoPayload, CryptoAlgorithm, Signature, SigningKey};
+use crate::{
+    cosmos::cosmos_adr36_hash_message, payload::CryptoPayload, CryptoAlgorithm, Signature,
+    SigningKey,
+};
 use prism_serde::base64::{FromBase64, ToBase64};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -33,8 +37,12 @@ pub enum VerifyingKey {
     Secp256k1(Secp256k1VerifyingKey),
     /// Cosmos, OpenSSH, GnuPG
     Ed25519(Ed25519VerifyingKey),
-    // TLS, X.509 PKI, Passkeys
+    /// TLS, X.509 PKI, Passkeys
     Secp256r1(Secp256r1VerifyingKey),
+    /// Verifies signatures according to EIP-191
+    Eip191(Secp256k1VerifyingKey),
+    /// Verifies signatures according to Cosmos ADR-36
+    CosmosAdr36(Secp256k1VerifyingKey),
 }
 
 impl Hash for VerifyingKey {
@@ -52,6 +60,14 @@ impl Hash for VerifyingKey {
                 state.write_u8(2);
                 self.to_bytes().hash(state);
             }
+            VerifyingKey::Eip191(_) => {
+                state.write_u8(3);
+                self.to_bytes().hash(state);
+            }
+            VerifyingKey::CosmosAdr36(_) => {
+                state.write_u8(4);
+                self.to_bytes().hash(state);
+            }
         }
     }
 }
@@ -63,6 +79,8 @@ impl VerifyingKey {
             VerifyingKey::Ed25519(vk) => vk.to_bytes().to_vec(),
             VerifyingKey::Secp256k1(vk) => vk.to_sec1_bytes().to_vec(),
             VerifyingKey::Secp256r1(vk) => vk.to_sec1_bytes().to_vec(),
+            VerifyingKey::Eip191(vk) => vk.to_sec1_bytes().to_vec(),
+            VerifyingKey::CosmosAdr36(vk) => vk.to_sec1_bytes().to_vec(),
         }
     }
 
@@ -71,6 +89,10 @@ impl VerifyingKey {
             VerifyingKey::Ed25519(_) => bail!("Ed25519 vk to DER format is not implemented"),
             VerifyingKey::Secp256k1(vk) => vk.to_public_key_der()?.into_vec(),
             VerifyingKey::Secp256r1(vk) => vk.to_public_key_der()?.into_vec(),
+            VerifyingKey::Eip191(_) => bail!("EIP-191 vk to DER format is not implemented"),
+            VerifyingKey::CosmosAdr36(_) => {
+                bail!("Cosmos ADR-36 vk to DER format is not implemented")
+            }
         };
         Ok(der)
     }
@@ -86,6 +108,12 @@ impl VerifyingKey {
             CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::Secp256r1)
                 .map_err(|e| e.into()),
+            CryptoAlgorithm::Eip191 => Secp256k1VerifyingKey::from_sec1_bytes(bytes)
+                .map(VerifyingKey::Eip191)
+                .map_err(|e| e.into()),
+            CryptoAlgorithm::CosmosAdr36 => Secp256k1VerifyingKey::from_sec1_bytes(bytes)
+                .map(VerifyingKey::CosmosAdr36)
+                .map_err(|e| e.into()),
         }
     }
 
@@ -98,6 +126,10 @@ impl VerifyingKey {
             CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_public_key_der(bytes)
                 .map(VerifyingKey::Secp256r1)
                 .map_err(|e| e.into()),
+            CryptoAlgorithm::Eip191 => bail!("Eth vk from DER format is not implemented"),
+            CryptoAlgorithm::CosmosAdr36 => {
+                bail!("Cosmos ADR-36 vk from DER format is not implemented")
+            }
         }
     }
 
@@ -106,17 +138,19 @@ impl VerifyingKey {
             VerifyingKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
             VerifyingKey::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
             VerifyingKey::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
+            VerifyingKey::Eip191(_) => CryptoAlgorithm::Eip191,
+            VerifyingKey::CosmosAdr36(_) => CryptoAlgorithm::CosmosAdr36,
         }
     }
 
-    pub fn verify_signature(&self, message: &[u8], signature: &Signature) -> Result<()> {
+    pub fn verify_signature(&self, message: impl AsRef<[u8]>, signature: &Signature) -> Result<()> {
         match self {
             VerifyingKey::Ed25519(vk) => {
                 let Signature::Ed25519(signature) = signature else {
                     bail!("Invalid signature type");
                 };
 
-                vk.verify(signature, message)
+                vk.verify(signature, message.as_ref())
                     .map_err(|e| anyhow!("Failed to verify ed25519 signature: {}", e))
             }
             VerifyingKey::Secp256k1(vk) => {
@@ -139,6 +173,22 @@ impl VerifyingKey {
                 vk.verify_digest(digest, signature)
                     .map_err(|e| anyhow!("Failed to verify secp256r1 signature: {}", e))
             }
+            VerifyingKey::Eip191(vk) => {
+                let Signature::Secp256k1(signature) = signature else {
+                    bail!("Verifying key for EIP-191 can only verify secp256k1 signatures");
+                };
+                let prehash = eip191_hash_message(message);
+                vk.verify_prehash(prehash.as_slice(), signature)
+                    .map_err(|e| anyhow!("Failed to verify EIP-191 signature: {}", e))
+            }
+            VerifyingKey::CosmosAdr36(vk) => {
+                let Signature::Secp256k1(signature) = signature else {
+                    bail!("Verifying key for cosmos ADR-36 can only verify secp256k1 signatures");
+                };
+                let prehash = cosmos_adr36_hash_message(message, vk)?;
+                vk.verify_prehash(&prehash, signature)
+                    .map_err(|e| anyhow!("Failed to verify cosmos ADR-36 signature: {}", e))
+            }
         }
     }
 }
@@ -160,48 +210,14 @@ impl From<VerifyingKey> for CryptoPayload {
     }
 }
 
-impl From<Ed25519VerifyingKey> for VerifyingKey {
-    fn from(vk: Ed25519VerifyingKey) -> Self {
-        VerifyingKey::Ed25519(vk)
-    }
-}
-
-impl From<Secp256k1VerifyingKey> for VerifyingKey {
-    fn from(vk: Secp256k1VerifyingKey) -> Self {
-        VerifyingKey::Secp256k1(vk)
-    }
-}
-
-impl From<Secp256r1VerifyingKey> for VerifyingKey {
-    fn from(vk: Secp256r1VerifyingKey) -> Self {
-        VerifyingKey::Secp256r1(vk)
-    }
-}
-
-impl From<Ed25519SigningKey> for VerifyingKey {
-    fn from(sk: Ed25519SigningKey) -> Self {
-        VerifyingKey::Ed25519(sk.verification_key())
-    }
-}
-
-impl From<Secp256k1SigningKey> for VerifyingKey {
-    fn from(sk: Secp256k1SigningKey) -> Self {
-        VerifyingKey::Secp256k1(sk.verifying_key().to_owned())
-    }
-}
-
-impl From<Secp256r1SigningKey> for VerifyingKey {
-    fn from(sk: Secp256r1SigningKey) -> Self {
-        VerifyingKey::Secp256r1(sk.verifying_key().to_owned())
-    }
-}
-
 impl From<SigningKey> for VerifyingKey {
     fn from(sk: SigningKey) -> Self {
         match sk {
-            SigningKey::Ed25519(sk) => (*sk).into(),
-            SigningKey::Secp256k1(sk) => sk.into(),
-            SigningKey::Secp256r1(sk) => sk.into(),
+            SigningKey::Ed25519(sk) => VerifyingKey::Ed25519((*sk).verification_key()),
+            SigningKey::Secp256k1(sk) => VerifyingKey::Secp256k1(sk.verifying_key().to_owned()),
+            SigningKey::Secp256r1(sk) => VerifyingKey::Secp256r1(sk.verifying_key().to_owned()),
+            SigningKey::Eip191(sk) => VerifyingKey::Eip191(sk.verifying_key().to_owned()),
+            SigningKey::CosmosAdr36(sk) => VerifyingKey::CosmosAdr36(sk.verifying_key().to_owned()),
         }
     }
 }
