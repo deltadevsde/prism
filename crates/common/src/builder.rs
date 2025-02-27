@@ -367,7 +367,7 @@ where
 
     pub async fn send(
         self,
-    ) -> Result<impl PendingTransaction<Timer = P::Timer> + 'a, PrismApiError> {
+    ) -> Result<impl PendingTransaction<'a, Timer = P::Timer>, PrismApiError> {
         let Some(prism) = self.prism else {
             return Err(TransactionError::MissingSender.into());
         };

@@ -26,7 +26,7 @@ impl MockPrismPendingTransaction {
 }
 
 #[async_trait]
-impl PendingTransaction for MockPrismPendingTransaction {
+impl PendingTransaction<'_> for MockPrismPendingTransaction {
     type Timer = MockPrismTimer;
 
     async fn wait_with_interval(&self, _: Duration) -> Result<Account, PrismApiError> {
