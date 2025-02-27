@@ -10,7 +10,7 @@ pub use prism_common::{
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::{Transaction, TransactionError, UnsignedTransaction},
 };
-pub use prism_keys::{Signature, SigningKey, VerifyingKey};
+pub use prism_keys::{CryptoAlgorithm, Signature, SigningKey, VerifyingKey};
 pub use prism_serde::binary;
 
 #[cfg(feature = "mockall")]
