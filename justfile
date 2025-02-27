@@ -74,10 +74,8 @@ integration-test:
     just celestia-up
 
     export RUST_LOG="DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off"
-    export SP1_PROVER="mock"
 
-    # The environment variables are automatically exported from the Justfile
-    cargo test -p prism-tests --lib --release --features mock_prover
+    SP1_PROVER=mock RUST_LOG=$RUST_LOG cargo test -p prism-tests --lib --release --features mock_prover
 
     just celestia-down
   done
@@ -97,10 +95,7 @@ build:
 unit-test:
   @echo "Running unit tests..."
 
-  export SP1_PROVER="mock"
-
-  # Environment variables are automatically exported from the Justfile
-  cargo test --lib --release --features "mock_prover" -- --skip test_light_client_prover_talking
+  SP1_PROVER=mock cargo test --lib --release --features "mock_prover" -- --skip test_light_client_prover_talking
 
 coverage:
   #!/usr/bin/env bash
@@ -110,10 +105,7 @@ coverage:
 
   echo "Generating coverage report..."
 
-  export SP1_PROVER="mock"
-
-  # Environment variables are automatically exported from the Justfile
-  if ! cargo llvm-cov nextest --html --output-dir coverage_report --lib --features "mock_prover" --release --workspace --exclude prism-cli --exclude-from-report prism-sp1 --ignore-filename-regex sp1; then
+  if ! SP1_PROVER=mock cargo llvm-cov nextest --html --output-dir coverage_report --lib --features "mock_prover" --release --workspace --exclude prism-cli --exclude-from-report prism-sp1 --ignore-filename-regex sp1; then
     echo "Coverage report generation failed."
   else
     echo "Coverage report generated in 'coverage_report' directory"
