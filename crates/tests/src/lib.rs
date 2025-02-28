@@ -19,7 +19,7 @@ use prism_storage::{
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use sp1_sdk::{HashableKey, Prover as _, ProverClient};
 use std::sync::Arc;
-use tokio::{spawn, time::Duration};
+use tokio::{spawn, sync::mpsc, time::Duration};
 
 use tempfile::TempDir;
 
@@ -76,6 +76,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     )?);
 
     let event_channel = EventChannel::new();
+    let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
 
     let lightclient = Arc::new(LightClient::new(
         lc_da_layer.clone(),
@@ -86,18 +87,18 @@ async fn test_light_client_prover_talking() -> Result<()> {
     ));
 
     let prover_clone = prover.clone();
-    spawn(async move {
+    let _prover_handle = spawn(async move {
         debug!("starting prover");
         prover_clone.run().await.unwrap();
     });
 
     let lc_clone = lightclient.clone();
-    spawn(async move {
+    let _lc_handle = spawn(async move {
         debug!("starting light client");
         lc_clone.run().await.unwrap();
     });
 
-    spawn(async move {
+    let tx_handle = spawn(async move {
         let mut transaction_builder = TestTransactionBuilder::new();
         let register_service_req = transaction_builder
             .register_service_with_random_keys(service_algorithm, "test_service")
@@ -109,6 +110,12 @@ async fn test_light_client_prover_talking() -> Result<()> {
         let mut added_account_ids: Vec<String> = Vec::new();
 
         loop {
+            // Check if we should shut down
+            if shutdown_rx.try_recv().is_ok() {
+                debug!("Transaction generator received shutdown signal");
+                break;
+            }
+
             // Create 1 to 3 new accounts
             let num_new_accounts = rng.gen_range(1..=3);
             for _ in 0..num_new_accounts {
@@ -173,14 +180,32 @@ async fn test_light_client_prover_talking() -> Result<()> {
         }
     });
 
-    let mut rx = lc_da_layer.clone().subscribe_to_heights();
-    let initial_height = rx.recv().await.unwrap();
-    while let Ok(height) = rx.recv().await {
-        debug!("received height {}", height);
-        if height >= initial_height + 50 {
-            break;
+    // Monitor height and stop test when target height is reached
+    let height_monitor = spawn(async move {
+        let mut rx = bridge_da_layer.clone().subscribe_to_heights();
+        let initial_height = rx.recv().await.unwrap();
+        debug!("Initial height: {}", initial_height);
+        let target_height = initial_height + 50;
+
+        while let Ok(height) = rx.recv().await {
+            debug!("Received height {}", height);
+
+            if height >= target_height {
+                info!("Reached target height {}. Stopping test.", target_height);
+                let _ = shutdown_tx.send(()).await;
+                break;
+            }
         }
-    }
+    });
+
+    // Wait for height monitor to complete
+    height_monitor.await?;
+
+    // Wait for transaction generator to complete
+    tx_handle.await?;
+
+    // We could add code to gracefully shut down the prover and light client here
+    // but for test purposes, we'll just return
 
     Ok(())
 }
