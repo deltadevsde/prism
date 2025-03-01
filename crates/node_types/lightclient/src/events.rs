@@ -19,6 +19,8 @@ pub enum LightClientEvent {
     NoEpochFound { height: u64 },
     HeightChannelClosed,
     GetCurrentCommitment { commitment: Digest },
+    RecursiveVerificationStarted { height: u64 },
+    RecursiveVerificationCompleted { height: u64 },
 
     LuminaEvent { event: NodeEvent },
     // maybe place for Future P2P events like
@@ -53,6 +55,12 @@ impl fmt::Display for LightClientEvent {
             }
             LightClientEvent::GetCurrentCommitment { commitment } => {
                 write!(f, "Current commitment: {}", commitment)
+            }
+            LightClientEvent::RecursiveVerificationStarted { height } => {
+                write!(f, "Starting recursive verification at height {}", height)
+            }
+            LightClientEvent::RecursiveVerificationCompleted { height } => {
+                write!(f, "Completed recursive verification at height {}", height)
             }
             LightClientEvent::LuminaEvent { event } => {
                 write!(f, "Lumina event: {}", event)

@@ -6489,7 +6489,6 @@ dependencies = [
  "prism-serde",
  "prism-storage",
  "serde",
- "sp1-sdk",
  "tokio",
  "toml",
 ]
@@ -6589,6 +6588,7 @@ dependencies = [
  "prism-errors",
  "prism-keys",
  "serde",
+ "serde_json",
  "sp1-verifier",
  "tokio",
  "wasm-bindgen-futures",
@@ -6674,7 +6674,6 @@ dependencies = [
  "prism-prover",
  "prism-storage",
  "rand",
- "sp1-sdk",
  "tempfile",
  "tokio",
 ]
