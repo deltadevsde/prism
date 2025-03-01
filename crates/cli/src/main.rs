@@ -8,7 +8,6 @@ use clap::Parser;
 use keystore_rs::{FileStore, KeyChain, KeyStore};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
-use sp1_sdk::{HashableKey, Prover as _, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
@@ -18,8 +17,6 @@ use std::sync::Arc;
 
 #[macro_use]
 extern crate log;
-
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
 pub const SIGNING_KEY_ID: &str = "prism";
 
@@ -44,15 +41,12 @@ async fn main() -> std::io::Result<()> {
                 Error::other(e.to_string())
             })?;
 
-            let client = ProverClient::builder().mock().build();
-            let (_, vk) = client.setup(PRISM_ELF);
             let event_channel = EventChannel::new();
 
             Arc::new(LightClient::new(
                 da,
                 start_height,
                 verifying_key,
-                vk.bytes32(),
                 event_channel.publisher(),
             ))
         }
