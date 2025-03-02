@@ -465,7 +465,7 @@ impl Prover {
                 signature: None,
             };
 
-            epoch_json.insert_signature(&self.cfg.signing_key);
+            epoch_json.insert_signature(&self.cfg.signing_key)?;
             Ok(epoch_json)
         } else {
             // For subsequent epochs, we use the recursive prover
@@ -514,7 +514,7 @@ impl Prover {
                 signature: None,
             };
 
-            epoch_json.insert_signature(&self.cfg.signing_key);
+            epoch_json.insert_signature(&self.cfg.signing_key)?;
             Ok(epoch_json)
         }
     }
