@@ -10,6 +10,7 @@ repository.workspace = true
 # serde
 prism-serde.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 
 # OAS spec
 utoipa.workspace = true
@@ -18,6 +19,10 @@ utoipa.workspace = true
 ed25519-consensus.workspace = true
 k256.workspace = true
 p256.workspace = true
+
+# signatures
+alloy-primitives.workspace = true
+ripemd.workspace = true
 
 # misc
 anyhow.workspace = true

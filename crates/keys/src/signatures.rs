@@ -50,6 +50,10 @@ impl Signature {
             CryptoAlgorithm::Secp256r1 => Secp256r1Signature::from_slice(bytes)
                 .map(Signature::Secp256r1)
                 .map_err(|e| e.into()),
+            CryptoAlgorithm::Eip191 => bail!("No EIP-191 specific signatures implemented"),
+            CryptoAlgorithm::CosmosAdr36 => {
+                bail!("No cosmos ADR-36 specific signatures implemented")
+            }
         }
     }
 
@@ -61,6 +65,10 @@ impl Signature {
             }
             CryptoAlgorithm::Secp256r1 => {
                 Secp256r1Signature::from_der(bytes).map(Signature::Secp256r1).map_err(|e| e.into())
+            }
+            CryptoAlgorithm::Eip191 => bail!("No EIP-191 specific signatures implemented"),
+            CryptoAlgorithm::CosmosAdr36 => {
+                bail!("No cosmos ADR-36 specific signatures implemented")
             }
         }
     }

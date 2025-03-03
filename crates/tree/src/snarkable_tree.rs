@@ -139,7 +139,7 @@ where
                 let ServiceChallenge::Signed(service_pubkey) = service_challenge;
                 let ServiceChallengeInput::Signed(challenge_signature) = &challenge;
 
-                service_pubkey.verify_signature(&hash.to_bytes(), challenge_signature)?;
+                service_pubkey.verify_signature(hash, challenge_signature)?;
 
                 debug!("creating new account for user ID {}", id);
 

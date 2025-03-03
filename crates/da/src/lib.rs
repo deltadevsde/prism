@@ -37,10 +37,11 @@ pub struct FinalizedEpoch {
 }
 
 impl FinalizedEpoch {
-    pub fn insert_signature(&mut self, key: &SigningKey) {
+    pub fn insert_signature(&mut self, key: &SigningKey) -> Result<()> {
         let plaintext = self.encode_to_bytes().unwrap();
-        let signature = key.sign(&plaintext);
+        let signature = key.sign(&plaintext)?;
         self.signature = Some(signature.to_bytes().to_hex());
+        Ok(())
     }
 
     pub fn verify_signature(&self, vk: VerifyingKey) -> Result<()> {

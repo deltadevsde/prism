@@ -141,7 +141,7 @@ impl InsertProof {
 
             let ServiceChallenge::Signed(challenge_vk) = service_challenge.unwrap();
             let ServiceChallengeInput::Signed(challenge_signature) = challenge;
-            challenge_vk.verify_signature(&hash.to_bytes(), challenge_signature)?;
+            challenge_vk.verify_signature(hash, challenge_signature)?;
         }
 
         let serialized_account = account.encode_to_bytes()?;
