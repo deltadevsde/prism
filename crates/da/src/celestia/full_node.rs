@@ -153,7 +153,6 @@ impl DataAvailabilityLayer for CelestiaConnection {
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
-        debug!("posting {}th epoch to da layer", epoch.height);
 
         let data = epoch.encode_to_bytes().map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
@@ -161,6 +160,14 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 epoch.height, e
             )))
         })?;
+
+        debug!(
+            "posting {}th epoch to da layer ({} bytes)",
+            epoch.height,
+            data.len()
+        );
+
+        debug!("epoch: {:?}", epoch);
 
         let blob = Blob::new(self.snark_namespace, data, AppVersion::V3).map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
