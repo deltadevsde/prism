@@ -98,6 +98,7 @@ impl LightClient {
                 async move {
                     let mut current_height = light_client.start_height;
                     let mut subscriber = lumina_event_subscriber.lock().await;
+                    let mut performed_initial_search = false;
 
                     while let Ok(event_info) = subscriber.recv().await {
                         light_client.event_publisher.send(LightClientEvent::LuminaEvent {
@@ -112,11 +113,14 @@ impl LightClient {
 
                             // If we're still at the start height, we haven't processed any epochs yet,
                             // so we do our backward search
-                            if current_height == light_client.start_height {
+                            if !performed_initial_search {
+                                performed_initial_search = true;
+
                                 light_client.event_publisher.send(
                                     LightClientEvent::RecursiveVerificationStarted { height },
                                 );
-                                // Search backward from the current height for the most recent epoch
+
+                                // Search backward from the network height
                                 let mut latest_epoch_height = height;
 
                                 while latest_epoch_height >= light_client.start_height {
@@ -125,12 +129,11 @@ impl LightClient {
                                         .get_finalized_epoch(latest_epoch_height)
                                         .await
                                     {
-                                        // yayyy found an epoch! Process just this one since it recursively verifies all previous ones
                                         if let Err(e) =
                                             light_client.process_epoch(latest_epoch_height).await
                                         {
                                             error!(
-                                                "Failed to process initial epoch at height {}: {}",
+                                                "Failed to process epoch at height {}: {}",
                                                 latest_epoch_height, e
                                             );
                                         } else {
@@ -146,7 +149,6 @@ impl LightClient {
                                     latest_epoch_height -= 1;
                                 }
                             }
-
                             if height > current_height {
                                 for h in current_height..height {
                                     if let Err(e) = light_client.process_epoch(h + 1).await {
