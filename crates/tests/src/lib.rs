@@ -34,11 +34,19 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 
 #[tokio::test]
 async fn test_light_client_prover_talking() -> Result<()> {
-    std::env::set_var(
-        "RUST_LOG",
-        "DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
-    );
-    pretty_env_logger::init();
+    pretty_env_logger::formatted_builder()
+        .filter_level(log::LevelFilter::Debug)
+        .filter_module("tracing", log::LevelFilter::Off)
+        .filter_module("sp1_stark", log::LevelFilter::Info)
+        .filter_module("jmt", log::LevelFilter::Off)
+        .filter_module("p3_dft", log::LevelFilter::Off)
+        .filter_module("p3_fri", log::LevelFilter::Off)
+        .filter_module("sp1_core_executor", log::LevelFilter::Info)
+        .filter_module("sp1_recursion_program", log::LevelFilter::Info)
+        .filter_module("p3_merkle_tree", log::LevelFilter::Off)
+        .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
+        .filter_module("sp1_core_machine", log::LevelFilter::Off)
+        .init();
 
     let prover_client = ProverClient::builder().mock().build();
 
