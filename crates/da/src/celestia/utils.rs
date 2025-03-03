@@ -7,7 +7,7 @@ use lumina_node::{
     node::{DEFAULT_PRUNING_DELAY, DEFAULT_SAMPLING_WINDOW},
 };
 use prism_keys::VerifyingKey;
-use prism_serde::{self, base64::FromBase64, hex::FromHex};
+use prism_serde::{self, hex::FromHex};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -42,6 +42,7 @@ pub enum Network {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NetworkConfig {
     pub network: Network,
+    pub network_name: String,
     pub celestia_network: CelestiaNetwork,
     /// The verifying key of the prover
     pub verifying_key: Option<VerifyingKey>,
@@ -52,6 +53,7 @@ impl Default for NetworkConfig {
     fn default() -> Self {
         NetworkConfig {
             network: Network::Custom("custom".to_string()),
+            network_name: "custom".to_string(),
             celestia_network: CelestiaNetwork::custom("private").unwrap(),
             verifying_key: None,
             celestia_config: None,
@@ -75,9 +77,10 @@ impl Network {
         match self {
             Network::Specter => NetworkConfig {
                 network: Network::Specter,
+                network_name: "specter".to_string(),
                 celestia_network: CelestiaNetwork::Mocha,
                 verifying_key: Some(
-                    VerifyingKey::from_base64("L2ilppK59Kq3aAMB/wpxdVGaI53DHPMdY6fcRodyFaA=")
+                    VerifyingKey::try_from("L2ilppK59Kq3aAMB/wpxdVGaI53DHPMdY6fcRodyFaA=".to_string())
                         .unwrap(),
                 ),
                 celestia_config: Some(CelestiaConfig {
@@ -91,6 +94,7 @@ impl Network {
             },
             Network::Custom(id) => NetworkConfig {
                 network: Network::Custom(id.clone()),
+                network_name: id.clone(),
                 ..Default::default()
             },
         }
