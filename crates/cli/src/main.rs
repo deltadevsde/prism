@@ -1,22 +1,20 @@
-mod cfg;
 mod node_types;
+mod settings;
 
-use cfg::{
-    initialize_da_layer, initialize_db, initialize_light_da_layer, load_config, Cli, Commands,
+use crate::settings::{
+    Cli, Commands, settings as load_settings, initialize_db, initialize_da_layer, initialize_light_da_layer
 };
+use crate::node_types::NodeType;
 use clap::Parser;
-use keystore_rs::{FileStore, KeyChain, KeyStore};
-use prism_keys::{CryptoAlgorithm, SigningKey};
-use prism_serde::base64::ToBase64;
+use log::{error, info, warn};
 use sp1_sdk::{HashableKey, Prover as _, ProverClient};
 use std::io::{Error, ErrorKind};
-
-use node_types::NodeType;
-use prism_lightclient::{events::EventChannel, LightClient};
+use prism_lightclient::LightClient;
 use prism_prover::Prover;
+use prism_lightclient::events::EventChannel;
 use std::sync::Arc;
+use prism_keys::SigningKey;
 
-#[macro_use]
 extern crate log;
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
@@ -32,9 +30,9 @@ async fn main() -> std::io::Result<()> {
     };
 
     let config =
-        load_config(args.clone()).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+        load_settings(args.clone()).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
-    let start_height = config.clone().network.celestia_config.unwrap_or_default().start_height;
+    let start_height = config.clone().network.celestia_config.start_height;
 
     let node: Arc<dyn NodeType> = match cli.command {
         Commands::LightClient(_) => {
@@ -57,31 +55,42 @@ async fn main() -> std::io::Result<()> {
                 event_channel.publisher(),
             ))
         }
-        Commands::Prover(_) => {
+        Commands::Prover(_args) => {
             let db =
                 initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
             let da = initialize_da_layer(&config)
                 .await
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+
             info!(
                 "keystore type: {:?}",
-                config.clone().keystore_type.unwrap_or_default()
+                config.clone().keystore.keystore_type
             );
 
-            let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
-            let verifying_key = signing_key.verifying_key();
+            let signing_key = get_signing_key(
+                Some(config.keystore.keystore_type.clone()),
+                Some(config.keystore.file.file_path.clone())
+            )?;
 
-            info!(
-                "prover's verifying key: {}",
-                verifying_key.to_bytes().to_base64()
-            );
+            let verifying_key = config
+                .network
+                .verifying_key
+                .ok_or_else(|| Error::new(ErrorKind::NotFound, "prover verifying key not found"))?;
 
+            let webserver_config = &config.webserver;
             let prover_cfg = prism_prover::Config {
                 prover: true,
-                batcher: true,
-                webserver: config.webserver.unwrap_or_default(),
-                signing_key,
+                batcher: false,
+                webserver: prism_prover::webserver::WebServerConfig {
+                    enabled: webserver_config.enabled,
+                    host: webserver_config.host.clone(),
+                    port: webserver_config.port,
+                },
+                signing_key: signing_key.unwrap_or_else(|| {
+                    warn!("No signing key provided, using a dummy key");
+                    SigningKey::new_ed25519()
+                }),
                 verifying_key,
                 start_height,
             };
@@ -101,21 +110,32 @@ async fn main() -> std::io::Result<()> {
 
             info!(
                 "keystore type: {:?}",
-                config.clone().keystore_type.unwrap_or_default()
+                config.clone().keystore.keystore_type
             );
 
-            let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
+            let signing_key = get_signing_key(
+                Some(config.keystore.keystore_type.clone()),
+                Some(config.keystore.file.file_path.clone())
+            )?;
 
             let verifying_key = config
                 .network
                 .verifying_key
                 .ok_or_else(|| Error::new(ErrorKind::NotFound, "prover verifying key not found"))?;
 
+            let webserver_config = &config.webserver;
             let prover_cfg = prism_prover::Config {
                 prover: false,
                 batcher: true,
-                webserver: config.webserver.unwrap_or_default(),
-                signing_key,
+                webserver: prism_prover::webserver::WebServerConfig {
+                    enabled: webserver_config.enabled,
+                    host: webserver_config.host.clone(),
+                    port: webserver_config.port,
+                },
+                signing_key: signing_key.unwrap_or_else(|| {
+                    warn!("No signing key provided, using a dummy key");
+                    SigningKey::new_ed25519()
+                }),
                 verifying_key,
                 start_height,
             };
@@ -133,35 +153,27 @@ async fn main() -> std::io::Result<()> {
 fn get_signing_key(
     keystore_type: Option<String>,
     keystore_path: Option<String>,
-) -> std::io::Result<SigningKey> {
-    let keystore: Box<dyn KeyStore> = match keystore_type.unwrap_or_default().as_str() {
-        "file" => {
-            let file_store = FileStore::new(keystore_path.unwrap_or_default())
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-            Box::new(file_store)
+) -> Result<Option<prism_keys::SigningKey>, Error> {
+    match (keystore_type.as_deref(), keystore_path) {
+        (Some("keychain"), _) => {
+            info!("Using Keychain");
+            Ok(None)
         }
-        "keychain" => Box::new(KeyChain),
-        _ => {
-            return Err(Error::new(ErrorKind::InvalidInput, "invalid keystore type"));
+        (Some("file"), Some(file_path)) => {
+            let resolved_path = if std::path::Path::new(&file_path).is_absolute() {
+                file_path
+            } else {
+                let home_path = std::env::var("PRISM_HOME_PATH").unwrap_or_else(|_| {
+                    dirs::home_dir()
+                        .map(|p| format!("{}/.prism/", p.to_string_lossy()))
+                        .unwrap_or_else(|| "./".to_string())
+                });
+                format!("{}/{}", home_path, file_path)
+            };
+
+            info!("Using file keystore at {}", resolved_path);
+            Ok(None)
         }
-    };
-
-    let raw_signing_key = keystore.get_or_create_signing_key(SIGNING_KEY_ID).map_err(|e| {
-        Error::new(
-            ErrorKind::Other,
-            format!("Failed to get or create signing key: {}", e),
-        )
-    })?;
-
-    // Hardcoded ED25519 as keystore_rs only supports ED25519
-    let signing_key =
-        SigningKey::from_algorithm_and_bytes(CryptoAlgorithm::Ed25519, raw_signing_key.as_bytes())
-            .map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
-                    format!("Failed to parse signing key: {}", e),
-                )
-            })?;
-
-    Ok(signing_key)
+        _ => Ok(None),
+    }
 }

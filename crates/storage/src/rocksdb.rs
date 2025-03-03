@@ -23,13 +23,13 @@ type RocksDB = DBWithThreadMode<MultiThreaded>;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct RocksDBConfig {
-    pub path: String,
+    pub directory_path: String,
 }
 
 impl RocksDBConfig {
     pub fn new(path: &str) -> Self {
         Self {
-            path: path.to_string(),
+            directory_path: path.to_string(),
         }
     }
 }
@@ -37,17 +37,17 @@ impl RocksDBConfig {
 #[derive(Clone)]
 pub struct RocksDBConnection {
     connection: Arc<RocksDB>,
-    path: String,
+    directory_path: String,
 }
 
 impl RocksDBConnection {
     pub fn new(cfg: &RocksDBConfig) -> Result<RocksDBConnection> {
-        let path = &cfg.path;
+        let path = &cfg.directory_path;
         let db = DB::open_default(path)?;
 
         Ok(Self {
             connection: Arc::new(db),
-            path: path.to_string(),
+            directory_path: path.to_string(),
         })
     }
 }
@@ -103,7 +103,7 @@ impl Database for RocksDBConnection {
     }
 
     fn flush_database(&self) -> Result<()> {
-        Ok(DB::destroy(&Options::default(), &self.path)?)
+        Ok(DB::destroy(&Options::default(), &self.directory_path)?)
     }
 }
 

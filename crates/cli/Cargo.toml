@@ -39,3 +39,9 @@ prism-da = { workspace = true }
 prism-keys = { workspace = true }
 prism-serde = { workspace = true }
 celestia-types = { workspace = true }
+url = { workspace = true }
+serde_json = { workspace = true }
+envy = "0.4.2"
+
+[dev-dependencies]
+tempfile = { workspace = true }
