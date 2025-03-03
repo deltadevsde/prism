@@ -19,6 +19,8 @@ pub enum LightClientEvent {
     NoEpochFound { height: u64 },
     HeightChannelClosed,
     GetCurrentCommitment { commitment: Digest },
+    RecursiveVerificationStarted { height: u64 },
+    RecursiveVerificationCompleted { height: u64 },
 
     LuminaEvent { event: NodeEvent },
     // maybe place for Future P2P events like
@@ -54,6 +56,12 @@ impl fmt::Display for LightClientEvent {
             LightClientEvent::GetCurrentCommitment { commitment } => {
                 write!(f, "Current commitment: {}", commitment)
             }
+            LightClientEvent::RecursiveVerificationStarted { height } => {
+                write!(f, "Starting recursive verification at height {}", height)
+            }
+            LightClientEvent::RecursiveVerificationCompleted { height } => {
+                write!(f, "Completed recursive verification at height {}", height)
+            }
             LightClientEvent::LuminaEvent { event } => {
                 write!(f, "Lumina event: {}", event)
             }
@@ -65,6 +73,7 @@ impl fmt::Display for LightClientEvent {
 pub struct EventInfo {
     pub event: LightClientEvent,
     pub time: SystemTime,
+    pub formatted_log: String,
 }
 
 // The event channel that components use to broadcast events
@@ -105,9 +114,11 @@ pub struct EventPublisher {
 
 impl EventPublisher {
     pub fn send(&self, event: LightClientEvent) {
+        let formatted_log = event.to_string();
         let event_info = EventInfo {
             event,
             time: SystemTime::now(),
+            formatted_log,
         };
         let _ = self.tx.send(event_info);
     }

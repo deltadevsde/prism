@@ -17,13 +17,10 @@ use prism_storage::{
     Database,
 };
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use sp1_sdk::{HashableKey, Prover as _, ProverClient};
 use std::sync::Arc;
 use tokio::{spawn, sync::mpsc, time::Duration};
 
 use tempfile::TempDir;
-
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
 fn setup_db() -> Arc<Box<dyn Database>> {
     let temp_dir = TempDir::new().unwrap();
@@ -47,10 +44,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
-
-    let prover_client = ProverClient::builder().mock().build();
-
-    let (_, vk) = prover_client.setup(PRISM_ELF);
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://localhost:26658".to_string(),
@@ -90,7 +83,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
         lc_da_layer.clone(),
         lc_cfg.start_height,
         Some(pubkey),
-        vk.bytes32(),
         event_channel.publisher(),
     ));
 
