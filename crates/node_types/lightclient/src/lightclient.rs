@@ -146,6 +146,12 @@ impl LightClient {
                                         }
                                         break;
                                     }
+
+                                    // Check for potential underflow before decrementing
+                                    if latest_epoch_height == 0 {
+                                        break;
+                                    }
+
                                     latest_epoch_height -= 1;
                                 }
                             }
