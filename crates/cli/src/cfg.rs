@@ -172,8 +172,7 @@ pub struct DatabaseArgs {
 
 pub fn load_config(args: CommandArgs) -> Result<Config> {
     dotenv().ok();
-    std::env::set_var("RUST_LOG", args.clone().log_level);
-    pretty_env_logger::init();
+    set_up_logging(&args.log_level);
 
     let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
 
@@ -202,6 +201,12 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
     }
 
     Ok(final_config)
+}
+
+fn set_up_logging(log_level: &str) {
+    let mut builder = pretty_env_logger::formatted_builder();
+    builder.parse_filters(log_level);
+    builder.init();
 }
 
 fn get_prism_home(args: &CommandArgs) -> Result<String> {
