@@ -1,6 +1,9 @@
-use std::fmt::{Display, Formatter};
+use std::{
+    error::Error,
+    fmt::{Display, Formatter},
+};
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use celestia_types::Blob;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::binary::{FromBinary, ToBinary};
@@ -118,8 +121,4 @@ impl Display for TransactionError {
     }
 }
 
-impl From<TransactionError> for anyhow::Error {
-    fn from(error: TransactionError) -> Self {
-        anyhow!(error.to_string())
-    }
-}
+impl Error for TransactionError {}

@@ -184,7 +184,7 @@ pub trait PrismApiTimer {
 const DEFAULT_POLLING_INTERVAL: Duration = Duration::from_secs(5);
 
 #[async_trait]
-pub trait PendingTransaction
+pub trait PendingTransaction<'a>
 where
     Self: Send + Sync,
 {
@@ -215,7 +215,7 @@ where
 }
 
 #[async_trait]
-impl<P> PendingTransaction for PendingTransactionImpl<'_, P>
+impl<'a, P> PendingTransaction<'a> for PendingTransactionImpl<'a, P>
 where
     P: PrismApi,
 {
