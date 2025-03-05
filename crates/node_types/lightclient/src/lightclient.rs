@@ -8,8 +8,8 @@ use std::{
     self,
     future::Future,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
+        atomic::{AtomicU64, Ordering},
     },
 };
 use tokio::sync::RwLock;
@@ -42,7 +42,7 @@ pub struct VerificationKeys {
 }
 
 // Embed the JSON content directly in the binary at compile time because we can't read files in WASM.
-const EMBEDDED_KEYS_JSON: &str = include_str!("../../../../verifying_keys/keys.json");
+const EMBEDDED_KEYS_JSON: &str = include_str!("../../../../verification_keys/keys.json");
 
 pub fn load_sp1_verifying_keys() -> Result<VerificationKeys> {
     let keys: VerificationKeys = serde_json::from_str(EMBEDDED_KEYS_JSON)?;

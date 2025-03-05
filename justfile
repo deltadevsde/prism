@@ -99,10 +99,10 @@ build:
   @echo "Recursive binary built successfully."
 
   @echo "Creating verifying keys directory..."
-  mkdir -p ./verifying_keys
+  mkdir -p ./verification_keys
 
   @echo "Generating verification keys..."
-  echo "{\"base_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/base-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\", \"recursive_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/recursive-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\"}" > ./verifying_keys/keys.json
+  echo "{\"base_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/base-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\", \"recursive_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/recursive-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\"}" > ./verification_keys/keys.json
 
   @echo "Verification key hashes generated successfully"
 
