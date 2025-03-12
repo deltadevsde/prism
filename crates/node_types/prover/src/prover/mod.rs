@@ -1,13 +1,13 @@
 mod timer;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use async_trait::async_trait;
 use jmt::KeyHash;
 use prism_common::{
     account::Account,
     api::{
-        types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
         PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError,
+        types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
     },
     digest::Digest,
     transaction::Transaction,
@@ -16,16 +16,16 @@ use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::database::Database;
 use prism_tree::{
+    AccountResponse::*,
     hasher::TreeHasher,
     key_directory_tree::KeyDirectoryTree,
     proofs::{Batch, Proof},
     snarkable_tree::SnarkableTree,
-    AccountResponse::*,
 };
 use std::{self, collections::VecDeque, sync::Arc};
 use timer::ProverTokioTimer;
 use tokio::{
-    sync::{broadcast, RwLock},
+    sync::{RwLock, broadcast},
     task::JoinSet,
 };
 
@@ -36,14 +36,15 @@ use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use sp1_sdk::{EnvProver, ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 =======
 use sp1_sdk::{
-    CpuProver, HashableKey as _, Prover as _, ProverClient, SP1ProvingKey, SP1Stdin,
-    SP1VerifyingKey,
+    CpuProver, HashableKey as _, Prover as _, ProverClient, SP1ProofWithPublicValues,
+    SP1ProvingKey, SP1Stdin, SP1VerifyingKey,
 };
 >>>>>>> 93e6d33 (feat: implement recursive proving mechanism with generated vkeys)
 
-pub const BASE_PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
+pub const BASE_PRISM_ELF: &[u8] =
+    include_bytes!("../../../../../elf/base-riscv32im-succinct-zkvm-elf");
 pub const RECURSIVE_PRISM_ELF: &[u8] =
-    include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
+    include_bytes!("../../../../../elf/recursive-riscv32im-succinct-zkvm-elf");
 
 #[derive(Clone)]
 pub struct Config {
@@ -452,62 +453,90 @@ impl Prover {
         Ok(())
     }
 
-    async fn prove_epoch(&self, epoch_height: u64, batch: &Batch) -> Result<FinalizedEpoch> {
-        if epoch_height == 0 {
-            // For the first epoch, we use the base prover (without recursive verification)
-            let mut stdin = SP1Stdin::new();
-            stdin.write(batch);
+    async fn prove_with_base_prover(
+        &self,
+        epoch_height: u64,
+        batch: &Batch,
+    ) -> Result<(
+        SP1ProofWithPublicValues,
+        tokio::sync::RwLockReadGuard<'_, CpuProver>,
+        &SP1VerifyingKey,
+    )> {
+        let mut stdin = SP1Stdin::new();
+        stdin.write(batch);
 
-            let client = self.base_prover_client.read().await;
+        let client = self.base_prover_client.read().await;
+        info!("generating proof for epoch {}", epoch_height);
 
-            info!("generating base proof for epoch at height 0");
+        #[cfg(feature = "groth16")]
+        let proof = client.prove(&self.base_proving_key, &stdin).groth16().run()?;
+        #[cfg(not(feature = "groth16"))]
+        let proof = client.prove(&self.base_proving_key, &stdin).run()?;
 
-            let proof = client.prove(&self.base_proving_key, &stdin).groth16().run()?;
-            info!("successfully generated base proof for epoch 0");
+        info!("successfully generated proof for epoch {}", epoch_height);
+        Ok((proof, client, &self.base_verifying_key))
+    }
 
-            client.verify(&proof, &self.base_verifying_key)?;
-            info!("verified base proof for epoch 0");
-
-            let public_values = proof.public_values.to_vec();
-
-            let mut epoch_json = FinalizedEpoch {
-                height: epoch_height,
-                prev_commitment: batch.prev_root,
-                current_commitment: batch.new_root,
-                proof,
-                public_values,
-                signature: None,
-            };
-
-            epoch_json.insert_signature(&self.cfg.signing_key)?;
-            Ok(epoch_json)
-        } else {
-            // For subsequent epochs, we use the recursive prover
-            // get the previous epoch for recursive verification
-            let prev_epoch = match self.da.get_finalized_epoch(epoch_height - 1).await {
-                Ok(Some(prev_epoch)) => prev_epoch,
-                _ => {
-                    return Err(anyhow!(
-                        "Previous epoch not found for recursive verification at height {}",
-                        epoch_height
-                    ))
-                }
-            };
-
-            let mut stdin = SP1Stdin::new();
-            // Write the previous proof data and batch for the current epoch for recursive verification
-            stdin.write_vec(prev_epoch.proof.bytes());
-            stdin.write_vec(prev_epoch.public_values.to_vec());
-            stdin.write(&self.base_verifying_key.bytes32());
-            stdin.write(batch);
-
-            let client = self.recursive_prover_client.read().await;
-
-            info!(
-                "generating recursive proof for epoch at height {}",
+    async fn prove_with_recursive_prover(
+        &self,
+        epoch_height: u64,
+        batch: &Batch,
+    ) -> Result<(
+        SP1ProofWithPublicValues,
+        tokio::sync::RwLockReadGuard<'_, CpuProver>,
+        &SP1VerifyingKey,
+    )> {
+        let prev_epoch = self.da.get_finalized_epoch(epoch_height - 1).await?.ok_or_else(|| {
+            anyhow!(
+                "Previous epoch not found for recursive verification at height {}",
                 epoch_height
-            );
+            )
+        })?;
 
+        let mut stdin = SP1Stdin::new();
+        stdin.write_vec(prev_epoch.proof.bytes());
+        stdin.write_vec(prev_epoch.public_values.to_vec());
+        stdin.write(&self.base_verifying_key.bytes32());
+        stdin.write(batch);
+
+        let client = self.recursive_prover_client.read().await;
+        info!(
+            "generating recursive proof for epoch at height {}",
+            epoch_height
+        );
+
+        let proof = client.prove(&self.recursive_proving_key, &stdin).groth16().run()?;
+        info!(
+            "successfully generated recursive proof for epoch {}",
+            epoch_height
+        );
+
+        Ok((proof, client, &self.recursive_verifying_key))
+    }
+
+    async fn prove_epoch(&self, epoch_height: u64, batch: &Batch) -> Result<FinalizedEpoch> {
+        // we use the base prover for the first epoch and always for mock prover because recursive verification is not really supported at the moment
+        let (proof, client, verifying_key) = if !cfg!(feature = "groth16") || epoch_height == 0 {
+            self.prove_with_base_prover(epoch_height, batch).await?
+        } else {
+            self.prove_with_recursive_prover(epoch_height, batch).await?
+        };
+
+        client.verify(&proof, verifying_key)?;
+        info!("verified proof for epoch {}", epoch_height);
+
+        let public_values = proof.public_values.to_vec();
+
+        let mut epoch_json = FinalizedEpoch {
+            height: epoch_height,
+            prev_commitment: batch.prev_root,
+            current_commitment: batch.new_root,
+            proof,
+            public_values,
+            signature: None,
+        };
+
+<<<<<<< HEAD
             let proof = client.prove(&self.recursive_proving_key, &stdin).groth16().run()?;
             info!(
                 "successfully generated recursive proof for epoch {}",
@@ -563,6 +592,10 @@ impl Prover {
         Ok(epoch_json)
 =======
 >>>>>>> 93e6d33 (feat: implement recursive proving mechanism with generated vkeys)
+=======
+        epoch_json.insert_signature(&self.cfg.signing_key)?;
+        Ok(epoch_json)
+>>>>>>> 1c753a7 (fix: tests, use base recursion case as mock prover for every epoch)
     }
 
     async fn post_batch_loop(self: Arc<Self>) -> Result<()> {
