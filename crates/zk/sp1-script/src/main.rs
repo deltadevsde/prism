@@ -25,7 +25,7 @@ use std::{sync::Arc, time::Instant};
 use tokio::{self, task};
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
+pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/base-riscv32im-succinct-zkvm-elf");
 
 /// The arguments for the command.
 #[derive(Parser, Debug)]
