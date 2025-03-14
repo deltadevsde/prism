@@ -32,7 +32,7 @@ use tokio::{
 use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
-use sp1_sdk::{CpuProver, Prover as _, ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
+use sp1_sdk::{EnvProver, ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub const PRISM_ELF: &[u8] = include_bytes!("../../../../../elf/riscv32im-succinct-zkvm-elf");
 
@@ -114,7 +114,7 @@ pub struct Prover {
     /// [`tree`] is the representation of the JMT, prism's state tree. It is accessed via the [`db`].
     tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
 
-    prover_client: Arc<RwLock<CpuProver>>,
+    prover_client: Arc<RwLock<EnvProver>>,
     proving_key: SP1ProvingKey,
     verifying_key: SP1VerifyingKey,
 }
@@ -137,10 +137,7 @@ impl Prover {
 
         let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(db.clone(), saved_epoch)));
 
-        #[cfg(feature = "mock_prover")]
-        let prover_client = ProverClient::builder().mock().build();
-        #[cfg(not(feature = "mock_prover"))]
-        let prover_client = ProverClient::builder().cpu().build();
+        let prover_client = ProverClient::from_env();
 
         let (pk, vk) = prover_client.setup(PRISM_ELF);
 
@@ -412,10 +409,6 @@ impl Prover {
         let client = self.prover_client.read().await;
 
         info!("generating proof for epoch at height {}", epoch_height);
-        #[cfg(not(feature = "groth16"))]
-        let proof = client.prove(&self.proving_key, &stdin).run()?;
-
-        #[cfg(feature = "groth16")]
         let proof = client.prove(&self.proving_key, &stdin).groth16().run()?;
         info!("successfully generated proof for epoch {}", epoch_height);
 

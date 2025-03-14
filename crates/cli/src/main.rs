@@ -8,7 +8,7 @@ use clap::Parser;
 use keystore_rs::{FileStore, KeyChain, KeyStore};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
-use sp1_sdk::{HashableKey, Prover as _, ProverClient};
+use sp1_sdk::{HashableKey, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
@@ -44,7 +44,9 @@ async fn main() -> std::io::Result<()> {
                 Error::other(e.to_string())
             })?;
 
-            let client = ProverClient::builder().mock().build();
+            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
+
+            let client = ProverClient::from_env();
             let (_, vk) = client.setup(PRISM_ELF);
             let event_channel = EventChannel::new();
 
@@ -64,6 +66,8 @@ async fn main() -> std::io::Result<()> {
                 "keystore type: {:?}",
                 config.clone().keystore_type.unwrap_or_default()
             );
+
+            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
             let verifying_key = signing_key.verifying_key();
@@ -96,6 +100,8 @@ async fn main() -> std::io::Result<()> {
                 "keystore type: {:?}",
                 config.clone().keystore_type.unwrap_or_default()
             );
+
+            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
 
             let signing_key = get_signing_key(config.keystore_type, config.keystore_path)?;
 
