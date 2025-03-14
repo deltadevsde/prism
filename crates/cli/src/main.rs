@@ -31,8 +31,7 @@ async fn main() -> std::io::Result<()> {
         Commands::LightClient(args) | Commands::Prover(args) | Commands::FullNode(args) => args,
     };
 
-    let config =
-        load_config(args.clone()).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+    let config = load_config(args.clone()).map_err(|e| Error::other(e.to_string()))?;
 
     let start_height = config.clone().network.celestia_config.unwrap_or_default().start_height;
 
@@ -42,7 +41,7 @@ async fn main() -> std::io::Result<()> {
 
             let da = initialize_light_da_layer(&config).await.map_err(|e| {
                 error!("error initializing light da layer: {}", e);
-                Error::new(ErrorKind::Other, e.to_string())
+                Error::other(e.to_string())
             })?;
 
             info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
@@ -60,12 +59,9 @@ async fn main() -> std::io::Result<()> {
             ))
         }
         Commands::Prover(_) => {
-            let db =
-                initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
 
-            let da = initialize_da_layer(&config)
-                .await
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let da = initialize_da_layer(&config).await.map_err(|e| Error::other(e.to_string()))?;
             info!(
                 "keystore type: {:?}",
                 config.clone().keystore_type.unwrap_or_default()
@@ -92,16 +88,13 @@ async fn main() -> std::io::Result<()> {
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
                 error!("error initializing prover: {}", e);
-                Error::new(ErrorKind::Other, e.to_string())
+                Error::other(e.to_string())
             })?)
         }
         Commands::FullNode(_) => {
-            let db =
-                initialize_db(&config).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
 
-            let da = initialize_da_layer(&config)
-                .await
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let da = initialize_da_layer(&config).await.map_err(|e| Error::other(e.to_string()))?;
 
             info!(
                 "keystore type: {:?}",
@@ -128,12 +121,12 @@ async fn main() -> std::io::Result<()> {
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
                 error!("error initializing prover: {}", e);
-                Error::new(ErrorKind::Other, e.to_string())
+                Error::other(e.to_string())
             })?)
         }
     };
 
-    node.start().await.map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+    node.start().await.map_err(|e| Error::other(e.to_string()))
 }
 
 fn get_signing_key(
@@ -143,7 +136,7 @@ fn get_signing_key(
     let keystore: Box<dyn KeyStore> = match keystore_type.unwrap_or_default().as_str() {
         "file" => {
             let file_store = FileStore::new(keystore_path.unwrap_or_default())
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| Error::other(e.to_string()))?;
             Box::new(file_store)
         }
         "keychain" => Box::new(KeyChain),
@@ -152,22 +145,14 @@ fn get_signing_key(
         }
     };
 
-    let raw_signing_key = keystore.get_or_create_signing_key(SIGNING_KEY_ID).map_err(|e| {
-        Error::new(
-            ErrorKind::Other,
-            format!("Failed to get or create signing key: {}", e),
-        )
-    })?;
+    let raw_signing_key = keystore
+        .get_or_create_signing_key(SIGNING_KEY_ID)
+        .map_err(|e| Error::other(format!("Failed to get or create signing key: {}", e)))?;
 
     // Hardcoded ED25519 as keystore_rs only supports ED25519
     let signing_key =
         SigningKey::from_algorithm_and_bytes(CryptoAlgorithm::Ed25519, raw_signing_key.as_bytes())
-            .map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
-                    format!("Failed to parse signing key: {}", e),
-                )
-            })?;
+            .map_err(|e| Error::other(format!("Failed to parse signing key: {}", e)))?;
 
     Ok(signing_key)
 }

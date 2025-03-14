@@ -34,7 +34,19 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 
 #[tokio::test]
 async fn test_light_client_prover_talking() -> Result<()> {
-    pretty_env_logger::init();
+    pretty_env_logger::formatted_builder()
+        .filter_level(log::LevelFilter::Debug)
+        .filter_module("tracing", log::LevelFilter::Off)
+        .filter_module("sp1_stark", log::LevelFilter::Info)
+        .filter_module("jmt", log::LevelFilter::Off)
+        .filter_module("p3_dft", log::LevelFilter::Off)
+        .filter_module("p3_fri", log::LevelFilter::Off)
+        .filter_module("sp1_core_executor", log::LevelFilter::Info)
+        .filter_module("sp1_recursion_program", log::LevelFilter::Info)
+        .filter_module("p3_merkle_tree", log::LevelFilter::Off)
+        .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
+        .filter_module("sp1_core_machine", log::LevelFilter::Off)
+        .init();
 
     let prover_client = ProverClient::from_env();
 

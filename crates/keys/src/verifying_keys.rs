@@ -76,11 +76,11 @@ impl VerifyingKey {
     /// Returns the byte representation of the public key.
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
-            VerifyingKey::Ed25519(vk) => vk.to_bytes().to_vec(),
-            VerifyingKey::Secp256k1(vk) => vk.to_sec1_bytes().to_vec(),
-            VerifyingKey::Secp256r1(vk) => vk.to_sec1_bytes().to_vec(),
-            VerifyingKey::Eip191(vk) => vk.to_sec1_bytes().to_vec(),
-            VerifyingKey::CosmosAdr36(vk) => vk.to_sec1_bytes().to_vec(),
+            VerifyingKey::Ed25519(vk) => vk.as_bytes().to_vec(),
+            VerifyingKey::Secp256k1(vk) => vk.to_encoded_point(true).as_bytes().to_vec(),
+            VerifyingKey::Secp256r1(vk) => vk.to_encoded_point(true).as_bytes().to_vec(),
+            VerifyingKey::Eip191(vk) => vk.to_encoded_point(true).as_bytes().to_vec(),
+            VerifyingKey::CosmosAdr36(vk) => vk.to_encoded_point(true).as_bytes().to_vec(),
         }
     }
 
