@@ -32,14 +32,10 @@ use tokio::{
 use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
-<<<<<<< HEAD
-use sp1_sdk::{EnvProver, ProverClient, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
-=======
 use sp1_sdk::{
     CpuProver, HashableKey as _, Prover as _, ProverClient, SP1ProofWithPublicValues,
     SP1ProvingKey, SP1Stdin, SP1VerifyingKey,
 };
->>>>>>> 93e6d33 (feat: implement recursive proving mechanism with generated vkeys)
 
 pub const BASE_PRISM_ELF: &[u8] =
     include_bytes!("../../../../../elf/base-riscv32im-succinct-zkvm-elf");
@@ -124,11 +120,6 @@ pub struct Prover {
     /// [`tree`] is the representation of the JMT, prism's state tree. It is accessed via the [`db`].
     tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
 
-<<<<<<< HEAD
-    prover_client: Arc<RwLock<EnvProver>>,
-    proving_key: SP1ProvingKey,
-    verifying_key: SP1VerifyingKey,
-=======
     base_prover_client: Arc<RwLock<CpuProver>>,
     base_proving_key: SP1ProvingKey,
     base_verifying_key: SP1VerifyingKey,
@@ -136,7 +127,6 @@ pub struct Prover {
     recursive_prover_client: Arc<RwLock<CpuProver>>,
     recursive_proving_key: SP1ProvingKey,
     recursive_verifying_key: SP1VerifyingKey,
->>>>>>> 93e6d33 (feat: implement recursive proving mechanism with generated vkeys)
 }
 
 #[allow(dead_code)]
@@ -157,15 +147,11 @@ impl Prover {
 
         let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(db.clone(), saved_epoch)));
 
-<<<<<<< HEAD
-        let prover_client = ProverClient::from_env();
-=======
         // Create separate prover clients for base and recursive proofs
         #[cfg(feature = "mock_prover")]
         let base_prover_client = ProverClient::builder().mock().build();
         #[cfg(not(feature = "mock_prover"))]
         let base_prover_client = ProverClient::builder().cpu().build();
->>>>>>> 93e6d33 (feat: implement recursive proving mechanism with generated vkeys)
 
         #[cfg(feature = "mock_prover")]
         let recursive_prover_client = ProverClient::builder().mock().build();
@@ -536,66 +522,8 @@ impl Prover {
             signature: None,
         };
 
-<<<<<<< HEAD
-            let proof = client.prove(&self.recursive_proving_key, &stdin).groth16().run()?;
-            info!(
-                "successfully generated recursive proof for epoch {}",
-                epoch_height
-            );
-
-            client.verify(&proof, &self.recursive_verifying_key)?;
-            info!("verified recursive proof for epoch {}", epoch_height);
-
-            let public_values = proof.public_values.to_vec();
-
-            let mut epoch_json = FinalizedEpoch {
-                height: epoch_height,
-                prev_commitment: batch.prev_root,
-                current_commitment: batch.new_root,
-                proof,
-                public_values,
-                signature: None,
-            };
-
-            epoch_json.insert_signature(&self.cfg.signing_key)?;
-            Ok(epoch_json)
-        }
-<<<<<<< HEAD
-
-        stdin.write(&batch);
-
-        let client = self.prover_client.read().await;
-
-        info!("generating proof for epoch at height {}", epoch_height);
-<<<<<<< HEAD
-=======
-
->>>>>>> ec6be38 (feat: start with recursive snark)
-        let proof = client.prove(&self.proving_key, &stdin).groth16().run()?;
-        info!("successfully generated proof for epoch {}", epoch_height);
-
-        client.verify(&proof, &self.verifying_key)?;
-        info!("verified proof for epoch {}", epoch_height);
-
-        let public_values = proof.public_values.to_vec();
-
-        let mut epoch_json = FinalizedEpoch {
-            height: epoch_height,
-            prev_commitment: batch.prev_root,
-            current_commitment: batch.new_root,
-            proof,
-            public_values,
-            signature: None,
-        };
-
         epoch_json.insert_signature(&self.cfg.signing_key)?;
         Ok(epoch_json)
-=======
->>>>>>> 93e6d33 (feat: implement recursive proving mechanism with generated vkeys)
-=======
-        epoch_json.insert_signature(&self.cfg.signing_key)?;
-        Ok(epoch_json)
->>>>>>> 1c753a7 (fix: tests, use base recursion case as mock prover for every epoch)
     }
 
     async fn post_batch_loop(self: Arc<Self>) -> Result<()> {

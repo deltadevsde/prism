@@ -13,7 +13,9 @@
 use clap::Parser;
 use jmt::mock::MockTreeStore;
 use plotters::prelude::*;
-use prism_common::test_transaction_builder::TestTransactionBuilder;
+use prism_common::{
+    digest::Digest as PrismDigest, test_transaction_builder::TestTransactionBuilder,
+};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_tree::{
     key_directory_tree::KeyDirectoryTree, proofs::Batch, snarkable_tree::SnarkableTree,
@@ -24,8 +26,11 @@ use sp1_sdk::{Prover, ProverClient, SP1Stdin};
 use std::{sync::Arc, time::Instant};
 use tokio::{self, task};
 
-/// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/base-riscv32im-succinct-zkvm-elf");
+/// The ELF (executable and linkable format) files for the Succinct RISC-V zkVM.
+pub const BASE_PRISM_ELF: &[u8] =
+    include_bytes!("../../../../elf/base-riscv32im-succinct-zkvm-elf");
+pub const RECURSIVE_PRISM_ELF: &[u8] =
+    include_bytes!("../../../../elf/recursive-riscv32im-succinct-zkvm-elf");
 
 /// The arguments for the command.
 #[derive(Parser, Debug)]
@@ -271,11 +276,21 @@ async fn main() {
         };
         println!("Starting to create benchmark batch");
         let operations_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
+        let is_base_case = operations_batch.prev_root == PrismDigest::zero();
+
         println!("Done creating benchmark batch");
         stdin.write(&operations_batch);
 
         // Setup the program for proving.
-        let (pk, vk) = client.setup(PRISM_ELF);
+        let (base_pk, base_vk) = client.setup(BASE_PRISM_ELF);
+        let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_ELF);
+
+        // Use the appropriate key based on whether it's a base case or recursive proof
+        let (pk, vk) = if is_base_case {
+            (base_pk, base_vk)
+        } else {
+            (recursive_pk, recursive_vk)
+        };
 
         // Measure the time taken to generate the proof
         println!("Starting to generate proof");
@@ -339,10 +354,11 @@ async fn execute_simulations(args: Args) {
                 stdin.write(&operations_batch);
 
                 // Execute the operations batch
-                let (_, report) =
-                    task::spawn_blocking(move || client.execute(PRISM_ELF, &stdin).run().unwrap())
-                        .await
-                        .unwrap();
+                let (_, report) = task::spawn_blocking(move || {
+                    client.execute(BASE_PRISM_ELF, &stdin).run().unwrap()
+                })
+                .await
+                .unwrap();
                 println!("Operations batch executed successfully.");
 
                 // Record the number of cycles executed.
