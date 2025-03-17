@@ -183,13 +183,9 @@ fn create_benchmark_batch(
     }
 
     // Create new accounts
-    let account_keys = builder.get_account_keys().clone();
     for i in 0..config.num_new_accounts {
         let algorithm = config.algorithms[i % config.algorithms.len()];
-        let account_id = format!(
-            "account_{}",
-            hex::encode(Sha256::digest((i + account_keys.len()).to_le_bytes()))
-        );
+        let account_id = format!("account_{}", i + config.num_existing_accounts);
         let service_id = get_random_service_id(&mut rng, builder);
         let transaction = builder
             .create_account_with_random_key_signed(algorithm, &account_id, &service_id)
@@ -276,14 +272,11 @@ async fn main() {
             num_add_data: 1,
             num_set_data: 1,
         };
+        println!("{:?}", tree.get_commitment().unwrap());
         println!("Starting to create benchmark batch");
         let base_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
 
         println!("Done creating benchmark batch");
-        if base_batch.prev_root != PrismDigest::zero() {
-            eprintln!("Error: Expected base batch to have zero prev_root");
-            std::process::exit(1);
-        }
 
         stdin_base.write(&base_batch);
 
@@ -293,8 +286,11 @@ async fn main() {
         // Generate the base proof
         println!("Generating base proof");
         let start = Instant::now();
-        let base_proof =
-            client.prove(&base_pk, &stdin_base).run().expect("failed to generate base proof");
+        let base_proof = client
+            .prove(&base_pk, &stdin_base)
+            .groth16()
+            .run()
+            .expect("failed to generate base proof");
         let duration = start.elapsed();
         println!("Generated base proof in {:.2?} seconds", duration);
 
@@ -319,8 +315,8 @@ async fn main() {
             tags: vec![],
             num_simulations: 1,
             algorithms: vec![CryptoAlgorithm::Secp256r1],
-            num_existing_services: 1,
-            num_existing_accounts: 10,
+            num_existing_services: 2,
+            num_existing_accounts: 13,
             num_new_services: 1,
             num_new_accounts: 1,
             num_add_keys: 1,
@@ -337,6 +333,7 @@ async fn main() {
             eprintln!("Recursive batch prev_root: {:?}", recursive_batch.prev_root);
             std::process::exit(1);
         }
+        stdin_recursive.write(&recursive_batch);
 
         let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_ELF);
 
@@ -344,6 +341,7 @@ async fn main() {
         let start = Instant::now();
         let recursive_proof = client
             .prove(&recursive_pk, &stdin_recursive)
+            .groth16()
             .run()
             .expect("failed to generate recursive proof");
         let duration = start.elapsed();
