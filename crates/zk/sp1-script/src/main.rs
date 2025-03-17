@@ -13,9 +13,7 @@
 use clap::Parser;
 use jmt::mock::MockTreeStore;
 use plotters::prelude::*;
-use prism_common::{
-    digest::Digest as PrismDigest, test_transaction_builder::TestTransactionBuilder,
-};
+use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_tree::{
     key_directory_tree::KeyDirectoryTree, proofs::Batch, snarkable_tree::SnarkableTree,
