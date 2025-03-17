@@ -22,7 +22,7 @@ use prism_tree::{
 };
 use rand::Rng;
 use sha2::{Digest, Sha256, Sha512};
-use sp1_sdk::{Prover, ProverClient, SP1Stdin};
+use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Stdin};
 use std::{sync::Arc, time::Instant};
 use tokio::{self, task};
 
@@ -257,8 +257,10 @@ async fn main() {
         // Setup the prover client with CUDA support.
         let client = ProverClient::builder().cuda().build();
 
+        println!("------ PHASE 1: BASE PROOF GENERATION ------");
+
         // Setup the inputs for a single configuration for proof generation.
-        let mut stdin = SP1Stdin::new();
+        let mut stdin_base = SP1Stdin::new();
         let mut builder = TestTransactionBuilder::new();
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let config = SimulationConfig {
@@ -266,7 +268,7 @@ async fn main() {
             num_simulations: 1,
             algorithms: vec![CryptoAlgorithm::Secp256r1],
             num_existing_services: 1,
-            num_existing_accounts: 1000,
+            num_existing_accounts: 10,
             num_new_services: 1,
             num_new_accounts: 3,
             num_add_keys: 3,
@@ -275,34 +277,81 @@ async fn main() {
             num_set_data: 1,
         };
         println!("Starting to create benchmark batch");
-        let operations_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
-        let is_base_case = operations_batch.prev_root == PrismDigest::zero();
+        let base_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
 
         println!("Done creating benchmark batch");
-        stdin.write(&operations_batch);
+        if base_batch.prev_root != PrismDigest::zero() {
+            eprintln!("Error: Expected base batch to have zero prev_root");
+            std::process::exit(1);
+        }
 
-        // Setup the program for proving.
+        stdin_base.write(&base_batch);
+
+        // Setup the base program for proving.
         let (base_pk, base_vk) = client.setup(BASE_PRISM_ELF);
-        let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_ELF);
 
-        // Use the appropriate key based on whether it's a base case or recursive proof
-        let (pk, vk) = if is_base_case {
-            (base_pk, base_vk)
-        } else {
-            (recursive_pk, recursive_vk)
+        // Generate the base proof
+        println!("Generating base proof");
+        let start = Instant::now();
+        let base_proof =
+            client.prove(&base_pk, &stdin_base).run().expect("failed to generate base proof");
+        let duration = start.elapsed();
+        println!("Generated base proof in {:.2?} seconds", duration);
+
+        println!("Verifying base proof");
+        client.verify(&base_proof, &base_vk).expect("failed to verify base proof");
+        println!("Base proof verified successfully!");
+
+        println!("\n------ PHASE 2: RECURSIVE PROOF GENERATION ------");
+        let mut stdin_recursive = SP1Stdin::new();
+
+        let proof_bytes = base_proof.bytes();
+        let public_values = base_proof.public_values.clone();
+        let vkey_hash = base_vk.bytes32();
+
+        // Write recursive inputs
+        stdin_recursive.write_vec(proof_bytes);
+        stdin_recursive.write_vec(public_values.to_vec());
+        stdin_recursive.write(&vkey_hash);
+
+        println!("Creating recursive batch");
+        let recursive_config = SimulationConfig {
+            tags: vec![],
+            num_simulations: 1,
+            algorithms: vec![CryptoAlgorithm::Secp256r1],
+            num_existing_services: 1,
+            num_existing_accounts: 10,
+            num_new_services: 1,
+            num_new_accounts: 1,
+            num_add_keys: 1,
+            num_revoke_key: 1,
+            num_add_data: 1,
+            num_set_data: 1,
         };
 
-        // Measure the time taken to generate the proof
-        println!("Starting to generate proof");
-        let start = Instant::now();
-        let proof = client.prove(&pk, &stdin).run().expect("failed to generate proof");
-        let duration = start.elapsed();
-        println!("Done generating proof in {:.2?} seconds!", duration);
+        let recursive_batch = create_benchmark_batch(&mut builder, &mut tree, &recursive_config);
 
-        // Verify the proof.
-        println!("Starting to verify proof");
-        client.verify(&proof, &vk).expect("failed to verify proof");
-        println!("Done verifying proof!");
+        if recursive_batch.prev_root != base_batch.new_root {
+            eprintln!("Error: State discontinuity between batches");
+            eprintln!("Base batch new_root: {:?}", base_batch.new_root);
+            eprintln!("Recursive batch prev_root: {:?}", recursive_batch.prev_root);
+            std::process::exit(1);
+        }
+
+        let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_ELF);
+
+        println!("Generating recursive proof");
+        let start = Instant::now();
+        let recursive_proof = client
+            .prove(&recursive_pk, &stdin_recursive)
+            .run()
+            .expect("failed to generate recursive proof");
+        let duration = start.elapsed();
+        println!("Generated recursive proof in {:.2?} seconds", duration);
+
+        println!("Verifying recursive proof");
+        client.verify(&recursive_proof, &recursive_vk).expect("failed to verify recursive proof");
+        println!("Recursive proof verified successfully!");
     }
 }
 
