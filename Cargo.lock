@@ -8643,6 +8643,8 @@ dependencies = [
  "getrandom 0.2.15",
  "lazy_static",
  "libm",
+ "p3-baby-bear",
+ "p3-field",
  "rand",
  "sha2 0.10.8",
  "sp1-lib",

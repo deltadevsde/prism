@@ -11,6 +11,7 @@
 //! ```
 
 use clap::Parser;
+use core::panic;
 use jmt::mock::MockTreeStore;
 use plotters::prelude::*;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
@@ -20,7 +21,7 @@ use prism_tree::{
 };
 use rand::Rng;
 use sha2::{Digest, Sha256, Sha512};
-use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Stdin};
+use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Proof, SP1Stdin};
 use std::{sync::Arc, time::Instant};
 use tokio::{self, task};
 
@@ -281,7 +282,21 @@ async fn main() {
         // Setup the base program for proving.
         let (base_pk, base_vk) = client.setup(BASE_PRISM_ELF);
 
-        // Generate the base proof
+        // generate the base compressed proof
+        println!("Generating base proof");
+        let start = Instant::now();
+        let base_compressed_proof = client
+            .prove(&base_pk, &stdin_base)
+            .compressed()
+            .run()
+            .expect("failed to generate base proof");
+        let duration = start.elapsed();
+        println!(
+            "Generated base compressed proof in {:.2?} seconds",
+            duration
+        );
+
+        // Generate the base groth16 proof
         println!("Generating base proof");
         let start = Instant::now();
         let base_proof = client
@@ -290,21 +305,24 @@ async fn main() {
             .run()
             .expect("failed to generate base proof");
         let duration = start.elapsed();
-        println!("Generated base proof in {:.2?} seconds", duration);
+        println!("Generated base groth16 proof in {:.2?} seconds", duration);
 
-        println!("Verifying base proof");
+        println!("Verifying base proofs");
+        client.verify(&base_compressed_proof, &base_vk).expect("failed to verify base proof");
         client.verify(&base_proof, &base_vk).expect("failed to verify base proof");
         println!("Base proof verified successfully!");
 
         println!("\n------ PHASE 2: RECURSIVE PROOF GENERATION ------");
         let mut stdin_recursive = SP1Stdin::new();
 
-        let proof_bytes = base_proof.bytes();
-        let public_values = base_proof.public_values.clone();
+        let public_values = base_compressed_proof.public_values.clone();
         let vkey_hash = base_vk.bytes32();
 
         // Write recursive inputs
-        stdin_recursive.write_vec(proof_bytes);
+        let SP1Proof::Compressed(compressed_proof) = base_compressed_proof.proof else {
+            panic!("Expected compressed proof")
+        };
+        stdin_recursive.write_proof(*compressed_proof, base_vk.vk);
         stdin_recursive.write_vec(public_values.to_vec());
         stdin_recursive.write(&vkey_hash);
 
@@ -315,12 +333,12 @@ async fn main() {
             algorithms: vec![CryptoAlgorithm::Secp256r1],
             num_existing_services: 2,
             num_existing_accounts: 13,
-            num_new_services: 1,
-            num_new_accounts: 1,
-            num_add_keys: 1,
-            num_revoke_key: 1,
-            num_add_data: 1,
-            num_set_data: 1,
+            num_new_services: 10,
+            num_new_accounts: 10,
+            num_add_keys: 12,
+            num_revoke_key: 8,
+            num_add_data: 5,
+            num_set_data: 5,
         };
 
         let recursive_batch = create_benchmark_batch(&mut builder, &mut tree, &recursive_config);
@@ -335,6 +353,19 @@ async fn main() {
 
         let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_ELF);
 
+        println!("Generating compressed recursive proof");
+        let start = Instant::now();
+        let compressed_recursive_proof = client
+            .prove(&recursive_pk, &stdin_recursive)
+            .compressed()
+            .run()
+            .expect("failed to generate recursive proof");
+        let duration = start.elapsed();
+        println!(
+            "Generated compressed recursive proof in {:.2?} seconds",
+            duration
+        );
+
         println!("Generating recursive proof");
         let start = Instant::now();
         let recursive_proof = client
@@ -345,7 +376,10 @@ async fn main() {
         let duration = start.elapsed();
         println!("Generated recursive proof in {:.2?} seconds", duration);
 
-        println!("Verifying recursive proof");
+        println!("Verifying recursive proofs");
+        client
+            .verify(&compressed_recursive_proof, &recursive_vk)
+            .expect("failed to verify recursive proof");
         client.verify(&recursive_proof, &recursive_vk).expect("failed to verify recursive proof");
         println!("Recursive proof verified successfully!");
     }
