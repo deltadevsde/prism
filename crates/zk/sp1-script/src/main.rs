@@ -290,15 +290,9 @@ async fn main() {
             .compressed()
             .run()
             .expect("failed to generate base proof");
-        let duration = start.elapsed();
-        println!(
-            "Generated base compressed proof in {:.2?} seconds",
-            duration
-        );
 
         // Generate the base groth16 proof
         println!("Generating base proof");
-        let start = Instant::now();
         let base_proof = client
             .prove(&base_pk, &stdin_base)
             .groth16()
@@ -360,14 +354,14 @@ async fn main() {
             .compressed()
             .run()
             .expect("failed to generate recursive proof");
-        let duration = start.elapsed();
+
         println!(
             "Generated compressed recursive proof in {:.2?} seconds",
             duration
         );
 
-        println!("Generating recursive proof");
-        let start = Instant::now();
+        println!("Generating recursive groth16 proof");
+
         let recursive_proof = client
             .prove(&recursive_pk, &stdin_recursive)
             .groth16()
