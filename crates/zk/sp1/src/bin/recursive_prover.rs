@@ -2,7 +2,7 @@
 sp1_zkvm::entrypoint!(main);
 
 use prism_tree::proofs::Batch;
-use sp1_verifier::{GROTH16_VK_BYTES, Groth16Verifier};
+use sha2::{Digest, Sha256};
 
 /// Recursive prover - used for all epochs after the initial epoch
 /// This binary ALWAYS performs recursive verification, with no option to skip it
@@ -11,10 +11,11 @@ pub fn main() {
 
     // ALWAYS verify the previous proof - no conditional logic
     println!("recursive verification");
-    let pv_digest = sp1_zkvm::io::read_vec();
-    let vkey_digest = sp1_zkvm::io::read::<String>();
+    let pv_vec = sp1_zkvm::io::read_vec();
+    let pv_digest = Sha256::digest(pv_vec);
+    let vk_digest = sp1_zkvm::io::read::<[u32; 8]>();
 
-    sp1_zkvm::lib::verify::verify_sp1_proof(vk_digest, pv_digest);
+    sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, &pv_digest.into());
 
     println!("recursive verification succeeded");
 

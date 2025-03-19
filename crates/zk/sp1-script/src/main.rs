@@ -316,7 +316,7 @@ async fn main() {
         let mut stdin_recursive = SP1Stdin::new();
 
         let public_values = base_compressed_proof.public_values.clone();
-        let vkey_hash = base_vk.bytes32();
+        let vkey_hash = base_vk.hash_u32();
 
         // Write recursive inputs
         let SP1Proof::Compressed(compressed_proof) = base_compressed_proof.proof else {

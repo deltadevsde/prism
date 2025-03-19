@@ -11,6 +11,7 @@ prism-common = { workspace = true }
 prism-tree = { workspace = true }
 sp1-zkvm = { workspace = true, features = ["verify"]}
 sp1-verifier = { workspace = true }
+sha2 = { workspace = true }
 
 [[bin]]
 name = "base_prover"

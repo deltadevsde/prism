@@ -6638,6 +6638,7 @@ version = "0.1.0"
 dependencies = [
  "prism-common",
  "prism-tree",
+ "sha2 0.10.8",
  "sp1-verifier",
  "sp1-zkvm",
 ]
