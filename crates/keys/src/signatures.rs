@@ -1,17 +1,21 @@
-use std::borrow::Cow;
+use std::{
+    borrow::Cow,
+    fmt::{Display, Formatter},
+};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use ed25519_consensus::Signature as Ed25519Signature;
 use k256::ecdsa::Signature as Secp256k1Signature;
 use p256::ecdsa::Signature as Secp256r1Signature;
 
+use prism_serde::base64::ToBase64;
 use serde::{Deserialize, Serialize};
 use utoipa::{
-    openapi::{RefOr, Schema},
     PartialSchema, ToSchema,
+    openapi::{RefOr, Schema},
 };
 
-use crate::{payload::CryptoPayload, CryptoAlgorithm};
+use crate::{CryptoAlgorithm, payload::CryptoPayload};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
@@ -96,6 +100,13 @@ impl From<Signature> for CryptoPayload {
             algorithm: signature.algorithm(),
             bytes: signature.to_bytes(),
         }
+    }
+}
+
+impl Display for Signature {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let encoded = self.to_bytes().to_base64();
+        write!(f, "{}", encoded)
     }
 }
 
