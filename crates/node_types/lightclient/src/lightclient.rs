@@ -58,8 +58,6 @@ pub struct LightClient {
     pub prover_pubkey: Option<VerifyingKey>,
     /// The verification key for both (base and recursive) SP1 programs, generated within the build process (with just build).
     pub sp1_vkeys: VerificationKeys,
-    /// The height to start syncing from.
-    pub start_height: u64,
     /// The event publisher.
     pub event_publisher: EventPublisher,
     // The latest commitment.
@@ -81,7 +79,6 @@ impl LightClient {
             da,
             sp1_vkeys,
             prover_pubkey,
-            start_height,
             event_publisher,
             latest_commitment: Arc::new(RwLock::new(None)),
             sync_target: Arc::new(AtomicU64::new(start_height)),
@@ -96,7 +93,7 @@ impl LightClient {
             spawn_task({
                 let lumina_event_subscriber = lumina_event_subscriber.clone();
                 async move {
-                    let mut current_height = light_client.start_height;
+                    let mut current_height = 0; // Will be set when we do our first sync
                     let mut subscriber = lumina_event_subscriber.lock().await;
                     let mut performed_initial_search = false;
 
@@ -111,10 +108,14 @@ impl LightClient {
                                 .event_publisher
                                 .send(LightClientEvent::UpdateDAHeight { height });
 
-                            // If we're still at the start height, we haven't processed any epochs yet,
-                            // so we do our backward search
+                            // If we haven't done our initial backward search yet
                             if !performed_initial_search {
                                 performed_initial_search = true;
+
+                                // First height we've received, so announce starting sync
+                                light_client
+                                    .event_publisher
+                                    .send(LightClientEvent::SyncStarted { height });
 
                                 light_client.event_publisher.send(
                                     LightClientEvent::RecursiveVerificationStarted { height },
@@ -123,7 +124,8 @@ impl LightClient {
                                 // Search backward from the network height
                                 let mut latest_epoch_height = height;
 
-                                while latest_epoch_height >= light_client.start_height {
+                                // Continue searching until we find an epoch or reach height 0
+                                loop {
                                     if let Ok(Some(_)) = light_client
                                         .da
                                         .get_finalized_epoch(latest_epoch_height)
@@ -147,14 +149,20 @@ impl LightClient {
                                         break;
                                     }
 
-                                    // Check for potential underflow before decrementing
+                                    // If we've reached height 0 and found no epoch, break out
                                     if latest_epoch_height == 0 {
+                                        // If no epoch found, just start from the current network height, there was no previous prism epoch
+                                        if current_height == 0 {
+                                            current_height = height;
+                                        }
                                         break;
                                     }
 
                                     latest_epoch_height -= 1;
                                 }
                             }
+
+                            // Process any new heights
                             if height > current_height {
                                 for h in current_height..height {
                                     if let Err(e) = light_client.process_epoch(h + 1).await {
