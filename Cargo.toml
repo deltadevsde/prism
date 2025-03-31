@@ -22,6 +22,7 @@ default-members = [
   "crates/node_types/prover",
   "crates/node_types/lightclient",
   "crates/node_types/wasm-lightclient",
+  "crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
   "crates/storage",
@@ -38,6 +39,7 @@ members = [
   "crates/node_types/prover",
   "crates/node_types/lightclient",
   "crates/node_types/wasm-lightclient",
+  "crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
   "crates/zk/sp1",
@@ -64,7 +66,6 @@ hex = "0.4.3"
 axum = "0.8"
 tower-http = { version = "0.6", features = ["cors"] }
 utoipa = { version = "5.3", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "9.0", features = ["axum"] }
 utoipa-axum = { version = "0.2.0" }
 
 # webclient
@@ -113,9 +114,9 @@ alloy-primitives = { version = "0.8.21", default-features = false, features = [
 ripemd = "0.1.3"
 
 # celestia
-celestia-rpc = "=0.9.0"
-celestia-types = "=0.10.0"
-lumina-node = "=0.9.0"
+celestia-rpc = "=0.9.1"
+celestia-types = "=0.10.1"
+lumina-node = "=0.9.1"
 
 # p2p
 libp2p = "0.54.1"
@@ -157,6 +158,10 @@ web-sys = "0.3"
 serde-wasm-bindgen = "0.6.5"
 wasm-bindgen-futures = "0.4"
 web-time = "1.1.0"
+
+# uniffi
+uniffi = { version = "0.28.3", features = ["bindgen", "tokio", "cli"] }
+lumina-node-uniffi = { git = "https://github.com/deltadevsde/lumina.git" }
 
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.8-sp1-4.0.0" }
