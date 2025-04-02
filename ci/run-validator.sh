@@ -94,7 +94,7 @@ provision_light_nodes() {
 
     light_address=$(node_address "$light_name")
 
-    echo "Transfering $BRIDGE_COINS coins to the $light_name"
+    echo "Transferring $BRIDGE_COINS coins to the $light_name"
     echo "y" | celestia-appd tx bank send \
         "$NODE_NAME" \
         "$light_address" \
@@ -156,7 +156,7 @@ provision_bridge_nodes() {
 
     bridge_address=$(node_address "$bridge_name")
 
-    echo "Transfering $BRIDGE_COINS coins to the $bridge_name"
+    echo "Transferring $BRIDGE_COINS coins to the $bridge_name"
     echo "y" | celestia-appd tx bank send \
       "$NODE_NAME" \
       "$bridge_address" \
@@ -201,7 +201,7 @@ setup_private_validator() {
   # enable transaction indexing
   sed -i'.bak' 's|indexer = .*|indexer = "kv"|g' "$CONFIG_DIR/config/config.toml"
 
-  # reduce the time of commiting the proposed block
+  # reduce the time of committing the proposed block
   # bringing this value too low results in errors
   sed -i'.bak' 's|^timeout_commit.*|timeout_commit = "1s"|g' "$CONFIG_DIR/config/config.toml"
 }

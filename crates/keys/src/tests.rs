@@ -211,7 +211,7 @@ mod key_tests {
         // d8471e8cb611f2a1636380bfbf1e0197b10e3a93bf86a9567699feb6fcd070452375828b49930c171836e58df8a93f9a24abb2bc31b1e2165d734fefaef0d90b1c
         // Currently it is required to derive the verifying key from the signature
         // on client side and send both to the server separately.
-        // The signature is expeted to arrive without the parity byte.
+        // The signature is expected to arrive without the parity byte.
         // Here, we simulate that the client has acted like described and converted both to base64.
         let verifying_key_base64 = "A+mFEKkNVbIaZN3Bq95WpE2EpMHG+06ZBm985YggAaA3";
         let signature_base64 = "2EcejLYR8qFjY4C/vx4Bl7EOOpO/hqlWdpn+tvzQcEUjdYKLSZMMFxg25Y34qT+aJKuyvDGx4hZdc0/vrvDZCw==";
