@@ -2,24 +2,21 @@ mod cfg;
 mod node_types;
 
 use cfg::{
-    initialize_da_layer, initialize_db, initialize_light_da_layer, load_config, Cli, Commands,
+    Cli, Commands, initialize_da_layer, initialize_db, initialize_light_da_layer, load_config,
 };
 use clap::Parser;
 use keystore_rs::{FileStore, KeyChain, KeyStore};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
-use sp1_sdk::{HashableKey, ProverClient};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
-use prism_lightclient::{events::EventChannel, LightClient};
+use prism_lightclient::{LightClient, events::EventChannel};
 use prism_prover::Prover;
 use std::sync::Arc;
 
 #[macro_use]
 extern crate log;
-
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
 pub const SIGNING_KEY_ID: &str = "prism";
 
@@ -44,17 +41,12 @@ async fn main() -> std::io::Result<()> {
                 Error::other(e.to_string())
             })?;
 
-            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
-
-            let client = ProverClient::from_env();
-            let (_, vk) = client.setup(PRISM_ELF);
             let event_channel = EventChannel::new();
 
             Arc::new(LightClient::new(
                 da,
                 start_height,
                 verifying_key,
-                vk.bytes32(),
                 event_channel.publisher(),
             ))
         }

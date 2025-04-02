@@ -10,3 +10,4 @@ Cargo.lock
 
 !package.json
 !package-lock.json
+!keys.json

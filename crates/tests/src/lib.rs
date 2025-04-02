@@ -6,24 +6,21 @@ extern crate log;
 use anyhow::Result;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
-    celestia::{full_node::CelestiaConnection, utils::CelestiaConfig},
     DataAvailabilityLayer,
+    celestia::{full_node::CelestiaConnection, utils::CelestiaConfig},
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
-use prism_lightclient::{events::EventChannel, LightClient};
+use prism_lightclient::{LightClient, events::EventChannel};
 use prism_prover::Prover;
 use prism_storage::{
-    rocksdb::{RocksDBConfig, RocksDBConnection},
     Database,
+    rocksdb::{RocksDBConfig, RocksDBConnection},
 };
-use rand::{rngs::StdRng, Rng, SeedableRng};
-use sp1_sdk::{HashableKey, ProverClient};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::sync::Arc;
 use tokio::{spawn, sync::mpsc, time::Duration};
 
 use tempfile::TempDir;
-
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
 fn setup_db() -> Arc<Box<dyn Database>> {
     let temp_dir = TempDir::new().unwrap();
@@ -47,10 +44,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
-
-    let prover_client = ProverClient::from_env();
-
-    let (_, vk) = prover_client.setup(PRISM_ELF);
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://localhost:26658".to_string(),
@@ -90,7 +83,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
         lc_da_layer.clone(),
         lc_cfg.start_height,
         Some(pubkey),
-        vk.bytes32(),
         event_channel.publisher(),
     ));
 
