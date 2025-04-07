@@ -498,12 +498,14 @@ impl Prover {
 
         let mut stdin = SP1Stdin::new();
         // Write recursive inputs
-        let SP1Proof::Compressed(compressed_proof) = prev_epoch.compressed_proof.proof else {
-            panic!("Expected compressed proof")
+        let compressed_proof = match prev_epoch.compressed_proof.proof {
+            SP1Proof::Compressed(proof) => proof,
+            _ => return Err(anyhow!("Invalid proof type: expected compressed proof")),
         };
         stdin.write_proof(*compressed_proof, vk_to_use.clone().vk);
         stdin.write_vec(prev_epoch.public_values.to_vec());
         stdin.write(&vk_to_use.hash_u32());
+        stdin.write(batch);
 
         let client = self.recursive_prover_client.read().await;
         info!(
