@@ -297,8 +297,7 @@ mod key_tests {
 
     #[test]
     fn test_verifying_key_from_string_ed25519() {
-        let original_key: VerifyingKey =
-            SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(OsRng))).into();
+        let original_key = SigningKey::Ed25519(Ed25519SigningKey::new(OsRng)).verifying_key();
         let encoded = original_key.to_bytes().to_base64();
 
         let result = VerifyingKey::try_from(encoded);

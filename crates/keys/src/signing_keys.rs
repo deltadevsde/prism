@@ -35,7 +35,7 @@ fn get_rng() -> impl rand::RngCore + rand::CryptoRng {
 
 #[derive(Clone, Debug)]
 pub enum SigningKey {
-    Ed25519(Box<Ed25519SigningKey>),
+    Ed25519(Ed25519SigningKey),
     Secp256k1(Secp256k1SigningKey),
     Secp256r1(Secp256r1SigningKey),
     Eip191(Secp256k1SigningKey),
@@ -44,7 +44,7 @@ pub enum SigningKey {
 
 impl SigningKey {
     pub fn new_ed25519() -> Self {
-        SigningKey::Ed25519(Box::new(Ed25519SigningKey::new(get_rng())))
+        SigningKey::Ed25519(Ed25519SigningKey::new(get_rng()))
     }
 
     pub fn new_secp256k1() -> Self {
@@ -107,9 +107,9 @@ impl SigningKey {
 
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            CryptoAlgorithm::Ed25519 => Ed25519SigningKey::try_from(bytes)
-                .map(|sk| SigningKey::Ed25519(Box::new(sk)))
-                .map_err(|e| e.into()),
+            CryptoAlgorithm::Ed25519 => {
+                Ed25519SigningKey::try_from(bytes).map(SigningKey::Ed25519).map_err(|e| e.into())
+            }
             CryptoAlgorithm::Secp256k1 => Secp256k1SigningKey::from_slice(bytes)
                 .map(SigningKey::Secp256k1)
                 .map_err(|e| e.into()),
@@ -141,7 +141,7 @@ impl SigningKey {
                 let ed25519_key_pair_bytes = Ed25519KeypairBytes::try_from(pk_info)?;
                 let ed25519_signing_key =
                     Ed25519SigningKey::from(ed25519_key_pair_bytes.secret_key);
-                Ok(SigningKey::Ed25519(Box::new(ed25519_signing_key)))
+                Ok(SigningKey::Ed25519(ed25519_signing_key))
             }
             CryptoAlgorithm::Secp256k1 => Secp256k1SigningKey::try_from(pk_info)
                 .map(SigningKey::Secp256k1)
