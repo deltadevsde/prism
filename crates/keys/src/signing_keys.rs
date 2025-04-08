@@ -1,17 +1,22 @@
 use alloy_primitives::eip191_hash_message;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
+use ed25519::{
+    PublicKeyBytes as Ed25519PublicKeyBytes, pkcs8::KeypairBytes as Ed25519KeypairBytes,
+};
 use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use k256::ecdsa::{
-    signature::{hazmat::PrehashSigner, DigestSigner},
     Signature as Secp256k1Signature, SigningKey as Secp256k1SigningKey,
+    signature::{DigestSigner, hazmat::PrehashSigner},
 };
 use p256::ecdsa::{Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey};
+use pkcs8::{EncodePrivateKey, LineEnding, PrivateKeyInfo, der::pem::PemLabel};
+use std::path::Path;
 
 use sha2::Digest as _;
 
 use crate::{
-    cosmos::cosmos_adr36_hash_message, payload::CryptoPayload, CryptoAlgorithm, Signature,
-    VerifyingKey,
+    CryptoAlgorithm, Signature, VerifyingKey, cosmos::cosmos_adr36_hash_message,
+    payload::CryptoPayload,
 };
 
 // We have to decide for now if we want to have conditional compilation here or in prism_common etc. because they're relying on SigningKey, thats why we can't comment the whole file out for wasm in the current setup
@@ -82,6 +87,24 @@ impl SigningKey {
         }
     }
 
+    pub fn to_pkcs8_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
+        match self {
+            SigningKey::Ed25519(sk) => {
+                let keypair_bytes = Ed25519KeypairBytes {
+                    secret_key: sk.to_bytes(),
+                    public_key: Some(Ed25519PublicKeyBytes(sk.verification_key().to_bytes())),
+                };
+                keypair_bytes.write_pkcs8_pem_file(filename, LineEnding::LF)?
+            }
+            SigningKey::Secp256k1(sk) => sk.write_pkcs8_pem_file(filename, LineEnding::LF)?,
+            SigningKey::Secp256r1(sk) => sk.write_pkcs8_pem_file(filename, LineEnding::LF)?,
+            SigningKey::Eip191(sk) => sk.write_pkcs8_pem_file(filename, LineEnding::LF)?,
+            SigningKey::CosmosAdr36(sk) => sk.write_pkcs8_pem_file(filename, LineEnding::LF)?,
+        };
+
+        Ok(())
+    }
+
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => Ed25519SigningKey::try_from(bytes)
@@ -97,6 +120,39 @@ impl SigningKey {
                 Secp256k1SigningKey::from_slice(bytes).map(SigningKey::Eip191).map_err(|e| e.into())
             }
             CryptoAlgorithm::CosmosAdr36 => Secp256k1SigningKey::from_slice(bytes)
+                .map(SigningKey::CosmosAdr36)
+                .map_err(|e| e.into()),
+        }
+    }
+
+    /// Parses a PKCS#8 PEM string and returns a SigningKey.
+    pub fn from_pkcs8_pem_file(file_path: impl AsRef<Path>) -> Result<Self> {
+        let (label, document) = pkcs8::Document::read_pem_file(file_path)?;
+
+        PrivateKeyInfo::validate_pem_label(&label).map_err(|_| anyhow!("Incorrect PEM label"))?;
+
+        let value = document.as_bytes();
+        let pk_info = PrivateKeyInfo::try_from(value)?;
+        let algorithm = CryptoAlgorithm::try_from(pk_info.algorithm)
+            .map_err(|_| anyhow!("Unable to parse key algorithm from PKCS#8 document"))?;
+
+        match algorithm {
+            CryptoAlgorithm::Ed25519 => {
+                let ed25519_key_pair_bytes = Ed25519KeypairBytes::try_from(pk_info)?;
+                let ed25519_signing_key =
+                    Ed25519SigningKey::from(ed25519_key_pair_bytes.secret_key);
+                Ok(SigningKey::Ed25519(Box::new(ed25519_signing_key)))
+            }
+            CryptoAlgorithm::Secp256k1 => Secp256k1SigningKey::try_from(pk_info)
+                .map(SigningKey::Secp256k1)
+                .map_err(|e| e.into()),
+            CryptoAlgorithm::Secp256r1 => Secp256r1SigningKey::try_from(pk_info)
+                .map(SigningKey::Secp256r1)
+                .map_err(|e| e.into()),
+            CryptoAlgorithm::Eip191 => {
+                Secp256k1SigningKey::try_from(pk_info).map(SigningKey::Eip191).map_err(|e| e.into())
+            }
+            CryptoAlgorithm::CosmosAdr36 => Secp256k1SigningKey::try_from(pk_info)
                 .map(SigningKey::CosmosAdr36)
                 .map_err(|e| e.into()),
         }
