@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 # serde
+pkcs8.workspace = true
 prism-serde.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -16,6 +17,7 @@ serde_json.workspace = true
 utoipa.workspace = true
 
 # curves
+ed25519.workspace = true
 ed25519-consensus.workspace = true
 k256.workspace = true
 p256.workspace = true
