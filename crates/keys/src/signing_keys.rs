@@ -9,7 +9,10 @@ use k256::ecdsa::{
     signature::{DigestSigner, hazmat::PrehashSigner},
 };
 use p256::ecdsa::{Signature as Secp256r1Signature, SigningKey as Secp256r1SigningKey};
-use pkcs8::{EncodePrivateKey, LineEnding, PrivateKeyInfo, der::pem::PemLabel};
+use pkcs8::{
+    Document, EncodePrivateKey, LineEnding, PrivateKeyInfo, SecretDocument,
+    der::{Decode, pem::PemLabel},
+};
 use std::path::Path;
 
 use sha2::Digest as _;
@@ -87,22 +90,31 @@ impl SigningKey {
         }
     }
 
-    pub fn to_pkcs8_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
+    fn to_pkcs8_der_doc(&self) -> Result<SecretDocument> {
         match self {
             SigningKey::Ed25519(sk) => {
                 let keypair_bytes = Ed25519KeypairBytes {
                     secret_key: sk.to_bytes(),
                     public_key: Some(Ed25519PublicKeyBytes(sk.verification_key().to_bytes())),
                 };
-                keypair_bytes.write_pkcs8_pem_file(filename, LineEnding::LF)?
+                keypair_bytes.to_pkcs8_der()
             }
-            SigningKey::Secp256k1(sk) => sk.write_pkcs8_pem_file(filename, LineEnding::LF)?,
-            SigningKey::Secp256r1(sk) => sk.write_pkcs8_pem_file(filename, LineEnding::LF)?,
-            SigningKey::Eip191(sk) => sk.write_pkcs8_pem_file(filename, LineEnding::LF)?,
-            SigningKey::CosmosAdr36(sk) => sk.write_pkcs8_pem_file(filename, LineEnding::LF)?,
-        };
+            SigningKey::Secp256k1(sk) => sk.to_pkcs8_der(),
+            SigningKey::Secp256r1(sk) => sk.to_pkcs8_der(),
+            SigningKey::Eip191(sk) => sk.to_pkcs8_der(),
+            SigningKey::CosmosAdr36(sk) => sk.to_pkcs8_der(),
+        }
+        .map_err(|_| anyhow!("Creating PKCS8 DER failed"))
+    }
 
-        Ok(())
+    pub fn to_pkcs8_der(&self) -> Result<Vec<u8>> {
+        Ok(self.to_pkcs8_der_doc()?.as_bytes().to_vec())
+    }
+
+    pub fn to_pkcs8_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
+        self.to_pkcs8_der_doc()?
+            .write_pem_file(filename, PrivateKeyInfo::PEM_LABEL, LineEnding::LF)
+            .map_err(|_| anyhow!("Creating PKCS8 PEM file failed"))
     }
 
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
@@ -125,16 +137,11 @@ impl SigningKey {
         }
     }
 
-    /// Parses a PKCS#8 PEM string and returns a SigningKey.
-    pub fn from_pkcs8_pem_file(file_path: impl AsRef<Path>) -> Result<Self> {
-        let (label, document) = pkcs8::Document::read_pem_file(file_path)?;
-
-        PrivateKeyInfo::validate_pem_label(&label).map_err(|_| anyhow!("Incorrect PEM label"))?;
-
-        let value = document.as_bytes();
+    pub fn from_pkcs8_der_doc(doc: &Document) -> Result<Self> {
+        let value = doc.as_bytes();
         let pk_info = PrivateKeyInfo::try_from(value)?;
         let algorithm = CryptoAlgorithm::try_from(pk_info.algorithm)
-            .map_err(|_| anyhow!("Unable to parse key algorithm from PKCS#8 document"))?;
+            .map_err(|_| anyhow!("Unable to parse key algorithm from PKCS#8 der"))?;
 
         match algorithm {
             CryptoAlgorithm::Ed25519 => {
@@ -156,6 +163,18 @@ impl SigningKey {
                 .map(SigningKey::CosmosAdr36)
                 .map_err(|e| e.into()),
         }
+    }
+
+    pub fn from_pkcs8_der(bytes: &[u8]) -> Result<Self> {
+        let document = pkcs8::Document::from_der(bytes)?;
+        Self::from_pkcs8_der_doc(&document)
+    }
+
+    pub fn from_pkcs8_pem_file(file_path: impl AsRef<Path>) -> Result<Self> {
+        let (label, document) = pkcs8::Document::read_pem_file(file_path)?;
+        PrivateKeyInfo::validate_pem_label(&label).map_err(|_| anyhow!("Incorrect PEM label"))?;
+
+        Self::from_pkcs8_der_doc(&document)
     }
 
     pub fn algorithm(&self) -> CryptoAlgorithm {
