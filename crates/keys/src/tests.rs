@@ -222,20 +222,19 @@ mod key_tests {
     fn test_reparsed_der_signatures_are_equal_to_original() {
         let message = b"test message";
 
+        let signature_ed25519 = SigningKey::new_ed25519().sign(message).unwrap();
+        let re_parsed_signature =
+            Signature::from_prism_der(&signature_ed25519.to_prism_der().unwrap()).unwrap();
+        assert_eq!(re_parsed_signature, signature_ed25519);
+
         let signature_secp256k1 = SigningKey::new_secp256k1().sign(message).unwrap();
-        let re_parsed_signature = Signature::from_algorithm_and_der(
-            signature_secp256k1.algorithm(),
-            &signature_secp256k1.to_der().unwrap(),
-        )
-        .unwrap();
+        let re_parsed_signature =
+            Signature::from_prism_der(&signature_secp256k1.to_prism_der().unwrap()).unwrap();
         assert_eq!(re_parsed_signature, signature_secp256k1);
 
         let signature_secp256r1 = SigningKey::new_secp256r1().sign(message).unwrap();
-        let re_parsed_signature = Signature::from_algorithm_and_der(
-            signature_secp256r1.algorithm(),
-            &signature_secp256r1.to_der().unwrap(),
-        )
-        .unwrap();
+        let re_parsed_signature =
+            Signature::from_prism_der(&signature_secp256r1.to_prism_der().unwrap()).unwrap();
         assert_eq!(re_parsed_signature, signature_secp256r1);
 
         // EIP-191 and Cosmos ADR-36 are using SECP256K1 signatures and are omitted here
