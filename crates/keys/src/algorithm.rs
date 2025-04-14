@@ -52,10 +52,12 @@ impl std::fmt::Display for CryptoAlgorithm {
         write!(f, "{:?}", self)
     }
 }
-const ED25519_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.101.112");
-const ELLIPTIC_CURVE_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1");
-const SECP256K1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.132.0.10");
-const SECP256R1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7");
+
+pub const ED25519_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.101.112");
+pub const ELLIPTIC_CURVE_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1");
+pub const ECDSA_SHA256_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.2");
+pub const SECP256K1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.132.0.10");
+pub const SECP256R1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7");
 
 impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
     type Error = anyhow::Error;
@@ -65,7 +67,7 @@ impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
 
         if oid == ED25519_OID {
             Ok(CryptoAlgorithm::Ed25519)
-        } else if oid == ELLIPTIC_CURVE_OID {
+        } else if oid == ELLIPTIC_CURVE_OID || oid == ECDSA_SHA256_OID {
             let parameter_oid = algorithm_identifier.parameters_oid()?;
             if parameter_oid == SECP256K1_OID {
                 Ok(CryptoAlgorithm::Secp256k1)
