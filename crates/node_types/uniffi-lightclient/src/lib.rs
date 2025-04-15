@@ -13,10 +13,7 @@ use prism_lightclient::{
     events::{EventChannel, EventSubscriber},
 };
 use std::{str::FromStr, sync::Arc};
-use tokio::{
-    runtime::Runtime,
-    sync::{Mutex, RwLock},
-};
+use tokio::sync::Mutex;
 use types::UniffiLightClientEvent;
 use uniffi::Object;
 
