@@ -1,10 +1,10 @@
 use alloy_primitives::eip191_hash_message;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use ed25519_consensus::VerificationKey as Ed25519VerifyingKey;
 use p256::{
     ecdsa::{
-        signature::{hazmat::PrehashVerifier, DigestVerifier},
         VerifyingKey as Secp256r1VerifyingKey,
+        signature::{DigestVerifier, hazmat::PrehashVerifier},
     },
     pkcs8::{DecodePublicKey, EncodePublicKey},
 };
@@ -19,13 +19,13 @@ use std::{
     hash::{Hash, Hasher},
 };
 use utoipa::{
-    openapi::{RefOr, Schema},
     PartialSchema, ToSchema,
+    openapi::{RefOr, Schema},
 };
 
 use crate::{
-    cosmos::cosmos_adr36_hash_message, payload::CryptoPayload, CryptoAlgorithm, Signature,
-    SigningKey,
+    CryptoAlgorithm, Signature, SigningKey, cosmos::cosmos_adr36_hash_message,
+    payload::CryptoPayload,
 };
 use prism_serde::base64::{FromBase64, ToBase64};
 
@@ -213,7 +213,7 @@ impl From<VerifyingKey> for CryptoPayload {
 impl From<SigningKey> for VerifyingKey {
     fn from(sk: SigningKey) -> Self {
         match sk {
-            SigningKey::Ed25519(sk) => VerifyingKey::Ed25519((*sk).verification_key()),
+            SigningKey::Ed25519(sk) => VerifyingKey::Ed25519(sk.verification_key()),
             SigningKey::Secp256k1(sk) => VerifyingKey::Secp256k1(sk.verifying_key().to_owned()),
             SigningKey::Secp256r1(sk) => VerifyingKey::Secp256r1(sk.verifying_key().to_owned()),
             SigningKey::Eip191(sk) => VerifyingKey::Eip191(sk.verifying_key().to_owned()),
