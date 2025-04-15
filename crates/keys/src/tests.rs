@@ -71,6 +71,43 @@ mod key_tests {
     }
 
     #[test]
+    fn test_reparsed_verifying_keys_from_spki_pem_files_are_equal_to_original() {
+        let temp_dir = env::temp_dir();
+
+        // Ed25519
+        let verifying_key_ed25519 = SigningKey::new_ed25519().verifying_key();
+        let spki_path = temp_dir.join("ed25519.pem");
+
+        verifying_key_ed25519.to_spki_pem_file(&spki_path).unwrap();
+        let re_parsed_verifying_key = VerifyingKey::from_spki_pem_file(&spki_path).unwrap();
+
+        assert_eq!(re_parsed_verifying_key, verifying_key_ed25519);
+        remove_file(&spki_path).unwrap();
+
+        // Secp256k1
+        let verifying_key_secp256k1 = SigningKey::new_secp256k1().verifying_key();
+        let spki_path = temp_dir.join("secp256k1.pem");
+
+        verifying_key_secp256k1.to_spki_pem_file(&spki_path).unwrap();
+        let re_parsed_verifying_key = VerifyingKey::from_spki_pem_file(&spki_path).unwrap();
+
+        assert_eq!(re_parsed_verifying_key, verifying_key_secp256k1);
+        remove_file(&spki_path).unwrap();
+
+        // Secp256r1
+        let verifying_key_secp256r1 = SigningKey::new_secp256r1().verifying_key();
+        let spki_path = temp_dir.join("secp256r1.pem");
+
+        verifying_key_secp256r1.to_spki_pem_file(&spki_path).unwrap();
+        let re_parsed_verifying_key = VerifyingKey::from_spki_pem_file(&spki_path).unwrap();
+
+        assert_eq!(re_parsed_verifying_key, verifying_key_secp256r1);
+        remove_file(&spki_path).unwrap();
+
+        // EIP-191 and Cosmos ADR-36 are using SECP256K1 keys and are omitted here
+    }
+
+    #[test]
     fn test_reparsed_signing_keys_are_equal_to_original() {
         let signing_key_ed25519 = SigningKey::new_ed25519();
         let re_parsed_signing_key = SigningKey::from_algorithm_and_bytes(
