@@ -51,7 +51,7 @@ impl LightClient {
                 LightClientError::network_error(format!("Failed to connect to light client: {}", e))
             })?;
 
-        // todo: start height still relevant? No, after rebase not anymore
+        // todo: start height is only used to set sync target, should probably be set after finding the first heights right?
         let start_height = network_config
             .celestia_config
             .as_ref()
@@ -73,6 +73,12 @@ impl LightClient {
             inner,
             event_subscriber: Mutex::new(Some(event_subscriber)),
         })
+    }
+
+    /// Starts the lightclient and begins syncing with the network.
+    pub async fn start(&self) -> Result<()> {
+        let inner_clone = self.inner.clone();
+        inner_clone.run().await.map_err(|e| LightClientError::general_error(e.to_string()))
     }
 
     /// Gets the current commitment.
