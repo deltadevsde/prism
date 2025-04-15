@@ -1,4 +1,4 @@
-FROM rust:1.83-slim-bookworm AS builder
+FROM rust:1.86-slim-bookworm AS builder
 
 WORKDIR /usr/src/myapp
 
@@ -30,4 +30,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends libssl3 && apt-
 COPY --from=builder /usr/src/myapp/target/release/prism-cli /usr/local/bin/prism-cli
 
 ENTRYPOINT ["prism-cli"]
-

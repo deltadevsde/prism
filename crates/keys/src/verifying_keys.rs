@@ -1,22 +1,26 @@
 use alloy_primitives::eip191_hash_message;
 use anyhow::{Result, anyhow, bail};
+use ed25519::PublicKeyBytes as Ed25519PublicKeyBytes;
 use ed25519_consensus::VerificationKey as Ed25519VerifyingKey;
+use k256::ecdsa::VerifyingKey as Secp256k1VerifyingKey;
 use p256::{
     ecdsa::{
         VerifyingKey as Secp256r1VerifyingKey,
         signature::{DigestVerifier, hazmat::PrehashVerifier},
     },
-    pkcs8::{DecodePublicKey, EncodePublicKey},
+    pkcs8::EncodePublicKey,
 };
-
-use k256::ecdsa::VerifyingKey as Secp256k1VerifyingKey;
-
+use pkcs8::{
+    Document, LineEnding, SubjectPublicKeyInfoRef,
+    der::{Decode, pem::PemLabel},
+};
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::{
     self,
     borrow::Cow,
     hash::{Hash, Hasher},
+    path::Path,
 };
 use utoipa::{
     PartialSchema, ToSchema,
@@ -84,19 +88,6 @@ impl VerifyingKey {
         }
     }
 
-    pub fn to_der(&self) -> Result<Vec<u8>> {
-        let der = match self {
-            VerifyingKey::Ed25519(_) => bail!("Ed25519 vk to DER format is not implemented"),
-            VerifyingKey::Secp256k1(vk) => vk.to_public_key_der()?.into_vec(),
-            VerifyingKey::Secp256r1(vk) => vk.to_public_key_der()?.into_vec(),
-            VerifyingKey::Eip191(_) => bail!("EIP-191 vk to DER format is not implemented"),
-            VerifyingKey::CosmosAdr36(_) => {
-                bail!("Cosmos ADR-36 vk to DER format is not implemented")
-            }
-        };
-        Ok(der)
-    }
-
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
@@ -114,22 +105,6 @@ impl VerifyingKey {
             CryptoAlgorithm::CosmosAdr36 => Secp256k1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::CosmosAdr36)
                 .map_err(|e| e.into()),
-        }
-    }
-
-    pub fn from_algorithm_and_der(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
-        match algorithm {
-            CryptoAlgorithm::Ed25519 => bail!("Ed25519 vk from DER format is not implemented"),
-            CryptoAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_public_key_der(bytes)
-                .map(VerifyingKey::Secp256k1)
-                .map_err(|e| e.into()),
-            CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_public_key_der(bytes)
-                .map(VerifyingKey::Secp256r1)
-                .map_err(|e| e.into()),
-            CryptoAlgorithm::Eip191 => bail!("Eth vk from DER format is not implemented"),
-            CryptoAlgorithm::CosmosAdr36 => {
-                bail!("Cosmos ADR-36 vk from DER format is not implemented")
-            }
         }
     }
 
@@ -190,6 +165,65 @@ impl VerifyingKey {
                     .map_err(|e| anyhow!("Failed to verify cosmos ADR-36 signature: {}", e))
             }
         }
+    }
+
+    fn to_spki_der_doc(&self) -> Result<Document> {
+        match self {
+            VerifyingKey::Ed25519(vk) => Ed25519PublicKeyBytes(vk.to_bytes()).to_public_key_der(),
+            VerifyingKey::Secp256k1(vk) => vk.to_public_key_der(),
+            VerifyingKey::Secp256r1(vk) => vk.to_public_key_der(),
+            VerifyingKey::Eip191(_) => bail!("EIP-191 vk to DER format is not implemented"),
+            VerifyingKey::CosmosAdr36(_) => {
+                bail!("Cosmos ADR-36 vk to DER format is not implemented")
+            }
+        }
+        .map_err(|_| anyhow!("Creating SPKI DER failed"))
+    }
+
+    pub fn to_spki_der(&self) -> Result<Vec<u8>> {
+        Ok(self.to_spki_der_doc()?.as_bytes().to_vec())
+    }
+
+    pub fn to_spki_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
+        self.to_spki_der_doc()?
+            .write_pem_file(filename, SubjectPublicKeyInfoRef::PEM_LABEL, LineEnding::LF)
+            .map_err(|_| anyhow!("Creating PKCS8 PEM file failed"))
+    }
+
+    fn from_spki(spki: SubjectPublicKeyInfoRef) -> Result<Self> {
+        let algorithm = CryptoAlgorithm::try_from(spki.algorithm)?;
+
+        match algorithm {
+            CryptoAlgorithm::Ed25519 => {
+                let ed25519_spki = Ed25519PublicKeyBytes::try_from(spki)?;
+                let ed25519_key = Ed25519VerifyingKey::try_from(ed25519_spki.as_ref() as &[u8])?;
+                Ok(VerifyingKey::Ed25519(ed25519_key))
+            }
+            CryptoAlgorithm::Secp256k1 => {
+                let secp256k1_key = Secp256k1VerifyingKey::try_from(spki)?;
+                Ok(VerifyingKey::Secp256k1(secp256k1_key))
+            }
+            CryptoAlgorithm::Secp256r1 => {
+                let secp256r1_key = Secp256r1VerifyingKey::try_from(spki)?;
+                Ok(VerifyingKey::Secp256r1(secp256r1_key))
+            }
+            CryptoAlgorithm::Eip191 => bail!("Eth vk from DER format is not implemented"),
+            CryptoAlgorithm::CosmosAdr36 => {
+                bail!("Cosmos ADR-36 vk from DER format is not implemented")
+            }
+        }
+    }
+
+    pub fn from_spki_der(bytes: &[u8]) -> Result<Self> {
+        let spki = SubjectPublicKeyInfoRef::from_der(bytes)?;
+        Self::from_spki(spki)
+    }
+
+    pub fn from_spki_pem_file(filename: impl AsRef<Path>) -> Result<Self> {
+        let (label, doc) = Document::read_pem_file(filename)?;
+        SubjectPublicKeyInfoRef::validate_pem_label(&label)
+            .map_err(|_| anyhow!("Incorrect PEM label"))?;
+        Self::from_spki_der(doc.as_bytes())
     }
 }
 
