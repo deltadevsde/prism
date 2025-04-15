@@ -10,6 +10,10 @@ license.workspace = true
 keywords.workspace = true
 readme.workspace = true
 
+[features]
+default = []
+uniffi = []
+
 [dependencies]
 async-trait = { workspace = true }
 serde = { workspace = true }
@@ -29,6 +33,8 @@ libp2p = { workspace = true, features = ["serde"] }
 celestia-rpc = { workspace = true }
 sp1-sdk = { workspace = true }
 tokio = { workspace = true }
+lumina-node-uniffi = { workspace = true }
+blockstore = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { workspace = true, default-features = false, features = ["sync"] }

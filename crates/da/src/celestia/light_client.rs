@@ -1,11 +1,18 @@
-use super::utils::{create_namespace, NetworkConfig};
+use super::utils::{NetworkConfig, create_namespace};
 use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
+use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
 use log::trace;
-use lumina_node::{events::EventSubscriber, Node, NodeBuilder};
+use lumina_node::{
+    Node,
+    blockstore::InMemoryBlockstore,
+    events::EventSubscriber,
+    store::{EitherStore, InMemoryStore},
+};
+use lumina_node_uniffi::types::NodeConfig;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
@@ -39,7 +46,10 @@ pub async fn resolve_bootnodes(bootnodes: &Vec<Multiaddr>) -> Result<Vec<Multiad
 pub type LuminaNode = Node<IndexedDbBlockstore, IndexedDbStore>;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub type LuminaNode = Node<RedbBlockstore, RedbStore>;
+pub type LuminaNode = Node<
+    EitherBlockstore<InMemoryBlockstore, RedbBlockstore>,
+    EitherStore<InMemoryStore, RedbStore>,
+>;
 
 pub struct LightClientConnection {
     pub node: Arc<RwLock<LuminaNode>>,
@@ -49,6 +59,7 @@ pub struct LightClientConnection {
 
 impl LightClientConnection {
     #[cfg(not(target_arch = "wasm32"))]
+    // TODO: different solution for uniffi
     async fn setup_stores() -> Result<(RedbBlockstore, RedbStore)> {
         let db = spawn_blocking(|| Database::create("lumina.redb"))
             .await
@@ -74,14 +85,14 @@ impl LightClientConnection {
         Ok((blockstore, store))
     }
 
-    pub async fn new(config: &NetworkConfig) -> Result<Self> {
+    pub async fn new(config: &NetworkConfig, node_config: Option<NodeConfig>) -> Result<Self> {
         let bootnodes = config.celestia_network.canonical_bootnodes().collect::<Vec<Multiaddr>>();
         #[cfg(target_arch = "wasm32")]
         let bootnodes = resolve_bootnodes(&bootnodes).await?;
 
         #[cfg(target_arch = "wasm32")]
         let (blockstore, store) = Self::setup_stores().await.unwrap();
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(feature = "uniffi")))]
         let (blockstore, store) = Self::setup_stores().await?;
 
         let celestia_config = config
@@ -89,6 +100,15 @@ impl LightClientConnection {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?;
 
+        #[cfg(feature = "uniffi")]
+        let node_builder = node_config
+            .ok_or_else(|| anyhow::anyhow!("Node config is required for uniffi but not provided"))?
+            .into_node_builder()
+            .await?;
+        #[cfg(feature = "uniffi")]
+        let (node, event_subscriber) = node_builder.start_subscribed().await?;
+
+        #[cfg(not(feature = "uniffi"))]
         let (node, event_subscriber) = NodeBuilder::new()
             .network(config.celestia_network.clone())
             .store(store)

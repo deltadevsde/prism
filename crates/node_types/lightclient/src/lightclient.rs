@@ -138,6 +138,12 @@ impl LightClient {
                                                 "Failed to process epoch at height {}: {}",
                                                 latest_epoch_height, e
                                             );
+                                            light_client.event_publisher.send(
+                                                LightClientEvent::EpochVerificationFailed {
+                                                    height: latest_epoch_height,
+                                                    error: e.to_string(),
+                                                },
+                                            );
                                         } else {
                                             light_client.event_publisher.send(
                                                 LightClientEvent::RecursiveVerificationCompleted {
@@ -158,6 +164,11 @@ impl LightClient {
                                         break;
                                     }
 
+                                    light_client.event_publisher.send(
+                                        LightClientEvent::NoEpochFound {
+                                            height: latest_epoch_height,
+                                        },
+                                    );
                                     latest_epoch_height -= 1;
                                 }
                             }
