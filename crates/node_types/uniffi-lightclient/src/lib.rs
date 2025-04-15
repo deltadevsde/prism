@@ -26,7 +26,6 @@ uniffi::setup_scaffolding!();
 #[derive(Object)]
 pub struct LightClient {
     inner: Arc<CoreLightClient>,
-    runtime: RwLock<Runtime>,
     event_subscriber: Mutex<Option<EventSubscriber>>,
 }
 
@@ -34,35 +33,26 @@ pub struct LightClient {
 impl LightClient {
     /// Creates a new Lightclient for the specified network.
     #[uniffi::constructor]
-    pub fn new(
-        network_name: String,
-        start_height: u64,
-        verifying_key_bytes: Option<Vec<u8>>,
-        base_path: String,
-    ) -> Result<Self> {
-        let runtime = Runtime::new().map_err(|e| {
-            LightClientError::initialization_error(format!("Failed to create runtime: {}", e))
-        })?;
-
+    pub async fn new(network_name: String, start_height: u64, base_path: String) -> Result<Self> {
         let network = Network::from_str(&network_name)
             .map_err(|e| LightClientError::network_error(format!("Invalid network: {}", e)))?;
         let network_config = network.config();
 
-        let da = runtime.block_on(async {
-            let node_config = lumina_node_uniffi::types::NodeConfig {
-                base_path: Some(base_path),
-                network: network_config.celestia_network.clone(),
-                bootnodes: None,
-                pruning_delay_secs: None,
-                batch_size: None,
-                ed25519_secret_key_bytes: None,
-                syncing_window_secs: None,
-            };
+        let node_config = lumina_node_uniffi::types::NodeConfig {
+            base_path: Some(base_path),
+            network: network_config.celestia_network.clone(),
+            bootnodes: None,
+            pruning_delay_secs: None,
+            batch_size: None,
+            ed25519_secret_key_bytes: None,
+            syncing_window_secs: None,
+        };
 
+        // Initialize connection
+        let da =
             LightClientConnection::new(&network_config, Some(node_config)).await.map_err(|e| {
                 LightClientError::network_error(format!("Failed to connect to light client: {}", e))
-            })
-        })?;
+            })?;
 
         // todo: start height still relevant? No, after rebase not anymore
         let start_height = network_config
@@ -71,13 +61,6 @@ impl LightClient {
             .map(|cfg| cfg.start_height)
             .unwrap_or(start_height);
 
-        let verifying_key = if let Some(key_bytes) = verifying_key_bytes {
-            // todo
-            None
-        } else {
-            network_config.verifying_key
-        };
-
         let event_channel = EventChannel::new();
         let event_publisher = event_channel.publisher();
         let event_subscriber = event_channel.subscribe();
@@ -85,18 +68,17 @@ impl LightClient {
         let inner = Arc::new(CoreLightClient::new(
             Arc::new(da),
             start_height,
-            verifying_key,
+            network_config.verifying_key,
             event_publisher,
         ));
 
         Ok(Self {
             inner,
-            runtime: RwLock::new(runtime),
             event_subscriber: Mutex::new(Some(event_subscriber)),
         })
     }
 
-    /// Gets the current commitment (Merkle root) of the network.
+    /// Gets the current commitment.
     pub async fn get_current_commitment(&self) -> Result<Option<String>> {
         match self.inner.get_latest_commitment().await {
             Some(commitment) => Ok(Some(commitment.to_string())),

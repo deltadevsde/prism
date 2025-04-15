@@ -4,7 +4,6 @@ use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
-use libp2p::Multiaddr;
 use log::trace;
 use lumina_node::{
     Node,
@@ -23,12 +22,14 @@ use {
     lumina_node_wasm::utils::resolve_dnsaddr_multiaddress,
 };
 
+#[cfg(not(feature = "uniffi"))]
+use libp2p::Multiaddr;
+
+#[cfg(all(not(target_arch = "wasm32"), not(feature = "uniffi")))]
+use {redb::Database, tokio::task::spawn_blocking};
+
 #[cfg(not(target_arch = "wasm32"))]
-use {
-    lumina_node::{blockstore::RedbBlockstore, store::RedbStore},
-    redb::Database,
-    tokio::task::spawn_blocking,
-};
+use lumina_node::{blockstore::RedbBlockstore, store::RedbStore};
 
 #[cfg(target_arch = "wasm32")]
 pub async fn resolve_bootnodes(bootnodes: &Vec<Multiaddr>) -> Result<Vec<Multiaddr>> {
@@ -58,8 +59,7 @@ pub struct LightClientConnection {
 }
 
 impl LightClientConnection {
-    #[cfg(not(target_arch = "wasm32"))]
-    // TODO: different solution for uniffi
+    #[cfg(all(not(target_arch = "wasm32"), not(feature = "uniffi")))]
     async fn setup_stores() -> Result<(RedbBlockstore, RedbStore)> {
         let db = spawn_blocking(|| Database::create("lumina.redb"))
             .await
@@ -86,6 +86,7 @@ impl LightClientConnection {
     }
 
     pub async fn new(config: &NetworkConfig, node_config: Option<NodeConfig>) -> Result<Self> {
+        #[cfg(all(not(target_arch = "wasm32"), not(feature = "uniffi")))]
         let bootnodes = config.celestia_network.canonical_bootnodes().collect::<Vec<Multiaddr>>();
         #[cfg(target_arch = "wasm32")]
         let bootnodes = resolve_bootnodes(&bootnodes).await?;
