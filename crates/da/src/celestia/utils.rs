@@ -81,11 +81,11 @@ impl Network {
                         .unwrap(),
                 ),
                 celestia_config: Some(CelestiaConfig {
-                    start_height: 4851608,
-                    snark_namespace_id: "000000000000000000000000000000000000707269736d5350457330"
+                    start_height: 5725333,
+                    snark_namespace_id: "000000000000000000000000000000000000707269736d5350457331"
                         .to_string(),
                     operation_namespace_id:
-                        "000000000000000000000000000000000000707269736d5350456f30".to_string(),
+                        "000000000000000000000000000000000000707269736d5350456f31".to_string(),
                     ..CelestiaConfig::default()
                 }),
             },
