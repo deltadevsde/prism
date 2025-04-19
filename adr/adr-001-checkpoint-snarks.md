@@ -8,7 +8,7 @@ Prism currently uses Bellman Groth16 zk-SNARKs in a two-layer approach:
 1. Individual Merkle proof SNARKs are created for each operation.
 2. These SNARKs are aggregated into epoch SNARKs, also using Groth16
 
-The epoch SNARKS are posted to the Celestia DA Layer. This allows for WASM-compatible light clients but faces limitations since Celestia only stores blocks for approximately 4 weeks. For exapmle, it creates a synchronization challenge for new light clients joining after this period. We need a solution for long-term verifiability and efficient syncing for new light clients.
+The epoch SNARKS are posted to the Celestia DA Layer. This allows for WASM-compatible light clients but faces limitations since Celestia only stores blocks for approximately 4 weeks. For example, it creates a synchronization challenge for new light clients joining after this period. We need a solution for long-term verifiability and efficient syncing for new light clients.
 
 ## **Decision**
 
@@ -303,7 +303,7 @@ async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
 
 ## Why Nova (SuperNova / HyperNova) could be Beneficial for Us
 
-1. Effiency: By leveraging Nova's efficient folding scheme, we achieve significant reductions in constraint complexity, enhance scalability through efficient proof aggregation, and lower resource requirements. This allows for faster proving times, reduced memory usage, and the ability to operate effectively on less powerful hardware, making our system more efficient and scalable in the long term.
+1. Efficiency: By leveraging Nova's efficient folding scheme, we achieve significant reductions in constraint complexity, enhance scalability through efficient proof aggregation, and lower resource requirements. This allows for faster proving times, reduced memory usage, and the ability to operate effectively on less powerful hardware, making our system more efficient and scalable in the long term.
 
 2. Future-proofing: Nova's design aligns well with potential future requirements, such as more complex proof structures or more frequent updates.
 
