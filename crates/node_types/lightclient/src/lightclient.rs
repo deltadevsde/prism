@@ -43,6 +43,7 @@ pub struct VerificationKeys {
 
 // Embed the JSON content directly in the binary at compile time because we can't read files in WASM.
 const EMBEDDED_KEYS_JSON: &str = include_str!("../../../../verification_keys/keys.json");
+const MAX_BACKWARD_SEARCH_DEPTH: u64 = 1000;
 
 pub fn load_sp1_verifying_keys() -> Result<VerificationKeys> {
     let keys: VerificationKeys = serde_json::from_str(EMBEDDED_KEYS_JSON)?;
@@ -63,6 +64,13 @@ pub struct LightClient {
     // The latest commitment.
     latest_commitment: Arc<RwLock<Option<Digest>>>,
     sync_target: Arc<AtomicU64>,
+}
+
+struct SyncState {
+    current_height: u64,
+    initial_sync_completed: bool,
+    initial_sync_in_progress: bool,
+    latest_finalized_epoch: Option<u64>,
 }
 
 #[allow(dead_code)]
@@ -90,109 +98,159 @@ impl LightClient {
         if let Some(lumina_event_subscriber) = self.da.event_subscriber() {
             let light_client = self.clone();
 
-            spawn_task({
-                let lumina_event_subscriber = lumina_event_subscriber.clone();
-                async move {
-                    let mut current_height = 0; // Will be set when we do our first sync
-                    let mut subscriber = lumina_event_subscriber.lock().await;
-                    let mut performed_initial_search = false;
+            spawn_task(async move {
+                let mut subscriber = lumina_event_subscriber.lock().await;
+                let sync_state = Arc::new(RwLock::new(SyncState {
+                    current_height: 0,
+                    initial_sync_completed: false,
+                    initial_sync_in_progress: false,
+                    latest_finalized_epoch: None,
+                }));
 
-                    while let Ok(event_info) = subscriber.recv().await {
-                        light_client.event_publisher.send(LightClientEvent::LuminaEvent {
-                            event: event_info.event.clone(),
-                        });
+                while let Ok(event_info) = subscriber.recv().await {
+                    // forward all events to the event publisher
+                    light_client.clone().event_publisher.send(LightClientEvent::LuminaEvent {
+                        event: event_info.event.clone(),
+                    });
 
-                        if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
-                            light_client.sync_target.store(height, Ordering::Relaxed);
-                            light_client
-                                .event_publisher
-                                .send(LightClientEvent::UpdateDAHeight { height });
-
-                            // If we haven't done our initial backward search yet
-                            if !performed_initial_search {
-                                performed_initial_search = true;
-
-                                // First height we've received, so announce starting sync
-                                light_client
-                                    .event_publisher
-                                    .send(LightClientEvent::SyncStarted { height });
-
-                                light_client.event_publisher.send(
-                                    LightClientEvent::RecursiveVerificationStarted { height },
-                                );
-
-                                // Search backward from the network height
-                                let mut latest_epoch_height = height;
-
-                                // Continue searching until we find an epoch or reach height 0
-                                loop {
-                                    if let Ok(Some(_)) = light_client
-                                        .da
-                                        .get_finalized_epoch(latest_epoch_height)
-                                        .await
-                                    {
-                                        if let Err(e) =
-                                            light_client.process_epoch(latest_epoch_height).await
-                                        {
-                                            error!(
-                                                "Failed to process epoch at height {}: {}",
-                                                latest_epoch_height, e
-                                            );
-                                            light_client.event_publisher.send(
-                                                LightClientEvent::EpochVerificationFailed {
-                                                    height: latest_epoch_height,
-                                                    error: e.to_string(),
-                                                },
-                                            );
-                                        } else {
-                                            light_client.event_publisher.send(
-                                                LightClientEvent::RecursiveVerificationCompleted {
-                                                    height: latest_epoch_height,
-                                                },
-                                            );
-                                            current_height = latest_epoch_height + 1;
-                                        }
-                                        break;
-                                    }
-
-                                    // If we've reached height 0 and found no epoch, break out
-                                    if latest_epoch_height == 0 {
-                                        // If no epoch found, just start from the current network height, there was no previous prism epoch
-                                        if current_height == 0 {
-                                            current_height = height;
-                                        }
-                                        break;
-                                    }
-
-                                    light_client.event_publisher.send(
-                                        LightClientEvent::NoEpochFound {
-                                            height: latest_epoch_height,
-                                        },
-                                    );
-                                    latest_epoch_height -= 1;
-                                }
-                            }
-
-                            // Process any new heights
-                            if height > current_height {
-                                for h in current_height..height {
-                                    if let Err(e) = light_client.process_epoch(h + 1).await {
-                                        error!(
-                                            "Failed to process epoch at height {}: {}",
-                                            h + 1,
-                                            e
-                                        );
-                                    }
-                                }
-                                current_height = height;
-                            }
-                        }
+                    if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
+                        light_client.clone().handle_new_header(height, sync_state.clone()).await;
                     }
                 }
-            });
+            })
         }
 
         Ok(())
+    }
+
+    async fn handle_new_header(self: Arc<Self>, height: u64, state: Arc<RwLock<SyncState>>) {
+        // Update sync target
+        self.sync_target.store(height, Ordering::Relaxed);
+        self.event_publisher.send(LightClientEvent::UpdateDAHeight { height });
+
+        // start initial historical backward sync if needed and not already in progress
+        {
+            let mut state_handle = state.blocking_write();
+            if !state_handle.initial_sync_completed && !state_handle.initial_sync_in_progress {
+                state_handle.initial_sync_in_progress = true;
+                drop(state_handle);
+                self.start_backward_sync(height, state.clone()).await;
+                return;
+            }
+        }
+
+        // Check for a new finalized epoch at this height
+        if let Ok(Some(_)) = self.da.get_finalized_epoch(height).await {
+            // Found a new finalized epoch, process it immediately
+            if self.process_epoch(height).await.is_ok() {
+                self.event_publisher
+                    .send(LightClientEvent::RecursiveVerificationCompleted { height });
+
+                // Update our latest known finalized epoch
+                let mut state = state.blocking_write();
+                state.latest_finalized_epoch = Some(height);
+
+                // If we're waiting for initial sync, this completes it
+                if state.initial_sync_in_progress && !state.initial_sync_completed {
+                    state.initial_sync_completed = true;
+                    state.initial_sync_in_progress = false;
+                }
+
+                // Update current height to the epoch height + 1
+                state.current_height = height + 1;
+            }
+        }
+    }
+
+    async fn start_backward_sync(
+        self: Arc<Self>,
+        network_height: u64,
+        state: Arc<RwLock<SyncState>>,
+    ) {
+        // Announce that sync has started
+        self.event_publisher.send(LightClientEvent::SyncStarted {
+            height: network_height,
+        });
+        self.event_publisher.send(LightClientEvent::RecursiveVerificationStarted {
+            height: network_height,
+        });
+
+        // Start a task to find a finalized epoch by searching backward
+        let light_client = Arc::clone(&self);
+
+        let state = state.clone();
+        spawn_task(async move {
+            // Find the most recent valid epoch by searching backward
+            if let Some(epoch_height) =
+                light_client.find_most_recent_epoch(network_height, state.clone()).await
+            {
+                // Process the found epoch
+                match light_client.process_epoch(epoch_height).await {
+                    Ok(_) => {
+                        light_client.event_publisher.send(
+                            LightClientEvent::RecursiveVerificationCompleted {
+                                height: epoch_height,
+                            },
+                        );
+
+                        let mut state = state.blocking_write();
+                        state.initial_sync_completed = true;
+                        state.initial_sync_in_progress = false;
+                        state.latest_finalized_epoch = Some(epoch_height);
+                        state.current_height = epoch_height + 1;
+                    }
+                    Err(e) => {
+                        error!("Failed to process epoch at height {}: {}", epoch_height, e);
+                        light_client.event_publisher.send(
+                            LightClientEvent::EpochVerificationFailed {
+                                height: epoch_height,
+                                error: e.to_string(),
+                            },
+                        );
+
+                        // Mark initial sync as complete but don't update current height
+                        let mut state = state.blocking_write();
+                        state.initial_sync_completed = true;
+                        state.initial_sync_in_progress = false;
+                    }
+                }
+            } else {
+                // No epoch found in backward search, mark initial sync as complete
+                // but don't update current height - we'll wait for new epochs
+                let mut state = state.blocking_write();
+                state.initial_sync_completed = true;
+                state.initial_sync_in_progress = false;
+            }
+        })
+    }
+
+    async fn find_most_recent_epoch(
+        &self,
+        start_height: u64,
+        state: Arc<RwLock<SyncState>>,
+    ) -> Option<u64> {
+        let mut height = start_height;
+        let min_height = if start_height > MAX_BACKWARD_SEARCH_DEPTH {
+            start_height - MAX_BACKWARD_SEARCH_DEPTH
+        } else {
+            1
+        };
+
+        while height >= min_height {
+            // if an epoch has been found, we no longer need to sync historically
+            if state.blocking_read().latest_finalized_epoch.is_some() {
+                return None;
+            }
+
+            if let Ok(Some(_)) = self.da.get_finalized_epoch(height).await {
+                return Some(height);
+            }
+
+            self.event_publisher.send(LightClientEvent::NoEpochFound { height });
+            height -= 1;
+        }
+
+        None
     }
 
     async fn process_epoch(&self, height: u64) -> Result<()> {
