@@ -23,7 +23,7 @@ use {
 };
 
 #[cfg(not(feature = "uniffi"))]
-use libp2p::Multiaddr;
+use {libp2p::Multiaddr, lumina_node::NodeBuilder};
 
 #[cfg(all(not(target_arch = "wasm32"), not(feature = "uniffi")))]
 use {redb::Database, tokio::task::spawn_blocking};
@@ -60,7 +60,10 @@ pub struct LightClientConnection {
 
 impl LightClientConnection {
     #[cfg(all(not(target_arch = "wasm32"), not(feature = "uniffi")))]
-    async fn setup_stores() -> Result<(RedbBlockstore, RedbStore)> {
+    async fn setup_stores() -> Result<(
+        EitherBlockstore<InMemoryBlockstore, RedbBlockstore>,
+        EitherStore<InMemoryStore, RedbStore>,
+    )> {
         let db = spawn_blocking(|| Database::create("lumina.redb"))
             .await
             .expect("Failed to join")
@@ -69,7 +72,11 @@ impl LightClientConnection {
 
         let store = RedbStore::new(db.clone()).await.expect("Failed to create a store");
         let blockstore = RedbBlockstore::new(db);
-        Ok((blockstore, store))
+
+        let either_blockstore = EitherBlockstore::Right(blockstore);
+        let either_store = EitherStore::Right(store);
+
+        Ok((either_blockstore, either_store))
     }
 
     #[cfg(target_arch = "wasm32")]

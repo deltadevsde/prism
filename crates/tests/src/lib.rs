@@ -40,6 +40,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
         .filter_module("p3_fri", log::LevelFilter::Off)
         .filter_module("sp1_core_executor", log::LevelFilter::Info)
         .filter_module("sp1_recursion_program", log::LevelFilter::Info)
+        .filter_module("sp1_prover", log::LevelFilter::Info)
         .filter_module("p3_merkle_tree", log::LevelFilter::Off)
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
@@ -96,6 +97,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let _lc_handle = spawn(async move {
         debug!("starting light client");
         lc_clone.run().await.unwrap();
+        debug!("starting light client GUH");
     });
 
     let tx_handle = spawn(async move {

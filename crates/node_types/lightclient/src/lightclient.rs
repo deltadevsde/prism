@@ -95,11 +95,14 @@ impl LightClient {
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
+        info!("d");
         if let Some(lumina_event_subscriber) = self.da.event_subscriber() {
             let light_client = self.clone();
 
             spawn_task(async move {
+                info!("a");
                 let mut subscriber = lumina_event_subscriber.lock().await;
+                info!("b");
                 let sync_state = Arc::new(RwLock::new(SyncState {
                     current_height: 0,
                     initial_sync_completed: false,
@@ -108,12 +111,14 @@ impl LightClient {
                 }));
 
                 while let Ok(event_info) = subscriber.recv().await {
+                    info!("c");
                     // forward all events to the event publisher
                     light_client.clone().event_publisher.send(LightClientEvent::LuminaEvent {
                         event: event_info.event.clone(),
                     });
 
                     if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
+                        info!("new height {}", height);
                         light_client.clone().handle_new_header(height, sync_state.clone()).await;
                     }
                 }
@@ -254,6 +259,7 @@ impl LightClient {
     }
 
     async fn process_epoch(&self, height: u64) -> Result<()> {
+        info!("processing epoch at height {}", height);
         self.event_publisher.send(LightClientEvent::EpochVerificationStarted { height });
 
         match self.da.get_finalized_epoch(height).await {
