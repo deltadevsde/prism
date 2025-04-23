@@ -1,9 +1,9 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use config::{ConfigBuilder, File, builder::DefaultState};
 use dirs::home_dir;
 use dotenvy::dotenv;
-use log::{error, warn};
+use log::{error, info, warn};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
 use prism_prover::webserver::WebServerConfig;
@@ -366,9 +366,24 @@ pub async fn initialize_light_da_layer(
 ) -> Result<Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>> {
     match config.da_layer {
         DALayerOption::Celestia => {
-            let connection = LightClientConnection::new(&config.network, None)
-                .await
-                .context("Failed to initialize light client connection")?;
+            let connection = match LightClientConnection::new(&config.network).await {
+                Ok(conn) => conn,
+                Err(e) => {
+                    error!("Failed to initialize light client connection: {:?}", e);
+                    error!("Network config: {:?}", config.network);
+                    if let Some(celestia_config) = &config.network.celestia_config {
+                        error!(
+                            "Celestia connection string: {}",
+                            celestia_config.connection_string
+                        );
+                        error!("Start height: {}", celestia_config.start_height);
+                    }
+                    return Err(anyhow!(
+                        "Failed to initialize light client connection: {}",
+                        e
+                    ));
+                }
+            };
             Ok(Arc::new(connection)
                 as Arc<
                     dyn LightDataAvailabilityLayer + Send + Sync + 'static,

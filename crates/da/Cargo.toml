@@ -12,14 +12,14 @@ readme.workspace = true
 
 [features]
 default = []
-uniffi = []
+uniffi = ["lumina-node-uniffi"]
 
 [dependencies]
 async-trait = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
-redb ={ workspace = true }
+redb = { workspace = true }
 lumina-node = { workspace = true }
 prism-serde = { workspace = true }
 ed25519-consensus = { workspace = true }
@@ -33,7 +33,7 @@ libp2p = { workspace = true, features = ["serde"] }
 celestia-rpc = { workspace = true }
 sp1-sdk = { workspace = true }
 tokio = { workspace = true }
-lumina-node-uniffi = { workspace = true }
+lumina-node-uniffi = { workspace = true, optional = true }
 blockstore = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -41,5 +41,5 @@ tokio = { workspace = true, default-features = false, features = ["sync"] }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
 wasm-bindgen-futures = { workspace = true }
 wasm-bindgen = { workspace = true }
-lumina-node-wasm = { workspace = true}
+lumina-node-wasm = { workspace = true }
 serde-wasm-bindgen = { workspace = true }

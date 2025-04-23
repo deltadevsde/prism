@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
 use prism_da::{FinalizedEpoch, LightDataAvailabilityLayer};
@@ -96,29 +96,24 @@ impl LightClient {
     pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
         if let Some(lumina_event_subscriber) = self.da.event_subscriber() {
-            let light_client = self.clone();
+            let mut subscriber = lumina_event_subscriber.lock().await;
+            let sync_state = Arc::new(RwLock::new(SyncState {
+                current_height: 0,
+                initial_sync_completed: false,
+                initial_sync_in_progress: false,
+                latest_finalized_epoch: None,
+            }));
+            while let Ok(event_info) = subscriber.recv().await {
+                // forward all events to the event publisher
+                self.clone().event_publisher.send(LightClientEvent::LuminaEvent {
+                    event: event_info.event.clone(),
+                });
 
-            spawn_task(async move {
-                let mut subscriber = lumina_event_subscriber.lock().await;
-                let sync_state = Arc::new(RwLock::new(SyncState {
-                    current_height: 0,
-                    initial_sync_completed: false,
-                    initial_sync_in_progress: false,
-                    latest_finalized_epoch: None,
-                }));
-
-                while let Ok(event_info) = subscriber.recv().await {
-                    // forward all events to the event publisher
-                    light_client.clone().event_publisher.send(LightClientEvent::LuminaEvent {
-                        event: event_info.event.clone(),
-                    });
-
-                    if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
-                        info!("new height from headersub {}", height);
-                        light_client.clone().handle_new_header(height, sync_state.clone()).await;
-                    }
+                if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
+                    info!("new height from headersub {}", height);
+                    self.clone().handle_new_header(height, sync_state.clone()).await;
                 }
-            })
+            }
         }
 
         Ok(())
@@ -131,7 +126,7 @@ impl LightClient {
 
         // start initial historical backward sync if needed and not already in progress
         {
-            let mut state_handle = state.blocking_write();
+            let mut state_handle = state.write().await;
             if !state_handle.initial_sync_completed && !state_handle.initial_sync_in_progress {
                 state_handle.initial_sync_in_progress = true;
                 drop(state_handle);
@@ -141,25 +136,33 @@ impl LightClient {
         }
 
         // Check for a new finalized epoch at this height
-        if let Ok(Some(_)) = self.da.get_finalized_epoch(height).await {
-            // Found a new finalized epoch, process it immediately
-            if self.process_epoch(height).await.is_ok() {
-                self.event_publisher
-                    .send(LightClientEvent::RecursiveVerificationCompleted { height });
+        match self.da.get_finalized_epoch(height).await {
+            Ok(Some(_)) => {
+                // Found a new finalized epoch, process it immediately
+                if self.process_epoch(height).await.is_ok() {
+                    self.event_publisher
+                        .send(LightClientEvent::RecursiveVerificationCompleted { height });
 
-                // Update our latest known finalized epoch
-                let mut state = state.blocking_write();
-                state.latest_finalized_epoch = Some(height);
+                    // Update our latest known finalized epoch
+                    let mut state = state.write().await;
+                    state.latest_finalized_epoch = Some(height);
 
-                // If we're waiting for initial sync, this completes it
-                if state.initial_sync_in_progress && !state.initial_sync_completed {
-                    info!("finished initial sync");
-                    state.initial_sync_completed = true;
-                    state.initial_sync_in_progress = false;
+                    // If we're waiting for initial sync, this completes it
+                    if state.initial_sync_in_progress && !state.initial_sync_completed {
+                        info!("finished initial sync");
+                        state.initial_sync_completed = true;
+                        state.initial_sync_in_progress = false;
+                    }
+
+                    // Update current height to the epoch height + 1
+                    state.current_height = height + 1;
                 }
-
-                // Update current height to the epoch height + 1
-                state.current_height = height + 1;
+            }
+            Ok(None) => {
+                info!("no data found at height {}", height);
+            }
+            Err(e) => {
+                error!("failed to fetch data at height {}", e)
             }
         }
     }
@@ -169,6 +172,7 @@ impl LightClient {
         network_height: u64,
         state: Arc<RwLock<SyncState>>,
     ) {
+        info!("starting historical sync");
         // Announce that sync has started
         self.event_publisher.send(LightClientEvent::SyncStarted {
             height: network_height,
@@ -199,7 +203,7 @@ impl LightClient {
                             },
                         );
 
-                        let mut state = state.blocking_write();
+                        let mut state = state.write().await;
                         state.initial_sync_completed = true;
                         state.initial_sync_in_progress = false;
                         state.latest_finalized_epoch = Some(epoch_height);
@@ -215,7 +219,7 @@ impl LightClient {
                         );
 
                         // Mark initial sync as complete but don't update current height
-                        let mut state = state.blocking_write();
+                        let mut state = state.write().await;
                         state.initial_sync_completed = true;
                         state.initial_sync_in_progress = false;
                     }
@@ -223,7 +227,7 @@ impl LightClient {
             } else {
                 // No epoch found in backward search, mark initial sync as complete
                 // but don't update current height - we'll wait for new epochs
-                let mut state = state.blocking_write();
+                let mut state = state.write().await;
                 state.initial_sync_completed = true;
                 state.initial_sync_in_progress = false;
             }
@@ -244,7 +248,7 @@ impl LightClient {
 
         while height >= min_height {
             // if an epoch has been found, we no longer need to sync historically
-            if state.blocking_read().latest_finalized_epoch.is_some() {
+            if state.read().await.latest_finalized_epoch.is_some() {
                 info!(
                     "abandoning historical sync after finding recursive proof at incoming height"
                 );
@@ -255,10 +259,15 @@ impl LightClient {
                 return Some(height);
             }
 
+            info!("no data found at height {}", height);
             self.event_publisher.send(LightClientEvent::NoEpochFound { height });
             height -= 1;
         }
 
+        info!(
+            "abandoning historical sync after exhausting last {} heights",
+            MAX_BACKWARD_SEARCH_DEPTH
+        );
         None
     }
 

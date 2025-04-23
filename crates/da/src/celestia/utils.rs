@@ -27,7 +27,8 @@ impl Default for CelestiaConfig {
             start_height: 4851608,
             sampling_window: DEFAULT_SAMPLING_WINDOW,
             pruning_delay: DEFAULT_PRUNING_DELAY,
-            snark_namespace_id: "00000000000000de1008".to_string(),
+            snark_namespace_id: "000000000000000000000000000000000000707269736d5350457331"
+                .to_string(),
             operation_namespace_id: "00000000000000de1009".to_string(),
         }
     }
@@ -81,11 +82,11 @@ impl Network {
                         .unwrap(),
                 ),
                 celestia_config: Some(CelestiaConfig {
-                    start_height: 4851608,
-                    snark_namespace_id: "000000000000000000000000000000000000707269736d5350457330"
+                    start_height: 5725333,
+                    snark_namespace_id: "000000000000000000000000000000000000707269736d5350457331"
                         .to_string(),
                     operation_namespace_id:
-                        "000000000000000000000000000000000000707269736d5350456f30".to_string(),
+                        "000000000000000000000000000000000000707269736d5350456f31".to_string(),
                     ..CelestiaConfig::default()
                 }),
             },

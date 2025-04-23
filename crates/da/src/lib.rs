@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::Blob;
+use log::info;
 use lumina_node::events::EventSubscriber;
 use prism_common::digest::Digest;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
@@ -46,6 +47,7 @@ impl FinalizedEpoch {
     }
 
     pub fn verify_signature(&self, vk: VerifyingKey) -> Result<()> {
+        info!("{:?}", self);
         let epoch_without_signature = FinalizedEpoch {
             height: self.height,
             prev_commitment: self.prev_commitment,
@@ -91,7 +93,9 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>; // the start of the event subscriber, optional because inmemoory and rpc based fullnode still need the start function and won't need this event subscriber
+
+    // starts the event subscriber, optional because inmemory and rpc based fullnode still need the start function
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
