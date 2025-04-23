@@ -95,14 +95,11 @@ impl LightClient {
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
-        info!("d");
         if let Some(lumina_event_subscriber) = self.da.event_subscriber() {
             let light_client = self.clone();
 
             spawn_task(async move {
-                info!("a");
                 let mut subscriber = lumina_event_subscriber.lock().await;
-                info!("b");
                 let sync_state = Arc::new(RwLock::new(SyncState {
                     current_height: 0,
                     initial_sync_completed: false,
@@ -111,14 +108,13 @@ impl LightClient {
                 }));
 
                 while let Ok(event_info) = subscriber.recv().await {
-                    info!("c");
                     // forward all events to the event publisher
                     light_client.clone().event_publisher.send(LightClientEvent::LuminaEvent {
                         event: event_info.event.clone(),
                     });
 
                     if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
-                        info!("new height {}", height);
+                        info!("new height from headersub {}", height);
                         light_client.clone().handle_new_header(height, sync_state.clone()).await;
                     }
                 }
@@ -157,6 +153,7 @@ impl LightClient {
 
                 // If we're waiting for initial sync, this completes it
                 if state.initial_sync_in_progress && !state.initial_sync_completed {
+                    info!("finished initial sync");
                     state.initial_sync_completed = true;
                     state.initial_sync_in_progress = false;
                 }
@@ -192,6 +189,10 @@ impl LightClient {
                 // Process the found epoch
                 match light_client.process_epoch(epoch_height).await {
                     Ok(_) => {
+                        info!(
+                            "found historical finalized epoch at height {}",
+                            epoch_height
+                        );
                         light_client.event_publisher.send(
                             LightClientEvent::RecursiveVerificationCompleted {
                                 height: epoch_height,
@@ -244,6 +245,9 @@ impl LightClient {
         while height >= min_height {
             // if an epoch has been found, we no longer need to sync historically
             if state.blocking_read().latest_finalized_epoch.is_some() {
+                info!(
+                    "abandoning historical sync after finding recursive proof at incoming height"
+                );
                 return None;
             }
 
