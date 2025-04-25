@@ -1,21 +1,26 @@
-use std::{
-    borrow::Cow,
-    fmt::{Display, Formatter},
-};
-
 use anyhow::{Result, bail};
 use ed25519_consensus::Signature as Ed25519Signature;
 use k256::ecdsa::Signature as Secp256k1Signature;
 use p256::ecdsa::Signature as Secp256r1Signature;
-
+use pkcs8::{
+    AlgorithmIdentifierRef, SecretDocument,
+    der::{Decode, asn1::OctetStringRef, zeroize::Zeroize},
+};
 use prism_serde::base64::ToBase64;
 use serde::{Deserialize, Serialize};
+use std::{
+    borrow::Cow,
+    fmt::{Display, Formatter},
+};
 use utoipa::{
     PartialSchema, ToSchema,
     openapi::{RefOr, Schema},
 };
 
-use crate::{CryptoAlgorithm, payload::CryptoPayload};
+use crate::{
+    CryptoAlgorithm, ECDSA_SHA256_OID, ED25519_OID, SECP256K1_OID, SECP256R1_OID,
+    der::SignatureInfoRef, payload::CryptoPayload,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(try_from = "CryptoPayload", into = "CryptoPayload")]
@@ -32,15 +37,6 @@ impl Signature {
             Signature::Secp256k1(sig) => sig.to_vec(),
             Signature::Secp256r1(sig) => sig.to_vec(),
         }
-    }
-
-    pub fn to_der(&self) -> Result<Vec<u8>> {
-        let der = match self {
-            Signature::Ed25519(_) => bail!("Ed25519 sig from DER format is not implemented"),
-            Signature::Secp256k1(sig) => sig.to_der().as_bytes().to_vec(),
-            Signature::Secp256r1(sig) => sig.to_der().as_bytes().to_vec(),
-        };
-        Ok(der)
     }
 
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
@@ -61,27 +57,62 @@ impl Signature {
         }
     }
 
-    pub fn from_algorithm_and_der(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
-        match algorithm {
-            CryptoAlgorithm::Ed25519 => bail!("Ed25519 sig from DER format is not implemented"),
-            CryptoAlgorithm::Secp256k1 => {
-                Secp256k1Signature::from_der(bytes).map(Signature::Secp256k1).map_err(|e| e.into())
-            }
-            CryptoAlgorithm::Secp256r1 => {
-                Secp256r1Signature::from_der(bytes).map(Signature::Secp256r1).map_err(|e| e.into())
-            }
-            CryptoAlgorithm::Eip191 => bail!("No EIP-191 specific signatures implemented"),
-            CryptoAlgorithm::CosmosAdr36 => {
-                bail!("No cosmos ADR-36 specific signatures implemented")
-            }
-        }
-    }
-
     pub fn algorithm(&self) -> CryptoAlgorithm {
         match self {
             Signature::Ed25519(_) => CryptoAlgorithm::Ed25519,
             Signature::Secp256k1(_) => CryptoAlgorithm::Secp256k1,
             Signature::Secp256r1(_) => CryptoAlgorithm::Secp256r1,
+        }
+    }
+
+    fn algorithm_identifier(&self) -> AlgorithmIdentifierRef {
+        match self {
+            Signature::Ed25519(_) => AlgorithmIdentifierRef {
+                oid: ED25519_OID,
+                parameters: None,
+            },
+            Signature::Secp256k1(_) => AlgorithmIdentifierRef {
+                oid: ECDSA_SHA256_OID,
+                parameters: Some((&SECP256K1_OID).into()),
+            },
+            Signature::Secp256r1(_) => AlgorithmIdentifierRef {
+                oid: ECDSA_SHA256_OID,
+                parameters: Some((&SECP256R1_OID).into()),
+            },
+        }
+    }
+
+    pub fn to_prism_der(&self) -> Result<Vec<u8>> {
+        let signature_bytes = self.to_bytes();
+        let mut der_bytes = Vec::with_capacity(2 + signature_bytes.len());
+
+        der_bytes.push(0x04); // octet stream
+        der_bytes.push(signature_bytes.len().try_into()?); // length of signature bytes
+        der_bytes.extend_from_slice(&signature_bytes);
+
+        let signature_info = SignatureInfoRef {
+            algorithm: self.algorithm_identifier(),
+            signature: OctetStringRef::new(&der_bytes)?,
+        };
+
+        let doc = SecretDocument::encode_msg(&signature_info)?;
+        der_bytes.zeroize();
+        Ok(doc.as_bytes().to_vec())
+    }
+
+    pub fn from_prism_der(bytes: &[u8]) -> Result<Self> {
+        let signature_info = SignatureInfoRef::from_der(bytes)?;
+        let algorithm = CryptoAlgorithm::try_from(signature_info.algorithm)?;
+
+        // Signature byte representation:
+        // 1st byte: 0x04 (type OCTET STRING)
+        // 2nd byte: length of the signature
+        // rest: signature bytes
+        match signature_info.signature.as_bytes() {
+            [0x04, _, signature_bytes @ ..] => {
+                Signature::from_algorithm_and_bytes(algorithm, signature_bytes)
+            }
+            _ => bail!("Malformed signature"),
         }
     }
 }

@@ -27,6 +27,12 @@ type Groth16Proof = Vec<u8>;
 #[cfg(not(target_arch = "wasm32"))]
 type Groth16Proof = SP1ProofWithPublicValues;
 
+#[cfg(target_arch = "wasm32")]
+type CompressedProof = Vec<u8>;
+
+#[cfg(not(target_arch = "wasm32"))]
+type CompressedProof = SP1ProofWithPublicValues;
+
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FinalizedEpoch {
@@ -34,6 +40,7 @@ pub struct FinalizedEpoch {
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
     pub proof: Groth16Proof,
+    pub compressed_proof: CompressedProof,
     pub public_values: Vec<u8>,
     pub signature: Option<String>,
 }
@@ -53,6 +60,7 @@ impl FinalizedEpoch {
             prev_commitment: self.prev_commitment,
             current_commitment: self.current_commitment,
             proof: self.proof.clone(),
+            compressed_proof: self.compressed_proof.clone(),
             public_values: self.public_values.clone(),
             signature: None,
         };

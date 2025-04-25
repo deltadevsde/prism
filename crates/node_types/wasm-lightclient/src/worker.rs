@@ -72,7 +72,7 @@ impl LightClientWorker {
         let network_config = network.config();
 
         let da = Arc::new(
-            LightClientConnection::new(&network_config, None)
+            LightClientConnection::new(&network_config)
                 .await
                 .map_err(|e| JsError::new(&format!("Failed to connect to light client: {}", e)))?,
         );
