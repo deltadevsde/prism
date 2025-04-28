@@ -11,11 +11,12 @@ keywords.workspace = true
 readme.workspace = true
 
 [dependencies]
+blockstore = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }
 anyhow = { workspace = true }
-redb ={ workspace = true }
+redb = { workspace = true }
 lumina-node = { workspace = true }
 prism-serde = { workspace = true }
 ed25519-consensus = { workspace = true }
@@ -35,5 +36,5 @@ tokio = { workspace = true, default-features = false, features = ["sync"] }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
 wasm-bindgen-futures = { workspace = true }
 wasm-bindgen = { workspace = true }
-lumina-node-wasm = { workspace = true}
+lumina-node-wasm = { workspace = true }
 serde-wasm-bindgen = { workspace = true }

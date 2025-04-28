@@ -1403,7 +1403,7 @@ source = "git+https://github.com/deltadevsde/lumina.git#2687d4abaef848b5333832aa
 dependencies = [
  "bytes",
  "celestia-grpc-macros",
- "celestia-proto 0.7.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "celestia-proto",
  "celestia-types",
  "futures",
  "getrandom 0.2.15",
@@ -1439,22 +1439,6 @@ dependencies = [
 [[package]]
 name = "celestia-proto"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4429b21a37997c08390d6f8fc325d29b8e72f3dca39f7acfe48d639e2f82a553"
-dependencies = [
- "bytes",
- "prost 0.13.5",
- "prost-build",
- "prost-types",
- "protox",
- "serde",
- "subtle-encoding",
- "tendermint-proto",
-]
-
-[[package]]
-name = "celestia-proto"
-version = "0.7.0"
 source = "git+https://github.com/deltadevsde/lumina.git#2687d4abaef848b5333832aac3f51c8f33c2992d"
 dependencies = [
  "bytes",
@@ -1471,9 +1455,9 @@ dependencies = [
 
 [[package]]
 name = "celestia-rpc"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc214d362b640e22d255b1c8684c0a364dd71b52c78d3203b40e19d4083df75a"
+checksum = "690a9415ed49a0720919c22a09b3f79384ed76b49c0a226dfd925a1037907a10"
 dependencies = [
  "async-trait",
  "celestia-types",
@@ -1495,7 +1479,7 @@ dependencies = [
  "bitvec",
  "blockstore",
  "bytes",
- "celestia-proto 0.7.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "celestia-proto",
  "cid",
  "const_format",
  "enum_dispatch",
@@ -5081,49 +5065,6 @@ dependencies = [
 
 [[package]]
 name = "lumina-node"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cd409b5025edc1e31b7d596b13e748fda0b33fc7f87bcabad46cade873e5e83"
-dependencies = [
- "async-trait",
- "backoff",
- "beetswap",
- "blockstore",
- "celestia-proto 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "celestia-types",
- "cid",
- "dashmap 5.5.3",
- "futures",
- "getrandom 0.2.15",
- "gloo-timers 0.3.0",
- "js-sys",
- "libp2p",
- "libp2p-websocket-websys 0.3.3",
- "pin-project",
- "prost 0.13.5",
- "rand 0.8.5",
- "redb",
- "rexie",
- "rustls-pemfile",
- "rustls-pki-types",
- "send_wrapper 0.6.0",
- "serde",
- "serde-wasm-bindgen",
- "smallvec",
- "tendermint",
- "tendermint-proto",
- "thiserror 1.0.69",
- "tokio",
- "tokio-util",
- "tracing",
- "void",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-time",
-]
-
-[[package]]
-name = "lumina-node"
 version = "0.9.1"
 source = "git+https://github.com/deltadevsde/lumina.git#2687d4abaef848b5333832aac3f51c8f33c2992d"
 dependencies = [
@@ -5131,7 +5072,7 @@ dependencies = [
  "backoff",
  "beetswap",
  "blockstore",
- "celestia-proto 0.7.0 (git+https://github.com/deltadevsde/lumina.git)",
+ "celestia-proto",
  "celestia-types",
  "cid",
  "dashmap 5.5.3",
@@ -5183,7 +5124,7 @@ dependencies = [
  "instant",
  "js-sys",
  "libp2p",
- "lumina-node 0.9.1",
+ "lumina-node",
  "lumina-utils",
  "serde",
  "serde-wasm-bindgen",
@@ -6606,7 +6547,7 @@ dependencies = [
  "dotenvy",
  "keystore-rs",
  "log",
- "lumina-node 0.9.0",
+ "lumina-node",
  "pretty_env_logger",
  "prism-da",
  "prism-errors",
@@ -6656,12 +6597,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "blockstore",
  "celestia-rpc",
  "celestia-types",
  "ed25519-consensus",
  "libp2p",
  "log",
- "lumina-node 0.9.0",
+ "lumina-node",
  "lumina-node-wasm",
  "prism-common",
  "prism-errors",
@@ -6711,7 +6653,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "log",
- "lumina-node 0.9.0",
+ "lumina-node",
  "prism-common",
  "prism-da",
  "prism-errors",
