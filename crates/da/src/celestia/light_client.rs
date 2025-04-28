@@ -2,6 +2,7 @@ use super::utils::{create_namespace, NetworkConfig};
 use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
 use log::trace;
