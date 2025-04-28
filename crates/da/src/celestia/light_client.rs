@@ -1,12 +1,11 @@
-use super::utils::{create_namespace, NetworkConfig};
+use super::utils::{NetworkConfig, create_namespace};
 use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
 use log::trace;
-use lumina_node::{events::EventSubscriber, Node, NodeBuilder};
+use lumina_node::{Node, NodeBuilder, events::EventSubscriber};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
