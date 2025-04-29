@@ -17,7 +17,7 @@
 * [Web Proofs](mammothon/reclaim.md)
 
 -----------
-# Prerequites
+# Prerequisite
 
 * [Introduction to Cryptography](./crypto-intro/intro.md)
   * [Symmetric Encryption](./crypto-intro/symmetric.md)

@@ -94,7 +94,7 @@ provision_light_nodes() {
 
     light_address=$(node_address "$light_name")
 
-    echo "Transfering $BRIDGE_COINS coins to the $light_name"
+    echo "Transferring $BRIDGE_COINS coins to the $light_name"
     echo "y" | celestia-appd tx bank send \
         "$NODE_NAME" \
         "$light_address" \
