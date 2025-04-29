@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use config::{builder::DefaultState, ConfigBuilder, File};
+use config::{ConfigBuilder, File, builder::DefaultState};
 use dirs::home_dir;
 use dotenvy::dotenv;
 use log::{error, warn};
@@ -9,16 +9,17 @@ use prism_keys::VerifyingKey;
 use prism_prover::webserver::WebServerConfig;
 use prism_serde::base64::FromBase64;
 use prism_storage::{
+    Database, RedisConnection,
     database::StorageBackend,
     inmemory::InMemoryDatabase,
     redis::RedisConfig,
     rocksdb::{RocksDBConfig, RocksDBConnection},
-    Database, RedisConnection,
 };
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc};
 
 use prism_da::{
+    DataAvailabilityLayer, LightDataAvailabilityLayer,
     celestia::{
         full_node::CelestiaConnection,
         light_client::LightClientConnection,
@@ -26,7 +27,6 @@ use prism_da::{
     },
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
-    DataAvailabilityLayer, LightDataAvailabilityLayer,
 };
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
@@ -197,7 +197,9 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
     let final_config = apply_command_line_args(loaded_config, args);
 
     if final_config.network.verifying_key.is_none() {
-        warn!("prover's verifying key was not provided. this is not recommended and epoch signatures will not be verified.");
+        warn!(
+            "prover's verifying key was not provided. this is not recommended and epoch signatures will not be verified."
+        );
     }
 
     Ok(final_config)
@@ -242,7 +244,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
     let network_config = &config.network.network.config();
     let prism_home = get_prism_home(&args.clone()).unwrap();
 
-    let default_celestia_config = CelestiaConfig::default();
+    let default_celestia_config = config.network.celestia_config.unwrap_or_default();
     let celestia_config = match config.da_layer {
         DALayerOption::Celestia => Some(CelestiaConfig {
             connection_string: args
@@ -340,7 +342,12 @@ pub async fn initialize_da_layer(
                             ))
                             .into());
                         }
-                        error!("Attempt {} to connect to celestia node failed: {}. Retrying in {} seconds...", attempt, e, DA_RETRY_INTERVAL.as_secs());
+                        error!(
+                            "Attempt {} to connect to celestia node failed: {}. Retrying in {} seconds...",
+                            attempt,
+                            e,
+                            DA_RETRY_INTERVAL.as_secs()
+                        );
                         tokio::time::sleep(DA_RETRY_INTERVAL).await;
                     }
                 }
