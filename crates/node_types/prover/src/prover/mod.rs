@@ -33,8 +33,8 @@ use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use sp1_sdk::{
-    CpuProver, HashableKey as _, Prover as _, ProverClient, SP1Proof, SP1ProofWithPublicValues,
-    SP1ProvingKey, SP1Stdin, SP1VerifyingKey,
+    EnvProver, HashableKey as _, ProverClient, SP1Proof, SP1ProofWithPublicValues, SP1ProvingKey,
+    SP1Stdin, SP1VerifyingKey,
 };
 use prism_telemetry_registry::metrics_registry::get_metrics;
 
@@ -125,11 +125,11 @@ pub struct Prover {
     /// [`tree`] is the representation of the JMT, prism's state tree. It is accessed via the [`db`].
     tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
 
-    base_prover_client: Arc<RwLock<CpuProver>>,
+    base_prover_client: Arc<RwLock<EnvProver>>,
     base_proving_key: SP1ProvingKey,
     base_verifying_key: SP1VerifyingKey,
 
-    recursive_prover_client: Arc<RwLock<CpuProver>>,
+    recursive_prover_client: Arc<RwLock<EnvProver>>,
     recursive_proving_key: SP1ProvingKey,
     recursive_verifying_key: SP1VerifyingKey,
 
@@ -156,15 +156,8 @@ impl Prover {
         let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(db.clone(), saved_epoch)));
 
         // Create separate prover clients for base and recursive proofs
-        #[cfg(feature = "mock_prover")]
-        let base_prover_client = ProverClient::builder().mock().build();
-        #[cfg(not(feature = "mock_prover"))]
-        let base_prover_client = ProverClient::builder().cpu().build();
-
-        #[cfg(feature = "mock_prover")]
-        let recursive_prover_client = ProverClient::builder().mock().build();
-        #[cfg(not(feature = "mock_prover"))]
-        let recursive_prover_client = ProverClient::builder().cpu().build();
+        let base_prover_client = ProverClient::from_env();
+        let recursive_prover_client = ProverClient::from_env();
 
         // Setup keys for both provers
         let (base_pk, base_vk) = base_prover_client.setup(BASE_PRISM_ELF);
@@ -474,7 +467,7 @@ impl Prover {
     ) -> Result<(
         SP1ProofWithPublicValues,
         SP1ProofWithPublicValues,
-        tokio::sync::RwLockReadGuard<'_, CpuProver>,
+        tokio::sync::RwLockReadGuard<'_, EnvProver>,
         &SP1VerifyingKey,
     )> {
         let mut stdin = SP1Stdin::new();
@@ -483,10 +476,7 @@ impl Prover {
         let client = self.base_prover_client.read().await;
         info!("generating proof for epoch {}", epoch_height);
 
-        #[cfg(feature = "groth16")]
         let proof = client.prove(&self.base_proving_key, &stdin).groth16().run()?;
-        #[cfg(not(feature = "groth16"))]
-        let proof = client.prove(&self.base_proving_key, &stdin).run()?;
         info!(
             "successfully generated base proof for epoch {}",
             epoch_height
@@ -508,7 +498,7 @@ impl Prover {
     ) -> Result<(
         SP1ProofWithPublicValues,
         SP1ProofWithPublicValues,
-        tokio::sync::RwLockReadGuard<'_, CpuProver>,
+        tokio::sync::RwLockReadGuard<'_, EnvProver>,
         &SP1VerifyingKey,
     )> {
         let prev_epoch = self.da.get_finalized_epoch(epoch_height - 1).await?.ok_or_else(|| {
@@ -563,12 +553,11 @@ impl Prover {
 
     async fn prove_epoch(&self, epoch_height: u64, batch: &Batch) -> Result<FinalizedEpoch> {
         // we use the base prover for the first epoch and always for mock prover because recursive verification is not really supported at the moment
-        let (proof, compressed_proof, client, verifying_key) =
-            if !cfg!(feature = "groth16") || epoch_height == 0 {
-                self.prove_with_base_prover(epoch_height, batch).await?
-            } else {
-                self.prove_with_recursive_prover(epoch_height, batch).await?
-            };
+        let (proof, compressed_proof, client, verifying_key) = if epoch_height == 0 {
+            self.prove_with_base_prover(epoch_height, batch).await?
+        } else {
+            self.prove_with_recursive_prover(epoch_height, batch).await?
+        };
 
         client.verify(&proof, verifying_key)?;
         info!("verified proof for epoch {}", epoch_height);

@@ -8,9 +8,8 @@ repository.workspace = true
 
 [features]
 default = []
-groth16 = []
 test_utils = []
-mock_prover = []
+
 
 [dependencies]
 async-trait = { workspace = true }
@@ -24,7 +23,7 @@ prism-common = { workspace = true, features = ["test_utils"] }
 prism-telemetry-registry = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-web-time = { workspace = true, features = ["serde"]}
+web-time = { workspace = true, features = ["serde"] }
 lumina-node = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

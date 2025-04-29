@@ -88,7 +88,7 @@ check:
 
 build:
   @echo "Building the project..."
-  cargo build --release --features groth16
+  cargo build --release 
 
   @echo "Building SP1 base binary..."
   cd crates/zk/sp1 && cargo prove build --bin base_prover --output-directory ../../../elf/ --elf-name base-riscv32im-succinct-zkvm-elf
@@ -109,7 +109,7 @@ build:
 unit-test:
   @echo "Running unit tests..."
 
-  SP1_PROVER=mock cargo test --lib --release --features "mock_prover" -- --skip test_light_client_prover_talking
+  SP1_PROVER=mock cargo test --lib --release -- --skip test_light_client_prover_talking
 
 coverage:
   #!/usr/bin/env bash
@@ -119,7 +119,7 @@ coverage:
 
   echo "Generating coverage report..."
 
-  if ! SP1_PROVER=mock cargo llvm-cov nextest --html --output-dir coverage_report --lib --features "mock_prover" --release --workspace --exclude prism-cli --exclude-from-report prism-sp1 --ignore-filename-regex sp1; then
+  if ! SP1_PROVER=mock cargo llvm-cov nextest --html --output-dir coverage_report --lib --features --release --workspace --exclude prism-cli --exclude-from-report prism-sp1 --ignore-filename-regex sp1; then
     echo "Coverage report generation failed."
   else
     echo "Coverage report generated in 'coverage_report' directory"

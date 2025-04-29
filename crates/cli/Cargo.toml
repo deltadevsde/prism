@@ -12,9 +12,8 @@ path = "src/main.rs"
 
 [features]
 default = []
-groth16 = []
 test_utils = []
-mock_prover = []
+
 
 [dependencies]
 lumina-node = { workspace = true }
