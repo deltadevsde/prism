@@ -99,7 +99,9 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>; // the start of the event subscriber, optional because inmemoory and rpc based fullnode still need the start function and won't need this event subscriber
+
+    // starts the event subscriber, optional because inmemory and rpc based fullnode still need the start function
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
