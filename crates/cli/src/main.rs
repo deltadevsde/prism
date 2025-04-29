@@ -117,6 +117,7 @@ async fn main() -> std::io::Result<()> {
                 signing_key,
                 verifying_key,
                 start_height,
+                max_epochless_gap: config.max_epochless_gap,
             };
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
@@ -151,6 +152,7 @@ async fn main() -> std::io::Result<()> {
                 signing_key,
                 verifying_key,
                 start_height,
+                max_epochless_gap: config.max_epochless_gap,
             };
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {

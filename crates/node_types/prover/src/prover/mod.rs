@@ -38,6 +38,8 @@ use sp1_sdk::{
 };
 use prism_telemetry_registry::metrics_registry::get_metrics;
 
+/// Maximum number of DA heights the prover will wait before posting a gapfiller proof
+pub const DEFAULT_MAX_EPOCHLESS_GAP: u64 = 300;
 pub const BASE_PRISM_ELF: &[u8] =
     include_bytes!("../../../../../elf/base-riscv32im-succinct-zkvm-elf");
 pub const RECURSIVE_PRISM_ELF: &[u8] =
@@ -66,6 +68,10 @@ pub struct Config {
 
     /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,
+    ///
+    /// Maximum DA height gap between two epochs; If exceeded, the prover will
+    /// repost the last epoch to aid LN syncing.
+    pub max_epochless_gap: u64,
 }
 
 impl Default for Config {
@@ -79,6 +85,7 @@ impl Default for Config {
             signing_key: signing_key.clone(),
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
+            max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
         }
     }
 }
@@ -97,12 +104,9 @@ impl Config {
             SigningKey::new_with_algorithm(algorithm).context("Failed to create signing key")?;
 
         Ok(Config {
-            prover: true,
-            batcher: true,
-            webserver: WebServerConfig::default(),
             signing_key: signing_key.clone(),
             verifying_key: signing_key.verifying_key(),
-            start_height: 1,
+            ..Config::default()
         })
     }
 }
@@ -128,6 +132,9 @@ pub struct Prover {
     recursive_prover_client: Arc<RwLock<CpuProver>>,
     recursive_proving_key: SP1ProvingKey,
     recursive_verifying_key: SP1VerifyingKey,
+
+    /// The DA height of the latest epoch.
+    latest_epoch_da_height: Arc<RwLock<u64>>,
 }
 
 #[allow(dead_code)]
@@ -175,6 +182,7 @@ impl Prover {
             recursive_prover_client: Arc::new(RwLock::new(recursive_prover_client)),
             tree,
             pending_transactions: Arc::new(RwLock::new(Vec::new())),
+            latest_epoch_da_height: Arc::new(RwLock::new(0)),
         })
     }
 
@@ -303,6 +311,15 @@ impl Prover {
         // be included in the next finalized epoch.
         if !transactions.is_empty() {
             buffered_transactions.extend(transactions);
+            return Ok(());
+        }
+
+        // post gap filler proof if max gap has been reached
+        let latest_epoch_height = *self.latest_epoch_da_height.read().await;
+        if latest_epoch_height != 0
+            && height.saturating_sub(latest_epoch_height) >= self.cfg.max_epochless_gap
+        {
+            self.finalize_new_epoch(current_epoch, Vec::new()).await?;
         }
 
         if let Some(metrics) = get_metrics() {
@@ -423,18 +440,23 @@ impl Prover {
         Ok(proofs)
     }
 
+    /// Finalizes a new epoch by processing the given transactions, proving the epoch,
+    /// and submitting it to the data availability layer.
+    /// Returns the height on the DA layer where the epoch was submitted.
     async fn finalize_new_epoch(
         &self,
         epoch_height: u64,
         transactions: Vec<Transaction>,
-    ) -> Result<()> {
+    ) -> Result<u64> {
         let mut tree = self.tree.write().await;
         let batch = tree.process_batch(transactions)?;
         batch.verify()?;
 
         let finalized_epoch = self.prove_epoch(epoch_height, &batch).await?;
 
-        self.da.submit_finalized_epoch(finalized_epoch).await?;
+        let da_height = self.da.submit_finalized_epoch(finalized_epoch).await?;
+        let mut latest_da_height = self.latest_epoch_da_height.write().await;
+        *latest_da_height = da_height;
 
         let new_epoch_height = epoch_height + 1;
         self.db.set_commitment(&new_epoch_height, &batch.new_root)?;
@@ -442,7 +464,7 @@ impl Prover {
 
         info!("finalized new epoch at height {}", epoch_height);
 
-        Ok(())
+        Ok(da_height)
     }
 
     async fn prove_with_base_prover(
