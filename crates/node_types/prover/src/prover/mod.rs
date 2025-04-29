@@ -33,7 +33,7 @@ use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use sp1_sdk::{
-    CpuProver, HashableKey as _, Prover as _, ProverClient, SP1ProofWithPublicValues,
+    CpuProver, HashableKey as _, Prover as _, ProverClient, SP1Proof, SP1ProofWithPublicValues,
     SP1ProvingKey, SP1Stdin, SP1VerifyingKey,
 };
 
@@ -445,6 +445,7 @@ impl Prover {
         batch: &Batch,
     ) -> Result<(
         SP1ProofWithPublicValues,
+        SP1ProofWithPublicValues,
         tokio::sync::RwLockReadGuard<'_, CpuProver>,
         &SP1VerifyingKey,
     )> {
@@ -458,9 +459,18 @@ impl Prover {
         let proof = client.prove(&self.base_proving_key, &stdin).groth16().run()?;
         #[cfg(not(feature = "groth16"))]
         let proof = client.prove(&self.base_proving_key, &stdin).run()?;
+        info!(
+            "successfully generated base proof for epoch {}",
+            epoch_height
+        );
 
-        info!("successfully generated proof for epoch {}", epoch_height);
-        Ok((proof, client, &self.base_verifying_key))
+        let compressed_proof = client.prove(&self.base_proving_key, &stdin).compressed().run()?;
+        info!(
+            "successfully generated compressed proof for epoch {}",
+            epoch_height
+        );
+
+        Ok((proof, compressed_proof, client, &self.base_verifying_key))
     }
 
     async fn prove_with_recursive_prover(
@@ -468,6 +478,7 @@ impl Prover {
         epoch_height: u64,
         batch: &Batch,
     ) -> Result<(
+        SP1ProofWithPublicValues,
         SP1ProofWithPublicValues,
         tokio::sync::RwLockReadGuard<'_, CpuProver>,
         &SP1VerifyingKey,
@@ -479,10 +490,21 @@ impl Prover {
             )
         })?;
 
+        let vk_to_use = if prev_epoch.height == 0 {
+            self.base_verifying_key.clone()
+        } else {
+            self.recursive_verifying_key.clone()
+        };
+
         let mut stdin = SP1Stdin::new();
-        stdin.write_vec(prev_epoch.proof.bytes());
+        // Write recursive inputs
+        let compressed_proof = match prev_epoch.compressed_proof.proof {
+            SP1Proof::Compressed(proof) => proof,
+            _ => return Err(anyhow!("Invalid proof type: expected compressed proof")),
+        };
+        stdin.write_proof(*compressed_proof, vk_to_use.clone().vk);
         stdin.write_vec(prev_epoch.public_values.to_vec());
-        stdin.write(&self.base_verifying_key.bytes32());
+        stdin.write(&vk_to_use.hash_u32());
         stdin.write(batch);
 
         let client = self.recursive_prover_client.read().await;
@@ -496,17 +518,29 @@ impl Prover {
             "successfully generated recursive proof for epoch {}",
             epoch_height
         );
+        let compressed_proof =
+            client.prove(&self.recursive_proving_key, &stdin).compressed().run()?;
+        info!(
+            "successfully generated recursive compressed proof for epoch {}",
+            epoch_height
+        );
 
-        Ok((proof, client, &self.recursive_verifying_key))
+        Ok((
+            proof,
+            compressed_proof,
+            client,
+            &self.recursive_verifying_key,
+        ))
     }
 
     async fn prove_epoch(&self, epoch_height: u64, batch: &Batch) -> Result<FinalizedEpoch> {
         // we use the base prover for the first epoch and always for mock prover because recursive verification is not really supported at the moment
-        let (proof, client, verifying_key) = if !cfg!(feature = "groth16") || epoch_height == 0 {
-            self.prove_with_base_prover(epoch_height, batch).await?
-        } else {
-            self.prove_with_recursive_prover(epoch_height, batch).await?
-        };
+        let (proof, compressed_proof, client, verifying_key) =
+            if !cfg!(feature = "groth16") || epoch_height == 0 {
+                self.prove_with_base_prover(epoch_height, batch).await?
+            } else {
+                self.prove_with_recursive_prover(epoch_height, batch).await?
+            };
 
         client.verify(&proof, verifying_key)?;
         info!("verified proof for epoch {}", epoch_height);
@@ -518,6 +552,7 @@ impl Prover {
             prev_commitment: batch.prev_root,
             current_commitment: batch.new_root,
             proof,
+            compressed_proof,
             public_values,
             signature: None,
         };

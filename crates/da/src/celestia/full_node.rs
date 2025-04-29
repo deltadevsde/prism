@@ -1,21 +1,21 @@
 #![cfg(not(target_arch = "wasm32"))]
 
 use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
-use celestia_types::{nmt::Namespace, Blob};
+use celestia_types::{Blob, nmt::Namespace};
 use log::{error, trace};
 use lumina_node::events::EventSubscriber;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
     self,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
+        atomic::{AtomicU64, Ordering},
     },
 };
 
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::{Mutex, broadcast};
 
 use crate::DataAvailabilityLayer;
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
@@ -25,7 +25,7 @@ use prism_common::transaction::Transaction;
 use prism_serde::binary::ToBinary;
 use tokio::task::spawn;
 
-use super::utils::{create_namespace, CelestiaConfig};
+use super::utils::{CelestiaConfig, create_namespace};
 
 pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
@@ -73,18 +73,24 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
 
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
             Ok(maybe_blobs) => match maybe_blobs {
-                Some(blobs) => blobs
-                    .into_iter()
-                    .next()
-                    .map(|blob| {
-                        FinalizedEpoch::try_from(&blob).map_err(|_| {
-                            anyhow!(GeneralError::ParsingError(format!(
-                                "marshalling blob from height {} to epoch json: {:?}",
-                                height, &blob
-                            )))
-                        })
-                    })
-                    .transpose(),
+                Some(blobs) => {
+                    let valid_epoch = blobs
+                        .into_iter()
+                        .next()
+                        .and_then(|blob| {
+                            match FinalizedEpoch::try_from(&blob) {
+                                Ok(epoch) => Some(epoch),
+                                Err(e) => {
+                                    warn!(
+                                        "Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}",
+                                        height, e, &blob
+                                    );
+                                    None
+                                }
+                            }
+                        });
+                    Ok(valid_epoch)
+                }
                 None => Ok(None),
             },
             Err(err) => {
@@ -153,7 +159,6 @@ impl DataAvailabilityLayer for CelestiaConnection {
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
-
         let data = epoch.encode_to_bytes().map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
                 "serializing epoch {}: {}",

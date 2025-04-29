@@ -1,3 +1,5 @@
+use anyhow::bail;
+use pkcs8::{AlgorithmIdentifierRef, ObjectIdentifier};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -48,5 +50,34 @@ impl std::str::FromStr for CryptoAlgorithm {
 impl std::fmt::Display for CryptoAlgorithm {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+pub const ED25519_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.101.112");
+pub const ELLIPTIC_CURVE_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1");
+pub const ECDSA_SHA256_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.2");
+pub const SECP256K1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.132.0.10");
+pub const SECP256R1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7");
+
+impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
+    type Error = anyhow::Error;
+
+    fn try_from(algorithm_identifier: AlgorithmIdentifierRef<'a>) -> Result<Self, Self::Error> {
+        let oid = algorithm_identifier.oid;
+
+        if oid == ED25519_OID {
+            Ok(CryptoAlgorithm::Ed25519)
+        } else if oid == ELLIPTIC_CURVE_OID || oid == ECDSA_SHA256_OID {
+            let parameter_oid = algorithm_identifier.parameters_oid()?;
+            if parameter_oid == SECP256K1_OID {
+                Ok(CryptoAlgorithm::Secp256k1)
+            } else if parameter_oid == SECP256R1_OID {
+                Ok(CryptoAlgorithm::Secp256r1)
+            } else {
+                bail!("Unsupported elliptic curve OID")
+            }
+        } else {
+            bail!("Unsupported algorithm OID")
+        }
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::Blob;
 use lumina_node::events::EventSubscriber;
@@ -26,6 +26,12 @@ type Groth16Proof = Vec<u8>;
 #[cfg(not(target_arch = "wasm32"))]
 type Groth16Proof = SP1ProofWithPublicValues;
 
+#[cfg(target_arch = "wasm32")]
+type CompressedProof = Vec<u8>;
+
+#[cfg(not(target_arch = "wasm32"))]
+type CompressedProof = SP1ProofWithPublicValues;
+
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FinalizedEpoch {
@@ -33,6 +39,7 @@ pub struct FinalizedEpoch {
     pub prev_commitment: Digest,
     pub current_commitment: Digest,
     pub proof: Groth16Proof,
+    pub compressed_proof: CompressedProof,
     pub public_values: Vec<u8>,
     pub signature: Option<String>,
 }
@@ -51,6 +58,7 @@ impl FinalizedEpoch {
             prev_commitment: self.prev_commitment,
             current_commitment: self.current_commitment,
             proof: self.proof.clone(),
+            compressed_proof: self.compressed_proof.clone(),
             public_values: self.public_values.clone(),
             signature: None,
         };
@@ -91,7 +99,9 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>>;
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>; // the start of the event subscriber, optional because inmemoory and rpc based fullnode still need the start function and won't need this event subscriber
+
+    // starts the event subscriber, optional because inmemory and rpc based fullnode still need the start function
+    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
