@@ -5,12 +5,12 @@ use async_trait::async_trait;
 use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
-use log::trace;
+use log::{debug, trace};
 use lumina_node::{
-    Node, NodeBuilder,
+    Node, NodeBuilder, NodeError,
     blockstore::InMemoryBlockstore,
     events::EventSubscriber,
-    store::{EitherStore, InMemoryStore},
+    store::{EitherStore, InMemoryStore, StoreError},
 };
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{self, sync::Arc};
@@ -137,7 +137,17 @@ impl LightDataAvailabilityLayer for LightClientConnection {
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
         let node = self.node.read().await;
-        let header = node.get_header_by_height(height).await?;
+        let header = match node.get_header_by_height(height).await {
+            Ok(h) => h,
+            Err(NodeError::Store(StoreError::NotFound)) => {
+                debug!(
+                    "header for height {} not found locally, fetching from network",
+                    height
+                );
+                node.request_header_by_height(height).await?
+            }
+            Err(e) => return Err(anyhow!("Failed to fetch header: {}", e)),
+        };
 
         match node.request_all_blobs(&header, self.snark_namespace, None).await {
             Ok(blobs) => {
