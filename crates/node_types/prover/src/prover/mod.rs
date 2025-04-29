@@ -137,11 +137,11 @@ impl Prover {
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: &Config,
     ) -> Result<Prover> {
-        let saved_epoch = match db.get_epoch() {
+        let saved_epoch = match db.get_epoch_height() {
             Ok(epoch) => epoch,
             Err(_) => {
                 debug!("no existing epoch state found, setting epoch to 0");
-                db.set_epoch(&0)?;
+                db.set_epoch_height(&0)?;
                 0
             }
         };
@@ -230,7 +230,7 @@ impl Prover {
         end_height: u64,
         mut incoming_heights: broadcast::Receiver<u64>,
     ) -> Result<()> {
-        let saved_epoch = self.db.get_epoch()?;
+        let saved_epoch = self.db.get_epoch_height()?;
 
         if saved_epoch == 0 {
             let initial_commitment = self.get_commitment_from_tree().await?;
@@ -275,7 +275,7 @@ impl Prover {
         buffered_transactions: &mut VecDeque<Transaction>,
         is_real_time: bool,
     ) -> Result<()> {
-        let current_epoch = self.db.get_epoch()?;
+        let current_epoch = self.db.get_epoch_height()?;
 
         let transactions = self.da.get_transactions(height).await?;
         let epoch_result = self.da.get_finalized_epoch(height).await?;
@@ -318,7 +318,7 @@ impl Prover {
         epoch: FinalizedEpoch,
         buffered_transactions: &mut VecDeque<Transaction>,
     ) -> Result<()> {
-        let mut current_epoch = self.db.get_epoch()?;
+        let mut current_epoch = self.db.get_epoch_height()?;
 
         // If prover is enabled and is actively producing new epochs, it has
         // likely already ran all of the transactions in the found epoch, so no
@@ -395,7 +395,7 @@ impl Prover {
 
         current_epoch += 1;
         self.db.set_commitment(&current_epoch, &new_commitment)?;
-        self.db.set_epoch(&current_epoch)?;
+        self.db.set_epoch_height(&current_epoch)?;
 
         Ok(())
     }
@@ -438,7 +438,7 @@ impl Prover {
 
         let new_epoch_height = epoch_height + 1;
         self.db.set_commitment(&new_epoch_height, &batch.new_root)?;
-        self.db.set_epoch(&new_epoch_height)?;
+        self.db.set_epoch_height(&new_epoch_height)?;
 
         info!("finalized new epoch at height {}", epoch_height);
 

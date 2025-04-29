@@ -1,7 +1,7 @@
 use anyhow::Result;
 use jmt::{
-    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
+    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
 };
 use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
@@ -102,11 +102,11 @@ impl Database for InMemoryDatabase {
         Ok(())
     }
 
-    fn get_epoch(&self) -> Result<u64> {
+    fn get_epoch_height(&self) -> Result<u64> {
         Ok(*self.current_epoch.lock().unwrap())
     }
 
-    fn set_epoch(&self, epoch: &u64) -> Result<()> {
+    fn set_epoch_height(&self, epoch: &u64) -> Result<()> {
         *self.current_epoch.lock().unwrap() = *epoch;
         Ok(())
     }

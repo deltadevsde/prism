@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::Database;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use jmt::{
-    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
+    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
 };
 use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
@@ -12,7 +12,7 @@ use prism_serde::{
     binary::{FromBinary, ToBinary},
     hex::{FromHex, ToHex},
 };
-use rocksdb::{DBWithThreadMode, MultiThreaded, Options, DB};
+use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
 
 const KEY_PREFIX_COMMITMENTS: &str = "commitments:epoch_";
@@ -87,7 +87,7 @@ impl Database for RocksDBConnection {
         Ok(self.connection.put(b"app_state:sync_height", height.to_be_bytes())?)
     }
 
-    fn get_epoch(&self) -> anyhow::Result<u64> {
+    fn get_epoch_height(&self) -> anyhow::Result<u64> {
         let res = self
             .connection
             .get(b"app_state:epoch")?
@@ -98,7 +98,7 @@ impl Database for RocksDBConnection {
         })?))
     }
 
-    fn set_epoch(&self, epoch: &u64) -> anyhow::Result<()> {
+    fn set_epoch_height(&self, epoch: &u64) -> anyhow::Result<()> {
         Ok(self.connection.put(b"app_state:epoch", epoch.to_be_bytes())?)
     }
 
@@ -219,8 +219,8 @@ mod tests {
 
         let epoch = 1;
 
-        db.set_epoch(&epoch).unwrap();
-        let read_epoch = db.get_epoch().unwrap();
+        db.set_epoch_height(&epoch).unwrap();
+        let read_epoch = db.get_epoch_height().unwrap();
 
         assert_eq!(read_epoch, epoch);
     }

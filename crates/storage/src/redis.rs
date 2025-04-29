@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use jmt::{
-    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
+    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
 };
 use prism_common::digest::Digest;
 use prism_serde::{
@@ -20,7 +20,7 @@ use std::{
 
 use prism_errors::DatabaseError;
 
-use crate::database::{convert_to_connection_error, Database};
+use crate::database::{Database, convert_to_connection_error};
 use tracing::debug;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -184,13 +184,13 @@ impl Database for RedisConnection {
         })
     }
 
-    fn get_epoch(&self) -> Result<u64> {
+    fn get_epoch_height(&self) -> Result<u64> {
         let mut con = self.lock_connection()?;
         con.get("app_state:epoch")
             .map_err(|_| anyhow!(DatabaseError::NotFoundError("current epoch".to_string())))
     }
 
-    fn set_epoch(&self, epoch: &u64) -> Result<()> {
+    fn set_epoch_height(&self, epoch: &u64) -> Result<()> {
         let mut con = self.lock_connection()?;
         con.set::<&str, &u64, ()>("app_state:epoch", epoch)
             .map_err(|_| anyhow!(DatabaseError::WriteError(format!("epoch: {}", epoch))))
