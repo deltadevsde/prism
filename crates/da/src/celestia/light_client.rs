@@ -1,11 +1,17 @@
-use super::utils::{create_namespace, NetworkConfig};
+use super::utils::{NetworkConfig, create_namespace};
 use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
+use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
 use log::trace;
-use lumina_node::{events::EventSubscriber, Node, NodeBuilder};
+use lumina_node::{
+    Node, NodeBuilder,
+    blockstore::InMemoryBlockstore,
+    events::EventSubscriber,
+    store::{EitherStore, InMemoryStore},
+};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
@@ -39,7 +45,10 @@ pub async fn resolve_bootnodes(bootnodes: &Vec<Multiaddr>) -> Result<Vec<Multiad
 pub type LuminaNode = Node<IndexedDbBlockstore, IndexedDbStore>;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub type LuminaNode = Node<RedbBlockstore, RedbStore>;
+pub type LuminaNode = Node<
+    EitherBlockstore<InMemoryBlockstore, RedbBlockstore>,
+    EitherStore<InMemoryStore, RedbStore>,
+>;
 
 pub struct LightClientConnection {
     pub node: Arc<RwLock<LuminaNode>>,
@@ -49,7 +58,10 @@ pub struct LightClientConnection {
 
 impl LightClientConnection {
     #[cfg(not(target_arch = "wasm32"))]
-    async fn setup_stores() -> Result<(RedbBlockstore, RedbStore)> {
+    async fn setup_stores() -> Result<(
+        EitherBlockstore<InMemoryBlockstore, RedbBlockstore>,
+        EitherStore<InMemoryStore, RedbStore>,
+    )> {
         let db = spawn_blocking(|| Database::create("lumina.redb"))
             .await
             .expect("Failed to join")
@@ -58,7 +70,11 @@ impl LightClientConnection {
 
         let store = RedbStore::new(db.clone()).await.expect("Failed to create a store");
         let blockstore = RedbBlockstore::new(db);
-        Ok((blockstore, store))
+
+        let either_blockstore = EitherBlockstore::Right(blockstore);
+        let either_store = EitherStore::Right(store);
+
+        Ok((either_blockstore, either_store))
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -75,6 +91,7 @@ impl LightClientConnection {
     }
 
     pub async fn new(config: &NetworkConfig) -> Result<Self> {
+        #[cfg(not(target_arch = "wasm32"))]
         let bootnodes = config.celestia_network.canonical_bootnodes().collect::<Vec<Multiaddr>>();
         #[cfg(target_arch = "wasm32")]
         let bootnodes = resolve_bootnodes(&bootnodes).await?;

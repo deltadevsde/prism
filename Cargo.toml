@@ -115,9 +115,10 @@ alloy-primitives = { version = "0.8.21", default-features = false, features = [
 ripemd = "0.1.3"
 
 # celestia
-celestia-rpc = "=0.9.0"
+blockstore = "0.7.1"
+celestia-rpc = "=0.9.1"
 celestia-types = "=0.10.1"
-lumina-node = "=0.9.0"
+lumina-node = "=0.9.1"
 
 # p2p
 libp2p = "0.54.1"

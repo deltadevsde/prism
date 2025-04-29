@@ -88,7 +88,7 @@ check:
 
 build:
   @echo "Building the project..."
-  cargo build --release
+  cargo build --release --features groth16
 
   @echo "Building SP1 base binary..."
   cd crates/zk/sp1 && cargo prove build --bin base_prover --output-directory ../../../elf/ --elf-name base-riscv32im-succinct-zkvm-elf
