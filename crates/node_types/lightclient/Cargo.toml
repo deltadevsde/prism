@@ -20,6 +20,7 @@ sp1-verifier = { workspace = true }
 prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
+prism-telemetry = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 web-time = { workspace = true, features = ["serde"]}

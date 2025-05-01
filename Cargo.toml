@@ -29,6 +29,7 @@ default-members = [
   "crates/serde",
   "crates/keys",
   "crates/tree",
+  "crates/telemetry",
 ]
 
 members = [
@@ -47,6 +48,7 @@ members = [
   "crates/serde",
   "crates/keys",
   "crates/tree",
+  "crates/telemetry",
 ]
 resolver = "2"
 
@@ -148,6 +150,7 @@ prism-keys = { path = "crates/keys" }
 prism-serde = { path = "crates/serde" }
 prism-tree = { path = "crates/tree" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
+prism-telemetry = { path = "crates/telemetry" }
 
 # testing
 mockall = "0.13.1"
@@ -160,6 +163,16 @@ web-sys = "0.3"
 serde-wasm-bindgen = "0.6.5"
 wasm-bindgen-futures = "0.4"
 web-time = "1.1.0"
+
+# telemetry
+opentelemetry = "0.29.1"
+opentelemetry_sdk = "0.29.0"
+opentelemetry-otlp = "0.29.0"
+opentelemetry-appender-tracing = "0.29.1"
+pyroscope = "0.5.8"
+pyroscope_pprofrs = "0.2.10"
+tracing = { version = "0.1.41", features = ["std"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "registry", "std", "fmt"] }
 
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.8-sp1-4.0.0" }

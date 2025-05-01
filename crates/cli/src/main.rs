@@ -6,8 +6,11 @@ use cfg::{
 };
 use clap::Parser;
 use keystore_rs::{FileStore, KeyChain, KeyStore};
+use opentelemetry::{global::{self}, KeyValue};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
+use prism_telemetry::telemetry::{init_telemetry, set_global_attributes, build_resource};
+use prism_telemetry::metrics_registry::{init_metrics_registry, get_metrics};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
@@ -30,7 +33,35 @@ async fn main() -> std::io::Result<()> {
 
     let config = load_config(args.clone()).map_err(|e| Error::other(e.to_string()))?;
 
+    let node_type = match cli.command {
+        Commands::LightClient(_) => "lightclient".to_string(),
+        Commands::Prover(_) => "prover".to_string(),
+        Commands::FullNode(_) => "fullnode".to_string(),
+    };
+
+    let mut attributes: Vec<KeyValue> = Vec::new();
+    attributes.extend(config.clone().telemetry.unwrap().global_labels.labels.into_iter().map(|(k, v)| KeyValue::new(k, v)));
+    attributes.push(KeyValue::new("network".to_string(), config.network.network.to_string()));
+    attributes.push(KeyValue::new("node_type".to_string(), node_type));
+
+    set_global_attributes(attributes.clone());
+    
+    let resource = build_resource("prism".to_string(), attributes);
+    
+    let meter_provider = init_telemetry(&config.clone().telemetry.unwrap(), resource).map_err(|e| Error::other(e.to_string()))?;
+    if let Some(meter_provider) = meter_provider {
+        global::set_meter_provider(meter_provider.clone());
+        
+        // Initialize the metrics registry after setting the global meter provider
+        init_metrics_registry();
+    }
+
     let start_height = config.clone().network.celestia_config.unwrap_or_default().start_height;
+    
+    // Use the metrics registry to record metrics
+    if let Some(metrics) = get_metrics() {
+        metrics.record_start_height(start_height, vec![]);
+    }
 
     let node: Arc<dyn NodeType> = match cli.command {
         Commands::LightClient(_) => {
@@ -119,6 +150,8 @@ async fn main() -> std::io::Result<()> {
     };
 
     node.start().await.map_err(|e| Error::other(e.to_string()))
+    
+    // TODO: Shutdown telemetry
 }
 
 fn get_signing_key(

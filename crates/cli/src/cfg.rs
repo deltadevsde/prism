@@ -15,6 +15,7 @@ use prism_storage::{
     redis::RedisConfig,
     rocksdb::{RocksDBConfig, RocksDBConnection},
 };
+use prism_telemetry::config::{get_default_telemetry_config, TelemetryConfig};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc};
 
@@ -125,6 +126,7 @@ pub struct Config {
     pub keystore_path: Option<String>,
     pub da_layer: DALayerOption,
     pub db: StorageBackend,
+    pub telemetry: Option<TelemetryConfig>,
 }
 
 impl Config {
@@ -136,6 +138,7 @@ impl Config {
             network: Network::from_str(network_name).unwrap().config(),
             da_layer: DALayerOption::default(),
             db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
+            telemetry: Some(get_default_telemetry_config()),
         }
     }
 }
@@ -296,6 +299,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         keystore_type: args.keystore_type.or(config.keystore_type),
         keystore_path: args.keystore_path.or(config.keystore_path),
         da_layer: config.da_layer,
+        telemetry: config.telemetry,
     }
 }
 

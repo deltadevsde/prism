@@ -3,6 +3,7 @@ use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
 use prism_da::{FinalizedEpoch, LightDataAvailabilityLayer};
 use prism_keys::VerifyingKey;
+use prism_telemetry;
 use serde::Deserialize;
 use std::{
     self,
@@ -110,6 +111,9 @@ impl LightClient {
                 });
 
                 if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
+                    if let Some(metrics) = prism_telemetry::metrics_registry::get_metrics() {
+                        metrics.record_celestia_synced_height(height, vec![]);
+                    }
                     info!("new height from headersub {}", height);
                     self.clone().handle_new_header(height, sync_state.clone()).await;
                 }
@@ -322,6 +326,10 @@ impl LightClient {
                 self.event_publisher.send(LightClientEvent::EpochVerified {
                     height: finalized_epoch.height,
                 });
+
+                if let Some(metrics) = prism_telemetry::metrics_registry::get_metrics() {
+                    metrics.record_current_epoch(finalized_epoch.height, vec![]);
+                }
 
                 Ok(())
             }

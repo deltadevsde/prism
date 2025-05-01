@@ -1,4 +1,4 @@
-use std::{str::FromStr, time::Duration};
+use std::{str::FromStr, time::Duration, fmt};
 
 use anyhow::{Context, Result};
 use celestia_types::nmt::Namespace;
@@ -37,6 +37,15 @@ impl Default for CelestiaConfig {
 pub enum Network {
     Specter,
     Custom(String),
+}
+
+impl fmt::Display for Network {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Network::Specter => write!(f, "specter"),
+            Network::Custom(name) => write!(f, "{}", name),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
