@@ -4,7 +4,7 @@ use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
-use log::{error, trace};
+use tracing::{error, trace};
 use lumina_node::events::EventSubscriber;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
@@ -20,7 +20,7 @@ use tokio::sync::{Mutex, broadcast};
 use crate::DataAvailabilityLayer;
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
 use celestia_types::AppVersion;
-use log::{debug, warn};
+use tracing::{debug, warn};
 use prism_common::transaction::Transaction;
 use prism_serde::binary::ToBinary;
 use tokio::task::spawn;

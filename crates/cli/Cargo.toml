@@ -21,8 +21,6 @@ lumina-node = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
-log = { workspace = true }
-pretty_env_logger = { workspace = true }
 clap = { workspace = true }
 config = { workspace = true }
 dotenvy = { workspace = true }
@@ -40,3 +38,4 @@ prism-serde = { workspace = true }
 celestia-types = { workspace = true }
 prism-telemetry = { workspace = true }
 opentelemetry = { workspace = true }
+tracing = { workspace = true }

@@ -3,18 +3,19 @@ use crate::logs;
 use crate::config::TelemetryConfig;
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
+use opentelemetry_sdk::logs::SdkLoggerProvider;
 use crate::metrics::init_metrics;
-use std::error::Error;
-use tracing::info;
 use opentelemetry::KeyValue;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
+use std::error::Error;
+use tracing::info;
 
 lazy_static! {
     static ref GLOBAL_ATTRIBUTES: Mutex<Vec<KeyValue>> = Mutex::new(Vec::new());
 }
 
-pub fn init_telemetry(config: &TelemetryConfig, resource: Resource) -> Result<Option<SdkMeterProvider>, Box<dyn Error>> {
+pub fn init_telemetry(config: &TelemetryConfig, resource: Resource) -> Result<(Option<SdkMeterProvider>, Option<SdkLoggerProvider>), Box<dyn Error>> {
     info!("Initializing telemetry with configuration: metrics_enabled={}, logs_enabled={}", 
         config.metrics.enabled, config.logs.enabled);
 
@@ -36,18 +37,27 @@ pub fn init_telemetry(config: &TelemetryConfig, resource: Resource) -> Result<Op
     };
     
     // Initialize logs if enabled
-    if config.logs.enabled {
-        logs::init_logs(&config.logs);
-        info!("Logs initialized successfully with endpoint: {}", config.logs.endpoint);
+    let log_provider = if config.logs.enabled {
+        match logs::init_logs(&config.logs, resource.clone()) {
+            Ok(provider) => {
+                info!("Logs initialized successfully with endpoint: {}", config.logs.endpoint);
+                Some(provider)
+            },
+            Err(e) => {
+                tracing::error!("Failed to initialize logs: {}", e);
+                return Err(e);
+            }
+        }
     } else {
         info!("Logs are disabled, skipping logs initialization");
-    }
+        None
+    };
 
     info!("Telemetry initialization completed successfully");
-    Ok(meter_provider)
+    Ok((meter_provider, log_provider))
 }
 
-pub fn shutdown_telemetry(config: &TelemetryConfig, meter_provider: Option<SdkMeterProvider>) {
+pub fn shutdown_telemetry(config: TelemetryConfig, meter_provider: Option<SdkMeterProvider>, log_provider: Option<SdkLoggerProvider>) {
     info!("Shutting down telemetry");
 
     if config.metrics.enabled {
@@ -57,7 +67,9 @@ pub fn shutdown_telemetry(config: &TelemetryConfig, meter_provider: Option<SdkMe
     }
     
     if config.logs.enabled {
-        logs::shutdown_logs();
+        if let Some(provider) = log_provider {
+            let _ = logs::shutdown_logs(provider);
+        }
     }
 }
 

@@ -5,7 +5,7 @@ use jmt::{
     storage::{TreeReader, TreeWriter},
     KeyHash,
 };
-use log::{debug, warn};
+use tracing::{debug, warn};
 use prism_errors::DatabaseError;
 use prism_serde::binary::{FromBinary, ToBinary};
 

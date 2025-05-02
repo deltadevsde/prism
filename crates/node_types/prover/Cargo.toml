@@ -21,7 +21,7 @@ utoipa-swagger-ui = { workspace = true }
 utoipa-axum = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
-log = { workspace = true }
+tracing = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }

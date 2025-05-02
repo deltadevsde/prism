@@ -13,7 +13,7 @@ readme.workspace = true
 [dependencies]
 serde = { workspace = true }
 redis = { workspace = true }
-log = { workspace = true }
+tracing = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
 prism-errors = { workspace = true }

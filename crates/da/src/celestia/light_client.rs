@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
-use log::{debug, trace};
+use tracing::{debug, trace};
 use lumina_node::{
     Node, NodeBuilder, NodeError,
     blockstore::InMemoryBlockstore,

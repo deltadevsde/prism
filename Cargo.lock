@@ -6739,10 +6739,8 @@ dependencies = [
  "dirs 5.0.1",
  "dotenvy",
  "keystore-rs",
- "log",
  "lumina-node",
  "opentelemetry",
- "pretty_env_logger",
  "prism-da",
  "prism-errors",
  "prism-keys",
@@ -6754,6 +6752,7 @@ dependencies = [
  "serde",
  "tokio",
  "toml",
+ "tracing",
 ]
 
 [[package]]
@@ -6797,7 +6796,6 @@ dependencies = [
  "celestia-types",
  "ed25519-consensus",
  "libp2p",
- "log",
  "lumina-node",
  "lumina-node-wasm",
  "prism-common",
@@ -6809,6 +6807,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "sp1-sdk",
  "tokio",
+ "tracing",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
@@ -6847,7 +6846,6 @@ name = "prism-lightclient"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "log",
  "lumina-node",
  "prism-common",
  "prism-da",
@@ -6858,6 +6856,7 @@ dependencies = [
  "serde_json",
  "sp1-verifier",
  "tokio",
+ "tracing",
  "wasm-bindgen-futures",
  "web-time",
 ]
@@ -6870,7 +6869,6 @@ dependencies = [
  "async-trait",
  "axum 0.8.3",
  "jmt",
- "log",
  "paste",
  "prism-common",
  "prism-da",
@@ -6883,6 +6881,7 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "tower-http",
+ "tracing",
  "utoipa",
  "utoipa-axum",
  "utoipa-swagger-ui",
@@ -6919,7 +6918,6 @@ dependencies = [
  "anyhow",
  "auto_impl",
  "jmt",
- "log",
  "prism-common",
  "prism-errors",
  "prism-serde",
@@ -6927,6 +6925,7 @@ dependencies = [
  "rocksdb",
  "serde",
  "tempfile",
+ "tracing",
 ]
 
 [[package]]
@@ -6952,7 +6951,6 @@ name = "prism-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "log",
  "pretty_env_logger",
  "prism-common",
  "prism-da",
@@ -6963,6 +6961,7 @@ dependencies = [
  "rand 0.8.5",
  "tempfile",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -6971,7 +6970,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "jmt",
- "log",
  "paste",
  "prism-common",
  "prism-errors",
@@ -6979,6 +6977,7 @@ dependencies = [
  "prism-serde",
  "serde",
  "sha2 0.10.8",
+ "tracing",
 ]
 
 [[package]]
