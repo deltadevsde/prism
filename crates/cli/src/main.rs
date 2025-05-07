@@ -75,7 +75,13 @@ async fn main() -> std::io::Result<()> {
 
     // Use the metrics registry to record metrics
     if let Some(metrics) = get_metrics() {
-        metrics.record_start_height(start_height, vec![]);
+        metrics.record_node_info(
+            vec![
+                KeyValue::new("operation_namespace_id".to_string(), config.network.celestia_config.clone().unwrap_or_default().operation_namespace_id.to_string()),
+                KeyValue::new("snark_namespace_id".to_string(), config.network.celestia_config.clone().unwrap_or_default().snark_namespace_id.to_string()),
+                KeyValue::new("start_height".to_string(), start_height.to_string()),
+            ]
+        );
     }
 
     let node: Arc<dyn NodeType> = match cli.command {

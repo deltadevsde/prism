@@ -13,7 +13,7 @@ pub struct PrismMetrics {
     #[allow(dead_code)]
     meter: Meter,
     // Celestia metrics
-    pub start_height: Gauge<u64>,
+    pub node_info: Gauge<u64>,
     pub celestia_synced_height: Gauge<u64>,
     pub current_epoch: Gauge<u64>,
     // Add more metrics as needed
@@ -30,9 +30,9 @@ impl PrismMetrics {
         info!("Initializing Prism metrics registry");
         let meter = global::meter("prism");
 
-        let start_height = meter
-            .u64_gauge("prism_start_height")
-            .with_description("Celestia start height")
+        let node_info = meter
+            .u64_gauge("prism_node_info")
+            .with_description("Prism node info")
             .build();
 
         let celestia_synced_height = meter
@@ -47,15 +47,15 @@ impl PrismMetrics {
 
         PrismMetrics {
             meter,
-            start_height,
+            node_info,
             celestia_synced_height,
             current_epoch,
         }
     }
 
     // Helper method to record start height
-    pub fn record_start_height(&self, height: u64, attributes: Vec<KeyValue>    ) {
-        self.start_height.record(height, build_attributes(attributes).as_slice());
+    pub fn record_node_info(&self, attributes: Vec<KeyValue>) {
+        self.node_info.record(1, build_attributes(attributes).as_slice());
     }
 
     // Helper method to record Celestia synced height
