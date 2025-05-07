@@ -155,6 +155,7 @@ prism-telemetry = { path = "crates/telemetry" }
 mockall = "0.13.1"
 
 # wasm
+log = "0.4"
 lumina-node-wasm = { git = "https://github.com/deltadevsde/lumina.git" }
 wasm-bindgen = "0.2"
 js-sys = "0.3"

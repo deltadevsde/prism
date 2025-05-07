@@ -1,6 +1,6 @@
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{
-    LogExporter, 
+    LogExporter,
     Protocol,
     WithExportConfig,
     WithHttpConfig,
@@ -31,27 +31,27 @@ pub fn init_logs(logs_config: &LogsConfig, resource: Resource) -> Result<SdkLogg
     } else {
         format!("{}/v1/logs", logs_config.endpoint)
     };
-    
+
     info!("Initializing logs with endpoint: {}", endpoint_url);
-    
+
     // Build the exporter with basic configuration
     let mut builder = LogExporter::builder()
         .with_http()
         .with_protocol(Protocol::HttpBinary)
         .with_endpoint(&endpoint_url)
         .with_timeout(Duration::from_secs(5)); // Add timeout to detect backend unavailability
-    
+
     // Add basic authentication if enabled
     if logs_config.auth.enabled {
         let auth_string = format!("{}:{}", logs_config.auth.username, logs_config.auth.password);
         let encoded = base64::engine::general_purpose::STANDARD.encode(auth_string);
         let auth_header = format!("Basic {}", encoded);
-        
+
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), auth_header);
         builder = builder.with_headers(headers);
     }
-    
+
     let exporter = match builder.build() {
         Ok(exporter) => exporter,
         Err(e) => {
@@ -68,7 +68,7 @@ pub fn init_logs(logs_config: &LogsConfig, resource: Resource) -> Result<SdkLogg
         .with_batch_exporter(exporter)
         .with_resource(final_resource)
         .build();
-        
+
     Ok(provider)
 }
 
@@ -90,7 +90,7 @@ pub fn create_env_filter() -> EnvFilter {
 
 /// Set up a configurable tracing subscriber that can handle both logs and spans
 /// with support for global labels
-pub fn setup_tracing_subscriber(
+pub fn setup_log_subscriber(
     enable_logs: bool,
     logger_provider: Option<&SdkLoggerProvider>
 ) {
@@ -103,13 +103,13 @@ pub fn setup_tracing_subscriber(
         // Create the OpenTelemetry layer for logs
         let otel_layer = OpenTelemetryTracingBridge::new(logger_provider.unwrap())
             .with_filter(create_env_filter());
-        
+
         // Initialize the registry with both layers
         tracing_subscriber::registry()
             .with(fmt_layer)
             .with(otel_layer)
             .init();
-        
+
     } else {
         // Initialize the registry with just the console layer
         tracing_subscriber::registry()

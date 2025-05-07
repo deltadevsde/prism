@@ -11,7 +11,7 @@ use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
 use prism_telemetry::telemetry::{self, build_resource, init_telemetry, set_global_attributes};
 use prism_telemetry::metrics_registry::{init_metrics_registry, get_metrics};
-use prism_telemetry::logs::setup_tracing_subscriber;
+use prism_telemetry::logs::setup_log_subscriber;
 
 use std::io::{Error, ErrorKind};
 
@@ -19,7 +19,7 @@ use node_types::NodeType;
 use prism_lightclient::{LightClient, events::EventChannel};
 use prism_prover::Prover;
 use std::sync::Arc;
-use tracing::{info, warn, error};
+use tracing::{info, error};
 
 pub const SIGNING_KEY_ID: &str = "prism";
 
@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
     };
 
     let config = load_config(args.clone()).map_err(|e| Error::other(e.to_string()))?;
-    
+
     // Extract and clone all fields that will be moved
     let telemetry_config = config.telemetry.clone().unwrap();
     let keystore_type = config.keystore_type.clone();
@@ -51,28 +51,28 @@ async fn main() -> std::io::Result<()> {
     attributes.push(KeyValue::new("node_type".to_string(), node_type));
 
     set_global_attributes(attributes.clone());
-    
+
     let resource = build_resource("prism".to_string(), attributes);
-    
+
     let (meter_provider, log_provider) = init_telemetry(&telemetry_config, resource).map_err(|e| Error::other(e.to_string()))?;
-    
+
     if let Some(ref provider) = meter_provider {
         global::set_meter_provider(provider.clone());
-        
+
         // Initialize the metrics registry after setting the global meter provider
         init_metrics_registry();
     }
 
    if let Some(ref provider) = log_provider {
         // Initialize tracing subscriber
-        setup_tracing_subscriber(
+        setup_log_subscriber(
             telemetry_config.logs.enabled,
             Some(provider)
         );
     }
 
     let start_height = config.network.celestia_config.clone().unwrap_or_default().start_height;
-    
+
     // Use the metrics registry to record metrics
     if let Some(metrics) = get_metrics() {
         metrics.record_start_height(start_height, vec![]);
@@ -168,7 +168,7 @@ async fn main() -> std::io::Result<()> {
     let result = node.start().await.map_err(|e| Error::other(e.to_string()));
 
     telemetry::shutdown_telemetry(telemetry_config, meter_provider, log_provider);
-    
+
     result
 }
 

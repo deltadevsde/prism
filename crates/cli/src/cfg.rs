@@ -3,8 +3,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use config::{ConfigBuilder, File, builder::DefaultState};
 use dirs::home_dir;
 use dotenvy::dotenv;
-// use log::{error, warn};
-use tracing::{info, warn, error};
+use tracing::{warn, error};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
 use prism_prover::webserver::WebServerConfig;
@@ -176,7 +175,6 @@ pub struct DatabaseArgs {
 
 pub fn load_config(args: CommandArgs) -> Result<Config> {
     dotenv().ok();
-    // set_up_logging(&args.log_level);
 
     let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
 
@@ -208,12 +206,6 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
 
     Ok(final_config)
 }
-
-// fn set_up_logging(log_level: &str) {
-//     let mut builder = pretty_env_logger::formatted_builder();
-//     builder.parse_filters(log_level);
-//     builder.init();
-// }
 
 fn get_prism_home(args: &CommandArgs) -> Result<String> {
     let network_name = args.network_name.clone().unwrap_or_else(|| "custom".to_string());

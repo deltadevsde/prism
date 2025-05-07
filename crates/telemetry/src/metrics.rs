@@ -19,27 +19,27 @@ pub fn init_metrics(metrics_config: &MetricsConfig, resource: Resource) -> Resul
     } else {
         format!("{}/v1/metrics", metrics_config.endpoint)
     };
-    
+
     info!("Initializing metrics with endpoint: {}", endpoint_url);
-    
+
     // Build the exporter with basic configuration
     let mut builder = MetricExporter::builder()
         .with_http()
         .with_protocol(Protocol::HttpBinary)
         .with_endpoint(&endpoint_url)
         .with_timeout(Duration::from_secs(5)); // Add timeout to detect backend unavailability
-    
+
     // Add basic authentication if enabled
     if metrics_config.auth.enabled {
         let auth_string = format!("{}:{}", metrics_config.auth.username, metrics_config.auth.password);
         let encoded = base64::engine::general_purpose::STANDARD.encode(auth_string);
         let auth_header = format!("Basic {}", encoded);
-        
+
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_string(), auth_header);
         builder = builder.with_headers(headers);
     }
-    
+
     let exporter = match builder.build() {
         Ok(exporter) => exporter,
         Err(e) => {
@@ -54,7 +54,7 @@ pub fn init_metrics(metrics_config: &MetricsConfig, resource: Resource) -> Resul
         .with_periodic_exporter(exporter)
         .with_resource(resource)
         .build();
-    
+
     Ok(provider)
 }
 
