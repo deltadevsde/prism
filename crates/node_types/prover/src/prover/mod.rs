@@ -306,6 +306,7 @@ impl Prover {
 
         if let Some(metrics) = prism_telemetry::metrics_registry::get_metrics() {
             metrics.record_celestia_synced_height(height, vec![]);
+            metrics.record_current_epoch(current_epoch, vec![]);
         }
 
         Ok(())
@@ -390,10 +391,6 @@ impl Prover {
             "processed epoch {}. new commitment: {:?}",
             current_epoch, new_commitment
         );
-
-        if let Some(metrics) = prism_telemetry::metrics_registry::get_metrics() {
-            metrics.record_current_epoch(current_epoch, vec![]);
-        }
 
         current_epoch += 1;
         self.db.set_commitment(&current_epoch, &new_commitment)?;

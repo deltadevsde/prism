@@ -63,7 +63,7 @@ async fn main() -> std::io::Result<()> {
         init_metrics_registry();
     }
 
-   if let Some(ref provider) = log_provider {
+    if let Some(ref provider) = log_provider {
         // Initialize tracing subscriber
         setup_log_subscriber(
             telemetry_config.logs.enabled,
