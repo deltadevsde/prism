@@ -16,7 +16,7 @@ lazy_static! {
 }
 
 pub fn init_telemetry(config: &TelemetryConfig, resource: Resource) -> Result<(Option<SdkMeterProvider>, Option<SdkLoggerProvider>), Box<dyn Error>> {
-    info!("Initializing telemetry with configuration: metrics_enabled={}, logs_enabled={}", 
+    info!("Initializing telemetry with configuration: metrics_enabled={}, logs_enabled={}",
         config.metrics.enabled, config.logs.enabled);
 
     // Initialize metrics if enabled
@@ -35,7 +35,7 @@ pub fn init_telemetry(config: &TelemetryConfig, resource: Resource) -> Result<(O
         info!("Metrics are disabled, skipping metrics initialization");
         None
     };
-    
+
     // Initialize logs if enabled
     let log_provider = if config.logs.enabled {
         match logs::init_logs(&config.logs, resource.clone()) {
@@ -57,18 +57,26 @@ pub fn init_telemetry(config: &TelemetryConfig, resource: Resource) -> Result<(O
     Ok((meter_provider, log_provider))
 }
 
-pub fn shutdown_telemetry(config: TelemetryConfig, meter_provider: Option<SdkMeterProvider>, log_provider: Option<SdkLoggerProvider>) {
+pub fn shutdown_telemetry(
+    config: TelemetryConfig,
+    meter_provider: Option<SdkMeterProvider>,
+    log_provider: Option<SdkLoggerProvider>,
+) {
     info!("Shutting down telemetry");
 
     if config.metrics.enabled {
         if let Some(provider) = meter_provider {
-            let _ = metrics::shutdown_metrics(provider);
+            if let Err(e) = metrics::shutdown_metrics(provider) {
+                tracing::warn!("Error shutting down metrics: {}", e);
+            }
         }
     }
-    
+
     if config.logs.enabled {
         if let Some(provider) = log_provider {
-            let _ = logs::shutdown_logs(provider);
+            if let Err(e) = logs::shutdown_logs(provider) {
+                tracing::warn!("Error shutting down logs: {}", e);
+            }
         }
     }
 }
@@ -77,12 +85,12 @@ pub fn shutdown_telemetry(config: TelemetryConfig, meter_provider: Option<SdkMet
 pub fn build_resource(service_name: String, attributes: Vec<KeyValue>) -> Resource {
     let mut resource_builder = Resource::builder()
         .with_service_name(service_name);
-    
+
     // Add all global labels to the resource
     for attribute in attributes {
         resource_builder = resource_builder.with_attribute(attribute);
     }
-    
+
     resource_builder.build()
 }
 

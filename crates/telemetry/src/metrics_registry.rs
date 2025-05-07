@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use opentelemetry::{global, metrics::{Gauge, Meter}, KeyValue};
-use std::sync::Mutex;
+use parking_lot::Mutex;
 use tracing::info;
 
 use crate::telemetry::build_attributes;
@@ -29,22 +29,22 @@ impl PrismMetrics {
     pub fn new() -> Self {
         info!("Initializing Prism metrics registry");
         let meter = global::meter("prism");
-        
+
         let start_height = meter
             .u64_gauge("prism_start_height")
             .with_description("Celestia start height")
             .build();
-            
+
         let celestia_synced_height = meter
             .u64_gauge("prism_celestia_synced_height")
             .with_description("Celestia synced height")
             .build();
-            
+
         let current_epoch = meter
             .u64_gauge("prism_current_epoch")
             .with_description("Celestia current epoch")
             .build();
-        
+
         PrismMetrics {
             meter,
             start_height,
@@ -52,17 +52,17 @@ impl PrismMetrics {
             current_epoch,
         }
     }
-    
+
     // Helper method to record start height
     pub fn record_start_height(&self, height: u64, attributes: Vec<KeyValue>    ) {
         self.start_height.record(height, build_attributes(attributes).as_slice());
     }
-    
+
     // Helper method to record Celestia synced height
     pub fn record_celestia_synced_height(&self, height: u64, attributes: Vec<KeyValue>) {
         self.celestia_synced_height.record(height, build_attributes(attributes).as_slice());
     }
-    
+
     // Helper method to record current epoch
     pub fn record_current_epoch(&self, epoch: u64, attributes: Vec<KeyValue>) {
         self.current_epoch.record(epoch, build_attributes(attributes).as_slice());
@@ -76,23 +76,14 @@ lazy_static! {
 
 // Initialize the global metrics instance
 pub fn init_metrics_registry() {
-    if let Ok(mut metrics) = METRICS.lock() {
-        if metrics.is_none() {
-            *metrics = Some(PrismMetrics::new());
-            info!("Prism metrics registry initialized");
-        }
-    } else {
-        tracing::error!("Failed to acquire lock for initializing metrics registry");
+    let mut metrics = METRICS.lock();
+    if metrics.is_none() {
+        *metrics = Some(PrismMetrics::new());
+        info!("Prism metrics registry initialized");
     }
 }
 
 // Get a reference to the metrics registry
 pub fn get_metrics() -> Option<PrismMetrics> {
-    match METRICS.lock() {
-        Ok(metrics) => metrics.clone(),
-        Err(_) => {
-            tracing::error!("Failed to acquire lock for reading metrics registry");
-            None
-        }
-    }
+    METRICS.lock().clone()
 }
