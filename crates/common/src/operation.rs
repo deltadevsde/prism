@@ -83,19 +83,6 @@ pub enum Operation {
     },
 }
 
-impl Operation {
-    pub fn get_type(&self) -> &str {
-        match self {
-            Operation::CreateAccount { .. } => "create_account",
-            Operation::RegisterService { .. } => "register_service",
-            Operation::AddData { .. } => "add_data",
-            Operation::SetData { .. } => "set_data",
-            Operation::AddKey { .. } => "add_key",
-            Operation::RevokeKey { .. } => "revoke_key",
-        }
-    }
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
 /// Represents a signature and the key to verify it.
 pub struct SignatureBundle {

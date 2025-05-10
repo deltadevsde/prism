@@ -34,12 +34,7 @@ async fn main() -> std::io::Result<()> {
     let config = load_config(args.clone()).map_err(|e| Error::other(e.to_string()))?;
 
     // Extract and clone all fields that will be moved
-    let telemetry_config = match config.telemetry.clone() {
-        Some(cfg) => cfg,
-        None => {
-            return Err(Error::new(ErrorKind::InvalidInput, "Missing telemetry configuration"));
-        }
-    };
+    let telemetry_config = config.telemetry.clone().unwrap();
     let keystore_type = config.keystore_type.clone();
     let keystore_path = config.keystore_path.clone();
     let webserver_config = config.webserver.clone();
@@ -76,17 +71,15 @@ async fn main() -> std::io::Result<()> {
         );
     }
 
-    let celestia_config = config.network.celestia_config.clone().unwrap_or_default();
-    let start_height = celestia_config.start_height;
+    let start_height = config.network.celestia_config.clone().unwrap_or_default().start_height;
 
     // Use the metrics registry to record metrics
     if let Some(metrics) = get_metrics() {
         metrics.record_node_info(
             vec![
-                ("version".to_string(), env!("CARGO_PKG_VERSION").to_string()),
-                ("operation_namespace_id".to_string(), celestia_config.operation_namespace_id.to_string()),
-                ("snark_namespace_id".to_string(), celestia_config.snark_namespace_id.to_string()),
-                ("start_height".to_string(), start_height.to_string()),
+                KeyValue::new("operation_namespace_id".to_string(), config.network.celestia_config.clone().unwrap_or_default().operation_namespace_id.to_string()),
+                KeyValue::new("snark_namespace_id".to_string(), config.network.celestia_config.clone().unwrap_or_default().snark_namespace_id.to_string()),
+                KeyValue::new("start_height".to_string(), start_height.to_string()),
             ]
         );
     }

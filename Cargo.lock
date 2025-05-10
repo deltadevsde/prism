@@ -6869,7 +6869,6 @@ dependencies = [
  "prism-errors",
  "prism-keys",
  "prism-serde",
- "prism-telemetry",
  "serde",
  "sha2 0.10.8",
  "tracing",

@@ -48,24 +48,16 @@ where
         for transaction in transactions {
             match self.process_transaction(transaction.clone()) {
                 Ok(proof) => {
-                    if let Operation::CreateAccount { service_id, .. } = &transaction.operation {
-                        services.insert(service_id.clone());
+                    if let Operation::CreateAccount { service_id, .. } = transaction.operation {
+                        services.insert(service_id);
                     }
-                    proofs.push(proof);
-                    prism_telemetry::metrics_registry::record_processed_transaction_metric(
-                        transaction.operation.get_type(),
-                        "success"
-                    );
+                    proofs.push(proof)
                 }
                 Err(e) => {
                     // Log the error and continue with the next transaction
                     warn!(
                         "Failed to process transaction: {:?}. Error: {}",
                         transaction, e
-                    );
-                    prism_telemetry::metrics_registry::record_processed_transaction_metric(
-                        transaction.operation.get_type(),
-                        "error"
                     );
                 }
             }

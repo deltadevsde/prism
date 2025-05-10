@@ -102,7 +102,7 @@ pub fn set_global_attributes(attributes: Vec<KeyValue>) {
     }
 }
 
-pub fn build_attributes(attributes: Vec<(String, String)>) -> Vec<KeyValue> {
+pub fn build_attributes(attributes: Vec<KeyValue>) -> Vec<KeyValue> {
     let mut new_attrs = match GLOBAL_ATTRIBUTES.lock() {
         Ok(global_attrs) => global_attrs.clone(),
         Err(_) => {
@@ -110,6 +110,6 @@ pub fn build_attributes(attributes: Vec<(String, String)>) -> Vec<KeyValue> {
             Vec::new()
         }
     };
-    new_attrs.extend(attributes.into_iter().map(|(k, v)| KeyValue::new(k, v)));
+    new_attrs.extend(attributes);
     new_attrs
 }

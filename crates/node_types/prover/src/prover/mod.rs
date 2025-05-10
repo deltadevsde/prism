@@ -28,7 +28,6 @@ use tokio::{
     sync::{RwLock, broadcast},
     task::JoinSet,
 };
-use prism_telemetry::metrics_registry::record_last_epoch_produced_time_metric;
 
 use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
@@ -409,22 +408,12 @@ impl Prover {
 
         for transaction in transactions {
             match self.process_transaction(transaction.clone()).await {
-                Ok(proof) => {
-                    proofs.push(proof);
-                    prism_telemetry::metrics_registry::record_processed_transaction_metric(
-                        transaction.operation.get_type(),
-                        "success"
-                    );
-                },
+                Ok(proof) => proofs.push(proof),
                 Err(e) => {
                     // Log the error and continue with the next transaction
                     warn!(
                         "Failed to process transaction: {:?}. Error: {}",
                         transaction, e
-                    );
-                    prism_telemetry::metrics_registry::record_processed_transaction_metric(
-                        transaction.operation.get_type(),
-                        "error"
                     );
                 }
             }
@@ -451,8 +440,6 @@ impl Prover {
         self.db.set_epoch(&new_epoch_height)?;
 
         info!("finalized new epoch at height {}", epoch_height);
-
-        record_last_epoch_produced_time_metric(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as u64);
 
         Ok(())
     }
@@ -660,11 +647,7 @@ impl Prover {
         };
 
         let mut pending = self.pending_transactions.write().await;
-        let transaction_for_metrics = transaction.clone();
         pending.push(transaction);
-        prism_telemetry::metrics_registry::record_pending_transaction_metric(
-            transaction_for_metrics.operation.get_type()
-        );
         Ok(())
     }
 }
