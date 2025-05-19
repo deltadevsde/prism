@@ -38,14 +38,6 @@ fn create_mock_transactions(algorithm: CryptoAlgorithm, service_id: String) -> V
 
 async fn test_posts_epoch_after_max_gap(algorithm: CryptoAlgorithm) {
     let prover = create_test_prover(algorithm).await;
-    let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
-    let da_layer = Arc::new(da_layer);
-    let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config {
-        max_epochless_gap: 5,
-        ..Config::default_with_key_algorithm(algorithm).unwrap()
-    };
-    Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap());
 
     let prover_handle = prover.clone();
     spawn(async move {
