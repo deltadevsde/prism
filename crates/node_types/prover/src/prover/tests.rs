@@ -230,15 +230,15 @@ async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
         }
     }
 
-    assert_eq!(prover.clone().db.get_epoch_height().unwrap(), 4);
+    assert_eq!(prover.clone().db.get_latest_epoch_height().unwrap(), 3);
 
     let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), &cfg).unwrap());
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
 
     loop {
-        let epoch = prover2.clone().db.get_epoch_height().unwrap();
-        if epoch == 4 {
+        let epoch = prover2.clone().db.get_latest_epoch_height();
+        if epoch.is_ok() && epoch.unwrap() == 3 {
             assert_eq!(
                 prover.get_commitment().await.unwrap(),
                 prover2.get_commitment().await.unwrap()
@@ -272,13 +272,13 @@ async fn test_load_persisted_state(algorithm: CryptoAlgorithm) {
         }
     }
 
-    assert_eq!(prover.clone().db.get_epoch_height().unwrap(), 4);
+    assert_eq!(prover.clone().db.get_latest_epoch_height().unwrap(), 3);
 
     let prover2 = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
-    let epoch = prover2.clone().db.get_epoch_height().unwrap();
-    assert_eq!(epoch, 4);
+    let epoch = prover2.clone().db.get_latest_epoch_height().unwrap();
+    assert_eq!(epoch, 3);
     assert_eq!(
         prover.get_commitment().await.unwrap(),
         prover2.get_commitment().await.unwrap()

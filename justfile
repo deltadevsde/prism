@@ -75,7 +75,7 @@ integration-test:
 
     export RUST_LOG="DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off"
 
-    SP1_PROVER=mock RUST_LOG=$RUST_LOG cargo test -p prism-tests --lib --release --features mock_prover
+    SP1_PROVER=mock RUST_LOG=$RUST_LOG cargo test -p prism-tests --lib --release
 
     just celestia-down
   done
@@ -88,7 +88,7 @@ check:
 
 build:
   @echo "Building the project..."
-  cargo build --release 
+  cargo build --release
 
   @echo "Building SP1 base binary..."
   cd crates/zk/sp1 && cargo prove build --bin base_prover --output-directory ../../../elf/ --elf-name base-riscv32im-succinct-zkvm-elf
