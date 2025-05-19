@@ -39,10 +39,6 @@ pub enum Commands {
 
 #[derive(Args, Deserialize, Clone, Debug)]
 pub struct CommandArgs {
-    /// Log level
-    #[arg(short, long, default_value = "INFO")]
-    log_level: String,
-
     #[arg(short = 'n', long, default_value = "local")]
     network_name: Option<String>,
 
