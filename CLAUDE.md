@@ -4,7 +4,7 @@
 - Build: `just build`
 - Lint & Check: `just check` (runs cargo udeps and clippy)
 - Unit tests: `just unit-test`
-- Run single test: `cargo test --lib --release --features "mock_prover" -- test_name`
+- Run single test: `SP1_PROVER=mock cargo test --lib --release -- test_name`
 - Integration tests: `just integration-test`
 - Generate coverage: `just coverage`
 - Install dependencies: `just install-deps`

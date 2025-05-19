@@ -32,11 +32,11 @@ use tokio::{
 use crate::webserver::{WebServer, WebServerConfig};
 use prism_common::operation::Operation;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
+use prism_telemetry_registry::metrics_registry::get_metrics;
 use sp1_sdk::{
     EnvProver, HashableKey as _, ProverClient, SP1Proof, SP1ProofWithPublicValues, SP1ProvingKey,
     SP1Stdin, SP1VerifyingKey,
 };
-use prism_telemetry_registry::metrics_registry::get_metrics;
 
 pub const BASE_PRISM_ELF: &[u8] =
     include_bytes!("../../../../../elf/base-riscv32im-succinct-zkvm-elf");
@@ -66,6 +66,8 @@ pub struct Config {
 
     /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,
+
+    pub recursive_proofs: bool,
 }
 
 impl Default for Config {
@@ -79,6 +81,7 @@ impl Default for Config {
             signing_key: signing_key.clone(),
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
+            recursive_proofs: false,
         }
     }
 }
@@ -103,6 +106,7 @@ impl Config {
             signing_key: signing_key.clone(),
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
+            recursive_proofs: false,
         })
     }
 }
@@ -137,11 +141,10 @@ impl Prover {
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: &Config,
     ) -> Result<Prover> {
-        let saved_epoch = match db.get_epoch() {
-            Ok(epoch) => epoch,
+        let saved_epoch = match db.get_latest_epoch_height() {
+            Ok(height) => height + 1,
             Err(_) => {
-                debug!("no existing epoch state found, setting epoch to 0");
-                db.set_epoch(&0)?;
+                debug!("no existing epoch state found, starting at epoch 0");
                 0
             }
         };
@@ -223,13 +226,6 @@ impl Prover {
         end_height: u64,
         mut incoming_heights: broadcast::Receiver<u64>,
     ) -> Result<()> {
-        let saved_epoch = self.db.get_epoch()?;
-
-        if saved_epoch == 0 {
-            let initial_commitment = self.get_commitment_from_tree().await?;
-            self.db.set_commitment(&0, &initial_commitment)?;
-        }
-
         // TODO: Should be persisted in database for crash recovery
         let mut buffered_transactions: VecDeque<Transaction> = VecDeque::new();
         let mut current_height = start_height;
@@ -268,16 +264,19 @@ impl Prover {
         buffered_transactions: &mut VecDeque<Transaction>,
         is_real_time: bool,
     ) -> Result<()> {
-        let current_epoch = self.db.get_epoch()?;
+        let next_epoch_height = match self.db.get_latest_epoch_height() {
+            Ok(height) => height + 1,
+            Err(_) => 0,
+        };
 
         let transactions = self.da.get_transactions(height).await?;
         let epoch_result = self.da.get_finalized_epoch(height).await?;
 
         debug!(
-            "processing {} height {}, current_epoch: {}",
+            "processing {} height {}, next_epoch_height: {}",
             if is_real_time { "new" } else { "old" },
             height,
-            current_epoch
+            next_epoch_height
         );
 
         if let Some(epoch) = epoch_result {
@@ -289,7 +288,7 @@ impl Prover {
 
         if is_real_time && !buffered_transactions.is_empty() && self.cfg.prover {
             let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
-            self.finalize_new_epoch(current_epoch, all_transactions).await?;
+            self.finalize_new_epoch(next_epoch_height, all_transactions).await?;
         }
 
         // If there are new transactions at this height, add them to the queue to
@@ -300,7 +299,7 @@ impl Prover {
 
         if let Some(metrics) = get_metrics() {
             metrics.record_celestia_synced_height(height, vec![]);
-            metrics.record_current_epoch(current_epoch, vec![]);
+            metrics.record_current_epoch(next_epoch_height, vec![]);
         }
 
         Ok(())
@@ -311,7 +310,10 @@ impl Prover {
         epoch: FinalizedEpoch,
         buffered_transactions: &mut VecDeque<Transaction>,
     ) -> Result<()> {
-        let mut current_epoch = self.db.get_epoch()?;
+        let current_epoch = match self.db.get_latest_epoch_height() {
+            Ok(height) => height + 1,
+            Err(_) => 0,
+        };
 
         // If prover is enabled and is actively producing new epochs, it has
         // likely already ran all of the transactions in the found epoch, so no
@@ -327,7 +329,11 @@ impl Prover {
             .with_context(|| format!("Invalid signature in epoch {}", epoch.height))?;
         trace!("valid signature for epoch {}", epoch.height);
 
-        let prev_commitment = self.db.get_commitment(&current_epoch)?;
+        let prev_commitment = if epoch.height == 0 {
+            self.get_commitment_from_tree().await?
+        } else {
+            self.db.get_epoch(&epoch.height.saturating_sub(1))?.current_commitment
+        };
 
         if epoch.height != current_epoch {
             return Err(anyhow!(
@@ -358,13 +364,13 @@ impl Prover {
         }
 
         // distinguish between base and recursive proofs for client and verifying key
-        let client = if epoch.height == 0 {
+        let client = if epoch.height == 0 || !self.cfg.recursive_proofs {
             self.base_prover_client.read().await
         } else {
             self.recursive_prover_client.read().await
         };
 
-        let verifying_key = if epoch.height == 0 {
+        let verifying_key = if epoch.height == 0 || !self.cfg.recursive_proofs {
             &self.base_verifying_key
         } else {
             &self.recursive_verifying_key
@@ -386,9 +392,7 @@ impl Prover {
             current_epoch, new_commitment
         );
 
-        current_epoch += 1;
-        self.db.set_commitment(&current_epoch, &new_commitment)?;
-        self.db.set_epoch(&current_epoch)?;
+        self.db.add_epoch(&epoch)?;
 
         Ok(())
     }
@@ -427,11 +431,10 @@ impl Prover {
 
         let finalized_epoch = self.prove_epoch(epoch_height, &batch).await?;
 
-        self.da.submit_finalized_epoch(finalized_epoch).await?;
+        self.da.submit_finalized_epoch(finalized_epoch.clone()).await?;
 
-        let new_epoch_height = epoch_height + 1;
-        self.db.set_commitment(&new_epoch_height, &batch.new_root)?;
-        self.db.set_epoch(&new_epoch_height)?;
+        // only save the epoch locally if it was successfully submitted
+        self.db.add_epoch(&finalized_epoch)?;
 
         info!("finalized new epoch at height {}", epoch_height);
 
@@ -479,12 +482,15 @@ impl Prover {
         tokio::sync::RwLockReadGuard<'_, EnvProver>,
         &SP1VerifyingKey,
     )> {
-        let prev_epoch = self.da.get_finalized_epoch(epoch_height - 1).await?.ok_or_else(|| {
-            anyhow!(
-                "Previous epoch not found for recursive verification at height {}",
-                epoch_height
-            )
-        })?;
+        let prev_epoch = match self.db.get_latest_epoch() {
+            Ok(epoch) => epoch,
+            Err(_) => {
+                return Err(anyhow!(
+                    "Previous epoch not found for recursive verification at height {}",
+                    epoch_height - 1
+                ));
+            }
+        };
 
         let vk_to_use = if prev_epoch.height == 0 {
             self.base_verifying_key.clone()
@@ -530,12 +536,12 @@ impl Prover {
     }
 
     async fn prove_epoch(&self, epoch_height: u64, batch: &Batch) -> Result<FinalizedEpoch> {
-        // we use the base prover for the first epoch and always for mock prover because recursive verification is not really supported at the moment
-        let (proof, compressed_proof, client, verifying_key) = if epoch_height == 0 {
-            self.prove_with_base_prover(epoch_height, batch).await?
-        } else {
-            self.prove_with_recursive_prover(epoch_height, batch).await?
-        };
+        let (proof, compressed_proof, client, verifying_key) =
+            if epoch_height == 0 || !self.cfg.recursive_proofs {
+                self.prove_with_base_prover(epoch_height, batch).await?
+            } else {
+                self.prove_with_recursive_prover(epoch_height, batch).await?
+            };
 
         client.verify(&proof, verifying_key)?;
         info!("verified proof for epoch {}", epoch_height);
