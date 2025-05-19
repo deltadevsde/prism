@@ -189,10 +189,14 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
         .build()
         .context("Failed to build config")?;
 
+    info!("Config file contents: {:?}", config_source);
+
     let loaded_config: Config =
         config_source.try_deserialize().context("Failed to deserialize config file")?;
 
     let final_config = apply_command_line_args(loaded_config, args);
+
+    info!("Final config: {:?}", final_config);
 
     if final_config.network.verifying_key.is_none() {
         warn!(
@@ -236,28 +240,40 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
     let network_config = &config.network.network.config();
     let prism_home = get_prism_home(&args.clone()).unwrap();
 
-    let default_celestia_config = config.network.celestia_config.unwrap_or_default();
+    let default_celestia_config = CelestiaConfig::default();
     let celestia_config = match config.da_layer {
-        DALayerOption::Celestia => Some(CelestiaConfig {
-            connection_string: args
-                .celestia
-                .celestia_client
-                .unwrap_or(default_celestia_config.connection_string),
-            start_height: args
-                .celestia
-                .celestia_start_height
-                .unwrap_or(default_celestia_config.start_height),
-            snark_namespace_id: args
-                .celestia
-                .snark_namespace_id
-                .unwrap_or(default_celestia_config.snark_namespace_id),
-            operation_namespace_id: args
-                .celestia
-                .operation_namespace_id
-                .unwrap_or(default_celestia_config.operation_namespace_id),
-            pruning_delay: default_celestia_config.pruning_delay,
-            sampling_window: default_celestia_config.sampling_window,
-        }),
+        DALayerOption::Celestia => {
+            let existing_config = config.network.celestia_config.clone().unwrap_or_default();
+
+            Some(CelestiaConfig {
+                connection_string: args
+                    .celestia
+                    .celestia_client
+                    .or_else(|| Some(existing_config.connection_string))
+                    .unwrap_or(default_celestia_config.connection_string),
+
+                start_height: args
+                    .celestia
+                    .celestia_start_height
+                    .or_else(|| Some(existing_config.start_height))
+                    .unwrap_or(default_celestia_config.start_height),
+
+                snark_namespace_id: args
+                    .celestia
+                    .snark_namespace_id
+                    .or_else(|| Some(existing_config.snark_namespace_id))
+                    .unwrap_or(default_celestia_config.snark_namespace_id),
+
+                operation_namespace_id: args
+                    .celestia
+                    .operation_namespace_id
+                    .or_else(|| Some(existing_config.operation_namespace_id))
+                    .unwrap_or(default_celestia_config.operation_namespace_id),
+
+                pruning_delay: existing_config.pruning_delay,
+                sampling_window: existing_config.sampling_window,
+            })
+        }
         DALayerOption::InMemory => None,
     };
 
@@ -359,6 +375,8 @@ pub async fn initialize_light_da_layer(
 ) -> Result<Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>> {
     match config.da_layer {
         DALayerOption::Celestia => {
+            info!("Initializing light client connection...");
+            info!("Network config: {:?}", config.network);
             let connection = match LightClientConnection::new(&config.network).await {
                 Ok(conn) => conn,
                 Err(e) => {
