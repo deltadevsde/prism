@@ -2,7 +2,7 @@
 use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::Result;
 use async_trait::async_trait;
-use log::debug;
+use tracing::debug;
 use lumina_node::events::EventSubscriber;
 use prism_common::transaction::Transaction;
 use std::{collections::VecDeque, sync::Arc};

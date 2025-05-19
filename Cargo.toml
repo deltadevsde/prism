@@ -29,6 +29,7 @@ default-members = [
   "crates/serde",
   "crates/keys",
   "crates/tree",
+  "crates/telemetry",
 ]
 
 members = [
@@ -47,6 +48,7 @@ members = [
   "crates/serde",
   "crates/keys",
   "crates/tree",
+  "crates/telemetry",
 ]
 resolver = "2"
 
@@ -88,7 +90,6 @@ anyhow = "1.0.44"
 
 # cli
 keystore-rs = "0.3.1"
-log = "0.4"
 pretty_env_logger = "0.5.0"
 clap = { version = "4.3.2", features = ["derive"] }
 config = "0.14.0"
@@ -148,11 +149,13 @@ prism-keys = { path = "crates/keys" }
 prism-serde = { path = "crates/serde" }
 prism-tree = { path = "crates/tree" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
+prism-telemetry-registry = { path = "crates/telemetry" }
 
 # testing
 mockall = "0.13.1"
 
 # wasm
+log = "0.4"
 lumina-node-wasm = { git = "https://github.com/deltadevsde/lumina.git" }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
@@ -160,6 +163,13 @@ web-sys = "0.3"
 serde-wasm-bindgen = "0.6.5"
 wasm-bindgen-futures = "0.4"
 web-time = "1.1.0"
+
+# telemetry
+prism-telemetry = "0.1.0"
+opentelemetry = "0.29.1"
+tracing = { version = "0.1.41", features = ["std"] }
+parking_lot = "0.12.3"
+lazy_static = "1.4.0"
 
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.8-sp1-4.0.0" }

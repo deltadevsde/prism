@@ -3,7 +3,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use config::{ConfigBuilder, File, builder::DefaultState};
 use dirs::home_dir;
 use dotenvy::dotenv;
-use log::{error, warn};
+use tracing::{warn, error};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
 use prism_prover::webserver::WebServerConfig;
@@ -15,6 +15,7 @@ use prism_storage::{
     redis::RedisConfig,
     rocksdb::{RocksDBConfig, RocksDBConnection},
 };
+use prism_telemetry::config::{get_default_telemetry_config, TelemetryConfig};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc};
 
@@ -38,10 +39,6 @@ pub enum Commands {
 
 #[derive(Args, Deserialize, Clone, Debug)]
 pub struct CommandArgs {
-    /// Log level
-    #[arg(short, long, default_value = "INFO")]
-    log_level: String,
-
     #[arg(short = 'n', long, default_value = "local")]
     network_name: Option<String>,
 
@@ -125,6 +122,7 @@ pub struct Config {
     pub keystore_path: Option<String>,
     pub da_layer: DALayerOption,
     pub db: StorageBackend,
+    pub telemetry: Option<TelemetryConfig>,
 }
 
 impl Config {
@@ -136,6 +134,7 @@ impl Config {
             network: Network::from_str(network_name).unwrap().config(),
             da_layer: DALayerOption::default(),
             db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
+            telemetry: Some(get_default_telemetry_config()),
         }
     }
 }
@@ -172,7 +171,6 @@ pub struct DatabaseArgs {
 
 pub fn load_config(args: CommandArgs) -> Result<Config> {
     dotenv().ok();
-    set_up_logging(&args.log_level);
 
     let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
 
@@ -203,12 +201,6 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
     }
 
     Ok(final_config)
-}
-
-fn set_up_logging(log_level: &str) {
-    let mut builder = pretty_env_logger::formatted_builder();
-    builder.parse_filters(log_level);
-    builder.init();
 }
 
 fn get_prism_home(args: &CommandArgs) -> Result<String> {
@@ -296,6 +288,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         keystore_type: args.keystore_type.or(config.keystore_type),
         keystore_path: args.keystore_path.or(config.keystore_path),
         da_layer: config.da_layer,
+        telemetry: config.telemetry,
     }
 }
 

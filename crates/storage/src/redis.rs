@@ -21,7 +21,7 @@ use std::{
 use prism_errors::DatabaseError;
 
 use crate::database::{convert_to_connection_error, Database};
-use log::debug;
+use tracing::debug;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct RedisConfig {
