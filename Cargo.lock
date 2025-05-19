@@ -6932,6 +6932,8 @@ dependencies = [
 [[package]]
 name = "prism-telemetry"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bce38fb0b583981c1b4a509b229b6b0fe18717c99c68f0550fe5441394501ca5"
 dependencies = [
  "base64 0.22.1",
  "lazy_static",
