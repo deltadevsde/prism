@@ -165,8 +165,9 @@ wasm-bindgen-futures = "0.4"
 web-time = "1.1.0"
 
 # telemetry
-prism-telemetry = "0.1.0"
+prism-telemetry = "0.2.0"
 opentelemetry = "0.29.1"
+opentelemetry_sdk = "0.29.0"
 tracing = { version = "0.1.41", features = ["std"] }
 parking_lot = "0.12.3"
 lazy_static = "1.4.0"

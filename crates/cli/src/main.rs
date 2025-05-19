@@ -6,12 +6,11 @@ use cfg::{
 };
 use clap::Parser;
 use keystore_rs::{FileStore, KeyChain, KeyStore};
-use opentelemetry::{global::{self}, KeyValue};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
-use prism_telemetry_registry::metrics_registry::{init_metrics_registry, get_metrics};
-use prism_telemetry::telemetry::{self, build_resource, init_telemetry, set_global_attributes};
-use prism_telemetry::logs::setup_log_subscriber;
+use prism_telemetry_registry::metrics_registry::get_metrics;
+use prism_telemetry_registry::init::init;
+use prism_telemetry::telemetry::shutdown_telemetry;
 
 use std::io::{Error, ErrorKind};
 
@@ -50,31 +49,14 @@ async fn main() -> std::io::Result<()> {
         Commands::FullNode(_) => "fullnode".to_string(),
     };
 
-    let mut attributes: Vec<KeyValue> = Vec::new();
-    attributes.extend(telemetry_config.global_labels.labels.clone().into_iter().map(|(k, v)| KeyValue::new(k, v)));
-    attributes.push(KeyValue::new("network".to_string(), config.network.network.to_string()));
-    attributes.push(KeyValue::new("node_type".to_string(), node_type));
-
-    set_global_attributes(attributes.clone());
-
-    let resource = build_resource("prism".to_string(), attributes);
-
-    let (meter_provider, log_provider) = init_telemetry(&telemetry_config, resource).map_err(|e| Error::other(e.to_string()))?;
-
-    if let Some(ref provider) = meter_provider {
-        global::set_meter_provider(provider.clone());
-
-        // Initialize the metrics registry after setting the global meter provider
-        init_metrics_registry();
-    }
-
-    if let Some(ref provider) = log_provider {
-        // Initialize tracing subscriber
-        setup_log_subscriber(
-            telemetry_config.logs.enabled,
-            Some(provider)
-        );
-    }
+    let attributes: Vec<(String, String)> = vec![
+        ("network".to_string(), config.network.network.to_string()),
+        ("node_type".to_string(), node_type.clone()),
+    ];
+    let (meter_provider, log_provider) = init(
+        telemetry_config.clone(),
+        attributes,
+    )?;
 
     let celestia_config = config.network.celestia_config.clone().unwrap_or_default();
     let start_height = celestia_config.start_height;
@@ -180,7 +162,7 @@ async fn main() -> std::io::Result<()> {
 
     let result = node.start().await.map_err(|e| Error::other(e.to_string()));
 
-    telemetry::shutdown_telemetry(telemetry_config, meter_provider, log_provider);
+    shutdown_telemetry(telemetry_config, meter_provider, log_provider);
 
     result
 }
