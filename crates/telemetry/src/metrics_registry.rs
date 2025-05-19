@@ -4,7 +4,7 @@ use parking_lot::Mutex;
 use tracing::info;
 use std::sync::Arc;
 
-use crate::telemetry::build_attributes;
+use prism_telemetry::telemetry::build_attributes;
 
 // Struct to hold all metrics
 #[derive(Clone)]

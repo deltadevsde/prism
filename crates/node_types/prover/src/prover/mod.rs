@@ -36,6 +36,7 @@ use sp1_sdk::{
     CpuProver, HashableKey as _, Prover as _, ProverClient, SP1Proof, SP1ProofWithPublicValues,
     SP1ProvingKey, SP1Stdin, SP1VerifyingKey,
 };
+use prism_telemetry_registry::metrics_registry::get_metrics;
 
 pub const BASE_PRISM_ELF: &[u8] =
     include_bytes!("../../../../../elf/base-riscv32im-succinct-zkvm-elf");
@@ -304,7 +305,7 @@ impl Prover {
             buffered_transactions.extend(transactions);
         }
 
-        if let Some(metrics) = prism_telemetry::metrics_registry::get_metrics() {
+        if let Some(metrics) = get_metrics() {
             metrics.record_celestia_synced_height(height, vec![]);
             metrics.record_current_epoch(current_epoch, vec![]);
         }

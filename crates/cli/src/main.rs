@@ -9,8 +9,8 @@ use keystore_rs::{FileStore, KeyChain, KeyStore};
 use opentelemetry::{global::{self}, KeyValue};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
+use prism_telemetry_registry::metrics_registry::{init_metrics_registry, get_metrics};
 use prism_telemetry::telemetry::{self, build_resource, init_telemetry, set_global_attributes};
-use prism_telemetry::metrics_registry::{init_metrics_registry, get_metrics};
 use prism_telemetry::logs::setup_log_subscriber;
 
 use std::io::{Error, ErrorKind};

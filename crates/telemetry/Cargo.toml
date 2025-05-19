@@ -1,5 +1,5 @@
 [package]
-name = "prism-telemetry"
+name = "prism-telemetry-registry"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -7,15 +7,8 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+prism-telemetry = { workspace = true }
 opentelemetry = { workspace = true }
-opentelemetry_sdk = { workspace = true }
-opentelemetry-otlp = { workspace = true }
-opentelemetry-appender-tracing = { workspace = true }
-base64 = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-lazy_static = "1.4.0"
-parking_lot = "0.12"
-
-tokio = { workspace = true, features = ["full"] }
-tracing = { workspace = true, features = ["std"] }
-tracing-subscriber = { workspace = true, features = ["env-filter", "registry", "std", "fmt"] }
+tracing = { workspace = true }
+parking_lot = { workspace = true }
+lazy_static = { workspace = true }
