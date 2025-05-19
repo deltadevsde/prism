@@ -9,6 +9,24 @@ use prism_telemetry::telemetry::{init_telemetry, build_resource, set_global_attr
 use prism_telemetry::logs::setup_log_subscriber;
 use prism_telemetry::config::TelemetryConfig;
 
+/// Initializes the telemetry system with metrics and logging providers.
+///
+/// Merges the provided attributes with global labels from the telemetry configuration, sets them as global attributes, and builds a resource descriptor. Initializes telemetry using the configuration and resource, sets up the global meter provider and metrics registry if available, and configures the log subscriber if a logger provider is present.
+///
+/// # Parameters
+/// - `attributes`: Initial global attribute key-value pairs to be merged with configuration labels.
+///
+/// # Returns
+/// A tuple containing optional meter and logger providers on success, or an I/O error if initialization fails.
+///
+/// # Examples
+///
+/// ```
+/// let config = TelemetryConfig::default();
+/// let attrs = vec![("env".to_string(), "production".to_string())];
+/// let result = init(config, attrs);
+/// assert!(result.is_ok());
+/// ```
 pub fn init(telemetry_config: TelemetryConfig, attributes: Vec<(String, String)>) -> Result<(Option<SdkMeterProvider>, Option<SdkLoggerProvider>), Error> {
     // Initialize the telemetry system
 
