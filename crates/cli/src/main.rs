@@ -113,6 +113,8 @@ async fn main() -> std::io::Result<()> {
                 verifying_key.to_bytes().to_base64()
             );
 
+            // When SP1_PROVER is set to mock, disable recursive proofs
+            let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
             let prover_cfg = prism_prover::Config {
                 prover: true,
                 batcher: true,
@@ -121,6 +123,7 @@ async fn main() -> std::io::Result<()> {
                 verifying_key,
                 start_height,
                 max_epochless_gap: config.max_epochless_gap,
+                recursive_proofs,
             };
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
@@ -147,6 +150,8 @@ async fn main() -> std::io::Result<()> {
                     Error::new(ErrorKind::NotFound, "prover verifying key not found")
                 })?;
 
+            // When SP1_PROVER is set to mock, disable recursive proofs
+            let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
             let prover_cfg = prism_prover::Config {
                 prover: false,
                 batcher: true,
@@ -155,6 +160,7 @@ async fn main() -> std::io::Result<()> {
                 verifying_key,
                 start_height,
                 max_epochless_gap: config.max_epochless_gap,
+                recursive_proofs,
             };
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
