@@ -112,6 +112,7 @@ impl Config {
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
             recursive_proofs: false,
+            ..Config::default()
         })
     }
 }
