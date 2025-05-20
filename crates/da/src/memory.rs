@@ -85,11 +85,10 @@ impl InMemoryDataAvailabilityLayer {
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
         let blocks = self.blocks.read().await;
-        Ok(blocks
-            .iter()
-            .find(|block| block.height == height)
-            .map(|block| block.epoch.clone())
-            .unwrap_or_default())
+        match blocks.get(height.saturating_sub(1) as usize) {
+            Some(block) => Ok(block.epoch.clone()),
+            None => Ok(None),
+        }
     }
 
     fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
@@ -122,21 +121,22 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
         let mut pending_epochs = self.pending_epochs.write().await;
         pending_epochs.push_back(epoch);
-        self.get_latest_height().await
+        let height = self.get_latest_height().await?;
+        Ok(height + 1)
     }
 
     async fn get_transactions(&self, height: u64) -> Result<Vec<Transaction>> {
         let blocks = self.blocks.read().await;
-        Ok(blocks
-            .iter()
-            .find(|block| block.height == height)
-            .map(|block| block.transactions.clone())
-            .unwrap_or_default())
+        match blocks.get(height.saturating_sub(1) as usize) {
+            Some(block) => Ok(block.transactions.clone()),
+            None => Ok(vec![]),
+        }
     }
 
     async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<u64> {
         let mut pending_transactions = self.pending_transactions.write().await;
         pending_transactions.extend(transactions);
-        self.get_latest_height().await
+        let height = self.get_latest_height().await?;
+        Ok(height + 1)
     }
 }

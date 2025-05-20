@@ -12,7 +12,10 @@ async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
     let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
+    let cfg = Config {
+        max_epochless_gap: 5,
+        ..Config::default_with_key_algorithm(algorithm).unwrap()
+    };
     Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
 }
 
@@ -31,6 +34,78 @@ fn create_mock_transactions(algorithm: CryptoAlgorithm, service_id: String) -> V
             .add_random_key_verified_with_root(algorithm, "user1@example.com")
             .commit(),
     ]
+}
+
+async fn test_posts_epoch_after_max_gap(algorithm: CryptoAlgorithm) {
+    let prover = create_test_prover(algorithm).await;
+
+    let prover_handle = prover.clone();
+    spawn(async move {
+        prover_handle.run().await.unwrap();
+    });
+
+    let mut rx = prover.da.subscribe_to_heights();
+
+    // Wait for initial blocks to be produced
+    loop {
+        let height = rx.recv().await.unwrap();
+        if height >= 10 {
+            break;
+        }
+    }
+
+    // Ensure no gap proof has been created
+    assert!(prover.da.get_finalized_epoch(0).await.unwrap().is_none());
+
+    // Create and submit transactions
+    let test_transactions = create_mock_transactions(algorithm, "test_service".to_string());
+
+    // Verify commitment changes after epoch finalization
+    let commitment_before_epoch = prover.get_commitment().await.unwrap();
+    let initial_epoch_height = prover.finalize_new_epoch(0, test_transactions).await.unwrap();
+    let commitment_after_epoch = prover.get_commitment().await.unwrap();
+    assert_ne!(
+        commitment_before_epoch, commitment_after_epoch,
+        "Commitment should change after epoch finalization"
+    );
+
+    // Give some time for the initial epoch proof to be posted
+    loop {
+        let height = rx.recv().await.unwrap();
+        if height >= initial_epoch_height {
+            break;
+        }
+    }
+    let initial_epoch = prover.da.get_finalized_epoch(initial_epoch_height).await.unwrap().unwrap();
+
+    // Wait for gap length
+    loop {
+        let height = rx.recv().await.unwrap();
+        if height >= initial_epoch_height + 6 {
+            break;
+        }
+    }
+
+    let current_epoch_height = *prover.latest_epoch_da_height.read().await;
+
+    // Give some time for the gap proof to be posted
+    loop {
+        let height = rx.recv().await.unwrap();
+        if height >= current_epoch_height {
+            break;
+        }
+    }
+    // Verify gap proof contents
+    let gap_proof = prover.da.get_finalized_epoch(current_epoch_height).await.unwrap().unwrap();
+    assert_eq!(
+        gap_proof.height,
+        initial_epoch.height + 1,
+        "Gap proof should be at expected height"
+    );
+    assert_eq!(
+        gap_proof.current_commitment, commitment_after_epoch.commitment,
+        "Gap proof should contain the correct commitment"
+    );
 }
 
 async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
@@ -155,14 +230,14 @@ async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
         }
     }
 
-    assert_eq!(prover.clone().db.get_epoch().unwrap(), 4);
+    assert_eq!(prover.clone().db.get_epoch_height().unwrap(), 4);
 
     let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), &cfg).unwrap());
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
 
     loop {
-        let epoch = prover2.clone().db.get_epoch().unwrap();
+        let epoch = prover2.clone().db.get_epoch_height().unwrap();
         if epoch == 4 {
             assert_eq!(
                 prover.get_commitment().await.unwrap(),
@@ -197,12 +272,12 @@ async fn test_load_persisted_state(algorithm: CryptoAlgorithm) {
         }
     }
 
-    assert_eq!(prover.clone().db.get_epoch().unwrap(), 4);
+    assert_eq!(prover.clone().db.get_epoch_height().unwrap(), 4);
 
     let prover2 = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
-    let epoch = prover2.clone().db.get_epoch().unwrap();
+    let epoch = prover2.clone().db.get_epoch_height().unwrap();
     assert_eq!(epoch, 4);
     assert_eq!(
         prover.get_commitment().await.unwrap(),
@@ -238,3 +313,4 @@ generate_algorithm_tests!(test_execute_block);
 generate_algorithm_tests!(test_finalize_new_epoch);
 generate_algorithm_tests!(test_restart_sync_from_scratch);
 generate_algorithm_tests!(test_load_persisted_state);
+generate_algorithm_tests!(test_posts_epoch_after_max_gap);

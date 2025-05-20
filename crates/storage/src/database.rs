@@ -17,8 +17,8 @@ pub trait Database: Send + Sync + TreeReader + TreeWriter {
     fn get_commitment(&self, epoch: &u64) -> Result<Digest>;
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()>;
 
-    fn get_epoch(&self) -> Result<u64>;
-    fn set_epoch(&self, epoch: &u64) -> Result<()>;
+    fn get_epoch_height(&self) -> Result<u64>;
+    fn set_epoch_height(&self, epoch: &u64) -> Result<()>;
 
     fn get_last_synced_height(&self) -> Result<u64>;
     fn set_last_synced_height(&self, height: &u64) -> Result<()>;

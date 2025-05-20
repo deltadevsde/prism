@@ -5,7 +5,7 @@ use dirs::home_dir;
 use dotenvy::dotenv;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
-use prism_prover::webserver::WebServerConfig;
+use prism_prover::{prover::DEFAULT_MAX_EPOCHLESS_GAP, webserver::WebServerConfig};
 use prism_serde::base64::FromBase64;
 use prism_storage::{
     Database, RedisConnection,
@@ -123,6 +123,8 @@ pub struct Config {
     pub da_layer: DALayerOption,
     pub db: StorageBackend,
     pub telemetry: Option<TelemetryConfig>,
+    /// Maximum number of DA heights the prover will wait before posting a gapfiller proof
+    pub max_epochless_gap: u64,
 }
 
 impl Config {
@@ -135,6 +137,7 @@ impl Config {
             da_layer: DALayerOption::default(),
             db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
             telemetry: Some(get_default_telemetry_config()),
+            max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
         }
     }
 }
@@ -305,6 +308,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         keystore_path: args.keystore_path.or(config.keystore_path),
         da_layer: config.da_layer,
         telemetry: config.telemetry,
+        max_epochless_gap: config.max_epochless_gap,
     }
 }
 
