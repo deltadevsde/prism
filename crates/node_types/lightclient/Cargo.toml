@@ -13,12 +13,8 @@ test_utils = []
 mock_prover = []
 
 [dependencies]
-<<<<<<< HEAD
-tracing = { workspace = true }
-=======
 async-trait = { workspace = true }
-log = { workspace = true }
->>>>>>> 015314e (feat: uniffi lightclient)
+tracing = { workspace = true }
 anyhow = { workspace = true }
 prism-da = { workspace = true }
 sp1-verifier = { workspace = true }

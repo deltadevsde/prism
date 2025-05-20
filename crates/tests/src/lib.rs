@@ -68,7 +68,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let service_algorithm = random_algorithm(&mut rng);
 
     let bridge_da_layer = Arc::new(FullNodeCelestiaConn::new(&bridge_cfg, None).await.unwrap());
-    let lc_da_layer = Arc::new(LightClientCelestiaConn::new(&lc_cfg, None).await.unwrap());
+    let lc_da_layer = Arc::new(LightClientCelestiaConn::new(&lc_cfg).await.unwrap());
     let db = setup_db();
     let signing_key = SigningKey::new_with_algorithm(prover_algorithm)
         .map_err(|e| anyhow::anyhow!("Failed to generate signing key: {}", e))?;

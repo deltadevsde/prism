@@ -4,7 +4,6 @@ use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
-use log::{debug, trace};
 use lumina_node::{
     Node, NodeError,
     blockstore::InMemoryBlockstore,
