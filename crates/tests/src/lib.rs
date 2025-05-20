@@ -76,6 +76,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     let prover_cfg = prism_prover::Config {
         signing_key,
+        recursive_proofs: false,
         ..prism_prover::Config::default()
     };
 
