@@ -249,25 +249,25 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
                 connection_string: args
                     .celestia
                     .celestia_client
-                    .or_else(|| Some(existing_config.connection_string))
+                    .or(Some(existing_config.connection_string))
                     .unwrap_or(default_celestia_config.connection_string),
 
                 start_height: args
                     .celestia
                     .celestia_start_height
-                    .or_else(|| Some(existing_config.start_height))
+                    .or(Some(existing_config.start_height))
                     .unwrap_or(default_celestia_config.start_height),
 
                 snark_namespace_id: args
                     .celestia
                     .snark_namespace_id
-                    .or_else(|| Some(existing_config.snark_namespace_id))
+                    .or(Some(existing_config.snark_namespace_id))
                     .unwrap_or(default_celestia_config.snark_namespace_id),
 
                 operation_namespace_id: args
                     .celestia
                     .operation_namespace_id
-                    .or_else(|| Some(existing_config.operation_namespace_id))
+                    .or(Some(existing_config.operation_namespace_id))
                     .unwrap_or(default_celestia_config.operation_namespace_id),
 
                 pruning_delay: existing_config.pruning_delay,

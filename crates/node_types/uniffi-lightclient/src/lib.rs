@@ -2,7 +2,6 @@
 //!
 //! This crate uses Mozilla's UniFFI to generate Swift and Kotlin bindings for the Prism lightclient,
 //! allowing it to be used from iOS and Android applications.
-
 mod error;
 mod types;
 
@@ -46,10 +45,11 @@ impl LightClient {
         };
 
         // Initialize connection
-        let da =
-            LightClientConnection::new(&network_config, Some(node_config)).await.map_err(|e| {
-                LightClientError::network_error(format!("Failed to connect to light client: {}", e))
-            })?;
+        let da = LightClientConnection::new_with_config(&network_config, Some(node_config))
+            .await
+            .map_err(|e| {
+            LightClientError::network_error(format!("Failed to connect to light client: {}", e))
+        })?;
 
         // todo: start height is only used to set sync target, should probably be set after finding the first heights right?
         let start_height = network_config

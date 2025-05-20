@@ -131,7 +131,10 @@ impl LightClientConnection {
     }
 
     #[cfg(feature = "uniffi")]
-    pub async fn new(config: &NetworkConfig, node_config: Option<NodeConfig>) -> Result<Self> {
+    pub async fn new_with_config(
+        config: &NetworkConfig,
+        node_config: Option<NodeConfig>,
+    ) -> Result<Self> {
         #[cfg(target_arch = "wasm32")]
         let bootnodes = resolve_bootnodes(&bootnodes).await?;
 

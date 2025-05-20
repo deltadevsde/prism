@@ -12,7 +12,7 @@ readme.workspace = true
 
 [features]
 default = []
-uniffi = ["lumina-node-uniffi"]
+uniffi = ["dep:lumina-node-uniffi"]
 
 [dependencies]
 blockstore = { workspace = true }
