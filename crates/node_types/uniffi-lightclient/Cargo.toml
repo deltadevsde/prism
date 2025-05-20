@@ -1,0 +1,31 @@
+[package]
+name = "prism-uniffi-lightclient"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "./src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+libp2p = { workspace = true, features = ["serde"] }
+anyhow = { workspace = true }
+bincode = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+sp1-verifier = { workspace = true }
+celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
+prism-errors = { workspace = true }
+prism-lightclient = { workspace = true }
+prism-keys = { workspace = true }
+prism-da = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+uniffi = { workspace = true }
+lumina-node = { workspace = true }
+lumina-node-uniffi = { workspace = true }
