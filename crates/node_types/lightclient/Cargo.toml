@@ -13,6 +13,7 @@ test_utils = []
 mock_prover = []
 
 [dependencies]
+async-trait = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 prism-da = { workspace = true }

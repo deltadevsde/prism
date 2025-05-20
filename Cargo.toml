@@ -22,6 +22,7 @@ default-members = [
   "crates/node_types/prover",
   "crates/node_types/lightclient",
   "crates/node_types/wasm-lightclient",
+  #"crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
   "crates/storage",
@@ -39,6 +40,7 @@ members = [
   "crates/node_types/prover",
   "crates/node_types/lightclient",
   "crates/node_types/wasm-lightclient",
+  #"crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
   "crates/zk/sp1",
@@ -116,7 +118,6 @@ alloy-primitives = { version = "0.8.21", default-features = false, features = [
 ripemd = "0.1.3"
 
 # celestia
-blockstore = "0.7.1"
 celestia-rpc = "=0.9.1"
 celestia-types = "=0.10.1"
 lumina-node = "=0.9.1"
@@ -171,6 +172,11 @@ opentelemetry_sdk = "0.29.0"
 tracing = { version = "0.1.41", features = ["std"] }
 parking_lot = "0.12.3"
 lazy_static = "1.4.0"
+
+# uniffi
+uniffi = { version = "0.29.1", features = ["bindgen", "tokio", "cli"] }
+lumina-node-uniffi = { git = "https://github.com/deltadevsde/lumina.git" }
+blockstore = "0.7.1"
 
 [patch.crates-io]
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.8-sp1-4.0.0" }

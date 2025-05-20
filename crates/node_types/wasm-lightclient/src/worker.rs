@@ -1,18 +1,18 @@
 use js_sys::Function;
 use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
 use prism_lightclient::{
-    events::{EventChannel, EventPublisher, EventSubscriber, LightClientEvent},
     LightClient,
+    events::{EventChannel, EventPublisher, EventSubscriber, LightClientEvent},
 };
 use std::{str::FromStr, sync::Arc};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{console, BroadcastChannel, MessagePort};
+use web_sys::{BroadcastChannel, MessagePort, console};
 
 use crate::{
     commands::{LightClientCommand, WorkerResponse},
-    worker_communication::{random_id, WorkerServer},
+    worker_communication::{WorkerServer, random_id},
 };
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::{JsCast, prelude::*};
 
 #[wasm_bindgen]
 pub struct LightClientWorker {
@@ -128,8 +128,8 @@ impl LightClientWorker {
     }
 }
 
-fn initialize_event_channel(
-) -> Result<(String, EventPublisher, EventSubscriber, BroadcastChannel), JsError> {
+fn initialize_event_channel()
+-> Result<(String, EventPublisher, EventSubscriber, BroadcastChannel), JsError> {
     let events_channel_name = format!("lightclient-events-{}", random_id());
     let light_client_event_channel = EventChannel::new();
     let event_publisher = light_client_event_channel.publisher();

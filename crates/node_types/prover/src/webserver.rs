@@ -1,10 +1,10 @@
 use crate::Prover;
-use anyhow::{bail, Context, Result};
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use anyhow::{Context, Result, bail};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use prism_common::{
     api::{
-        types::{AccountRequest, AccountResponse, CommitmentResponse},
         PrismApi,
+        types::{AccountRequest, AccountResponse, CommitmentResponse},
     },
     transaction::Transaction,
 };
@@ -13,8 +13,8 @@ use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use utoipa::{
-    openapi::{Info, OpenApiBuilder},
     OpenApi,
+    openapi::{Info, OpenApiBuilder},
 };
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;

@@ -7,7 +7,11 @@ use anyhow::Result;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
     DataAvailabilityLayer,
-    celestia::{full_node::CelestiaConnection, utils::CelestiaConfig},
+    celestia::{
+        full_node::CelestiaConnection as FullNodeCelestiaConn,
+        light_client::LightClientConnection as LightClientCelestiaConn,
+        utils::{CelestiaConfig, NetworkConfig},
+    },
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_lightclient::{LightClient, events::EventChannel};
@@ -40,6 +44,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
         .filter_module("p3_fri", log::LevelFilter::Off)
         .filter_module("sp1_core_executor", log::LevelFilter::Info)
         .filter_module("sp1_recursion_program", log::LevelFilter::Info)
+        .filter_module("sp1_prover", log::LevelFilter::Info)
         .filter_module("p3_merkle_tree", log::LevelFilter::Off)
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
@@ -49,17 +54,21 @@ async fn test_light_client_prover_talking() -> Result<()> {
         connection_string: "ws://localhost:26658".to_string(),
         ..CelestiaConfig::default()
     };
-    let lc_cfg = CelestiaConfig {
-        connection_string: "ws://localhost:46658".to_string(),
-        ..CelestiaConfig::default()
+
+    let lc_cfg = NetworkConfig {
+        celestia_config: Some(CelestiaConfig {
+            connection_string: "ws://localhost:46658".to_string(),
+            ..CelestiaConfig::default()
+        }),
+        ..NetworkConfig::default()
     };
 
     let mut rng = StdRng::from_entropy();
     let prover_algorithm = CryptoAlgorithm::Ed25519;
     let service_algorithm = random_algorithm(&mut rng);
 
-    let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
-    let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());
+    let bridge_da_layer = Arc::new(FullNodeCelestiaConn::new(&bridge_cfg, None).await.unwrap());
+    let lc_da_layer = Arc::new(LightClientCelestiaConn::new(&lc_cfg).await.unwrap());
     let db = setup_db();
     let signing_key = SigningKey::new_with_algorithm(prover_algorithm)
         .map_err(|e| anyhow::anyhow!("Failed to generate signing key: {}", e))?;
@@ -81,7 +90,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     let lightclient = Arc::new(LightClient::new(
         lc_da_layer.clone(),
-        lc_cfg.start_height,
+        lc_cfg.celestia_config.unwrap().start_height,
         Some(pubkey),
         event_channel.publisher(),
     ));

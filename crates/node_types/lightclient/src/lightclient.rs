@@ -14,6 +14,7 @@ use std::{
     },
 };
 use tokio::sync::RwLock;
+use tracing::{error, info};
 
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
@@ -113,7 +114,9 @@ impl LightClient {
                 if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
                     if let Some(metrics) = get_metrics() {
                         metrics.record_celestia_synced_height(height, vec![]);
-                        if let Some(latest_finalized_epoch) = sync_state.read().await.latest_finalized_epoch {
+                        if let Some(latest_finalized_epoch) =
+                            sync_state.read().await.latest_finalized_epoch
+                        {
                             metrics.record_current_epoch(latest_finalized_epoch, vec![]);
                         }
                     }
