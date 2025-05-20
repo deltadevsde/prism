@@ -359,7 +359,7 @@ pub async fn initialize_light_da_layer(
 ) -> Result<Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>> {
     match config.da_layer {
         DALayerOption::Celestia => {
-            let connection = LightClientConnection::new(&config.network)
+            let connection = LightClientConnection::new(&config.network, None)
                 .await
                 .context("Failed to initialize light client connection")?;
             Ok(Arc::new(connection)

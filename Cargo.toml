@@ -173,7 +173,7 @@ parking_lot = "0.12.3"
 lazy_static = "1.4.0"
 
 # uniffi
-uniffi = { version = "0.28.3", features = ["bindgen", "tokio", "cli"] }
+uniffi = { version = "0.29.1", features = ["bindgen", "tokio", "cli"] }
 lumina-node-uniffi = { git = "https://github.com/deltadevsde/lumina.git" }
 blockstore = "0.7.1"
 
