@@ -8,9 +8,7 @@ repository.workspace = true
 
 [features]
 default = []
-groth16 = []
 test_utils = []
-mock_prover = []
 
 [dependencies]
 async-trait.workspace = true

@@ -11,9 +11,7 @@ pub struct SignatureInfoRef<'a> {
     pub signature: OctetStringRef<'a>,
 }
 
-impl<'a> SignatureInfoRef<'a> {}
-
-impl<'a> EncodeValue for SignatureInfoRef<'a> {
+impl EncodeValue for SignatureInfoRef<'_> {
     fn value_len(&self) -> der::Result<Length> {
         self.algorithm.encoded_len()? + self.signature.encoded_len()?
     }
