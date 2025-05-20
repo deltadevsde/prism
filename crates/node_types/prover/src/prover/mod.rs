@@ -89,7 +89,7 @@ impl Default for Config {
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
             max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
-            recursive_proofs: false,
+            recursive_proofs: true,
         }
     }
 }
@@ -111,7 +111,7 @@ impl Config {
             signing_key: signing_key.clone(),
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
-            recursive_proofs: false,
+            recursive_proofs: true,
             ..Config::default()
         })
     }
