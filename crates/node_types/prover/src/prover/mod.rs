@@ -112,6 +112,7 @@ impl Config {
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
             recursive_proofs: false,
+            ..Config::default()
         })
     }
 }
@@ -312,7 +313,7 @@ impl Prover {
         if latest_epoch_height != 0
             && height.saturating_sub(latest_epoch_height) >= self.cfg.max_epochless_gap
         {
-            self.finalize_new_epoch(current_epoch, Vec::new()).await?;
+            self.finalize_new_epoch(next_epoch_height, Vec::new()).await?;
         }
 
         if let Some(metrics) = get_metrics() {
@@ -452,7 +453,7 @@ impl Prover {
 
         let finalized_epoch = self.prove_epoch(epoch_height, &batch).await?;
 
-        self.da.submit_finalized_epoch(finalized_epoch.clone()).await?;
+        let da_height = self.da.submit_finalized_epoch(finalized_epoch.clone()).await?;
 
         // only save the epoch locally if it was successfully submitted
         self.db.add_epoch(&finalized_epoch)?;
