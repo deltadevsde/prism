@@ -68,6 +68,7 @@ pkcs8 = { version = "0.10.2", features = ["std", "pem"] }
 axum = "0.8"
 tower-http = { version = "0.6", features = ["cors"] }
 utoipa = { version = "5.3", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9.0", features = ["axum"] }
 utoipa-axum = { version = "0.2.0" }
 
 # webclient

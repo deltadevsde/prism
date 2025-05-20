@@ -3,7 +3,6 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use config::{ConfigBuilder, File, builder::DefaultState};
 use dirs::home_dir;
 use dotenvy::dotenv;
-use tracing::{warn, error};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
 use prism_prover::webserver::WebServerConfig;
@@ -15,9 +14,10 @@ use prism_storage::{
     redis::RedisConfig,
     rocksdb::{RocksDBConfig, RocksDBConnection},
 };
-use prism_telemetry::config::{get_default_telemetry_config, TelemetryConfig};
+use prism_telemetry::config::{TelemetryConfig, get_default_telemetry_config};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc};
+use tracing::{error, warn};
 
 use prism_da::{
     DataAvailabilityLayer, LightDataAvailabilityLayer,

@@ -17,7 +17,7 @@ use utoipa::{
     openapi::{Info, OpenApiBuilder},
 };
 use utoipa_axum::{router::OpenApiRouter, routes};
-// use utoipa_swagger_ui::SwaggerUi;
+use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebServerConfig {
@@ -64,7 +64,7 @@ impl WebServer {
 
         let api = OpenApiBuilder::from(api).info(Info::new("Prism Full Node API", "0.1.0")).build();
 
-        // let router = router.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api));
+        let router = router.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api));
 
         let addr = SocketAddr::new(
             self.cfg.host.parse().expect("IP address can be parsed"),
