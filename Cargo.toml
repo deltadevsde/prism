@@ -22,7 +22,6 @@ default-members = [
   "crates/node_types/prover",
   "crates/node_types/lightclient",
   "crates/node_types/wasm-lightclient",
-  "crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
   "crates/storage",
