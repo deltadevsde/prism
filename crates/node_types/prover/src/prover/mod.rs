@@ -454,6 +454,8 @@ impl Prover {
         let finalized_epoch = self.prove_epoch(epoch_height, &batch).await?;
 
         let da_height = self.da.submit_finalized_epoch(finalized_epoch.clone()).await?;
+        let mut latest_da_height = self.latest_epoch_da_height.write().await;
+        *latest_da_height = da_height;
 
         // only save the epoch locally if it was successfully submitted
         self.db.add_epoch(&finalized_epoch)?;
