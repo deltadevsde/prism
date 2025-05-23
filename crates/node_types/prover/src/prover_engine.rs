@@ -27,7 +27,7 @@ pub struct ProverEngine {
 }
 
 impl ProverEngine {
-    pub fn new(recursive_proofs_enabled: bool) -> Result<Self> {
+    pub fn new(config: &crate::prover::ProverEngineConfig) -> Result<Self> {
         let base_prover_client = ProverClient::from_env();
         let recursive_prover_client = ProverClient::from_env();
 
@@ -41,7 +41,7 @@ impl ProverEngine {
             recursive_verifying_key: recursive_vk,
             base_prover_client: Arc::new(RwLock::new(base_prover_client)),
             recursive_prover_client: Arc::new(RwLock::new(recursive_prover_client)),
-            recursive_proofs_enabled,
+            recursive_proofs_enabled: config.recursive_proofs,
         })
     }
 

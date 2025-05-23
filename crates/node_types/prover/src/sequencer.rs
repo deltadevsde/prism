@@ -37,9 +37,8 @@ impl Sequencer {
     pub fn new(
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
-        signing_key: SigningKey,
+        config: &crate::prover::SequencerConfig,
         latest_epoch_da_height: Arc<RwLock<u64>>,
-        batcher_enabled: bool,
     ) -> Result<Self> {
         let saved_epoch = match db.get_latest_epoch_height() {
             Ok(height) => height + 1,
@@ -59,9 +58,9 @@ impl Sequencer {
             da,
             tree,
             pending_transactions: Arc::new(RwLock::new(Vec::new())),
-            signing_key,
+            signing_key: config.signing_key.clone(),
             latest_epoch_da_height,
-            batcher_enabled,
+            batcher_enabled: config.batcher_enabled,
         })
     }
 
