@@ -1,6 +1,6 @@
 mod timer;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use prism_common::{
     api::{
@@ -9,13 +9,13 @@ use prism_common::{
     },
     transaction::Transaction,
 };
-use prism_errors::DataAvailabilityError;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::database::Database;
 use prism_tree::AccountResponse::*;
 use std::sync::Arc;
 use timer::ProverTokioTimer;
 use tokio::{sync::RwLock, task::JoinSet};
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     prover_engine::ProverEngine,
@@ -106,6 +106,7 @@ pub struct Prover {
     sequencer: Arc<Sequencer>,
     syncer: Arc<Syncer>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
+    cancellation_token: CancellationToken,
 }
 
 #[allow(dead_code)]
@@ -133,6 +134,10 @@ impl Prover {
             cfg.verifying_key.clone(),
             cfg.max_epochless_gap,
             latest_epoch_da_height.clone(),
+            cfg.start_height,
+            sequencer.clone(),
+            prover_engine.clone(),
+            cfg.prover,
         ));
 
         Ok(Prover {
@@ -141,6 +146,7 @@ impl Prover {
             sequencer,
             syncer,
             latest_epoch_da_height,
+            cancellation_token: CancellationToken::new(),
         })
     }
 
@@ -182,43 +188,69 @@ impl Prover {
         self.syncer.get_da()
     }
 
+    pub fn stop(&self) {
+        info!("Initiating graceful shutdown of Prover");
+        self.cancellation_token.cancel();
+    }
+
     pub async fn run(self: Arc<Self>) -> Result<()> {
-        self.syncer
-            .start_da()
-            .await
-            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))
-            .context("Failed to start DataAvailabilityLayer")?;
-
-        let syncer = self.syncer.clone();
-        let sequencer = self.sequencer.clone();
-        let prover_engine = self.prover_engine.clone();
-        let start_height = self.cfg.start_height;
-        let prover_enabled = self.cfg.prover;
-
-        let main_loop = async move {
-            syncer.run_main_loop(start_height, sequencer, prover_engine, prover_enabled).await
-        };
-
         let mut futures = JoinSet::new();
-        futures.spawn(main_loop);
 
-        if self.cfg.batcher {
-            let sequencer_clone = self.sequencer.clone();
-            let batch_poster = async move { sequencer_clone.run_batch_poster().await };
-            futures.spawn(batch_poster);
-        }
+        // Start Syncer (includes DA startup and main sync loop)
+        let syncer = self.syncer.clone();
+        let cancel_token = self.cancellation_token.clone();
+        futures.spawn(async move { syncer.start(cancel_token).await });
 
-        let ws = WebServer::new(self.cfg.webserver.clone(), self.clone());
+        // Start Sequencer (batch poster if enabled)
+        let sequencer = self.sequencer.clone();
+        let cancel_token = self.cancellation_token.clone();
+        futures.spawn(async move { sequencer.start(cancel_token).await });
+
+        // Start WebServer if enabled
         if self.cfg.webserver.enabled {
+            let ws = WebServer::new(self.cfg.webserver.clone(), self.clone());
             futures.spawn(async move { ws.start().await });
         }
 
-        if let Some(result) = futures.join_next().await {
-            error!("Service exited unexpectedly: {:?}", result);
-            Err(anyhow!("Service exited unexpectedly"))?
+        // Wait for any service to exit
+        let exit_result = if let Some(result) = futures.join_next().await {
+            match result {
+                Ok(service_result) => {
+                    match service_result {
+                        Ok(_) => {
+                            info!("Service exited gracefully, shutting down other components");
+                            self.cancellation_token.cancel();
+                            Ok(())
+                        },
+                        Err(service_error) => {
+                            error!("Service exited with error: {:?}, shutting down other components", service_error);
+                            self.cancellation_token.cancel();
+                            Err(service_error)
+                        }
+                    }
+                },
+                Err(join_error) => {
+                    error!("Task join error: {:?}, shutting down other components", join_error);
+                    self.cancellation_token.cancel();
+                    Err(anyhow!("Task join error: {}", join_error))
+                }
+            }
+        } else {
+            error!("No futures in join set, shutting down");
+            Ok(())
+        };
+
+        // Wait for all other components to finish gracefully
+        while let Some(result) = futures.join_next().await {
+            match result {
+                Ok(Ok(_)) => debug!("Component shut down gracefully"),
+                Ok(Err(e)) => warn!("Component shut down with error: {:?}", e),
+                Err(e) => warn!("Component join error during shutdown: {:?}", e),
+            }
         }
-        error!("All services have ended unexpectedly.");
-        Err(anyhow!("All services have ended unexpectedly"))?
+
+        info!("Prover shutdown complete");
+        exit_result
     }
 }
 

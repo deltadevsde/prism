@@ -18,6 +18,7 @@ use prism_tree::{
 };
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tokio_util::sync::CancellationToken;
 
 use crate::prover_engine::ProverEngine;
 
@@ -64,37 +65,57 @@ impl Sequencer {
         })
     }
 
-    pub async fn run_batch_poster(&self) -> Result<()> {
+    pub async fn start(&self, cancellation_token: CancellationToken) -> Result<()> {
+        if self.batcher_enabled {
+            self.run_batch_poster(cancellation_token).await
+        } else {
+            // Sequencer without batcher doesn't need a running loop
+            // Just wait for cancellation
+            cancellation_token.cancelled().await;
+            info!("Sequencer: Gracefully stopped (batcher disabled)");
+            Ok(())
+        }
+    }
+
+    async fn run_batch_poster(&self, cancellation_token: CancellationToken) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
 
         loop {
-            let height = height_rx.recv().await?;
-            trace!("received height {}", height);
+            tokio::select! {
+                height_result = height_rx.recv() => {
+                    let height = height_result?;
+                    trace!("received height {}", height);
 
-            let pending_transactions = {
-                let mut ops = self.pending_transactions.write().await;
-                std::mem::take(&mut *ops)
-            };
+                    let pending_transactions = {
+                        let mut ops = self.pending_transactions.write().await;
+                        std::mem::take(&mut *ops)
+                    };
 
-            let tx_count = pending_transactions.len();
+                    let tx_count = pending_transactions.len();
 
-            if !pending_transactions.clone().is_empty() {
-                match self.da.submit_transactions(pending_transactions).await {
-                    Ok(submitted_height) => {
-                        info!(
-                            "post_batch_loop: submitted {} transactions at height {}",
-                            tx_count, submitted_height
+                    if !pending_transactions.clone().is_empty() {
+                        match self.da.submit_transactions(pending_transactions).await {
+                            Ok(submitted_height) => {
+                                info!(
+                                    "post_batch_loop: submitted {} transactions at height {}",
+                                    tx_count, submitted_height
+                                );
+                            }
+                            Err(e) => {
+                                error!("post_batch_loop: Failed to submit transactions: {}", e);
+                            }
+                        }
+                    } else {
+                        debug!(
+                            "post_batch_loop: No pending transactions to submit at height {}",
+                            height
                         );
                     }
-                    Err(e) => {
-                        error!("post_batch_loop: Failed to submit transactions: {}", e);
-                    }
+                },
+                _ = cancellation_token.cancelled() => {
+                    info!("Sequencer: Gracefully stopping batch poster");
+                    return Ok(());
                 }
-            } else {
-                debug!(
-                    "post_batch_loop: No pending transactions to submit at height {}",
-                    height
-                );
             }
         }
     }

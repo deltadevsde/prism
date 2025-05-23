@@ -6,6 +6,7 @@ use prism_telemetry_registry::metrics_registry::get_metrics;
 use prism_common::transaction::Transaction;
 use std::{collections::VecDeque, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
+use tokio_util::sync::CancellationToken;
 
 use crate::{prover_engine::ProverEngine, sequencer::Sequencer};
 
@@ -16,6 +17,10 @@ pub struct Syncer {
     verifying_key: VerifyingKey,
     max_epochless_gap: u64,
     latest_epoch_da_height: Arc<RwLock<u64>>,
+    start_height: u64,
+    sequencer: Arc<Sequencer>,
+    prover_engine: Arc<ProverEngine>,
+    is_prover_enabled: bool,
 }
 
 impl Syncer {
@@ -25,6 +30,10 @@ impl Syncer {
         verifying_key: VerifyingKey,
         max_epochless_gap: u64,
         latest_epoch_da_height: Arc<RwLock<u64>>,
+        start_height: u64,
+        sequencer: Arc<Sequencer>,
+        prover_engine: Arc<ProverEngine>,
+        is_prover_enabled: bool,
     ) -> Self {
         Self {
             da,
@@ -32,24 +41,23 @@ impl Syncer {
             verifying_key,
             max_epochless_gap,
             latest_epoch_da_height,
+            start_height,
+            sequencer,
+            prover_engine,
+            is_prover_enabled,
         }
     }
 
-    pub async fn start_da(&self) -> Result<()> {
-        self.da.start().await
-    }
-    
     pub fn get_da(&self) -> Arc<dyn DataAvailabilityLayer> {
         self.da.clone()
     }
 
-    pub async fn run_main_loop(
-        &self,
-        start_height: u64,
-        sequencer: Arc<Sequencer>,
-        prover_engine: Arc<ProverEngine>,
-        is_prover_enabled: bool,
-    ) -> Result<()> {
+    pub async fn start(&self, cancellation_token: CancellationToken) -> Result<()> {
+        self.da.start().await?;
+        self.run_main_loop(cancellation_token).await
+    }
+
+    async fn run_main_loop(&self, cancellation_token: CancellationToken) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
         let historical_sync_height = height_rx.recv().await?;
 
@@ -57,8 +65,8 @@ impl Syncer {
             Ok(height) => height,
             Err(_) => {
                 debug!("no existing sync height found, setting sync height to start_height");
-                self.db.set_last_synced_height(&start_height)?;
-                start_height
+                self.db.set_last_synced_height(&self.start_height)?;
+                self.start_height
             }
         };
 
@@ -66,9 +74,7 @@ impl Syncer {
             sync_start_height,
             historical_sync_height,
             height_rx,
-            sequencer,
-            prover_engine,
-            is_prover_enabled,
+            cancellation_token,
         ).await
     }
 
@@ -77,24 +83,27 @@ impl Syncer {
         start_height: u64,
         end_height: u64,
         mut incoming_heights: broadcast::Receiver<u64>,
-        sequencer: Arc<Sequencer>,
-        prover_engine: Arc<ProverEngine>,
-        is_prover_enabled: bool,
+        cancellation_token: CancellationToken,
     ) -> Result<()> {
         let mut buffered_transactions: VecDeque<Transaction> = VecDeque::new();
         let mut current_height = start_height;
 
         while current_height <= end_height {
-            self.process_da_height(
-                current_height,
-                &mut buffered_transactions,
-                false,
-                &sequencer,
-                &prover_engine,
-                is_prover_enabled,
-            ).await?;
-            self.db.set_last_synced_height(&current_height)?;
-            current_height += 1;
+            tokio::select! {
+                result = self.process_da_height(
+                    current_height,
+                    &mut buffered_transactions,
+                    false,
+                ) => {
+                    result?;
+                    self.db.set_last_synced_height(&current_height)?;
+                    current_height += 1;
+                },
+                _ = cancellation_token.cancelled() => {
+                    info!("Syncer: Gracefully stopping during historical sync at height {}", current_height);
+                    return Ok(());
+                }
+            }
         }
 
         info!(
@@ -103,24 +112,29 @@ impl Syncer {
         );
 
         loop {
-            let height = incoming_heights.recv().await?;
-            if height != current_height {
-                return Err(anyhow!(
-                    "heights are not sequential: expected {}, got {}",
-                    current_height,
-                    height
-                ));
+            tokio::select! {
+                height_result = incoming_heights.recv() => {
+                    let height = height_result?;
+                    if height != current_height {
+                        return Err(anyhow!(
+                            "heights are not sequential: expected {}, got {}",
+                            current_height,
+                            height
+                        ));
+                    }
+                    self.process_da_height(
+                        height,
+                        &mut buffered_transactions,
+                        true,
+                    ).await?;
+                    current_height += 1;
+                    self.db.set_last_synced_height(&current_height)?;
+                },
+                _ = cancellation_token.cancelled() => {
+                    info!("Syncer: Gracefully stopping during real-time sync at height {}", current_height);
+                    return Ok(());
+                }
             }
-            self.process_da_height(
-                height,
-                &mut buffered_transactions,
-                true,
-                &sequencer,
-                &prover_engine,
-                is_prover_enabled,
-            ).await?;
-            current_height += 1;
-            self.db.set_last_synced_height(&current_height)?;
         }
     }
 
@@ -129,9 +143,6 @@ impl Syncer {
         height: u64,
         buffered_transactions: &mut VecDeque<Transaction>,
         is_real_time: bool,
-        sequencer: &Arc<Sequencer>,
-        prover_engine: &Arc<ProverEngine>,
-        is_prover_enabled: bool,
     ) -> Result<()> {
         let next_epoch_height = match self.db.get_latest_epoch_height() {
             Ok(height) => height + 1,
@@ -149,14 +160,14 @@ impl Syncer {
         );
 
         if let Some(epoch) = epoch_result {
-            self.process_epoch(epoch, buffered_transactions, sequencer, prover_engine).await?;
+            self.process_epoch(epoch, buffered_transactions).await?;
         } else {
             debug!("No transactions to process at height {}", height);
         }
 
-        if is_real_time && !buffered_transactions.is_empty() && is_prover_enabled {
+        if is_real_time && !buffered_transactions.is_empty() && self.is_prover_enabled {
             let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
-            sequencer.finalize_new_epoch(next_epoch_height, all_transactions, prover_engine).await?;
+            self.sequencer.finalize_new_epoch(next_epoch_height, all_transactions, &self.prover_engine).await?;
         }
 
         if !transactions.is_empty() {
@@ -168,7 +179,7 @@ impl Syncer {
         if latest_epoch_height != 0
             && height.saturating_sub(latest_epoch_height) >= self.max_epochless_gap
         {
-            sequencer.finalize_new_epoch(next_epoch_height, Vec::new(), prover_engine).await?;
+            self.sequencer.finalize_new_epoch(next_epoch_height, Vec::new(), &self.prover_engine).await?;
         }
 
         if let Some(metrics) = get_metrics() {
@@ -183,8 +194,6 @@ impl Syncer {
         &self,
         epoch: FinalizedEpoch,
         buffered_transactions: &mut VecDeque<Transaction>,
-        sequencer: &Arc<Sequencer>,
-        prover_engine: &Arc<ProverEngine>,
     ) -> Result<()> {
         let current_epoch = match self.db.get_latest_epoch_height() {
             Ok(height) => height + 1,
@@ -202,7 +211,7 @@ impl Syncer {
         trace!("valid signature for epoch {}", epoch.height);
 
         let prev_commitment = if epoch.height == 0 {
-            sequencer.get_commitment().await?
+            self.sequencer.get_commitment().await?
         } else {
             self.db.get_epoch(&epoch.height.saturating_sub(1))?.current_commitment
         };
@@ -224,10 +233,10 @@ impl Syncer {
 
         let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
         if !all_transactions.is_empty() {
-            sequencer.execute_block(all_transactions).await?;
+            self.sequencer.execute_block(all_transactions).await?;
         }
 
-        let new_commitment = sequencer.get_commitment().await?;
+        let new_commitment = self.sequencer.get_commitment().await?;
         if epoch.current_commitment != new_commitment {
             return Err(anyhow!(
                 "new commitment mismatch at epoch {}",
@@ -235,7 +244,7 @@ impl Syncer {
             ));
         }
 
-        match prover_engine.verify_epoch_proof(epoch.height, &epoch.proof).await {
+        match self.prover_engine.verify_epoch_proof(epoch.height, &epoch.proof).await {
             Ok(_) => info!(
                 "zkSNARK for epoch {} was validated successfully",
                 epoch.height
