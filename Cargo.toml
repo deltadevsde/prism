@@ -31,6 +31,7 @@ default-members = [
   "crates/keys",
   "crates/tree",
   "crates/telemetry",
+  "crates/benches",
 ]
 
 members = [
@@ -51,6 +52,7 @@ members = [
   "crates/keys",
   "crates/tree",
   "crates/telemetry",
+  "crates/benches",
 ]
 resolver = "2"
 
