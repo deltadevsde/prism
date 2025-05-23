@@ -95,6 +95,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
         db.clone(),
         bridge_da_layer.clone(),
         &prover_cfg,
+        tokio_util::sync::CancellationToken::new(),
     )?);
 
     let event_channel = EventChannel::new();

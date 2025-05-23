@@ -17,6 +17,7 @@ use node_types::NodeType;
 use prism_lightclient::{LightClient, events::EventChannel};
 use prism_prover::Prover;
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
 pub const SIGNING_KEY_ID: &str = "prism";
@@ -59,6 +60,7 @@ async fn main() -> std::io::Result<()> {
 
     let celestia_config = config.network.celestia_config.clone().unwrap_or_default();
     let start_height = celestia_config.start_height;
+    let cancellation_token = CancellationToken::new();
 
     // Use the metrics registry to record metrics
     if let Some(metrics) = get_metrics() {
@@ -132,7 +134,7 @@ async fn main() -> std::io::Result<()> {
                 webserver: webserver_config.clone().unwrap_or_default(),
             };
 
-            Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
+            Arc::new(Prover::new(db, da, &prover_cfg, cancellation_token.clone()).map_err(|e| {
                 error!("error initializing prover: {}", e);
                 Error::other(e.to_string())
             })?)
@@ -175,12 +177,32 @@ async fn main() -> std::io::Result<()> {
                 webserver: webserver_config.unwrap_or_default(),
             };
 
-            Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
+            Arc::new(Prover::new(db, da, &prover_cfg, cancellation_token.clone()).map_err(|e| {
                 error!("error initializing prover: {}", e);
                 Error::other(e.to_string())
             })?)
         }
     };
+
+    // Setup signal handling for graceful shutdown
+    let cancellation_for_signal = cancellation_token.clone();
+    tokio::spawn(async move {
+        use tokio::signal::unix::{signal, SignalKind};
+        
+        let mut sigint = signal(SignalKind::interrupt()).expect("Failed to register SIGINT handler");
+        let mut sigterm = signal(SignalKind::terminate()).expect("Failed to register SIGTERM handler");
+        
+        tokio::select! {
+            _ = sigint.recv() => {
+                info!("Received SIGINT, initiating graceful shutdown");
+            },
+            _ = sigterm.recv() => {
+                info!("Received SIGTERM, initiating graceful shutdown");
+            }
+        }
+        
+        cancellation_for_signal.cancel();
+    });
 
     let result = node.start().await.map_err(|e| Error::other(e.to_string()));
 
