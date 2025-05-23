@@ -73,7 +73,7 @@ pub struct Config {
     /// repost the last epoch to aid LN syncing.
     pub max_epochless_gap: u64,
 
-    /// Whether recursive proofs should be enabled - defaults to true, unless SP1_PROVER env var is set to "mock"
+    /// Whether recursive proofs should be enabled - defaults to false, unless SP1_PROVER env var is set to "mock"
     pub recursive_proofs: bool,
 }
 
@@ -110,8 +110,6 @@ impl Config {
         Ok(Config {
             signing_key: signing_key.clone(),
             verifying_key: signing_key.verifying_key(),
-            start_height: 1,
-            recursive_proofs: false,
             ..Config::default()
         })
     }
