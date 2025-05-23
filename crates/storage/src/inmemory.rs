@@ -4,6 +4,7 @@ use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
 };
 use prism_common::digest::Digest;
+use prism_da::FinalizedEpoch;
 use prism_errors::DatabaseError;
 use std::{
     collections::HashMap,
@@ -16,7 +17,7 @@ pub struct InMemoryDatabase {
     nodes: Arc<Mutex<HashMap<NodeKey, Node>>>,
     values: Arc<Mutex<HashMap<(Version, KeyHash), OwnedValue>>>,
     commitments: Arc<Mutex<HashMap<u64, Digest>>>,
-    current_epoch: Arc<Mutex<u64>>,
+    current_epochs: Arc<Mutex<Vec<FinalizedEpoch>>>,
     sync_height: Arc<Mutex<u64>>,
 }
 
@@ -26,7 +27,7 @@ impl InMemoryDatabase {
             nodes: Arc::new(Mutex::new(HashMap::new())),
             values: Arc::new(Mutex::new(HashMap::new())),
             commitments: Arc::new(Mutex::new(HashMap::new())),
-            current_epoch: Arc::new(Mutex::new(0)),
+            current_epochs: Arc::new(Mutex::new(Vec::new())),
             sync_height: Arc::new(Mutex::new(1)),
         }
     }
@@ -102,13 +103,39 @@ impl Database for InMemoryDatabase {
         Ok(())
     }
 
-    fn get_epoch_height(&self) -> Result<u64> {
-        Ok(*self.current_epoch.lock().unwrap())
+    fn get_epoch(&self, height: &u64) -> Result<FinalizedEpoch> {
+        let epochs = self.current_epochs.lock().unwrap();
+        match epochs.get(*height as usize) {
+            Some(epoch) => Ok(epoch.clone()),
+            None => Err(DatabaseError::NotFoundError(format!("epoch at height {}", height)).into()),
+        }
     }
 
-    fn set_epoch_height(&self, epoch: &u64) -> Result<()> {
-        *self.current_epoch.lock().unwrap() = *epoch;
+    fn add_epoch(&self, epoch: &FinalizedEpoch) -> Result<()> {
+        let mut epochs = self.current_epochs.lock().unwrap();
+        if epochs.len() != epoch.height as usize {
+            return Err(DatabaseError::WriteError(format!(
+                "epoch height mismatch: expected {}, got {}",
+                epochs.len(),
+                epoch.height
+            ))
+            .into());
+        }
+        epochs.push(epoch.clone());
         Ok(())
+    }
+
+    fn get_latest_epoch_height(&self) -> Result<u64> {
+        let epochs = self.current_epochs.lock().unwrap();
+        if epochs.is_empty() {
+            return Err(DatabaseError::NotFoundError("epoch's latest height".to_string()).into());
+        }
+        Ok(epochs.len() as u64 - 1)
+    }
+
+    fn get_latest_epoch(&self) -> Result<FinalizedEpoch> {
+        let height = self.get_latest_epoch_height()?;
+        self.get_epoch(&height)
     }
 
     fn get_last_synced_height(&self) -> Result<u64> {
@@ -124,7 +151,7 @@ impl Database for InMemoryDatabase {
         self.nodes.lock().unwrap().clear();
         self.values.lock().unwrap().clear();
         self.commitments.lock().unwrap().clear();
-        *self.current_epoch.lock().unwrap() = 0;
+        self.current_epochs.lock().unwrap().clear();
         Ok(())
     }
 }

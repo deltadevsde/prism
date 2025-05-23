@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 const KEY_PREFIX_COMMITMENTS: &str = "commitments:epoch_";
 const KEY_PREFIX_NODE: &str = "node:";
 const KEY_PREFIX_VALUE_HISTORY: &str = "value_history:";
+const KEY_PREFIX_EPOCHS: &str = "epochs:height_";
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
@@ -87,19 +88,75 @@ impl Database for RocksDBConnection {
         Ok(self.connection.put(b"app_state:sync_height", height.to_be_bytes())?)
     }
 
-    fn get_epoch_height(&self) -> anyhow::Result<u64> {
+    fn get_epoch(&self, height: &u64) -> anyhow::Result<prism_da::FinalizedEpoch> {
+        let key = format!("{}{}", KEY_PREFIX_EPOCHS, height);
+        let epoch_data = self
+            .connection
+            .get(key.as_bytes())?
+            .ok_or_else(|| DatabaseError::NotFoundError(format!("epoch at height {}", height)))?;
+
+        prism_da::FinalizedEpoch::decode_from_bytes(&epoch_data).map_err(|e| {
+            anyhow!(DatabaseError::ParsingError(format!(
+                "Failed to decode epoch at height {}: {}",
+                height, e
+            )))
+        })
+    }
+
+    fn add_epoch(&self, epoch: &prism_da::FinalizedEpoch) -> anyhow::Result<()> {
+        // Get the latest height to check for sequential ordering
+        let latest_height = self.get_latest_epoch_height().ok();
+
+        if let Some(latest) = latest_height {
+            if latest as usize + 1 != epoch.height as usize {
+                return Err(anyhow!(DatabaseError::WriteError(format!(
+                    "epoch height mismatch: expected {}, got {}",
+                    latest + 1,
+                    epoch.height
+                ))));
+            }
+        } else if epoch.height != 0 {
+            // If there's no latest height, we expect the first epoch to have height 0
+            return Err(anyhow!(DatabaseError::WriteError(format!(
+                "first epoch must have height 0, got {}",
+                epoch.height
+            ))));
+        }
+
+        // Encode the epoch to bytes
+        let epoch_data = epoch.encode_to_bytes().map_err(|e| {
+            anyhow!(DatabaseError::ParsingError(format!(
+                "Failed to encode epoch at height {}: {}",
+                epoch.height, e
+            )))
+        })?;
+
+        // Use a write batch to atomically store the epoch and update the latest height
+        let mut batch = rocksdb::WriteBatch::default();
+        batch.put(
+            format!("{}{}", KEY_PREFIX_EPOCHS, epoch.height).as_bytes(),
+            &epoch_data,
+        );
+        batch.put(b"app_state:latest_epoch_height", epoch.height.to_be_bytes());
+
+        self.connection.write(batch)?;
+        Ok(())
+    }
+
+    fn get_latest_epoch_height(&self) -> anyhow::Result<u64> {
         let res = self
             .connection
-            .get(b"app_state:epoch")?
-            .ok_or_else(|| DatabaseError::NotFoundError("current epoch".to_string()))?;
+            .get(b"app_state:latest_epoch_height")?
+            .ok_or_else(|| DatabaseError::NotFoundError("latest epoch height".to_string()))?;
 
         Ok(u64::from_be_bytes(res.try_into().map_err(|e| {
             anyhow!("failed byte conversion from BigEndian to u64: {:?}", e)
         })?))
     }
 
-    fn set_epoch_height(&self, epoch: &u64) -> anyhow::Result<()> {
-        Ok(self.connection.put(b"app_state:epoch", epoch.to_be_bytes())?)
+    fn get_latest_epoch(&self) -> anyhow::Result<prism_da::FinalizedEpoch> {
+        let height = self.get_latest_epoch_height()?;
+        self.get_epoch(&height)
     }
 
     fn flush_database(&self) -> Result<()> {
@@ -211,18 +268,6 @@ mod tests {
         let read_commitment = db.get_commitment(&epoch).unwrap();
 
         assert_eq!(read_commitment, commitment);
-    }
-
-    #[test]
-    fn test_rw_epoch() {
-        let (_temp_dir, db) = setup_db();
-
-        let epoch = 1;
-
-        db.set_epoch_height(&epoch).unwrap();
-        let read_epoch = db.get_epoch_height().unwrap();
-
-        assert_eq!(read_epoch, epoch);
     }
 
     #[test]

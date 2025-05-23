@@ -8,9 +8,8 @@ use clap::Parser;
 use keystore_rs::{FileStore, KeyChain, KeyStore};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_serde::base64::ToBase64;
-use prism_telemetry_registry::metrics_registry::get_metrics;
-use prism_telemetry_registry::init::init;
 use prism_telemetry::telemetry::shutdown_telemetry;
+use prism_telemetry_registry::{init::init, metrics_registry::get_metrics};
 
 use std::io::{Error, ErrorKind};
 
@@ -18,7 +17,7 @@ use node_types::NodeType;
 use prism_lightclient::{LightClient, events::EventChannel};
 use prism_prover::Prover;
 use std::sync::Arc;
-use tracing::{info, error};
+use tracing::{error, info};
 
 pub const SIGNING_KEY_ID: &str = "prism";
 
@@ -36,7 +35,10 @@ async fn main() -> std::io::Result<()> {
     let telemetry_config = match config.telemetry.clone() {
         Some(cfg) => cfg,
         None => {
-            return Err(Error::new(ErrorKind::InvalidInput, "Missing telemetry configuration"));
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "Missing telemetry configuration",
+            ));
         }
     };
     let keystore_type = config.keystore_type.clone();
@@ -53,24 +55,25 @@ async fn main() -> std::io::Result<()> {
         ("network".to_string(), config.network.network.to_string()),
         ("node_type".to_string(), node_type.clone()),
     ];
-    let (meter_provider, log_provider) = init(
-        telemetry_config.clone(),
-        attributes,
-    )?;
+    let (meter_provider, log_provider) = init(telemetry_config.clone(), attributes)?;
 
     let celestia_config = config.network.celestia_config.clone().unwrap_or_default();
     let start_height = celestia_config.start_height;
 
     // Use the metrics registry to record metrics
     if let Some(metrics) = get_metrics() {
-        metrics.record_node_info(
-            vec![
-                ("version".to_string(), env!("CARGO_PKG_VERSION").to_string()),
-                ("operation_namespace_id".to_string(), celestia_config.operation_namespace_id.to_string()),
-                ("snark_namespace_id".to_string(), celestia_config.snark_namespace_id.to_string()),
-                ("start_height".to_string(), start_height.to_string()),
-            ]
-        );
+        metrics.record_node_info(vec![
+            ("version".to_string(), env!("CARGO_PKG_VERSION").to_string()),
+            (
+                "operation_namespace_id".to_string(),
+                celestia_config.operation_namespace_id.to_string(),
+            ),
+            (
+                "snark_namespace_id".to_string(),
+                celestia_config.snark_namespace_id.to_string(),
+            ),
+            ("start_height".to_string(), start_height.to_string()),
+        ]);
     }
 
     let node: Arc<dyn NodeType> = match cli.command {
@@ -110,6 +113,8 @@ async fn main() -> std::io::Result<()> {
                 verifying_key.to_bytes().to_base64()
             );
 
+            // When SP1_PROVER is set to mock, disable recursive proofs
+            let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
             let prover_cfg = prism_prover::Config {
                 prover: true,
                 batcher: true,
@@ -118,6 +123,7 @@ async fn main() -> std::io::Result<()> {
                 verifying_key,
                 start_height,
                 max_epochless_gap: config.max_epochless_gap,
+                recursive_proofs,
             };
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
@@ -139,12 +145,13 @@ async fn main() -> std::io::Result<()> {
 
             let signing_key = get_signing_key(keystore_type, keystore_path)?;
 
-            let verifying_key = config
-                .network
-                .verifying_key
-                .clone()
-                .ok_or_else(|| Error::new(ErrorKind::NotFound, "prover verifying key not found"))?;
+            let verifying_key =
+                config.network.verifying_key.clone().ok_or_else(|| {
+                    Error::new(ErrorKind::NotFound, "prover verifying key not found")
+                })?;
 
+            // When SP1_PROVER is set to mock, disable recursive proofs
+            let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
             let prover_cfg = prism_prover::Config {
                 prover: false,
                 batcher: true,
@@ -153,6 +160,7 @@ async fn main() -> std::io::Result<()> {
                 verifying_key,
                 start_height,
                 max_epochless_gap: config.max_epochless_gap,
+                recursive_proofs,
             };
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {

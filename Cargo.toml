@@ -101,9 +101,9 @@ dotenvy = "0.15.7"
 
 # zk
 rand = "0.8.5"
-sp1-zkvm = { version = "4.1.0" }
-sp1-sdk = { version = "4.1.0" }
-sp1-verifier = { version = "4.1.0", default-features = false }
+sp1-zkvm = { version = "4.2.0" }
+sp1-sdk = { version = "4.2.0" }
+sp1-verifier = { version = "4.2.0", default-features = false }
 
 # curves
 ed25519 = { version = "2.2.3", features = ["pem"] }
@@ -189,4 +189,3 @@ lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
 [workspace.features]
 default = []
 test_utils = []
-mock_prover = []

@@ -2,7 +2,6 @@
 use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::Result;
 use async_trait::async_trait;
-use tracing::debug;
 use lumina_node::events::EventSubscriber;
 use prism_common::transaction::Transaction;
 use std::{collections::VecDeque, sync::Arc};
@@ -10,6 +9,7 @@ use tokio::{
     sync::{Mutex, RwLock, broadcast},
     time::{Duration, interval},
 };
+use tracing::debug;
 
 #[derive(Clone, Debug)]
 pub struct Block {
