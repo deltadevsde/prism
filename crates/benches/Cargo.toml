@@ -1,0 +1,20 @@
+[package]
+name = "prism-benches"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+criterion = "0.6.0"
+prism-common.workspace = true
+prism-keys.workspace = true
+prism-tree.workspace = true
+sp1-sdk.workspace = true
+sp1-verifier.workspace = true
+
+[[bench]]
+name = "sp1_benchmarks"
+harness = false # This is important for Criterion to manage its own main function
+path = "benches/sp1_benchmarks.rs"

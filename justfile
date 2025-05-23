@@ -98,11 +98,15 @@ build:
   cd crates/zk/sp1 && cargo prove build --bin recursive_prover --output-directory ../../../elf/ --elf-name recursive-riscv32im-succinct-zkvm-elf
   @echo "Recursive binary built successfully."
 
+  @echo "Building SP1 recursive two binary..."
+  cd crates/zk/sp1 && cargo prove build --bin recursive_prover_two --output-directory ../../../elf/ --elf-name recursive-two-riscv32im-succinct-zkvm-elf
+  @echo "Recursive two binary built successfully."
+
   @echo "Creating verifying keys directory..."
   mkdir -p ./verification_keys
 
   @echo "Generating verification keys..."
-  echo "{\"base_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/base-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\", \"recursive_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/recursive-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\"}" > ./verification_keys/keys.json
+  echo "{\"base_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/base-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\", \"recursive_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/recursive-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\", \"recursive_two_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/recursive-two-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\"}" > ./verification_keys/keys.json
 
   @echo "Verification key hashes generated successfully"
 

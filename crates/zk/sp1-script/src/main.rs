@@ -21,7 +21,7 @@ use prism_tree::{
 };
 use rand::Rng;
 use sha2::{Digest, Sha256, Sha512};
-use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Proof, SP1Stdin};
+use sp1_sdk::{CudaProver, HashableKey, Prover, ProverClient, SP1Proof, SP1Stdin};
 use std::{sync::Arc, time::Instant};
 use tokio::{self, task};
 
@@ -30,6 +30,8 @@ pub const BASE_PRISM_ELF: &[u8] =
     include_bytes!("../../../../elf/base-riscv32im-succinct-zkvm-elf");
 pub const RECURSIVE_PRISM_ELF: &[u8] =
     include_bytes!("../../../../elf/recursive-riscv32im-succinct-zkvm-elf");
+pub const RECURSIVE_PRISM_TWO_ELF: &[u8] =
+    include_bytes!("../../../../elf/recursive-two-riscv32im-succinct-zkvm-elf");
 
 /// The arguments for the command.
 #[derive(Parser, Debug)]
@@ -43,7 +45,311 @@ struct Args {
 
     #[clap(long)]
     tag: Option<String>,
+
+    #[clap(long, default_value = "both")]
+    proof_strategy: String,
 }
+
+#[tokio::main]
+async fn main() {
+    // Setup the logger.
+    sp1_sdk::utils::setup_logger();
+
+    // Parse the command line arguments.
+    let args = Args::parse();
+
+    // Ensure that either --execute or --prove is specified, but not both
+    if args.execute == args.prove {
+        eprintln!("Error: You must specify either --execute or --prove");
+        std::process::exit(1);
+    }
+
+    // Execute simulations if --execute is specified
+    if args.execute {
+        println!("------ EXECUTING SIMULATIONS ------");
+    } else {
+        // Setup the prover client with CUDA support.
+        let client = ProverClient::builder().cuda().build();
+
+        let proof_strategy = &args.proof_strategy;
+
+        if proof_strategy == "both" || proof_strategy == "compressed" {
+            println!("\n------ BENCHMARKING COMPRESSED+GROTH16 APPROACH ------");
+            benchmark_compressed_approach(&client).await;
+        }
+
+        if proof_strategy == "both" || proof_strategy == "groth16" {
+            println!("\n------ BENCHMARKING GROTH16-ONLY APPROACH ------");
+            benchmark_groth16_approach(&client).await;
+        }
+    }
+}
+
+async fn benchmark_compressed_approach(client: &CudaProver) {
+    println!("------ PHASE 1: BASE PROOF GENERATION ------");
+
+    // Setup the inputs for a single configuration for proof generation.
+    let mut stdin_base = SP1Stdin::new();
+    let mut builder = TestTransactionBuilder::new();
+    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+    let config = create_benchmark_config();
+
+    println!("{:?}", tree.get_commitment().unwrap());
+    println!("Starting to create benchmark batch");
+    let base_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
+
+    println!("Done creating benchmark batch");
+
+    stdin_base.write(&base_batch);
+
+    // Setup the base program for proving.
+    let (base_pk, base_vk) = client.setup(BASE_PRISM_ELF);
+
+    // generate the base compressed proof
+    println!("Generating base compressed proof");
+    let start = Instant::now();
+    let base_compressed_proof = client
+        .prove(&base_pk, &stdin_base)
+        .compressed()
+        .run()
+        .expect("failed to generate base compressed proof");
+    let compressed_duration = start.elapsed();
+    println!(
+        "Generated base compressed proof in {:.2?}",
+        compressed_duration
+    );
+
+    // Generate the base groth16 proof
+    println!("Generating base groth16 proof");
+    let start = Instant::now();
+    let base_proof = client
+        .prove(&base_pk, &stdin_base)
+        .groth16()
+        .run()
+        .expect("failed to generate base groth16 proof");
+    let groth16_duration = start.elapsed();
+    println!("Generated base groth16 proof in {:.2?}", groth16_duration);
+
+    println!("Verifying base proofs");
+    client
+        .verify(&base_compressed_proof, &base_vk)
+        .expect("failed to verify base compressed proof");
+    client.verify(&base_proof, &base_vk).expect("failed to verify base groth16 proof");
+    println!("Base proofs verified successfully!");
+
+    println!("\n------ PHASE 2: RECURSIVE PROOF GENERATION (COMPRESSED APPROACH) ------");
+    let mut stdin_recursive = SP1Stdin::new();
+
+    let public_values = base_compressed_proof.public_values.clone();
+    let vkey_hash = base_vk.hash_u32();
+
+    // Write recursive inputs for compressed approach
+    let SP1Proof::Compressed(compressed_proof) = base_compressed_proof.proof else {
+        panic!("Expected compressed proof")
+    };
+    stdin_recursive.write_proof(*compressed_proof, base_vk.vk);
+    stdin_recursive.write_vec(public_values.to_vec());
+    stdin_recursive.write(&vkey_hash);
+
+    println!("Creating recursive batch");
+    let recursive_config = create_recursive_config();
+
+    let recursive_batch = create_benchmark_batch(&mut builder, &mut tree, &recursive_config);
+
+    if recursive_batch.prev_root != base_batch.new_root {
+        eprintln!("Error: State discontinuity between batches");
+        eprintln!("Base batch new_root: {:?}", base_batch.new_root);
+        eprintln!("Recursive batch prev_root: {:?}", recursive_batch.prev_root);
+        std::process::exit(1);
+    }
+    stdin_recursive.write(&recursive_batch);
+
+    let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_ELF);
+
+    println!("Generating compressed recursive proof");
+    let start = Instant::now();
+    let compressed_recursive_proof = client
+        .prove(&recursive_pk, &stdin_recursive)
+        .compressed()
+        .run()
+        .expect("failed to generate recursive compressed proof");
+    let compressed_recursive_duration = start.elapsed();
+    println!(
+        "Generated compressed recursive proof in {:.2?} seconds",
+        compressed_recursive_duration
+    );
+
+    println!("Generating recursive groth16 proof");
+    let start = Instant::now();
+    let recursive_proof = client
+        .prove(&recursive_pk, &stdin_recursive)
+        .groth16()
+        .run()
+        .expect("failed to generate recursive groth16 proof");
+    let recursive_groth16_duration = start.elapsed();
+    println!(
+        "Generated recursive groth16 proof in {:.2?}",
+        recursive_groth16_duration
+    );
+
+    println!("Verifying recursive proofs");
+    client
+        .verify(&compressed_recursive_proof, &recursive_vk)
+        .expect("failed to verify recursive compressed proof");
+    client
+        .verify(&recursive_proof, &recursive_vk)
+        .expect("failed to verify recursive groth16 proof");
+    println!("Recursive proofs verified successfully!");
+
+    println!("\n------ COMPRESSED+GROTH16 APPROACH SUMMARY ------");
+    println!(
+        "Base compressed proof generation: {:.2?}",
+        compressed_duration
+    );
+    println!("Base Groth16 proof generation: {:.2?}", groth16_duration);
+    println!(
+        "Recursive compressed proof generation: {:.2?}",
+        compressed_recursive_duration
+    );
+    println!(
+        "Recursive Groth16 proof generation: {:.2?}",
+        recursive_groth16_duration
+    );
+    println!(
+        "Total proof generation time: {:.2?}",
+        compressed_duration
+            + groth16_duration
+            + compressed_recursive_duration
+            + recursive_groth16_duration
+    );
+}
+
+async fn benchmark_groth16_approach(client: &CudaProver) {
+    println!("------ PHASE 1: BASE PROOF GENERATION (GROTH16 ONLY) ------");
+
+    // Setup the inputs for a single configuration for proof generation.
+    let mut stdin_base = SP1Stdin::new();
+    let mut builder = TestTransactionBuilder::new();
+    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+    let config = create_benchmark_config();
+
+    println!("{:?}", tree.get_commitment().unwrap());
+    println!("Starting to create benchmark batch");
+    let base_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
+
+    println!("Done creating benchmark batch");
+
+    stdin_base.write(&base_batch);
+
+    // Setup the base program for proving.
+    let (base_pk, base_vk) = client.setup(BASE_PRISM_ELF);
+
+    // Generate only the base groth16 proof
+    println!("Generating base groth16 proof");
+    let start = Instant::now();
+    let base_proof = client
+        .prove(&base_pk, &stdin_base)
+        .groth16()
+        .run()
+        .expect("failed to generate base groth16 proof");
+    let groth16_duration = start.elapsed();
+    println!("Generated base groth16 proof in {:.2?}", groth16_duration);
+
+    println!("Verifying base proof");
+    client.verify(&base_proof, &base_vk).expect("failed to verify base groth16 proof");
+    println!("Base proof verified successfully!");
+
+    println!("\n------ PHASE 2: RECURSIVE PROOF GENERATION (GROTH16 ONLY) ------");
+    let mut stdin_recursive = SP1Stdin::new();
+
+    // Write recursive inputs for Groth16 approach
+    stdin_base.write_vec(base_proof.bytes());
+    stdin_base.write_vec(base_proof.public_values.to_vec());
+    stdin_base.write(&base_vk.bytes32());
+
+    println!("Creating recursive batch");
+    let recursive_config = create_recursive_config();
+
+    let recursive_batch = create_benchmark_batch(&mut builder, &mut tree, &recursive_config);
+
+    if recursive_batch.prev_root != base_batch.new_root {
+        eprintln!("Error: State discontinuity between batches");
+        eprintln!("Base batch new_root: {:?}", base_batch.new_root);
+        eprintln!("Recursive batch prev_root: {:?}", recursive_batch.prev_root);
+        std::process::exit(1);
+    }
+    stdin_recursive.write(&recursive_batch);
+
+    // Use the recursive_two ELF file which uses Groth16Verifier directly
+    let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_TWO_ELF);
+
+    println!("Generating recursive groth16 proof");
+    let start = Instant::now();
+    let recursive_proof = client
+        .prove(&recursive_pk, &stdin_recursive)
+        .groth16()
+        .run()
+        .expect("failed to generate recursive groth16 proof");
+    let recursive_groth16_duration = start.elapsed();
+    println!(
+        "Generated recursive groth16 proof in {:.2?}",
+        recursive_groth16_duration
+    );
+
+    println!("Verifying recursive proof");
+    client
+        .verify(&recursive_proof, &recursive_vk)
+        .expect("failed to verify recursive groth16 proof");
+    println!("Recursive proof verified successfully!");
+
+    println!("\n------ GROTH16-ONLY APPROACH SUMMARY ------");
+    println!("Base Groth16 proof generation: {:.2?}", groth16_duration);
+    println!(
+        "Recursive Groth16 proof generation: {:.2?}",
+        recursive_groth16_duration
+    );
+    println!(
+        "Total proof generation time: {:.2?}",
+        groth16_duration + recursive_groth16_duration
+    );
+}
+
+// Helper function to create benchmark configuration
+fn create_benchmark_config() -> SimulationConfig {
+    SimulationConfig {
+        tags: vec![],
+        num_simulations: 1,
+        algorithms: vec![CryptoAlgorithm::Secp256r1],
+        num_existing_services: 1,
+        num_existing_accounts: 10,
+        num_new_services: 1,
+        num_new_accounts: 3,
+        num_add_keys: 3,
+        num_revoke_key: 1,
+        num_add_data: 1,
+        num_set_data: 1,
+    }
+}
+
+// Helper function to create recursive configuration
+fn create_recursive_config() -> SimulationConfig {
+    SimulationConfig {
+        tags: vec![],
+        num_simulations: 1,
+        algorithms: vec![CryptoAlgorithm::Secp256r1],
+        num_existing_services: 2,
+        num_existing_accounts: 13,
+        num_new_services: 10,
+        num_new_accounts: 10,
+        num_add_keys: 12,
+        num_revoke_key: 8,
+        num_add_data: 5,
+        num_set_data: 5,
+    }
+}
+
+// Rest of your existing code...
+// Include create_benchmark_batch, SimulationConfig struct, execute_simulations, etc.
 
 #[derive(Debug, Clone)]
 struct SimulationConfig {
@@ -60,105 +366,7 @@ struct SimulationConfig {
     num_set_data: usize,
 }
 
-impl Default for SimulationConfig {
-    fn default() -> Self {
-        SimulationConfig {
-            tags: vec![],
-            num_simulations: 1,
-            algorithms: vec![
-                CryptoAlgorithm::Ed25519,
-                CryptoAlgorithm::Secp256k1,
-                CryptoAlgorithm::Secp256r1,
-            ],
-            num_existing_services: 3,
-            num_existing_accounts: 100,
-            num_new_services: 1,
-            num_new_accounts: 3,
-            num_add_keys: 3,
-            num_revoke_key: 1,
-            num_add_data: 1,
-            num_set_data: 1,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct SimulationResult {
-    config: SimulationConfig,
-    min_cycles: u64,
-    max_cycles: u64,
-    avg_cycles: f64,
-    median_cycles: u64,
-    std_dev: f64,
-    std_dev_percentage: f64,
-}
-
-/// Get a random service ID from the transaction builder
-fn get_random_service_id(rng: &mut impl Rng, builder: &TestTransactionBuilder) -> String {
-    let service_keys = builder.get_service_keys().clone();
-    let service_id = service_keys.keys().nth(rng.gen_range(0..service_keys.len())).unwrap();
-    service_id.to_string()
-}
-
-/// Get the service key for a given service ID from the transaction builder
-fn _get_service_key(builder: &TestTransactionBuilder, service_id: &str) -> SigningKey {
-    let service_keys = builder.get_service_keys().clone();
-    let service_key = service_keys.get(service_id).unwrap();
-    service_key.clone()
-}
-
-/// Get a random account ID from the transaction builder
-fn get_random_account_id(rng: &mut impl Rng, builder: &TestTransactionBuilder) -> String {
-    let account_keys = builder.get_account_keys().clone();
-    let account_id = account_keys.keys().nth(rng.gen_range(0..account_keys.len())).unwrap();
-    account_id.to_string()
-}
-
-/// Get the first account key for a given account ID from the transaction builder
-fn get_first_account_key(builder: &TestTransactionBuilder, account_id: &str) -> SigningKey {
-    let account_keys_map = builder.get_account_keys().clone();
-    let account_keys = account_keys_map.get(account_id).unwrap();
-    account_keys.first().unwrap().clone()
-}
-
-/// Create a batch of transactions to prepare the initial state of the tree
-fn create_preparation_batch(
-    builder: &mut TestTransactionBuilder,
-    tree: &mut KeyDirectoryTree<MockTreeStore>,
-    config: &SimulationConfig,
-) -> Batch {
-    let mut transactions =
-        Vec::with_capacity(config.num_existing_services + config.num_existing_accounts);
-
-    let mut rng = rand::thread_rng();
-
-    // Register existing services with random keys
-    for i in 0..config.num_existing_services {
-        let algorithm = config.algorithms[i % config.algorithms.len()];
-        let service_id = format!(
-            "service_{}",
-            hex::encode(Sha256::digest(algorithm.to_string().as_bytes()))
-        );
-        let transaction =
-            builder.register_service_with_random_keys(algorithm, &service_id).commit();
-        transactions.push(transaction);
-    }
-
-    // Create existing accounts with random keys
-    for i in 0..config.num_existing_accounts {
-        let algorithm = config.algorithms[i % config.algorithms.len()];
-        let account_id = format!("account_{}", hex::encode(Sha256::digest(i.to_le_bytes())));
-        let service_id = get_random_service_id(&mut rng, builder);
-        let transaction = builder
-            .create_account_with_random_key_signed(algorithm, &account_id, &service_id)
-            .commit();
-        transactions.push(transaction);
-    }
-
-    tree.process_batch(transactions).unwrap()
-}
-
-/// Create a batch of transactions to benchmark the performance of the tree
+// Implementation of create_benchmark_batch and other functions from your original code
 fn create_benchmark_batch(
     builder: &mut TestTransactionBuilder,
     tree: &mut KeyDirectoryTree<MockTreeStore>,
@@ -231,155 +439,27 @@ fn create_benchmark_batch(
     tree.process_batch(transactions).unwrap()
 }
 
-#[tokio::main]
-async fn main() {
-    // Setup the logger.
-    sp1_sdk::utils::setup_logger();
-
-    // Parse the command line arguments.
-    let args = Args::parse();
-
-    // Ensure that either --execute or --prove is specified, but not both
-    if args.execute == args.prove {
-        eprintln!("Error: You must specify either --execute or --prove");
-        std::process::exit(1);
-    }
-
-    // Execute simulations if --execute is specified
-    if args.execute {
-        execute_simulations(args).await;
-    } else {
-        // Setup the prover client with CUDA support.
-        let client = ProverClient::builder().cuda().build();
-
-        println!("------ PHASE 1: BASE PROOF GENERATION ------");
-
-        // Setup the inputs for a single configuration for proof generation.
-        let mut stdin_base = SP1Stdin::new();
-        let mut builder = TestTransactionBuilder::new();
-        let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
-        let config = SimulationConfig {
-            tags: vec![],
-            num_simulations: 1,
-            algorithms: vec![CryptoAlgorithm::Secp256r1],
-            num_existing_services: 1,
-            num_existing_accounts: 10,
-            num_new_services: 1,
-            num_new_accounts: 3,
-            num_add_keys: 3,
-            num_revoke_key: 1,
-            num_add_data: 1,
-            num_set_data: 1,
-        };
-        println!("{:?}", tree.get_commitment().unwrap());
-        println!("Starting to create benchmark batch");
-        let base_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
-
-        println!("Done creating benchmark batch");
-
-        stdin_base.write(&base_batch);
-
-        // Setup the base program for proving.
-        let (base_pk, base_vk) = client.setup(BASE_PRISM_ELF);
-
-        // generate the base compressed proof
-        println!("Generating base proof");
-        let start = Instant::now();
-        let base_compressed_proof = client
-            .prove(&base_pk, &stdin_base)
-            .compressed()
-            .run()
-            .expect("failed to generate base proof");
-
-        // Generate the base groth16 proof
-        println!("Generating base proof");
-        let base_proof = client
-            .prove(&base_pk, &stdin_base)
-            .groth16()
-            .run()
-            .expect("failed to generate base proof");
-        let duration = start.elapsed();
-        println!("Generated base groth16 proof in {:.2?} seconds", duration);
-
-        println!("Verifying base proofs");
-        client.verify(&base_compressed_proof, &base_vk).expect("failed to verify base proof");
-        client.verify(&base_proof, &base_vk).expect("failed to verify base proof");
-        println!("Base proof verified successfully!");
-
-        println!("\n------ PHASE 2: RECURSIVE PROOF GENERATION ------");
-        let mut stdin_recursive = SP1Stdin::new();
-
-        let public_values = base_compressed_proof.public_values.clone();
-        let vkey_hash = base_vk.hash_u32();
-
-        // Write recursive inputs
-        let SP1Proof::Compressed(compressed_proof) = base_compressed_proof.proof else {
-            panic!("Expected compressed proof")
-        };
-        stdin_recursive.write_proof(*compressed_proof, base_vk.vk);
-        stdin_recursive.write_vec(public_values.to_vec());
-        stdin_recursive.write(&vkey_hash);
-
-        println!("Creating recursive batch");
-        let recursive_config = SimulationConfig {
-            tags: vec![],
-            num_simulations: 1,
-            algorithms: vec![CryptoAlgorithm::Secp256r1],
-            num_existing_services: 2,
-            num_existing_accounts: 13,
-            num_new_services: 10,
-            num_new_accounts: 10,
-            num_add_keys: 12,
-            num_revoke_key: 8,
-            num_add_data: 5,
-            num_set_data: 5,
-        };
-
-        let recursive_batch = create_benchmark_batch(&mut builder, &mut tree, &recursive_config);
-
-        if recursive_batch.prev_root != base_batch.new_root {
-            eprintln!("Error: State discontinuity between batches");
-            eprintln!("Base batch new_root: {:?}", base_batch.new_root);
-            eprintln!("Recursive batch prev_root: {:?}", recursive_batch.prev_root);
-            std::process::exit(1);
-        }
-        stdin_recursive.write(&recursive_batch);
-
-        let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_ELF);
-
-        println!("Generating compressed recursive proof");
-        let start = Instant::now();
-        let compressed_recursive_proof = client
-            .prove(&recursive_pk, &stdin_recursive)
-            .compressed()
-            .run()
-            .expect("failed to generate recursive proof");
-
-        println!(
-            "Generated compressed recursive proof in {:.2?} seconds",
-            duration
-        );
-
-        println!("Generating recursive groth16 proof");
-
-        let recursive_proof = client
-            .prove(&recursive_pk, &stdin_recursive)
-            .groth16()
-            .run()
-            .expect("failed to generate recursive proof");
-        let duration = start.elapsed();
-        println!("Generated recursive proof in {:.2?} seconds", duration);
-
-        println!("Verifying recursive proofs");
-        client
-            .verify(&compressed_recursive_proof, &recursive_vk)
-            .expect("failed to verify recursive proof");
-        client.verify(&recursive_proof, &recursive_vk).expect("failed to verify recursive proof");
-        println!("Recursive proof verified successfully!");
-    }
+/// Get a random service ID from the transaction builder
+fn get_random_service_id(rng: &mut impl Rng, builder: &TestTransactionBuilder) -> String {
+    let service_keys = builder.get_service_keys().clone();
+    let service_id = service_keys.keys().nth(rng.gen_range(0..service_keys.len())).unwrap();
+    service_id.to_string()
 }
 
-/// Execute simulations based on the provided arguments
+/// Get a random account ID from the transaction builder
+fn get_random_account_id(rng: &mut impl Rng, builder: &TestTransactionBuilder) -> String {
+    let account_keys = builder.get_account_keys().clone();
+    let account_id = account_keys.keys().nth(rng.gen_range(0..account_keys.len())).unwrap();
+    account_id.to_string()
+}
+
+/// Get the first account key for a given account ID from the transaction builder
+fn get_first_account_key(builder: &TestTransactionBuilder, account_id: &str) -> SigningKey {
+    let account_keys_map = builder.get_account_keys().clone();
+    let account_keys = account_keys_map.get(account_id).unwrap();
+    account_keys.first().unwrap().clone()
+}
+/* /// Execute simulations based on the provided arguments
 async fn execute_simulations(args: Args) {
     let num_simulations = 100; // Number of times to run each configuration
 
@@ -1030,3 +1110,4 @@ fn plot_orange_configurations_algorithm(
 
     Ok(())
 }
+ */
