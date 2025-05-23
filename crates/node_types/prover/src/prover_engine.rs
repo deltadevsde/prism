@@ -166,7 +166,11 @@ impl ProverEngine {
         }
     }
 
-    pub async fn verify_epoch_proof(&self, epoch_height: u64, proof: &SP1ProofWithPublicValues) -> Result<()> {
+    pub async fn verify_epoch_proof(
+        &self,
+        epoch_height: u64,
+        proof: &SP1ProofWithPublicValues,
+    ) -> Result<()> {
         let client = if epoch_height == 0 || !self.recursive_proofs_enabled {
             self.base_prover_client.read().await
         } else {
@@ -174,7 +178,7 @@ impl ProverEngine {
         };
 
         let verifying_key = self.get_verifying_key(epoch_height);
-        
+
         client.verify(proof, verifying_key)?;
         Ok(())
     }

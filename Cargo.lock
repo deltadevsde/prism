@@ -7077,6 +7077,7 @@ dependencies = [
  "serde",
  "sp1-sdk",
  "tokio",
+ "tokio-util",
  "tower-http",
  "tracing",
  "utoipa",
