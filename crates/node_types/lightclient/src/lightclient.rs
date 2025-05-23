@@ -113,6 +113,7 @@ impl LightClient {
                 });
 
                 if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
+                    #[cfg(feature = "telemetry")]
                     if let Some(metrics) = get_metrics() {
                         metrics.record_celestia_synced_height(height, vec![]);
                         if let Some(latest_finalized_epoch) =

@@ -9,7 +9,6 @@ repository.workspace = true
 [features]
 default = ["telemetry"]
 telemetry = ["prism-telemetry-registry"]
-minimal = [] # for uniffi and maybe wasm
 test_utils = []
 
 [dependencies]
