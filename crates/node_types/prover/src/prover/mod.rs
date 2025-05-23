@@ -1,6 +1,6 @@
 mod timer;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use prism_common::{
     api::{
@@ -29,35 +29,38 @@ use prism_da::DataAvailabilityLayer;
 pub const DEFAULT_MAX_EPOCHLESS_GAP: u64 = 300;
 
 #[derive(Clone)]
-pub struct Config {
-    /// Enables generating [`FinalizedEpoch`]s and posting them to the DA
-    /// layer. When deactivated, the node will simply sync historical and
-    /// incoming [`FinalizedEpoch`]s.
-    pub prover: bool,
-
-    /// Enables accepting incoming transactions from the webserver and posting batches to the DA layer.
-    /// When deactivated, the node will reject incoming transactions.
-    pub batcher: bool,
-
-    /// Configuration for the webserver.
-    pub webserver: WebServerConfig,
-
-    /// Key used to sign new [`FinalizedEpochs`].
-    pub signing_key: SigningKey,
-
+pub struct SyncerConfig {
     /// Key used to verify incoming [`FinalizedEpochs`].
-    /// This is not necessarily the counterpart to signing_key, as fullnodes must use the [`verifying_key`] of the prover.
     pub verifying_key: VerifyingKey,
-
     /// DA layer height the prover should start syncing transactions from.
     pub start_height: u64,
-    ///
     /// Maximum DA height gap between two epochs; If exceeded, the prover will
     /// repost the last epoch to aid LN syncing.
     pub max_epochless_gap: u64,
+    /// Enables generating [`FinalizedEpoch`]s and posting them to the DA layer.
+    pub prover_enabled: bool,
+}
 
-    /// Whether recursive proofs should be enabled - defaults to false, unless SP1_PROVER env var is set to "mock"
+#[derive(Clone)]
+pub struct SequencerConfig {
+    /// Key used to sign new [`FinalizedEpochs`].
+    pub signing_key: SigningKey,
+    /// Enables accepting incoming transactions from the webserver and posting batches to the DA layer.
+    pub batcher_enabled: bool,
+}
+
+#[derive(Clone)]
+pub struct ProverEngineConfig {
+    /// Whether recursive proofs should be enabled
     pub recursive_proofs: bool,
+}
+
+#[derive(Clone)]
+pub struct Config {
+    pub syncer: SyncerConfig,
+    pub sequencer: SequencerConfig,
+    pub prover_engine: ProverEngineConfig,
+    pub webserver: WebServerConfig,
 }
 
 impl Default for Config {
@@ -65,14 +68,20 @@ impl Default for Config {
         let signing_key = SigningKey::new_ed25519();
 
         Config {
-            prover: true,
-            batcher: true,
+            syncer: SyncerConfig {
+                verifying_key: signing_key.verifying_key(),
+                start_height: 1,
+                max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
+                prover_enabled: true,
+            },
+            sequencer: SequencerConfig {
+                signing_key,
+                batcher_enabled: true,
+            },
+            prover_engine: ProverEngineConfig {
+                recursive_proofs: false,
+            },
             webserver: WebServerConfig::default(),
-            signing_key: signing_key.clone(),
-            verifying_key: signing_key.verifying_key(),
-            start_height: 1,
-            max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
-            recursive_proofs: false,
         }
     }
 }
@@ -90,12 +99,10 @@ impl Config {
         let signing_key =
             SigningKey::new_with_algorithm(algorithm).context("Failed to create signing key")?;
 
-        Ok(Config {
-            signing_key: signing_key.clone(),
-            verifying_key: signing_key.verifying_key(),
-            recursive_proofs: false,
-            ..Config::default()
-        })
+        let mut config = Config::default();
+        config.syncer.verifying_key = signing_key.verifying_key();
+        config.sequencer.signing_key = signing_key;
+        Ok(config)
     }
 }
 
@@ -118,26 +125,22 @@ impl Prover {
     ) -> Result<Prover> {
         let latest_epoch_da_height = Arc::new(RwLock::new(0));
 
-        let prover_engine = Arc::new(ProverEngine::new(cfg.recursive_proofs)?);
+        let prover_engine = Arc::new(ProverEngine::new(&cfg.prover_engine)?);
 
         let sequencer = Arc::new(Sequencer::new(
             db.clone(),
             da.clone(),
-            cfg.signing_key.clone(),
+            &cfg.sequencer,
             latest_epoch_da_height.clone(),
-            cfg.batcher,
         )?);
 
         let syncer = Arc::new(Syncer::new(
             da,
             db,
-            cfg.verifying_key.clone(),
-            cfg.max_epochless_gap,
+            &cfg.syncer,
             latest_epoch_da_height.clone(),
-            cfg.start_height,
             sequencer.clone(),
             prover_engine.clone(),
-            cfg.prover,
         ));
 
         Ok(Prover {
@@ -215,22 +218,26 @@ impl Prover {
         // Wait for any service to exit
         let exit_result = if let Some(result) = futures.join_next().await {
             match result {
-                Ok(service_result) => {
-                    match service_result {
-                        Ok(_) => {
-                            info!("Service exited gracefully, shutting down other components");
-                            self.cancellation_token.cancel();
-                            Ok(())
-                        },
-                        Err(service_error) => {
-                            error!("Service exited with error: {:?}, shutting down other components", service_error);
-                            self.cancellation_token.cancel();
-                            Err(service_error)
-                        }
+                Ok(service_result) => match service_result {
+                    Ok(_) => {
+                        info!("Service exited gracefully, shutting down other components");
+                        self.cancellation_token.cancel();
+                        Ok(())
+                    }
+                    Err(service_error) => {
+                        error!(
+                            "Service exited with error: {:?}, shutting down other components",
+                            service_error
+                        );
+                        self.cancellation_token.cancel();
+                        Err(service_error)
                     }
                 },
                 Err(join_error) => {
-                    error!("Task join error: {:?}, shutting down other components", join_error);
+                    error!(
+                        "Task join error: {:?}, shutting down other components",
+                        join_error
+                    );
                     self.cancellation_token.cancel();
                     Err(anyhow!("Task join error: {}", join_error))
                 }

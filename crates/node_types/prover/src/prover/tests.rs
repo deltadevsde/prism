@@ -13,10 +13,8 @@ async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
     let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let cfg = Config {
-        max_epochless_gap: 5,
-        ..Config::default_with_key_algorithm(algorithm).unwrap()
-    };
+    let mut cfg = Config::default_with_key_algorithm(algorithm).unwrap();
+    cfg.syncer.max_epochless_gap = 5;
     Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
 }
 

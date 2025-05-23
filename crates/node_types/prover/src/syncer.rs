@@ -27,24 +27,21 @@ impl Syncer {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
         db: Arc<Box<dyn Database>>,
-        verifying_key: VerifyingKey,
-        max_epochless_gap: u64,
+        config: &crate::prover::SyncerConfig,
         latest_epoch_da_height: Arc<RwLock<u64>>,
-        start_height: u64,
         sequencer: Arc<Sequencer>,
         prover_engine: Arc<ProverEngine>,
-        is_prover_enabled: bool,
     ) -> Self {
         Self {
             da,
             db,
-            verifying_key,
-            max_epochless_gap,
+            verifying_key: config.verifying_key.clone(),
+            max_epochless_gap: config.max_epochless_gap,
             latest_epoch_da_height,
-            start_height,
+            start_height: config.start_height,
             sequencer,
             prover_engine,
-            is_prover_enabled,
+            is_prover_enabled: config.prover_enabled,
         }
     }
 

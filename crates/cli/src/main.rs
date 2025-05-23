@@ -116,14 +116,20 @@ async fn main() -> std::io::Result<()> {
             // When SP1_PROVER is set to mock, disable recursive proofs
             let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
             let prover_cfg = prism_prover::Config {
-                prover: true,
-                batcher: true,
+                syncer: prism_prover::SyncerConfig {
+                    verifying_key,
+                    start_height,
+                    max_epochless_gap: config.max_epochless_gap,
+                    prover_enabled: true,
+                },
+                sequencer: prism_prover::SequencerConfig {
+                    signing_key,
+                    batcher_enabled: true,
+                },
+                prover_engine: prism_prover::ProverEngineConfig {
+                    recursive_proofs,
+                },
                 webserver: webserver_config.clone().unwrap_or_default(),
-                signing_key,
-                verifying_key,
-                start_height,
-                max_epochless_gap: config.max_epochless_gap,
-                recursive_proofs,
             };
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
@@ -153,14 +159,20 @@ async fn main() -> std::io::Result<()> {
             // When SP1_PROVER is set to mock, disable recursive proofs
             let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
             let prover_cfg = prism_prover::Config {
-                prover: false,
-                batcher: true,
+                syncer: prism_prover::SyncerConfig {
+                    verifying_key,
+                    start_height,
+                    max_epochless_gap: config.max_epochless_gap,
+                    prover_enabled: false, // FullNode doesn't generate proofs
+                },
+                sequencer: prism_prover::SequencerConfig {
+                    signing_key,
+                    batcher_enabled: true,
+                },
+                prover_engine: prism_prover::ProverEngineConfig {
+                    recursive_proofs,
+                },
                 webserver: webserver_config.unwrap_or_default(),
-                signing_key,
-                verifying_key,
-                start_height,
-                max_epochless_gap: config.max_epochless_gap,
-                recursive_proofs,
             };
 
             Arc::new(Prover::new(db, da, &prover_cfg).map_err(|e| {
