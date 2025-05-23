@@ -122,6 +122,7 @@ impl Prover {
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
         cfg: &Config,
+        cancellation_token: CancellationToken,
     ) -> Result<Prover> {
         let latest_epoch_da_height = Arc::new(RwLock::new(0));
 
@@ -149,7 +150,7 @@ impl Prover {
             sequencer,
             syncer,
             latest_epoch_da_height,
-            cancellation_token: CancellationToken::new(),
+            cancellation_token,
         })
     }
 
@@ -191,10 +192,6 @@ impl Prover {
         self.syncer.get_da()
     }
 
-    pub fn stop(&self) {
-        info!("Initiating graceful shutdown of Prover");
-        self.cancellation_token.cancel();
-    }
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         let mut futures = JoinSet::new();

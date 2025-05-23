@@ -6946,6 +6946,7 @@ dependencies = [
  "prism-telemetry-registry",
  "serde",
  "tokio",
+ "tokio-util",
  "toml 0.8.22",
  "tracing",
 ]
@@ -7174,6 +7175,7 @@ dependencies = [
  "rand 0.8.5",
  "tempfile",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

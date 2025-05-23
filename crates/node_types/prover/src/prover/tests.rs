@@ -4,6 +4,7 @@ use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_tree::proofs::Proof;
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
+use tokio_util::sync::CancellationToken;
 
 use prism_da::memory::InMemoryDataAvailabilityLayer;
 use prism_storage::inmemory::InMemoryDatabase;
@@ -15,7 +16,7 @@ async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let mut cfg = Config::default_with_key_algorithm(algorithm).unwrap();
     cfg.syncer.max_epochless_gap = 5;
-    Arc::new(Prover::new(db.clone(), da_layer, &cfg).unwrap())
+    Arc::new(Prover::new(db.clone(), da_layer, &cfg, CancellationToken::new()).unwrap())
 }
 
 fn create_mock_transactions(algorithm: CryptoAlgorithm, service_id: String) -> Vec<Transaction> {
@@ -212,7 +213,7 @@ async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
-    let prover = Arc::new(Prover::new(db1.clone(), da_layer.clone(), &cfg).unwrap());
+    let prover = Arc::new(Prover::new(db1.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap());
 
     let runner = prover.clone();
     spawn(async move {
@@ -232,7 +233,7 @@ async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
 
-    let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), &cfg).unwrap());
+    let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap());
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
 
@@ -254,7 +255,7 @@ async fn test_load_persisted_state(algorithm: CryptoAlgorithm) {
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
-    let prover = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
+    let prover = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap());
 
     let runner = prover.clone();
     spawn(async move {
@@ -274,7 +275,7 @@ async fn test_load_persisted_state(algorithm: CryptoAlgorithm) {
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
 
-    let prover2 = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg).unwrap());
+    let prover2 = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap());
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
     let epoch = prover2.get_db().get_latest_epoch_height().unwrap();
