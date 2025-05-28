@@ -110,6 +110,7 @@ impl Config {
         Ok(Config {
             signing_key: signing_key.clone(),
             verifying_key: signing_key.verifying_key(),
+            recursive_proofs: false,
             ..Config::default()
         })
     }

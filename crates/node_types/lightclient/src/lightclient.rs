@@ -3,6 +3,7 @@ use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
 use prism_da::{FinalizedEpoch, LightDataAvailabilityLayer};
 use prism_keys::VerifyingKey;
+#[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use serde::Deserialize;
 use std::{
@@ -112,6 +113,7 @@ impl LightClient {
                 });
 
                 if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
+                    #[cfg(feature = "telemetry")]
                     if let Some(metrics) = get_metrics() {
                         metrics.record_celestia_synced_height(height, vec![]);
                         if let Some(latest_finalized_epoch) =

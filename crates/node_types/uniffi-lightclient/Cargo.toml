@@ -22,7 +22,7 @@ thiserror = { workspace = true }
 sp1-verifier = { workspace = true }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
 prism-errors = { workspace = true }
-prism-lightclient = { workspace = true }
+prism-lightclient = { path = "../lightclient", default-features = false }
 prism-keys = { workspace = true }
 prism-da = { path = "../../da", features = ["uniffi"] }
 tokio = { workspace = true, features = ["sync"] }

@@ -9,18 +9,10 @@ repository.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[dependencies]
-libp2p = { workspace = true, features = ["serde"] }
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 anyhow = { workspace = true }
 bincode = { workspace = true }
-hex = { workspace = true }
-thiserror = { workspace = true }
-sp1-verifier = { workspace = true }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
-prism-errors = { workspace = true }
-prism-lightclient = { workspace = true }
-prism-da = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
 wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }
 web-sys = { workspace = true, features = [
@@ -31,6 +23,14 @@ web-sys = { workspace = true, features = [
     "MessagePort",
     "Worker",
 ] }
+wasm-bindgen-futures = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+libp2p = { workspace = true, features = ["serde"] }
+hex = { workspace = true }
+thiserror = { workspace = true }
+sp1-verifier = { workspace = true }
+prism-errors = { workspace = true }
+prism-lightclient = { path = "../lightclient", default-features = false }
+prism-da = { workspace = true }
 serde = { workspace = true}
 serde-wasm-bindgen = { workspace = true }
-wasm-bindgen-futures = { workspace = true }

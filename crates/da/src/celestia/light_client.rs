@@ -21,10 +21,10 @@ use {
     lumina_node_wasm::utils::resolve_dnsaddr_multiaddress,
 };
 
-#[cfg(not(feature = "uniffi"))]
-use {libp2p::Multiaddr, lumina_node::NodeBuilder};
+use libp2p::Multiaddr;
+use lumina_node::NodeBuilder;
 
-#[cfg(all(not(target_arch = "wasm32"), not(feature = "uniffi")))]
+#[cfg(not(target_arch = "wasm32"))]
 use {redb::Database, tokio::task::spawn_blocking};
 
 #[cfg(feature = "uniffi")]
@@ -61,7 +61,7 @@ pub struct LightClientConnection {
 }
 
 impl LightClientConnection {
-    #[cfg(all(not(target_arch = "wasm32"), not(feature = "uniffi")))]
+    #[cfg(not(target_arch = "wasm32"))]
     async fn setup_stores() -> Result<(
         EitherBlockstore<InMemoryBlockstore, RedbBlockstore>,
         EitherStore<InMemoryStore, RedbStore>,
@@ -94,7 +94,6 @@ impl LightClientConnection {
         Ok((blockstore, store))
     }
 
-    #[cfg(not(feature = "uniffi"))]
     pub async fn new(config: &NetworkConfig) -> Result<Self> {
         #[cfg(not(target_arch = "wasm32"))]
         let bootnodes = config.celestia_network.canonical_bootnodes().collect::<Vec<Multiaddr>>();
