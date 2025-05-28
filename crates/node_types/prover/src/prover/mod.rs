@@ -192,7 +192,6 @@ impl Prover {
         self.syncer.get_da()
     }
 
-
     pub async fn run(self: Arc<Self>) -> Result<()> {
         let mut futures = JoinSet::new();
 
