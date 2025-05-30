@@ -1,5 +1,5 @@
 use crate::Prover;
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use prism_common::{
     api::{
@@ -11,6 +11,7 @@ use prism_common::{
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
+use tokio_util::sync::CancellationToken;
 use tower_http::cors::CorsLayer;
 use utoipa::{
     OpenApi,
@@ -49,7 +50,7 @@ impl WebServer {
         Self { cfg, session }
     }
 
-    pub async fn start(&self) -> Result<()> {
+    pub async fn start(&self, cancellation_token: CancellationToken) -> Result<()> {
         if !self.cfg.enabled {
             bail!("Webserver is disabled")
         }
@@ -80,7 +81,13 @@ impl WebServer {
             socket_addr.port()
         );
 
-        server.await.context("Server error")?;
+        let cancellation_token = cancellation_token.clone();
+        server
+            .with_graceful_shutdown(async move {
+                cancellation_token.cancelled().await;
+                info!("Webserver shutting down gracefully");
+            })
+            .await?;
 
         Ok(())
     }
