@@ -115,6 +115,7 @@ impl Sequencer {
         epoch_height: u64,
         transactions: Vec<Transaction>,
         prover_engine: &Arc<ProverEngine>,
+        tip_da_height: u64,
     ) -> Result<u64> {
         let mut tree = self.tree.write().await;
         let batch = tree.process_batch(transactions)?;
@@ -133,11 +134,17 @@ impl Sequencer {
             compressed_proof,
             public_values,
             signature: None,
+            tip_da_height,
         };
 
         epoch_json.insert_signature(&self.signing_key)?;
 
+        debug!("Submitting finalized epoch height {} to DA", epoch_height);
         let da_height = self.da.submit_finalized_epoch(epoch_json.clone()).await?;
+        debug!(
+            "Finalized epoch height {} submitted to DA at height {}",
+            epoch_height, da_height
+        );
         let mut latest_da_height = self.latest_epoch_da_height.write().await;
         *latest_da_height = da_height;
 

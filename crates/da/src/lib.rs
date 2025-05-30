@@ -35,13 +35,30 @@ type CompressedProof = SP1ProofWithPublicValues;
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FinalizedEpoch {
+    /// The epoch height.
     pub height: u64,
+
+    /// Commitment of the last epoch.
     pub prev_commitment: Digest,
+
+    /// Commitment after the state transition to the current epoch.
     pub current_commitment: Digest,
+
+    /// Groth16 proof of the state transition.
     pub proof: Groth16Proof,
-    pub compressed_proof: CompressedProof,
+    /// Auxillary data for WASM arch to read the public values of the proof.
     pub public_values: Vec<u8>,
+
+    /// Compressed proof of the state transition, stored for cheaper recursive proving.
+    pub compressed_proof: CompressedProof,
+
+    /// The signature of this struct by the prover, with the signature field set to `None`.
     pub signature: Option<String>,
+
+    /// The tip of the DA layer at the time of the epoch; All transactions in
+    /// this epoch are from the DA blocks [previous_epoch.tip_da_height,
+    /// current_epoch.tip_da_height).
+    pub tip_da_height: u64,
 }
 
 impl FinalizedEpoch {
@@ -61,6 +78,7 @@ impl FinalizedEpoch {
             compressed_proof: self.compressed_proof.clone(),
             public_values: self.public_values.clone(),
             signature: None,
+            tip_da_height: self.tip_da_height,
         };
 
         let message = epoch_without_signature

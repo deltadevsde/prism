@@ -11,7 +11,7 @@ use prism_storage::inmemory::InMemoryDatabase;
 
 // Helper function to create a test prover instance
 async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
-    let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(1);
+    let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(500));
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let mut cfg = Config::default_with_key_algorithm(algorithm).unwrap();
@@ -62,7 +62,7 @@ async fn test_posts_epoch_after_max_gap(algorithm: CryptoAlgorithm) {
 
     // Verify commitment changes after epoch finalization
     let commitment_before_epoch = prover.get_commitment().await.unwrap();
-    let initial_epoch_height = prover.finalize_new_epoch(0, test_transactions).await.unwrap();
+    let initial_epoch_height = prover.finalize_new_epoch(0, test_transactions, 0).await.unwrap();
     let commitment_after_epoch = prover.get_commitment().await.unwrap();
     assert_ne!(
         commitment_before_epoch, commitment_after_epoch,
@@ -76,7 +76,8 @@ async fn test_posts_epoch_after_max_gap(algorithm: CryptoAlgorithm) {
             break;
         }
     }
-    let initial_epoch = prover.get_da().get_finalized_epoch(initial_epoch_height).await.unwrap().unwrap();
+    let initial_epoch =
+        prover.get_da().get_finalized_epoch(initial_epoch_height).await.unwrap().unwrap();
 
     // Wait for gap length
     loop {
@@ -96,7 +97,8 @@ async fn test_posts_epoch_after_max_gap(algorithm: CryptoAlgorithm) {
         }
     }
     // Verify gap proof contents
-    let gap_proof = prover.get_da().get_finalized_epoch(current_epoch_height).await.unwrap().unwrap();
+    let gap_proof =
+        prover.get_da().get_finalized_epoch(current_epoch_height).await.unwrap().unwrap();
     assert_eq!(
         gap_proof.height,
         initial_epoch.height + 1,
@@ -201,19 +203,27 @@ async fn test_finalize_new_epoch(algorithm: CryptoAlgorithm) {
     let transactions = create_mock_transactions(algorithm, "test_service".to_string());
 
     let prev_commitment = prover.get_commitment().await.unwrap();
-    prover.finalize_new_epoch(0, transactions).await.unwrap();
+    prover.finalize_new_epoch(0, transactions, 0).await.unwrap();
 
     let new_commitment = prover.get_commitment().await.unwrap();
     assert_ne!(prev_commitment, new_commitment);
 }
 
 async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
-    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
+    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(200));
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
-    let prover = Arc::new(Prover::new(db1.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap());
+    let prover = Arc::new(
+        Prover::new(
+            db1.clone(),
+            da_layer.clone(),
+            &cfg,
+            CancellationToken::new(),
+        )
+        .unwrap(),
+    );
 
     let runner = prover.clone();
     spawn(async move {
@@ -233,7 +243,15 @@ async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
 
-    let prover2 = Arc::new(Prover::new(db2.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap());
+    let prover2 = Arc::new(
+        Prover::new(
+            db2.clone(),
+            da_layer.clone(),
+            &cfg,
+            CancellationToken::new(),
+        )
+        .unwrap(),
+    );
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
 
@@ -250,12 +268,143 @@ async fn test_restart_sync_from_scratch(algorithm: CryptoAlgorithm) {
     }
 }
 
+async fn test_prover_fullnode_commitment_sync_with_racing_transactions(algorithm: CryptoAlgorithm) {
+    // Setup shared DA layer
+    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new_with_epoch_delay(
+        Duration::from_millis(200),
+        Duration::from_secs(1),
+    );
+    let da_layer = Arc::new(da_layer);
+
+    // Setup prover (with prover enabled)
+    let prover_db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
+    let mut prover_cfg = Config::default_with_key_algorithm(algorithm).unwrap();
+    prover_cfg.syncer.prover_enabled = true;
+    let prover = Arc::new(
+        Prover::new(
+            prover_db.clone(),
+            da_layer.clone(),
+            &prover_cfg,
+            CancellationToken::new(),
+        )
+        .unwrap(),
+    );
+
+    // Setup fullnode (with prover disabled) - use same verifying key as prover
+    let fullnode_db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
+    let mut fullnode_cfg = Config::default_with_key_algorithm(algorithm).unwrap();
+    fullnode_cfg.syncer.prover_enabled = false;
+    fullnode_cfg.syncer.verifying_key = prover_cfg.syncer.verifying_key.clone();
+    let fullnode = Arc::new(
+        Prover::new(
+            fullnode_db.clone(),
+            da_layer.clone(),
+            &fullnode_cfg,
+            CancellationToken::new(),
+        )
+        .unwrap(),
+    );
+
+    // Start both nodes
+    let prover_handle = prover.clone();
+    spawn(async move {
+        prover_handle.run().await.unwrap();
+    });
+
+    let fullnode_handle = fullnode.clone();
+    spawn(async move {
+        fullnode_handle.run().await.unwrap();
+    });
+
+    // Wait for both nodes to boot up
+    tokio::time::sleep(Duration::from_millis(1000)).await;
+
+    // Ensure both nodes are at the same height before proceeding
+    let mut prover_synced = false;
+    let mut fullnode_synced = false;
+
+    for _ in 0..50 {
+        // 5 second timeout
+        let prover_height = prover.get_db().get_last_synced_height().unwrap_or(0);
+        let fullnode_height = fullnode.get_db().get_last_synced_height().unwrap_or(0);
+        let da_height = da_layer.get_latest_height().await.unwrap();
+
+        if prover_height >= da_height && prover_height > 0 {
+            prover_synced = true;
+        }
+        if fullnode_height >= da_height && fullnode_height > 0 {
+            fullnode_synced = true;
+        }
+
+        if prover_synced && fullnode_synced {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    assert!(
+        prover_synced && fullnode_synced,
+        "Nodes failed to sync before test"
+    );
+
+    // Create all transactions and split them
+    let all_transactions = create_mock_transactions(algorithm, "test_service".to_string());
+    let (initial_transactions, racing_transactions) = all_transactions.split_at(1);
+
+    // Submit initial transaction for prover to process
+    for transaction in initial_transactions {
+        da_layer.submit_transactions(vec![transaction.clone()]).await.unwrap();
+    }
+
+    // Wait a bit for transactions to be processed
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // Submit racing transactions that arrive while prover is creating proof
+    for transaction in racing_transactions {
+        da_layer.submit_transactions(vec![transaction.clone()]).await.unwrap();
+    }
+
+    // Wait for the prover to create and publish an epoch (this should happen with the racing transactions buffered)
+    let mut epoch_found = false;
+    while let Ok(new_block) = brx.recv().await {
+        if new_block.epoch.is_some() {
+            epoch_found = true;
+            break;
+        }
+    }
+    assert!(epoch_found, "Prover should have created an epoch");
+
+    // Wait for fullnode to sync the epoch
+    // If this test flakes, it could be because it needs a tiny bit more time here
+    tokio::time::sleep(Duration::from_millis(5000)).await;
+
+    // Both nodes should have the same commitment despite racing transactions
+    let prover_commitment = prover.get_commitment().await.unwrap();
+    let fullnode_commitment = fullnode.get_commitment().await.unwrap();
+
+    assert_eq!(
+        prover_commitment, fullnode_commitment,
+        "Prover and fullnode should have matching commitments even with racing transactions"
+    );
+
+    // Verify they are at the same epoch height
+    let prover_epoch = prover.get_db().get_latest_epoch_height().unwrap();
+    let fullnode_epoch = fullnode.get_db().get_latest_epoch_height().unwrap();
+    assert_eq!(
+        prover_epoch, fullnode_epoch,
+        "Both nodes should be at the same epoch height"
+    );
+}
+
 async fn test_load_persisted_state(algorithm: CryptoAlgorithm) {
-    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(1);
+    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(500));
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let cfg = Config::default_with_key_algorithm(algorithm).unwrap();
-    let prover = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap());
+    let prover = Arc::new(
+        Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap(),
+    );
 
     let runner = prover.clone();
     spawn(async move {
@@ -275,7 +424,9 @@ async fn test_load_persisted_state(algorithm: CryptoAlgorithm) {
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
 
-    let prover2 = Arc::new(Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap());
+    let prover2 = Arc::new(
+        Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap(),
+    );
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });
     let epoch = prover2.get_db().get_latest_epoch_height().unwrap();
@@ -315,3 +466,4 @@ generate_algorithm_tests!(test_finalize_new_epoch);
 generate_algorithm_tests!(test_restart_sync_from_scratch);
 generate_algorithm_tests!(test_load_persisted_state);
 generate_algorithm_tests!(test_posts_epoch_after_max_gap);
+generate_algorithm_tests!(test_prover_fullnode_commitment_sync_with_racing_transactions);

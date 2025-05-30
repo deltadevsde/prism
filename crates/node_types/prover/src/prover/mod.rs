@@ -169,8 +169,9 @@ impl Prover {
         &self,
         epoch_height: u64,
         transactions: Vec<Transaction>,
+        tip_da_height: u64,
     ) -> Result<u64> {
-        self.sequencer.finalize_new_epoch(epoch_height, transactions, &self.prover_engine).await
+        self.sequencer.finalize_new_epoch(epoch_height, transactions, &self.prover_engine, tip_da_height).await
     }
 
     pub async fn validate_and_queue_update(&self, transaction: Transaction) -> Result<()> {
@@ -191,7 +192,6 @@ impl Prover {
     pub fn get_da(&self) -> Arc<dyn DataAvailabilityLayer> {
         self.syncer.get_da()
     }
-
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         let mut futures = JoinSet::new();
