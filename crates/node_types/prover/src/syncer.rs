@@ -1,11 +1,11 @@
 use anyhow::{Context, Result, anyhow};
+use prism_common::transaction::Transaction;
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_keys::VerifyingKey;
 use prism_storage::database::Database;
 use prism_telemetry_registry::metrics_registry::get_metrics;
-use prism_common::transaction::Transaction;
 use std::{collections::VecDeque, sync::Arc};
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 use tokio_util::sync::CancellationToken;
 
 use crate::{prover_engine::ProverEngine, sequencer::Sequencer};
@@ -72,7 +72,8 @@ impl Syncer {
             historical_sync_height,
             height_rx,
             cancellation_token,
-        ).await
+        )
+        .await
     }
 
     async fn sync_loop(
@@ -164,7 +165,9 @@ impl Syncer {
 
         if is_real_time && !buffered_transactions.is_empty() && self.is_prover_enabled {
             let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
-            self.sequencer.finalize_new_epoch(next_epoch_height, all_transactions, &self.prover_engine).await?;
+            self.sequencer
+                .finalize_new_epoch(next_epoch_height, all_transactions, &self.prover_engine)
+                .await?;
         }
 
         if !transactions.is_empty() {
@@ -172,11 +175,14 @@ impl Syncer {
             return Ok(());
         }
 
+        // Create a gap epoch if necessary
         let latest_epoch_height = *self.latest_epoch_da_height.read().await;
         if latest_epoch_height != 0
             && height.saturating_sub(latest_epoch_height) >= self.max_epochless_gap
         {
-            self.sequencer.finalize_new_epoch(next_epoch_height, Vec::new(), &self.prover_engine).await?;
+            self.sequencer
+                .finalize_new_epoch(next_epoch_height, Vec::new(), &self.prover_engine)
+                .await?;
         }
 
         if let Some(metrics) = get_metrics() {

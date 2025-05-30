@@ -1,19 +1,13 @@
 use anyhow::{Context, Result, bail};
 use jmt::KeyHash;
 use prism_common::{
-    account::Account,
-    digest::Digest,
-    operation::Operation,
-    transaction::Transaction,
+    account::Account, digest::Digest, operation::Operation, transaction::Transaction,
 };
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_keys::SigningKey;
 use prism_storage::database::Database;
 use prism_tree::{
-    AccountResponse::*,
-    hasher::TreeHasher,
-    key_directory_tree::KeyDirectoryTree,
-    proofs::Proof,
+    AccountResponse::*, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
     snarkable_tree::SnarkableTree,
 };
 use std::sync::Arc;
@@ -48,10 +42,7 @@ impl Sequencer {
             }
         };
 
-        let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(
-            db.clone(),
-            saved_epoch,
-        )));
+        let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(db.clone(), saved_epoch)));
 
         Ok(Sequencer {
             db,
@@ -92,7 +83,7 @@ impl Sequencer {
 
                     let tx_count = pending_transactions.len();
 
-                    if !pending_transactions.clone().is_empty() {
+                    if tx_count > 0 {
                         match self.da.submit_transactions(pending_transactions).await {
                             Ok(submitted_height) => {
                                 info!(
@@ -129,7 +120,8 @@ impl Sequencer {
         let batch = tree.process_batch(transactions)?;
         batch.verify()?;
 
-        let (proof, compressed_proof) = prover_engine.prove_epoch(epoch_height, &batch, &self.db).await?;
+        let (proof, compressed_proof) =
+            prover_engine.prove_epoch(epoch_height, &batch, &self.db).await?;
 
         let public_values = proof.public_values.to_vec();
 
@@ -162,7 +154,7 @@ impl Sequencer {
         let mut proofs = Vec::new();
 
         for transaction in transactions {
-            match self.process_transaction_internal(transaction.clone()).await {
+            match self.process_transaction(transaction.clone()).await {
                 Ok(proof) => proofs.push(proof),
                 Err(e) => {
                     warn!(
@@ -174,11 +166,6 @@ impl Sequencer {
         }
 
         Ok(proofs)
-    }
-
-    async fn process_transaction_internal(&self, transaction: Transaction) -> Result<Proof> {
-        let mut tree = self.tree.write().await;
-        tree.process_transaction(transaction)
     }
 
     pub async fn validate_and_queue_update(&self, transaction: Transaction) -> Result<()> {
@@ -224,11 +211,11 @@ impl Sequencer {
     pub fn get_pending_transactions(&self) -> Arc<RwLock<Vec<Transaction>>> {
         self.pending_transactions.clone()
     }
-    
+
     pub fn get_db(&self) -> Arc<Box<dyn Database>> {
         self.db.clone()
     }
-    
+
     pub async fn process_transaction(&self, transaction: Transaction) -> Result<Proof> {
         let mut tree = self.tree.write().await;
         tree.process_transaction(transaction)
