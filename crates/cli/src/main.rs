@@ -27,19 +27,6 @@ pub const SIGNING_KEY_ID: &str = "prism";
 /// Initializes and runs the appropriate prism node type based on CLI arguments.
 ///
 /// Parses command-line arguments, loads configuration, sets up telemetry, initializes key management and data availability layers, and starts the selected node type (`LightClient`, `Prover`, or `FullNode`). Handles errors during setup and ensures telemetry is properly shut down after execution.
-///
-/// # Errors
-///
-/// Returns an error if configuration loading, telemetry setup, key management, node initialization, or node execution fails.
-///
-/// # Examples
-///
-/// ```no_run
-/// // Run from the command line:
-/// // $ prism-client light-client --config config.toml
-/// // $ prism-client prover --config config.toml
-/// // $ prism-client full-node --config config.toml
-/// ```
 async fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
     let args = match cli.clone().command {
@@ -144,16 +131,16 @@ async fn main() -> std::io::Result<()> {
                     signing_key,
                     batcher_enabled: true,
                 },
-                prover_engine: prism_prover::ProverEngineConfig {
-                    recursive_proofs,
-                },
+                prover_engine: prism_prover::ProverEngineConfig { recursive_proofs },
                 webserver: webserver_config.clone().unwrap_or_default(),
             };
 
-            Arc::new(Prover::new(db, da, &prover_cfg, cancellation_token.clone()).map_err(|e| {
-                error!("error initializing prover: {}", e);
-                Error::other(e.to_string())
-            })?)
+            Arc::new(
+                Prover::new(db, da, &prover_cfg, cancellation_token.clone()).map_err(|e| {
+                    error!("error initializing prover: {}", e);
+                    Error::other(e.to_string())
+                })?,
+            )
         }
         Commands::FullNode(_) => {
             let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
@@ -187,27 +174,29 @@ async fn main() -> std::io::Result<()> {
                     signing_key,
                     batcher_enabled: true,
                 },
-                prover_engine: prism_prover::ProverEngineConfig {
-                    recursive_proofs,
-                },
+                prover_engine: prism_prover::ProverEngineConfig { recursive_proofs },
                 webserver: webserver_config.unwrap_or_default(),
             };
 
-            Arc::new(Prover::new(db, da, &prover_cfg, cancellation_token.clone()).map_err(|e| {
-                error!("error initializing prover: {}", e);
-                Error::other(e.to_string())
-            })?)
+            Arc::new(
+                Prover::new(db, da, &prover_cfg, cancellation_token.clone()).map_err(|e| {
+                    error!("error initializing prover: {}", e);
+                    Error::other(e.to_string())
+                })?,
+            )
         }
     };
 
     // Setup signal handling for graceful shutdown
     let cancellation_for_signal = cancellation_token.clone();
     tokio::spawn(async move {
-        use tokio::signal::unix::{signal, SignalKind};
-        
-        let mut sigint = signal(SignalKind::interrupt()).expect("Failed to register SIGINT handler");
-        let mut sigterm = signal(SignalKind::terminate()).expect("Failed to register SIGTERM handler");
-        
+        use tokio::signal::unix::{SignalKind, signal};
+
+        let mut sigint =
+            signal(SignalKind::interrupt()).expect("Failed to register SIGINT handler");
+        let mut sigterm =
+            signal(SignalKind::terminate()).expect("Failed to register SIGTERM handler");
+
         tokio::select! {
             _ = sigint.recv() => {
                 info!("Received SIGINT, initiating graceful shutdown");
@@ -216,7 +205,7 @@ async fn main() -> std::io::Result<()> {
                 info!("Received SIGTERM, initiating graceful shutdown");
             }
         }
-        
+
         cancellation_for_signal.cancel();
     });
 
