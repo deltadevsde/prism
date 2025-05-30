@@ -75,14 +75,27 @@ async fn test_light_client_prover_talking() -> Result<()> {
     let pubkey = signing_key.verifying_key();
 
     let prover_cfg = prism_prover::Config {
-        signing_key,
-        ..prism_prover::Config::default()
+        syncer: prism_prover::SyncerConfig {
+            verifying_key: pubkey.clone(),
+            start_height: 0,
+            max_epochless_gap: 300,
+            prover_enabled: true,
+        },
+        sequencer: prism_prover::SequencerConfig {
+            signing_key,
+            batcher_enabled: true,
+        },
+        prover_engine: prism_prover::ProverEngineConfig {
+            recursive_proofs: false,
+        },
+        webserver: prism_prover::WebServerConfig::default(),
     };
 
     let prover = Arc::new(Prover::new(
         db.clone(),
         bridge_da_layer.clone(),
         &prover_cfg,
+        tokio_util::sync::CancellationToken::new(),
     )?);
 
     let event_channel = EventChannel::new();

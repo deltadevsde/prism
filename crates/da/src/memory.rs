@@ -2,7 +2,6 @@
 use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::Result;
 use async_trait::async_trait;
-use tracing::debug;
 use lumina_node::events::EventSubscriber;
 use prism_common::transaction::Transaction;
 use std::{collections::VecDeque, sync::Arc};
@@ -10,6 +9,7 @@ use tokio::{
     sync::{Mutex, RwLock, broadcast},
     time::{Duration, interval},
 };
+use tracing::debug;
 
 #[derive(Clone, Debug)]
 pub struct Block {
@@ -26,11 +26,17 @@ pub struct InMemoryDataAvailabilityLayer {
     latest_height: Arc<RwLock<u64>>,
     height_update_tx: broadcast::Sender<u64>,
     block_update_tx: broadcast::Sender<Block>,
-    block_time: u64,
+    block_time: Duration,
+
+    // For testing: Because mock proofs are generated very quickly, it is
+    // helpful to delay the posting of the epoch to test some latency scenarios.
+    epoch_posting_delay: Option<Duration>,
 }
 
 impl InMemoryDataAvailabilityLayer {
-    pub fn new(block_time: u64) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
+    pub fn new(
+        block_time: Duration,
+    ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
         (
@@ -42,6 +48,29 @@ impl InMemoryDataAvailabilityLayer {
                 height_update_tx: height_tx,
                 block_update_tx: block_tx,
                 block_time,
+                epoch_posting_delay: None,
+            },
+            height_rx,
+            block_rx,
+        )
+    }
+
+    pub fn new_with_epoch_delay(
+        block_time: Duration,
+        epoch_delay: Duration,
+    ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
+        let (height_tx, height_rx) = broadcast::channel(100);
+        let (block_tx, block_rx) = broadcast::channel(100);
+        (
+            Self {
+                blocks: Arc::new(RwLock::new(Vec::new())),
+                pending_transactions: Arc::new(RwLock::new(Vec::new())),
+                pending_epochs: Arc::new(RwLock::new(VecDeque::new())),
+                latest_height: Arc::new(RwLock::new(0)),
+                height_update_tx: height_tx,
+                block_update_tx: block_tx,
+                block_time,
+                epoch_posting_delay: Some(epoch_delay),
             },
             height_rx,
             block_rx,
@@ -49,7 +78,7 @@ impl InMemoryDataAvailabilityLayer {
     }
 
     async fn produce_blocks(self: Arc<Self>) {
-        let mut interval = interval(Duration::from_secs(self.block_time));
+        let mut interval = interval(self.block_time);
         loop {
             interval.tick().await;
             let mut blocks = self.blocks.write().await;
@@ -119,6 +148,11 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
+        // wait for epoch posting delay
+        if let Some(delay) = self.epoch_posting_delay {
+            tokio::time::sleep(delay).await;
+        }
+
         let mut pending_epochs = self.pending_epochs.write().await;
         pending_epochs.push_back(epoch);
         let height = self.get_latest_height().await?;

@@ -3,6 +3,7 @@ use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
 use prism_da::{FinalizedEpoch, LightDataAvailabilityLayer};
 use prism_keys::VerifyingKey;
+#[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use serde::Deserialize;
 use std::{
@@ -112,6 +113,7 @@ impl LightClient {
                 });
 
                 if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
+                    #[cfg(feature = "telemetry")]
                     if let Some(metrics) = get_metrics() {
                         metrics.record_celestia_synced_height(height, vec![]);
                         if let Some(latest_finalized_epoch) =
@@ -320,15 +322,11 @@ impl LightClient {
                 self.latest_commitment.write().await.replace(proof_current_commitment);
 
                 // Verify SNARK proof
-                #[cfg(not(feature = "mock_prover"))]
                 self.verify_snark_proof(
                     &finalized_epoch,
                     finalized_epoch.public_values.as_slice(),
                 )?;
 
-                #[cfg(feature = "mock_prover")]
-                info!("mock_prover is activated, skipping proof verification");
-                // lets say the mocked proof is valid
                 self.event_publisher.send(LightClientEvent::EpochVerified {
                     height: finalized_epoch.height,
                 });
@@ -383,7 +381,6 @@ impl LightClient {
         Ok(())
     }
 
-    #[cfg(not(feature = "mock_prover"))]
     fn verify_snark_proof(
         &self,
         finalized_epoch: &FinalizedEpoch,

@@ -22,7 +22,7 @@ default-members = [
   "crates/node_types/prover",
   "crates/node_types/lightclient",
   "crates/node_types/wasm-lightclient",
-  #"crates/node_types/uniffi-lightclient",
+  "crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
   "crates/storage",
@@ -40,7 +40,7 @@ members = [
   "crates/node_types/prover",
   "crates/node_types/lightclient",
   "crates/node_types/wasm-lightclient",
-  #"crates/node_types/uniffi-lightclient",
+  "crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
   "crates/zk/sp1",
@@ -85,15 +85,16 @@ redb = "2.4.0"
 async-trait = "0.1.86"
 futures = "0.3.31"
 tokio = { version = "1.16.1", default-features = false }
+tokio-util = "0.7"
 
 # errors
-thiserror = "1.0.62"
+thiserror = "2.0.12"
 anyhow = "1.0.44"
 
 # cli
 keystore-rs = "0.3.1"
 pretty_env_logger = "0.5.0"
-clap = { version = "4.3.2", features = ["derive"] }
+clap = { version = "4.5.39", features = ["derive"] }
 config = "0.14.0"
 toml = "0.8.14"
 dirs = "6.0.0"
@@ -101,9 +102,9 @@ dotenvy = "0.15.7"
 
 # zk
 rand = "0.8.5"
-sp1-zkvm = { version = "4.1.0" }
-sp1-sdk = { version = "4.1.0" }
-sp1-verifier = { version = "4.1.0", default-features = false }
+sp1-zkvm = { version = "4.2.0" }
+sp1-sdk = { version = "4.2.0" }
+sp1-verifier = { version = "4.2.0", default-features = false }
 
 # curves
 ed25519 = { version = "2.2.3", features = ["pem"] }
@@ -189,4 +190,3 @@ lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
 [workspace.features]
 default = []
 test_utils = []
-mock_prover = []

@@ -12,15 +12,15 @@ path = "src/main.rs"
 
 [features]
 default = []
-groth16 = []
 test_utils = []
-mock_prover = []
+
 
 [dependencies]
 lumina-node = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 clap = { workspace = true }
 config = { workspace = true }
 dotenvy = { workspace = true }

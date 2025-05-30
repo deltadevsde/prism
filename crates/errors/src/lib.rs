@@ -60,6 +60,8 @@ pub enum DatabaseError {
     ConnectionError(String),
     #[error("initializing database: {0}")]
     InitializationError(String),
+    #[error("parsing error: {0}")]
+    ParsingError(String),
 }
 
 #[derive(Error, Debug)]

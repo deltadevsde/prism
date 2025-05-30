@@ -16,7 +16,7 @@ use prism_storage::{
 };
 use prism_telemetry::config::{TelemetryConfig, get_default_telemetry_config};
 use serde::{Deserialize, Serialize};
-use std::{fs, path::Path, str::FromStr, sync::Arc};
+use std::{fs, path::Path, str::FromStr, sync::Arc, time::Duration};
 use tracing::{error, info, warn};
 
 use prism_da::{
@@ -368,7 +368,8 @@ pub async fn initialize_da_layer(
             unreachable!() // This line should never be reached due to the return in the last iteration
         }
         DALayerOption::InMemory => {
-            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
+            let (da_layer, _height_rx, _block_rx) =
+                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
             Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
         }
     }
@@ -405,7 +406,8 @@ pub async fn initialize_light_da_layer(
                 >)
         }
         DALayerOption::InMemory => {
-            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
+            let (da_layer, _height_rx, _block_rx) =
+                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
             Ok(Arc::new(da_layer))
         }
     }
