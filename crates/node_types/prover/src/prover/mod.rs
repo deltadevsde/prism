@@ -171,7 +171,14 @@ impl Prover {
         transactions: Vec<Transaction>,
         tip_da_height: u64,
     ) -> Result<u64> {
-        self.sequencer.finalize_new_epoch(epoch_height, transactions, &self.prover_engine, tip_da_height).await
+        self.sequencer
+            .finalize_new_epoch(
+                epoch_height,
+                transactions,
+                &self.prover_engine,
+                tip_da_height,
+            )
+            .await
     }
 
     pub async fn validate_and_queue_update(&self, transaction: Transaction) -> Result<()> {
@@ -209,7 +216,8 @@ impl Prover {
         // Start WebServer if enabled
         if self.cfg.webserver.enabled {
             let ws = WebServer::new(self.cfg.webserver.clone(), self.clone());
-            futures.spawn(async move { ws.start().await });
+            let cancel_token = self.cancellation_token.clone();
+            futures.spawn(async move { ws.start(cancel_token).await });
         }
 
         // Wait for any service to exit
