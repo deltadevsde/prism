@@ -4,16 +4,17 @@ use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_keys::VerifyingKey;
 use prism_storage::database::Database;
 use prism_telemetry_registry::metrics_registry::get_metrics;
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::{RwLock, broadcast};
 use tokio_util::sync::CancellationToken;
 
-use crate::{prover_engine::ProverEngine, sequencer::Sequencer};
+use crate::{prover_engine::ProverEngine, sequencer::Sequencer, tx_buffer::TxBuffer};
 
 #[derive(Clone)]
 pub struct Syncer {
     da: Arc<dyn DataAvailabilityLayer>,
     db: Arc<Box<dyn Database>>,
+    tx_buffer: Arc<RwLock<TxBuffer>>,
     verifying_key: VerifyingKey,
     max_epochless_gap: u64,
     latest_epoch_da_height: Arc<RwLock<u64>>,
@@ -35,6 +36,7 @@ impl Syncer {
         Self {
             da,
             db,
+            tx_buffer: Arc::new(RwLock::new(TxBuffer::new())),
             verifying_key: config.verifying_key.clone(),
             max_epochless_gap: config.max_epochless_gap,
             latest_epoch_da_height,
@@ -83,14 +85,12 @@ impl Syncer {
         mut incoming_heights: broadcast::Receiver<u64>,
         cancellation_token: CancellationToken,
     ) -> Result<()> {
-        let mut buffered_transactions: VecDeque<Transaction> = VecDeque::new();
         let mut current_height = start_height;
 
         while current_height <= end_height {
             tokio::select! {
                 result = self.process_da_height(
                     current_height,
-                    &mut buffered_transactions,
                     false,
                 ) => {
                     result?;
@@ -122,7 +122,6 @@ impl Syncer {
                     }
                     self.process_da_height(
                         height,
-                        &mut buffered_transactions,
                         true,
                     ).await?;
                     current_height += 1;
@@ -136,12 +135,7 @@ impl Syncer {
         }
     }
 
-    async fn process_da_height(
-        &self,
-        height: u64,
-        buffered_transactions: &mut VecDeque<Transaction>,
-        is_real_time: bool,
-    ) -> Result<()> {
+    async fn process_da_height(&self, height: u64, is_real_time: bool) -> Result<()> {
         let next_epoch_height = match self.db.get_latest_epoch_height() {
             Ok(height) => height + 1,
             Err(_) => 0,
@@ -149,6 +143,13 @@ impl Syncer {
 
         let transactions = self.da.get_transactions(height).await?;
         let epoch_result = self.da.get_finalized_epoch(height).await?;
+
+        trace!(
+            "DA query at height {}: {} transactions, epoch present: {}",
+            height,
+            transactions.len(),
+            epoch_result.is_some()
+        );
 
         debug!(
             "processing {} height {}, next_epoch_height: {}",
@@ -158,20 +159,36 @@ impl Syncer {
         );
 
         if let Some(epoch) = epoch_result {
-            self.process_epoch(epoch, buffered_transactions).await?;
+            debug!(
+                "Found finalized epoch {} at height {}",
+                epoch.height, height
+            );
+            self.process_epoch(epoch).await?;
         } else {
-            debug!("No transactions to process at height {}", height);
+            debug!("No epoch found at height {}", height);
         }
 
-        if is_real_time && !buffered_transactions.is_empty() && self.is_prover_enabled {
-            let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
+        let mut tx_buffer = self.tx_buffer.write().await;
+        if is_real_time && tx_buffer.contains_pending() && self.is_prover_enabled {
+            let all_transactions: Vec<Transaction> = tx_buffer.take_all();
+            debug!(
+                "Starting epoch {} finalization with {} transactions at DA height {}",
+                next_epoch_height,
+                all_transactions.len(),
+                height
+            );
             self.sequencer
-                .finalize_new_epoch(next_epoch_height, all_transactions, &self.prover_engine)
+                .finalize_new_epoch(
+                    next_epoch_height,
+                    all_transactions,
+                    &self.prover_engine,
+                    height,
+                )
                 .await?;
         }
 
         if !transactions.is_empty() {
-            buffered_transactions.extend(transactions);
+            tx_buffer.insert_at_height(height, transactions);
             return Ok(());
         }
 
@@ -181,7 +198,7 @@ impl Syncer {
             && height.saturating_sub(latest_epoch_height) >= self.max_epochless_gap
         {
             self.sequencer
-                .finalize_new_epoch(next_epoch_height, Vec::new(), &self.prover_engine)
+                .finalize_new_epoch(next_epoch_height, Vec::new(), &self.prover_engine, height)
                 .await?;
         }
 
@@ -193,11 +210,7 @@ impl Syncer {
         Ok(())
     }
 
-    async fn process_epoch(
-        &self,
-        epoch: FinalizedEpoch,
-        buffered_transactions: &mut VecDeque<Transaction>,
-    ) -> Result<()> {
+    async fn process_epoch(&self, epoch: FinalizedEpoch) -> Result<()> {
         let current_epoch = match self.db.get_latest_epoch_height() {
             Ok(height) => height + 1,
             Err(_) => 0,
@@ -234,9 +247,12 @@ impl Syncer {
             ));
         }
 
-        let all_transactions: Vec<Transaction> = buffered_transactions.drain(..).collect();
-        if !all_transactions.is_empty() {
-            self.sequencer.execute_block(all_transactions).await?;
+        // Only execute transactions up to the tip DA height that the prover used
+        let mut tx_buffer = self.tx_buffer.write().await;
+        let transactions_to_execute = tx_buffer.take_to_range(epoch.tip_da_height);
+
+        if !transactions_to_execute.is_empty() {
+            self.sequencer.execute_block(transactions_to_execute).await?;
         }
 
         let new_commitment = self.sequencer.get_commitment().await?;
