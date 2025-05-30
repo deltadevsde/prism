@@ -19,6 +19,7 @@ utoipa-swagger-ui = { workspace = true }
 utoipa-axum = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
