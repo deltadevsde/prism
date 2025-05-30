@@ -35,7 +35,7 @@ pub fn init(telemetry_config: TelemetryConfig, attributes: Vec<(String, String)>
 
     set_global_attributes(attributes.clone());
 
-    let resource = build_resource("prism-messenger-server".to_string(), attributes);
+    let resource = build_resource("prism".to_string(), attributes);
 
     let (meter_provider, log_provider) = init_telemetry(&telemetry_config, resource)
     .map_err(|e| Error::other(format!("Failed to initialize telemetry: {}", e)))?;
