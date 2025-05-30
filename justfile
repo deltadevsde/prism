@@ -109,7 +109,7 @@ build:
 unit-test:
   @echo "Running unit tests..."
 
-  SP1_PROVER=mock cargo test --lib --release -- --skip test_light_client_prover_talking
+  SP1_PROVER=mock cargo nextest run --lib --release -- --skip test_light_client_prover_talking
 
 coverage:
   #!/usr/bin/env bash
