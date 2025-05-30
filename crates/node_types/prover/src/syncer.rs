@@ -170,7 +170,7 @@ impl Syncer {
 
         let mut tx_buffer = self.tx_buffer.write().await;
         if is_real_time && tx_buffer.contains_pending() && self.is_prover_enabled {
-            let all_transactions: Vec<Transaction> = tx_buffer.take_all();
+            let all_transactions: Vec<Transaction> = tx_buffer.take_to_range(height);
             debug!(
                 "Starting epoch {} finalization with {} transactions at DA height {}",
                 next_epoch_height,

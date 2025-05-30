@@ -18,13 +18,6 @@ impl TxBuffer {
         keys.into_iter().filter_map(|k| self.transactions.remove(&k)).flatten().collect()
     }
 
-    pub fn take_all(&mut self) -> Vec<Transaction> {
-        let txs = self.transactions.values().flat_map(|txs| txs.iter().cloned()).collect();
-
-        self.transactions.clear();
-        txs
-    }
-
     pub fn contains_pending(&self) -> bool {
         !self.transactions.is_empty()
     }
