@@ -94,7 +94,6 @@ async fn main() -> std::io::Result<()> {
 
             Arc::new(LightClient::new(
                 da,
-                start_height,
                 verifying_key,
                 event_channel.publisher(),
             ))

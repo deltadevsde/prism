@@ -77,17 +77,10 @@ impl LightClientWorker {
                 .map_err(|e| JsError::new(&format!("Failed to connect to light client: {}", e)))?,
         );
 
-        let start_height = network_config
-            .celestia_config
-            .as_ref()
-            .map(|cfg| cfg.start_height)
-            .expect("Start height not set");
-
         let verifying_key = network_config.verifying_key;
 
         let light_client = Arc::new(LightClient::new(
             da,
-            start_height,
             verifying_key,
             light_client_event_publisher,
         ));
