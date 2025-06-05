@@ -29,7 +29,7 @@ pub struct LightClient {
 impl LightClient {
     /// Creates a new Lightclient for the specified network.
     #[uniffi::constructor]
-    pub async fn new(network_name: String, start_height: u64, base_path: String) -> Result<Self> {
+    pub async fn new(network_name: String, base_path: String) -> Result<Self> {
         let network = Network::from_str(&network_name)
             .map_err(|e| LightClientError::network_error(format!("Invalid network: {}", e)))?;
         let network_config = network.config();
@@ -51,20 +51,12 @@ impl LightClient {
             LightClientError::network_error(format!("Failed to connect to light client: {}", e))
         })?;
 
-        // todo: start height is only used to set sync target, should probably be set after finding the first heights right?
-        let start_height = network_config
-            .celestia_config
-            .as_ref()
-            .map(|cfg| cfg.start_height)
-            .unwrap_or(start_height);
-
         let event_channel = EventChannel::new();
         let event_publisher = event_channel.publisher();
         let event_subscriber = event_channel.subscribe();
 
         let inner = Arc::new(CoreLightClient::new(
             Arc::new(da),
-            start_height,
             network_config.verifying_key,
             event_publisher,
         ));

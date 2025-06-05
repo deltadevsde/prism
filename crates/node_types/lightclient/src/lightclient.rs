@@ -6,14 +6,7 @@ use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use serde::Deserialize;
-use std::{
-    self,
-    future::Future,
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
-};
+use std::{self, future::Future, sync::Arc};
 use tokio::sync::RwLock;
 use tracing::{error, info};
 
@@ -66,7 +59,6 @@ pub struct LightClient {
     pub event_publisher: EventPublisher,
     // The latest commitment.
     latest_commitment: Arc<RwLock<Option<Digest>>>,
-    sync_target: Arc<AtomicU64>,
 }
 
 struct SyncState {
@@ -81,7 +73,6 @@ impl LightClient {
     pub fn new(
         #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
-        start_height: u64,
         prover_pubkey: Option<VerifyingKey>,
         event_publisher: EventPublisher,
     ) -> LightClient {
@@ -92,7 +83,6 @@ impl LightClient {
             prover_pubkey,
             event_publisher,
             latest_commitment: Arc::new(RwLock::new(None)),
-            sync_target: Arc::new(AtomicU64::new(start_height)),
         }
     }
 
@@ -132,8 +122,6 @@ impl LightClient {
     }
 
     async fn handle_new_header(self: Arc<Self>, height: u64, state: Arc<RwLock<SyncState>>) {
-        // Update sync target
-        self.sync_target.store(height, Ordering::Relaxed);
         self.event_publisher.send(LightClientEvent::UpdateDAHeight { height });
 
         // start initial historical backward sync if needed and not already in progress

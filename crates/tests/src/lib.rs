@@ -103,7 +103,6 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     let lightclient = Arc::new(LightClient::new(
         lc_da_layer.clone(),
-        lc_cfg.celestia_config.unwrap().start_height,
         Some(pubkey),
         event_channel.publisher(),
     ));
