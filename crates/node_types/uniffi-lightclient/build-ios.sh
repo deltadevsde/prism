@@ -24,7 +24,6 @@ cat ./bindings/prism_uniffi_lightclientFFI.modulemap > ./bindings/Headers/module
 cp ./bindings/*.h ./bindings/Headers/
 
 # Build for iOS targets
-rm -rf ./ios/prism.xcframework
 for target in aarch64-apple-ios aarch64-apple-ios-sim; do
   cargo build --lib --release --target="$target"
 done
