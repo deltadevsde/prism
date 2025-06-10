@@ -6994,7 +6994,7 @@ dependencies = [
  "celestia-types",
  "clap",
  "config",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "dotenvy",
  "keystore-rs",
  "lumina-node",
