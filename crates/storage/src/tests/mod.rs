@@ -1,21 +1,12 @@
 use crate::rocksdb::*;
-use std::sync::Arc;
 use tempfile::TempDir;
 
 use crate::Database;
-use anyhow::{Result, anyhow};
 use jmt::{
     KeyHash, OwnedValue, Version,
-    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
+    storage::{NodeBatch, TreeReader, TreeWriter},
 };
 use prism_common::digest::Digest;
-use prism_errors::DatabaseError;
-use prism_serde::{
-    binary::{FromBinary, ToBinary},
-    hex::{FromHex, ToHex},
-};
-use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
-use serde::{Deserialize, Serialize};
 
 fn setup_db() -> (TempDir, RocksDBConnection) {
     let temp_dir = TempDir::new().unwrap();
