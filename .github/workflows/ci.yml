@@ -132,7 +132,7 @@ jobs:
       - name: Collect unit-test coverage data
         run: |
           SP1_PROVER=mock cargo llvm-cov --no-report nextest --lib --release -- --skip test_light_client_prover_talking
-          cargo llvm-cov report --lcov --output-path lcov.info
+          cargo llvm-cov report --release --lcov --output-path lcov.info
 
       - name: Upload coverage data to codecov
         uses: codecov/codecov-action@v5
