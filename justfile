@@ -119,7 +119,7 @@ coverage:
 
   echo "Generating coverage report..."
 
-  if ! SP1_PROVER=mock cargo llvm-cov nextest --html --output-dir coverage_report --lib --features --release --workspace --exclude prism-cli --exclude-from-report prism-sp1 --ignore-filename-regex sp1; then
+  if ! SP1_PROVER=mock cargo llvm-cov nextest --html --output-dir coverage_report --lib --release --workspace; then
     echo "Coverage report generation failed."
   else
     echo "Coverage report generated in 'coverage_report' directory"
