@@ -137,29 +137,32 @@ impl LightClient {
 
         // Check for a new finalized epoch at this height
         match self.da.get_finalized_epoch(height).await {
-            Ok(Some(_)) => {
-                // Found a new finalized epoch, process it immediately
-                if self.process_epoch(height).await.is_ok() {
-                    self.event_publisher
-                        .send(LightClientEvent::RecursiveVerificationCompleted { height });
-
-                    // Update our latest known finalized epoch
-                    let mut state = state.write().await;
-                    state.latest_finalized_epoch = Some(height);
-
-                    // If we're waiting for initial sync, this completes it
-                    if state.initial_sync_in_progress && !state.initial_sync_completed {
-                        info!("finished initial sync");
-                        state.initial_sync_completed = true;
-                        state.initial_sync_in_progress = false;
-                    }
-
-                    // Update current height to the epoch height + 1
-                    state.current_height = height + 1;
+            Ok(epochs) => {
+                if epochs.is_empty() {
+                    info!("no data found at height {}", height);
                 }
-            }
-            Ok(None) => {
-                info!("no data found at height {}", height);
+
+                for epoch in epochs {
+                    // Found a new finalized epoch, process it immediately
+                    if self.poop_epoch(&epoch).await.is_ok() {
+                        self.event_publisher
+                            .send(LightClientEvent::RecursiveVerificationCompleted { height });
+
+                        // Update our latest known finalized epoch
+                        let mut state = state.write().await;
+                        state.latest_finalized_epoch = Some(height);
+
+                        // If we're waiting for initial sync, this completes it
+                        if state.initial_sync_in_progress && !state.initial_sync_completed {
+                            info!("finished initial sync");
+                            state.initial_sync_completed = true;
+                            state.initial_sync_in_progress = false;
+                        }
+
+                        // Update current height to the epoch height + 1
+                        state.current_height = height + 1;
+                    }
+                }
             }
             Err(e) => {
                 error!("failed to fetch data at height {}", e)
@@ -256,11 +259,12 @@ impl LightClient {
             }
 
             match self.da.get_finalized_epoch(height).await {
-                Ok(Some(_)) => {
-                    return Some(height);
-                }
-                Ok(None) => {
-                    info!("no data found at height {}", height);
+                Ok(epochs) => {
+                    if epochs.is_empty() {
+                        info!("no data found at height {}", height);
+                    } else {
+                        return Some(height);
+                    }
                 }
                 Err(e) => {
                     error!("failed to fetch data at height {}: {}", height, e)
@@ -278,51 +282,69 @@ impl LightClient {
         None
     }
 
+    async fn poop_epoch(&self, finalized_epoch: &FinalizedEpoch) -> Result<()> {
+        if let Some(pubkey) = &self.prover_pubkey {
+            finalized_epoch
+                .verify_signature(pubkey.clone())
+                .map_err(|e| anyhow::anyhow!("Invalid signature: {:?}", e))?;
+        }
+
+        if finalized_epoch.public_values.len() < 64 {
+            return Err(anyhow::anyhow!(
+                "Public values length is less than 64 bytes"
+            ));
+        }
+
+        // Extract and verify commitments
+        let (proof_prev_commitment, proof_current_commitment) =
+            self.extract_commitments(&finalized_epoch.public_values)?;
+
+        self.verify_commitments(
+            finalized_epoch,
+            proof_prev_commitment,
+            proof_current_commitment,
+        )?;
+
+        // Update latest commitment
+        self.latest_commitment.write().await.replace(proof_current_commitment);
+
+        // Verify SNARK proof
+        self.verify_snark_proof(finalized_epoch, finalized_epoch.public_values.as_slice())?;
+
+        self.event_publisher.send(LightClientEvent::EpochVerified {
+            height: finalized_epoch.height,
+        });
+
+        Ok(())
+    }
+
     async fn process_epoch(&self, height: u64) -> Result<()> {
         info!("processing epoch at height {}", height);
         self.event_publisher.send(LightClientEvent::EpochVerificationStarted { height });
 
         match self.da.get_finalized_epoch(height).await {
-            Ok(Some(finalized_epoch)) => {
-                if let Some(pubkey) = &self.prover_pubkey {
-                    finalized_epoch
-                        .verify_signature(pubkey.clone())
-                        .map_err(|e| anyhow::anyhow!("Invalid signature: {:?}", e))?;
+            Ok(finalized_epochs) => {
+                if finalized_epochs.is_empty() {
+                    self.event_publisher.send(LightClientEvent::NoEpochFound { height });
                 }
 
-                if finalized_epoch.public_values.len() < 64 {
-                    return Err(anyhow::anyhow!(
-                        "Public values length is less than 64 bytes"
-                    ));
+                // Process each finalized epoch
+                for epoch in finalized_epochs {
+                    match self.poop_epoch(&epoch).await {
+                        Ok(()) => {
+                            self.event_publisher.send(LightClientEvent::EpochVerified {
+                                height: epoch.height,
+                            });
+                        }
+                        Err(e) => {
+                            let error = format!("Failed to process epoch: {}", e);
+                            self.event_publisher.send(LightClientEvent::EpochVerificationFailed {
+                                height,
+                                error: error.clone(),
+                            });
+                        }
+                    }
                 }
-
-                // Extract and verify commitments
-                let (proof_prev_commitment, proof_current_commitment) =
-                    self.extract_commitments(&finalized_epoch.public_values)?;
-
-                self.verify_commitments(
-                    &finalized_epoch,
-                    proof_prev_commitment,
-                    proof_current_commitment,
-                )?;
-
-                // Update latest commitment
-                self.latest_commitment.write().await.replace(proof_current_commitment);
-
-                // Verify SNARK proof
-                self.verify_snark_proof(
-                    &finalized_epoch,
-                    finalized_epoch.public_values.as_slice(),
-                )?;
-
-                self.event_publisher.send(LightClientEvent::EpochVerified {
-                    height: finalized_epoch.height,
-                });
-
-                Ok(())
-            }
-            Ok(None) => {
-                self.event_publisher.send(LightClientEvent::NoEpochFound { height });
                 Ok(())
             }
             Err(e) => {

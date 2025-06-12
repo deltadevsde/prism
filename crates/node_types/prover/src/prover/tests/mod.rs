@@ -67,7 +67,7 @@ async fn test_posts_epoch_after_max_gap() {
     }
 
     // Ensure no gap proof has been created
-    assert!(prover.get_da().get_finalized_epoch(0).await.unwrap().is_none());
+    assert!(prover.get_da().get_finalized_epoch(0).await.unwrap().is_empty());
 
     // Create and submit transactions
     let test_transactions = create_mock_transactions("test_service".to_string());
@@ -88,8 +88,8 @@ async fn test_posts_epoch_after_max_gap() {
             break;
         }
     }
-    let initial_epoch =
-        prover.get_da().get_finalized_epoch(initial_epoch_height).await.unwrap().unwrap();
+    let epochs = prover.get_da().get_finalized_epoch(initial_epoch_height).await.unwrap();
+    let initial_epoch = epochs.first().unwrap();
 
     // Wait for gap length
     loop {
@@ -109,8 +109,8 @@ async fn test_posts_epoch_after_max_gap() {
         }
     }
     // Verify gap proof contents
-    let gap_proof =
-        prover.get_da().get_finalized_epoch(current_epoch_height).await.unwrap().unwrap();
+    let epochs = prover.get_da().get_finalized_epoch(current_epoch_height).await.unwrap();
+    let gap_proof = epochs.first().unwrap();
     assert_eq!(
         gap_proof.height,
         initial_epoch.height + 1,
@@ -266,7 +266,7 @@ async fn test_restart_sync_from_scratch() {
     for transaction in transactions {
         prover.validate_and_queue_update(transaction).await.unwrap();
         while let Ok(new_block) = brx.recv().await {
-            if new_block.epoch.is_some() {
+            if !new_block.epochs.is_empty() {
                 break;
             }
         }
@@ -402,7 +402,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     // Wait for the prover to create and publish an epoch (this should happen with the racing transactions buffered)
     let mut epoch_found = false;
     while let Ok(new_block) = brx.recv().await {
-        if new_block.epoch.is_some() {
+        if !new_block.epochs.is_empty() {
             epoch_found = true;
             break;
         }
@@ -452,7 +452,7 @@ async fn test_load_persisted_state() {
     for transaction in transactions {
         prover.validate_and_queue_update(transaction).await.unwrap();
         while let Ok(new_block) = brx.recv().await {
-            if new_block.epoch.is_some() {
+            if !new_block.epochs.is_empty() {
                 break;
             }
         }

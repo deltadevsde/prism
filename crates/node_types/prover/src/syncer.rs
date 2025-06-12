@@ -148,7 +148,7 @@ impl Syncer {
             "DA query at height {}: {} transactions, epoch present: {}",
             height,
             transactions.len(),
-            epoch_result.is_some()
+            !epoch_result.is_empty()
         );
 
         debug!(
@@ -158,12 +158,14 @@ impl Syncer {
             next_epoch_height
         );
 
-        if let Some(epoch) = epoch_result {
-            debug!(
-                "Found finalized epoch {} at height {}",
-                epoch.height, height
-            );
-            self.process_epoch(epoch).await?;
+        if !epoch_result.is_empty() {
+            for epoch in epoch_result {
+                debug!(
+                    "Found finalized epoch {} at height {}",
+                    epoch.height, height
+                );
+                self.process_epoch(epoch).await?;
+            }
         } else {
             debug!("No epoch found at height {}", height);
         }
