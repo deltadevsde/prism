@@ -189,9 +189,6 @@ impl LightDataAvailabilityLayer for LightClientConnection {
 
         match node.request_all_blobs(&header, self.snark_namespace, None).await {
             Ok(blobs) => {
-                if blobs.is_empty() {
-                    return Ok(vec![]);
-                }
                 let epochs: Vec<FinalizedEpoch> = blobs
                     .into_iter()
                     .filter_map(|blob| match FinalizedEpoch::try_from(&blob) {
