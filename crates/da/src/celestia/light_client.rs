@@ -205,13 +205,6 @@ impl LightDataAvailabilityLayer for LightClientConnection {
                         }
                     })
                     .collect();
-                // let blob = blobs.into_iter().next().unwrap();
-                // let epoch = FinalizedEpoch::try_from(&blob).map_err(|_| {
-                //     anyhow!(GeneralError::ParsingError(format!(
-                //         "marshalling blob from height {} to epoch json: {:?}",
-                //         height, &blob
-                //     )))
-                // })?;
                 Ok(epochs)
             }
             Err(e) => Err(anyhow!(DataAvailabilityError::DataRetrievalError(

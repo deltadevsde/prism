@@ -144,7 +144,7 @@ impl LightClient {
 
                 for epoch in epochs {
                     // Found a new finalized epoch, process it immediately
-                    if self.poop_epoch(&epoch).await.is_ok() {
+                    if self.process_epoch(&epoch).await.is_ok() {
                         self.event_publisher
                             .send(LightClientEvent::RecursiveVerificationCompleted { height });
 
@@ -194,7 +194,7 @@ impl LightClient {
                 light_client.find_most_recent_epoch(network_height, state.clone()).await
             {
                 // Process the found epoch
-                match light_client.process_epoch(epoch_height).await {
+                match light_client.process_height(epoch_height).await {
                     Ok(_) => {
                         info!(
                             "found historical finalized epoch at height {}",
@@ -282,7 +282,7 @@ impl LightClient {
         None
     }
 
-    async fn poop_epoch(&self, finalized_epoch: &FinalizedEpoch) -> Result<()> {
+    async fn process_epoch(&self, finalized_epoch: &FinalizedEpoch) -> Result<()> {
         if let Some(pubkey) = &self.prover_pubkey {
             finalized_epoch
                 .verify_signature(pubkey.clone())
@@ -318,8 +318,8 @@ impl LightClient {
         Ok(())
     }
 
-    async fn process_epoch(&self, height: u64) -> Result<()> {
-        info!("processing epoch at height {}", height);
+    async fn process_height(&self, height: u64) -> Result<()> {
+        info!("processing at DA height {}", height);
         self.event_publisher.send(LightClientEvent::EpochVerificationStarted { height });
 
         match self.da.get_finalized_epoch(height).await {
@@ -330,19 +330,12 @@ impl LightClient {
 
                 // Process each finalized epoch
                 for epoch in finalized_epochs {
-                    match self.poop_epoch(&epoch).await {
-                        Ok(()) => {
-                            self.event_publisher.send(LightClientEvent::EpochVerified {
-                                height: epoch.height,
-                            });
-                        }
-                        Err(e) => {
-                            let error = format!("Failed to process epoch: {}", e);
-                            self.event_publisher.send(LightClientEvent::EpochVerificationFailed {
-                                height,
-                                error: error.clone(),
-                            });
-                        }
+                    if let Err(e) = self.process_epoch(&epoch).await {
+                        let error = format!("Failed to process epoch: {}", e);
+                        self.event_publisher.send(LightClientEvent::EpochVerificationFailed {
+                            height,
+                            error: error.clone(),
+                        });
                     }
                 }
                 Ok(())
