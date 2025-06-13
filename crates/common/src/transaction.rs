@@ -1,13 +1,9 @@
-use std::{
-    error::Error,
-    fmt::{Display, Formatter},
-};
-
 use anyhow::Result;
 use celestia_types::Blob;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::binary::{FromBinary, ToBinary};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use utoipa::ToSchema;
 
 use crate::operation::{Operation, SignatureBundle};
@@ -98,27 +94,18 @@ impl TryFrom<&Blob> for Transaction {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Error, Clone, Debug)]
 pub enum TransactionError {
+    #[error("invalid operation {0}")]
     InvalidOp(String),
+    #[error("invalid nonce {0}")]
     InvalidNonce(u64),
+    #[error("missing account's public key")]
     MissingKey,
+    #[error("encoding failed")]
     EncodingFailed,
+    #[error("signing failed")]
     SigningFailed,
+    #[error("missing sender")]
     MissingSender,
 }
-
-impl Display for TransactionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TransactionError::InvalidOp(msg) => write!(f, "Invalid operation: {}", msg),
-            TransactionError::InvalidNonce(nonce) => write!(f, "Invalid nonce: {}", nonce),
-            TransactionError::MissingKey => write!(f, "Public Key for account is missing"),
-            TransactionError::EncodingFailed => write!(f, "Encoding transaction failed"),
-            TransactionError::SigningFailed => write!(f, "Signing transaction failed"),
-            TransactionError::MissingSender => write!(f, "Sender for transaction is missing"),
-        }
-    }
-}
-
-impl Error for TransactionError {}
