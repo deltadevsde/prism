@@ -3,10 +3,12 @@ use celestia_types::Blob;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::binary::{FromBinary, ToBinary};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use utoipa::ToSchema;
 
-use crate::operation::{Operation, SignatureBundle};
+use crate::{
+    errors::TransactionError,
+    operation::{Operation, SignatureBundle},
+};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Represents a partial prism transaction that still needs to be signed.
@@ -71,9 +73,15 @@ pub struct Transaction {
 
 impl Transaction {
     /// Verifies the signature of the transaction
-    pub fn verify_signature(&self) -> Result<()> {
-        let message = self.to_unsigned_tx().encode_to_bytes()?;
-        self.vk.verify_signature(&message, &self.signature)
+    pub fn verify_signature(&self) -> Result<(), TransactionError> {
+        let message = self
+            .to_unsigned_tx()
+            .encode_to_bytes()
+            .map_err(|e| TransactionError::EncodingFailedWith(e.to_string()))?;
+
+        self.vk
+            .verify_signature(&message, &self.signature)
+            .map_err(|e| TransactionError::InvalidOp(e.to_string()))
     }
 
     /// Extracts the part of the transaction that was signed
@@ -92,20 +100,4 @@ impl TryFrom<&Blob> for Transaction {
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
         Transaction::decode_from_bytes(&value.data).map_err(|e| e.into())
     }
-}
-
-#[derive(Error, Clone, Debug)]
-pub enum TransactionError {
-    #[error("invalid operation {0}")]
-    InvalidOp(String),
-    #[error("invalid nonce {0}")]
-    InvalidNonce(u64),
-    #[error("missing account's public key")]
-    MissingKey,
-    #[error("encoding failed")]
-    EncodingFailed,
-    #[error("signing failed")]
-    SigningFailed,
-    #[error("missing sender")]
-    MissingSender,
 }

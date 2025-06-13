@@ -2,10 +2,11 @@ use prism_keys::{SigningKey, VerifyingKey};
 
 use crate::{
     account::Account,
-    api::{noop::NoopPrismApi, PendingTransaction, PrismApi, PrismApiError},
+    api::{PendingTransaction, PrismApi, PrismApiError, noop::NoopPrismApi},
     digest::Digest,
+    errors::TransactionError,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
-    transaction::{Transaction, TransactionError, UnsignedTransaction},
+    transaction::{Transaction, UnsignedTransaction},
 };
 
 pub struct RequestBuilder<'a, P = NoopPrismApi> {
