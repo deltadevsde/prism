@@ -7068,6 +7068,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "sp1-sdk",
+ "sp1-verifier",
  "tokio",
  "tracing",
  "wasm-bindgen",

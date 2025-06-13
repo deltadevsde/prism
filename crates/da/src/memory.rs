@@ -1,5 +1,5 @@
 #![cfg(not(target_arch = "wasm32"))]
-use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer};
+use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::Result;
 use async_trait::async_trait;
 use lumina_node::events::EventSubscriber;
@@ -112,10 +112,15 @@ impl InMemoryDataAvailabilityLayer {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         let blocks = self.blocks.read().await;
         match blocks.get(height.saturating_sub(1) as usize) {
-            Some(block) => Ok(block.epochs.clone()),
+            Some(block) => Ok(block
+                .epochs
+                .clone()
+                .into_iter()
+                .map(|epoch| Box::new(epoch) as VerifiableEpoch)
+                .collect()),
             None => Ok(vec![]),
         }
     }

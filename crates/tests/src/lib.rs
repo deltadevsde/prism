@@ -103,7 +103,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     let lightclient = Arc::new(LightClient::new(
         lc_da_layer.clone(),
-        Some(pubkey),
+        pubkey,
         event_channel.publisher(),
     ));
 
