@@ -155,10 +155,7 @@ async fn main() -> std::io::Result<()> {
 
             let signing_key = get_signing_key(keystore_type, keystore_path)?;
 
-            let verifying_key =
-                config.network.verifying_key.clone().ok_or_else(|| {
-                    Error::new(ErrorKind::NotFound, "prover verifying key not found")
-                })?;
+            let verifying_key = config.network.verifying_key.clone();
 
             // When SP1_PROVER is set to mock, disable recursive proofs
             let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
