@@ -1,7 +1,7 @@
 use anyhow::Result;
 use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
-use prism_da::{FinalizedEpoch, LightDataAvailabilityLayer};
+use prism_da::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys};
 use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
@@ -31,12 +31,6 @@ where
     tokio::spawn(future);
 }
 
-#[derive(Deserialize)]
-pub struct VerificationKeys {
-    pub base_vk: String,
-    pub recursive_vk: String,
-}
-
 // Embed the JSON content directly in the binary at compile time because we can't read files in WASM.
 const EMBEDDED_KEYS_JSON: &str = include_str!("../../../../verification_keys/keys.json");
 const MAX_BACKWARD_SEARCH_DEPTH: u64 = 1000;
@@ -52,7 +46,7 @@ pub struct LightClient {
     #[cfg(target_arch = "wasm32")]
     pub da: Arc<dyn LightDataAvailabilityLayer>,
     /// The public key of the prover, used for verifying the signature of the epochs.
-    pub prover_pubkey: Option<VerifyingKey>,
+    pub prover_pubkey: VerifyingKey,
     /// The verification key for both (base and recursive) SP1 programs, generated within the build process (with just build).
     pub sp1_vkeys: VerificationKeys,
     /// The event publisher.
@@ -73,7 +67,7 @@ impl LightClient {
     pub fn new(
         #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
-        prover_pubkey: Option<VerifyingKey>,
+        prover_pubkey: VerifyingKey,
         event_publisher: EventPublisher,
     ) -> LightClient {
         let sp1_vkeys = load_sp1_verifying_keys().expect("Failed to load SP1 verifying keys");
@@ -144,7 +138,7 @@ impl LightClient {
 
                 for epoch in epochs {
                     // Found a new finalized epoch, process it immediately
-                    if self.process_epoch(&epoch).await.is_ok() {
+                    if self.process_epoch(epoch).await.is_ok() {
                         self.event_publisher
                             .send(LightClientEvent::RecursiveVerificationCompleted { height });
 
@@ -282,37 +276,15 @@ impl LightClient {
         None
     }
 
-    async fn process_epoch(&self, finalized_epoch: &FinalizedEpoch) -> Result<()> {
-        if let Some(pubkey) = &self.prover_pubkey {
-            finalized_epoch
-                .verify_signature(pubkey.clone())
-                .map_err(|e| anyhow::anyhow!("Invalid signature: {:?}", e))?;
-        }
-
-        if finalized_epoch.public_values.len() < 64 {
-            return Err(anyhow::anyhow!(
-                "Public values length is less than 64 bytes"
-            ));
-        }
-
-        // Extract and verify commitments
-        let (proof_prev_commitment, proof_current_commitment) =
-            self.extract_commitments(&finalized_epoch.public_values)?;
-
-        self.verify_commitments(
-            finalized_epoch,
-            proof_prev_commitment,
-            proof_current_commitment,
-        )?;
+    async fn process_epoch(&self, epoch: VerifiableEpoch) -> Result<()> {
+        let (prev_commitment, curr_commitment) =
+            epoch.verify(&self.prover_pubkey, &self.sp1_vkeys)?;
 
         // Update latest commitment
-        self.latest_commitment.write().await.replace(proof_current_commitment);
-
-        // Verify SNARK proof
-        self.verify_snark_proof(finalized_epoch, finalized_epoch.public_values.as_slice())?;
+        self.latest_commitment.write().await.replace(curr_commitment);
 
         self.event_publisher.send(LightClientEvent::EpochVerified {
-            height: finalized_epoch.height,
+            height: epoch.height(),
         });
 
         Ok(())
@@ -330,7 +302,7 @@ impl LightClient {
 
                 // Process each finalized epoch
                 for epoch in finalized_epochs {
-                    if let Err(e) = self.process_epoch(&epoch).await {
+                    if let Err(e) = self.process_epoch(epoch).await {
                         let error = format!("Failed to process epoch: {}", e);
                         self.event_publisher.send(LightClientEvent::EpochVerificationFailed {
                             height,

@@ -111,13 +111,14 @@ async fn test_posts_epoch_after_max_gap() {
     // Verify gap proof contents
     let epochs = prover.get_da().get_finalized_epoch(current_epoch_height).await.unwrap();
     let gap_proof = epochs.first().unwrap();
+    let (_, current_commitment) = gap_proof.commitments();
     assert_eq!(
-        gap_proof.height,
-        initial_epoch.height + 1,
+        gap_proof.height(),
+        initial_epoch.height() + 1,
         "Gap proof should be at expected height"
     );
     assert_eq!(
-        gap_proof.current_commitment, commitment_after_epoch.commitment,
+        current_commitment, commitment_after_epoch.commitment,
         "Gap proof should contain the correct commitment"
     );
 }

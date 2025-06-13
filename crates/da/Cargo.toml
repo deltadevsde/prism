@@ -24,6 +24,7 @@ redb = { workspace = true }
 lumina-node = { workspace = true }
 prism-serde = { workspace = true }
 ed25519-consensus = { workspace = true }
+sp1-verifier = { workspace = true }
 celestia-types = { workspace = true }
 prism-errors = { workspace = true }
 prism-keys = { workspace = true }

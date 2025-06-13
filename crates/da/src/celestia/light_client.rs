@@ -1,5 +1,5 @@
 use super::utils::{NetworkConfig, create_namespace};
-use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
+use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
@@ -147,7 +147,7 @@ impl LightDataAvailabilityLayer for LightClientConnection {
         Some(self.event_subscriber.clone())
     }
 
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         trace!(
             "searching for epoch on da layer at height {} under namespace",
             height
@@ -167,10 +167,10 @@ impl LightDataAvailabilityLayer for LightClientConnection {
 
         match node.request_all_blobs(&header, self.snark_namespace, None).await {
             Ok(blobs) => {
-                let epochs: Vec<FinalizedEpoch> = blobs
+                let epochs: Vec<VerifiableEpoch> = blobs
                     .into_iter()
                     .filter_map(|blob| match FinalizedEpoch::try_from(&blob) {
-                        Ok(epoch) => Some(epoch),
+                        Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
                         Err(_) => {
                             warn!(
                                 "marshalling blob from height {} to epoch json: {:?}",

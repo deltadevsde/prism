@@ -201,12 +201,6 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
 
     info!("Final config: {:?}", final_config);
 
-    if final_config.network.verifying_key.is_none() {
-        warn!(
-            "prover's verifying key was not provided. this is not recommended and epoch signatures will not be verified."
-        );
-    }
-
     Ok(final_config)
 }
 
@@ -301,7 +295,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             verifying_key: args
                 .verifying_key
                 .and_then(|x| VerifyingKey::from_base64(x).ok())
-                .or(network_config.clone().verifying_key),
+                .unwrap_or(network_config.verifying_key.clone()),
             celestia_config,
         },
         keystore_type: args.keystore_type.or(config.keystore_type),

@@ -13,6 +13,9 @@ use prism_serde::{
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
+#[allow(unused_imports)]
+use sp1_verifier::Groth16Verifier;
+
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
 
@@ -31,6 +34,18 @@ type CompressedProof = Vec<u8>;
 
 #[cfg(not(target_arch = "wasm32"))]
 type CompressedProof = SP1ProofWithPublicValues;
+
+pub type VerifiableEpoch = Box<dyn VerifiableStateTransition>;
+
+/// `VerifiableStateTransition` is a trait wrapper around `FinalizedEpoch` that allows for mocking.
+/// The only concrete implementation of this trait is by `FinalizedEpoch`.
+pub trait VerifiableStateTransition: Send {
+    fn verify(&self, vk: &VerifyingKey, sp1_vkeys: &VerificationKeys) -> Result<(Digest, Digest)>;
+    fn height(&self) -> u64;
+    fn da_height(&self) -> u64;
+    fn commitments(&self) -> (Digest, Digest);
+    fn try_convert(&self) -> Result<FinalizedEpoch>;
+}
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -61,11 +76,96 @@ pub struct FinalizedEpoch {
     pub tip_da_height: u64,
 }
 
+#[derive(Deserialize, Clone)]
+pub struct VerificationKeys {
+    pub base_vk: String,
+    pub recursive_vk: String,
+}
+
+impl VerifiableStateTransition for FinalizedEpoch {
+    fn height(&self) -> u64 {
+        self.height
+    }
+
+    fn da_height(&self) -> u64 {
+        self.tip_da_height
+    }
+
+    fn try_convert(&self) -> Result<FinalizedEpoch> {
+        Ok(self.clone())
+    }
+
+    fn commitments(&self) -> (Digest, Digest) {
+        (self.prev_commitment, self.current_commitment)
+    }
+
+    fn verify(&self, vk: &VerifyingKey, sp1_vkeys: &VerificationKeys) -> Result<(Digest, Digest)> {
+        // TODO: Err
+        &self.verify_signature(vk.clone())?;
+
+        if self.public_values.len() < 64 {
+            // TODO: Err
+        }
+
+        self.verify_commitments()?;
+
+        #[cfg(target_arch = "wasm32")]
+        let finalized_epoch_proof = self.proof;
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let finalized_epoch_proof = self.proof.bytes();
+
+        let vkey = if self.height == 0 {
+            &sp1_vkeys.base_vk
+        } else {
+            &sp1_vkeys.recursive_vk
+        };
+
+        // TODO: err
+        Groth16Verifier::verify(
+            &finalized_epoch_proof,
+            &self.public_values,
+            vkey,
+            &sp1_verifier::GROTH16_VK_BYTES,
+        )?;
+
+        Ok((self.prev_commitment, self.current_commitment))
+    }
+}
+
 impl FinalizedEpoch {
     pub fn insert_signature(&mut self, key: &SigningKey) -> Result<()> {
         let plaintext = self.encode_to_bytes().unwrap();
         let signature = key.sign(&plaintext)?;
         self.signature = Some(signature.to_bytes().to_hex());
+        Ok(())
+    }
+
+    fn extract_commitments(&self) -> Result<(Digest, Digest)> {
+        let mut slice = [0u8; 32];
+        slice.copy_from_slice(&self.public_values[..32]);
+        let proof_prev_commitment = Digest::from(slice);
+
+        let mut slice = [0u8; 32];
+        slice.copy_from_slice(&self.public_values[32..64]);
+        let proof_current_commitment = Digest::from(slice);
+
+        Ok((proof_prev_commitment, proof_current_commitment))
+    }
+
+    fn verify_commitments(&self) -> Result<()> {
+        let (proof_prev_commitment, proof_current_commitment) = self.extract_commitments()?;
+
+        if self.prev_commitment != proof_prev_commitment {
+            // TODO: err
+            return Err(anyhow::anyhow!("Invalid previous commitment"));
+        }
+
+        if self.current_commitment != proof_current_commitment {
+            // TODO: err
+            return Err(anyhow::anyhow!("Invalid current commitment"));
+        }
+
         Ok(())
     }
 
@@ -116,7 +216,7 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<FinalizedEpoch>>;
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>>;
 
     // starts the event subscriber, optional because inmemory and rpc based fullnode still need the start function
     fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>;
