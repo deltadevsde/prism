@@ -1,6 +1,6 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
+use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
@@ -68,17 +68,17 @@ impl CelestiaConnection {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for CelestiaConnection {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
 
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
             Ok(maybe_blobs) => match maybe_blobs {
                 Some(blobs) => {
-                    let valid_epoch: Vec<FinalizedEpoch> = blobs
+                    let valid_epochs: Vec<VerifiableEpoch> = blobs
                         .into_iter()
                         .filter_map(|blob| {
                             match FinalizedEpoch::try_from(&blob) {
-                                Ok(epoch) => Some(epoch),
+                                Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
                                 Err(e) => {
                                     warn!(
                                         "Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}",
@@ -89,7 +89,7 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
                             }
                         })
                         .collect();
-                    Ok(valid_epoch)
+                    Ok(valid_epochs)
                 }
                 None => Ok(vec![]),
             },

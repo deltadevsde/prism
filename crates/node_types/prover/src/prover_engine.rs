@@ -1,4 +1,6 @@
 use anyhow::{Result, anyhow};
+use prism_da::{VerifiableEpoch, VerificationKeys};
+use prism_keys::VerifyingKey;
 use prism_storage::database::Database;
 use prism_tree::proofs::Batch;
 use sp1_sdk::{
@@ -43,6 +45,19 @@ impl ProverEngine {
             recursive_prover_client: Arc::new(RwLock::new(recursive_prover_client)),
             recursive_proofs_enabled: config.recursive_proofs,
         })
+    }
+
+    pub fn verification_keys(&self) -> VerificationKeys {
+        // If recursive proofs are disabled, we just tell the verifier to verify using the base proving key
+        let recursive_vk = match self.recursive_proofs_enabled {
+            true => self.recursive_verifying_key.bytes32(),
+            false => self.base_verifying_key.bytes32(),
+        };
+
+        VerificationKeys {
+            base_vk: self.base_verifying_key.bytes32(),
+            recursive_vk,
+        }
     }
 
     pub async fn prove_epoch(
@@ -164,22 +179,5 @@ impl ProverEngine {
         } else {
             &self.recursive_verifying_key
         }
-    }
-
-    pub async fn verify_epoch_proof(
-        &self,
-        epoch_height: u64,
-        proof: &SP1ProofWithPublicValues,
-    ) -> Result<()> {
-        let client = if epoch_height == 0 || !self.recursive_proofs_enabled {
-            self.base_prover_client.read().await
-        } else {
-            self.recursive_prover_client.read().await
-        };
-
-        let verifying_key = self.get_verifying_key(epoch_height);
-
-        client.verify(proof, verifying_key)?;
-        Ok(())
     }
 }
