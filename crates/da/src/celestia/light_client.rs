@@ -10,10 +10,10 @@ use lumina_node::{
     events::EventSubscriber,
     store::{EitherStore, InMemoryStore, StoreError},
 };
-use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_errors::DataAvailabilityError;
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
-use tracing::{debug, trace};
+use tracing::{debug, trace, warn};
 
 #[cfg(target_arch = "wasm32")]
 use {
@@ -169,7 +169,7 @@ impl LightDataAvailabilityLayer for LightClientConnection {
         Some(self.event_subscriber.clone())
     }
 
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
         trace!(
             "searching for epoch on da layer at height {} under namespace",
             height
@@ -189,17 +189,20 @@ impl LightDataAvailabilityLayer for LightClientConnection {
 
         match node.request_all_blobs(&header, self.snark_namespace, None).await {
             Ok(blobs) => {
-                if blobs.is_empty() {
-                    return Ok(None);
-                }
-                let blob = blobs.into_iter().next().unwrap();
-                let epoch = FinalizedEpoch::try_from(&blob).map_err(|_| {
-                    anyhow!(GeneralError::ParsingError(format!(
-                        "marshalling blob from height {} to epoch json: {:?}",
-                        height, &blob
-                    )))
-                })?;
-                Ok(Some(epoch))
+                let epochs: Vec<FinalizedEpoch> = blobs
+                    .into_iter()
+                    .filter_map(|blob| match FinalizedEpoch::try_from(&blob) {
+                        Ok(epoch) => Some(epoch),
+                        Err(_) => {
+                            warn!(
+                                "marshalling blob from height {} to epoch json: {:?}",
+                                height, &blob
+                            );
+                            None
+                        }
+                    })
+                    .collect();
+                Ok(epochs)
             }
             Err(e) => Err(anyhow!(DataAvailabilityError::DataRetrievalError(
                 height,

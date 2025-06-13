@@ -4,7 +4,6 @@ use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
-use tracing::{error, trace};
 use lumina_node::events::EventSubscriber;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
@@ -14,16 +13,17 @@ use std::{
         atomic::{AtomicU64, Ordering},
     },
 };
+use tracing::{error, trace};
 
 use tokio::sync::{Mutex, broadcast};
 
 use crate::DataAvailabilityLayer;
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
 use celestia_types::AppVersion;
-use tracing::{debug, warn};
 use prism_common::transaction::Transaction;
 use prism_serde::binary::ToBinary;
 use tokio::task::spawn;
+use tracing::{debug, warn};
 
 use super::utils::{CelestiaConfig, create_namespace};
 
@@ -68,16 +68,15 @@ impl CelestiaConnection {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for CelestiaConnection {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
 
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
             Ok(maybe_blobs) => match maybe_blobs {
                 Some(blobs) => {
-                    let valid_epoch = blobs
+                    let valid_epoch: Vec<FinalizedEpoch> = blobs
                         .into_iter()
-                        .next()
-                        .and_then(|blob| {
+                        .filter_map(|blob| {
                             match FinalizedEpoch::try_from(&blob) {
                                 Ok(epoch) => Some(epoch),
                                 Err(e) => {
@@ -88,14 +87,15 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
                                     None
                                 }
                             }
-                        });
+                        })
+                        .collect();
                     Ok(valid_epoch)
                 }
-                None => Ok(None),
+                None => Ok(vec![]),
             },
             Err(err) => {
                 if err.to_string().contains("blob: not found") {
-                    Ok(None)
+                    Ok(vec![])
                 } else {
                     Err(anyhow!(DataAvailabilityError::DataRetrievalError(
                         height,

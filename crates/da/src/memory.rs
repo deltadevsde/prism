@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use lumina_node::events::EventSubscriber;
 use prism_common::transaction::Transaction;
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 use tokio::{
     sync::{Mutex, RwLock, broadcast},
     time::{Duration, interval},
@@ -15,14 +15,14 @@ use tracing::debug;
 pub struct Block {
     pub height: u64,
     pub transactions: Vec<Transaction>,
-    pub epoch: Option<FinalizedEpoch>,
+    pub epochs: Vec<FinalizedEpoch>,
 }
 
 #[derive(Clone)]
 pub struct InMemoryDataAvailabilityLayer {
     blocks: Arc<RwLock<Vec<Block>>>,
     pending_transactions: Arc<RwLock<Vec<Transaction>>>,
-    pending_epochs: Arc<RwLock<VecDeque<FinalizedEpoch>>>,
+    pending_epochs: Arc<RwLock<Vec<FinalizedEpoch>>>,
     latest_height: Arc<RwLock<u64>>,
     height_update_tx: broadcast::Sender<u64>,
     block_update_tx: broadcast::Sender<Block>,
@@ -43,7 +43,7 @@ impl InMemoryDataAvailabilityLayer {
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
                 pending_transactions: Arc::new(RwLock::new(Vec::new())),
-                pending_epochs: Arc::new(RwLock::new(VecDeque::new())),
+                pending_epochs: Arc::new(RwLock::new(Vec::new())),
                 latest_height: Arc::new(RwLock::new(0)),
                 height_update_tx: height_tx,
                 block_update_tx: block_tx,
@@ -65,7 +65,7 @@ impl InMemoryDataAvailabilityLayer {
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
                 pending_transactions: Arc::new(RwLock::new(Vec::new())),
-                pending_epochs: Arc::new(RwLock::new(VecDeque::new())),
+                pending_epochs: Arc::new(RwLock::new(Vec::new())),
                 latest_height: Arc::new(RwLock::new(0)),
                 height_update_tx: height_tx,
                 block_update_tx: block_tx,
@@ -90,7 +90,7 @@ impl InMemoryDataAvailabilityLayer {
             let new_block = Block {
                 height: *latest_height,
                 transactions: std::mem::take(&mut *pending_transactions),
-                epoch: pending_epochs.pop_front(),
+                epochs: std::mem::take(&mut *pending_epochs),
             };
             debug!(
                 "new block produced at height {} with {} transactions",
@@ -112,11 +112,11 @@ impl InMemoryDataAvailabilityLayer {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
         let blocks = self.blocks.read().await;
         match blocks.get(height.saturating_sub(1) as usize) {
-            Some(block) => Ok(block.epoch.clone()),
-            None => Ok(None),
+            Some(block) => Ok(block.epochs.clone()),
+            None => Ok(vec![]),
         }
     }
 
@@ -154,7 +154,7 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         }
 
         let mut pending_epochs = self.pending_epochs.write().await;
-        pending_epochs.push_back(epoch);
+        pending_epochs.push(epoch);
         let height = self.get_latest_height().await?;
         Ok(height + 1)
     }
