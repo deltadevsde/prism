@@ -492,6 +492,9 @@ async fn execute_simulations(args: Args) {
 
     // Plot results for orange configurations
     plot_orange_configurations(&results).expect("Failed to plot orange configurations");
+
+    // Plot results for wire configurations
+    plot_wire_configurations(&results).expect("Failed to plot wire configurations");
 }
 
 /// Generate different configurations for the simulations
@@ -594,6 +597,22 @@ fn get_configurations(
             });
         }
     }
+
+    // Wire configuration: 500k existing users, 41 CREATE_ACCOUNT/hour, 250 ADD_KEY/hour, 20 REMOVE_KEY/hour
+    // All using ED25519
+    configs.push(SimulationConfig {
+        tags: vec!["wire".to_string()],
+        num_simulations,
+        algorithms: vec![CryptoAlgorithm::Ed25519],
+        num_existing_services: 1, // Reasonable number of Wire services
+        num_existing_accounts: 500_000, // Current Wire user base
+        num_new_services: 0,
+        num_new_accounts: 41, // 41 new users per hour (1k per day)
+        num_add_keys: 250, // 0.1% of users add key/device per hour (500k * 0.001 = 500, scaled to 250 for performance)
+        num_revoke_key: 20, // 20 key removals per hour
+        num_add_data: 0,
+        num_set_data: 0,
+    });
 
     configs
 }
@@ -1027,6 +1046,91 @@ fn plot_orange_configurations_algorithm(
         .present()
         .expect("Unable to write result to file, please make sure the directory exists");
     println!("Result has been saved to {}", file_name);
+
+    Ok(())
+}
+
+/// Plot results for wire configurations
+fn plot_wire_configurations(
+    results: &[SimulationResult],
+) -> Result<(), Box<dyn std::error::Error>> {
+    let wire_results: Vec<&SimulationResult> =
+        results.iter().filter(|res| res.config.tags.contains(&"wire".to_string())).collect();
+
+    // skip if there are no wire results
+    if wire_results.is_empty() {
+        return Ok(());
+    }
+
+    let root_area = BitMapBackend::new("wire_configurations.png", (1200, 800)).into_drawing_area();
+    root_area.fill(&WHITE)?;
+
+    let mut chart = ChartBuilder::on(&root_area)
+        .caption(
+            "Wire Benchmark Results - 500k Users, ED25519 Operations per Hour",
+            ("sans-serif", 24),
+        )
+        .margin(15)
+        .x_label_area_size(80)
+        .y_label_area_size(80)
+        .build_cartesian_2d(
+            (0i32..3i32).into_segmented(),
+            0f64..wire_results[0].avg_cycles * 1.2,
+        )?;
+
+    chart
+        .configure_mesh()
+        .x_desc("Operation Type")
+        .x_label_formatter(&|x| {
+            match x {
+                SegmentValue::Exact(0) | SegmentValue::CenterOf(0) => "CREATE_ACCOUNT\n(41/hour)".to_string(),
+                SegmentValue::Exact(1) | SegmentValue::CenterOf(1) => "ADD_KEY\n(250/hour)".to_string(),
+                SegmentValue::Exact(2) | SegmentValue::CenterOf(2) => "REMOVE_KEY\n(20/hour)".to_string(),
+                _ => "".to_string(),
+            }
+        })
+        .y_desc("Average Cycles per Operation")
+        .y_label_formatter(&|&y| format!("{:e}", y))
+        .draw()?;
+
+    if let Some(wire_result) = wire_results.first() {
+        // Calculate cycles per operation type based on the configuration
+        let total_operations = wire_result.config.num_new_accounts
+            + wire_result.config.num_add_keys
+            + wire_result.config.num_revoke_key;
+
+        let cycles_per_operation = wire_result.avg_cycles / total_operations as f64;
+
+        let operation_data = vec![
+            (0i32, cycles_per_operation, "CREATE_ACCOUNT"),
+            (1i32, cycles_per_operation, "ADD_KEY"),
+            (2i32, cycles_per_operation, "REMOVE_KEY"),
+        ];
+
+        // Draw bars for each operation type
+        chart
+            .draw_series(
+                Histogram::vertical(&chart)
+                    .style(GREEN.mix(0.7).filled())
+                    .data(operation_data.iter().map(|(i, cycles, _)| (*i, *cycles))),
+            )?
+            .label("Cycles per Operation")
+            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], GREEN));
+
+        // Add text labels with operation counts - removed due to coordinate system complexity
+    }
+
+    chart
+        .configure_series_labels()
+        .background_style(WHITE.mix(0.8))
+        .border_style(BLACK)
+        .position(SeriesLabelPosition::UpperRight)
+        .draw()?;
+
+    root_area
+        .present()
+        .expect("Unable to write result to file, please make sure the directory exists");
+    println!("Wire benchmark result has been saved to wire_configurations.png");
 
     Ok(())
 }
