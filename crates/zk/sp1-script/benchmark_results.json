@@ -1,0 +1,137 @@
+{
+  "green_3_3_1_1_3_3_1_1_1": {
+    "config": {
+      "tags": [
+        "green"
+      ],
+      "num_simulations": 100,
+      "algorithms": [
+        "ed25519",
+        "secp256k1",
+        "secp256r1"
+      ],
+      "num_existing_services": 3,
+      "num_existing_accounts": 1,
+      "num_new_services": 1,
+      "num_new_accounts": 3,
+      "num_add_keys": 3,
+      "num_revoke_key": 1,
+      "num_add_data": 1,
+      "num_set_data": 1
+    },
+    "min_cycles": 3439513,
+    "max_cycles": 4349609,
+    "avg_cycles": 3836466.35,
+    "median_cycles": 3832863,
+    "std_dev": 209070.63956511806,
+    "std_dev_percentage": 5.4495627093176005
+  },
+  "green_3_3_5000_1_3_3_1_1_1": {
+    "config": {
+      "tags": [
+        "green"
+      ],
+      "num_simulations": 100,
+      "algorithms": [
+        "ed25519",
+        "secp256k1",
+        "secp256r1"
+      ],
+      "num_existing_services": 3,
+      "num_existing_accounts": 5000,
+      "num_new_services": 1,
+      "num_new_accounts": 3,
+      "num_add_keys": 3,
+      "num_revoke_key": 1,
+      "num_add_data": 1,
+      "num_set_data": 1
+    },
+    "min_cycles": 4683628,
+    "max_cycles": 5717407,
+    "avg_cycles": 5267721.98,
+    "median_cycles": 5298879,
+    "std_dev": 248928.8659195225,
+    "std_dev_percentage": 4.725550567486906
+  },
+  "green_3_3_1000_1_3_3_1_1_1": {
+    "config": {
+      "tags": [
+        "green"
+      ],
+      "num_simulations": 100,
+      "algorithms": [
+        "ed25519",
+        "secp256k1",
+        "secp256r1"
+      ],
+      "num_existing_services": 3,
+      "num_existing_accounts": 1000,
+      "num_new_services": 1,
+      "num_new_accounts": 3,
+      "num_add_keys": 3,
+      "num_revoke_key": 1,
+      "num_add_data": 1,
+      "num_set_data": 1
+    },
+    "min_cycles": 4237307,
+    "max_cycles": 5408336,
+    "avg_cycles": 4938772.37,
+    "median_cycles": 4942848,
+    "std_dev": 220153.70853831444,
+    "std_dev_percentage": 4.457660569165175
+  },
+  "green_3_3_10000_1_3_3_1_1_1": {
+    "config": {
+      "tags": [
+        "green"
+      ],
+      "num_simulations": 100,
+      "algorithms": [
+        "ed25519",
+        "secp256k1",
+        "secp256r1"
+      ],
+      "num_existing_services": 3,
+      "num_existing_accounts": 10000,
+      "num_new_services": 1,
+      "num_new_accounts": 3,
+      "num_add_keys": 3,
+      "num_revoke_key": 1,
+      "num_add_data": 1,
+      "num_set_data": 1
+    },
+    "min_cycles": 4571533,
+    "max_cycles": 5936754,
+    "avg_cycles": 5430844.46,
+    "median_cycles": 5429699,
+    "std_dev": 242187.94641040332,
+    "std_dev_percentage": 4.459489646484984
+  },
+  "green_3_3_100_1_3_3_1_1_1": {
+    "config": {
+      "tags": [
+        "green"
+      ],
+      "num_simulations": 100,
+      "algorithms": [
+        "ed25519",
+        "secp256k1",
+        "secp256r1"
+      ],
+      "num_existing_services": 3,
+      "num_existing_accounts": 100,
+      "num_new_services": 1,
+      "num_new_accounts": 3,
+      "num_add_keys": 3,
+      "num_revoke_key": 1,
+      "num_add_data": 1,
+      "num_set_data": 1
+    },
+    "min_cycles": 3789523,
+    "max_cycles": 5021213,
+    "avg_cycles": 4519581.79,
+    "median_cycles": 4526194,
+    "std_dev": 250674.91239106058,
+    "std_dev_percentage": 5.546418320068959
+  }
+}

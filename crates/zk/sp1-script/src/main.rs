@@ -20,9 +20,10 @@ use prism_tree::{
     key_directory_tree::KeyDirectoryTree, proofs::Batch, snarkable_tree::SnarkableTree,
 };
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256, Sha512};
 use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Proof, SP1Stdin};
-use std::{sync::Arc, time::Instant};
+use std::{collections::HashMap, fs, path::Path, sync::Arc, time::Instant};
 use tokio::{self, task};
 
 /// The ELF (executable and linkable format) files for the Succinct RISC-V zkVM.
@@ -43,9 +44,12 @@ struct Args {
 
     #[clap(long)]
     tag: Option<String>,
+
+    #[clap(long)]
+    start: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct SimulationConfig {
     tags: Vec<String>,
     num_simulations: usize,
@@ -82,7 +86,7 @@ impl Default for SimulationConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct SimulationResult {
     config: SimulationConfig,
     min_cycles: u64,
@@ -239,10 +243,17 @@ async fn main() {
     // Parse the command line arguments.
     let args = Args::parse();
 
-    // Ensure that either --execute or --prove is specified, but not both
-    if args.execute == args.prove {
-        eprintln!("Error: You must specify either --execute or --prove");
+    // Ensure that only one mode is specified
+    let mode_count = [args.execute, args.prove, args.start].iter().filter(|&&x| x).count();
+    if mode_count != 1 {
+        eprintln!("Error: You must specify exactly one of --execute, --prove, or --start");
         std::process::exit(1);
+    }
+
+    // Handle --start flag to plot from existing JSON data
+    if args.start {
+        plot_from_json(args.tag).await;
+        return;
     }
 
     // Execute simulations if --execute is specified
@@ -481,6 +492,11 @@ async fn execute_simulations(args: Args) {
         );
     }
 
+    // Save results to JSON before plotting
+    if let Err(e) = save_results_to_json(&results) {
+        eprintln!("Error saving results to JSON: {}", e);
+    }
+
     // Plot results for green configurations
     plot_green_configurations(&results).expect("Failed to plot green configurations");
 
@@ -602,10 +618,10 @@ fn get_configurations(
     // All using ED25519
     configs.push(SimulationConfig {
         tags: vec!["wire".to_string()],
-        num_simulations,
+        num_simulations: 1,
         algorithms: vec![CryptoAlgorithm::Ed25519],
         num_existing_services: 1, // Reasonable number of Wire services
-        num_existing_accounts: 500_000, // Current Wire user base
+        num_existing_accounts: 250_000, // Current Wire user base
         num_new_services: 0,
         num_new_accounts: 41, // 41 new users per hour (1k per day)
         num_add_keys: 250, // 0.1% of users add key/device per hour (500k * 0.001 = 500, scaled to 250 for performance)
@@ -644,6 +660,97 @@ fn calculate_statistics(
         std_dev,
         std_dev_percentage,
     )
+}
+
+const RESULTS_JSON_FILE: &str = "benchmark_results.json";
+
+/// Save results to JSON file, merging with existing data if present
+fn save_results_to_json(new_results: &[SimulationResult]) -> Result<(), Box<dyn std::error::Error>> {
+    let mut all_results: HashMap<String, SimulationResult> = if Path::new(RESULTS_JSON_FILE).exists() {
+        let json_data = fs::read_to_string(RESULTS_JSON_FILE)?;
+        serde_json::from_str(&json_data).unwrap_or_default()
+    } else {
+        HashMap::new()
+    };
+
+    // Create unique keys for each configuration based on its characteristics
+    for result in new_results {
+        let key = create_config_key(&result.config);
+        all_results.insert(key, result.clone());
+    }
+
+    let json_data = serde_json::to_string_pretty(&all_results)?;
+    fs::write(RESULTS_JSON_FILE, json_data)?;
+    println!("Results saved to {}", RESULTS_JSON_FILE);
+    Ok(())
+}
+
+/// Load results from JSON file, optionally filtered by tag
+fn load_results_from_json(tag_filter: Option<String>) -> Result<Vec<SimulationResult>, Box<dyn std::error::Error>> {
+    if !Path::new(RESULTS_JSON_FILE).exists() {
+        return Err("No results file found. Run benchmarks first.".into());
+    }
+
+    let json_data = fs::read_to_string(RESULTS_JSON_FILE)?;
+    let all_results: HashMap<String, SimulationResult> = serde_json::from_str(&json_data)?;
+
+    let mut results: Vec<SimulationResult> = all_results.into_values().collect();
+
+    // Filter by tag if specified
+    if let Some(tag) = tag_filter {
+        results.retain(|result| result.config.tags.contains(&tag));
+    }
+
+    Ok(results)
+}
+
+/// Create a unique key for a configuration
+fn create_config_key(config: &SimulationConfig) -> String {
+    format!(
+        "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}",
+        config.tags.join("-"),
+        config.algorithms.len(),
+        config.num_existing_services,
+        config.num_existing_accounts,
+        config.num_new_services,
+        config.num_new_accounts,
+        config.num_add_keys,
+        config.num_revoke_key,
+        config.num_add_data,
+        config.num_set_data
+    )
+}
+
+/// Plot charts from existing JSON data
+async fn plot_from_json(tag_filter: Option<String>) {
+    match load_results_from_json(tag_filter) {
+        Ok(results) => {
+            println!("Loaded {} results from JSON file", results.len());
+
+            // Generate plots
+            if let Err(e) = plot_green_configurations(&results) {
+                eprintln!("Error plotting green configurations: {}", e);
+            }
+            if let Err(e) = plot_yellow_configurations(&results) {
+                eprintln!("Error plotting yellow configurations: {}", e);
+            }
+            if let Err(e) = plot_blue_configurations(&results) {
+                eprintln!("Error plotting blue configurations: {}", e);
+            }
+            if let Err(e) = plot_orange_configurations(&results) {
+                eprintln!("Error plotting orange configurations: {}", e);
+            }
+            if let Err(e) = plot_wire_configurations(&results) {
+                eprintln!("Error plotting wire configurations: {}", e);
+            }
+
+            println!("All plots generated successfully from existing data.");
+        }
+        Err(e) => {
+            eprintln!("Error loading results from JSON: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
 
 /// Plot results for green configurations
