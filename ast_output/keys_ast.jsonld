@@ -1,0 +1,3569 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:keys",
+  "crate_name": "keys",
+  "crate_path": "crates/keys",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/lib.rs",
+      "path": "../crates/keys/src/lib.rs",
+      "relative_path": "crates/keys/src/lib.rs",
+      "file_size": 226,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#algorithm",
+            "name": "algorithm",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#cosmos",
+            "name": "cosmos",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#der",
+            "name": "der",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#payload",
+            "name": "payload",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#signatures",
+            "name": "signatures",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#signing_keys",
+            "name": "signing_keys",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#verifying_keys",
+            "name": "verifying_keys",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/lib.rs#use_algorithm_*",
+            "path": "algorithm :: *",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/lib.rs#use_signatures_*",
+            "path": "signatures :: *",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/lib.rs#use_signing_keys_*",
+            "path": "signing_keys :: *",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/lib.rs#use_verifying_keys_*",
+            "path": "verifying_keys :: *",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#algorithm",
+            "name": "algorithm",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#cosmos",
+            "name": "cosmos",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#der",
+            "name": "der",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#payload",
+            "name": "payload",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#signatures",
+            "name": "signatures",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#signing_keys",
+            "name": "signing_keys",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#verifying_keys",
+            "name": "verifying_keys",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/lib.rs#use_algorithm_*",
+            "path": "algorithm :: *",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/lib.rs#use_signatures_*",
+            "path": "signatures :: *",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/lib.rs#use_signing_keys_*",
+            "path": "signing_keys :: *",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/lib.rs#use_verifying_keys_*",
+            "path": "verifying_keys :: *",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/lib.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": []
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/tests/mod.rs",
+      "path": "../crates/keys/src/tests/mod.rs",
+      "relative_path": "crates/keys/src/tests/mod.rs",
+      "file_size": 15162,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/tests/mod.rs#key_tests",
+            "name": "key_tests",
+            "visibility": "private",
+            "items": [
+              "use ed25519_consensus :: SigningKey as Ed25519SigningKey ;",
+              "use prism_serde :: base64 :: { FromBase64 , ToBase64 } ;",
+              "use rand :: rngs :: OsRng ;",
+              "use std :: { env , fs :: remove_file } ;",
+              "use crate :: { CryptoAlgorithm , Signature , SigningKey , VerifyingKey } ;",
+              "# [test] fn test_reparsed_verifying_keys_are_equal_to_original () { let verifying_key_ed25519 = SigningKey :: new_ed25519 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_ed25519 . algorithm () , & verifying_key_ed25519 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_ed25519) ; let verifying_key_secp256k1 = SigningKey :: new_secp256k1 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_secp256k1 . algorithm () , & verifying_key_secp256k1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256k1) ; let verifying_key_secp256r1 = SigningKey :: new_secp256r1 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_secp256r1 . algorithm () , & verifying_key_secp256r1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256r1) ; let verifying_key_eip191 = SigningKey :: new_eip191 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_eip191 . algorithm () , & verifying_key_eip191 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_eip191) ; let verifying_key_cosmos_adr36 = SigningKey :: new_cosmos_adr36 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_cosmos_adr36 . algorithm () , & verifying_key_cosmos_adr36 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_cosmos_adr36) ; }",
+              "# [test] fn test_reparsed_der_verifying_keys_are_equal_to_original () { let verifying_key_ed25519 = SigningKey :: new_ed25519 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_der (& verifying_key_ed25519 . to_spki_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_ed25519) ; let verifying_key_secp256r1 = SigningKey :: new_secp256r1 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_der (& verifying_key_secp256r1 . to_spki_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256r1) ; let verifying_key_secp256k1 = SigningKey :: new_secp256k1 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_der (& verifying_key_secp256k1 . to_spki_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256k1) ; }",
+              "# [test] fn test_reparsed_verifying_keys_from_spki_pem_files_are_equal_to_original () { let temp_dir = env :: temp_dir () ; let verifying_key_ed25519 = SigningKey :: new_ed25519 () . verifying_key () ; let spki_path = temp_dir . join (\"ed25519.pem\") ; verifying_key_ed25519 . to_spki_pem_file (& spki_path) . unwrap () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_pem_file (& spki_path) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_ed25519) ; remove_file (& spki_path) . unwrap () ; let verifying_key_secp256k1 = SigningKey :: new_secp256k1 () . verifying_key () ; let spki_path = temp_dir . join (\"secp256k1.pem\") ; verifying_key_secp256k1 . to_spki_pem_file (& spki_path) . unwrap () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_pem_file (& spki_path) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256k1) ; remove_file (& spki_path) . unwrap () ; let verifying_key_secp256r1 = SigningKey :: new_secp256r1 () . verifying_key () ; let spki_path = temp_dir . join (\"secp256r1.pem\") ; verifying_key_secp256r1 . to_spki_pem_file (& spki_path) . unwrap () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_pem_file (& spki_path) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256r1) ; remove_file (& spki_path) . unwrap () ; }",
+              "# [test] fn test_reparsed_signing_keys_are_equal_to_original () { let signing_key_ed25519 = SigningKey :: new_ed25519 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_ed25519 . algorithm () , & signing_key_ed25519 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_ed25519) ; let signing_key_secp256k1 = SigningKey :: new_secp256k1 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_secp256k1 . algorithm () , & signing_key_secp256k1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_secp256k1) ; let signing_key_secp256r1 = SigningKey :: new_secp256r1 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_secp256r1 . algorithm () , & signing_key_secp256r1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_secp256r1) ; let signing_key_eip191 = SigningKey :: new_eip191 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_eip191 . algorithm () , & signing_key_eip191 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_eip191) ; let signing_key_cosmos_adr36 = SigningKey :: new_cosmos_adr36 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_cosmos_adr36 . algorithm () , & signing_key_cosmos_adr36 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_cosmos_adr36) ; }",
+              "# [test] fn test_reparsed_signing_keys_from_pkcs8_files () { let temp_dir = env :: temp_dir () ; let signing_key_ed25519 = SigningKey :: new_ed25519 () ; let pkcs8_path = temp_dir . join (\"ed25519.p8\") ; signing_key_ed25519 . to_pkcs8_pem_file (& pkcs8_path) . unwrap () ; let re_parsed_signing_key = SigningKey :: from_pkcs8_pem_file (& pkcs8_path) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_ed25519) ; remove_file (& pkcs8_path) . unwrap () ; let signing_key_secp256k1 = SigningKey :: new_secp256k1 () ; let pkcs8_path = temp_dir . join (\"secp256k1.p8\") ; signing_key_secp256k1 . to_pkcs8_pem_file (& pkcs8_path) . unwrap () ; let re_parsed_signing_key = SigningKey :: from_pkcs8_pem_file (& pkcs8_path) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_secp256k1) ; remove_file (& pkcs8_path) . unwrap () ; let signing_key_secp256r1 = SigningKey :: new_secp256r1 () ; let pkcs8_path = temp_dir . join (\"secp256r1.p8\") ; signing_key_secp256r1 . to_pkcs8_pem_file (& pkcs8_path) . unwrap () ; let re_parsed_signing_key = SigningKey :: from_pkcs8_pem_file (& pkcs8_path) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_secp256r1) ; remove_file (& pkcs8_path) . unwrap () ; }",
+              "# [test] fn test_reparsed_signatures_are_equal_to_original () { let message = b\"test message\" ; let signature_ed25519 = SigningKey :: new_ed25519 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_algorithm_and_bytes (signature_ed25519 . algorithm () , & signature_ed25519 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signature , signature_ed25519) ; let signature_secp256k1 = SigningKey :: new_secp256k1 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_algorithm_and_bytes (signature_secp256k1 . algorithm () , & signature_secp256k1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signature , signature_secp256k1) ; let signature_secp256r1 = SigningKey :: new_secp256r1 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_algorithm_and_bytes (signature_secp256r1 . algorithm () , & signature_secp256r1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signature , signature_secp256r1) ; }",
+              "# [test] fn test_reparsed_der_signatures_are_equal_to_original () { let message = b\"test message\" ; let signature_ed25519 = SigningKey :: new_ed25519 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_prism_der (& signature_ed25519 . to_prism_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_signature , signature_ed25519) ; let signature_secp256k1 = SigningKey :: new_secp256k1 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_prism_der (& signature_secp256k1 . to_prism_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_signature , signature_secp256k1) ; let signature_secp256r1 = SigningKey :: new_secp256r1 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_prism_der (& signature_secp256r1 . to_prism_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_signature , signature_secp256r1) ; }",
+              "# [test] fn test_created_signatures_can_be_verified () { let message = b\"test message\" ; for algorithm in CryptoAlgorithm :: all () { let signing_key = SigningKey :: new_with_algorithm (algorithm) . unwrap () ; let verifying_key = signing_key . verifying_key () ; let signature = signing_key . sign (message) . unwrap () ; let result = verifying_key . verify_signature (message , & signature) ; assert ! (result . is_ok () , \"Verification failed for algorithm {:?}: {}\" , algorithm , result . err () . unwrap ()) ; let tampered_message = b\"tampered message\" ; let result = verifying_key . verify_signature (tampered_message , & signature) ; assert ! (result . is_err () , \"Verification of tampered message should fail for algorithm: {:?}\" , algorithm) ; } }",
+              "# [test] fn test_eip191_wallet_signatures_can_be_verified () { let message = String :: from (\"Example `personal_sign` message\") ; let verifying_key_base64 = \"A+mFEKkNVbIaZN3Bq95WpE2EpMHG+06ZBm985YggAaA3\" ; let signature_base64 = \"2EcejLYR8qFjY4C/vx4Bl7EOOpO/hqlWdpn+tvzQcEUjdYKLSZMMFxg25Y34qT+aJKuyvDGx4hZdc0/vrvDZCw==\" ; let verifying_key_bytes = Vec :: < u8 > :: from_base64 (verifying_key_base64) . unwrap () ; let signature_bytes = Vec :: < u8 > :: from_base64 (signature_base64) . unwrap () ; let signature = Signature :: from_algorithm_and_bytes (CryptoAlgorithm :: Secp256k1 , & signature_bytes) . unwrap () ; let verifying_key = VerifyingKey :: from_algorithm_and_bytes (CryptoAlgorithm :: Eip191 , & verifying_key_bytes) . unwrap () ; verifying_key . verify_signature (message , & signature) . unwrap () ; }",
+              "# [test] fn test_cosmos_adr36_wallet_signatures_can_be_verified () { let message = String :: from (\"123\") ; let public_key_base64 = \"AzInFFk+Ht0PA40u/T0L+3qpPk+EuHBq8mqJr974Asg1\" ; let signature_base64 = \"jU9Q9lnY5gAO51dpt+8d7FpngPLlV6S9S/YBM9vve2JHTkxfMvQch1+hq9hdAD8XiJ69JFsaNW3zu3bTmCEOvA==\" ; let public_key_bytes = Vec :: < u8 > :: from_base64 (public_key_base64) . unwrap () ; let signature_bytes = Vec :: < u8 > :: from_base64 (signature_base64) . unwrap () ; let verifying_key = VerifyingKey :: from_algorithm_and_bytes (CryptoAlgorithm :: CosmosAdr36 , & public_key_bytes) . unwrap () ; let signature = Signature :: from_algorithm_and_bytes (CryptoAlgorithm :: Secp256k1 , & signature_bytes) . unwrap () ; verifying_key . verify_signature (message , & signature) . unwrap () ; }",
+              "# [test] fn test_verifying_key_from_string_ed25519 () { let original_key = SigningKey :: Ed25519 (Ed25519SigningKey :: new (OsRng)) . verifying_key () ; let encoded = original_key . to_bytes () . to_base64 () ; let result = VerifyingKey :: try_from (encoded) ; assert ! (result . is_ok ()) ; let decoded_key = result . unwrap () ; assert_eq ! (decoded_key , original_key) ; }",
+              "# [test] fn test_verifying_key_from_string_invalid_length () { let invalid_bytes : [u8 ; 31] = [1 ; 31] ; let encoded = invalid_bytes . to_base64 () ; let result = VerifyingKey :: try_from (encoded) ; assert ! (result . is_err ()) ; }"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/keys/src/tests/mod.rs#key_tests",
+            "name": "key_tests",
+            "visibility": "private",
+            "items": [
+              "use ed25519_consensus :: SigningKey as Ed25519SigningKey ;",
+              "use prism_serde :: base64 :: { FromBase64 , ToBase64 } ;",
+              "use rand :: rngs :: OsRng ;",
+              "use std :: { env , fs :: remove_file } ;",
+              "use crate :: { CryptoAlgorithm , Signature , SigningKey , VerifyingKey } ;",
+              "# [test] fn test_reparsed_verifying_keys_are_equal_to_original () { let verifying_key_ed25519 = SigningKey :: new_ed25519 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_ed25519 . algorithm () , & verifying_key_ed25519 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_ed25519) ; let verifying_key_secp256k1 = SigningKey :: new_secp256k1 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_secp256k1 . algorithm () , & verifying_key_secp256k1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256k1) ; let verifying_key_secp256r1 = SigningKey :: new_secp256r1 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_secp256r1 . algorithm () , & verifying_key_secp256r1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256r1) ; let verifying_key_eip191 = SigningKey :: new_eip191 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_eip191 . algorithm () , & verifying_key_eip191 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_eip191) ; let verifying_key_cosmos_adr36 = SigningKey :: new_cosmos_adr36 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_algorithm_and_bytes (verifying_key_cosmos_adr36 . algorithm () , & verifying_key_cosmos_adr36 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_cosmos_adr36) ; }",
+              "# [test] fn test_reparsed_der_verifying_keys_are_equal_to_original () { let verifying_key_ed25519 = SigningKey :: new_ed25519 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_der (& verifying_key_ed25519 . to_spki_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_ed25519) ; let verifying_key_secp256r1 = SigningKey :: new_secp256r1 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_der (& verifying_key_secp256r1 . to_spki_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256r1) ; let verifying_key_secp256k1 = SigningKey :: new_secp256k1 () . verifying_key () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_der (& verifying_key_secp256k1 . to_spki_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256k1) ; }",
+              "# [test] fn test_reparsed_verifying_keys_from_spki_pem_files_are_equal_to_original () { let temp_dir = env :: temp_dir () ; let verifying_key_ed25519 = SigningKey :: new_ed25519 () . verifying_key () ; let spki_path = temp_dir . join (\"ed25519.pem\") ; verifying_key_ed25519 . to_spki_pem_file (& spki_path) . unwrap () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_pem_file (& spki_path) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_ed25519) ; remove_file (& spki_path) . unwrap () ; let verifying_key_secp256k1 = SigningKey :: new_secp256k1 () . verifying_key () ; let spki_path = temp_dir . join (\"secp256k1.pem\") ; verifying_key_secp256k1 . to_spki_pem_file (& spki_path) . unwrap () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_pem_file (& spki_path) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256k1) ; remove_file (& spki_path) . unwrap () ; let verifying_key_secp256r1 = SigningKey :: new_secp256r1 () . verifying_key () ; let spki_path = temp_dir . join (\"secp256r1.pem\") ; verifying_key_secp256r1 . to_spki_pem_file (& spki_path) . unwrap () ; let re_parsed_verifying_key = VerifyingKey :: from_spki_pem_file (& spki_path) . unwrap () ; assert_eq ! (re_parsed_verifying_key , verifying_key_secp256r1) ; remove_file (& spki_path) . unwrap () ; }",
+              "# [test] fn test_reparsed_signing_keys_are_equal_to_original () { let signing_key_ed25519 = SigningKey :: new_ed25519 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_ed25519 . algorithm () , & signing_key_ed25519 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_ed25519) ; let signing_key_secp256k1 = SigningKey :: new_secp256k1 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_secp256k1 . algorithm () , & signing_key_secp256k1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_secp256k1) ; let signing_key_secp256r1 = SigningKey :: new_secp256r1 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_secp256r1 . algorithm () , & signing_key_secp256r1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_secp256r1) ; let signing_key_eip191 = SigningKey :: new_eip191 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_eip191 . algorithm () , & signing_key_eip191 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_eip191) ; let signing_key_cosmos_adr36 = SigningKey :: new_cosmos_adr36 () ; let re_parsed_signing_key = SigningKey :: from_algorithm_and_bytes (signing_key_cosmos_adr36 . algorithm () , & signing_key_cosmos_adr36 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_cosmos_adr36) ; }",
+              "# [test] fn test_reparsed_signing_keys_from_pkcs8_files () { let temp_dir = env :: temp_dir () ; let signing_key_ed25519 = SigningKey :: new_ed25519 () ; let pkcs8_path = temp_dir . join (\"ed25519.p8\") ; signing_key_ed25519 . to_pkcs8_pem_file (& pkcs8_path) . unwrap () ; let re_parsed_signing_key = SigningKey :: from_pkcs8_pem_file (& pkcs8_path) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_ed25519) ; remove_file (& pkcs8_path) . unwrap () ; let signing_key_secp256k1 = SigningKey :: new_secp256k1 () ; let pkcs8_path = temp_dir . join (\"secp256k1.p8\") ; signing_key_secp256k1 . to_pkcs8_pem_file (& pkcs8_path) . unwrap () ; let re_parsed_signing_key = SigningKey :: from_pkcs8_pem_file (& pkcs8_path) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_secp256k1) ; remove_file (& pkcs8_path) . unwrap () ; let signing_key_secp256r1 = SigningKey :: new_secp256r1 () ; let pkcs8_path = temp_dir . join (\"secp256r1.p8\") ; signing_key_secp256r1 . to_pkcs8_pem_file (& pkcs8_path) . unwrap () ; let re_parsed_signing_key = SigningKey :: from_pkcs8_pem_file (& pkcs8_path) . unwrap () ; assert_eq ! (re_parsed_signing_key , signing_key_secp256r1) ; remove_file (& pkcs8_path) . unwrap () ; }",
+              "# [test] fn test_reparsed_signatures_are_equal_to_original () { let message = b\"test message\" ; let signature_ed25519 = SigningKey :: new_ed25519 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_algorithm_and_bytes (signature_ed25519 . algorithm () , & signature_ed25519 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signature , signature_ed25519) ; let signature_secp256k1 = SigningKey :: new_secp256k1 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_algorithm_and_bytes (signature_secp256k1 . algorithm () , & signature_secp256k1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signature , signature_secp256k1) ; let signature_secp256r1 = SigningKey :: new_secp256r1 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_algorithm_and_bytes (signature_secp256r1 . algorithm () , & signature_secp256r1 . to_bytes () ,) . unwrap () ; assert_eq ! (re_parsed_signature , signature_secp256r1) ; }",
+              "# [test] fn test_reparsed_der_signatures_are_equal_to_original () { let message = b\"test message\" ; let signature_ed25519 = SigningKey :: new_ed25519 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_prism_der (& signature_ed25519 . to_prism_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_signature , signature_ed25519) ; let signature_secp256k1 = SigningKey :: new_secp256k1 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_prism_der (& signature_secp256k1 . to_prism_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_signature , signature_secp256k1) ; let signature_secp256r1 = SigningKey :: new_secp256r1 () . sign (message) . unwrap () ; let re_parsed_signature = Signature :: from_prism_der (& signature_secp256r1 . to_prism_der () . unwrap ()) . unwrap () ; assert_eq ! (re_parsed_signature , signature_secp256r1) ; }",
+              "# [test] fn test_created_signatures_can_be_verified () { let message = b\"test message\" ; for algorithm in CryptoAlgorithm :: all () { let signing_key = SigningKey :: new_with_algorithm (algorithm) . unwrap () ; let verifying_key = signing_key . verifying_key () ; let signature = signing_key . sign (message) . unwrap () ; let result = verifying_key . verify_signature (message , & signature) ; assert ! (result . is_ok () , \"Verification failed for algorithm {:?}: {}\" , algorithm , result . err () . unwrap ()) ; let tampered_message = b\"tampered message\" ; let result = verifying_key . verify_signature (tampered_message , & signature) ; assert ! (result . is_err () , \"Verification of tampered message should fail for algorithm: {:?}\" , algorithm) ; } }",
+              "# [test] fn test_eip191_wallet_signatures_can_be_verified () { let message = String :: from (\"Example `personal_sign` message\") ; let verifying_key_base64 = \"A+mFEKkNVbIaZN3Bq95WpE2EpMHG+06ZBm985YggAaA3\" ; let signature_base64 = \"2EcejLYR8qFjY4C/vx4Bl7EOOpO/hqlWdpn+tvzQcEUjdYKLSZMMFxg25Y34qT+aJKuyvDGx4hZdc0/vrvDZCw==\" ; let verifying_key_bytes = Vec :: < u8 > :: from_base64 (verifying_key_base64) . unwrap () ; let signature_bytes = Vec :: < u8 > :: from_base64 (signature_base64) . unwrap () ; let signature = Signature :: from_algorithm_and_bytes (CryptoAlgorithm :: Secp256k1 , & signature_bytes) . unwrap () ; let verifying_key = VerifyingKey :: from_algorithm_and_bytes (CryptoAlgorithm :: Eip191 , & verifying_key_bytes) . unwrap () ; verifying_key . verify_signature (message , & signature) . unwrap () ; }",
+              "# [test] fn test_cosmos_adr36_wallet_signatures_can_be_verified () { let message = String :: from (\"123\") ; let public_key_base64 = \"AzInFFk+Ht0PA40u/T0L+3qpPk+EuHBq8mqJr974Asg1\" ; let signature_base64 = \"jU9Q9lnY5gAO51dpt+8d7FpngPLlV6S9S/YBM9vve2JHTkxfMvQch1+hq9hdAD8XiJ69JFsaNW3zu3bTmCEOvA==\" ; let public_key_bytes = Vec :: < u8 > :: from_base64 (public_key_base64) . unwrap () ; let signature_bytes = Vec :: < u8 > :: from_base64 (signature_base64) . unwrap () ; let verifying_key = VerifyingKey :: from_algorithm_and_bytes (CryptoAlgorithm :: CosmosAdr36 , & public_key_bytes) . unwrap () ; let signature = Signature :: from_algorithm_and_bytes (CryptoAlgorithm :: Secp256k1 , & signature_bytes) . unwrap () ; verifying_key . verify_signature (message , & signature) . unwrap () ; }",
+              "# [test] fn test_verifying_key_from_string_ed25519 () { let original_key = SigningKey :: Ed25519 (Ed25519SigningKey :: new (OsRng)) . verifying_key () ; let encoded = original_key . to_bytes () . to_base64 () ; let result = VerifyingKey :: try_from (encoded) ; assert ! (result . is_ok ()) ; let decoded_key = result . unwrap () ; assert_eq ! (decoded_key , original_key) ; }",
+              "# [test] fn test_verifying_key_from_string_invalid_length () { let invalid_bytes : [u8 ; 31] = [1 ; 31] ; let encoded = invalid_bytes . to_base64 () ; let result = VerifyingKey :: try_from (encoded) ; assert ! (result . is_err ()) ; }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/algorithm.rs",
+      "path": "../crates/keys/src/algorithm.rs",
+      "relative_path": "crates/keys/src/algorithm.rs",
+      "file_size": 3018,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/algorithm.rs#use_anyhow_bail",
+            "path": "anyhow :: bail",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/algorithm.rs#use_pkcs8_{AlgorithmIdentifierRef,ObjectIdentifier}",
+            "path": "pkcs8 :: { AlgorithmIdentifierRef , ObjectIdentifier }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/algorithm.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/algorithm.rs#use_utoipa_ToSchema",
+            "path": "utoipa :: ToSchema",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+            "name": "CryptoAlgorithm",
+            "visibility": "pub",
+            "variants": [
+              "Ed25519",
+              "Secp256k1",
+              "Secp256r1",
+              "Eip191",
+              "CosmosAdr36"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/algorithm.rs#impl_CryptoAlgorithm",
+            "target_type": "CryptoAlgorithm",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" Returns a vector containing all variants of `CryptoAlgorithm`.\"] pub fn all () -> Vec < Self > { vec ! [Self :: Ed25519 , Self :: Secp256k1 , Self :: Secp256r1 , Self :: Eip191 , Self :: CosmosAdr36 ,] }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/algorithm.rs#impl_std::str::FromStr_CryptoAlgorithm",
+            "target_type": "CryptoAlgorithm",
+            "trait_name": "std :: str :: FromStr",
+            "items": [
+              "type Err = () ;",
+              "fn from_str (input : & str) -> Result < CryptoAlgorithm , Self :: Err > { match input . to_lowercase () . as_str () { \"ed25519\" => Ok (CryptoAlgorithm :: Ed25519) , \"secp256k1\" => Ok (CryptoAlgorithm :: Secp256k1) , \"secp256r1\" => Ok (CryptoAlgorithm :: Secp256r1) , \"eip191\" => Ok (CryptoAlgorithm :: Eip191) , \"cosmos_adr36\" => Ok (CryptoAlgorithm :: CosmosAdr36) , _ => Err (()) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/algorithm.rs#impl_std::fmt::Display_CryptoAlgorithm",
+            "target_type": "CryptoAlgorithm",
+            "trait_name": "std :: fmt :: Display",
+            "items": [
+              "fn fmt (& self , f : & mut std :: fmt :: Formatter < '_ >) -> std :: fmt :: Result { write ! (f , \"{:?}\" , self) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#ED25519_OID",
+            "name": "ED25519_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#ELLIPTIC_CURVE_OID",
+            "name": "ELLIPTIC_CURVE_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#ECDSA_SHA256_OID",
+            "name": "ECDSA_SHA256_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#SECP256K1_OID",
+            "name": "SECP256K1_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#SECP256R1_OID",
+            "name": "SECP256R1_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/algorithm.rs#impl_TryFrom<AlgorithmIdentifierRef<'a>>_CryptoAlgorithm",
+            "target_type": "CryptoAlgorithm",
+            "trait_name": "TryFrom < AlgorithmIdentifierRef < 'a > >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (algorithm_identifier : AlgorithmIdentifierRef < 'a >) -> Result < Self , Self :: Error > { let oid = algorithm_identifier . oid ; if oid == ED25519_OID { Ok (CryptoAlgorithm :: Ed25519) } else if oid == ELLIPTIC_CURVE_OID || oid == ECDSA_SHA256_OID { let parameter_oid = algorithm_identifier . parameters_oid () ? ; if parameter_oid == SECP256K1_OID { Ok (CryptoAlgorithm :: Secp256k1) } else if parameter_oid == SECP256R1_OID { Ok (CryptoAlgorithm :: Secp256r1) } else { bail ! (\"Unsupported elliptic curve OID\") } } else { bail ! (\"Unsupported algorithm OID\") } }"
+            ],
+            "generics": [
+              "'a"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/algorithm.rs#use_anyhow_bail",
+            "path": "anyhow :: bail",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/algorithm.rs#use_pkcs8_{AlgorithmIdentifierRef,ObjectIdentifier}",
+            "path": "pkcs8 :: { AlgorithmIdentifierRef , ObjectIdentifier }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/algorithm.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/algorithm.rs#use_utoipa_ToSchema",
+            "path": "utoipa :: ToSchema",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+            "name": "CryptoAlgorithm",
+            "visibility": "pub",
+            "variants": [
+              "Ed25519",
+              "Secp256k1",
+              "Secp256r1",
+              "Eip191",
+              "CosmosAdr36"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone",
+            "Copy",
+            "Debug",
+            "Eq",
+            "PartialEq",
+            "Serialize",
+            "Deserialize",
+            "ToSchema"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/algorithm.rs#impl_CryptoAlgorithm",
+            "target_type": "CryptoAlgorithm",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" Returns a vector containing all variants of `CryptoAlgorithm`.\"] pub fn all () -> Vec < Self > { vec ! [Self :: Ed25519 , Self :: Secp256k1 , Self :: Secp256r1 , Self :: Eip191 , Self :: CosmosAdr36 ,] }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CryptoAlgorithm"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/algorithm.rs#impl_std::str::FromStr_CryptoAlgorithm",
+            "target_type": "CryptoAlgorithm",
+            "trait_name": "std :: str :: FromStr",
+            "items": [
+              "type Err = () ;",
+              "fn from_str (input : & str) -> Result < CryptoAlgorithm , Self :: Err > { match input . to_lowercase () . as_str () { \"ed25519\" => Ok (CryptoAlgorithm :: Ed25519) , \"secp256k1\" => Ok (CryptoAlgorithm :: Secp256k1) , \"secp256r1\" => Ok (CryptoAlgorithm :: Secp256r1) , \"eip191\" => Ok (CryptoAlgorithm :: Eip191) , \"cosmos_adr36\" => Ok (CryptoAlgorithm :: CosmosAdr36) , _ => Err (()) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CryptoAlgorithm"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/algorithm.rs#impl_std::fmt::Display_CryptoAlgorithm",
+            "target_type": "CryptoAlgorithm",
+            "trait_name": "std :: fmt :: Display",
+            "items": [
+              "fn fmt (& self , f : & mut std :: fmt :: Formatter < '_ >) -> std :: fmt :: Result { write ! (f , \"{:?}\" , self) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CryptoAlgorithm"
+          ]
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#ED25519_OID",
+            "name": "ED25519_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#ELLIPTIC_CURVE_OID",
+            "name": "ELLIPTIC_CURVE_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#ECDSA_SHA256_OID",
+            "name": "ECDSA_SHA256_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#SECP256K1_OID",
+            "name": "SECP256K1_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/keys/src/algorithm.rs#SECP256R1_OID",
+            "name": "SECP256R1_OID",
+            "visibility": "pub",
+            "type_name": "ObjectIdentifier"
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/algorithm.rs#impl_TryFrom<AlgorithmIdentifierRef<'a>>_CryptoAlgorithm",
+            "target_type": "CryptoAlgorithm",
+            "trait_name": "TryFrom < AlgorithmIdentifierRef < 'a > >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (algorithm_identifier : AlgorithmIdentifierRef < 'a >) -> Result < Self , Self :: Error > { let oid = algorithm_identifier . oid ; if oid == ED25519_OID { Ok (CryptoAlgorithm :: Ed25519) } else if oid == ELLIPTIC_CURVE_OID || oid == ECDSA_SHA256_OID { let parameter_oid = algorithm_identifier . parameters_oid () ? ; if parameter_oid == SECP256K1_OID { Ok (CryptoAlgorithm :: Secp256k1) } else if parameter_oid == SECP256R1_OID { Ok (CryptoAlgorithm :: Secp256r1) } else { bail ! (\"Unsupported elliptic curve OID\") } } else { bail ! (\"Unsupported algorithm OID\") } }"
+            ],
+            "generics": [
+              "'a"
+            ]
+          },
+          "type_references": [
+            "CryptoAlgorithm"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/der.rs",
+      "path": "../crates/keys/src/der.rs",
+      "relative_path": "crates/keys/src/der.rs",
+      "file_size": 1316,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/der.rs#use_pkcs8_{der_{self,AnyRef,DecodeValue,Encode,EncodeValue,Header,Length,Reader,Sequence,Writer,asn1_{ContextSpecific,OctetStringRef},},spki_AlgorithmIdentifier,}",
+            "path": "pkcs8 :: { der :: { self , AnyRef , DecodeValue , Encode , EncodeValue , Header , Length , Reader , Sequence , Writer , asn1 :: { ContextSpecific , OctetStringRef } , } , spki :: AlgorithmIdentifier , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/der.rs#SignatureInfoRef",
+            "name": "SignatureInfoRef",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "algorithm",
+                "type_name": "AlgorithmIdentifier < AnyRef < 'a > >",
+                "visibility": "pub"
+              },
+              {
+                "name": "signature",
+                "type_name": "OctetStringRef < 'a >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": [
+              "'a"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/der.rs#impl_EncodeValue_SignatureInfoRef<'_>",
+            "target_type": "SignatureInfoRef < '_ >",
+            "trait_name": "EncodeValue",
+            "items": [
+              "fn value_len (& self) -> der :: Result < Length > { self . algorithm . encoded_len () ? + self . signature . encoded_len () ? }",
+              "fn encode_value (& self , encoder : & mut impl Writer) -> der :: Result < () > { self . algorithm . encode (encoder) ? ; self . signature . encode (encoder) ? ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/der.rs#impl_DecodeValue<'a>_SignatureInfoRef<'a>",
+            "target_type": "SignatureInfoRef < 'a >",
+            "trait_name": "DecodeValue < 'a >",
+            "items": [
+              "fn decode_value < R : Reader < 'a > > (reader : & mut R , header : Header) -> der :: Result < Self > { reader . read_nested (header . length , | reader | { let algorithm = reader . decode () ? ; let signature = reader . decode () ? ; while ! reader . is_finished () { reader . decode :: < ContextSpecific < AnyRef < '_ > > > () ? ; } Ok (Self { algorithm , signature , }) }) }"
+            ],
+            "generics": [
+              "'a"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/der.rs#impl_Sequence<'a>_SignatureInfoRef<'a>",
+            "target_type": "SignatureInfoRef < 'a >",
+            "trait_name": "Sequence < 'a >",
+            "items": [],
+            "generics": [
+              "'a"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/der.rs#use_pkcs8_{der_{self,AnyRef,DecodeValue,Encode,EncodeValue,Header,Length,Reader,Sequence,Writer,asn1_{ContextSpecific,OctetStringRef},},spki_AlgorithmIdentifier,}",
+            "path": "pkcs8 :: { der :: { self , AnyRef , DecodeValue , Encode , EncodeValue , Header , Length , Reader , Sequence , Writer , asn1 :: { ContextSpecific , OctetStringRef } , } , spki :: AlgorithmIdentifier , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/der.rs#SignatureInfoRef",
+            "name": "SignatureInfoRef",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "algorithm",
+                "type_name": "AlgorithmIdentifier < AnyRef < 'a > >",
+                "visibility": "pub"
+              },
+              {
+                "name": "signature",
+                "type_name": "OctetStringRef < 'a >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": [
+              "'a"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/der.rs#impl_EncodeValue_SignatureInfoRef<'_>",
+            "target_type": "SignatureInfoRef < '_ >",
+            "trait_name": "EncodeValue",
+            "items": [
+              "fn value_len (& self) -> der :: Result < Length > { self . algorithm . encoded_len () ? + self . signature . encoded_len () ? }",
+              "fn encode_value (& self , encoder : & mut impl Writer) -> der :: Result < () > { self . algorithm . encode (encoder) ? ; self . signature . encode (encoder) ? ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "SignatureInfoRef"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/der.rs#impl_DecodeValue<'a>_SignatureInfoRef<'a>",
+            "target_type": "SignatureInfoRef < 'a >",
+            "trait_name": "DecodeValue < 'a >",
+            "items": [
+              "fn decode_value < R : Reader < 'a > > (reader : & mut R , header : Header) -> der :: Result < Self > { reader . read_nested (header . length , | reader | { let algorithm = reader . decode () ? ; let signature = reader . decode () ? ; while ! reader . is_finished () { reader . decode :: < ContextSpecific < AnyRef < '_ > > > () ? ; } Ok (Self { algorithm , signature , }) }) }"
+            ],
+            "generics": [
+              "'a"
+            ]
+          },
+          "type_references": [
+            "SignatureInfoRef"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/der.rs#impl_Sequence<'a>_SignatureInfoRef<'a>",
+            "target_type": "SignatureInfoRef < 'a >",
+            "trait_name": "Sequence < 'a >",
+            "items": [],
+            "generics": [
+              "'a"
+            ]
+          },
+          "type_references": [
+            "SignatureInfoRef"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/cosmos.rs",
+      "path": "../crates/keys/src/cosmos.rs",
+      "relative_path": "crates/keys/src/cosmos.rs",
+      "file_size": 4367,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_k256_ecdsa_VerifyingKeyasSecp256k1VerifyingKey",
+            "path": "k256 :: ecdsa :: VerifyingKey as Secp256k1VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_prism_serde_{bech32_ToBech32,raw_or_b64}",
+            "path": "prism_serde :: { bech32 :: ToBech32 , raw_or_b64 }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_ripemd_Ripemd160",
+            "path": "ripemd :: Ripemd160",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_sha2_{Digest,Sha256}",
+            "path": "sha2 :: { Digest , Sha256 }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/cosmos.rs#CosmosSignDoc",
+            "name": "CosmosSignDoc",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "account_number",
+                "type_name": "String",
+                "visibility": "private"
+              },
+              {
+                "name": "chain_id",
+                "type_name": "String",
+                "visibility": "private"
+              },
+              {
+                "name": "fee",
+                "type_name": "CosmosFee",
+                "visibility": "private"
+              },
+              {
+                "name": "memo",
+                "type_name": "String",
+                "visibility": "private"
+              },
+              {
+                "name": "msgs",
+                "type_name": "Vec < CosmosMessage >",
+                "visibility": "private"
+              },
+              {
+                "name": "sequence",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/cosmos.rs#CosmosFee",
+            "name": "CosmosFee",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "amount",
+                "type_name": "Vec < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "gas",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/cosmos.rs#CosmosMessage",
+            "name": "CosmosMessage",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "msg_type",
+                "type_name": "String",
+                "visibility": "private"
+              },
+              {
+                "name": "value",
+                "type_name": "CosmosMessageValue",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/cosmos.rs#CosmosMessageValue",
+            "name": "CosmosMessageValue",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "data",
+                "type_name": "Vec < u8 >",
+                "visibility": "private"
+              },
+              {
+                "name": "signer",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/cosmos.rs#impl_CosmosSignDoc",
+            "target_type": "CosmosSignDoc",
+            "trait_name": null,
+            "items": [
+              "fn new (signer : String , data : Vec < u8 >) -> CosmosSignDoc { CosmosSignDoc { chain_id : \"\" . to_string () , account_number : \"0\" . to_string () , sequence : \"0\" . to_string () , fee : CosmosFee { gas : \"0\" . to_string () , amount : vec ! [] , } , msgs : vec ! [CosmosMessage { msg_type : \"sign/MsgSignData\" . to_string () , value : CosmosMessageValue { signer , data } , }] , memo : \"\" . to_string () , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+            "name": "cosmos_adr36_hash_message",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "message : impl AsRef < [u8] >",
+              "verifying_key : & Secp256k1VerifyingKey"
+            ],
+            "output": "Result < Vec < u8 > >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+            "name": "create_serialized_adr36_sign_doc",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "data : Vec < u8 >",
+              "signer : String"
+            ],
+            "output": "Result < Vec < u8 > >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/cosmos.rs#signer_from_key",
+            "name": "signer_from_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "address_prefix : & str",
+              "verifying_key : & Secp256k1VerifyingKey"
+            ],
+            "output": "Result < String >",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_k256_ecdsa_VerifyingKeyasSecp256k1VerifyingKey",
+            "path": "k256 :: ecdsa :: VerifyingKey as Secp256k1VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_prism_serde_{bech32_ToBech32,raw_or_b64}",
+            "path": "prism_serde :: { bech32 :: ToBech32 , raw_or_b64 }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_ripemd_Ripemd160",
+            "path": "ripemd :: Ripemd160",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/cosmos.rs#use_sha2_{Digest,Sha256}",
+            "path": "sha2 :: { Digest , Sha256 }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/cosmos.rs#CosmosSignDoc",
+            "name": "CosmosSignDoc",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "account_number",
+                "type_name": "String",
+                "visibility": "private"
+              },
+              {
+                "name": "chain_id",
+                "type_name": "String",
+                "visibility": "private"
+              },
+              {
+                "name": "fee",
+                "type_name": "CosmosFee",
+                "visibility": "private"
+              },
+              {
+                "name": "memo",
+                "type_name": "String",
+                "visibility": "private"
+              },
+              {
+                "name": "msgs",
+                "type_name": "Vec < CosmosMessage >",
+                "visibility": "private"
+              },
+              {
+                "name": "sequence",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/cosmos.rs#CosmosFee",
+            "name": "CosmosFee",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "amount",
+                "type_name": "Vec < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "gas",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/cosmos.rs#CosmosMessage",
+            "name": "CosmosMessage",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "msg_type",
+                "type_name": "String",
+                "visibility": "private"
+              },
+              {
+                "name": "value",
+                "type_name": "CosmosMessageValue",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/cosmos.rs#CosmosMessageValue",
+            "name": "CosmosMessageValue",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "data",
+                "type_name": "Vec < u8 >",
+                "visibility": "private"
+              },
+              {
+                "name": "signer",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/cosmos.rs#impl_CosmosSignDoc",
+            "target_type": "CosmosSignDoc",
+            "trait_name": null,
+            "items": [
+              "fn new (signer : String , data : Vec < u8 >) -> CosmosSignDoc { CosmosSignDoc { chain_id : \"\" . to_string () , account_number : \"0\" . to_string () , sequence : \"0\" . to_string () , fee : CosmosFee { gas : \"0\" . to_string () , amount : vec ! [] , } , msgs : vec ! [CosmosMessage { msg_type : \"sign/MsgSignData\" . to_string () , value : CosmosMessageValue { signer , data } , }] , memo : \"\" . to_string () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CosmosSignDoc"
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+            "name": "cosmos_adr36_hash_message",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "message : impl AsRef < [u8] >",
+              "verifying_key : & Secp256k1VerifyingKey"
+            ],
+            "output": "Result < Vec < u8 > >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "signer_from_key",
+              "is_method": false
+            },
+            {
+              "callee": "create_serialized_adr36_sign_doc",
+              "is_method": false
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "as_ref",
+              "is_method": true,
+              "receiver_type": "message"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "Sha256::digest",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "signer",
+              "is_mutable": false
+            },
+            {
+              "name": "serialized_sign_doc",
+              "is_mutable": false
+            },
+            {
+              "name": "hashed_sign_doc",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "str"
+          ],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+            "name": "create_serialized_adr36_sign_doc",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "data : Vec < u8 >",
+              "signer : String"
+            ],
+            "output": "Result < Vec < u8 > >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "CosmosSignDoc::new",
+              "is_method": false
+            },
+            {
+              "callee": "replace",
+              "is_method": true
+            },
+            {
+              "callee": "replace",
+              "is_method": true
+            },
+            {
+              "callee": "replace",
+              "is_method": true
+            },
+            {
+              "callee": "serde_json::to_string",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "into_bytes",
+              "is_method": true,
+              "receiver_type": "sign_doc_str"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "adr36_sign_doc",
+              "is_mutable": false
+            },
+            {
+              "name": "sign_doc_str",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/cosmos.rs#signer_from_key",
+            "name": "signer_from_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "address_prefix : & str",
+              "verifying_key : & Secp256k1VerifyingKey"
+            ],
+            "output": "Result < String >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "to_sec1_bytes",
+              "is_method": true,
+              "receiver_type": "verifying_key"
+            },
+            {
+              "callee": "Sha256::digest",
+              "is_method": false
+            },
+            {
+              "callee": "Ripemd160::digest",
+              "is_method": false
+            },
+            {
+              "callee": "to_bech32",
+              "is_method": true,
+              "receiver_type": "cosmos_address"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "verifying_key_bytes",
+              "is_mutable": false
+            },
+            {
+              "name": "hashed_key_bytes",
+              "is_mutable": false
+            },
+            {
+              "name": "cosmos_address",
+              "is_mutable": false
+            },
+            {
+              "name": "signer",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/signatures.rs",
+      "path": "../crates/keys/src/signatures.rs",
+      "relative_path": "crates/keys/src/signatures.rs",
+      "file_size": 5429,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_anyhow_{Result,bail}",
+            "path": "anyhow :: { Result , bail }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_ed25519_consensus_SignatureasEd25519Signature",
+            "path": "ed25519_consensus :: Signature as Ed25519Signature",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_k256_ecdsa_SignatureasSecp256k1Signature",
+            "path": "k256 :: ecdsa :: Signature as Secp256k1Signature",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_p256_ecdsa_SignatureasSecp256r1Signature",
+            "path": "p256 :: ecdsa :: Signature as Secp256r1Signature",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_pkcs8_{AlgorithmIdentifierRef,SecretDocument,der_{Decode,asn1_OctetStringRef,zeroize_Zeroize},}",
+            "path": "pkcs8 :: { AlgorithmIdentifierRef , SecretDocument , der :: { Decode , asn1 :: OctetStringRef , zeroize :: Zeroize } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_prism_serde_base64_ToBase64",
+            "path": "prism_serde :: base64 :: ToBase64",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_std_{borrow_Cow,fmt_{Display,Formatter},}",
+            "path": "std :: { borrow :: Cow , fmt :: { Display , Formatter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_utoipa_{PartialSchema,ToSchema,openapi_{RefOr,Schema},}",
+            "path": "utoipa :: { PartialSchema , ToSchema , openapi :: { RefOr , Schema } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_crate_{CryptoAlgorithm,ECDSA_SHA256_OID,ED25519_OID,SECP256K1_OID,SECP256R1_OID,der_SignatureInfoRef,payload_CryptoPayload,}",
+            "path": "crate :: { CryptoAlgorithm , ECDSA_SHA256_OID , ED25519_OID , SECP256K1_OID , SECP256R1_OID , der :: SignatureInfoRef , payload :: CryptoPayload , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/keys/src/signatures.rs#Signature",
+            "name": "Signature",
+            "visibility": "pub",
+            "variants": [
+              "Secp256k1",
+              "Ed25519",
+              "Secp256r1"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_Signature",
+            "target_type": "Signature",
+            "trait_name": null,
+            "items": [
+              "pub fn to_bytes (& self) -> Vec < u8 > { match self { Signature :: Ed25519 (sig) => sig . to_bytes () . to_vec () , Signature :: Secp256k1 (sig) => sig . to_vec () , Signature :: Secp256r1 (sig) => sig . to_vec () , } }",
+              "pub fn from_algorithm_and_bytes (algorithm : CryptoAlgorithm , bytes : & [u8]) -> Result < Self > { match algorithm { CryptoAlgorithm :: Ed25519 => { Ed25519Signature :: try_from (bytes) . map (Signature :: Ed25519) . map_err (| e | e . into ()) } CryptoAlgorithm :: Secp256k1 => Secp256k1Signature :: from_slice (bytes) . map (Signature :: Secp256k1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256r1 => Secp256r1Signature :: from_slice (bytes) . map (Signature :: Secp256r1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Eip191 => bail ! (\"No EIP-191 specific signatures implemented\") , CryptoAlgorithm :: CosmosAdr36 => { bail ! (\"No cosmos ADR-36 specific signatures implemented\") } } }",
+              "pub fn algorithm (& self) -> CryptoAlgorithm { match self { Signature :: Ed25519 (_) => CryptoAlgorithm :: Ed25519 , Signature :: Secp256k1 (_) => CryptoAlgorithm :: Secp256k1 , Signature :: Secp256r1 (_) => CryptoAlgorithm :: Secp256r1 , } }",
+              "fn algorithm_identifier (& self) -> AlgorithmIdentifierRef { match self { Signature :: Ed25519 (_) => AlgorithmIdentifierRef { oid : ED25519_OID , parameters : None , } , Signature :: Secp256k1 (_) => AlgorithmIdentifierRef { oid : ECDSA_SHA256_OID , parameters : Some ((& SECP256K1_OID) . into ()) , } , Signature :: Secp256r1 (_) => AlgorithmIdentifierRef { oid : ECDSA_SHA256_OID , parameters : Some ((& SECP256R1_OID) . into ()) , } , } }",
+              "pub fn to_prism_der (& self) -> Result < Vec < u8 > > { let signature_bytes = self . to_bytes () ; let mut der_bytes = Vec :: with_capacity (2 + signature_bytes . len ()) ; der_bytes . push (0x04) ; der_bytes . push (signature_bytes . len () . try_into () ?) ; der_bytes . extend_from_slice (& signature_bytes) ; let signature_info = SignatureInfoRef { algorithm : self . algorithm_identifier () , signature : OctetStringRef :: new (& der_bytes) ? , } ; let doc = SecretDocument :: encode_msg (& signature_info) ? ; der_bytes . zeroize () ; Ok (doc . as_bytes () . to_vec ()) }",
+              "pub fn from_prism_der (bytes : & [u8]) -> Result < Self > { let signature_info = SignatureInfoRef :: from_der (bytes) ? ; let algorithm = CryptoAlgorithm :: try_from (signature_info . algorithm) ? ; match signature_info . signature . as_bytes () { [0x04 , _ , signature_bytes @ ..] => { Signature :: from_algorithm_and_bytes (algorithm , signature_bytes) } _ => bail ! (\"Malformed signature\") , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_TryFrom<CryptoPayload>_Signature",
+            "target_type": "Signature",
+            "trait_name": "TryFrom < CryptoPayload >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (value : CryptoPayload) -> std :: result :: Result < Self , Self :: Error > { Signature :: from_algorithm_and_bytes (value . algorithm , & value . bytes) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_From<Signature>_CryptoPayload",
+            "target_type": "CryptoPayload",
+            "trait_name": "From < Signature >",
+            "items": [
+              "fn from (signature : Signature) -> Self { CryptoPayload { algorithm : signature . algorithm () , bytes : signature . to_bytes () , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_Display_Signature",
+            "target_type": "Signature",
+            "trait_name": "Display",
+            "items": [
+              "fn fmt (& self , f : & mut Formatter < '_ >) -> std :: fmt :: Result { let encoded = self . to_bytes () . to_base64 () ; write ! (f , \"{}\" , encoded) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_ToSchema_Signature",
+            "target_type": "Signature",
+            "trait_name": "ToSchema",
+            "items": [
+              "fn name () -> Cow < 'static , str > { Cow :: Borrowed (\"CryptoPayload\") }",
+              "fn schemas (_schemas : & mut Vec < (String , RefOr < Schema >) >) { CryptoPayload :: schemas (_schemas) ; }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_PartialSchema_Signature",
+            "target_type": "Signature",
+            "trait_name": "PartialSchema",
+            "items": [
+              "fn schema () -> RefOr < Schema > { CryptoPayload :: schema () }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_anyhow_{Result,bail}",
+            "path": "anyhow :: { Result , bail }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_ed25519_consensus_SignatureasEd25519Signature",
+            "path": "ed25519_consensus :: Signature as Ed25519Signature",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_k256_ecdsa_SignatureasSecp256k1Signature",
+            "path": "k256 :: ecdsa :: Signature as Secp256k1Signature",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_p256_ecdsa_SignatureasSecp256r1Signature",
+            "path": "p256 :: ecdsa :: Signature as Secp256r1Signature",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_pkcs8_{AlgorithmIdentifierRef,SecretDocument,der_{Decode,asn1_OctetStringRef,zeroize_Zeroize},}",
+            "path": "pkcs8 :: { AlgorithmIdentifierRef , SecretDocument , der :: { Decode , asn1 :: OctetStringRef , zeroize :: Zeroize } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_prism_serde_base64_ToBase64",
+            "path": "prism_serde :: base64 :: ToBase64",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_std_{borrow_Cow,fmt_{Display,Formatter},}",
+            "path": "std :: { borrow :: Cow , fmt :: { Display , Formatter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_utoipa_{PartialSchema,ToSchema,openapi_{RefOr,Schema},}",
+            "path": "utoipa :: { PartialSchema , ToSchema , openapi :: { RefOr , Schema } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signatures.rs#use_crate_{CryptoAlgorithm,ECDSA_SHA256_OID,ED25519_OID,SECP256K1_OID,SECP256R1_OID,der_SignatureInfoRef,payload_CryptoPayload,}",
+            "path": "crate :: { CryptoAlgorithm , ECDSA_SHA256_OID , ED25519_OID , SECP256K1_OID , SECP256R1_OID , der :: SignatureInfoRef , payload :: CryptoPayload , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/keys/src/signatures.rs#Signature",
+            "name": "Signature",
+            "visibility": "pub",
+            "variants": [
+              "Secp256k1",
+              "Ed25519",
+              "Secp256r1"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize",
+            "Clone",
+            "Debug",
+            "PartialEq",
+            "Eq"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_Signature",
+            "target_type": "Signature",
+            "trait_name": null,
+            "items": [
+              "pub fn to_bytes (& self) -> Vec < u8 > { match self { Signature :: Ed25519 (sig) => sig . to_bytes () . to_vec () , Signature :: Secp256k1 (sig) => sig . to_vec () , Signature :: Secp256r1 (sig) => sig . to_vec () , } }",
+              "pub fn from_algorithm_and_bytes (algorithm : CryptoAlgorithm , bytes : & [u8]) -> Result < Self > { match algorithm { CryptoAlgorithm :: Ed25519 => { Ed25519Signature :: try_from (bytes) . map (Signature :: Ed25519) . map_err (| e | e . into ()) } CryptoAlgorithm :: Secp256k1 => Secp256k1Signature :: from_slice (bytes) . map (Signature :: Secp256k1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256r1 => Secp256r1Signature :: from_slice (bytes) . map (Signature :: Secp256r1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Eip191 => bail ! (\"No EIP-191 specific signatures implemented\") , CryptoAlgorithm :: CosmosAdr36 => { bail ! (\"No cosmos ADR-36 specific signatures implemented\") } } }",
+              "pub fn algorithm (& self) -> CryptoAlgorithm { match self { Signature :: Ed25519 (_) => CryptoAlgorithm :: Ed25519 , Signature :: Secp256k1 (_) => CryptoAlgorithm :: Secp256k1 , Signature :: Secp256r1 (_) => CryptoAlgorithm :: Secp256r1 , } }",
+              "fn algorithm_identifier (& self) -> AlgorithmIdentifierRef { match self { Signature :: Ed25519 (_) => AlgorithmIdentifierRef { oid : ED25519_OID , parameters : None , } , Signature :: Secp256k1 (_) => AlgorithmIdentifierRef { oid : ECDSA_SHA256_OID , parameters : Some ((& SECP256K1_OID) . into ()) , } , Signature :: Secp256r1 (_) => AlgorithmIdentifierRef { oid : ECDSA_SHA256_OID , parameters : Some ((& SECP256R1_OID) . into ()) , } , } }",
+              "pub fn to_prism_der (& self) -> Result < Vec < u8 > > { let signature_bytes = self . to_bytes () ; let mut der_bytes = Vec :: with_capacity (2 + signature_bytes . len ()) ; der_bytes . push (0x04) ; der_bytes . push (signature_bytes . len () . try_into () ?) ; der_bytes . extend_from_slice (& signature_bytes) ; let signature_info = SignatureInfoRef { algorithm : self . algorithm_identifier () , signature : OctetStringRef :: new (& der_bytes) ? , } ; let doc = SecretDocument :: encode_msg (& signature_info) ? ; der_bytes . zeroize () ; Ok (doc . as_bytes () . to_vec ()) }",
+              "pub fn from_prism_der (bytes : & [u8]) -> Result < Self > { let signature_info = SignatureInfoRef :: from_der (bytes) ? ; let algorithm = CryptoAlgorithm :: try_from (signature_info . algorithm) ? ; match signature_info . signature . as_bytes () { [0x04 , _ , signature_bytes @ ..] => { Signature :: from_algorithm_and_bytes (algorithm , signature_bytes) } _ => bail ! (\"Malformed signature\") , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Signature"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_TryFrom<CryptoPayload>_Signature",
+            "target_type": "Signature",
+            "trait_name": "TryFrom < CryptoPayload >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (value : CryptoPayload) -> std :: result :: Result < Self , Self :: Error > { Signature :: from_algorithm_and_bytes (value . algorithm , & value . bytes) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Signature"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_From<Signature>_CryptoPayload",
+            "target_type": "CryptoPayload",
+            "trait_name": "From < Signature >",
+            "items": [
+              "fn from (signature : Signature) -> Self { CryptoPayload { algorithm : signature . algorithm () , bytes : signature . to_bytes () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CryptoPayload"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_Display_Signature",
+            "target_type": "Signature",
+            "trait_name": "Display",
+            "items": [
+              "fn fmt (& self , f : & mut Formatter < '_ >) -> std :: fmt :: Result { let encoded = self . to_bytes () . to_base64 () ; write ! (f , \"{}\" , encoded) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Signature"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_ToSchema_Signature",
+            "target_type": "Signature",
+            "trait_name": "ToSchema",
+            "items": [
+              "fn name () -> Cow < 'static , str > { Cow :: Borrowed (\"CryptoPayload\") }",
+              "fn schemas (_schemas : & mut Vec < (String , RefOr < Schema >) >) { CryptoPayload :: schemas (_schemas) ; }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Signature"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signatures.rs#impl_PartialSchema_Signature",
+            "target_type": "Signature",
+            "trait_name": "PartialSchema",
+            "items": [
+              "fn schema () -> RefOr < Schema > { CryptoPayload :: schema () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Signature"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/verifying_keys.rs",
+      "path": "../crates/keys/src/verifying_keys.rs",
+      "relative_path": "crates/keys/src/verifying_keys.rs",
+      "file_size": 11699,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_alloy_primitives_eip191_hash_message",
+            "path": "alloy_primitives :: eip191_hash_message",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_anyhow_{Result,anyhow,bail}",
+            "path": "anyhow :: { Result , anyhow , bail }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_ed25519_PublicKeyBytesasEd25519PublicKeyBytes",
+            "path": "ed25519 :: PublicKeyBytes as Ed25519PublicKeyBytes",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_ed25519_consensus_VerificationKeyasEd25519VerifyingKey",
+            "path": "ed25519_consensus :: VerificationKey as Ed25519VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_k256_ecdsa_VerifyingKeyasSecp256k1VerifyingKey",
+            "path": "k256 :: ecdsa :: VerifyingKey as Secp256k1VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_p256_{ecdsa_{VerifyingKeyasSecp256r1VerifyingKey,signature_{DigestVerifier,hazmat_PrehashVerifier},},pkcs8_EncodePublicKey,}",
+            "path": "p256 :: { ecdsa :: { VerifyingKey as Secp256r1VerifyingKey , signature :: { DigestVerifier , hazmat :: PrehashVerifier } , } , pkcs8 :: EncodePublicKey , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_pkcs8_{Document,LineEnding,SubjectPublicKeyInfoRef,der_{Decode,pem_PemLabel},}",
+            "path": "pkcs8 :: { Document , LineEnding , SubjectPublicKeyInfoRef , der :: { Decode , pem :: PemLabel } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_sha2_Digestas_",
+            "path": "sha2 :: Digest as _",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_std_{self,borrow_Cow,hash_{Hash,Hasher},path_Path,}",
+            "path": "std :: { self , borrow :: Cow , hash :: { Hash , Hasher } , path :: Path , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_utoipa_{PartialSchema,ToSchema,openapi_{RefOr,Schema},}",
+            "path": "utoipa :: { PartialSchema , ToSchema , openapi :: { RefOr , Schema } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_crate_{CryptoAlgorithm,Signature,SigningKey,cosmos_cosmos_adr36_hash_message,payload_CryptoPayload,}",
+            "path": "crate :: { CryptoAlgorithm , Signature , SigningKey , cosmos :: cosmos_adr36_hash_message , payload :: CryptoPayload , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_prism_serde_base64_{FromBase64,ToBase64}",
+            "path": "prism_serde :: base64 :: { FromBase64 , ToBase64 }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/keys/src/verifying_keys.rs#VerifyingKey",
+            "name": "VerifyingKey",
+            "visibility": "pub",
+            "variants": [
+              "Secp256k1",
+              "Ed25519",
+              "Secp256r1",
+              "Eip191",
+              "CosmosAdr36"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_Hash_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "Hash",
+            "items": [
+              "fn hash < H : Hasher > (& self , state : & mut H) { match self { VerifyingKey :: Ed25519 (_) => { state . write_u8 (0) ; self . to_bytes () . hash (state) ; } VerifyingKey :: Secp256k1 (_) => { state . write_u8 (1) ; self . to_bytes () . hash (state) ; } VerifyingKey :: Secp256r1 (_) => { state . write_u8 (2) ; self . to_bytes () . hash (state) ; } VerifyingKey :: Eip191 (_) => { state . write_u8 (3) ; self . to_bytes () . hash (state) ; } VerifyingKey :: CosmosAdr36 (_) => { state . write_u8 (4) ; self . to_bytes () . hash (state) ; } } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" Returns the byte representation of the public key.\"] pub fn to_bytes (& self) -> Vec < u8 > { match self { VerifyingKey :: Ed25519 (vk) => vk . as_bytes () . to_vec () , VerifyingKey :: Secp256k1 (vk) => vk . to_encoded_point (true) . as_bytes () . to_vec () , VerifyingKey :: Secp256r1 (vk) => vk . to_encoded_point (true) . as_bytes () . to_vec () , VerifyingKey :: Eip191 (vk) => vk . to_encoded_point (true) . as_bytes () . to_vec () , VerifyingKey :: CosmosAdr36 (vk) => vk . to_encoded_point (true) . as_bytes () . to_vec () , } }",
+              "pub fn from_algorithm_and_bytes (algorithm : CryptoAlgorithm , bytes : & [u8]) -> Result < Self > { match algorithm { CryptoAlgorithm :: Ed25519 => Ed25519VerifyingKey :: try_from (bytes) . map (VerifyingKey :: Ed25519) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256k1 => Secp256k1VerifyingKey :: from_sec1_bytes (bytes) . map (VerifyingKey :: Secp256k1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256r1 => Secp256r1VerifyingKey :: from_sec1_bytes (bytes) . map (VerifyingKey :: Secp256r1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Eip191 => Secp256k1VerifyingKey :: from_sec1_bytes (bytes) . map (VerifyingKey :: Eip191) . map_err (| e | e . into ()) , CryptoAlgorithm :: CosmosAdr36 => Secp256k1VerifyingKey :: from_sec1_bytes (bytes) . map (VerifyingKey :: CosmosAdr36) . map_err (| e | e . into ()) , } }",
+              "pub fn algorithm (& self) -> CryptoAlgorithm { match self { VerifyingKey :: Ed25519 (_) => CryptoAlgorithm :: Ed25519 , VerifyingKey :: Secp256k1 (_) => CryptoAlgorithm :: Secp256k1 , VerifyingKey :: Secp256r1 (_) => CryptoAlgorithm :: Secp256r1 , VerifyingKey :: Eip191 (_) => CryptoAlgorithm :: Eip191 , VerifyingKey :: CosmosAdr36 (_) => CryptoAlgorithm :: CosmosAdr36 , } }",
+              "pub fn verify_signature (& self , message : impl AsRef < [u8] > , signature : & Signature) -> Result < () > { match self { VerifyingKey :: Ed25519 (vk) => { let Signature :: Ed25519 (signature) = signature else { bail ! (\"Invalid signature type\") ; } ; vk . verify (signature , message . as_ref ()) . map_err (| e | anyhow ! (\"Failed to verify ed25519 signature: {}\" , e)) } VerifyingKey :: Secp256k1 (vk) => { let Signature :: Secp256k1 (signature) = signature else { bail ! (\"Invalid signature type\") ; } ; let mut digest = sha2 :: Sha256 :: new () ; digest . update (message) ; vk . verify_digest (digest , signature) . map_err (| e | anyhow ! (\"Failed to verify secp256k1 signature: {}\" , e)) } VerifyingKey :: Secp256r1 (vk) => { let Signature :: Secp256r1 (signature) = signature else { bail ! (\"Invalid signature type\") ; } ; let mut digest = sha2 :: Sha256 :: new () ; digest . update (message) ; vk . verify_digest (digest , signature) . map_err (| e | anyhow ! (\"Failed to verify secp256r1 signature: {}\" , e)) } VerifyingKey :: Eip191 (vk) => { let Signature :: Secp256k1 (signature) = signature else { bail ! (\"Verifying key for EIP-191 can only verify secp256k1 signatures\") ; } ; let prehash = eip191_hash_message (message) ; vk . verify_prehash (prehash . as_slice () , signature) . map_err (| e | anyhow ! (\"Failed to verify EIP-191 signature: {}\" , e)) } VerifyingKey :: CosmosAdr36 (vk) => { let Signature :: Secp256k1 (signature) = signature else { bail ! (\"Verifying key for cosmos ADR-36 can only verify secp256k1 signatures\") ; } ; let prehash = cosmos_adr36_hash_message (message , vk) ? ; vk . verify_prehash (& prehash , signature) . map_err (| e | anyhow ! (\"Failed to verify cosmos ADR-36 signature: {}\" , e)) } } }",
+              "fn to_spki_der_doc (& self) -> Result < Document > { match self { VerifyingKey :: Ed25519 (vk) => Ed25519PublicKeyBytes (vk . to_bytes ()) . to_public_key_der () , VerifyingKey :: Secp256k1 (vk) => vk . to_public_key_der () , VerifyingKey :: Secp256r1 (vk) => vk . to_public_key_der () , VerifyingKey :: Eip191 (_) => bail ! (\"EIP-191 vk to DER format is not implemented\") , VerifyingKey :: CosmosAdr36 (_) => { bail ! (\"Cosmos ADR-36 vk to DER format is not implemented\") } } . map_err (| _ | anyhow ! (\"Creating SPKI DER failed\")) }",
+              "pub fn to_spki_der (& self) -> Result < Vec < u8 > > { Ok (self . to_spki_der_doc () ? . as_bytes () . to_vec ()) }",
+              "pub fn to_spki_pem_file (& self , filename : impl AsRef < Path >) -> Result < () > { self . to_spki_der_doc () ? . write_pem_file (filename , SubjectPublicKeyInfoRef :: PEM_LABEL , LineEnding :: LF) . map_err (| _ | anyhow ! (\"Creating PKCS8 PEM file failed\")) }",
+              "fn from_spki (spki : SubjectPublicKeyInfoRef) -> Result < Self > { let algorithm = CryptoAlgorithm :: try_from (spki . algorithm) ? ; match algorithm { CryptoAlgorithm :: Ed25519 => { let ed25519_spki = Ed25519PublicKeyBytes :: try_from (spki) ? ; let ed25519_key = Ed25519VerifyingKey :: try_from (ed25519_spki . as_ref () as & [u8]) ? ; Ok (VerifyingKey :: Ed25519 (ed25519_key)) } CryptoAlgorithm :: Secp256k1 => { let secp256k1_key = Secp256k1VerifyingKey :: try_from (spki) ? ; Ok (VerifyingKey :: Secp256k1 (secp256k1_key)) } CryptoAlgorithm :: Secp256r1 => { let secp256r1_key = Secp256r1VerifyingKey :: try_from (spki) ? ; Ok (VerifyingKey :: Secp256r1 (secp256r1_key)) } CryptoAlgorithm :: Eip191 => bail ! (\"Eth vk from DER format is not implemented\") , CryptoAlgorithm :: CosmosAdr36 => { bail ! (\"Cosmos ADR-36 vk from DER format is not implemented\") } } }",
+              "pub fn from_spki_der (bytes : & [u8]) -> Result < Self > { let spki = SubjectPublicKeyInfoRef :: from_der (bytes) ? ; Self :: from_spki (spki) }",
+              "pub fn from_spki_pem_file (filename : impl AsRef < Path >) -> Result < Self > { let (label , doc) = Document :: read_pem_file (filename) ? ; SubjectPublicKeyInfoRef :: validate_pem_label (& label) . map_err (| _ | anyhow ! (\"Incorrect PEM label\")) ? ; Self :: from_spki_der (doc . as_bytes ()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_TryFrom<CryptoPayload>_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "TryFrom < CryptoPayload >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (value : CryptoPayload) -> std :: result :: Result < Self , Self :: Error > { VerifyingKey :: from_algorithm_and_bytes (value . algorithm , & value . bytes) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_From<VerifyingKey>_CryptoPayload",
+            "target_type": "CryptoPayload",
+            "trait_name": "From < VerifyingKey >",
+            "items": [
+              "fn from (verifying_key : VerifyingKey) -> Self { CryptoPayload { algorithm : verifying_key . algorithm () , bytes : verifying_key . to_bytes () , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_From<SigningKey>_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "From < SigningKey >",
+            "items": [
+              "fn from (sk : SigningKey) -> Self { match sk { SigningKey :: Ed25519 (sk) => VerifyingKey :: Ed25519 (sk . verification_key ()) , SigningKey :: Secp256k1 (sk) => VerifyingKey :: Secp256k1 (sk . verifying_key () . to_owned ()) , SigningKey :: Secp256r1 (sk) => VerifyingKey :: Secp256r1 (sk . verifying_key () . to_owned ()) , SigningKey :: Eip191 (sk) => VerifyingKey :: Eip191 (sk . verifying_key () . to_owned ()) , SigningKey :: CosmosAdr36 (sk) => VerifyingKey :: CosmosAdr36 (sk . verifying_key () . to_owned ()) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_FromBase64_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "FromBase64",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn from_base64 < T : AsRef < [u8] > > (base64 : T) -> Result < Self , Self :: Error > { let bytes = Vec :: < u8 > :: from_base64 (base64) ? ; match bytes . len () { 32 => { let vk = Ed25519VerifyingKey :: try_from (bytes . as_slice ()) . map_err (| e | anyhow ! (\"Invalid Ed25519 key: {}\" , e)) ? ; Ok (VerifyingKey :: Ed25519 (vk)) } _ => Err (anyhow ! (\"Only Ed25519 keys can be initialized from base64\")) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_TryFrom<String>_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "TryFrom < String >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (s : String) -> std :: result :: Result < Self , Self :: Error > { Self :: from_base64 (s) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_std::fmt::Display_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "std :: fmt :: Display",
+            "items": [
+              "fn fmt (& self , f : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { let encoded = self . to_bytes () . to_base64 () ; write ! (f , \"{}\" , encoded) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_ToSchema_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "ToSchema",
+            "items": [
+              "fn name () -> Cow < 'static , str > { Cow :: Borrowed (\"CryptoPayload\") }",
+              "fn schemas (_schemas : & mut Vec < (String , RefOr < Schema >) >) { CryptoPayload :: schemas (_schemas) ; }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_PartialSchema_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "PartialSchema",
+            "items": [
+              "fn schema () -> RefOr < Schema > { CryptoPayload :: schema () }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_alloy_primitives_eip191_hash_message",
+            "path": "alloy_primitives :: eip191_hash_message",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_anyhow_{Result,anyhow,bail}",
+            "path": "anyhow :: { Result , anyhow , bail }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_ed25519_PublicKeyBytesasEd25519PublicKeyBytes",
+            "path": "ed25519 :: PublicKeyBytes as Ed25519PublicKeyBytes",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_ed25519_consensus_VerificationKeyasEd25519VerifyingKey",
+            "path": "ed25519_consensus :: VerificationKey as Ed25519VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_k256_ecdsa_VerifyingKeyasSecp256k1VerifyingKey",
+            "path": "k256 :: ecdsa :: VerifyingKey as Secp256k1VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_p256_{ecdsa_{VerifyingKeyasSecp256r1VerifyingKey,signature_{DigestVerifier,hazmat_PrehashVerifier},},pkcs8_EncodePublicKey,}",
+            "path": "p256 :: { ecdsa :: { VerifyingKey as Secp256r1VerifyingKey , signature :: { DigestVerifier , hazmat :: PrehashVerifier } , } , pkcs8 :: EncodePublicKey , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_pkcs8_{Document,LineEnding,SubjectPublicKeyInfoRef,der_{Decode,pem_PemLabel},}",
+            "path": "pkcs8 :: { Document , LineEnding , SubjectPublicKeyInfoRef , der :: { Decode , pem :: PemLabel } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_sha2_Digestas_",
+            "path": "sha2 :: Digest as _",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_std_{self,borrow_Cow,hash_{Hash,Hasher},path_Path,}",
+            "path": "std :: { self , borrow :: Cow , hash :: { Hash , Hasher } , path :: Path , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_utoipa_{PartialSchema,ToSchema,openapi_{RefOr,Schema},}",
+            "path": "utoipa :: { PartialSchema , ToSchema , openapi :: { RefOr , Schema } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_crate_{CryptoAlgorithm,Signature,SigningKey,cosmos_cosmos_adr36_hash_message,payload_CryptoPayload,}",
+            "path": "crate :: { CryptoAlgorithm , Signature , SigningKey , cosmos :: cosmos_adr36_hash_message , payload :: CryptoPayload , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/verifying_keys.rs#use_prism_serde_base64_{FromBase64,ToBase64}",
+            "path": "prism_serde :: base64 :: { FromBase64 , ToBase64 }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/keys/src/verifying_keys.rs#VerifyingKey",
+            "name": "VerifyingKey",
+            "visibility": "pub",
+            "variants": [
+              "Secp256k1",
+              "Ed25519",
+              "Secp256r1",
+              "Eip191",
+              "CosmosAdr36"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone",
+            "Serialize",
+            "Deserialize",
+            "Debug",
+            "PartialEq",
+            "Eq"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_Hash_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "Hash",
+            "items": [
+              "fn hash < H : Hasher > (& self , state : & mut H) { match self { VerifyingKey :: Ed25519 (_) => { state . write_u8 (0) ; self . to_bytes () . hash (state) ; } VerifyingKey :: Secp256k1 (_) => { state . write_u8 (1) ; self . to_bytes () . hash (state) ; } VerifyingKey :: Secp256r1 (_) => { state . write_u8 (2) ; self . to_bytes () . hash (state) ; } VerifyingKey :: Eip191 (_) => { state . write_u8 (3) ; self . to_bytes () . hash (state) ; } VerifyingKey :: CosmosAdr36 (_) => { state . write_u8 (4) ; self . to_bytes () . hash (state) ; } } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" Returns the byte representation of the public key.\"] pub fn to_bytes (& self) -> Vec < u8 > { match self { VerifyingKey :: Ed25519 (vk) => vk . as_bytes () . to_vec () , VerifyingKey :: Secp256k1 (vk) => vk . to_encoded_point (true) . as_bytes () . to_vec () , VerifyingKey :: Secp256r1 (vk) => vk . to_encoded_point (true) . as_bytes () . to_vec () , VerifyingKey :: Eip191 (vk) => vk . to_encoded_point (true) . as_bytes () . to_vec () , VerifyingKey :: CosmosAdr36 (vk) => vk . to_encoded_point (true) . as_bytes () . to_vec () , } }",
+              "pub fn from_algorithm_and_bytes (algorithm : CryptoAlgorithm , bytes : & [u8]) -> Result < Self > { match algorithm { CryptoAlgorithm :: Ed25519 => Ed25519VerifyingKey :: try_from (bytes) . map (VerifyingKey :: Ed25519) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256k1 => Secp256k1VerifyingKey :: from_sec1_bytes (bytes) . map (VerifyingKey :: Secp256k1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256r1 => Secp256r1VerifyingKey :: from_sec1_bytes (bytes) . map (VerifyingKey :: Secp256r1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Eip191 => Secp256k1VerifyingKey :: from_sec1_bytes (bytes) . map (VerifyingKey :: Eip191) . map_err (| e | e . into ()) , CryptoAlgorithm :: CosmosAdr36 => Secp256k1VerifyingKey :: from_sec1_bytes (bytes) . map (VerifyingKey :: CosmosAdr36) . map_err (| e | e . into ()) , } }",
+              "pub fn algorithm (& self) -> CryptoAlgorithm { match self { VerifyingKey :: Ed25519 (_) => CryptoAlgorithm :: Ed25519 , VerifyingKey :: Secp256k1 (_) => CryptoAlgorithm :: Secp256k1 , VerifyingKey :: Secp256r1 (_) => CryptoAlgorithm :: Secp256r1 , VerifyingKey :: Eip191 (_) => CryptoAlgorithm :: Eip191 , VerifyingKey :: CosmosAdr36 (_) => CryptoAlgorithm :: CosmosAdr36 , } }",
+              "pub fn verify_signature (& self , message : impl AsRef < [u8] > , signature : & Signature) -> Result < () > { match self { VerifyingKey :: Ed25519 (vk) => { let Signature :: Ed25519 (signature) = signature else { bail ! (\"Invalid signature type\") ; } ; vk . verify (signature , message . as_ref ()) . map_err (| e | anyhow ! (\"Failed to verify ed25519 signature: {}\" , e)) } VerifyingKey :: Secp256k1 (vk) => { let Signature :: Secp256k1 (signature) = signature else { bail ! (\"Invalid signature type\") ; } ; let mut digest = sha2 :: Sha256 :: new () ; digest . update (message) ; vk . verify_digest (digest , signature) . map_err (| e | anyhow ! (\"Failed to verify secp256k1 signature: {}\" , e)) } VerifyingKey :: Secp256r1 (vk) => { let Signature :: Secp256r1 (signature) = signature else { bail ! (\"Invalid signature type\") ; } ; let mut digest = sha2 :: Sha256 :: new () ; digest . update (message) ; vk . verify_digest (digest , signature) . map_err (| e | anyhow ! (\"Failed to verify secp256r1 signature: {}\" , e)) } VerifyingKey :: Eip191 (vk) => { let Signature :: Secp256k1 (signature) = signature else { bail ! (\"Verifying key for EIP-191 can only verify secp256k1 signatures\") ; } ; let prehash = eip191_hash_message (message) ; vk . verify_prehash (prehash . as_slice () , signature) . map_err (| e | anyhow ! (\"Failed to verify EIP-191 signature: {}\" , e)) } VerifyingKey :: CosmosAdr36 (vk) => { let Signature :: Secp256k1 (signature) = signature else { bail ! (\"Verifying key for cosmos ADR-36 can only verify secp256k1 signatures\") ; } ; let prehash = cosmos_adr36_hash_message (message , vk) ? ; vk . verify_prehash (& prehash , signature) . map_err (| e | anyhow ! (\"Failed to verify cosmos ADR-36 signature: {}\" , e)) } } }",
+              "fn to_spki_der_doc (& self) -> Result < Document > { match self { VerifyingKey :: Ed25519 (vk) => Ed25519PublicKeyBytes (vk . to_bytes ()) . to_public_key_der () , VerifyingKey :: Secp256k1 (vk) => vk . to_public_key_der () , VerifyingKey :: Secp256r1 (vk) => vk . to_public_key_der () , VerifyingKey :: Eip191 (_) => bail ! (\"EIP-191 vk to DER format is not implemented\") , VerifyingKey :: CosmosAdr36 (_) => { bail ! (\"Cosmos ADR-36 vk to DER format is not implemented\") } } . map_err (| _ | anyhow ! (\"Creating SPKI DER failed\")) }",
+              "pub fn to_spki_der (& self) -> Result < Vec < u8 > > { Ok (self . to_spki_der_doc () ? . as_bytes () . to_vec ()) }",
+              "pub fn to_spki_pem_file (& self , filename : impl AsRef < Path >) -> Result < () > { self . to_spki_der_doc () ? . write_pem_file (filename , SubjectPublicKeyInfoRef :: PEM_LABEL , LineEnding :: LF) . map_err (| _ | anyhow ! (\"Creating PKCS8 PEM file failed\")) }",
+              "fn from_spki (spki : SubjectPublicKeyInfoRef) -> Result < Self > { let algorithm = CryptoAlgorithm :: try_from (spki . algorithm) ? ; match algorithm { CryptoAlgorithm :: Ed25519 => { let ed25519_spki = Ed25519PublicKeyBytes :: try_from (spki) ? ; let ed25519_key = Ed25519VerifyingKey :: try_from (ed25519_spki . as_ref () as & [u8]) ? ; Ok (VerifyingKey :: Ed25519 (ed25519_key)) } CryptoAlgorithm :: Secp256k1 => { let secp256k1_key = Secp256k1VerifyingKey :: try_from (spki) ? ; Ok (VerifyingKey :: Secp256k1 (secp256k1_key)) } CryptoAlgorithm :: Secp256r1 => { let secp256r1_key = Secp256r1VerifyingKey :: try_from (spki) ? ; Ok (VerifyingKey :: Secp256r1 (secp256r1_key)) } CryptoAlgorithm :: Eip191 => bail ! (\"Eth vk from DER format is not implemented\") , CryptoAlgorithm :: CosmosAdr36 => { bail ! (\"Cosmos ADR-36 vk from DER format is not implemented\") } } }",
+              "pub fn from_spki_der (bytes : & [u8]) -> Result < Self > { let spki = SubjectPublicKeyInfoRef :: from_der (bytes) ? ; Self :: from_spki (spki) }",
+              "pub fn from_spki_pem_file (filename : impl AsRef < Path >) -> Result < Self > { let (label , doc) = Document :: read_pem_file (filename) ? ; SubjectPublicKeyInfoRef :: validate_pem_label (& label) . map_err (| _ | anyhow ! (\"Incorrect PEM label\")) ? ; Self :: from_spki_der (doc . as_bytes ()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_TryFrom<CryptoPayload>_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "TryFrom < CryptoPayload >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (value : CryptoPayload) -> std :: result :: Result < Self , Self :: Error > { VerifyingKey :: from_algorithm_and_bytes (value . algorithm , & value . bytes) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_From<VerifyingKey>_CryptoPayload",
+            "target_type": "CryptoPayload",
+            "trait_name": "From < VerifyingKey >",
+            "items": [
+              "fn from (verifying_key : VerifyingKey) -> Self { CryptoPayload { algorithm : verifying_key . algorithm () , bytes : verifying_key . to_bytes () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CryptoPayload"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_From<SigningKey>_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "From < SigningKey >",
+            "items": [
+              "fn from (sk : SigningKey) -> Self { match sk { SigningKey :: Ed25519 (sk) => VerifyingKey :: Ed25519 (sk . verification_key ()) , SigningKey :: Secp256k1 (sk) => VerifyingKey :: Secp256k1 (sk . verifying_key () . to_owned ()) , SigningKey :: Secp256r1 (sk) => VerifyingKey :: Secp256r1 (sk . verifying_key () . to_owned ()) , SigningKey :: Eip191 (sk) => VerifyingKey :: Eip191 (sk . verifying_key () . to_owned ()) , SigningKey :: CosmosAdr36 (sk) => VerifyingKey :: CosmosAdr36 (sk . verifying_key () . to_owned ()) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_FromBase64_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "FromBase64",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn from_base64 < T : AsRef < [u8] > > (base64 : T) -> Result < Self , Self :: Error > { let bytes = Vec :: < u8 > :: from_base64 (base64) ? ; match bytes . len () { 32 => { let vk = Ed25519VerifyingKey :: try_from (bytes . as_slice ()) . map_err (| e | anyhow ! (\"Invalid Ed25519 key: {}\" , e)) ? ; Ok (VerifyingKey :: Ed25519 (vk)) } _ => Err (anyhow ! (\"Only Ed25519 keys can be initialized from base64\")) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_TryFrom<String>_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "TryFrom < String >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (s : String) -> std :: result :: Result < Self , Self :: Error > { Self :: from_base64 (s) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_std::fmt::Display_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "std :: fmt :: Display",
+            "items": [
+              "fn fmt (& self , f : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { let encoded = self . to_bytes () . to_base64 () ; write ! (f , \"{}\" , encoded) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_ToSchema_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "ToSchema",
+            "items": [
+              "fn name () -> Cow < 'static , str > { Cow :: Borrowed (\"CryptoPayload\") }",
+              "fn schemas (_schemas : & mut Vec < (String , RefOr < Schema >) >) { CryptoPayload :: schemas (_schemas) ; }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/verifying_keys.rs#impl_PartialSchema_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "PartialSchema",
+            "items": [
+              "fn schema () -> RefOr < Schema > { CryptoPayload :: schema () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/payload.rs",
+      "path": "../crates/keys/src/payload.rs",
+      "relative_path": "crates/keys/src/payload.rs",
+      "file_size": 591,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/payload.rs#use_prism_serde_raw_or_b64",
+            "path": "prism_serde :: raw_or_b64",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/payload.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/payload.rs#use_utoipa_ToSchema",
+            "path": "utoipa :: ToSchema",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/payload.rs#use_crate_CryptoAlgorithm",
+            "path": "crate :: CryptoAlgorithm",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/payload.rs#CryptoPayload",
+            "name": "CryptoPayload",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "algorithm",
+                "type_name": "CryptoAlgorithm",
+                "visibility": "pub"
+              },
+              {
+                "name": "bytes",
+                "type_name": "Vec < u8 >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/payload.rs#use_prism_serde_raw_or_b64",
+            "path": "prism_serde :: raw_or_b64",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/payload.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/payload.rs#use_utoipa_ToSchema",
+            "path": "utoipa :: ToSchema",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/payload.rs#use_crate_CryptoAlgorithm",
+            "path": "crate :: CryptoAlgorithm",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/keys/src/payload.rs#CryptoPayload",
+            "name": "CryptoPayload",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "algorithm",
+                "type_name": "CryptoAlgorithm",
+                "visibility": "pub"
+              },
+              {
+                "name": "bytes",
+                "type_name": "Vec < u8 >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize",
+            "ToSchema"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/keys/src/signing_keys.rs",
+      "path": "../crates/keys/src/signing_keys.rs",
+      "relative_path": "crates/keys/src/signing_keys.rs",
+      "file_size": 9704,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_alloy_primitives_eip191_hash_message",
+            "path": "alloy_primitives :: eip191_hash_message",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_ed25519_{PublicKeyBytesasEd25519PublicKeyBytes,pkcs8_KeypairBytesasEd25519KeypairBytes,}",
+            "path": "ed25519 :: { PublicKeyBytes as Ed25519PublicKeyBytes , pkcs8 :: KeypairBytes as Ed25519KeypairBytes , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_ed25519_consensus_SigningKeyasEd25519SigningKey",
+            "path": "ed25519_consensus :: SigningKey as Ed25519SigningKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_k256_ecdsa_{SignatureasSecp256k1Signature,SigningKeyasSecp256k1SigningKey,signature_{DigestSigner,hazmat_PrehashSigner},}",
+            "path": "k256 :: ecdsa :: { Signature as Secp256k1Signature , SigningKey as Secp256k1SigningKey , signature :: { DigestSigner , hazmat :: PrehashSigner } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_p256_ecdsa_{SignatureasSecp256r1Signature,SigningKeyasSecp256r1SigningKey}",
+            "path": "p256 :: ecdsa :: { Signature as Secp256r1Signature , SigningKey as Secp256r1SigningKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_pkcs8_{Document,EncodePrivateKey,LineEnding,PrivateKeyInfo,SecretDocument,der_{Decode,pem_PemLabel},}",
+            "path": "pkcs8 :: { Document , EncodePrivateKey , LineEnding , PrivateKeyInfo , SecretDocument , der :: { Decode , pem :: PemLabel } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_std_path_Path",
+            "path": "std :: path :: Path",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_sha2_Digestas_",
+            "path": "sha2 :: Digest as _",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_crate_{CryptoAlgorithm,Signature,VerifyingKey,cosmos_cosmos_adr36_hash_message,payload_CryptoPayload,}",
+            "path": "crate :: { CryptoAlgorithm , Signature , VerifyingKey , cosmos :: cosmos_adr36_hash_message , payload :: CryptoPayload , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/signing_keys.rs#get_rng",
+            "name": "get_rng",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "impl rand :: RngCore + rand :: CryptoRng",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/signing_keys.rs#get_rng",
+            "name": "get_rng",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "impl rand :: RngCore + rand :: CryptoRng",
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/keys/src/signing_keys.rs#SigningKey",
+            "name": "SigningKey",
+            "visibility": "pub",
+            "variants": [
+              "Ed25519",
+              "Secp256k1",
+              "Secp256r1",
+              "Eip191",
+              "CosmosAdr36"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signing_keys.rs#impl_SigningKey",
+            "target_type": "SigningKey",
+            "trait_name": null,
+            "items": [
+              "pub fn new_ed25519 () -> Self { SigningKey :: Ed25519 (Ed25519SigningKey :: new (get_rng ())) }",
+              "pub fn new_secp256k1 () -> Self { SigningKey :: Secp256k1 (Secp256k1SigningKey :: random (& mut get_rng ())) }",
+              "pub fn new_secp256r1 () -> Self { SigningKey :: Secp256r1 (Secp256r1SigningKey :: random (& mut get_rng ())) }",
+              "pub fn new_eip191 () -> Self { SigningKey :: Eip191 (Secp256k1SigningKey :: random (& mut get_rng ())) }",
+              "pub fn new_cosmos_adr36 () -> Self { SigningKey :: CosmosAdr36 (Secp256k1SigningKey :: random (& mut get_rng ())) }",
+              "pub fn new_with_algorithm (algorithm : CryptoAlgorithm) -> Result < Self > { match algorithm { CryptoAlgorithm :: Ed25519 => Ok (SigningKey :: new_ed25519 ()) , CryptoAlgorithm :: Secp256k1 => Ok (SigningKey :: new_secp256k1 ()) , CryptoAlgorithm :: Secp256r1 => Ok (SigningKey :: new_secp256r1 ()) , CryptoAlgorithm :: Eip191 => Ok (SigningKey :: new_eip191 ()) , CryptoAlgorithm :: CosmosAdr36 => Ok (SigningKey :: new_cosmos_adr36 ()) , } }",
+              "pub fn verifying_key (& self) -> VerifyingKey { self . clone () . into () }",
+              "pub fn to_bytes (& self) -> Vec < u8 > { match self { SigningKey :: Ed25519 (sk) => sk . to_bytes () . to_vec () , SigningKey :: Secp256k1 (sk) => sk . to_bytes () . to_vec () , SigningKey :: Secp256r1 (sk) => sk . to_bytes () . to_vec () , SigningKey :: Eip191 (sk) => sk . to_bytes () . to_vec () , SigningKey :: CosmosAdr36 (sk) => sk . to_bytes () . to_vec () , } }",
+              "fn to_pkcs8_der_doc (& self) -> Result < SecretDocument > { match self { SigningKey :: Ed25519 (sk) => { let keypair_bytes = Ed25519KeypairBytes { secret_key : sk . to_bytes () , public_key : Some (Ed25519PublicKeyBytes (sk . verification_key () . to_bytes ())) , } ; keypair_bytes . to_pkcs8_der () } SigningKey :: Secp256k1 (sk) => sk . to_pkcs8_der () , SigningKey :: Secp256r1 (sk) => sk . to_pkcs8_der () , SigningKey :: Eip191 (sk) => sk . to_pkcs8_der () , SigningKey :: CosmosAdr36 (sk) => sk . to_pkcs8_der () , } . map_err (| _ | anyhow ! (\"Creating PKCS8 DER failed\")) }",
+              "pub fn to_pkcs8_der (& self) -> Result < Vec < u8 > > { Ok (self . to_pkcs8_der_doc () ? . as_bytes () . to_vec ()) }",
+              "pub fn to_pkcs8_pem_file (& self , filename : impl AsRef < Path >) -> Result < () > { self . to_pkcs8_der_doc () ? . write_pem_file (filename , PrivateKeyInfo :: PEM_LABEL , LineEnding :: LF) . map_err (| _ | anyhow ! (\"Creating PKCS8 PEM file failed\")) }",
+              "pub fn from_algorithm_and_bytes (algorithm : CryptoAlgorithm , bytes : & [u8]) -> Result < Self > { match algorithm { CryptoAlgorithm :: Ed25519 => { Ed25519SigningKey :: try_from (bytes) . map (SigningKey :: Ed25519) . map_err (| e | e . into ()) } CryptoAlgorithm :: Secp256k1 => Secp256k1SigningKey :: from_slice (bytes) . map (SigningKey :: Secp256k1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256r1 => Secp256r1SigningKey :: from_slice (bytes) . map (SigningKey :: Secp256r1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Eip191 => { Secp256k1SigningKey :: from_slice (bytes) . map (SigningKey :: Eip191) . map_err (| e | e . into ()) } CryptoAlgorithm :: CosmosAdr36 => Secp256k1SigningKey :: from_slice (bytes) . map (SigningKey :: CosmosAdr36) . map_err (| e | e . into ()) , } }",
+              "pub fn from_pkcs8_der_doc (doc : & Document) -> Result < Self > { let value = doc . as_bytes () ; let pk_info = PrivateKeyInfo :: try_from (value) ? ; let algorithm = CryptoAlgorithm :: try_from (pk_info . algorithm) . map_err (| _ | anyhow ! (\"Unable to parse key algorithm from PKCS#8 der\")) ? ; match algorithm { CryptoAlgorithm :: Ed25519 => { let ed25519_key_pair_bytes = Ed25519KeypairBytes :: try_from (pk_info) ? ; let ed25519_signing_key = Ed25519SigningKey :: from (ed25519_key_pair_bytes . secret_key) ; Ok (SigningKey :: Ed25519 (ed25519_signing_key)) } CryptoAlgorithm :: Secp256k1 => Secp256k1SigningKey :: try_from (pk_info) . map (SigningKey :: Secp256k1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256r1 => Secp256r1SigningKey :: try_from (pk_info) . map (SigningKey :: Secp256r1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Eip191 => { Secp256k1SigningKey :: try_from (pk_info) . map (SigningKey :: Eip191) . map_err (| e | e . into ()) } CryptoAlgorithm :: CosmosAdr36 => Secp256k1SigningKey :: try_from (pk_info) . map (SigningKey :: CosmosAdr36) . map_err (| e | e . into ()) , } }",
+              "pub fn from_pkcs8_der (bytes : & [u8]) -> Result < Self > { let document = pkcs8 :: Document :: from_der (bytes) ? ; Self :: from_pkcs8_der_doc (& document) }",
+              "pub fn from_pkcs8_pem_file (file_path : impl AsRef < Path >) -> Result < Self > { let (label , document) = pkcs8 :: Document :: read_pem_file (file_path) ? ; PrivateKeyInfo :: validate_pem_label (& label) . map_err (| _ | anyhow ! (\"Incorrect PEM label\")) ? ; Self :: from_pkcs8_der_doc (& document) }",
+              "pub fn algorithm (& self) -> CryptoAlgorithm { match self { SigningKey :: Ed25519 (_) => CryptoAlgorithm :: Ed25519 , SigningKey :: Secp256k1 (_) => CryptoAlgorithm :: Secp256k1 , SigningKey :: Secp256r1 (_) => CryptoAlgorithm :: Secp256r1 , SigningKey :: Eip191 (_) => CryptoAlgorithm :: Eip191 , SigningKey :: CosmosAdr36 (_) => CryptoAlgorithm :: CosmosAdr36 , } }",
+              "pub fn sign (& self , message : impl AsRef < [u8] >) -> Result < Signature > { match self { SigningKey :: Ed25519 (sk) => Ok (Signature :: Ed25519 (sk . sign (message . as_ref ()))) , SigningKey :: Secp256k1 (sk) => { let mut digest = sha2 :: Sha256 :: new () ; digest . update (message) ; let sig : Secp256k1Signature = sk . try_sign_digest (digest) ? ; Ok (Signature :: Secp256k1 (sig)) } SigningKey :: Secp256r1 (sk) => { let mut digest = sha2 :: Sha256 :: new () ; digest . update (message) ; let sig : Secp256r1Signature = sk . try_sign_digest (digest) ? ; Ok (Signature :: Secp256r1 (sig)) } SigningKey :: Eip191 (sk) => { let message = eip191_hash_message (message) ; let sig : Secp256k1Signature = sk . sign_prehash (message . as_slice ()) ? ; Ok (Signature :: Secp256k1 (sig)) } SigningKey :: CosmosAdr36 (sk) => { let message = cosmos_adr36_hash_message (message , sk . verifying_key ()) ? ; let sig : Secp256k1Signature = sk . sign_prehash (message . as_slice ()) ? ; Ok (Signature :: Secp256k1 (sig)) } } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signing_keys.rs#impl_PartialEq_SigningKey",
+            "target_type": "SigningKey",
+            "trait_name": "PartialEq",
+            "items": [
+              "fn eq (& self , other : & Self) -> bool { match (self , other) { (SigningKey :: Ed25519 (a) , SigningKey :: Ed25519 (b)) => a . as_bytes () == b . as_bytes () , (SigningKey :: Secp256k1 (a) , SigningKey :: Secp256k1 (b)) => a == b , (SigningKey :: Secp256r1 (a) , SigningKey :: Secp256r1 (b)) => a == b , (SigningKey :: Eip191 (a) , SigningKey :: Eip191 (b)) => a == b , (SigningKey :: CosmosAdr36 (a) , SigningKey :: CosmosAdr36 (b)) => a == b , _ => false , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signing_keys.rs#impl_TryFrom<CryptoPayload>_SigningKey",
+            "target_type": "SigningKey",
+            "trait_name": "TryFrom < CryptoPayload >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (value : CryptoPayload) -> std :: result :: Result < Self , Self :: Error > { SigningKey :: from_algorithm_and_bytes (value . algorithm , & value . bytes) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signing_keys.rs#impl_From<SigningKey>_CryptoPayload",
+            "target_type": "CryptoPayload",
+            "trait_name": "From < SigningKey >",
+            "items": [
+              "fn from (signing_key : SigningKey) -> Self { CryptoPayload { algorithm : signing_key . algorithm () , bytes : signing_key . to_bytes () , } }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_alloy_primitives_eip191_hash_message",
+            "path": "alloy_primitives :: eip191_hash_message",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_ed25519_{PublicKeyBytesasEd25519PublicKeyBytes,pkcs8_KeypairBytesasEd25519KeypairBytes,}",
+            "path": "ed25519 :: { PublicKeyBytes as Ed25519PublicKeyBytes , pkcs8 :: KeypairBytes as Ed25519KeypairBytes , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_ed25519_consensus_SigningKeyasEd25519SigningKey",
+            "path": "ed25519_consensus :: SigningKey as Ed25519SigningKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_k256_ecdsa_{SignatureasSecp256k1Signature,SigningKeyasSecp256k1SigningKey,signature_{DigestSigner,hazmat_PrehashSigner},}",
+            "path": "k256 :: ecdsa :: { Signature as Secp256k1Signature , SigningKey as Secp256k1SigningKey , signature :: { DigestSigner , hazmat :: PrehashSigner } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_p256_ecdsa_{SignatureasSecp256r1Signature,SigningKeyasSecp256r1SigningKey}",
+            "path": "p256 :: ecdsa :: { Signature as Secp256r1Signature , SigningKey as Secp256r1SigningKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_pkcs8_{Document,EncodePrivateKey,LineEnding,PrivateKeyInfo,SecretDocument,der_{Decode,pem_PemLabel},}",
+            "path": "pkcs8 :: { Document , EncodePrivateKey , LineEnding , PrivateKeyInfo , SecretDocument , der :: { Decode , pem :: PemLabel } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_std_path_Path",
+            "path": "std :: path :: Path",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_sha2_Digestas_",
+            "path": "sha2 :: Digest as _",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/keys/src/signing_keys.rs#use_crate_{CryptoAlgorithm,Signature,VerifyingKey,cosmos_cosmos_adr36_hash_message,payload_CryptoPayload,}",
+            "path": "crate :: { CryptoAlgorithm , Signature , VerifyingKey , cosmos :: cosmos_adr36_hash_message , payload :: CryptoPayload , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/signing_keys.rs#get_rng",
+            "name": "get_rng",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "impl rand :: RngCore + rand :: CryptoRng",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "getrandom::getrandom",
+              "is_method": false
+            },
+            {
+              "callee": "rand::rngs::StdRng::from_seed",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "seed",
+              "is_mutable": true
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/keys/src/signing_keys.rs#get_rng",
+            "name": "get_rng",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "impl rand :: RngCore + rand :: CryptoRng",
+            "generics": []
+          },
+          "function_calls": [],
+          "local_variables": [],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/keys/src/signing_keys.rs#SigningKey",
+            "name": "SigningKey",
+            "visibility": "pub",
+            "variants": [
+              "Ed25519",
+              "Secp256k1",
+              "Secp256r1",
+              "Eip191",
+              "CosmosAdr36"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signing_keys.rs#impl_SigningKey",
+            "target_type": "SigningKey",
+            "trait_name": null,
+            "items": [
+              "pub fn new_ed25519 () -> Self { SigningKey :: Ed25519 (Ed25519SigningKey :: new (get_rng ())) }",
+              "pub fn new_secp256k1 () -> Self { SigningKey :: Secp256k1 (Secp256k1SigningKey :: random (& mut get_rng ())) }",
+              "pub fn new_secp256r1 () -> Self { SigningKey :: Secp256r1 (Secp256r1SigningKey :: random (& mut get_rng ())) }",
+              "pub fn new_eip191 () -> Self { SigningKey :: Eip191 (Secp256k1SigningKey :: random (& mut get_rng ())) }",
+              "pub fn new_cosmos_adr36 () -> Self { SigningKey :: CosmosAdr36 (Secp256k1SigningKey :: random (& mut get_rng ())) }",
+              "pub fn new_with_algorithm (algorithm : CryptoAlgorithm) -> Result < Self > { match algorithm { CryptoAlgorithm :: Ed25519 => Ok (SigningKey :: new_ed25519 ()) , CryptoAlgorithm :: Secp256k1 => Ok (SigningKey :: new_secp256k1 ()) , CryptoAlgorithm :: Secp256r1 => Ok (SigningKey :: new_secp256r1 ()) , CryptoAlgorithm :: Eip191 => Ok (SigningKey :: new_eip191 ()) , CryptoAlgorithm :: CosmosAdr36 => Ok (SigningKey :: new_cosmos_adr36 ()) , } }",
+              "pub fn verifying_key (& self) -> VerifyingKey { self . clone () . into () }",
+              "pub fn to_bytes (& self) -> Vec < u8 > { match self { SigningKey :: Ed25519 (sk) => sk . to_bytes () . to_vec () , SigningKey :: Secp256k1 (sk) => sk . to_bytes () . to_vec () , SigningKey :: Secp256r1 (sk) => sk . to_bytes () . to_vec () , SigningKey :: Eip191 (sk) => sk . to_bytes () . to_vec () , SigningKey :: CosmosAdr36 (sk) => sk . to_bytes () . to_vec () , } }",
+              "fn to_pkcs8_der_doc (& self) -> Result < SecretDocument > { match self { SigningKey :: Ed25519 (sk) => { let keypair_bytes = Ed25519KeypairBytes { secret_key : sk . to_bytes () , public_key : Some (Ed25519PublicKeyBytes (sk . verification_key () . to_bytes ())) , } ; keypair_bytes . to_pkcs8_der () } SigningKey :: Secp256k1 (sk) => sk . to_pkcs8_der () , SigningKey :: Secp256r1 (sk) => sk . to_pkcs8_der () , SigningKey :: Eip191 (sk) => sk . to_pkcs8_der () , SigningKey :: CosmosAdr36 (sk) => sk . to_pkcs8_der () , } . map_err (| _ | anyhow ! (\"Creating PKCS8 DER failed\")) }",
+              "pub fn to_pkcs8_der (& self) -> Result < Vec < u8 > > { Ok (self . to_pkcs8_der_doc () ? . as_bytes () . to_vec ()) }",
+              "pub fn to_pkcs8_pem_file (& self , filename : impl AsRef < Path >) -> Result < () > { self . to_pkcs8_der_doc () ? . write_pem_file (filename , PrivateKeyInfo :: PEM_LABEL , LineEnding :: LF) . map_err (| _ | anyhow ! (\"Creating PKCS8 PEM file failed\")) }",
+              "pub fn from_algorithm_and_bytes (algorithm : CryptoAlgorithm , bytes : & [u8]) -> Result < Self > { match algorithm { CryptoAlgorithm :: Ed25519 => { Ed25519SigningKey :: try_from (bytes) . map (SigningKey :: Ed25519) . map_err (| e | e . into ()) } CryptoAlgorithm :: Secp256k1 => Secp256k1SigningKey :: from_slice (bytes) . map (SigningKey :: Secp256k1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256r1 => Secp256r1SigningKey :: from_slice (bytes) . map (SigningKey :: Secp256r1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Eip191 => { Secp256k1SigningKey :: from_slice (bytes) . map (SigningKey :: Eip191) . map_err (| e | e . into ()) } CryptoAlgorithm :: CosmosAdr36 => Secp256k1SigningKey :: from_slice (bytes) . map (SigningKey :: CosmosAdr36) . map_err (| e | e . into ()) , } }",
+              "pub fn from_pkcs8_der_doc (doc : & Document) -> Result < Self > { let value = doc . as_bytes () ; let pk_info = PrivateKeyInfo :: try_from (value) ? ; let algorithm = CryptoAlgorithm :: try_from (pk_info . algorithm) . map_err (| _ | anyhow ! (\"Unable to parse key algorithm from PKCS#8 der\")) ? ; match algorithm { CryptoAlgorithm :: Ed25519 => { let ed25519_key_pair_bytes = Ed25519KeypairBytes :: try_from (pk_info) ? ; let ed25519_signing_key = Ed25519SigningKey :: from (ed25519_key_pair_bytes . secret_key) ; Ok (SigningKey :: Ed25519 (ed25519_signing_key)) } CryptoAlgorithm :: Secp256k1 => Secp256k1SigningKey :: try_from (pk_info) . map (SigningKey :: Secp256k1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Secp256r1 => Secp256r1SigningKey :: try_from (pk_info) . map (SigningKey :: Secp256r1) . map_err (| e | e . into ()) , CryptoAlgorithm :: Eip191 => { Secp256k1SigningKey :: try_from (pk_info) . map (SigningKey :: Eip191) . map_err (| e | e . into ()) } CryptoAlgorithm :: CosmosAdr36 => Secp256k1SigningKey :: try_from (pk_info) . map (SigningKey :: CosmosAdr36) . map_err (| e | e . into ()) , } }",
+              "pub fn from_pkcs8_der (bytes : & [u8]) -> Result < Self > { let document = pkcs8 :: Document :: from_der (bytes) ? ; Self :: from_pkcs8_der_doc (& document) }",
+              "pub fn from_pkcs8_pem_file (file_path : impl AsRef < Path >) -> Result < Self > { let (label , document) = pkcs8 :: Document :: read_pem_file (file_path) ? ; PrivateKeyInfo :: validate_pem_label (& label) . map_err (| _ | anyhow ! (\"Incorrect PEM label\")) ? ; Self :: from_pkcs8_der_doc (& document) }",
+              "pub fn algorithm (& self) -> CryptoAlgorithm { match self { SigningKey :: Ed25519 (_) => CryptoAlgorithm :: Ed25519 , SigningKey :: Secp256k1 (_) => CryptoAlgorithm :: Secp256k1 , SigningKey :: Secp256r1 (_) => CryptoAlgorithm :: Secp256r1 , SigningKey :: Eip191 (_) => CryptoAlgorithm :: Eip191 , SigningKey :: CosmosAdr36 (_) => CryptoAlgorithm :: CosmosAdr36 , } }",
+              "pub fn sign (& self , message : impl AsRef < [u8] >) -> Result < Signature > { match self { SigningKey :: Ed25519 (sk) => Ok (Signature :: Ed25519 (sk . sign (message . as_ref ()))) , SigningKey :: Secp256k1 (sk) => { let mut digest = sha2 :: Sha256 :: new () ; digest . update (message) ; let sig : Secp256k1Signature = sk . try_sign_digest (digest) ? ; Ok (Signature :: Secp256k1 (sig)) } SigningKey :: Secp256r1 (sk) => { let mut digest = sha2 :: Sha256 :: new () ; digest . update (message) ; let sig : Secp256r1Signature = sk . try_sign_digest (digest) ? ; Ok (Signature :: Secp256r1 (sig)) } SigningKey :: Eip191 (sk) => { let message = eip191_hash_message (message) ; let sig : Secp256k1Signature = sk . sign_prehash (message . as_slice ()) ? ; Ok (Signature :: Secp256k1 (sig)) } SigningKey :: CosmosAdr36 (sk) => { let message = cosmos_adr36_hash_message (message , sk . verifying_key ()) ? ; let sig : Secp256k1Signature = sk . sign_prehash (message . as_slice ()) ? ; Ok (Signature :: Secp256k1 (sig)) } } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "SigningKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signing_keys.rs#impl_PartialEq_SigningKey",
+            "target_type": "SigningKey",
+            "trait_name": "PartialEq",
+            "items": [
+              "fn eq (& self , other : & Self) -> bool { match (self , other) { (SigningKey :: Ed25519 (a) , SigningKey :: Ed25519 (b)) => a . as_bytes () == b . as_bytes () , (SigningKey :: Secp256k1 (a) , SigningKey :: Secp256k1 (b)) => a == b , (SigningKey :: Secp256r1 (a) , SigningKey :: Secp256r1 (b)) => a == b , (SigningKey :: Eip191 (a) , SigningKey :: Eip191 (b)) => a == b , (SigningKey :: CosmosAdr36 (a) , SigningKey :: CosmosAdr36 (b)) => a == b , _ => false , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "SigningKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signing_keys.rs#impl_TryFrom<CryptoPayload>_SigningKey",
+            "target_type": "SigningKey",
+            "trait_name": "TryFrom < CryptoPayload >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (value : CryptoPayload) -> std :: result :: Result < Self , Self :: Error > { SigningKey :: from_algorithm_and_bytes (value . algorithm , & value . bytes) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "SigningKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/keys/src/signing_keys.rs#impl_From<SigningKey>_CryptoPayload",
+            "target_type": "CryptoPayload",
+            "trait_name": "From < SigningKey >",
+            "items": [
+              "fn from (signing_key : SigningKey) -> Self { CryptoPayload { algorithm : signing_key . algorithm () , bytes : signing_key . to_bytes () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CryptoPayload"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/keys/src/lib.rs",
+      "to_id": "algorithm :: *",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/lib.rs",
+      "to_id": "signatures :: *",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/lib.rs",
+      "to_id": "signing_keys :: *",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/lib.rs",
+      "to_id": "verifying_keys :: *",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs",
+      "to_id": "anyhow :: bail",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs",
+      "to_id": "pkcs8 :: { AlgorithmIdentifierRef , ObjectIdentifier }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs",
+      "to_id": "utoipa :: ToSchema",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+      "to_id": "trait:Copy",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+      "to_id": "trait:Eq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+      "to_id": "trait:PartialEq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#CryptoAlgorithm",
+      "to_id": "trait:ToSchema",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#impl_std::str::FromStr_CryptoAlgorithm",
+      "to_id": "trait:std::str::FromStr",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#impl_std::fmt::Display_CryptoAlgorithm",
+      "to_id": "trait:std::fmt::Display",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/algorithm.rs#impl_TryFrom<AlgorithmIdentifierRef<'a>>_CryptoAlgorithm",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/der.rs",
+      "to_id": "pkcs8 :: { der :: { self , AnyRef , DecodeValue , Encode , EncodeValue , Header , Length , Reader , Sequence , Writer , asn1 :: { ContextSpecific , OctetStringRef } , } , spki :: AlgorithmIdentifier , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/der.rs#impl_EncodeValue_SignatureInfoRef<'_>",
+      "to_id": "trait:EncodeValue",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/der.rs#impl_DecodeValue<'a>_SignatureInfoRef<'a>",
+      "to_id": "trait:DecodeValue",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/der.rs#impl_Sequence<'a>_SignatureInfoRef<'a>",
+      "to_id": "trait:Sequence",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs",
+      "to_id": "k256 :: ecdsa :: VerifyingKey as Secp256k1VerifyingKey",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs",
+      "to_id": "prism_serde :: { bech32 :: ToBech32 , raw_or_b64 }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs",
+      "to_id": "ripemd :: Ripemd160",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs",
+      "to_id": "sha2 :: { Digest , Sha256 }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#CosmosSignDoc",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#CosmosSignDoc",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#CosmosFee",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#CosmosFee",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#CosmosMessage",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#CosmosMessage",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#CosmosMessageValue",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#CosmosMessageValue",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+      "to_id": "crates/keys/src/cosmos.rs#signer_from_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+      "to_id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+      "to_id": "as_ref",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+      "to_id": "Sha256::digest",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#cosmos_adr36_hash_message",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+      "to_id": "CosmosSignDoc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+      "to_id": "replace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+      "to_id": "replace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+      "to_id": "replace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+      "to_id": "serde_json::to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#create_serialized_adr36_sign_doc",
+      "to_id": "into_bytes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#signer_from_key",
+      "to_id": "to_sec1_bytes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#signer_from_key",
+      "to_id": "Sha256::digest",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#signer_from_key",
+      "to_id": "Ripemd160::digest",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#signer_from_key",
+      "to_id": "to_bech32",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/cosmos.rs#signer_from_key",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "anyhow :: { Result , bail }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "ed25519_consensus :: Signature as Ed25519Signature",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "k256 :: ecdsa :: Signature as Secp256k1Signature",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "p256 :: ecdsa :: Signature as Secp256r1Signature",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "pkcs8 :: { AlgorithmIdentifierRef , SecretDocument , der :: { Decode , asn1 :: OctetStringRef , zeroize :: Zeroize } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "prism_serde :: base64 :: ToBase64",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "std :: { borrow :: Cow , fmt :: { Display , Formatter } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "utoipa :: { PartialSchema , ToSchema , openapi :: { RefOr , Schema } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs",
+      "to_id": "crate :: { CryptoAlgorithm , ECDSA_SHA256_OID , ED25519_OID , SECP256K1_OID , SECP256R1_OID , der :: SignatureInfoRef , payload :: CryptoPayload , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#Signature",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#Signature",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#Signature",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#Signature",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#Signature",
+      "to_id": "trait:PartialEq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#Signature",
+      "to_id": "trait:Eq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#impl_TryFrom<CryptoPayload>_Signature",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#impl_From<Signature>_CryptoPayload",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#impl_Display_Signature",
+      "to_id": "trait:Display",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#impl_ToSchema_Signature",
+      "to_id": "trait:ToSchema",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/signatures.rs#impl_PartialSchema_Signature",
+      "to_id": "trait:PartialSchema",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "alloy_primitives :: eip191_hash_message",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "anyhow :: { Result , anyhow , bail }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "ed25519 :: PublicKeyBytes as Ed25519PublicKeyBytes",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "ed25519_consensus :: VerificationKey as Ed25519VerifyingKey",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "k256 :: ecdsa :: VerifyingKey as Secp256k1VerifyingKey",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "p256 :: { ecdsa :: { VerifyingKey as Secp256r1VerifyingKey , signature :: { DigestVerifier , hazmat :: PrehashVerifier } , } , pkcs8 :: EncodePublicKey , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "pkcs8 :: { Document , LineEnding , SubjectPublicKeyInfoRef , der :: { Decode , pem :: PemLabel } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "sha2 :: Digest as _",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "std :: { self , borrow :: Cow , hash :: { Hash , Hasher } , path :: Path , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "utoipa :: { PartialSchema , ToSchema , openapi :: { RefOr , Schema } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "crate :: { CryptoAlgorithm , Signature , SigningKey , cosmos :: cosmos_adr36_hash_message , payload :: CryptoPayload , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs",
+      "to_id": "prism_serde :: base64 :: { FromBase64 , ToBase64 }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#VerifyingKey",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#VerifyingKey",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#VerifyingKey",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#VerifyingKey",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#VerifyingKey",
+      "to_id": "trait:PartialEq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#VerifyingKey",
+      "to_id": "trait:Eq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_Hash_VerifyingKey",
+      "to_id": "trait:Hash",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_TryFrom<CryptoPayload>_VerifyingKey",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_From<VerifyingKey>_CryptoPayload",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_From<SigningKey>_VerifyingKey",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_FromBase64_VerifyingKey",
+      "to_id": "trait:FromBase64",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_TryFrom<String>_VerifyingKey",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_std::fmt::Display_VerifyingKey",
+      "to_id": "trait:std::fmt::Display",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_ToSchema_VerifyingKey",
+      "to_id": "trait:ToSchema",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/verifying_keys.rs#impl_PartialSchema_VerifyingKey",
+      "to_id": "trait:PartialSchema",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/payload.rs",
+      "to_id": "prism_serde :: raw_or_b64",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/payload.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/payload.rs",
+      "to_id": "utoipa :: ToSchema",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/payload.rs",
+      "to_id": "crate :: CryptoAlgorithm",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/payload.rs#CryptoPayload",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/payload.rs#CryptoPayload",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/payload.rs#CryptoPayload",
+      "to_id": "trait:ToSchema",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "alloy_primitives :: eip191_hash_message",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "anyhow :: { Result , anyhow }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "ed25519 :: { PublicKeyBytes as Ed25519PublicKeyBytes , pkcs8 :: KeypairBytes as Ed25519KeypairBytes , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "ed25519_consensus :: SigningKey as Ed25519SigningKey",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "k256 :: ecdsa :: { Signature as Secp256k1Signature , SigningKey as Secp256k1SigningKey , signature :: { DigestSigner , hazmat :: PrehashSigner } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "p256 :: ecdsa :: { Signature as Secp256r1Signature , SigningKey as Secp256r1SigningKey }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "pkcs8 :: { Document , EncodePrivateKey , LineEnding , PrivateKeyInfo , SecretDocument , der :: { Decode , pem :: PemLabel } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "std :: path :: Path",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "sha2 :: Digest as _",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs",
+      "to_id": "crate :: { CryptoAlgorithm , Signature , VerifyingKey , cosmos :: cosmos_adr36_hash_message , payload :: CryptoPayload , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs#get_rng",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs#get_rng",
+      "to_id": "getrandom::getrandom",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs#get_rng",
+      "to_id": "rand::rngs::StdRng::from_seed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs#SigningKey",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs#SigningKey",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs#impl_PartialEq_SigningKey",
+      "to_id": "trait:PartialEq",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs#impl_TryFrom<CryptoPayload>_SigningKey",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/keys/src/signing_keys.rs#impl_From<SigningKey>_CryptoPayload",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    }
+  ],
+  "total_files": 9,
+  "successfully_parsed": 9,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 5,
+    "total_structs": 6,
+    "total_enums": 4,
+    "total_traits": 0,
+    "total_impls": 28,
+    "total_tests": 0,
+    "total_function_calls": 22,
+    "total_derives": 33,
+    "total_macro_uses": 0
+  }
+}

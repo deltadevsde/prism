@@ -1,0 +1,376 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:errors",
+  "crate_name": "errors",
+  "crate_path": "crates/errors",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/errors/src/lib.rs",
+      "path": "../crates/errors/src/lib.rs",
+      "relative_path": "crates/errors/src/lib.rs",
+      "file_size": 2872,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/errors/src/lib.rs#use_anyhow_ErrorasAnyhowError",
+            "path": "anyhow :: Error as AnyhowError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/errors/src/lib.rs#use_thiserror_Error",
+            "path": "thiserror :: Error",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#PrismError",
+            "name": "PrismError",
+            "visibility": "pub",
+            "variants": [
+              "General",
+              "Database",
+              "DataAvailability",
+              "Proof",
+              "ConfigError",
+              "Other"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#GeneralError",
+            "name": "GeneralError",
+            "visibility": "pub",
+            "variants": [
+              "ParsingError",
+              "BlobCreationError",
+              "EncodingError",
+              "DecodingError",
+              "MissingArgumentError",
+              "InvalidPublicKey",
+              "WebserverError",
+              "InitializationError"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#DatabaseError",
+            "name": "DatabaseError",
+            "visibility": "pub",
+            "variants": [
+              "LockError",
+              "KeysError",
+              "NotFoundError",
+              "GetInputOrderError",
+              "ReadError",
+              "WriteError",
+              "DeleteError",
+              "GeneralError",
+              "ConnectionError",
+              "InitializationError",
+              "ParsingError"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#DataAvailabilityError",
+            "name": "DataAvailabilityError",
+            "visibility": "pub",
+            "variants": [
+              "InitializationError",
+              "ChannelClosed",
+              "NetworkError",
+              "DataRetrievalError",
+              "SubmissionError",
+              "SyncTargetError",
+              "ChannelReceiveError",
+              "GeneralError"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#ProofError",
+            "name": "ProofError",
+            "visibility": "pub",
+            "variants": [
+              "GenerationError",
+              "VerificationError",
+              "G1AffineDeserializationError",
+              "ProofUnpackError",
+              "InvalidFormatError"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/errors/src/lib.rs#use_anyhow_ErrorasAnyhowError",
+            "path": "anyhow :: Error as AnyhowError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/errors/src/lib.rs#use_thiserror_Error",
+            "path": "thiserror :: Error",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#PrismError",
+            "name": "PrismError",
+            "visibility": "pub",
+            "variants": [
+              "General",
+              "Database",
+              "DataAvailability",
+              "Proof",
+              "ConfigError",
+              "Other"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Error",
+            "Debug"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#GeneralError",
+            "name": "GeneralError",
+            "visibility": "pub",
+            "variants": [
+              "ParsingError",
+              "BlobCreationError",
+              "EncodingError",
+              "DecodingError",
+              "MissingArgumentError",
+              "InvalidPublicKey",
+              "WebserverError",
+              "InitializationError"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Error",
+            "Debug"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#DatabaseError",
+            "name": "DatabaseError",
+            "visibility": "pub",
+            "variants": [
+              "LockError",
+              "KeysError",
+              "NotFoundError",
+              "GetInputOrderError",
+              "ReadError",
+              "WriteError",
+              "DeleteError",
+              "GeneralError",
+              "ConnectionError",
+              "InitializationError",
+              "ParsingError"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Error",
+            "Debug"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#DataAvailabilityError",
+            "name": "DataAvailabilityError",
+            "visibility": "pub",
+            "variants": [
+              "InitializationError",
+              "ChannelClosed",
+              "NetworkError",
+              "DataRetrievalError",
+              "SubmissionError",
+              "SyncTargetError",
+              "ChannelReceiveError",
+              "GeneralError"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Error",
+            "Debug"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/errors/src/lib.rs#ProofError",
+            "name": "ProofError",
+            "visibility": "pub",
+            "variants": [
+              "GenerationError",
+              "VerificationError",
+              "G1AffineDeserializationError",
+              "ProofUnpackError",
+              "InvalidFormatError"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Error",
+            "Debug"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/errors/src/lib.rs",
+      "to_id": "anyhow :: Error as AnyhowError",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs",
+      "to_id": "thiserror :: Error",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#PrismError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#PrismError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#GeneralError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#GeneralError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#DatabaseError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#DatabaseError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#DataAvailabilityError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#DataAvailabilityError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#ProofError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/errors/src/lib.rs#ProofError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    }
+  ],
+  "total_files": 1,
+  "successfully_parsed": 1,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 0,
+    "total_structs": 0,
+    "total_enums": 5,
+    "total_traits": 0,
+    "total_impls": 0,
+    "total_tests": 0,
+    "total_function_calls": 0,
+    "total_derives": 10,
+    "total_macro_uses": 0
+  }
+}

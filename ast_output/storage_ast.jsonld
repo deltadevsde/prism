@@ -1,0 +1,2712 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:storage",
+  "crate_name": "storage",
+  "crate_path": "crates/storage",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/storage/src/inmemory.rs",
+      "path": "../crates/storage/src/inmemory.rs",
+      "relative_path": "crates/storage/src/inmemory.rs",
+      "file_size": 4961,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_jmt_{KeyHash,OwnedValue,Version,storage_{LeafNode,Node,NodeBatch,NodeKey,TreeReader,TreeWriter},}",
+            "path": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_prism_da_FinalizedEpoch",
+            "path": "prism_da :: FinalizedEpoch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_prism_errors_DatabaseError",
+            "path": "prism_errors :: DatabaseError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_std_{collections_HashMap,sync_{Arc,Mutex},}",
+            "path": "std :: { collections :: HashMap , sync :: { Arc , Mutex } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_crate_database_Database",
+            "path": "crate :: database :: Database",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/inmemory.rs#InMemoryDatabase",
+            "name": "InMemoryDatabase",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "nodes",
+                "type_name": "Arc < Mutex < HashMap < NodeKey , Node > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "values",
+                "type_name": "Arc < Mutex < HashMap < (Version , KeyHash) , OwnedValue > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "commitments",
+                "type_name": "Arc < Mutex < HashMap < u64 , Digest > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "current_epochs",
+                "type_name": "Arc < Mutex < Vec < FinalizedEpoch > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "sync_height",
+                "type_name": "Arc < Mutex < u64 > >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": null,
+            "items": [
+              "pub fn new () -> Self { InMemoryDatabase { nodes : Arc :: new (Mutex :: new (HashMap :: new ())) , values : Arc :: new (Mutex :: new (HashMap :: new ())) , commitments : Arc :: new (Mutex :: new (HashMap :: new ())) , current_epochs : Arc :: new (Mutex :: new (Vec :: new ())) , sync_height : Arc :: new (Mutex :: new (1)) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_Default_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { InMemoryDatabase :: new () }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_TreeReader_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": "TreeReader",
+            "items": [
+              "fn get_node_option (& self , node_key : & NodeKey) -> Result < Option < Node > > { Ok (self . nodes . lock () . unwrap () . get (node_key) . cloned ()) }",
+              "fn get_rightmost_leaf (& self) -> Result < Option < (NodeKey , LeafNode) > > { let nodes = self . nodes . lock () . unwrap () ; nodes . iter () . filter_map (| (key , node) | { if let Node :: Leaf (leaf) = node { Some ((key . clone () , leaf . clone ())) } else { None } }) . max_by_key (| (_ , leaf) | leaf . key_hash ()) . map (| (key , leaf) | Ok ((key , leaf))) . transpose () }",
+              "fn get_value_option (& self , max_version : Version , key_hash : KeyHash ,) -> Result < Option < OwnedValue > > { let values = self . values . lock () . unwrap () ; Ok (values . iter () . filter (| ((version , hash) , _) | * version <= max_version && * hash == key_hash) . max_by_key (| ((version , _) , _) | * version) . map (| (_ , value) | value . clone ())) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_TreeWriter_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": "TreeWriter",
+            "items": [
+              "fn write_node_batch (& self , node_batch : & NodeBatch) -> Result < () > { let mut nodes = self . nodes . lock () . unwrap () ; let mut values = self . values . lock () . unwrap () ; for (node_key , node) in node_batch . nodes () { nodes . insert (node_key . clone () , node . clone ()) ; } for ((version , key_hash) , value) in node_batch . values () { values . insert ((* version , * key_hash) , value . clone () . unwrap_or_default ()) ; } Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_Database_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": "Database",
+            "items": [
+              "fn get_commitment (& self , epoch : & u64) -> Result < Digest > { self . commitments . lock () . unwrap () . get (epoch) . cloned () . ok_or_else (| | { DatabaseError :: NotFoundError (format ! (\"commitment from epoch_{}\" , epoch)) . into () }) }",
+              "fn set_commitment (& self , epoch : & u64 , commitment : & Digest) -> Result < () > { self . commitments . lock () . unwrap () . insert (* epoch , * commitment) ; Ok (()) }",
+              "fn get_epoch (& self , height : & u64) -> Result < FinalizedEpoch > { let epochs = self . current_epochs . lock () . unwrap () ; match epochs . get (* height as usize) { Some (epoch) => Ok (epoch . clone ()) , None => Err (DatabaseError :: NotFoundError (format ! (\"epoch at height {}\" , height)) . into ()) , } }",
+              "fn add_epoch (& self , epoch : & FinalizedEpoch) -> Result < () > { let mut epochs = self . current_epochs . lock () . unwrap () ; if epochs . len () != epoch . height as usize { return Err (DatabaseError :: WriteError (format ! (\"epoch height mismatch: expected {}, got {}\" , epochs . len () , epoch . height)) . into ()) ; } epochs . push (epoch . clone ()) ; Ok (()) }",
+              "fn get_latest_epoch_height (& self) -> Result < u64 > { let epochs = self . current_epochs . lock () . unwrap () ; if epochs . is_empty () { return Err (DatabaseError :: NotFoundError (\"epoch's latest height\" . to_string ()) . into ()) ; } Ok (epochs . len () as u64 - 1) }",
+              "fn get_latest_epoch (& self) -> Result < FinalizedEpoch > { let height = self . get_latest_epoch_height () ? ; self . get_epoch (& height) }",
+              "fn get_last_synced_height (& self) -> Result < u64 > { Ok (* self . sync_height . lock () . unwrap ()) }",
+              "fn set_last_synced_height (& self , epoch : & u64) -> Result < () > { * self . sync_height . lock () . unwrap () = * epoch ; Ok (()) }",
+              "fn flush_database (& self) -> Result < () > { self . nodes . lock () . unwrap () . clear () ; self . values . lock () . unwrap () . clear () ; self . commitments . lock () . unwrap () . clear () ; self . current_epochs . lock () . unwrap () . clear () ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_jmt_{KeyHash,OwnedValue,Version,storage_{LeafNode,Node,NodeBatch,NodeKey,TreeReader,TreeWriter},}",
+            "path": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_prism_da_FinalizedEpoch",
+            "path": "prism_da :: FinalizedEpoch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_prism_errors_DatabaseError",
+            "path": "prism_errors :: DatabaseError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_std_{collections_HashMap,sync_{Arc,Mutex},}",
+            "path": "std :: { collections :: HashMap , sync :: { Arc , Mutex } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/inmemory.rs#use_crate_database_Database",
+            "path": "crate :: database :: Database",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/inmemory.rs#InMemoryDatabase",
+            "name": "InMemoryDatabase",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "nodes",
+                "type_name": "Arc < Mutex < HashMap < NodeKey , Node > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "values",
+                "type_name": "Arc < Mutex < HashMap < (Version , KeyHash) , OwnedValue > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "commitments",
+                "type_name": "Arc < Mutex < HashMap < u64 , Digest > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "current_epochs",
+                "type_name": "Arc < Mutex < Vec < FinalizedEpoch > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "sync_height",
+                "type_name": "Arc < Mutex < u64 > >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": null,
+            "items": [
+              "pub fn new () -> Self { InMemoryDatabase { nodes : Arc :: new (Mutex :: new (HashMap :: new ())) , values : Arc :: new (Mutex :: new (HashMap :: new ())) , commitments : Arc :: new (Mutex :: new (HashMap :: new ())) , current_epochs : Arc :: new (Mutex :: new (Vec :: new ())) , sync_height : Arc :: new (Mutex :: new (1)) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InMemoryDatabase"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_Default_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { InMemoryDatabase :: new () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InMemoryDatabase"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_TreeReader_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": "TreeReader",
+            "items": [
+              "fn get_node_option (& self , node_key : & NodeKey) -> Result < Option < Node > > { Ok (self . nodes . lock () . unwrap () . get (node_key) . cloned ()) }",
+              "fn get_rightmost_leaf (& self) -> Result < Option < (NodeKey , LeafNode) > > { let nodes = self . nodes . lock () . unwrap () ; nodes . iter () . filter_map (| (key , node) | { if let Node :: Leaf (leaf) = node { Some ((key . clone () , leaf . clone ())) } else { None } }) . max_by_key (| (_ , leaf) | leaf . key_hash ()) . map (| (key , leaf) | Ok ((key , leaf))) . transpose () }",
+              "fn get_value_option (& self , max_version : Version , key_hash : KeyHash ,) -> Result < Option < OwnedValue > > { let values = self . values . lock () . unwrap () ; Ok (values . iter () . filter (| ((version , hash) , _) | * version <= max_version && * hash == key_hash) . max_by_key (| ((version , _) , _) | * version) . map (| (_ , value) | value . clone ())) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InMemoryDatabase"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_TreeWriter_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": "TreeWriter",
+            "items": [
+              "fn write_node_batch (& self , node_batch : & NodeBatch) -> Result < () > { let mut nodes = self . nodes . lock () . unwrap () ; let mut values = self . values . lock () . unwrap () ; for (node_key , node) in node_batch . nodes () { nodes . insert (node_key . clone () , node . clone ()) ; } for ((version , key_hash) , value) in node_batch . values () { values . insert ((* version , * key_hash) , value . clone () . unwrap_or_default ()) ; } Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InMemoryDatabase"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/inmemory.rs#impl_Database_InMemoryDatabase",
+            "target_type": "InMemoryDatabase",
+            "trait_name": "Database",
+            "items": [
+              "fn get_commitment (& self , epoch : & u64) -> Result < Digest > { self . commitments . lock () . unwrap () . get (epoch) . cloned () . ok_or_else (| | { DatabaseError :: NotFoundError (format ! (\"commitment from epoch_{}\" , epoch)) . into () }) }",
+              "fn set_commitment (& self , epoch : & u64 , commitment : & Digest) -> Result < () > { self . commitments . lock () . unwrap () . insert (* epoch , * commitment) ; Ok (()) }",
+              "fn get_epoch (& self , height : & u64) -> Result < FinalizedEpoch > { let epochs = self . current_epochs . lock () . unwrap () ; match epochs . get (* height as usize) { Some (epoch) => Ok (epoch . clone ()) , None => Err (DatabaseError :: NotFoundError (format ! (\"epoch at height {}\" , height)) . into ()) , } }",
+              "fn add_epoch (& self , epoch : & FinalizedEpoch) -> Result < () > { let mut epochs = self . current_epochs . lock () . unwrap () ; if epochs . len () != epoch . height as usize { return Err (DatabaseError :: WriteError (format ! (\"epoch height mismatch: expected {}, got {}\" , epochs . len () , epoch . height)) . into ()) ; } epochs . push (epoch . clone ()) ; Ok (()) }",
+              "fn get_latest_epoch_height (& self) -> Result < u64 > { let epochs = self . current_epochs . lock () . unwrap () ; if epochs . is_empty () { return Err (DatabaseError :: NotFoundError (\"epoch's latest height\" . to_string ()) . into ()) ; } Ok (epochs . len () as u64 - 1) }",
+              "fn get_latest_epoch (& self) -> Result < FinalizedEpoch > { let height = self . get_latest_epoch_height () ? ; self . get_epoch (& height) }",
+              "fn get_last_synced_height (& self) -> Result < u64 > { Ok (* self . sync_height . lock () . unwrap ()) }",
+              "fn set_last_synced_height (& self , epoch : & u64) -> Result < () > { * self . sync_height . lock () . unwrap () = * epoch ; Ok (()) }",
+              "fn flush_database (& self) -> Result < () > { self . nodes . lock () . unwrap () . clear () ; self . values . lock () . unwrap () . clear () ; self . commitments . lock () . unwrap () . clear () ; self . current_epochs . lock () . unwrap () . clear () ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InMemoryDatabase"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/storage/src/database.rs",
+      "path": "../crates/storage/src/database.rs",
+      "relative_path": "crates/storage/src/database.rs",
+      "file_size": 1209,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_auto_impl_auto_impl",
+            "path": "auto_impl :: auto_impl",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_jmt_storage_{TreeReader,TreeWriter}",
+            "path": "jmt :: storage :: { TreeReader , TreeWriter }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_prism_da_FinalizedEpoch",
+            "path": "prism_da :: FinalizedEpoch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_prism_errors_{DatabaseError,PrismError}",
+            "path": "prism_errors :: { DatabaseError , PrismError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/storage/src/database.rs#StorageBackend",
+            "name": "StorageBackend",
+            "visibility": "pub",
+            "variants": [
+              "RocksDB",
+              "InMemory",
+              "Redis"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/storage/src/database.rs#Database",
+            "name": "Database",
+            "visibility": "pub",
+            "items": [
+              "fn get_commitment (& self , epoch : & u64) -> Result < Digest > ;",
+              "fn set_commitment (& self , epoch : & u64 , commitment : & Digest) -> Result < () > ;",
+              "fn get_epoch (& self , height : & u64) -> Result < FinalizedEpoch > ;",
+              "fn add_epoch (& self , epoch : & FinalizedEpoch) -> Result < () > ;",
+              "fn get_latest_epoch_height (& self) -> Result < u64 > ;",
+              "fn get_latest_epoch (& self) -> Result < FinalizedEpoch > ;",
+              "fn get_last_synced_height (& self) -> Result < u64 > ;",
+              "fn set_last_synced_height (& self , height : & u64) -> Result < () > ;",
+              "fn flush_database (& self) -> Result < () > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/database.rs#convert_to_connection_error",
+            "name": "convert_to_connection_error",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "e : redis :: RedisError"
+            ],
+            "output": "PrismError",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_auto_impl_auto_impl",
+            "path": "auto_impl :: auto_impl",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_jmt_storage_{TreeReader,TreeWriter}",
+            "path": "jmt :: storage :: { TreeReader , TreeWriter }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_prism_da_FinalizedEpoch",
+            "path": "prism_da :: FinalizedEpoch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_prism_errors_{DatabaseError,PrismError}",
+            "path": "prism_errors :: { DatabaseError , PrismError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/database.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/storage/src/database.rs#StorageBackend",
+            "name": "StorageBackend",
+            "visibility": "pub",
+            "variants": [
+              "RocksDB",
+              "InMemory",
+              "Redis"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone",
+            "Eq",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/storage/src/database.rs#Database",
+            "name": "Database",
+            "visibility": "pub",
+            "items": [
+              "fn get_commitment (& self , epoch : & u64) -> Result < Digest > ;",
+              "fn set_commitment (& self , epoch : & u64 , commitment : & Digest) -> Result < () > ;",
+              "fn get_epoch (& self , height : & u64) -> Result < FinalizedEpoch > ;",
+              "fn add_epoch (& self , epoch : & FinalizedEpoch) -> Result < () > ;",
+              "fn get_latest_epoch_height (& self) -> Result < u64 > ;",
+              "fn get_latest_epoch (& self) -> Result < FinalizedEpoch > ;",
+              "fn get_last_synced_height (& self) -> Result < u64 > ;",
+              "fn set_last_synced_height (& self , height : & u64) -> Result < () > ;",
+              "fn flush_database (& self) -> Result < () > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/database.rs#convert_to_connection_error",
+            "name": "convert_to_connection_error",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "e : redis :: RedisError"
+            ],
+            "output": "PrismError",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "PrismError::Database",
+              "is_method": false
+            },
+            {
+              "callee": "DatabaseError::ConnectionError",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            }
+          ],
+          "local_variables": [],
+          "type_references": [],
+          "macro_invocations": []
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/storage/src/lib.rs",
+      "path": "../crates/storage/src/lib.rs",
+      "relative_path": "crates/storage/src/lib.rs",
+      "file_size": 155,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#database",
+            "name": "database",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#inmemory",
+            "name": "inmemory",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#redis",
+            "name": "redis",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#rocksdb",
+            "name": "rocksdb",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/lib.rs#use_crate_{database_Database,redis_RedisConnection}",
+            "path": "crate :: { database :: Database , redis :: RedisConnection }",
+            "visibility": "pub"
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#database",
+            "name": "database",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#inmemory",
+            "name": "inmemory",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#redis",
+            "name": "redis",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#rocksdb",
+            "name": "rocksdb",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/lib.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/lib.rs#use_crate_{database_Database,redis_RedisConnection}",
+            "path": "crate :: { database :: Database , redis :: RedisConnection }",
+            "visibility": "pub"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/storage/src/tests/mod.rs",
+      "path": "../crates/storage/src/tests/mod.rs",
+      "relative_path": "crates/storage/src/tests/mod.rs",
+      "file_size": 1848,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_crate_rocksdb_*",
+            "path": "crate :: rocksdb :: *",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_tempfile_TempDir",
+            "path": "tempfile :: TempDir",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_crate_Database",
+            "path": "crate :: Database",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_jmt_{KeyHash,OwnedValue,Version,storage_{NodeBatch,TreeReader,TreeWriter},}",
+            "path": "jmt :: { KeyHash , OwnedValue , Version , storage :: { NodeBatch , TreeReader , TreeWriter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/tests/mod.rs#setup_db",
+            "name": "setup_db",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "(TempDir , RocksDBConnection)",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/tests/mod.rs#test_rw_commitment",
+            "name": "test_rw_commitment",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+            "name": "test_write_and_read_value",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+            "name": "test_get_value_option_with_multiple_versions",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_crate_rocksdb_*",
+            "path": "crate :: rocksdb :: *",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_tempfile_TempDir",
+            "path": "tempfile :: TempDir",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_crate_Database",
+            "path": "crate :: Database",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_jmt_{KeyHash,OwnedValue,Version,storage_{NodeBatch,TreeReader,TreeWriter},}",
+            "path": "jmt :: { KeyHash , OwnedValue , Version , storage :: { NodeBatch , TreeReader , TreeWriter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/tests/mod.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/tests/mod.rs#setup_db",
+            "name": "setup_db",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "(TempDir , RocksDBConnection)",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "TempDir::new",
+              "is_method": false
+            },
+            {
+              "callee": "RocksDBConfig::new",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "to_str",
+              "is_method": true
+            },
+            {
+              "callee": "path",
+              "is_method": true,
+              "receiver_type": "temp_dir"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "RocksDBConnection::new",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "temp_dir",
+              "is_mutable": false
+            },
+            {
+              "name": "cfg",
+              "is_mutable": false
+            },
+            {
+              "name": "db",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/tests/mod.rs#test_rw_commitment",
+            "name": "test_rw_commitment",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "setup_db",
+              "is_method": false
+            },
+            {
+              "callee": "Digest",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "set_commitment",
+              "is_method": true,
+              "receiver_type": "db"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_commitment",
+              "is_method": true,
+              "receiver_type": "db"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "epoch",
+              "is_mutable": false
+            },
+            {
+              "name": "commitment",
+              "is_mutable": false
+            },
+            {
+              "name": "read_commitment",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            }
+          ],
+          "test_attributes": {
+            "is_test": true,
+            "is_benchmark": false,
+            "test_name": null,
+            "should_panic": false,
+            "ignore": false
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+            "name": "test_write_and_read_value",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "setup_db",
+              "is_method": false
+            },
+            {
+              "callee": "KeyHash",
+              "is_method": false
+            },
+            {
+              "callee": "NodeBatch::default",
+              "is_method": false
+            },
+            {
+              "callee": "insert_value",
+              "is_method": true,
+              "receiver_type": "batch"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "value"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "write_node_batch",
+              "is_method": true,
+              "receiver_type": "db"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_value_option",
+              "is_method": true,
+              "receiver_type": "db"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "key_hash",
+              "is_mutable": false
+            },
+            {
+              "name": "batch",
+              "is_mutable": true
+            },
+            {
+              "name": "read_value",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Version",
+            "OwnedValue"
+          ],
+          "macro_invocations": [
+            {
+              "name": "vec",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            }
+          ],
+          "test_attributes": {
+            "is_test": true,
+            "is_benchmark": false,
+            "test_name": null,
+            "should_panic": false,
+            "ignore": false
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+            "name": "test_get_value_option_with_multiple_versions",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "setup_db",
+              "is_method": false
+            },
+            {
+              "callee": "KeyHash",
+              "is_method": false
+            },
+            {
+              "callee": "NodeBatch::default",
+              "is_method": false
+            },
+            {
+              "callee": "insert_value",
+              "is_method": true,
+              "receiver_type": "batch"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "value1"
+            },
+            {
+              "callee": "insert_value",
+              "is_method": true,
+              "receiver_type": "batch"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "value2"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "write_node_batch",
+              "is_method": true,
+              "receiver_type": "db"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "key_hash",
+              "is_mutable": false
+            },
+            {
+              "name": "batch",
+              "is_mutable": true
+            }
+          ],
+          "type_references": [
+            "OwnedValue"
+          ],
+          "macro_invocations": [
+            {
+              "name": "vec",
+              "kind": "function-like"
+            },
+            {
+              "name": "vec",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            }
+          ],
+          "test_attributes": {
+            "is_test": true,
+            "is_benchmark": false,
+            "test_name": null,
+            "should_panic": false,
+            "ignore": false
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/storage/src/rocksdb.rs",
+      "path": "../crates/storage/src/rocksdb.rs",
+      "relative_path": "crates/storage/src/rocksdb.rs",
+      "file_size": 10257,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_crate_Database",
+            "path": "crate :: Database",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_jmt_{KeyHash,OwnedValue,Version,storage_{LeafNode,Node,NodeBatch,NodeKey,TreeReader,TreeWriter},}",
+            "path": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_prism_errors_DatabaseError",
+            "path": "prism_errors :: DatabaseError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_prism_serde_{binary_{FromBinary,ToBinary},hex_{FromHex,ToHex},}",
+            "path": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_rocksdb_{DB,DBWithThreadMode,MultiThreaded,Options}",
+            "path": "rocksdb :: { DB , DBWithThreadMode , MultiThreaded , Options }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/storage/src/rocksdb.rs#KEY_PREFIX_COMMITMENTS",
+            "name": "KEY_PREFIX_COMMITMENTS",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/storage/src/rocksdb.rs#KEY_PREFIX_NODE",
+            "name": "KEY_PREFIX_NODE",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/storage/src/rocksdb.rs#KEY_PREFIX_VALUE_HISTORY",
+            "name": "KEY_PREFIX_VALUE_HISTORY",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/storage/src/rocksdb.rs#KEY_PREFIX_EPOCHS",
+            "name": "KEY_PREFIX_EPOCHS",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/storage/src/rocksdb.rs#RocksDB",
+            "name": "RocksDB",
+            "visibility": "private",
+            "target_type": "DBWithThreadMode < MultiThreaded >",
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/rocksdb.rs#RocksDBConfig",
+            "name": "RocksDBConfig",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "path",
+                "type_name": "String",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_RocksDBConfig",
+            "target_type": "RocksDBConfig",
+            "trait_name": null,
+            "items": [
+              "pub fn new (path : & str) -> Self { Self { path : path . to_string () , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/rocksdb.rs#RocksDBConnection",
+            "name": "RocksDBConnection",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "connection",
+                "type_name": "Arc < RocksDB >",
+                "visibility": "private"
+              },
+              {
+                "name": "path",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_RocksDBConnection",
+            "target_type": "RocksDBConnection",
+            "trait_name": null,
+            "items": [
+              "pub fn new (cfg : & RocksDBConfig) -> Result < RocksDBConnection > { let path = & cfg . path ; let db = DB :: open_default (path) ? ; Ok (Self { connection : Arc :: new (db) , path : path . to_string () , }) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_Database_RocksDBConnection",
+            "target_type": "RocksDBConnection",
+            "trait_name": "Database",
+            "items": [
+              "fn get_commitment (& self , epoch : & u64) -> anyhow :: Result < Digest > { let key = format ! (\"{KEY_PREFIX_COMMITMENTS}{}\" , epoch) ; let raw_bytes = self . connection . get (key . as_bytes ()) ? . ok_or_else (| | { DatabaseError :: NotFoundError (format ! (\"commitment from epoch_{}\" , epoch)) }) ? ; let value : [u8 ; 32] = raw_bytes . try_into () . expect (\"commitment digest should always be 32 bytes\") ; Ok (Digest (value)) }",
+              "fn set_commitment (& self , epoch : & u64 , commitment : & Digest) -> anyhow :: Result < () > { Ok (self . connection . put :: < & [u8] , [u8 ; 32] > (format ! (\"{KEY_PREFIX_COMMITMENTS}{}\" , epoch) . as_bytes () , commitment . 0 ,) ?) }",
+              "fn get_last_synced_height (& self) -> anyhow :: Result < u64 > { let res = self . connection . get (b\"app_state:sync_height\") ? . ok_or_else (| | DatabaseError :: NotFoundError (\"current sync height\" . to_string ())) ? ; Ok (u64 :: from_be_bytes (res . try_into () . map_err (| e | { anyhow ! (\"failed byte conversion from BigEndian to u64: {:?}\" , e) }) ?)) }",
+              "fn set_last_synced_height (& self , height : & u64) -> anyhow :: Result < () > { Ok (self . connection . put (b\"app_state:sync_height\" , height . to_be_bytes ()) ?) }",
+              "fn get_epoch (& self , height : & u64) -> anyhow :: Result < prism_da :: FinalizedEpoch > { let key = format ! (\"{}{}\" , KEY_PREFIX_EPOCHS , height) ; let epoch_data = self . connection . get (key . as_bytes ()) ? . ok_or_else (| | DatabaseError :: NotFoundError (format ! (\"epoch at height {}\" , height))) ? ; prism_da :: FinalizedEpoch :: decode_from_bytes (& epoch_data) . map_err (| e | { anyhow ! (DatabaseError :: ParsingError (format ! (\"Failed to decode epoch at height {}: {}\" , height , e))) }) }",
+              "fn add_epoch (& self , epoch : & prism_da :: FinalizedEpoch) -> anyhow :: Result < () > { let latest_height = self . get_latest_epoch_height () . ok () ; if let Some (latest) = latest_height { if latest as usize + 1 != epoch . height as usize { return Err (anyhow ! (DatabaseError :: WriteError (format ! (\"epoch height mismatch: expected {}, got {}\" , latest + 1 , epoch . height)))) ; } } else if epoch . height != 0 { return Err (anyhow ! (DatabaseError :: WriteError (format ! (\"first epoch must have height 0, got {}\" , epoch . height)))) ; } let epoch_data = epoch . encode_to_bytes () . map_err (| e | { anyhow ! (DatabaseError :: ParsingError (format ! (\"Failed to encode epoch at height {}: {}\" , epoch . height , e))) }) ? ; let mut batch = rocksdb :: WriteBatch :: default () ; batch . put (format ! (\"{}{}\" , KEY_PREFIX_EPOCHS , epoch . height) . as_bytes () , & epoch_data ,) ; batch . put (b\"app_state:latest_epoch_height\" , epoch . height . to_be_bytes ()) ; self . connection . write (batch) ? ; Ok (()) }",
+              "fn get_latest_epoch_height (& self) -> anyhow :: Result < u64 > { let res = self . connection . get (b\"app_state:latest_epoch_height\") ? . ok_or_else (| | DatabaseError :: NotFoundError (\"latest epoch height\" . to_string ())) ? ; Ok (u64 :: from_be_bytes (res . try_into () . map_err (| e | { anyhow ! (\"failed byte conversion from BigEndian to u64: {:?}\" , e) }) ?)) }",
+              "fn get_latest_epoch (& self) -> anyhow :: Result < prism_da :: FinalizedEpoch > { let height = self . get_latest_epoch_height () ? ; self . get_epoch (& height) }",
+              "fn flush_database (& self) -> Result < () > { Ok (DB :: destroy (& Options :: default () , & self . path) ?) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_TreeReader_RocksDBConnection",
+            "target_type": "RocksDBConnection",
+            "trait_name": "TreeReader",
+            "items": [
+              "fn get_node_option (& self , node_key : & NodeKey) -> Result < Option < Node > > { let key = format ! (\"{KEY_PREFIX_NODE}{}\" , node_key . encode_to_bytes () ?. to_hex ()) ; let value = self . connection . get (key . as_bytes ()) ? ; match value { Some (data) => Ok (Some (Node :: decode_from_bytes (& data) ?)) , None => Ok (None) , } }",
+              "fn get_value_option (& self , max_version : Version , key_hash : KeyHash ,) -> Result < Option < OwnedValue > > { let value_key = format ! (\"{KEY_PREFIX_VALUE_HISTORY}{}\" , key_hash . 0 . to_hex ()) ; let max_version_bytes = max_version . to_be_bytes () ; let max_key = format ! (\"{}:{}\" , value_key , max_version_bytes . to_hex ()) ; let mut iter = self . connection . iterator (rocksdb :: IteratorMode :: From (max_key . as_bytes () , rocksdb :: Direction :: Reverse ,)) ; if let Some (Ok ((key , value))) = iter . next () { if key . starts_with (value_key . as_bytes ()) { return OwnedValue :: decode_from_bytes (& value) . map (Some) . map_err (| e | e . into ()) ; } } Ok (None) }",
+              "fn get_rightmost_leaf (& self) -> Result < Option < (NodeKey , LeafNode) > > { let mut iter = self . connection . iterator (rocksdb :: IteratorMode :: End) ; while let Some (Ok ((key , value))) = iter . next () { if key . starts_with (KEY_PREFIX_NODE . as_bytes ()) { let node : Node = Node :: decode_from_bytes (& value) ? ; if let Node :: Leaf (leaf) = node { let node_key = NodeKey :: decode_from_bytes (& Vec :: < u8 > :: from_hex (& key [KEY_PREFIX_NODE . len () ..] ,) ?) ? ; return Ok (Some ((node_key , leaf))) ; } } } Ok (None) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_TreeWriter_RocksDBConnection",
+            "target_type": "RocksDBConnection",
+            "trait_name": "TreeWriter",
+            "items": [
+              "fn write_node_batch (& self , node_batch : & NodeBatch) -> Result < () > { let mut batch = rocksdb :: WriteBatch :: default () ; for (node_key , node) in node_batch . nodes () { let key = format ! (\"{KEY_PREFIX_NODE}{}\" , node_key . encode_to_bytes () ?. to_hex ()) ; let value = node . encode_to_bytes () ? ; batch . put (key . as_bytes () , & value) ; } for ((version , key_hash) , value) in node_batch . values () { let value_key = format ! (\"{KEY_PREFIX_VALUE_HISTORY}{}\" , key_hash . 0 . to_hex ()) ; let encoded_value = value . as_ref () . map (| v | v . encode_to_bytes ()) . transpose () ? . unwrap_or_default () ; let version_bytes = version . to_be_bytes () ; batch . put (format ! (\"{}:{}\" , value_key , version_bytes . to_hex ()) . as_bytes () , & encoded_value ,) ; } self . connection . write (batch) ? ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/rocksdb.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": [
+              "use super :: * ;",
+              "use jmt :: { KeyHash , OwnedValue , Version } ;",
+              "use tempfile :: TempDir ;",
+              "fn setup_db () -> (TempDir , RocksDBConnection) { let temp_dir = TempDir :: new () . unwrap () ; let cfg = RocksDBConfig :: new (temp_dir . path () . to_str () . unwrap ()) ; let db = RocksDBConnection :: new (& cfg) . unwrap () ; (temp_dir , db) }",
+              "# [test] fn test_rw_commitment () { let (_temp_dir , db) = setup_db () ; let epoch = 1 ; let commitment = Digest ([1 ; 32]) ; db . set_commitment (& epoch , & commitment) . unwrap () ; let read_commitment = db . get_commitment (& epoch) . unwrap () ; assert_eq ! (read_commitment , commitment) ; }",
+              "# [test] fn test_write_and_read_value () { let (_temp_dir , db) = setup_db () ; let key_hash = KeyHash ([1 ; 32]) ; let value : OwnedValue = vec ! [4 , 5 , 6] ; let version : Version = 1 ; let mut batch = NodeBatch :: default () ; batch . insert_value (version , key_hash , value . clone ()) ; db . write_node_batch (& batch) . unwrap () ; let read_value = db . get_value_option (version , key_hash) . unwrap () ; assert_eq ! (read_value , Some (value)) ; }",
+              "# [test] fn test_get_value_option_with_multiple_versions () { let (_temp_dir , db) = setup_db () ; let key_hash = KeyHash ([2 ; 32]) ; let value1 : OwnedValue = vec ! [1 , 1 , 1] ; let value2 : OwnedValue = vec ! [2 , 2 , 2] ; let mut batch = NodeBatch :: default () ; batch . insert_value (1 , key_hash , value1 . clone ()) ; batch . insert_value (2 , key_hash , value2 . clone ()) ; db . write_node_batch (& batch) . unwrap () ; assert_eq ! (db . get_value_option (1 , key_hash) . unwrap () , Some (value1)) ; assert_eq ! (db . get_value_option (2 , key_hash) . unwrap () , Some (value2 . clone ())) ; assert_eq ! (db . get_value_option (3 , key_hash) . unwrap () , Some (value2)) ; }"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_crate_Database",
+            "path": "crate :: Database",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_jmt_{KeyHash,OwnedValue,Version,storage_{LeafNode,Node,NodeBatch,NodeKey,TreeReader,TreeWriter},}",
+            "path": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_prism_errors_DatabaseError",
+            "path": "prism_errors :: DatabaseError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_prism_serde_{binary_{FromBinary,ToBinary},hex_{FromHex,ToHex},}",
+            "path": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_rocksdb_{DB,DBWithThreadMode,MultiThreaded,Options}",
+            "path": "rocksdb :: { DB , DBWithThreadMode , MultiThreaded , Options }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/rocksdb.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/storage/src/rocksdb.rs#KEY_PREFIX_COMMITMENTS",
+            "name": "KEY_PREFIX_COMMITMENTS",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/storage/src/rocksdb.rs#KEY_PREFIX_NODE",
+            "name": "KEY_PREFIX_NODE",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/storage/src/rocksdb.rs#KEY_PREFIX_VALUE_HISTORY",
+            "name": "KEY_PREFIX_VALUE_HISTORY",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/storage/src/rocksdb.rs#KEY_PREFIX_EPOCHS",
+            "name": "KEY_PREFIX_EPOCHS",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/storage/src/rocksdb.rs#RocksDB",
+            "name": "RocksDB",
+            "visibility": "private",
+            "target_type": "DBWithThreadMode < MultiThreaded >",
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/rocksdb.rs#RocksDBConfig",
+            "name": "RocksDBConfig",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "path",
+                "type_name": "String",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Serialize",
+            "Deserialize",
+            "Clone",
+            "PartialEq",
+            "Eq"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_RocksDBConfig",
+            "target_type": "RocksDBConfig",
+            "trait_name": null,
+            "items": [
+              "pub fn new (path : & str) -> Self { Self { path : path . to_string () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RocksDBConfig"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/rocksdb.rs#RocksDBConnection",
+            "name": "RocksDBConnection",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "connection",
+                "type_name": "Arc < RocksDB >",
+                "visibility": "private"
+              },
+              {
+                "name": "path",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_RocksDBConnection",
+            "target_type": "RocksDBConnection",
+            "trait_name": null,
+            "items": [
+              "pub fn new (cfg : & RocksDBConfig) -> Result < RocksDBConnection > { let path = & cfg . path ; let db = DB :: open_default (path) ? ; Ok (Self { connection : Arc :: new (db) , path : path . to_string () , }) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RocksDBConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_Database_RocksDBConnection",
+            "target_type": "RocksDBConnection",
+            "trait_name": "Database",
+            "items": [
+              "fn get_commitment (& self , epoch : & u64) -> anyhow :: Result < Digest > { let key = format ! (\"{KEY_PREFIX_COMMITMENTS}{}\" , epoch) ; let raw_bytes = self . connection . get (key . as_bytes ()) ? . ok_or_else (| | { DatabaseError :: NotFoundError (format ! (\"commitment from epoch_{}\" , epoch)) }) ? ; let value : [u8 ; 32] = raw_bytes . try_into () . expect (\"commitment digest should always be 32 bytes\") ; Ok (Digest (value)) }",
+              "fn set_commitment (& self , epoch : & u64 , commitment : & Digest) -> anyhow :: Result < () > { Ok (self . connection . put :: < & [u8] , [u8 ; 32] > (format ! (\"{KEY_PREFIX_COMMITMENTS}{}\" , epoch) . as_bytes () , commitment . 0 ,) ?) }",
+              "fn get_last_synced_height (& self) -> anyhow :: Result < u64 > { let res = self . connection . get (b\"app_state:sync_height\") ? . ok_or_else (| | DatabaseError :: NotFoundError (\"current sync height\" . to_string ())) ? ; Ok (u64 :: from_be_bytes (res . try_into () . map_err (| e | { anyhow ! (\"failed byte conversion from BigEndian to u64: {:?}\" , e) }) ?)) }",
+              "fn set_last_synced_height (& self , height : & u64) -> anyhow :: Result < () > { Ok (self . connection . put (b\"app_state:sync_height\" , height . to_be_bytes ()) ?) }",
+              "fn get_epoch (& self , height : & u64) -> anyhow :: Result < prism_da :: FinalizedEpoch > { let key = format ! (\"{}{}\" , KEY_PREFIX_EPOCHS , height) ; let epoch_data = self . connection . get (key . as_bytes ()) ? . ok_or_else (| | DatabaseError :: NotFoundError (format ! (\"epoch at height {}\" , height))) ? ; prism_da :: FinalizedEpoch :: decode_from_bytes (& epoch_data) . map_err (| e | { anyhow ! (DatabaseError :: ParsingError (format ! (\"Failed to decode epoch at height {}: {}\" , height , e))) }) }",
+              "fn add_epoch (& self , epoch : & prism_da :: FinalizedEpoch) -> anyhow :: Result < () > { let latest_height = self . get_latest_epoch_height () . ok () ; if let Some (latest) = latest_height { if latest as usize + 1 != epoch . height as usize { return Err (anyhow ! (DatabaseError :: WriteError (format ! (\"epoch height mismatch: expected {}, got {}\" , latest + 1 , epoch . height)))) ; } } else if epoch . height != 0 { return Err (anyhow ! (DatabaseError :: WriteError (format ! (\"first epoch must have height 0, got {}\" , epoch . height)))) ; } let epoch_data = epoch . encode_to_bytes () . map_err (| e | { anyhow ! (DatabaseError :: ParsingError (format ! (\"Failed to encode epoch at height {}: {}\" , epoch . height , e))) }) ? ; let mut batch = rocksdb :: WriteBatch :: default () ; batch . put (format ! (\"{}{}\" , KEY_PREFIX_EPOCHS , epoch . height) . as_bytes () , & epoch_data ,) ; batch . put (b\"app_state:latest_epoch_height\" , epoch . height . to_be_bytes ()) ; self . connection . write (batch) ? ; Ok (()) }",
+              "fn get_latest_epoch_height (& self) -> anyhow :: Result < u64 > { let res = self . connection . get (b\"app_state:latest_epoch_height\") ? . ok_or_else (| | DatabaseError :: NotFoundError (\"latest epoch height\" . to_string ())) ? ; Ok (u64 :: from_be_bytes (res . try_into () . map_err (| e | { anyhow ! (\"failed byte conversion from BigEndian to u64: {:?}\" , e) }) ?)) }",
+              "fn get_latest_epoch (& self) -> anyhow :: Result < prism_da :: FinalizedEpoch > { let height = self . get_latest_epoch_height () ? ; self . get_epoch (& height) }",
+              "fn flush_database (& self) -> Result < () > { Ok (DB :: destroy (& Options :: default () , & self . path) ?) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RocksDBConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_TreeReader_RocksDBConnection",
+            "target_type": "RocksDBConnection",
+            "trait_name": "TreeReader",
+            "items": [
+              "fn get_node_option (& self , node_key : & NodeKey) -> Result < Option < Node > > { let key = format ! (\"{KEY_PREFIX_NODE}{}\" , node_key . encode_to_bytes () ?. to_hex ()) ; let value = self . connection . get (key . as_bytes ()) ? ; match value { Some (data) => Ok (Some (Node :: decode_from_bytes (& data) ?)) , None => Ok (None) , } }",
+              "fn get_value_option (& self , max_version : Version , key_hash : KeyHash ,) -> Result < Option < OwnedValue > > { let value_key = format ! (\"{KEY_PREFIX_VALUE_HISTORY}{}\" , key_hash . 0 . to_hex ()) ; let max_version_bytes = max_version . to_be_bytes () ; let max_key = format ! (\"{}:{}\" , value_key , max_version_bytes . to_hex ()) ; let mut iter = self . connection . iterator (rocksdb :: IteratorMode :: From (max_key . as_bytes () , rocksdb :: Direction :: Reverse ,)) ; if let Some (Ok ((key , value))) = iter . next () { if key . starts_with (value_key . as_bytes ()) { return OwnedValue :: decode_from_bytes (& value) . map (Some) . map_err (| e | e . into ()) ; } } Ok (None) }",
+              "fn get_rightmost_leaf (& self) -> Result < Option < (NodeKey , LeafNode) > > { let mut iter = self . connection . iterator (rocksdb :: IteratorMode :: End) ; while let Some (Ok ((key , value))) = iter . next () { if key . starts_with (KEY_PREFIX_NODE . as_bytes ()) { let node : Node = Node :: decode_from_bytes (& value) ? ; if let Node :: Leaf (leaf) = node { let node_key = NodeKey :: decode_from_bytes (& Vec :: < u8 > :: from_hex (& key [KEY_PREFIX_NODE . len () ..] ,) ?) ? ; return Ok (Some ((node_key , leaf))) ; } } } Ok (None) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RocksDBConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/rocksdb.rs#impl_TreeWriter_RocksDBConnection",
+            "target_type": "RocksDBConnection",
+            "trait_name": "TreeWriter",
+            "items": [
+              "fn write_node_batch (& self , node_batch : & NodeBatch) -> Result < () > { let mut batch = rocksdb :: WriteBatch :: default () ; for (node_key , node) in node_batch . nodes () { let key = format ! (\"{KEY_PREFIX_NODE}{}\" , node_key . encode_to_bytes () ?. to_hex ()) ; let value = node . encode_to_bytes () ? ; batch . put (key . as_bytes () , & value) ; } for ((version , key_hash) , value) in node_batch . values () { let value_key = format ! (\"{KEY_PREFIX_VALUE_HISTORY}{}\" , key_hash . 0 . to_hex ()) ; let encoded_value = value . as_ref () . map (| v | v . encode_to_bytes ()) . transpose () ? . unwrap_or_default () ; let version_bytes = version . to_be_bytes () ; batch . put (format ! (\"{}:{}\" , value_key , version_bytes . to_hex ()) . as_bytes () , & encoded_value ,) ; } self . connection . write (batch) ? ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RocksDBConnection"
+          ]
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/storage/src/rocksdb.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": [
+              "use super :: * ;",
+              "use jmt :: { KeyHash , OwnedValue , Version } ;",
+              "use tempfile :: TempDir ;",
+              "fn setup_db () -> (TempDir , RocksDBConnection) { let temp_dir = TempDir :: new () . unwrap () ; let cfg = RocksDBConfig :: new (temp_dir . path () . to_str () . unwrap ()) ; let db = RocksDBConnection :: new (& cfg) . unwrap () ; (temp_dir , db) }",
+              "# [test] fn test_rw_commitment () { let (_temp_dir , db) = setup_db () ; let epoch = 1 ; let commitment = Digest ([1 ; 32]) ; db . set_commitment (& epoch , & commitment) . unwrap () ; let read_commitment = db . get_commitment (& epoch) . unwrap () ; assert_eq ! (read_commitment , commitment) ; }",
+              "# [test] fn test_write_and_read_value () { let (_temp_dir , db) = setup_db () ; let key_hash = KeyHash ([1 ; 32]) ; let value : OwnedValue = vec ! [4 , 5 , 6] ; let version : Version = 1 ; let mut batch = NodeBatch :: default () ; batch . insert_value (version , key_hash , value . clone ()) ; db . write_node_batch (& batch) . unwrap () ; let read_value = db . get_value_option (version , key_hash) . unwrap () ; assert_eq ! (read_value , Some (value)) ; }",
+              "# [test] fn test_get_value_option_with_multiple_versions () { let (_temp_dir , db) = setup_db () ; let key_hash = KeyHash ([2 ; 32]) ; let value1 : OwnedValue = vec ! [1 , 1 , 1] ; let value2 : OwnedValue = vec ! [2 , 2 , 2] ; let mut batch = NodeBatch :: default () ; batch . insert_value (1 , key_hash , value1 . clone ()) ; batch . insert_value (2 , key_hash , value2 . clone ()) ; db . write_node_batch (& batch) . unwrap () ; assert_eq ! (db . get_value_option (1 , key_hash) . unwrap () , Some (value1)) ; assert_eq ! (db . get_value_option (2 , key_hash) . unwrap () , Some (value2 . clone ())) ; assert_eq ! (db . get_value_option (3 , key_hash) . unwrap () , Some (value2)) ; }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/storage/src/redis.rs",
+      "path": "../crates/storage/src/redis.rs",
+      "relative_path": "crates/storage/src/redis.rs",
+      "file_size": 9767,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_jmt_{KeyHash,OwnedValue,Version,storage_{LeafNode,Node,NodeBatch,NodeKey,TreeReader,TreeWriter},}",
+            "path": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_prism_da_FinalizedEpoch",
+            "path": "prism_da :: FinalizedEpoch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_prism_serde_{binary_{FromBinary,ToBinary},hex_{FromHex,ToHex},}",
+            "path": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_redis_{Client,Commands,Connection}",
+            "path": "redis :: { Client , Commands , Connection }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_std_{self,process_Command,sync_{Mutex,MutexGuard},thread_sleep,time_Duration,}",
+            "path": "std :: { self , process :: Command , sync :: { Mutex , MutexGuard } , thread :: sleep , time :: Duration , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_prism_errors_DatabaseError",
+            "path": "prism_errors :: DatabaseError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_crate_database_{Database,convert_to_connection_error}",
+            "path": "crate :: database :: { Database , convert_to_connection_error }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_tracing_debug",
+            "path": "tracing :: debug",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/redis.rs#RedisConfig",
+            "name": "RedisConfig",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "connection_string",
+                "type_name": "String",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_Default_RedisConfig",
+            "target_type": "RedisConfig",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { RedisConfig { connection_string : \"redis://127.0.0.1/\" . to_string () , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/redis.rs#RedisConnection",
+            "name": "RedisConnection",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "connection",
+                "type_name": "Mutex < Connection >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_RedisConnection",
+            "target_type": "RedisConnection",
+            "trait_name": null,
+            "items": [
+              "pub fn new (cfg : & RedisConfig) -> Result < RedisConnection > { let connection_string = cfg . connection_string . clone () ; let try_client = Client :: open (connection_string . clone ()) . map_err (convert_to_connection_error) ? ; let try_connection = try_client . get_connection () ; if try_connection . is_err () { debug ! (\"starting redis-server...\") ; let _child = Command :: new (\"redis-server\") . spawn () . map_err (| e | DatabaseError :: InitializationError (e . to_string ())) ? ; sleep (Duration :: from_secs (5)) ; debug ! (\"redis-server started\") ; } let client = Client :: open (connection_string) . map_err (convert_to_connection_error) ? ; let connection = client . get_connection () . map_err (convert_to_connection_error) ? ; Ok (RedisConnection { connection : Mutex :: new (connection) , }) }",
+              "fn lock_connection (& self) -> Result < MutexGuard < Connection > > { self . connection . lock () . map_err (| _ | anyhow ! (DatabaseError :: LockError)) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_TreeReader_RedisConnection",
+            "target_type": "RedisConnection",
+            "trait_name": "TreeReader",
+            "items": [
+              "fn get_node_option (& self , node_key : & NodeKey) -> Result < Option < Node > > { let mut con = self . lock_connection () ? ; let serialized_key = node_key . encode_to_bytes () ? . to_hex () ; let node_data : Option < Vec < u8 > > = con . get (format ! (\"node:{}\" , serialized_key)) ? ; Ok (node_data . map (| data | Node :: decode_from_bytes (& data) . unwrap ())) }",
+              "fn get_rightmost_leaf (& self) -> Result < Option < (NodeKey , LeafNode) > > { let mut con = self . lock_connection () ? ; let keys : Vec < String > = con . keys (\"node:*\") ? ; let mut rightmost : Option < (NodeKey , LeafNode) > = None ; for key in keys { let node_data : Vec < u8 > = con . get (& key) ? ; let node = Node :: decode_from_bytes (& node_data) ? ; if let Node :: Leaf (leaf_node) = node { let node_key_bytes = Vec :: < u8 > :: from_hex (key . strip_prefix (\"node:\") . unwrap ()) ? ; let node_key = NodeKey :: decode_from_bytes (& node_key_bytes) ? ; if rightmost . is_none () || leaf_node . key_hash () > rightmost . as_ref () . unwrap () . 1 . key_hash () { rightmost = Some ((node_key , leaf_node)) ; } } } Ok (rightmost) }",
+              "fn get_value_option (& self , max_version : Version , key_hash : KeyHash ,) -> Result < Option < OwnedValue > > { let mut con = self . lock_connection () ? ; let value_key = format ! (\"value_history:{}\" , key_hash . 0 . to_hex ()) ; let values : Vec < (String , f64) > = con . zrevrangebyscore_withscores (& value_key , max_version as f64 , 0f64) ? ; if let Some ((encoded_value , _)) = values . first () { if encoded_value . is_empty () { Ok (None) } else { Ok (Some (OwnedValue :: from_hex (encoded_value) ?)) } } else { Ok (None) } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_TreeWriter_RedisConnection",
+            "target_type": "RedisConnection",
+            "trait_name": "TreeWriter",
+            "items": [
+              "fn write_node_batch (& self , node_batch : & NodeBatch) -> Result < () > { let mut con = self . lock_connection () ? ; let mut pipe = redis :: pipe () ; for (node_key , node) in node_batch . nodes () { let serialized_key = node_key . encode_to_bytes () ? . to_hex () ; let node_data = node . encode_to_bytes () ? ; pipe . set (format ! (\"node:{}\" , serialized_key) , node_data) ; } for ((version , key_hash) , value) in node_batch . values () { let value_key = format ! (\"value_history:{}\" , key_hash . 0 . to_hex ()) ; let encoded_value = value . as_ref () . map (ToHex :: to_hex) . unwrap_or_default () ; pipe . zadd (& value_key , encoded_value , * version as f64) ; } pipe . execute (& mut con) ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_Database_RedisConnection",
+            "target_type": "RedisConnection",
+            "trait_name": "Database",
+            "items": [
+              "fn get_commitment (& self , epoch : & u64) -> Result < Digest > { let mut con = self . lock_connection () ? ; let redis_value = con . get :: < & str , String > (& format ! (\"commitments:epoch_{}\" , epoch)) . map_err (| _ | { DatabaseError :: NotFoundError (format ! (\"commitment from epoch_{}\" , epoch)) }) ? ; let value = redis_value . trim_matches ('\"') . as_bytes () ; Ok (Digest (value . try_into () . unwrap ())) }",
+              "fn get_last_synced_height (& self) -> Result < u64 > { let mut con = self . lock_connection () ? ; con . get (\"app_state:sync_height\") . map_err (| _ | { anyhow ! (DatabaseError :: NotFoundError (\"current sync height\" . to_string ())) }) }",
+              "fn set_last_synced_height (& self , height : & u64) -> Result < () > { let mut con = self . lock_connection () ? ; con . set :: < & str , & u64 , () > (\"app_state:sync_height\" , height) . map_err (| _ | { anyhow ! (DatabaseError :: WriteError (format ! (\"sync_height: {}\" , height))) }) }",
+              "fn set_commitment (& self , epoch : & u64 , commitment : & Digest) -> Result < () > { let mut con = self . lock_connection () ? ; con . set :: < & String , & [u8 ; 32] , () > (& format ! (\"commitments:epoch_{}\" , epoch) , & commitment . 0) . map_err (| _ | { anyhow ! (DatabaseError :: WriteError (format ! (\"commitment for epoch: {}\" , epoch))) }) }",
+              "fn get_epoch (& self , height : & u64) -> Result < FinalizedEpoch > { let mut con = self . lock_connection () ? ; let epoch_data : Vec < u8 > = con . get (format ! (\"epochs:height_{}\" , height)) . map_err (| _ | DatabaseError :: NotFoundError (format ! (\"epoch at height {}\" , height))) ? ; FinalizedEpoch :: decode_from_bytes (& epoch_data) . map_err (| e | { anyhow ! (DatabaseError :: ParsingError (format ! (\"Failed to decode epoch at height {}: {}\" , height , e))) }) }",
+              "fn add_epoch (& self , epoch : & FinalizedEpoch) -> Result < () > { let mut con = self . lock_connection () ? ; let latest_height : Option < u64 > = con . get (\"app_state:latest_epoch_height\") . ok () ; if let Some (latest) = latest_height { if latest as usize + 1 != epoch . height as usize { return Err (anyhow ! (DatabaseError :: WriteError (format ! (\"epoch height mismatch: expected {}, got {}\" , latest + 1 , epoch . height)))) ; } } else if epoch . height != 0 { return Err (anyhow ! (DatabaseError :: WriteError (format ! (\"first epoch must have height 0, got {}\" , epoch . height)))) ; } let epoch_data = epoch . encode_to_bytes () . map_err (| e | { anyhow ! (DatabaseError :: ParsingError (format ! (\"Failed to encode epoch at height {}: {}\" , epoch . height , e))) }) ? ; let mut pipe = redis :: pipe () ; pipe . set (format ! (\"epochs:height_{}\" , epoch . height) , epoch_data) . set (\"app_state:latest_epoch_height\" , epoch . height) ; pipe . execute (& mut con) ; Ok (()) }",
+              "fn get_latest_epoch_height (& self) -> Result < u64 > { let mut con = self . lock_connection () ? ; con . get (\"app_state:latest_epoch_height\") . map_err (| _ | DatabaseError :: NotFoundError (\"latest epoch height\" . to_string ()) . into ()) }",
+              "fn get_latest_epoch (& self) -> Result < FinalizedEpoch > { let height = self . get_latest_epoch_height () ? ; self . get_epoch (& height) }",
+              "fn flush_database (& self) -> Result < () > { let mut conn = self . lock_connection () ? ; redis :: cmd (\"FLUSHALL\") . query :: < () > (& mut conn) . map_err (| _ | anyhow ! (DatabaseError :: DeleteError (\"all transactions\" . to_string ()))) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_jmt_{KeyHash,OwnedValue,Version,storage_{LeafNode,Node,NodeBatch,NodeKey,TreeReader,TreeWriter},}",
+            "path": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_prism_da_FinalizedEpoch",
+            "path": "prism_da :: FinalizedEpoch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_prism_serde_{binary_{FromBinary,ToBinary},hex_{FromHex,ToHex},}",
+            "path": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_redis_{Client,Commands,Connection}",
+            "path": "redis :: { Client , Commands , Connection }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_std_{self,process_Command,sync_{Mutex,MutexGuard},thread_sleep,time_Duration,}",
+            "path": "std :: { self , process :: Command , sync :: { Mutex , MutexGuard } , thread :: sleep , time :: Duration , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_prism_errors_DatabaseError",
+            "path": "prism_errors :: DatabaseError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_crate_database_{Database,convert_to_connection_error}",
+            "path": "crate :: database :: { Database , convert_to_connection_error }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/storage/src/redis.rs#use_tracing_debug",
+            "path": "tracing :: debug",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/redis.rs#RedisConfig",
+            "name": "RedisConfig",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "connection_string",
+                "type_name": "String",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Serialize",
+            "Deserialize",
+            "Clone",
+            "PartialEq",
+            "Eq"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_Default_RedisConfig",
+            "target_type": "RedisConfig",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { RedisConfig { connection_string : \"redis://127.0.0.1/\" . to_string () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RedisConfig"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/storage/src/redis.rs#RedisConnection",
+            "name": "RedisConnection",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "connection",
+                "type_name": "Mutex < Connection >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_RedisConnection",
+            "target_type": "RedisConnection",
+            "trait_name": null,
+            "items": [
+              "pub fn new (cfg : & RedisConfig) -> Result < RedisConnection > { let connection_string = cfg . connection_string . clone () ; let try_client = Client :: open (connection_string . clone ()) . map_err (convert_to_connection_error) ? ; let try_connection = try_client . get_connection () ; if try_connection . is_err () { debug ! (\"starting redis-server...\") ; let _child = Command :: new (\"redis-server\") . spawn () . map_err (| e | DatabaseError :: InitializationError (e . to_string ())) ? ; sleep (Duration :: from_secs (5)) ; debug ! (\"redis-server started\") ; } let client = Client :: open (connection_string) . map_err (convert_to_connection_error) ? ; let connection = client . get_connection () . map_err (convert_to_connection_error) ? ; Ok (RedisConnection { connection : Mutex :: new (connection) , }) }",
+              "fn lock_connection (& self) -> Result < MutexGuard < Connection > > { self . connection . lock () . map_err (| _ | anyhow ! (DatabaseError :: LockError)) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RedisConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_TreeReader_RedisConnection",
+            "target_type": "RedisConnection",
+            "trait_name": "TreeReader",
+            "items": [
+              "fn get_node_option (& self , node_key : & NodeKey) -> Result < Option < Node > > { let mut con = self . lock_connection () ? ; let serialized_key = node_key . encode_to_bytes () ? . to_hex () ; let node_data : Option < Vec < u8 > > = con . get (format ! (\"node:{}\" , serialized_key)) ? ; Ok (node_data . map (| data | Node :: decode_from_bytes (& data) . unwrap ())) }",
+              "fn get_rightmost_leaf (& self) -> Result < Option < (NodeKey , LeafNode) > > { let mut con = self . lock_connection () ? ; let keys : Vec < String > = con . keys (\"node:*\") ? ; let mut rightmost : Option < (NodeKey , LeafNode) > = None ; for key in keys { let node_data : Vec < u8 > = con . get (& key) ? ; let node = Node :: decode_from_bytes (& node_data) ? ; if let Node :: Leaf (leaf_node) = node { let node_key_bytes = Vec :: < u8 > :: from_hex (key . strip_prefix (\"node:\") . unwrap ()) ? ; let node_key = NodeKey :: decode_from_bytes (& node_key_bytes) ? ; if rightmost . is_none () || leaf_node . key_hash () > rightmost . as_ref () . unwrap () . 1 . key_hash () { rightmost = Some ((node_key , leaf_node)) ; } } } Ok (rightmost) }",
+              "fn get_value_option (& self , max_version : Version , key_hash : KeyHash ,) -> Result < Option < OwnedValue > > { let mut con = self . lock_connection () ? ; let value_key = format ! (\"value_history:{}\" , key_hash . 0 . to_hex ()) ; let values : Vec < (String , f64) > = con . zrevrangebyscore_withscores (& value_key , max_version as f64 , 0f64) ? ; if let Some ((encoded_value , _)) = values . first () { if encoded_value . is_empty () { Ok (None) } else { Ok (Some (OwnedValue :: from_hex (encoded_value) ?)) } } else { Ok (None) } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RedisConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_TreeWriter_RedisConnection",
+            "target_type": "RedisConnection",
+            "trait_name": "TreeWriter",
+            "items": [
+              "fn write_node_batch (& self , node_batch : & NodeBatch) -> Result < () > { let mut con = self . lock_connection () ? ; let mut pipe = redis :: pipe () ; for (node_key , node) in node_batch . nodes () { let serialized_key = node_key . encode_to_bytes () ? . to_hex () ; let node_data = node . encode_to_bytes () ? ; pipe . set (format ! (\"node:{}\" , serialized_key) , node_data) ; } for ((version , key_hash) , value) in node_batch . values () { let value_key = format ! (\"value_history:{}\" , key_hash . 0 . to_hex ()) ; let encoded_value = value . as_ref () . map (ToHex :: to_hex) . unwrap_or_default () ; pipe . zadd (& value_key , encoded_value , * version as f64) ; } pipe . execute (& mut con) ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RedisConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/storage/src/redis.rs#impl_Database_RedisConnection",
+            "target_type": "RedisConnection",
+            "trait_name": "Database",
+            "items": [
+              "fn get_commitment (& self , epoch : & u64) -> Result < Digest > { let mut con = self . lock_connection () ? ; let redis_value = con . get :: < & str , String > (& format ! (\"commitments:epoch_{}\" , epoch)) . map_err (| _ | { DatabaseError :: NotFoundError (format ! (\"commitment from epoch_{}\" , epoch)) }) ? ; let value = redis_value . trim_matches ('\"') . as_bytes () ; Ok (Digest (value . try_into () . unwrap ())) }",
+              "fn get_last_synced_height (& self) -> Result < u64 > { let mut con = self . lock_connection () ? ; con . get (\"app_state:sync_height\") . map_err (| _ | { anyhow ! (DatabaseError :: NotFoundError (\"current sync height\" . to_string ())) }) }",
+              "fn set_last_synced_height (& self , height : & u64) -> Result < () > { let mut con = self . lock_connection () ? ; con . set :: < & str , & u64 , () > (\"app_state:sync_height\" , height) . map_err (| _ | { anyhow ! (DatabaseError :: WriteError (format ! (\"sync_height: {}\" , height))) }) }",
+              "fn set_commitment (& self , epoch : & u64 , commitment : & Digest) -> Result < () > { let mut con = self . lock_connection () ? ; con . set :: < & String , & [u8 ; 32] , () > (& format ! (\"commitments:epoch_{}\" , epoch) , & commitment . 0) . map_err (| _ | { anyhow ! (DatabaseError :: WriteError (format ! (\"commitment for epoch: {}\" , epoch))) }) }",
+              "fn get_epoch (& self , height : & u64) -> Result < FinalizedEpoch > { let mut con = self . lock_connection () ? ; let epoch_data : Vec < u8 > = con . get (format ! (\"epochs:height_{}\" , height)) . map_err (| _ | DatabaseError :: NotFoundError (format ! (\"epoch at height {}\" , height))) ? ; FinalizedEpoch :: decode_from_bytes (& epoch_data) . map_err (| e | { anyhow ! (DatabaseError :: ParsingError (format ! (\"Failed to decode epoch at height {}: {}\" , height , e))) }) }",
+              "fn add_epoch (& self , epoch : & FinalizedEpoch) -> Result < () > { let mut con = self . lock_connection () ? ; let latest_height : Option < u64 > = con . get (\"app_state:latest_epoch_height\") . ok () ; if let Some (latest) = latest_height { if latest as usize + 1 != epoch . height as usize { return Err (anyhow ! (DatabaseError :: WriteError (format ! (\"epoch height mismatch: expected {}, got {}\" , latest + 1 , epoch . height)))) ; } } else if epoch . height != 0 { return Err (anyhow ! (DatabaseError :: WriteError (format ! (\"first epoch must have height 0, got {}\" , epoch . height)))) ; } let epoch_data = epoch . encode_to_bytes () . map_err (| e | { anyhow ! (DatabaseError :: ParsingError (format ! (\"Failed to encode epoch at height {}: {}\" , epoch . height , e))) }) ? ; let mut pipe = redis :: pipe () ; pipe . set (format ! (\"epochs:height_{}\" , epoch . height) , epoch_data) . set (\"app_state:latest_epoch_height\" , epoch . height) ; pipe . execute (& mut con) ; Ok (()) }",
+              "fn get_latest_epoch_height (& self) -> Result < u64 > { let mut con = self . lock_connection () ? ; con . get (\"app_state:latest_epoch_height\") . map_err (| _ | DatabaseError :: NotFoundError (\"latest epoch height\" . to_string ()) . into ()) }",
+              "fn get_latest_epoch (& self) -> Result < FinalizedEpoch > { let height = self . get_latest_epoch_height () ? ; self . get_epoch (& height) }",
+              "fn flush_database (& self) -> Result < () > { let mut conn = self . lock_connection () ? ; redis :: cmd (\"FLUSHALL\") . query :: < () > (& mut conn) . map_err (| _ | anyhow ! (DatabaseError :: DeleteError (\"all transactions\" . to_string ()))) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "RedisConnection"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/storage/src/inmemory.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs",
+      "to_id": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs",
+      "to_id": "prism_da :: FinalizedEpoch",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs",
+      "to_id": "prism_errors :: DatabaseError",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs",
+      "to_id": "std :: { collections :: HashMap , sync :: { Arc , Mutex } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs",
+      "to_id": "crate :: database :: Database",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs#impl_Default_InMemoryDatabase",
+      "to_id": "trait:Default",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs#impl_TreeReader_InMemoryDatabase",
+      "to_id": "trait:TreeReader",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs#impl_TreeWriter_InMemoryDatabase",
+      "to_id": "trait:TreeWriter",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/inmemory.rs#impl_Database_InMemoryDatabase",
+      "to_id": "trait:Database",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs",
+      "to_id": "auto_impl :: auto_impl",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs",
+      "to_id": "jmt :: storage :: { TreeReader , TreeWriter }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs",
+      "to_id": "prism_da :: FinalizedEpoch",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs",
+      "to_id": "prism_errors :: { DatabaseError , PrismError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#StorageBackend",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#StorageBackend",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#StorageBackend",
+      "to_id": "trait:Eq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#StorageBackend",
+      "to_id": "trait:PartialEq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#StorageBackend",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#StorageBackend",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#convert_to_connection_error",
+      "to_id": "PrismError::Database",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#convert_to_connection_error",
+      "to_id": "DatabaseError::ConnectionError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/database.rs#convert_to_connection_error",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/lib.rs",
+      "to_id": "crate :: { database :: Database , redis :: RedisConnection }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs",
+      "to_id": "crate :: rocksdb :: *",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs",
+      "to_id": "tempfile :: TempDir",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs",
+      "to_id": "crate :: Database",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs",
+      "to_id": "jmt :: { KeyHash , OwnedValue , Version , storage :: { NodeBatch , TreeReader , TreeWriter } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "to_id": "TempDir::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "to_id": "RocksDBConfig::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "to_id": "to_str",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "to_id": "path",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "to_id": "RocksDBConnection::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_rw_commitment",
+      "to_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_rw_commitment",
+      "to_id": "crates/common/src/digest.rs#Digest",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_rw_commitment",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_rw_commitment",
+      "to_id": "set_commitment",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_rw_commitment",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_rw_commitment",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_commitment",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "KeyHash",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "NodeBatch::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "insert_value",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "write_node_batch",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_write_and_read_value",
+      "to_id": "get_value_option",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "crates/storage/src/tests/mod.rs#setup_db",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "KeyHash",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "NodeBatch::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "insert_value",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "insert_value",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/tests/mod.rs#test_get_value_option_with_multiple_versions",
+      "to_id": "write_node_batch",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "std :: sync :: Arc",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "crate :: Database",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "anyhow :: { Result , anyhow }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "prism_errors :: DatabaseError",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "rocksdb :: { DB , DBWithThreadMode , MultiThreaded , Options }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#RocksDBConfig",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#RocksDBConfig",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#RocksDBConfig",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#RocksDBConfig",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#RocksDBConfig",
+      "to_id": "trait:PartialEq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#RocksDBConfig",
+      "to_id": "trait:Eq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#RocksDBConnection",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#impl_Database_RocksDBConnection",
+      "to_id": "trait:Database",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#impl_TreeReader_RocksDBConnection",
+      "to_id": "trait:TreeReader",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/rocksdb.rs#impl_TreeWriter_RocksDBConnection",
+      "to_id": "trait:TreeWriter",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "anyhow :: { Result , anyhow }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "jmt :: { KeyHash , OwnedValue , Version , storage :: { LeafNode , Node , NodeBatch , NodeKey , TreeReader , TreeWriter } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "prism_da :: FinalizedEpoch",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "redis :: { Client , Commands , Connection }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "std :: { self , process :: Command , sync :: { Mutex , MutexGuard } , thread :: sleep , time :: Duration , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "prism_errors :: DatabaseError",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "crate :: database :: { Database , convert_to_connection_error }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs",
+      "to_id": "tracing :: debug",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#RedisConfig",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#RedisConfig",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#RedisConfig",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#RedisConfig",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#RedisConfig",
+      "to_id": "trait:PartialEq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#RedisConfig",
+      "to_id": "trait:Eq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#impl_Default_RedisConfig",
+      "to_id": "trait:Default",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#impl_TreeReader_RedisConnection",
+      "to_id": "trait:TreeReader",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#impl_TreeWriter_RedisConnection",
+      "to_id": "trait:TreeWriter",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/storage/src/redis.rs#impl_Database_RedisConnection",
+      "to_id": "trait:Database",
+      "ref_type": "TraitImpl"
+    }
+  ],
+  "total_files": 6,
+  "successfully_parsed": 6,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 5,
+    "total_structs": 5,
+    "total_enums": 1,
+    "total_traits": 1,
+    "total_impls": 15,
+    "total_tests": 3,
+    "total_function_calls": 35,
+    "total_derives": 19,
+    "total_macro_uses": 8
+  }
+}

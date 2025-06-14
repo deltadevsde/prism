@@ -1,0 +1,899 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:serde",
+  "crate_name": "serde",
+  "crate_path": "crates/serde",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/serde/src/base64.rs",
+      "path": "../crates/serde/src/base64.rs",
+      "relative_path": "crates/serde/src/base64.rs",
+      "file_size": 1124,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/base64.rs#use_base64_{decoded_len_estimate,engine_general_purpose_STANDARDasBASE64,DecodeError,DecodeSliceError,Engine,}",
+            "path": "base64 :: { decoded_len_estimate , engine :: general_purpose :: STANDARD as BASE64 , DecodeError , DecodeSliceError , Engine , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/base64.rs#ToBase64",
+            "name": "ToBase64",
+            "visibility": "pub",
+            "items": [
+              "fn to_base64 (& self) -> String ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/base64.rs#impl_ToBase64_T",
+            "target_type": "T",
+            "trait_name": "ToBase64",
+            "items": [
+              "fn to_base64 (& self) -> String { BASE64 . encode (self) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/base64.rs#FromBase64",
+            "name": "FromBase64",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn from_base64 < T : AsRef < [u8] > > (base64 : T) -> Result < Self , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/base64.rs#impl_FromBase64_Vec<u8>",
+            "target_type": "Vec < u8 >",
+            "trait_name": "FromBase64",
+            "items": [
+              "type Error = DecodeError ;",
+              "fn from_base64 < T : AsRef < [u8] > > (base64 : T) -> Result < Self , Self :: Error > { BASE64 . decode (base64) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/base64.rs#impl_FromBase64_[u8;32]",
+            "target_type": "[u8 ; 32]",
+            "trait_name": "FromBase64",
+            "items": [
+              "type Error = DecodeSliceError ;",
+              "fn from_base64 < T : AsRef < [u8] > > (base64 : T) -> Result < Self , Self :: Error > { let decoded_len = decoded_len_estimate (base64 . as_ref () . len ()) ; if decoded_len != 32 { return Err (DecodeSliceError :: DecodeError (base64 :: DecodeError :: InvalidLength (decoded_len) ,)) ; } let mut output = [0u8 ; 32] ; BASE64 . decode_slice (base64 , & mut output) ? ; Ok (output) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/base64.rs#use_base64_{decoded_len_estimate,engine_general_purpose_STANDARDasBASE64,DecodeError,DecodeSliceError,Engine,}",
+            "path": "base64 :: { decoded_len_estimate , engine :: general_purpose :: STANDARD as BASE64 , DecodeError , DecodeSliceError , Engine , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/base64.rs#ToBase64",
+            "name": "ToBase64",
+            "visibility": "pub",
+            "items": [
+              "fn to_base64 (& self) -> String ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/base64.rs#impl_ToBase64_T",
+            "target_type": "T",
+            "trait_name": "ToBase64",
+            "items": [
+              "fn to_base64 (& self) -> String { BASE64 . encode (self) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          },
+          "type_references": [
+            "T"
+          ]
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/base64.rs#FromBase64",
+            "name": "FromBase64",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn from_base64 < T : AsRef < [u8] > > (base64 : T) -> Result < Self , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/base64.rs#impl_FromBase64_Vec<u8>",
+            "target_type": "Vec < u8 >",
+            "trait_name": "FromBase64",
+            "items": [
+              "type Error = DecodeError ;",
+              "fn from_base64 < T : AsRef < [u8] > > (base64 : T) -> Result < Self , Self :: Error > { BASE64 . decode (base64) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Vec",
+            "u8"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/base64.rs#impl_FromBase64_[u8;32]",
+            "target_type": "[u8 ; 32]",
+            "trait_name": "FromBase64",
+            "items": [
+              "type Error = DecodeSliceError ;",
+              "fn from_base64 < T : AsRef < [u8] > > (base64 : T) -> Result < Self , Self :: Error > { let decoded_len = decoded_len_estimate (base64 . as_ref () . len ()) ; if decoded_len != 32 { return Err (DecodeSliceError :: DecodeError (base64 :: DecodeError :: InvalidLength (decoded_len) ,)) ; } let mut output = [0u8 ; 32] ; BASE64 . decode_slice (base64 , & mut output) ? ; Ok (output) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "u8"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/serde/src/lib.rs",
+      "path": "../crates/serde/src/lib.rs",
+      "relative_path": "crates/serde/src/lib.rs",
+      "file_size": 2206,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#base64",
+            "name": "base64",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#bech32",
+            "name": "bech32",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#binary",
+            "name": "binary",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#hex",
+            "name": "hex",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#raw_or_hex",
+            "name": "raw_or_hex",
+            "visibility": "pub",
+            "items": [
+              "use std :: fmt :: Display ;",
+              "use crate :: hex :: { FromHex , ToHex } ;",
+              "use serde :: { self , Deserialize , Deserializer , Serializer } ;",
+              "use serde_bytes :: { Deserialize as BytesDeserialize , Serialize as BytesSerialize } ;",
+              "pub fn serialize < S , T > (encodable : T , serializer : S) -> Result < S :: Ok , S :: Error > where S : Serializer , T : ToHex + BytesSerialize , { if serializer . is_human_readable () { let hex_str = encodable . to_hex () ; serializer . serialize_str (& hex_str) } else { encodable . serialize (serializer) } }",
+              "pub fn deserialize < 'de , D , T > (deserializer : D) -> Result < T , D :: Error > where D : Deserializer < 'de > , T : FromHex + BytesDeserialize < 'de > , T :: Error : Display , { if deserializer . is_human_readable () { let hex_str = String :: deserialize (deserializer) ? ; T :: from_hex (hex_str) . map_err (serde :: de :: Error :: custom) } else { T :: deserialize (deserializer) } }"
+            ]
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#raw_or_b64",
+            "name": "raw_or_b64",
+            "visibility": "pub",
+            "items": [
+              "use std :: fmt :: Display ;",
+              "use crate :: base64 :: { FromBase64 , ToBase64 } ;",
+              "use serde :: { self , Deserialize , Deserializer , Serializer } ;",
+              "use serde_bytes :: { Deserialize as BytesDeserialize , Serialize as BytesSerialize } ;",
+              "pub fn serialize < S , T > (encodable : T , serializer : S) -> Result < S :: Ok , S :: Error > where S : Serializer , T : ToBase64 + BytesSerialize , { if serializer . is_human_readable () { let base64_string = encodable . to_base64 () ; serializer . serialize_str (& base64_string) } else { encodable . serialize (serializer) } }",
+              "pub fn deserialize < 'de , D , T > (deserializer : D) -> Result < T , D :: Error > where D : Deserializer < 'de > , T : FromBase64 + BytesDeserialize < 'de > , T :: Error : Display , { if deserializer . is_human_readable () { let base64_string = String :: deserialize (deserializer) ? ; T :: from_base64 (base64_string) . map_err (serde :: de :: Error :: custom) } else { T :: deserialize (deserializer) } }"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#base64",
+            "name": "base64",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#bech32",
+            "name": "bech32",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#binary",
+            "name": "binary",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#hex",
+            "name": "hex",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#raw_or_hex",
+            "name": "raw_or_hex",
+            "visibility": "pub",
+            "items": [
+              "use std :: fmt :: Display ;",
+              "use crate :: hex :: { FromHex , ToHex } ;",
+              "use serde :: { self , Deserialize , Deserializer , Serializer } ;",
+              "use serde_bytes :: { Deserialize as BytesDeserialize , Serialize as BytesSerialize } ;",
+              "pub fn serialize < S , T > (encodable : T , serializer : S) -> Result < S :: Ok , S :: Error > where S : Serializer , T : ToHex + BytesSerialize , { if serializer . is_human_readable () { let hex_str = encodable . to_hex () ; serializer . serialize_str (& hex_str) } else { encodable . serialize (serializer) } }",
+              "pub fn deserialize < 'de , D , T > (deserializer : D) -> Result < T , D :: Error > where D : Deserializer < 'de > , T : FromHex + BytesDeserialize < 'de > , T :: Error : Display , { if deserializer . is_human_readable () { let hex_str = String :: deserialize (deserializer) ? ; T :: from_hex (hex_str) . map_err (serde :: de :: Error :: custom) } else { T :: deserialize (deserializer) } }"
+            ]
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/serde/src/lib.rs#raw_or_b64",
+            "name": "raw_or_b64",
+            "visibility": "pub",
+            "items": [
+              "use std :: fmt :: Display ;",
+              "use crate :: base64 :: { FromBase64 , ToBase64 } ;",
+              "use serde :: { self , Deserialize , Deserializer , Serializer } ;",
+              "use serde_bytes :: { Deserialize as BytesDeserialize , Serialize as BytesSerialize } ;",
+              "pub fn serialize < S , T > (encodable : T , serializer : S) -> Result < S :: Ok , S :: Error > where S : Serializer , T : ToBase64 + BytesSerialize , { if serializer . is_human_readable () { let base64_string = encodable . to_base64 () ; serializer . serialize_str (& base64_string) } else { encodable . serialize (serializer) } }",
+              "pub fn deserialize < 'de , D , T > (deserializer : D) -> Result < T , D :: Error > where D : Deserializer < 'de > , T : FromBase64 + BytesDeserialize < 'de > , T :: Error : Display , { if deserializer . is_human_readable () { let base64_string = String :: deserialize (deserializer) ? ; T :: from_base64 (base64_string) . map_err (serde :: de :: Error :: custom) } else { T :: deserialize (deserializer) } }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/serde/src/bech32.rs",
+      "path": "../crates/serde/src/bech32.rs",
+      "relative_path": "crates/serde/src/bech32.rs",
+      "file_size": 730,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/bech32.rs#use_bech32_{Bech32,DecodeError,EncodeError,Hrp}",
+            "path": "bech32 :: { Bech32 , DecodeError , EncodeError , Hrp }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/bech32.rs#ToBech32",
+            "name": "ToBech32",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn to_bech32 (& self , hrp : & str) -> Result < String , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/bech32.rs#impl_ToBech32_T",
+            "target_type": "T",
+            "trait_name": "ToBech32",
+            "items": [
+              "type Error = EncodeError ;",
+              "fn to_bech32 (& self , hrp : & str) -> Result < String , Self :: Error > { let hrp = Hrp :: parse_unchecked (hrp) ; bech32 :: encode :: < Bech32 > (hrp , self . as_ref ()) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/bech32.rs#FromBech32",
+            "name": "FromBech32",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn from_bech32 (bech32 : & str) -> Result < Self , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/bech32.rs#impl_FromBech32_Vec<u8>",
+            "target_type": "Vec < u8 >",
+            "trait_name": "FromBech32",
+            "items": [
+              "type Error = DecodeError ;",
+              "fn from_bech32 (bech32 : & str) -> Result < Self , Self :: Error > { let (_ , data) = bech32 :: decode (bech32) ? ; Ok (data) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/bech32.rs#use_bech32_{Bech32,DecodeError,EncodeError,Hrp}",
+            "path": "bech32 :: { Bech32 , DecodeError , EncodeError , Hrp }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/bech32.rs#ToBech32",
+            "name": "ToBech32",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn to_bech32 (& self , hrp : & str) -> Result < String , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/bech32.rs#impl_ToBech32_T",
+            "target_type": "T",
+            "trait_name": "ToBech32",
+            "items": [
+              "type Error = EncodeError ;",
+              "fn to_bech32 (& self , hrp : & str) -> Result < String , Self :: Error > { let hrp = Hrp :: parse_unchecked (hrp) ; bech32 :: encode :: < Bech32 > (hrp , self . as_ref ()) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          },
+          "type_references": [
+            "T"
+          ]
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/bech32.rs#FromBech32",
+            "name": "FromBech32",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn from_bech32 (bech32 : & str) -> Result < Self , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/bech32.rs#impl_FromBech32_Vec<u8>",
+            "target_type": "Vec < u8 >",
+            "trait_name": "FromBech32",
+            "items": [
+              "type Error = DecodeError ;",
+              "fn from_bech32 (bech32 : & str) -> Result < Self , Self :: Error > { let (_ , data) = bech32 :: decode (bech32) ? ; Ok (data) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Vec",
+            "u8"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/serde/src/binary.rs",
+      "path": "../crates/serde/src/binary.rs",
+      "relative_path": "crates/serde/src/binary.rs",
+      "file_size": 717,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/binary.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/binary.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/binary.rs#ToBinary",
+            "name": "ToBinary",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn encode_to_bytes (& self) -> Result < Vec < u8 > , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/binary.rs#impl_ToBinary_T",
+            "target_type": "T",
+            "trait_name": "ToBinary",
+            "items": [
+              "type Error = bincode :: Error ;",
+              "fn encode_to_bytes (& self) -> Result < Vec < u8 > , Self :: Error > { bincode :: serialize (self) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/binary.rs#FromBinary",
+            "name": "FromBinary",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn decode_from_bytes < B : AsRef < [u8] > > (bytes : B) -> Result < Self , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/binary.rs#impl_FromBinary_T",
+            "target_type": "T",
+            "trait_name": "FromBinary",
+            "items": [
+              "type Error = bincode :: Error ;",
+              "fn decode_from_bytes < B : AsRef < [u8] > > (bytes : B) -> Result < Self , Self :: Error > { bincode :: deserialize (bytes . as_ref ()) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/binary.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/binary.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/binary.rs#ToBinary",
+            "name": "ToBinary",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn encode_to_bytes (& self) -> Result < Vec < u8 > , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/binary.rs#impl_ToBinary_T",
+            "target_type": "T",
+            "trait_name": "ToBinary",
+            "items": [
+              "type Error = bincode :: Error ;",
+              "fn encode_to_bytes (& self) -> Result < Vec < u8 > , Self :: Error > { bincode :: serialize (self) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          },
+          "type_references": [
+            "T"
+          ]
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/binary.rs#FromBinary",
+            "name": "FromBinary",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn decode_from_bytes < B : AsRef < [u8] > > (bytes : B) -> Result < Self , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/binary.rs#impl_FromBinary_T",
+            "target_type": "T",
+            "trait_name": "FromBinary",
+            "items": [
+              "type Error = bincode :: Error ;",
+              "fn decode_from_bytes < B : AsRef < [u8] > > (bytes : B) -> Result < Self , Self :: Error > { bincode :: deserialize (bytes . as_ref ()) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          },
+          "type_references": [
+            "T"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/serde/src/hex.rs",
+      "path": "../crates/serde/src/hex.rs",
+      "relative_path": "crates/serde/src/hex.rs",
+      "file_size": 489,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/hex.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/hex.rs#ToHex",
+            "name": "ToHex",
+            "visibility": "pub",
+            "items": [
+              "fn to_hex (& self) -> String ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/hex.rs#impl_ToHex_T",
+            "target_type": "T",
+            "trait_name": "ToHex",
+            "items": [
+              "fn to_hex (& self) -> String { self . encode_hex () }"
+            ],
+            "generics": [
+              "T"
+            ]
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/hex.rs#FromHex",
+            "name": "FromHex",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn from_hex < T : AsRef < [u8] > > (hex : T) -> Result < Self , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/hex.rs#impl_FromHex_T",
+            "target_type": "T",
+            "trait_name": "FromHex",
+            "items": [
+              "type Error = T :: Error ;",
+              "fn from_hex < U : AsRef < [u8] > > (hex : U) -> Result < Self , Self :: Error > { T :: from_hex (hex) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/serde/src/hex.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/hex.rs#ToHex",
+            "name": "ToHex",
+            "visibility": "pub",
+            "items": [
+              "fn to_hex (& self) -> String ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/hex.rs#impl_ToHex_T",
+            "target_type": "T",
+            "trait_name": "ToHex",
+            "items": [
+              "fn to_hex (& self) -> String { self . encode_hex () }"
+            ],
+            "generics": [
+              "T"
+            ]
+          },
+          "type_references": [
+            "T"
+          ]
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/serde/src/hex.rs#FromHex",
+            "name": "FromHex",
+            "visibility": "pub",
+            "items": [
+              "type Error ;",
+              "fn from_hex < T : AsRef < [u8] > > (hex : T) -> Result < Self , Self :: Error > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/serde/src/hex.rs#impl_FromHex_T",
+            "target_type": "T",
+            "trait_name": "FromHex",
+            "items": [
+              "type Error = T :: Error ;",
+              "fn from_hex < U : AsRef < [u8] > > (hex : U) -> Result < Self , Self :: Error > { T :: from_hex (hex) }"
+            ],
+            "generics": [
+              "T"
+            ]
+          },
+          "type_references": [
+            "T"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/serde/src/base64.rs",
+      "to_id": "base64 :: { decoded_len_estimate , engine :: general_purpose :: STANDARD as BASE64 , DecodeError , DecodeSliceError , Engine , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/serde/src/base64.rs#impl_ToBase64_T",
+      "to_id": "trait:ToBase64",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/serde/src/base64.rs#impl_FromBase64_Vec<u8>",
+      "to_id": "trait:FromBase64",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/serde/src/base64.rs#impl_FromBase64_[u8;32]",
+      "to_id": "trait:FromBase64",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/serde/src/bech32.rs",
+      "to_id": "bech32 :: { Bech32 , DecodeError , EncodeError , Hrp }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/serde/src/bech32.rs#impl_ToBech32_T",
+      "to_id": "trait:ToBech32",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/serde/src/bech32.rs#impl_FromBech32_Vec<u8>",
+      "to_id": "trait:FromBech32",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/serde/src/binary.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/serde/src/binary.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/serde/src/binary.rs#impl_ToBinary_T",
+      "to_id": "trait:ToBinary",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/serde/src/binary.rs#impl_FromBinary_T",
+      "to_id": "trait:FromBinary",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/serde/src/hex.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/serde/src/hex.rs#impl_ToHex_T",
+      "to_id": "trait:ToHex",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/serde/src/hex.rs#impl_FromHex_T",
+      "to_id": "trait:FromHex",
+      "ref_type": "TraitImpl"
+    }
+  ],
+  "total_files": 5,
+  "successfully_parsed": 5,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 0,
+    "total_structs": 0,
+    "total_enums": 0,
+    "total_traits": 8,
+    "total_impls": 9,
+    "total_tests": 0,
+    "total_function_calls": 0,
+    "total_derives": 0,
+    "total_macro_uses": 0
+  }
+}

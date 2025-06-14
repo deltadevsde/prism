@@ -1,0 +1,3142 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:da",
+  "crate_name": "da",
+  "crate_path": "crates/da",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/da/src/consts.rs",
+      "path": "../crates/da/src/consts.rs",
+      "relative_path": "crates/da/src/consts.rs",
+      "file_size": 375,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/consts.rs#use_std_time_Duration",
+            "path": "std :: time :: Duration",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/da/src/consts.rs#DA_RETRY_COUNT",
+            "name": "DA_RETRY_COUNT",
+            "visibility": "pub",
+            "type_name": "u64"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/da/src/consts.rs#DA_RETRY_INTERVAL",
+            "name": "DA_RETRY_INTERVAL",
+            "visibility": "pub",
+            "type_name": "Duration"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/da/src/consts.rs#CHANNEL_BUFFER_SIZE",
+            "name": "CHANNEL_BUFFER_SIZE",
+            "visibility": "pub",
+            "type_name": "usize"
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/consts.rs#use_std_time_Duration",
+            "path": "std :: time :: Duration",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/da/src/consts.rs#DA_RETRY_COUNT",
+            "name": "DA_RETRY_COUNT",
+            "visibility": "pub",
+            "type_name": "u64"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/da/src/consts.rs#DA_RETRY_INTERVAL",
+            "name": "DA_RETRY_INTERVAL",
+            "visibility": "pub",
+            "type_name": "Duration"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/da/src/consts.rs#CHANNEL_BUFFER_SIZE",
+            "name": "CHANNEL_BUFFER_SIZE",
+            "visibility": "pub",
+            "type_name": "usize"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/da/src/lib.rs",
+      "path": "../crates/da/src/lib.rs",
+      "relative_path": "crates/da/src/lib.rs",
+      "file_size": 4872,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_celestia_types_Blob",
+            "path": "celestia_types :: Blob",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_lumina_node_events_EventSubscriber",
+            "path": "lumina_node :: events :: EventSubscriber",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_prism_keys_{Signature,SigningKey,VerifyingKey}",
+            "path": "prism_keys :: { Signature , SigningKey , VerifyingKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_prism_serde_{binary_{FromBinary,ToBinary},hex_{FromHex,ToHex},}",
+            "path": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_tokio_sync_Mutex",
+            "path": "tokio :: sync :: Mutex",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_{prism_common_transaction_Transaction,sp1_sdk_SP1ProofWithPublicValues}",
+            "path": "{ prism_common :: transaction :: Transaction , sp1_sdk :: SP1ProofWithPublicValues }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/lib.rs#celestia",
+            "name": "celestia",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/lib.rs#consts",
+            "name": "consts",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/lib.rs#memory",
+            "name": "memory",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/lib.rs#Groth16Proof",
+            "name": "Groth16Proof",
+            "visibility": "private",
+            "target_type": "Vec < u8 >",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/lib.rs#Groth16Proof",
+            "name": "Groth16Proof",
+            "visibility": "private",
+            "target_type": "SP1ProofWithPublicValues",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/lib.rs#CompressedProof",
+            "name": "CompressedProof",
+            "visibility": "private",
+            "target_type": "Vec < u8 >",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/lib.rs#CompressedProof",
+            "name": "CompressedProof",
+            "visibility": "private",
+            "target_type": "SP1ProofWithPublicValues",
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/lib.rs#FinalizedEpoch",
+            "name": "FinalizedEpoch",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "height",
+                "type_name": "u64",
+                "visibility": "pub"
+              },
+              {
+                "name": "prev_commitment",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "current_commitment",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "proof",
+                "type_name": "Groth16Proof",
+                "visibility": "pub"
+              },
+              {
+                "name": "public_values",
+                "type_name": "Vec < u8 >",
+                "visibility": "pub"
+              },
+              {
+                "name": "compressed_proof",
+                "type_name": "CompressedProof",
+                "visibility": "pub"
+              },
+              {
+                "name": "signature",
+                "type_name": "Option < String >",
+                "visibility": "pub"
+              },
+              {
+                "name": "tip_da_height",
+                "type_name": "u64",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/lib.rs#impl_FinalizedEpoch",
+            "target_type": "FinalizedEpoch",
+            "trait_name": null,
+            "items": [
+              "pub fn insert_signature (& mut self , key : & SigningKey) -> Result < () > { let plaintext = self . encode_to_bytes () . unwrap () ; let signature = key . sign (& plaintext) ? ; self . signature = Some (signature . to_bytes () . to_hex ()) ; Ok (()) }",
+              "pub fn verify_signature (& self , vk : VerifyingKey) -> Result < () > { let epoch_without_signature = FinalizedEpoch { height : self . height , prev_commitment : self . prev_commitment , current_commitment : self . current_commitment , proof : self . proof . clone () , compressed_proof : self . compressed_proof . clone () , public_values : self . public_values . clone () , signature : None , tip_da_height : self . tip_da_height , } ; let message = epoch_without_signature . encode_to_bytes () . map_err (| e | anyhow :: anyhow ! (\"Failed to serialize epoch: {}\" , e)) ? ; let signature = self . signature . as_ref () . ok_or_else (| | anyhow :: anyhow ! (\"No signature present\")) ? ; let signature_bytes = Vec :: < u8 > :: from_hex (signature) . map_err (| e | anyhow :: anyhow ! (\"Failed to decode signature: {}\" , e)) ? ; let signature : Signature = Signature :: from_algorithm_and_bytes (vk . algorithm () , signature_bytes . as_slice ()) . map_err (| _ | anyhow :: anyhow ! (\"Invalid signature length\")) ? ; vk . verify_signature (& message , & signature) . map_err (| e | anyhow :: anyhow ! (\"Signature verification failed: {}\" , e)) ? ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/lib.rs#impl_TryFrom<&Blob>_FinalizedEpoch",
+            "target_type": "FinalizedEpoch",
+            "trait_name": "TryFrom < & Blob >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (value : & Blob) -> Result < Self , Self :: Error > { FinalizedEpoch :: decode_from_bytes (& value . data) . map_err (| _ | { anyhow ! (format ! (\"Failed to decode blob into FinalizedEpoch: {value:?}\")) }) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/da/src/lib.rs#LightDataAvailabilityLayer",
+            "name": "LightDataAvailabilityLayer",
+            "visibility": "pub",
+            "items": [
+              "async fn get_finalized_epoch (& self , height : u64) -> Result < Vec < FinalizedEpoch > > ;",
+              "fn event_subscriber (& self) -> Option < Arc < Mutex < EventSubscriber > > > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/da/src/lib.rs#DataAvailabilityLayer",
+            "name": "DataAvailabilityLayer",
+            "visibility": "pub",
+            "items": [
+              "async fn start (& self) -> Result < () > ;",
+              "async fn get_latest_height (& self) -> Result < u64 > ;",
+              "async fn initialize_sync_target (& self) -> Result < u64 > ;",
+              "async fn submit_finalized_epoch (& self , epoch : FinalizedEpoch) -> Result < u64 > ;",
+              "async fn get_transactions (& self , height : u64) -> Result < Vec < Transaction > > ;",
+              "async fn submit_transactions (& self , transactions : Vec < Transaction >) -> Result < u64 > ;",
+              "fn subscribe_to_heights (& self) -> tokio :: sync :: broadcast :: Receiver < u64 > ;"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_celestia_types_Blob",
+            "path": "celestia_types :: Blob",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_lumina_node_events_EventSubscriber",
+            "path": "lumina_node :: events :: EventSubscriber",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_prism_keys_{Signature,SigningKey,VerifyingKey}",
+            "path": "prism_keys :: { Signature , SigningKey , VerifyingKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_prism_serde_{binary_{FromBinary,ToBinary},hex_{FromHex,ToHex},}",
+            "path": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_tokio_sync_Mutex",
+            "path": "tokio :: sync :: Mutex",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/lib.rs#use_{prism_common_transaction_Transaction,sp1_sdk_SP1ProofWithPublicValues}",
+            "path": "{ prism_common :: transaction :: Transaction , sp1_sdk :: SP1ProofWithPublicValues }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/lib.rs#celestia",
+            "name": "celestia",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/lib.rs#consts",
+            "name": "consts",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/lib.rs#memory",
+            "name": "memory",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/lib.rs#Groth16Proof",
+            "name": "Groth16Proof",
+            "visibility": "private",
+            "target_type": "Vec < u8 >",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/lib.rs#Groth16Proof",
+            "name": "Groth16Proof",
+            "visibility": "private",
+            "target_type": "SP1ProofWithPublicValues",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/lib.rs#CompressedProof",
+            "name": "CompressedProof",
+            "visibility": "private",
+            "target_type": "Vec < u8 >",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/lib.rs#CompressedProof",
+            "name": "CompressedProof",
+            "visibility": "private",
+            "target_type": "SP1ProofWithPublicValues",
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/lib.rs#FinalizedEpoch",
+            "name": "FinalizedEpoch",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "height",
+                "type_name": "u64",
+                "visibility": "pub"
+              },
+              {
+                "name": "prev_commitment",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "current_commitment",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "proof",
+                "type_name": "Groth16Proof",
+                "visibility": "pub"
+              },
+              {
+                "name": "public_values",
+                "type_name": "Vec < u8 >",
+                "visibility": "pub"
+              },
+              {
+                "name": "compressed_proof",
+                "type_name": "CompressedProof",
+                "visibility": "pub"
+              },
+              {
+                "name": "signature",
+                "type_name": "Option < String >",
+                "visibility": "pub"
+              },
+              {
+                "name": "tip_da_height",
+                "type_name": "u64",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize",
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/lib.rs#impl_FinalizedEpoch",
+            "target_type": "FinalizedEpoch",
+            "trait_name": null,
+            "items": [
+              "pub fn insert_signature (& mut self , key : & SigningKey) -> Result < () > { let plaintext = self . encode_to_bytes () . unwrap () ; let signature = key . sign (& plaintext) ? ; self . signature = Some (signature . to_bytes () . to_hex ()) ; Ok (()) }",
+              "pub fn verify_signature (& self , vk : VerifyingKey) -> Result < () > { let epoch_without_signature = FinalizedEpoch { height : self . height , prev_commitment : self . prev_commitment , current_commitment : self . current_commitment , proof : self . proof . clone () , compressed_proof : self . compressed_proof . clone () , public_values : self . public_values . clone () , signature : None , tip_da_height : self . tip_da_height , } ; let message = epoch_without_signature . encode_to_bytes () . map_err (| e | anyhow :: anyhow ! (\"Failed to serialize epoch: {}\" , e)) ? ; let signature = self . signature . as_ref () . ok_or_else (| | anyhow :: anyhow ! (\"No signature present\")) ? ; let signature_bytes = Vec :: < u8 > :: from_hex (signature) . map_err (| e | anyhow :: anyhow ! (\"Failed to decode signature: {}\" , e)) ? ; let signature : Signature = Signature :: from_algorithm_and_bytes (vk . algorithm () , signature_bytes . as_slice ()) . map_err (| _ | anyhow :: anyhow ! (\"Invalid signature length\")) ? ; vk . verify_signature (& message , & signature) . map_err (| e | anyhow :: anyhow ! (\"Signature verification failed: {}\" , e)) ? ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "FinalizedEpoch"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/lib.rs#impl_TryFrom<&Blob>_FinalizedEpoch",
+            "target_type": "FinalizedEpoch",
+            "trait_name": "TryFrom < & Blob >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (value : & Blob) -> Result < Self , Self :: Error > { FinalizedEpoch :: decode_from_bytes (& value . data) . map_err (| _ | { anyhow ! (format ! (\"Failed to decode blob into FinalizedEpoch: {value:?}\")) }) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "FinalizedEpoch"
+          ]
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/da/src/lib.rs#LightDataAvailabilityLayer",
+            "name": "LightDataAvailabilityLayer",
+            "visibility": "pub",
+            "items": [
+              "async fn get_finalized_epoch (& self , height : u64) -> Result < Vec < FinalizedEpoch > > ;",
+              "fn event_subscriber (& self) -> Option < Arc < Mutex < EventSubscriber > > > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/da/src/lib.rs#DataAvailabilityLayer",
+            "name": "DataAvailabilityLayer",
+            "visibility": "pub",
+            "items": [
+              "async fn start (& self) -> Result < () > ;",
+              "async fn get_latest_height (& self) -> Result < u64 > ;",
+              "async fn initialize_sync_target (& self) -> Result < u64 > ;",
+              "async fn submit_finalized_epoch (& self , epoch : FinalizedEpoch) -> Result < u64 > ;",
+              "async fn get_transactions (& self , height : u64) -> Result < Vec < Transaction > > ;",
+              "async fn submit_transactions (& self , transactions : Vec < Transaction >) -> Result < u64 > ;",
+              "fn subscribe_to_heights (& self) -> tokio :: sync :: broadcast :: Receiver < u64 > ;"
+            ],
+            "generics": []
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/da/src/memory.rs",
+      "path": "../crates/da/src/memory.rs",
+      "relative_path": "crates/da/src/memory.rs",
+      "file_size": 6052,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_crate_{DataAvailabilityLayer,FinalizedEpoch,LightDataAvailabilityLayer}",
+            "path": "crate :: { DataAvailabilityLayer , FinalizedEpoch , LightDataAvailabilityLayer }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_lumina_node_events_EventSubscriber",
+            "path": "lumina_node :: events :: EventSubscriber",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_prism_common_transaction_Transaction",
+            "path": "prism_common :: transaction :: Transaction",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_tokio_{sync_{Mutex,RwLock,broadcast},time_{Duration,interval},}",
+            "path": "tokio :: { sync :: { Mutex , RwLock , broadcast } , time :: { Duration , interval } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_tracing_debug",
+            "path": "tracing :: debug",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/memory.rs#Block",
+            "name": "Block",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "height",
+                "type_name": "u64",
+                "visibility": "pub"
+              },
+              {
+                "name": "transactions",
+                "type_name": "Vec < Transaction >",
+                "visibility": "pub"
+              },
+              {
+                "name": "epochs",
+                "type_name": "Vec < FinalizedEpoch >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/memory.rs#InMemoryDataAvailabilityLayer",
+            "name": "InMemoryDataAvailabilityLayer",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "blocks",
+                "type_name": "Arc < RwLock < Vec < Block > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "pending_transactions",
+                "type_name": "Arc < RwLock < Vec < Transaction > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "pending_epochs",
+                "type_name": "Arc < RwLock < Vec < FinalizedEpoch > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "latest_height",
+                "type_name": "Arc < RwLock < u64 > >",
+                "visibility": "private"
+              },
+              {
+                "name": "height_update_tx",
+                "type_name": "broadcast :: Sender < u64 >",
+                "visibility": "private"
+              },
+              {
+                "name": "block_update_tx",
+                "type_name": "broadcast :: Sender < Block >",
+                "visibility": "private"
+              },
+              {
+                "name": "block_time",
+                "type_name": "Duration",
+                "visibility": "private"
+              },
+              {
+                "name": "epoch_posting_delay",
+                "type_name": "Option < Duration >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/memory.rs#impl_InMemoryDataAvailabilityLayer",
+            "target_type": "InMemoryDataAvailabilityLayer",
+            "trait_name": null,
+            "items": [
+              "pub fn new (block_time : Duration ,) -> (Self , broadcast :: Receiver < u64 > , broadcast :: Receiver < Block >) { let (height_tx , height_rx) = broadcast :: channel (100) ; let (block_tx , block_rx) = broadcast :: channel (100) ; (Self { blocks : Arc :: new (RwLock :: new (Vec :: new ())) , pending_transactions : Arc :: new (RwLock :: new (Vec :: new ())) , pending_epochs : Arc :: new (RwLock :: new (Vec :: new ())) , latest_height : Arc :: new (RwLock :: new (0)) , height_update_tx : height_tx , block_update_tx : block_tx , block_time , epoch_posting_delay : None , } , height_rx , block_rx ,) }",
+              "pub fn new_with_epoch_delay (block_time : Duration , epoch_delay : Duration ,) -> (Self , broadcast :: Receiver < u64 > , broadcast :: Receiver < Block >) { let (height_tx , height_rx) = broadcast :: channel (100) ; let (block_tx , block_rx) = broadcast :: channel (100) ; (Self { blocks : Arc :: new (RwLock :: new (Vec :: new ())) , pending_transactions : Arc :: new (RwLock :: new (Vec :: new ())) , pending_epochs : Arc :: new (RwLock :: new (Vec :: new ())) , latest_height : Arc :: new (RwLock :: new (0)) , height_update_tx : height_tx , block_update_tx : block_tx , block_time , epoch_posting_delay : Some (epoch_delay) , } , height_rx , block_rx ,) }",
+              "async fn produce_blocks (self : Arc < Self >) { let mut interval = interval (self . block_time) ; loop { interval . tick () . await ; let mut blocks = self . blocks . write () . await ; let mut pending_transactions = self . pending_transactions . write () . await ; let mut pending_epochs = self . pending_epochs . write () . await ; let mut latest_height = self . latest_height . write () . await ; * latest_height += 1 ; let new_block = Block { height : * latest_height , transactions : std :: mem :: take (& mut * pending_transactions) , epochs : std :: mem :: take (& mut * pending_epochs) , } ; debug ! (\"new block produced at height {} with {} transactions\" , new_block . height , new_block . transactions . len () ,) ; blocks . push (new_block . clone ()) ; let _ = self . height_update_tx . send (* latest_height) ; let _ = self . block_update_tx . send (new_block) ; } }",
+              "pub fn subscribe_blocks (& self) -> broadcast :: Receiver < Block > { self . block_update_tx . subscribe () }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/memory.rs#impl_LightDataAvailabilityLayer_InMemoryDataAvailabilityLayer",
+            "target_type": "InMemoryDataAvailabilityLayer",
+            "trait_name": "LightDataAvailabilityLayer",
+            "items": [
+              "async fn get_finalized_epoch (& self , height : u64) -> Result < Vec < FinalizedEpoch > > { let blocks = self . blocks . read () . await ; match blocks . get (height . saturating_sub (1) as usize) { Some (block) => Ok (block . epochs . clone ()) , None => Ok (vec ! []) , } }",
+              "fn event_subscriber (& self) -> Option < Arc < Mutex < EventSubscriber > > > { None }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/memory.rs#impl_DataAvailabilityLayer_InMemoryDataAvailabilityLayer",
+            "target_type": "InMemoryDataAvailabilityLayer",
+            "trait_name": "DataAvailabilityLayer",
+            "items": [
+              "async fn start (& self) -> Result < () > { let this = Arc :: new (self . clone ()) ; tokio :: spawn (async move { this . produce_blocks () . await ; }) ; Ok (()) }",
+              "fn subscribe_to_heights (& self) -> broadcast :: Receiver < u64 > { self . height_update_tx . subscribe () }",
+              "async fn get_latest_height (& self) -> Result < u64 > { Ok (* self . latest_height . read () . await) }",
+              "async fn initialize_sync_target (& self) -> Result < u64 > { self . get_latest_height () . await }",
+              "async fn submit_finalized_epoch (& self , epoch : FinalizedEpoch) -> Result < u64 > { if let Some (delay) = self . epoch_posting_delay { tokio :: time :: sleep (delay) . await ; } let mut pending_epochs = self . pending_epochs . write () . await ; pending_epochs . push (epoch) ; let height = self . get_latest_height () . await ? ; Ok (height + 1) }",
+              "async fn get_transactions (& self , height : u64) -> Result < Vec < Transaction > > { let blocks = self . blocks . read () . await ; match blocks . get (height . saturating_sub (1) as usize) { Some (block) => Ok (block . transactions . clone ()) , None => Ok (vec ! []) , } }",
+              "async fn submit_transactions (& self , transactions : Vec < Transaction >) -> Result < u64 > { let mut pending_transactions = self . pending_transactions . write () . await ; pending_transactions . extend (transactions) ; let height = self . get_latest_height () . await ? ; Ok (height + 1) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_crate_{DataAvailabilityLayer,FinalizedEpoch,LightDataAvailabilityLayer}",
+            "path": "crate :: { DataAvailabilityLayer , FinalizedEpoch , LightDataAvailabilityLayer }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_lumina_node_events_EventSubscriber",
+            "path": "lumina_node :: events :: EventSubscriber",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_prism_common_transaction_Transaction",
+            "path": "prism_common :: transaction :: Transaction",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_tokio_{sync_{Mutex,RwLock,broadcast},time_{Duration,interval},}",
+            "path": "tokio :: { sync :: { Mutex , RwLock , broadcast } , time :: { Duration , interval } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/memory.rs#use_tracing_debug",
+            "path": "tracing :: debug",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/memory.rs#Block",
+            "name": "Block",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "height",
+                "type_name": "u64",
+                "visibility": "pub"
+              },
+              {
+                "name": "transactions",
+                "type_name": "Vec < Transaction >",
+                "visibility": "pub"
+              },
+              {
+                "name": "epochs",
+                "type_name": "Vec < FinalizedEpoch >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/memory.rs#InMemoryDataAvailabilityLayer",
+            "name": "InMemoryDataAvailabilityLayer",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "blocks",
+                "type_name": "Arc < RwLock < Vec < Block > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "pending_transactions",
+                "type_name": "Arc < RwLock < Vec < Transaction > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "pending_epochs",
+                "type_name": "Arc < RwLock < Vec < FinalizedEpoch > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "latest_height",
+                "type_name": "Arc < RwLock < u64 > >",
+                "visibility": "private"
+              },
+              {
+                "name": "height_update_tx",
+                "type_name": "broadcast :: Sender < u64 >",
+                "visibility": "private"
+              },
+              {
+                "name": "block_update_tx",
+                "type_name": "broadcast :: Sender < Block >",
+                "visibility": "private"
+              },
+              {
+                "name": "block_time",
+                "type_name": "Duration",
+                "visibility": "private"
+              },
+              {
+                "name": "epoch_posting_delay",
+                "type_name": "Option < Duration >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/memory.rs#impl_InMemoryDataAvailabilityLayer",
+            "target_type": "InMemoryDataAvailabilityLayer",
+            "trait_name": null,
+            "items": [
+              "pub fn new (block_time : Duration ,) -> (Self , broadcast :: Receiver < u64 > , broadcast :: Receiver < Block >) { let (height_tx , height_rx) = broadcast :: channel (100) ; let (block_tx , block_rx) = broadcast :: channel (100) ; (Self { blocks : Arc :: new (RwLock :: new (Vec :: new ())) , pending_transactions : Arc :: new (RwLock :: new (Vec :: new ())) , pending_epochs : Arc :: new (RwLock :: new (Vec :: new ())) , latest_height : Arc :: new (RwLock :: new (0)) , height_update_tx : height_tx , block_update_tx : block_tx , block_time , epoch_posting_delay : None , } , height_rx , block_rx ,) }",
+              "pub fn new_with_epoch_delay (block_time : Duration , epoch_delay : Duration ,) -> (Self , broadcast :: Receiver < u64 > , broadcast :: Receiver < Block >) { let (height_tx , height_rx) = broadcast :: channel (100) ; let (block_tx , block_rx) = broadcast :: channel (100) ; (Self { blocks : Arc :: new (RwLock :: new (Vec :: new ())) , pending_transactions : Arc :: new (RwLock :: new (Vec :: new ())) , pending_epochs : Arc :: new (RwLock :: new (Vec :: new ())) , latest_height : Arc :: new (RwLock :: new (0)) , height_update_tx : height_tx , block_update_tx : block_tx , block_time , epoch_posting_delay : Some (epoch_delay) , } , height_rx , block_rx ,) }",
+              "async fn produce_blocks (self : Arc < Self >) { let mut interval = interval (self . block_time) ; loop { interval . tick () . await ; let mut blocks = self . blocks . write () . await ; let mut pending_transactions = self . pending_transactions . write () . await ; let mut pending_epochs = self . pending_epochs . write () . await ; let mut latest_height = self . latest_height . write () . await ; * latest_height += 1 ; let new_block = Block { height : * latest_height , transactions : std :: mem :: take (& mut * pending_transactions) , epochs : std :: mem :: take (& mut * pending_epochs) , } ; debug ! (\"new block produced at height {} with {} transactions\" , new_block . height , new_block . transactions . len () ,) ; blocks . push (new_block . clone ()) ; let _ = self . height_update_tx . send (* latest_height) ; let _ = self . block_update_tx . send (new_block) ; } }",
+              "pub fn subscribe_blocks (& self) -> broadcast :: Receiver < Block > { self . block_update_tx . subscribe () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InMemoryDataAvailabilityLayer"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/memory.rs#impl_LightDataAvailabilityLayer_InMemoryDataAvailabilityLayer",
+            "target_type": "InMemoryDataAvailabilityLayer",
+            "trait_name": "LightDataAvailabilityLayer",
+            "items": [
+              "async fn get_finalized_epoch (& self , height : u64) -> Result < Vec < FinalizedEpoch > > { let blocks = self . blocks . read () . await ; match blocks . get (height . saturating_sub (1) as usize) { Some (block) => Ok (block . epochs . clone ()) , None => Ok (vec ! []) , } }",
+              "fn event_subscriber (& self) -> Option < Arc < Mutex < EventSubscriber > > > { None }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InMemoryDataAvailabilityLayer"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/memory.rs#impl_DataAvailabilityLayer_InMemoryDataAvailabilityLayer",
+            "target_type": "InMemoryDataAvailabilityLayer",
+            "trait_name": "DataAvailabilityLayer",
+            "items": [
+              "async fn start (& self) -> Result < () > { let this = Arc :: new (self . clone ()) ; tokio :: spawn (async move { this . produce_blocks () . await ; }) ; Ok (()) }",
+              "fn subscribe_to_heights (& self) -> broadcast :: Receiver < u64 > { self . height_update_tx . subscribe () }",
+              "async fn get_latest_height (& self) -> Result < u64 > { Ok (* self . latest_height . read () . await) }",
+              "async fn initialize_sync_target (& self) -> Result < u64 > { self . get_latest_height () . await }",
+              "async fn submit_finalized_epoch (& self , epoch : FinalizedEpoch) -> Result < u64 > { if let Some (delay) = self . epoch_posting_delay { tokio :: time :: sleep (delay) . await ; } let mut pending_epochs = self . pending_epochs . write () . await ; pending_epochs . push (epoch) ; let height = self . get_latest_height () . await ? ; Ok (height + 1) }",
+              "async fn get_transactions (& self , height : u64) -> Result < Vec < Transaction > > { let blocks = self . blocks . read () . await ; match blocks . get (height . saturating_sub (1) as usize) { Some (block) => Ok (block . transactions . clone ()) , None => Ok (vec ! []) , } }",
+              "async fn submit_transactions (& self , transactions : Vec < Transaction >) -> Result < u64 > { let mut pending_transactions = self . pending_transactions . write () . await ; pending_transactions . extend (transactions) ; let height = self . get_latest_height () . await ? ; Ok (height + 1) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InMemoryDataAvailabilityLayer"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/da/src/celestia/full_node.rs",
+      "path": "../crates/da/src/celestia/full_node.rs",
+      "relative_path": "crates/da/src/celestia/full_node.rs",
+      "file_size": 9190,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_crate_{FinalizedEpoch,LightDataAvailabilityLayer}",
+            "path": "crate :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_anyhow_{Context,Result,anyhow}",
+            "path": "anyhow :: { Context , Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_celestia_types_{Blob,nmt_Namespace}",
+            "path": "celestia_types :: { Blob , nmt :: Namespace }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_lumina_node_events_EventSubscriber",
+            "path": "lumina_node :: events :: EventSubscriber",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_prism_errors_{DataAvailabilityError,GeneralError}",
+            "path": "prism_errors :: { DataAvailabilityError , GeneralError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_std_{self,sync_{Arc,atomic_{AtomicU64,Ordering},},}",
+            "path": "std :: { self , sync :: { Arc , atomic :: { AtomicU64 , Ordering } , } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_tracing_{error,trace}",
+            "path": "tracing :: { error , trace }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_tokio_sync_{Mutex,broadcast}",
+            "path": "tokio :: sync :: { Mutex , broadcast }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_crate_DataAvailabilityLayer",
+            "path": "crate :: DataAvailabilityLayer",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_celestia_rpc_{BlobClient,Client,HeaderClient,TxConfig}",
+            "path": "celestia_rpc :: { BlobClient , Client , HeaderClient , TxConfig }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_celestia_types_AppVersion",
+            "path": "celestia_types :: AppVersion",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_prism_common_transaction_Transaction",
+            "path": "prism_common :: transaction :: Transaction",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_prism_serde_binary_ToBinary",
+            "path": "prism_serde :: binary :: ToBinary",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_tokio_task_spawn",
+            "path": "tokio :: task :: spawn",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_tracing_{debug,warn}",
+            "path": "tracing :: { debug , warn }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_super_utils_{CelestiaConfig,create_namespace}",
+            "path": "super :: utils :: { CelestiaConfig , create_namespace }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/celestia/full_node.rs#CelestiaConnection",
+            "name": "CelestiaConnection",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "client",
+                "type_name": "celestia_rpc :: Client",
+                "visibility": "pub"
+              },
+              {
+                "name": "snark_namespace",
+                "type_name": "Namespace",
+                "visibility": "pub"
+              },
+              {
+                "name": "operation_namespace",
+                "type_name": "Namespace",
+                "visibility": "pub"
+              },
+              {
+                "name": "height_update_tx",
+                "type_name": "broadcast :: Sender < u64 >",
+                "visibility": "private"
+              },
+              {
+                "name": "sync_target",
+                "type_name": "Arc < AtomicU64 >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/full_node.rs#impl_CelestiaConnection",
+            "target_type": "CelestiaConnection",
+            "trait_name": null,
+            "items": [
+              "pub async fn new (config : & CelestiaConfig , auth_token : Option < & str >) -> Result < Self > { let client = Client :: new (& config . connection_string , auth_token) . await . context (\"Failed to initialize websocket connection\") . map_err (| e | DataAvailabilityError :: NetworkError (e . to_string ())) ? ; let snark_namespace = create_namespace (& config . snark_namespace_id) . context (format ! (\"Failed to create snark namespace from: '{}'\" , & config . snark_namespace_id)) ? ; let operation_namespace = create_namespace (& config . operation_namespace_id) . context (format ! (\"Failed to create operation namespace from: '{}'\" , & config . operation_namespace_id)) ? ; let (height_update_tx , _) = broadcast :: channel (100) ; Ok (CelestiaConnection { client , snark_namespace , operation_namespace , height_update_tx , sync_target : Arc :: new (AtomicU64 :: new (0)) , }) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/full_node.rs#impl_LightDataAvailabilityLayer_CelestiaConnection",
+            "target_type": "CelestiaConnection",
+            "trait_name": "LightDataAvailabilityLayer",
+            "items": [
+              "async fn get_finalized_epoch (& self , height : u64) -> Result < Vec < FinalizedEpoch > > { trace ! (\"searching for epoch on da layer at height {}\" , height) ; match BlobClient :: blob_get_all (& self . client , height , & [self . snark_namespace]) . await { Ok (maybe_blobs) => match maybe_blobs { Some (blobs) => { let valid_epoch : Vec < FinalizedEpoch > = blobs . into_iter () . filter_map (| blob | { match FinalizedEpoch :: try_from (& blob) { Ok (epoch) => Some (epoch) , Err (e) => { warn ! (\"Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}\" , height , e , & blob) ; None } } }) . collect () ; Ok (valid_epoch) } None => Ok (vec ! []) , } , Err (err) => { if err . to_string () . contains (\"blob: not found\") { Ok (vec ! []) } else { Err (anyhow ! (DataAvailabilityError :: DataRetrievalError (height , format ! (\"getting epoch from da layer: {}\" , err)))) } } } }",
+              "fn event_subscriber (& self) -> Option < Arc < Mutex < EventSubscriber > > > { None }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/full_node.rs#impl_DataAvailabilityLayer_CelestiaConnection",
+            "target_type": "CelestiaConnection",
+            "trait_name": "DataAvailabilityLayer",
+            "items": [
+              "async fn start (& self) -> Result < () > { let mut header_sub = HeaderClient :: header_subscribe (& self . client) . await . context (\"Failed to subscribe to headers from DA layer\") ? ; let sync_target = self . sync_target . clone () ; let height_update_tx = self . height_update_tx . clone () ; spawn (async move { while let Some (extended_header_result) = header_sub . next () . await { match extended_header_result { Ok (extended_header) => { let height = extended_header . header . height . value () ; sync_target . store (height , Ordering :: Relaxed) ; let _ = height_update_tx . send (height) ; trace ! (\"updated sync target for height {}\" , height) ; } Err (e) => { error ! (\"Error retrieving header from DA layer: {}\" , e) ; } } } }) ; Ok (()) }",
+              "fn subscribe_to_heights (& self) -> broadcast :: Receiver < u64 > { self . height_update_tx . subscribe () }",
+              "async fn get_latest_height (& self) -> Result < u64 > { Ok (self . sync_target . load (Ordering :: Relaxed)) }",
+              "async fn initialize_sync_target (& self) -> Result < u64 > { let height = HeaderClient :: header_network_head (& self . client) . await . context (\"Failed to get network head from DA layer\") . map (| extended_header | extended_header . header . height . value ()) ? ; self . sync_target . store (height , Ordering :: Relaxed) ; Ok (height) }",
+              "async fn submit_finalized_epoch (& self , epoch : FinalizedEpoch) -> Result < u64 > { let data = epoch . encode_to_bytes () . map_err (| e | { DataAvailabilityError :: GeneralError (GeneralError :: ParsingError (format ! (\"serializing epoch {}: {}\" , epoch . height , e))) }) ? ; debug ! (\"posting {}th epoch to da layer ({} bytes)\" , epoch . height , data . len ()) ; debug ! (\"epoch: {:?}\" , epoch) ; let blob = Blob :: new (self . snark_namespace , data , AppVersion :: V3) . map_err (| e | { DataAvailabilityError :: GeneralError (GeneralError :: BlobCreationError (e . to_string ())) }) ? ; self . client . blob_submit (& [blob] , TxConfig :: default ()) . await . map_err (| e | anyhow ! (DataAvailabilityError :: SubmissionError (e . to_string ()))) }",
+              "async fn get_transactions (& self , height : u64) -> Result < Vec < Transaction > > { trace ! (\"searching for transactions on da layer at height {}\" , height) ; let maybe_blobs = BlobClient :: blob_get_all (& self . client , height , & [self . operation_namespace]) . await . map_err (| e | { anyhow ! (DataAvailabilityError :: DataRetrievalError (height , format ! (\"getting transactions from da layer: {}\" , e))) }) ? ; let blobs = match maybe_blobs { Some (blobs) => blobs , None => return Ok (vec ! []) , } ; let transactions = blobs . iter () . filter_map (| blob | match Transaction :: try_from (blob) { Ok (transaction) => Some (transaction) , Err (e) => { warn ! (\"Failed to parse blob from height {} to transaction: {:?}\" , height , e) ; None } }) . collect () ; Ok (transactions) }",
+              "async fn submit_transactions (& self , transactions : Vec < Transaction >) -> Result < u64 > { debug ! (\"posting {} transactions to DA layer\" , transactions . len ()) ; let blobs : Result < Vec < Blob > , _ > = transactions . iter () . map (| transaction | { let data = transaction . encode_to_bytes () . context (format ! (\"Failed to serialize transaction {:?}\" , transaction)) . map_err (| e | { DataAvailabilityError :: GeneralError (GeneralError :: ParsingError (e . to_string () ,)) }) ? ; Blob :: new (self . operation_namespace , data , AppVersion :: V3) . context (format ! (\"Failed to create blob for transaction {:?}\" , transaction)) . map_err (| e | { DataAvailabilityError :: GeneralError (GeneralError :: BlobCreationError (e . to_string () ,)) }) }) . collect () ; let blobs = blobs ? ; for (i , blob) in blobs . iter () . enumerate () { trace ! (\"blob {}: {:?}\" , i , blob) ; } self . client . blob_submit (& blobs , TxConfig :: default ()) . await . map_err (| e | anyhow ! (DataAvailabilityError :: SubmissionError (e . to_string ()))) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_crate_{FinalizedEpoch,LightDataAvailabilityLayer}",
+            "path": "crate :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_anyhow_{Context,Result,anyhow}",
+            "path": "anyhow :: { Context , Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_celestia_types_{Blob,nmt_Namespace}",
+            "path": "celestia_types :: { Blob , nmt :: Namespace }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_lumina_node_events_EventSubscriber",
+            "path": "lumina_node :: events :: EventSubscriber",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_prism_errors_{DataAvailabilityError,GeneralError}",
+            "path": "prism_errors :: { DataAvailabilityError , GeneralError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_std_{self,sync_{Arc,atomic_{AtomicU64,Ordering},},}",
+            "path": "std :: { self , sync :: { Arc , atomic :: { AtomicU64 , Ordering } , } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_tracing_{error,trace}",
+            "path": "tracing :: { error , trace }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_tokio_sync_{Mutex,broadcast}",
+            "path": "tokio :: sync :: { Mutex , broadcast }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_crate_DataAvailabilityLayer",
+            "path": "crate :: DataAvailabilityLayer",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_celestia_rpc_{BlobClient,Client,HeaderClient,TxConfig}",
+            "path": "celestia_rpc :: { BlobClient , Client , HeaderClient , TxConfig }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_celestia_types_AppVersion",
+            "path": "celestia_types :: AppVersion",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_prism_common_transaction_Transaction",
+            "path": "prism_common :: transaction :: Transaction",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_prism_serde_binary_ToBinary",
+            "path": "prism_serde :: binary :: ToBinary",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_tokio_task_spawn",
+            "path": "tokio :: task :: spawn",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_tracing_{debug,warn}",
+            "path": "tracing :: { debug , warn }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/full_node.rs#use_super_utils_{CelestiaConfig,create_namespace}",
+            "path": "super :: utils :: { CelestiaConfig , create_namespace }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/celestia/full_node.rs#CelestiaConnection",
+            "name": "CelestiaConnection",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "client",
+                "type_name": "celestia_rpc :: Client",
+                "visibility": "pub"
+              },
+              {
+                "name": "snark_namespace",
+                "type_name": "Namespace",
+                "visibility": "pub"
+              },
+              {
+                "name": "operation_namespace",
+                "type_name": "Namespace",
+                "visibility": "pub"
+              },
+              {
+                "name": "height_update_tx",
+                "type_name": "broadcast :: Sender < u64 >",
+                "visibility": "private"
+              },
+              {
+                "name": "sync_target",
+                "type_name": "Arc < AtomicU64 >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/full_node.rs#impl_CelestiaConnection",
+            "target_type": "CelestiaConnection",
+            "trait_name": null,
+            "items": [
+              "pub async fn new (config : & CelestiaConfig , auth_token : Option < & str >) -> Result < Self > { let client = Client :: new (& config . connection_string , auth_token) . await . context (\"Failed to initialize websocket connection\") . map_err (| e | DataAvailabilityError :: NetworkError (e . to_string ())) ? ; let snark_namespace = create_namespace (& config . snark_namespace_id) . context (format ! (\"Failed to create snark namespace from: '{}'\" , & config . snark_namespace_id)) ? ; let operation_namespace = create_namespace (& config . operation_namespace_id) . context (format ! (\"Failed to create operation namespace from: '{}'\" , & config . operation_namespace_id)) ? ; let (height_update_tx , _) = broadcast :: channel (100) ; Ok (CelestiaConnection { client , snark_namespace , operation_namespace , height_update_tx , sync_target : Arc :: new (AtomicU64 :: new (0)) , }) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CelestiaConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/full_node.rs#impl_LightDataAvailabilityLayer_CelestiaConnection",
+            "target_type": "CelestiaConnection",
+            "trait_name": "LightDataAvailabilityLayer",
+            "items": [
+              "async fn get_finalized_epoch (& self , height : u64) -> Result < Vec < FinalizedEpoch > > { trace ! (\"searching for epoch on da layer at height {}\" , height) ; match BlobClient :: blob_get_all (& self . client , height , & [self . snark_namespace]) . await { Ok (maybe_blobs) => match maybe_blobs { Some (blobs) => { let valid_epoch : Vec < FinalizedEpoch > = blobs . into_iter () . filter_map (| blob | { match FinalizedEpoch :: try_from (& blob) { Ok (epoch) => Some (epoch) , Err (e) => { warn ! (\"Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}\" , height , e , & blob) ; None } } }) . collect () ; Ok (valid_epoch) } None => Ok (vec ! []) , } , Err (err) => { if err . to_string () . contains (\"blob: not found\") { Ok (vec ! []) } else { Err (anyhow ! (DataAvailabilityError :: DataRetrievalError (height , format ! (\"getting epoch from da layer: {}\" , err)))) } } } }",
+              "fn event_subscriber (& self) -> Option < Arc < Mutex < EventSubscriber > > > { None }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CelestiaConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/full_node.rs#impl_DataAvailabilityLayer_CelestiaConnection",
+            "target_type": "CelestiaConnection",
+            "trait_name": "DataAvailabilityLayer",
+            "items": [
+              "async fn start (& self) -> Result < () > { let mut header_sub = HeaderClient :: header_subscribe (& self . client) . await . context (\"Failed to subscribe to headers from DA layer\") ? ; let sync_target = self . sync_target . clone () ; let height_update_tx = self . height_update_tx . clone () ; spawn (async move { while let Some (extended_header_result) = header_sub . next () . await { match extended_header_result { Ok (extended_header) => { let height = extended_header . header . height . value () ; sync_target . store (height , Ordering :: Relaxed) ; let _ = height_update_tx . send (height) ; trace ! (\"updated sync target for height {}\" , height) ; } Err (e) => { error ! (\"Error retrieving header from DA layer: {}\" , e) ; } } } }) ; Ok (()) }",
+              "fn subscribe_to_heights (& self) -> broadcast :: Receiver < u64 > { self . height_update_tx . subscribe () }",
+              "async fn get_latest_height (& self) -> Result < u64 > { Ok (self . sync_target . load (Ordering :: Relaxed)) }",
+              "async fn initialize_sync_target (& self) -> Result < u64 > { let height = HeaderClient :: header_network_head (& self . client) . await . context (\"Failed to get network head from DA layer\") . map (| extended_header | extended_header . header . height . value ()) ? ; self . sync_target . store (height , Ordering :: Relaxed) ; Ok (height) }",
+              "async fn submit_finalized_epoch (& self , epoch : FinalizedEpoch) -> Result < u64 > { let data = epoch . encode_to_bytes () . map_err (| e | { DataAvailabilityError :: GeneralError (GeneralError :: ParsingError (format ! (\"serializing epoch {}: {}\" , epoch . height , e))) }) ? ; debug ! (\"posting {}th epoch to da layer ({} bytes)\" , epoch . height , data . len ()) ; debug ! (\"epoch: {:?}\" , epoch) ; let blob = Blob :: new (self . snark_namespace , data , AppVersion :: V3) . map_err (| e | { DataAvailabilityError :: GeneralError (GeneralError :: BlobCreationError (e . to_string ())) }) ? ; self . client . blob_submit (& [blob] , TxConfig :: default ()) . await . map_err (| e | anyhow ! (DataAvailabilityError :: SubmissionError (e . to_string ()))) }",
+              "async fn get_transactions (& self , height : u64) -> Result < Vec < Transaction > > { trace ! (\"searching for transactions on da layer at height {}\" , height) ; let maybe_blobs = BlobClient :: blob_get_all (& self . client , height , & [self . operation_namespace]) . await . map_err (| e | { anyhow ! (DataAvailabilityError :: DataRetrievalError (height , format ! (\"getting transactions from da layer: {}\" , e))) }) ? ; let blobs = match maybe_blobs { Some (blobs) => blobs , None => return Ok (vec ! []) , } ; let transactions = blobs . iter () . filter_map (| blob | match Transaction :: try_from (blob) { Ok (transaction) => Some (transaction) , Err (e) => { warn ! (\"Failed to parse blob from height {} to transaction: {:?}\" , height , e) ; None } }) . collect () ; Ok (transactions) }",
+              "async fn submit_transactions (& self , transactions : Vec < Transaction >) -> Result < u64 > { debug ! (\"posting {} transactions to DA layer\" , transactions . len ()) ; let blobs : Result < Vec < Blob > , _ > = transactions . iter () . map (| transaction | { let data = transaction . encode_to_bytes () . context (format ! (\"Failed to serialize transaction {:?}\" , transaction)) . map_err (| e | { DataAvailabilityError :: GeneralError (GeneralError :: ParsingError (e . to_string () ,)) }) ? ; Blob :: new (self . operation_namespace , data , AppVersion :: V3) . context (format ! (\"Failed to create blob for transaction {:?}\" , transaction)) . map_err (| e | { DataAvailabilityError :: GeneralError (GeneralError :: BlobCreationError (e . to_string () ,)) }) }) . collect () ; let blobs = blobs ? ; for (i , blob) in blobs . iter () . enumerate () { trace ! (\"blob {}: {:?}\" , i , blob) ; } self . client . blob_submit (& blobs , TxConfig :: default ()) . await . map_err (| e | anyhow ! (DataAvailabilityError :: SubmissionError (e . to_string ()))) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CelestiaConnection"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/da/src/celestia/mod.rs",
+      "path": "../crates/da/src/celestia/mod.rs",
+      "relative_path": "crates/da/src/celestia/mod.rs",
+      "file_size": 56,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/celestia/mod.rs#full_node",
+            "name": "full_node",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/celestia/mod.rs#light_client",
+            "name": "light_client",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/celestia/mod.rs#utils",
+            "name": "utils",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/celestia/mod.rs#full_node",
+            "name": "full_node",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/celestia/mod.rs#light_client",
+            "name": "light_client",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/da/src/celestia/mod.rs#utils",
+            "name": "utils",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/da/src/celestia/light_client.rs",
+      "path": "../crates/da/src/celestia/light_client.rs",
+      "relative_path": "crates/da/src/celestia/light_client.rs",
+      "file_size": 7802,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_super_utils_{NetworkConfig,create_namespace}",
+            "path": "super :: utils :: { NetworkConfig , create_namespace }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_crate_{FinalizedEpoch,LightDataAvailabilityLayer}",
+            "path": "crate :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_blockstore_EitherBlockstore",
+            "path": "blockstore :: EitherBlockstore",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_celestia_types_nmt_Namespace",
+            "path": "celestia_types :: nmt :: Namespace",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_lumina_node_{Node,NodeError,blockstore_InMemoryBlockstore,events_EventSubscriber,store_{EitherStore,InMemoryStore,StoreError},}",
+            "path": "lumina_node :: { Node , NodeError , blockstore :: InMemoryBlockstore , events :: EventSubscriber , store :: { EitherStore , InMemoryStore , StoreError } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_prism_errors_DataAvailabilityError",
+            "path": "prism_errors :: DataAvailabilityError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_std_{self,sync_Arc}",
+            "path": "std :: { self , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_tokio_sync_{Mutex,RwLock}",
+            "path": "tokio :: sync :: { Mutex , RwLock }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_tracing_{debug,trace,warn}",
+            "path": "tracing :: { debug , trace , warn }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_{lumina_node_{blockstore_IndexedDbBlockstore,store_IndexedDbStore},lumina_node_wasm_utils_resolve_dnsaddr_multiaddress,}",
+            "path": "{ lumina_node :: { blockstore :: IndexedDbBlockstore , store :: IndexedDbStore } , lumina_node_wasm :: utils :: resolve_dnsaddr_multiaddress , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_libp2p_Multiaddr",
+            "path": "libp2p :: Multiaddr",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_lumina_node_NodeBuilder",
+            "path": "lumina_node :: NodeBuilder",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_{redb_Database,tokio_task_spawn_blocking}",
+            "path": "{ redb :: Database , tokio :: task :: spawn_blocking }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_lumina_node_uniffi_types_NodeConfig",
+            "path": "lumina_node_uniffi :: types :: NodeConfig",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_lumina_node_{blockstore_RedbBlockstore,store_RedbStore}",
+            "path": "lumina_node :: { blockstore :: RedbBlockstore , store :: RedbStore }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/da/src/celestia/light_client.rs#resolve_bootnodes",
+            "name": "resolve_bootnodes",
+            "visibility": "pub",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [
+              "bootnodes : & Vec < Multiaddr >"
+            ],
+            "output": "Result < Vec < Multiaddr > >",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/celestia/light_client.rs#LuminaNode",
+            "name": "LuminaNode",
+            "visibility": "pub",
+            "target_type": "Node < IndexedDbBlockstore , IndexedDbStore >",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/celestia/light_client.rs#LuminaNode",
+            "name": "LuminaNode",
+            "visibility": "pub",
+            "target_type": "Node < EitherBlockstore < InMemoryBlockstore , RedbBlockstore > , EitherStore < InMemoryStore , RedbStore > , >",
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/celestia/light_client.rs#LightClientConnection",
+            "name": "LightClientConnection",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "node",
+                "type_name": "Arc < RwLock < LuminaNode > >",
+                "visibility": "pub"
+              },
+              {
+                "name": "event_subscriber",
+                "type_name": "Arc < Mutex < EventSubscriber > >",
+                "visibility": "pub"
+              },
+              {
+                "name": "snark_namespace",
+                "type_name": "Namespace",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/light_client.rs#impl_LightClientConnection",
+            "target_type": "LightClientConnection",
+            "trait_name": null,
+            "items": [
+              "# [cfg (not (target_arch = \"wasm32\"))] async fn setup_stores () -> Result < (EitherBlockstore < InMemoryBlockstore , RedbBlockstore > , EitherStore < InMemoryStore , RedbStore > ,) > { let db = spawn_blocking (| | Database :: create (\"lumina.redb\")) . await . expect (\"Failed to join\") . expect (\"Failed to open the database\") ; let db = Arc :: new (db) ; let store = RedbStore :: new (db . clone ()) . await . expect (\"Failed to create a store\") ; let blockstore = RedbBlockstore :: new (db) ; let either_blockstore = EitherBlockstore :: Right (blockstore) ; let either_store = EitherStore :: Right (store) ; Ok ((either_blockstore , either_store)) }",
+              "# [cfg (target_arch = \"wasm32\")] async fn setup_stores () -> Result < (IndexedDbBlockstore , IndexedDbStore) > { let store = IndexedDbStore :: new (\"prism-store\") . await . map_err (| e | anyhow :: anyhow ! (\"Failed to create IndexedDbStore: {}\" , e)) ? ; let blockstore = IndexedDbBlockstore :: new (\"prism-blockstore\") . await . map_err (| e | anyhow :: anyhow ! (\"Failed to create IndexedDbBlockstore: {}\" , e)) ? ; Ok ((blockstore , store)) }",
+              "pub async fn new (config : & NetworkConfig) -> Result < Self > { # [cfg (not (target_arch = \"wasm32\"))] let bootnodes = config . celestia_network . canonical_bootnodes () . collect :: < Vec < Multiaddr > > () ; # [cfg (target_arch = \"wasm32\")] let bootnodes = resolve_bootnodes (& bootnodes) . await ? ; # [cfg (target_arch = \"wasm32\")] let (blockstore , store) = Self :: setup_stores () . await . unwrap () ; # [cfg (not (target_arch = \"wasm32\"))] let (blockstore , store) = Self :: setup_stores () . await ? ; let celestia_config = config . celestia_config . as_ref () . ok_or_else (| | anyhow :: anyhow ! (\"Celestia config is required but not provided\")) ? ; let (node , event_subscriber) = NodeBuilder :: new () . network (config . celestia_network . clone ()) . store (store) . blockstore (blockstore) . bootnodes (bootnodes) . pruning_delay (celestia_config . pruning_delay) . sampling_window (celestia_config . sampling_window) . start_subscribed () . await ? ; let snark_namespace = create_namespace (& celestia_config . snark_namespace_id) ? ; Ok (LightClientConnection { node : Arc :: new (RwLock :: new (node)) , event_subscriber : Arc :: new (Mutex :: new (event_subscriber)) , snark_namespace , }) }",
+              "# [cfg (feature = \"uniffi\")] pub async fn new_with_config (config : & NetworkConfig , node_config : Option < NodeConfig > ,) -> Result < Self > { # [cfg (target_arch = \"wasm32\")] let bootnodes = resolve_bootnodes (& bootnodes) . await ? ; # [cfg (target_arch = \"wasm32\")] let (blockstore , store) = Self :: setup_stores () . await . unwrap () ; let celestia_config = config . celestia_config . as_ref () . ok_or_else (| | anyhow :: anyhow ! (\"Celestia config is required but not provided\")) ? ; let node_builder = node_config . ok_or_else (| | anyhow :: anyhow ! (\"Node config is required for uniffi but not provided\")) ? . into_node_builder () . await ? ; let (node , event_subscriber) = node_builder . start_subscribed () . await ? ; let snark_namespace = create_namespace (& celestia_config . snark_namespace_id) ? ; Ok (LightClientConnection { node : Arc :: new (RwLock :: new (node)) , event_subscriber : Arc :: new (Mutex :: new (event_subscriber)) , snark_namespace , }) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/light_client.rs#impl_LightDataAvailabilityLayer_LightClientConnection",
+            "target_type": "LightClientConnection",
+            "trait_name": "LightDataAvailabilityLayer",
+            "items": [
+              "fn event_subscriber (& self) -> Option < Arc < Mutex < EventSubscriber > > > { Some (self . event_subscriber . clone ()) }",
+              "async fn get_finalized_epoch (& self , height : u64) -> Result < Vec < FinalizedEpoch > > { trace ! (\"searching for epoch on da layer at height {} under namespace\" , height) ; let node = self . node . read () . await ; let header = match node . get_header_by_height (height) . await { Ok (h) => h , Err (NodeError :: Store (StoreError :: NotFound)) => { debug ! (\"header for height {} not found locally, fetching from network\" , height) ; node . request_header_by_height (height) . await ? } Err (e) => return Err (anyhow ! (\"Failed to fetch header: {}\" , e)) , } ; match node . request_all_blobs (& header , self . snark_namespace , None) . await { Ok (blobs) => { let epochs : Vec < FinalizedEpoch > = blobs . into_iter () . filter_map (| blob | match FinalizedEpoch :: try_from (& blob) { Ok (epoch) => Some (epoch) , Err (_) => { warn ! (\"marshalling blob from height {} to epoch json: {:?}\" , height , & blob) ; None } }) . collect () ; Ok (epochs) } Err (e) => Err (anyhow ! (DataAvailabilityError :: DataRetrievalError (height , format ! (\"getting epoch from da layer: {}\" , e)))) , } }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_super_utils_{NetworkConfig,create_namespace}",
+            "path": "super :: utils :: { NetworkConfig , create_namespace }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_crate_{FinalizedEpoch,LightDataAvailabilityLayer}",
+            "path": "crate :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_anyhow_{Result,anyhow}",
+            "path": "anyhow :: { Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_blockstore_EitherBlockstore",
+            "path": "blockstore :: EitherBlockstore",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_celestia_types_nmt_Namespace",
+            "path": "celestia_types :: nmt :: Namespace",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_lumina_node_{Node,NodeError,blockstore_InMemoryBlockstore,events_EventSubscriber,store_{EitherStore,InMemoryStore,StoreError},}",
+            "path": "lumina_node :: { Node , NodeError , blockstore :: InMemoryBlockstore , events :: EventSubscriber , store :: { EitherStore , InMemoryStore , StoreError } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_prism_errors_DataAvailabilityError",
+            "path": "prism_errors :: DataAvailabilityError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_std_{self,sync_Arc}",
+            "path": "std :: { self , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_tokio_sync_{Mutex,RwLock}",
+            "path": "tokio :: sync :: { Mutex , RwLock }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_tracing_{debug,trace,warn}",
+            "path": "tracing :: { debug , trace , warn }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_{lumina_node_{blockstore_IndexedDbBlockstore,store_IndexedDbStore},lumina_node_wasm_utils_resolve_dnsaddr_multiaddress,}",
+            "path": "{ lumina_node :: { blockstore :: IndexedDbBlockstore , store :: IndexedDbStore } , lumina_node_wasm :: utils :: resolve_dnsaddr_multiaddress , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_libp2p_Multiaddr",
+            "path": "libp2p :: Multiaddr",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_lumina_node_NodeBuilder",
+            "path": "lumina_node :: NodeBuilder",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_{redb_Database,tokio_task_spawn_blocking}",
+            "path": "{ redb :: Database , tokio :: task :: spawn_blocking }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_lumina_node_uniffi_types_NodeConfig",
+            "path": "lumina_node_uniffi :: types :: NodeConfig",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/light_client.rs#use_lumina_node_{blockstore_RedbBlockstore,store_RedbStore}",
+            "path": "lumina_node :: { blockstore :: RedbBlockstore , store :: RedbStore }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/da/src/celestia/light_client.rs#resolve_bootnodes",
+            "name": "resolve_bootnodes",
+            "visibility": "pub",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [
+              "bootnodes : & Vec < Multiaddr >"
+            ],
+            "output": "Result < Vec < Multiaddr > >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "bootnodes"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "bootnodes"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "resolve_dnsaddr_multiaddress",
+              "is_method": false
+            },
+            {
+              "callee": "extend",
+              "is_method": true,
+              "receiver_type": "bootnodes"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "bootnodes",
+              "is_mutable": true
+            },
+            {
+              "name": "resolved_addrs",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/celestia/light_client.rs#LuminaNode",
+            "name": "LuminaNode",
+            "visibility": "pub",
+            "target_type": "Node < IndexedDbBlockstore , IndexedDbStore >",
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/da/src/celestia/light_client.rs#LuminaNode",
+            "name": "LuminaNode",
+            "visibility": "pub",
+            "target_type": "Node < EitherBlockstore < InMemoryBlockstore , RedbBlockstore > , EitherStore < InMemoryStore , RedbStore > , >",
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/celestia/light_client.rs#LightClientConnection",
+            "name": "LightClientConnection",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "node",
+                "type_name": "Arc < RwLock < LuminaNode > >",
+                "visibility": "pub"
+              },
+              {
+                "name": "event_subscriber",
+                "type_name": "Arc < Mutex < EventSubscriber > >",
+                "visibility": "pub"
+              },
+              {
+                "name": "snark_namespace",
+                "type_name": "Namespace",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/light_client.rs#impl_LightClientConnection",
+            "target_type": "LightClientConnection",
+            "trait_name": null,
+            "items": [
+              "# [cfg (not (target_arch = \"wasm32\"))] async fn setup_stores () -> Result < (EitherBlockstore < InMemoryBlockstore , RedbBlockstore > , EitherStore < InMemoryStore , RedbStore > ,) > { let db = spawn_blocking (| | Database :: create (\"lumina.redb\")) . await . expect (\"Failed to join\") . expect (\"Failed to open the database\") ; let db = Arc :: new (db) ; let store = RedbStore :: new (db . clone ()) . await . expect (\"Failed to create a store\") ; let blockstore = RedbBlockstore :: new (db) ; let either_blockstore = EitherBlockstore :: Right (blockstore) ; let either_store = EitherStore :: Right (store) ; Ok ((either_blockstore , either_store)) }",
+              "# [cfg (target_arch = \"wasm32\")] async fn setup_stores () -> Result < (IndexedDbBlockstore , IndexedDbStore) > { let store = IndexedDbStore :: new (\"prism-store\") . await . map_err (| e | anyhow :: anyhow ! (\"Failed to create IndexedDbStore: {}\" , e)) ? ; let blockstore = IndexedDbBlockstore :: new (\"prism-blockstore\") . await . map_err (| e | anyhow :: anyhow ! (\"Failed to create IndexedDbBlockstore: {}\" , e)) ? ; Ok ((blockstore , store)) }",
+              "pub async fn new (config : & NetworkConfig) -> Result < Self > { # [cfg (not (target_arch = \"wasm32\"))] let bootnodes = config . celestia_network . canonical_bootnodes () . collect :: < Vec < Multiaddr > > () ; # [cfg (target_arch = \"wasm32\")] let bootnodes = resolve_bootnodes (& bootnodes) . await ? ; # [cfg (target_arch = \"wasm32\")] let (blockstore , store) = Self :: setup_stores () . await . unwrap () ; # [cfg (not (target_arch = \"wasm32\"))] let (blockstore , store) = Self :: setup_stores () . await ? ; let celestia_config = config . celestia_config . as_ref () . ok_or_else (| | anyhow :: anyhow ! (\"Celestia config is required but not provided\")) ? ; let (node , event_subscriber) = NodeBuilder :: new () . network (config . celestia_network . clone ()) . store (store) . blockstore (blockstore) . bootnodes (bootnodes) . pruning_delay (celestia_config . pruning_delay) . sampling_window (celestia_config . sampling_window) . start_subscribed () . await ? ; let snark_namespace = create_namespace (& celestia_config . snark_namespace_id) ? ; Ok (LightClientConnection { node : Arc :: new (RwLock :: new (node)) , event_subscriber : Arc :: new (Mutex :: new (event_subscriber)) , snark_namespace , }) }",
+              "# [cfg (feature = \"uniffi\")] pub async fn new_with_config (config : & NetworkConfig , node_config : Option < NodeConfig > ,) -> Result < Self > { # [cfg (target_arch = \"wasm32\")] let bootnodes = resolve_bootnodes (& bootnodes) . await ? ; # [cfg (target_arch = \"wasm32\")] let (blockstore , store) = Self :: setup_stores () . await . unwrap () ; let celestia_config = config . celestia_config . as_ref () . ok_or_else (| | anyhow :: anyhow ! (\"Celestia config is required but not provided\")) ? ; let node_builder = node_config . ok_or_else (| | anyhow :: anyhow ! (\"Node config is required for uniffi but not provided\")) ? . into_node_builder () . await ? ; let (node , event_subscriber) = node_builder . start_subscribed () . await ? ; let snark_namespace = create_namespace (& celestia_config . snark_namespace_id) ? ; Ok (LightClientConnection { node : Arc :: new (RwLock :: new (node)) , event_subscriber : Arc :: new (Mutex :: new (event_subscriber)) , snark_namespace , }) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LightClientConnection"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/light_client.rs#impl_LightDataAvailabilityLayer_LightClientConnection",
+            "target_type": "LightClientConnection",
+            "trait_name": "LightDataAvailabilityLayer",
+            "items": [
+              "fn event_subscriber (& self) -> Option < Arc < Mutex < EventSubscriber > > > { Some (self . event_subscriber . clone ()) }",
+              "async fn get_finalized_epoch (& self , height : u64) -> Result < Vec < FinalizedEpoch > > { trace ! (\"searching for epoch on da layer at height {} under namespace\" , height) ; let node = self . node . read () . await ; let header = match node . get_header_by_height (height) . await { Ok (h) => h , Err (NodeError :: Store (StoreError :: NotFound)) => { debug ! (\"header for height {} not found locally, fetching from network\" , height) ; node . request_header_by_height (height) . await ? } Err (e) => return Err (anyhow ! (\"Failed to fetch header: {}\" , e)) , } ; match node . request_all_blobs (& header , self . snark_namespace , None) . await { Ok (blobs) => { let epochs : Vec < FinalizedEpoch > = blobs . into_iter () . filter_map (| blob | match FinalizedEpoch :: try_from (& blob) { Ok (epoch) => Some (epoch) , Err (_) => { warn ! (\"marshalling blob from height {} to epoch json: {:?}\" , height , & blob) ; None } }) . collect () ; Ok (epochs) } Err (e) => Err (anyhow ! (DataAvailabilityError :: DataRetrievalError (height , format ! (\"getting epoch from da layer: {}\" , e)))) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LightClientConnection"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/da/src/celestia/utils.rs",
+      "path": "../crates/da/src/celestia/utils.rs",
+      "relative_path": "crates/da/src/celestia/utils.rs",
+      "file_size": 3712,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_std_{str_FromStr,time_Duration,fmt}",
+            "path": "std :: { str :: FromStr , time :: Duration , fmt }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_anyhow_{Context,Result}",
+            "path": "anyhow :: { Context , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_celestia_types_nmt_Namespace",
+            "path": "celestia_types :: nmt :: Namespace",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_lumina_node_{network_NetworkasCelestiaNetwork,node_{DEFAULT_PRUNING_DELAY,DEFAULT_SAMPLING_WINDOW},}",
+            "path": "lumina_node :: { network :: Network as CelestiaNetwork , node :: { DEFAULT_PRUNING_DELAY , DEFAULT_SAMPLING_WINDOW } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_prism_keys_VerifyingKey",
+            "path": "prism_keys :: VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_prism_serde_{self,base64_FromBase64,hex_FromHex}",
+            "path": "prism_serde :: { self , base64 :: FromBase64 , hex :: FromHex }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/celestia/utils.rs#CelestiaConfig",
+            "name": "CelestiaConfig",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "connection_string",
+                "type_name": "String",
+                "visibility": "pub"
+              },
+              {
+                "name": "start_height",
+                "type_name": "u64",
+                "visibility": "pub"
+              },
+              {
+                "name": "snark_namespace_id",
+                "type_name": "String",
+                "visibility": "pub"
+              },
+              {
+                "name": "operation_namespace_id",
+                "type_name": "String",
+                "visibility": "pub"
+              },
+              {
+                "name": "sampling_window",
+                "type_name": "Duration",
+                "visibility": "pub"
+              },
+              {
+                "name": "pruning_delay",
+                "type_name": "Duration",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_Default_CelestiaConfig",
+            "target_type": "CelestiaConfig",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { CelestiaConfig { connection_string : \"ws://localhost:26658\" . to_string () , start_height : 4851608 , sampling_window : DEFAULT_SAMPLING_WINDOW , pruning_delay : DEFAULT_PRUNING_DELAY , snark_namespace_id : \"00000000000000de1008\" . to_string () , operation_namespace_id : \"00000000000000de1009\" . to_string () , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/da/src/celestia/utils.rs#Network",
+            "name": "Network",
+            "visibility": "pub",
+            "variants": [
+              "Specter",
+              "Custom"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_fmt::Display_Network",
+            "target_type": "Network",
+            "trait_name": "fmt :: Display",
+            "items": [
+              "fn fmt (& self , f : & mut fmt :: Formatter < '_ >) -> fmt :: Result { match self { Network :: Specter => write ! (f , \"specter\") , Network :: Custom (name) => write ! (f , \"{}\" , name) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/celestia/utils.rs#NetworkConfig",
+            "name": "NetworkConfig",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "network",
+                "type_name": "Network",
+                "visibility": "pub"
+              },
+              {
+                "name": "celestia_network",
+                "type_name": "CelestiaNetwork",
+                "visibility": "pub"
+              },
+              {
+                "name": "verifying_key",
+                "type_name": "Option < VerifyingKey >",
+                "visibility": "pub"
+              },
+              {
+                "name": "celestia_config",
+                "type_name": "Option < CelestiaConfig >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_Default_NetworkConfig",
+            "target_type": "NetworkConfig",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { NetworkConfig { network : Network :: Custom (\"custom\" . to_string ()) , celestia_network : CelestiaNetwork :: custom (\"private\") . unwrap () , verifying_key : None , celestia_config : None , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_FromStr_Network",
+            "target_type": "Network",
+            "trait_name": "FromStr",
+            "items": [
+              "type Err = anyhow :: Error ;",
+              "fn from_str (s : & str) -> Result < Self , Self :: Err > { match s { \"specter\" | \"Specter\" | \"devnet\" => Ok (Network :: Specter) , _ => Ok (Network :: Custom (s . to_string ())) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_Network",
+            "target_type": "Network",
+            "trait_name": null,
+            "items": [
+              "pub fn config (& self) -> NetworkConfig { match self { Network :: Specter => NetworkConfig { network : Network :: Specter , celestia_network : CelestiaNetwork :: Mocha , verifying_key : Some (VerifyingKey :: from_base64 (\"L2ilppK59Kq3aAMB/wpxdVGaI53DHPMdY6fcRodyFaA=\") . unwrap () ,) , celestia_config : Some (CelestiaConfig { start_height : 5725333 , snark_namespace_id : \"000000000000000000000000000000000000707269736d5350457331\" . to_string () , operation_namespace_id : \"000000000000000000000000000000000000707269736d5350456f31\" . to_string () , .. CelestiaConfig :: default () }) , } , Network :: Custom (id) => NetworkConfig { network : Network :: Custom (id . clone ()) , .. Default :: default () } , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/da/src/celestia/utils.rs#create_namespace",
+            "name": "create_namespace",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "namespace_hex : & str"
+            ],
+            "output": "Result < Namespace >",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_std_{str_FromStr,time_Duration,fmt}",
+            "path": "std :: { str :: FromStr , time :: Duration , fmt }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_anyhow_{Context,Result}",
+            "path": "anyhow :: { Context , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_celestia_types_nmt_Namespace",
+            "path": "celestia_types :: nmt :: Namespace",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_lumina_node_{network_NetworkasCelestiaNetwork,node_{DEFAULT_PRUNING_DELAY,DEFAULT_SAMPLING_WINDOW},}",
+            "path": "lumina_node :: { network :: Network as CelestiaNetwork , node :: { DEFAULT_PRUNING_DELAY , DEFAULT_SAMPLING_WINDOW } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_prism_keys_VerifyingKey",
+            "path": "prism_keys :: VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_prism_serde_{self,base64_FromBase64,hex_FromHex}",
+            "path": "prism_serde :: { self , base64 :: FromBase64 , hex :: FromHex }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/da/src/celestia/utils.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/celestia/utils.rs#CelestiaConfig",
+            "name": "CelestiaConfig",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "connection_string",
+                "type_name": "String",
+                "visibility": "pub"
+              },
+              {
+                "name": "start_height",
+                "type_name": "u64",
+                "visibility": "pub"
+              },
+              {
+                "name": "snark_namespace_id",
+                "type_name": "String",
+                "visibility": "pub"
+              },
+              {
+                "name": "operation_namespace_id",
+                "type_name": "String",
+                "visibility": "pub"
+              },
+              {
+                "name": "sampling_window",
+                "type_name": "Duration",
+                "visibility": "pub"
+              },
+              {
+                "name": "pruning_delay",
+                "type_name": "Duration",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Serialize",
+            "Deserialize",
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_Default_CelestiaConfig",
+            "target_type": "CelestiaConfig",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { CelestiaConfig { connection_string : \"ws://localhost:26658\" . to_string () , start_height : 4851608 , sampling_window : DEFAULT_SAMPLING_WINDOW , pruning_delay : DEFAULT_PRUNING_DELAY , snark_namespace_id : \"00000000000000de1008\" . to_string () , operation_namespace_id : \"00000000000000de1009\" . to_string () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "CelestiaConfig"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/da/src/celestia/utils.rs#Network",
+            "name": "Network",
+            "visibility": "pub",
+            "variants": [
+              "Specter",
+              "Custom"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Serialize",
+            "Deserialize",
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_fmt::Display_Network",
+            "target_type": "Network",
+            "trait_name": "fmt :: Display",
+            "items": [
+              "fn fmt (& self , f : & mut fmt :: Formatter < '_ >) -> fmt :: Result { match self { Network :: Specter => write ! (f , \"specter\") , Network :: Custom (name) => write ! (f , \"{}\" , name) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Network"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/da/src/celestia/utils.rs#NetworkConfig",
+            "name": "NetworkConfig",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "network",
+                "type_name": "Network",
+                "visibility": "pub"
+              },
+              {
+                "name": "celestia_network",
+                "type_name": "CelestiaNetwork",
+                "visibility": "pub"
+              },
+              {
+                "name": "verifying_key",
+                "type_name": "Option < VerifyingKey >",
+                "visibility": "pub"
+              },
+              {
+                "name": "celestia_config",
+                "type_name": "Option < CelestiaConfig >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Serialize",
+            "Deserialize",
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_Default_NetworkConfig",
+            "target_type": "NetworkConfig",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { NetworkConfig { network : Network :: Custom (\"custom\" . to_string ()) , celestia_network : CelestiaNetwork :: custom (\"private\") . unwrap () , verifying_key : None , celestia_config : None , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "NetworkConfig"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_FromStr_Network",
+            "target_type": "Network",
+            "trait_name": "FromStr",
+            "items": [
+              "type Err = anyhow :: Error ;",
+              "fn from_str (s : & str) -> Result < Self , Self :: Err > { match s { \"specter\" | \"Specter\" | \"devnet\" => Ok (Network :: Specter) , _ => Ok (Network :: Custom (s . to_string ())) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Network"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/da/src/celestia/utils.rs#impl_Network",
+            "target_type": "Network",
+            "trait_name": null,
+            "items": [
+              "pub fn config (& self) -> NetworkConfig { match self { Network :: Specter => NetworkConfig { network : Network :: Specter , celestia_network : CelestiaNetwork :: Mocha , verifying_key : Some (VerifyingKey :: from_base64 (\"L2ilppK59Kq3aAMB/wpxdVGaI53DHPMdY6fcRodyFaA=\") . unwrap () ,) , celestia_config : Some (CelestiaConfig { start_height : 5725333 , snark_namespace_id : \"000000000000000000000000000000000000707269736d5350457331\" . to_string () , operation_namespace_id : \"000000000000000000000000000000000000707269736d5350456f31\" . to_string () , .. CelestiaConfig :: default () }) , } , Network :: Custom (id) => NetworkConfig { network : Network :: Custom (id . clone ()) , .. Default :: default () } , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Network"
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/da/src/celestia/utils.rs#create_namespace",
+            "name": "create_namespace",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "namespace_hex : & str"
+            ],
+            "output": "Result < Namespace >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "Vec::from_hex",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "Namespace::new_v0",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "decoded_hex",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "u8"
+          ],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/da/src/consts.rs",
+      "to_id": "std :: time :: Duration",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "std :: sync :: Arc",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "anyhow :: { Result , anyhow }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "async_trait :: async_trait",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "celestia_types :: Blob",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "lumina_node :: events :: EventSubscriber",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "prism_keys :: { Signature , SigningKey , VerifyingKey }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "prism_serde :: { binary :: { FromBinary , ToBinary } , hex :: { FromHex , ToHex } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "tokio :: sync :: Mutex",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs",
+      "to_id": "{ prism_common :: transaction :: Transaction , sp1_sdk :: SP1ProofWithPublicValues }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs#FinalizedEpoch",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs#FinalizedEpoch",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs#FinalizedEpoch",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs#FinalizedEpoch",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/lib.rs#impl_TryFrom<&Blob>_FinalizedEpoch",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs",
+      "to_id": "crate :: { DataAvailabilityLayer , FinalizedEpoch , LightDataAvailabilityLayer }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs",
+      "to_id": "async_trait :: async_trait",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs",
+      "to_id": "lumina_node :: events :: EventSubscriber",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs",
+      "to_id": "prism_common :: transaction :: Transaction",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs",
+      "to_id": "std :: sync :: Arc",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs",
+      "to_id": "tokio :: { sync :: { Mutex , RwLock , broadcast } , time :: { Duration , interval } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs",
+      "to_id": "tracing :: debug",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs#Block",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs#Block",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs#InMemoryDataAvailabilityLayer",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs#impl_LightDataAvailabilityLayer_InMemoryDataAvailabilityLayer",
+      "to_id": "trait:LightDataAvailabilityLayer",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/memory.rs#impl_DataAvailabilityLayer_InMemoryDataAvailabilityLayer",
+      "to_id": "trait:DataAvailabilityLayer",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "crate :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "anyhow :: { Context , Result , anyhow }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "async_trait :: async_trait",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "celestia_types :: { Blob , nmt :: Namespace }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "lumina_node :: events :: EventSubscriber",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "prism_errors :: { DataAvailabilityError , GeneralError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "std :: { self , sync :: { Arc , atomic :: { AtomicU64 , Ordering } , } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "tracing :: { error , trace }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "tokio :: sync :: { Mutex , broadcast }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "crate :: DataAvailabilityLayer",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "celestia_rpc :: { BlobClient , Client , HeaderClient , TxConfig }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "celestia_types :: AppVersion",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "prism_common :: transaction :: Transaction",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "prism_serde :: binary :: ToBinary",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "tokio :: task :: spawn",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "tracing :: { debug , warn }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs",
+      "to_id": "super :: utils :: { CelestiaConfig , create_namespace }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs#impl_LightDataAvailabilityLayer_CelestiaConnection",
+      "to_id": "trait:LightDataAvailabilityLayer",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/celestia/full_node.rs#impl_DataAvailabilityLayer_CelestiaConnection",
+      "to_id": "trait:DataAvailabilityLayer",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "super :: utils :: { NetworkConfig , create_namespace }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "crate :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "anyhow :: { Result , anyhow }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "async_trait :: async_trait",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "blockstore :: EitherBlockstore",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "celestia_types :: nmt :: Namespace",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "lumina_node :: { Node , NodeError , blockstore :: InMemoryBlockstore , events :: EventSubscriber , store :: { EitherStore , InMemoryStore , StoreError } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "prism_errors :: DataAvailabilityError",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "std :: { self , sync :: Arc }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "tokio :: sync :: { Mutex , RwLock }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "tracing :: { debug , trace , warn }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "{ lumina_node :: { blockstore :: IndexedDbBlockstore , store :: IndexedDbStore } , lumina_node_wasm :: utils :: resolve_dnsaddr_multiaddress , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "libp2p :: Multiaddr",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "lumina_node :: NodeBuilder",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "{ redb :: Database , tokio :: task :: spawn_blocking }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "lumina_node_uniffi :: types :: NodeConfig",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs",
+      "to_id": "lumina_node :: { blockstore :: RedbBlockstore , store :: RedbStore }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs#resolve_bootnodes",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs#resolve_bootnodes",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs#resolve_bootnodes",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs#resolve_bootnodes",
+      "to_id": "resolve_dnsaddr_multiaddress",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs#resolve_bootnodes",
+      "to_id": "extend",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs#resolve_bootnodes",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/light_client.rs#impl_LightDataAvailabilityLayer_LightClientConnection",
+      "to_id": "trait:LightDataAvailabilityLayer",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs",
+      "to_id": "std :: { str :: FromStr , time :: Duration , fmt }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs",
+      "to_id": "anyhow :: { Context , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs",
+      "to_id": "celestia_types :: nmt :: Namespace",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs",
+      "to_id": "lumina_node :: { network :: Network as CelestiaNetwork , node :: { DEFAULT_PRUNING_DELAY , DEFAULT_SAMPLING_WINDOW } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs",
+      "to_id": "prism_keys :: VerifyingKey",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs",
+      "to_id": "prism_serde :: { self , base64 :: FromBase64 , hex :: FromHex }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#CelestiaConfig",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#CelestiaConfig",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#CelestiaConfig",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#CelestiaConfig",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#impl_Default_CelestiaConfig",
+      "to_id": "trait:Default",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#Network",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#Network",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#Network",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#Network",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#impl_fmt::Display_Network",
+      "to_id": "trait:fmt::Display",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#NetworkConfig",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#NetworkConfig",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#NetworkConfig",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#NetworkConfig",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#impl_Default_NetworkConfig",
+      "to_id": "trait:Default",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#impl_FromStr_Network",
+      "to_id": "trait:FromStr",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#create_namespace",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#create_namespace",
+      "to_id": "Vec::from_hex",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#create_namespace",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/da/src/celestia/utils.rs#create_namespace",
+      "to_id": "Namespace::new_v0",
+      "ref_type": "FunctionCall"
+    }
+  ],
+  "total_files": 7,
+  "successfully_parsed": 7,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 2,
+    "total_structs": 7,
+    "total_enums": 1,
+    "total_traits": 2,
+    "total_impls": 15,
+    "total_tests": 0,
+    "total_function_calls": 10,
+    "total_derives": 19,
+    "total_macro_uses": 2
+  }
+}

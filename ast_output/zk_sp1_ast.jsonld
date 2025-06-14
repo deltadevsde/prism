@@ -1,0 +1,422 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:zk_sp1",
+  "crate_name": "zk_sp1",
+  "crate_path": "crates/zk/sp1",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/sp1/src/bin/base_prover.rs",
+      "path": "../crates/zk/sp1/src/bin/base_prover.rs",
+      "relative_path": "crates/zk/sp1/src/bin/base_prover.rs",
+      "file_size": 627,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/sp1/src/bin/base_prover.rs#use_prism_tree_proofs_Batch",
+            "path": "prism_tree :: proofs :: Batch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/sp1/src/bin/base_prover.rs#main",
+            "name": "main",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/sp1/src/bin/base_prover.rs#use_prism_tree_proofs_Batch",
+            "path": "prism_tree :: proofs :: Batch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/sp1/src/bin/base_prover.rs#main",
+            "name": "main",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "sp1_zkvm::io::read",
+              "is_method": false
+            },
+            {
+              "callee": "sp1_zkvm::io::commit_slice",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "verify",
+              "is_method": true,
+              "receiver_type": "batch"
+            },
+            {
+              "callee": "sp1_zkvm::io::commit_slice",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "batch",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Batch"
+          ],
+          "macro_invocations": [
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/sp1/src/bin/recursive_prover.rs",
+      "path": "../crates/zk/sp1/src/bin/recursive_prover.rs",
+      "relative_path": "crates/zk/sp1/src/bin/recursive_prover.rs",
+      "file_size": 1048,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/sp1/src/bin/recursive_prover.rs#use_prism_tree_proofs_Batch",
+            "path": "prism_tree :: proofs :: Batch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/sp1/src/bin/recursive_prover.rs#use_sha2_{Digest,Sha256}",
+            "path": "sha2 :: { Digest , Sha256 }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+            "name": "main",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/sp1/src/bin/recursive_prover.rs#use_prism_tree_proofs_Batch",
+            "path": "prism_tree :: proofs :: Batch",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/sp1/src/bin/recursive_prover.rs#use_sha2_{Digest,Sha256}",
+            "path": "sha2 :: { Digest , Sha256 }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+            "name": "main",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "sp1_zkvm::io::read_vec",
+              "is_method": false
+            },
+            {
+              "callee": "Sha256::digest",
+              "is_method": false
+            },
+            {
+              "callee": "sp1_zkvm::io::read",
+              "is_method": false
+            },
+            {
+              "callee": "sp1_zkvm::lib::verify::verify_sp1_proof",
+              "is_method": false
+            },
+            {
+              "callee": "into",
+              "is_method": true,
+              "receiver_type": "pv_digest"
+            },
+            {
+              "callee": "sp1_zkvm::io::read",
+              "is_method": false
+            },
+            {
+              "callee": "sp1_zkvm::io::commit_slice",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "verify",
+              "is_method": true,
+              "receiver_type": "batch"
+            },
+            {
+              "callee": "sp1_zkvm::io::commit_slice",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "pv_vec",
+              "is_mutable": false
+            },
+            {
+              "name": "pv_digest",
+              "is_mutable": false
+            },
+            {
+              "name": "vk_digest",
+              "is_mutable": false
+            },
+            {
+              "name": "batch",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "u32",
+            "Batch"
+          ],
+          "macro_invocations": [
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/zk/sp1/src/bin/base_prover.rs",
+      "to_id": "prism_tree :: proofs :: Batch",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/base_prover.rs#main",
+      "to_id": "sp1_zkvm::io::read",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/base_prover.rs#main",
+      "to_id": "sp1_zkvm::io::commit_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/base_prover.rs#main",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/base_prover.rs#main",
+      "to_id": "verify",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/base_prover.rs#main",
+      "to_id": "sp1_zkvm::io::commit_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs",
+      "to_id": "prism_tree :: proofs :: Batch",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs",
+      "to_id": "sha2 :: { Digest , Sha256 }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "sp1_zkvm::io::read_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "Sha256::digest",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "sp1_zkvm::io::read",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "sp1_zkvm::lib::verify::verify_sp1_proof",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "sp1_zkvm::io::read",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "sp1_zkvm::io::commit_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "verify",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/sp1/src/bin/recursive_prover.rs#main",
+      "to_id": "sp1_zkvm::io::commit_slice",
+      "ref_type": "FunctionCall"
+    }
+  ],
+  "total_files": 2,
+  "successfully_parsed": 2,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 2,
+    "total_structs": 0,
+    "total_enums": 0,
+    "total_traits": 0,
+    "total_impls": 0,
+    "total_tests": 0,
+    "total_function_calls": 15,
+    "total_derives": 0,
+    "total_macro_uses": 10
+  }
+}

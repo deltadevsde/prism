@@ -1,0 +1,1 @@
+HashMap<std::string::String, (std::string::String, Vec<EnhancedSerializableAst>, Vec<CrossReference>, Vec<std::string::String>)>

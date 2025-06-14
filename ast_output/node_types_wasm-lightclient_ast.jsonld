@@ -1,0 +1,1576 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:node_types_wasm-lightclient",
+  "crate_name": "node_types_wasm-lightclient",
+  "crate_path": "crates/node_types/wasm-lightclient",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/wasm-lightclient/src/client.rs",
+      "path": "../crates/node_types/wasm-lightclient/src/client.rs",
+      "relative_path": "crates/node_types/wasm-lightclient/src/client.rs",
+      "file_size": 1808,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#use_wasm_bindgen_prelude_*",
+            "path": "wasm_bindgen :: prelude :: *",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#use_web_sys_BroadcastChannel",
+            "path": "web_sys :: BroadcastChannel",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#use_crate_{commands_{LightClientCommand,WorkerResponse},worker_MessagePortLike,worker_communication_WorkerClient,}",
+            "path": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker :: MessagePortLike , worker_communication :: WorkerClient , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#VerifyEpochResult",
+            "name": "VerifyEpochResult",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "verified",
+                "type_name": "bool",
+                "visibility": "pub"
+              },
+              {
+                "name": "height",
+                "type_name": "u64",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#impl_VerifyEpochResult",
+            "target_type": "VerifyEpochResult",
+            "trait_name": null,
+            "items": [
+              "pub fn new (verified : bool , height : u64) -> Self { Self { verified , height } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#WasmLightClient",
+            "name": "WasmLightClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "worker_client",
+                "type_name": "WorkerClient",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#impl_WasmLightClient",
+            "target_type": "WasmLightClient",
+            "trait_name": null,
+            "items": [
+              "# [wasm_bindgen (constructor)] pub async fn new (worker_js : JsValue) -> Result < WasmLightClient , JsError > { let worker_client = WorkerClient :: new (worker_js . unchecked_into :: < MessagePortLike > ()) ? ; Ok (Self { worker_client }) }",
+              "# [wasm_bindgen (js_name = getCurrentCommitment)] pub async fn get_current_commitment (& self) -> Result < String , JsError > { match self . worker_client . exec (LightClientCommand :: GetCurrentCommitment) . await ? { WorkerResponse :: CurrentCommitment (commitment) => Ok (commitment) , WorkerResponse :: Error (e) => Err (JsError :: new (& e)) , _ => Err (JsError :: new (\"Unexpected response\")) , } }",
+              "# [wasm_bindgen (js_name = \"eventsChannel\")] pub async fn events_channel (& self) -> Result < BroadcastChannel , JsError > { match self . worker_client . exec (LightClientCommand :: GetEventsChannelName) . await ? { WorkerResponse :: EventsChannelName (name) => BroadcastChannel :: new (& name) . map_err (| _ | JsError :: new (\"Failed to create events channel\")) , WorkerResponse :: Error (e) => Err (JsError :: new (& e)) , _ => Err (JsError :: new (\"Unexpected response type\")) , } }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#use_wasm_bindgen_prelude_*",
+            "path": "wasm_bindgen :: prelude :: *",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#use_web_sys_BroadcastChannel",
+            "path": "web_sys :: BroadcastChannel",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#use_crate_{commands_{LightClientCommand,WorkerResponse},worker_MessagePortLike,worker_communication_WorkerClient,}",
+            "path": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker :: MessagePortLike , worker_communication :: WorkerClient , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#VerifyEpochResult",
+            "name": "VerifyEpochResult",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "verified",
+                "type_name": "bool",
+                "visibility": "pub"
+              },
+              {
+                "name": "height",
+                "type_name": "u64",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#impl_VerifyEpochResult",
+            "target_type": "VerifyEpochResult",
+            "trait_name": null,
+            "items": [
+              "pub fn new (verified : bool , height : u64) -> Self { Self { verified , height } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyEpochResult"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#WasmLightClient",
+            "name": "WasmLightClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "worker_client",
+                "type_name": "WorkerClient",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/client.rs#impl_WasmLightClient",
+            "target_type": "WasmLightClient",
+            "trait_name": null,
+            "items": [
+              "# [wasm_bindgen (constructor)] pub async fn new (worker_js : JsValue) -> Result < WasmLightClient , JsError > { let worker_client = WorkerClient :: new (worker_js . unchecked_into :: < MessagePortLike > ()) ? ; Ok (Self { worker_client }) }",
+              "# [wasm_bindgen (js_name = getCurrentCommitment)] pub async fn get_current_commitment (& self) -> Result < String , JsError > { match self . worker_client . exec (LightClientCommand :: GetCurrentCommitment) . await ? { WorkerResponse :: CurrentCommitment (commitment) => Ok (commitment) , WorkerResponse :: Error (e) => Err (JsError :: new (& e)) , _ => Err (JsError :: new (\"Unexpected response\")) , } }",
+              "# [wasm_bindgen (js_name = \"eventsChannel\")] pub async fn events_channel (& self) -> Result < BroadcastChannel , JsError > { match self . worker_client . exec (LightClientCommand :: GetEventsChannelName) . await ? { WorkerResponse :: EventsChannelName (name) => BroadcastChannel :: new (& name) . map_err (| _ | JsError :: new (\"Failed to create events channel\")) , WorkerResponse :: Error (e) => Err (JsError :: new (& e)) , _ => Err (JsError :: new (\"Unexpected response type\")) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "WasmLightClient"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/wasm-lightclient/src/error.rs",
+      "path": "../crates/node_types/wasm-lightclient/src/error.rs",
+      "relative_path": "crates/node_types/wasm-lightclient/src/error.rs",
+      "file_size": 836,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#use_anyhow_{ErrorasAnyhowError,Result}",
+            "path": "anyhow :: { Error as AnyhowError , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#use_prism_errors_{DataAvailabilityError,GeneralError}",
+            "path": "prism_errors :: { DataAvailabilityError , GeneralError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#use_thiserror_Error",
+            "path": "thiserror :: Error",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#WasmLightClientError",
+            "name": "WasmLightClientError",
+            "visibility": "pub",
+            "variants": [
+              "Worker",
+              "DataAvailability",
+              "General",
+              "Other"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#WorkerError",
+            "name": "WorkerError",
+            "visibility": "pub",
+            "variants": [
+              "CommunicationError",
+              "InitializationError",
+              "ChannelClosed"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#WasmResult",
+            "name": "WasmResult",
+            "visibility": "pub",
+            "target_type": "Result < T , WasmLightClientError >",
+            "generics": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#use_anyhow_{ErrorasAnyhowError,Result}",
+            "path": "anyhow :: { Error as AnyhowError , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#use_prism_errors_{DataAvailabilityError,GeneralError}",
+            "path": "prism_errors :: { DataAvailabilityError , GeneralError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#use_thiserror_Error",
+            "path": "thiserror :: Error",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#WasmLightClientError",
+            "name": "WasmLightClientError",
+            "visibility": "pub",
+            "variants": [
+              "Worker",
+              "DataAvailability",
+              "General",
+              "Other"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Error",
+            "Debug"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#WorkerError",
+            "name": "WorkerError",
+            "visibility": "pub",
+            "variants": [
+              "CommunicationError",
+              "InitializationError",
+              "ChannelClosed"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Error",
+            "Debug"
+          ]
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/node_types/wasm-lightclient/src/error.rs#WasmResult",
+            "name": "WasmResult",
+            "visibility": "pub",
+            "target_type": "Result < T , WasmLightClientError >",
+            "generics": [
+              "T"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/wasm-lightclient/src/lib.rs",
+      "path": "../crates/node_types/wasm-lightclient/src/lib.rs",
+      "relative_path": "crates/node_types/wasm-lightclient/src/lib.rs",
+      "file_size": 128,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#client",
+            "name": "client",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#commands",
+            "name": "commands",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#error",
+            "name": "error",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#worker",
+            "name": "worker",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#worker_communication",
+            "name": "worker_communication",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#client",
+            "name": "client",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#commands",
+            "name": "commands",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#error",
+            "name": "error",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#worker",
+            "name": "worker",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/wasm-lightclient/src/lib.rs#worker_communication",
+            "name": "worker_communication",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "path": "../crates/node_types/wasm-lightclient/src/worker.rs",
+      "relative_path": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "file_size": 5223,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_js_sys_Function",
+            "path": "js_sys :: Function",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_prism_da_celestia_{light_client_LightClientConnection,utils_Network}",
+            "path": "prism_da :: celestia :: { light_client :: LightClientConnection , utils :: Network }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_prism_lightclient_{LightClient,events_{EventChannel,EventPublisher,EventSubscriber,LightClientEvent},}",
+            "path": "prism_lightclient :: { LightClient , events :: { EventChannel , EventPublisher , EventSubscriber , LightClientEvent } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_std_{str_FromStr,sync_Arc}",
+            "path": "std :: { str :: FromStr , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_wasm_bindgen_futures_spawn_local",
+            "path": "wasm_bindgen_futures :: spawn_local",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_web_sys_{BroadcastChannel,MessagePort,console}",
+            "path": "web_sys :: { BroadcastChannel , MessagePort , console }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_crate_{commands_{LightClientCommand,WorkerResponse},worker_communication_{WorkerServer,random_id},}",
+            "path": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker_communication :: { WorkerServer , random_id } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_wasm_bindgen_{JsCast,prelude_*}",
+            "path": "wasm_bindgen :: { JsCast , prelude :: * }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#LightClientWorker",
+            "name": "LightClientWorker",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "server",
+                "type_name": "WorkerServer",
+                "visibility": "private"
+              },
+              {
+                "name": "light_client",
+                "type_name": "Arc < LightClient >",
+                "visibility": "private"
+              },
+              {
+                "name": "events_channel_name",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#impl_From<MessagePort>_MessagePortLike",
+            "target_type": "MessagePortLike",
+            "trait_name": "From < MessagePort >",
+            "items": [
+              "fn from (port : MessagePort) -> Self { JsValue :: from (port) . into () }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#impl_LightClientWorker",
+            "target_type": "LightClientWorker",
+            "trait_name": null,
+            "items": [
+              "# [wasm_bindgen (constructor)] pub async fn new (port_value : JsValue , network : & str) -> Result < LightClientWorker , JsError > { let port : MessagePortLike = port_value . unchecked_into :: < MessagePortLike > () ; let server = WorkerServer :: new (port) ? ; let (events_channel_name , light_client_event_publisher , light_client_event_subscriber , js_channel ,) = initialize_event_channel () ? ; spawn_local (forward_events (light_client_event_subscriber , js_channel . clone () ,)) ; let network = Network :: from_str (network) . map_err (| e | JsError :: new (& format ! (\"Invalid network: {}\" , e))) ? ; let network_config = network . config () ; let da = Arc :: new (LightClientConnection :: new (& network_config) . await . map_err (| e | JsError :: new (& format ! (\"Failed to connect to light client: {}\" , e))) ? ,) ; let verifying_key = network_config . verifying_key ; let light_client = Arc :: new (LightClient :: new (da , verifying_key , light_client_event_publisher ,)) ; Ok (Self { server , light_client , events_channel_name : events_channel_name . to_string () , }) }",
+              "pub async fn run (& mut self) -> Result < () , JsError > { let light_client = Arc :: clone (& self . light_client) ; light_client . run () . await . map_err (| e | JsError :: new (& format ! (\"Light client error: {}\" , e))) ? ; while let Ok (command) = self . server . recv () . await { let response = match command { LightClientCommand :: GetCurrentCommitment => { match self . light_client . get_latest_commitment () . await { Some (commitment) => { WorkerResponse :: CurrentCommitment (commitment . to_string ()) } None => WorkerResponse :: Error (\"No commitment available yet\" . to_string ()) , } } LightClientCommand :: GetEventsChannelName => { WorkerResponse :: EventsChannelName (self . events_channel_name . clone ()) } } ; self . server . respond (response) ? ; } Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+            "name": "initialize_event_channel",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Result < (String , EventPublisher , EventSubscriber , BroadcastChannel) , JsError >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+            "name": "forward_events",
+            "visibility": "private",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [
+              "mut subscriber : EventSubscriber",
+              "channel : BroadcastChannel"
+            ],
+            "output": null,
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_js_sys_Function",
+            "path": "js_sys :: Function",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_prism_da_celestia_{light_client_LightClientConnection,utils_Network}",
+            "path": "prism_da :: celestia :: { light_client :: LightClientConnection , utils :: Network }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_prism_lightclient_{LightClient,events_{EventChannel,EventPublisher,EventSubscriber,LightClientEvent},}",
+            "path": "prism_lightclient :: { LightClient , events :: { EventChannel , EventPublisher , EventSubscriber , LightClientEvent } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_std_{str_FromStr,sync_Arc}",
+            "path": "std :: { str :: FromStr , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_wasm_bindgen_futures_spawn_local",
+            "path": "wasm_bindgen_futures :: spawn_local",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_web_sys_{BroadcastChannel,MessagePort,console}",
+            "path": "web_sys :: { BroadcastChannel , MessagePort , console }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_crate_{commands_{LightClientCommand,WorkerResponse},worker_communication_{WorkerServer,random_id},}",
+            "path": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker_communication :: { WorkerServer , random_id } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#use_wasm_bindgen_{JsCast,prelude_*}",
+            "path": "wasm_bindgen :: { JsCast , prelude :: * }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#LightClientWorker",
+            "name": "LightClientWorker",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "server",
+                "type_name": "WorkerServer",
+                "visibility": "private"
+              },
+              {
+                "name": "light_client",
+                "type_name": "Arc < LightClient >",
+                "visibility": "private"
+              },
+              {
+                "name": "events_channel_name",
+                "type_name": "String",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#impl_From<MessagePort>_MessagePortLike",
+            "target_type": "MessagePortLike",
+            "trait_name": "From < MessagePort >",
+            "items": [
+              "fn from (port : MessagePort) -> Self { JsValue :: from (port) . into () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "MessagePortLike"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#impl_LightClientWorker",
+            "target_type": "LightClientWorker",
+            "trait_name": null,
+            "items": [
+              "# [wasm_bindgen (constructor)] pub async fn new (port_value : JsValue , network : & str) -> Result < LightClientWorker , JsError > { let port : MessagePortLike = port_value . unchecked_into :: < MessagePortLike > () ; let server = WorkerServer :: new (port) ? ; let (events_channel_name , light_client_event_publisher , light_client_event_subscriber , js_channel ,) = initialize_event_channel () ? ; spawn_local (forward_events (light_client_event_subscriber , js_channel . clone () ,)) ; let network = Network :: from_str (network) . map_err (| e | JsError :: new (& format ! (\"Invalid network: {}\" , e))) ? ; let network_config = network . config () ; let da = Arc :: new (LightClientConnection :: new (& network_config) . await . map_err (| e | JsError :: new (& format ! (\"Failed to connect to light client: {}\" , e))) ? ,) ; let verifying_key = network_config . verifying_key ; let light_client = Arc :: new (LightClient :: new (da , verifying_key , light_client_event_publisher ,)) ; Ok (Self { server , light_client , events_channel_name : events_channel_name . to_string () , }) }",
+              "pub async fn run (& mut self) -> Result < () , JsError > { let light_client = Arc :: clone (& self . light_client) ; light_client . run () . await . map_err (| e | JsError :: new (& format ! (\"Light client error: {}\" , e))) ? ; while let Ok (command) = self . server . recv () . await { let response = match command { LightClientCommand :: GetCurrentCommitment => { match self . light_client . get_latest_commitment () . await { Some (commitment) => { WorkerResponse :: CurrentCommitment (commitment . to_string ()) } None => WorkerResponse :: Error (\"No commitment available yet\" . to_string ()) , } } LightClientCommand :: GetEventsChannelName => { WorkerResponse :: EventsChannelName (self . events_channel_name . clone ()) } } ; self . server . respond (response) ? ; } Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LightClientWorker"
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+            "name": "initialize_event_channel",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Result < (String , EventPublisher , EventSubscriber , BroadcastChannel) , JsError >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "EventChannel::new",
+              "is_method": false
+            },
+            {
+              "callee": "publisher",
+              "is_method": true,
+              "receiver_type": "light_client_event_channel"
+            },
+            {
+              "callee": "subscribe",
+              "is_method": true,
+              "receiver_type": "light_client_event_channel"
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "BroadcastChannel::new",
+              "is_method": false
+            },
+            {
+              "callee": "as_str",
+              "is_method": true,
+              "receiver_type": "events_channel_name"
+            },
+            {
+              "callee": "JsError::new",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "events_channel_name",
+              "is_mutable": false
+            },
+            {
+              "name": "light_client_event_channel",
+              "is_mutable": false
+            },
+            {
+              "name": "event_publisher",
+              "is_mutable": false
+            },
+            {
+              "name": "event_subscriber",
+              "is_mutable": false
+            },
+            {
+              "name": "js_channel",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+            "name": "forward_events",
+            "visibility": "private",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [
+              "mut subscriber : EventSubscriber",
+              "channel : BroadcastChannel"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "recv",
+              "is_method": true,
+              "receiver_type": "subscriber"
+            },
+            {
+              "callee": "serde_wasm_bindgen::to_value",
+              "is_method": false
+            },
+            {
+              "callee": "console::log_2",
+              "is_method": false
+            },
+            {
+              "callee": "into",
+              "is_method": true
+            },
+            {
+              "callee": "post_message",
+              "is_method": true,
+              "receiver_type": "channel"
+            },
+            {
+              "callee": "console::error_1",
+              "is_method": false
+            },
+            {
+              "callee": "into",
+              "is_method": true
+            }
+          ],
+          "local_variables": [],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/wasm-lightclient/src/commands.rs",
+      "path": "../crates/node_types/wasm-lightclient/src/commands.rs",
+      "relative_path": "crates/node_types/wasm-lightclient/src/commands.rs",
+      "file_size": 314,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/commands.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/wasm-lightclient/src/commands.rs#LightClientCommand",
+            "name": "LightClientCommand",
+            "visibility": "pub",
+            "variants": [
+              "GetCurrentCommitment",
+              "GetEventsChannelName"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/wasm-lightclient/src/commands.rs#WorkerResponse",
+            "name": "WorkerResponse",
+            "visibility": "pub",
+            "variants": [
+              "CurrentCommitment",
+              "EventsChannelName",
+              "Error"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/commands.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/wasm-lightclient/src/commands.rs#LightClientCommand",
+            "name": "LightClientCommand",
+            "visibility": "pub",
+            "variants": [
+              "GetCurrentCommitment",
+              "GetEventsChannelName"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/wasm-lightclient/src/commands.rs#WorkerResponse",
+            "name": "WorkerResponse",
+            "visibility": "pub",
+            "variants": [
+              "CurrentCommitment",
+              "EventsChannelName",
+              "Error"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Serialize",
+            "Deserialize"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "path": "../crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "relative_path": "crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "file_size": 3652,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_js_sys_Math",
+            "path": "js_sys :: Math",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_serde_wasm_bindgen_{from_value,to_value}",
+            "path": "serde_wasm_bindgen :: { from_value , to_value }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_tokio_sync_{mpsc,Mutex}",
+            "path": "tokio :: sync :: { mpsc , Mutex }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_wasm_bindgen_{closure_Closure,prelude_*}",
+            "path": "wasm_bindgen :: { closure :: Closure , prelude :: * }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_web_sys_{console,MessageEvent}",
+            "path": "web_sys :: { console , MessageEvent }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_crate_{commands_{LightClientCommand,WorkerResponse},worker_MessagePortLike,}",
+            "path": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker :: MessagePortLike , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#random_id",
+            "name": "random_id",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "u32",
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#WorkerClient",
+            "name": "WorkerClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "port",
+                "type_name": "MessagePortLike",
+                "visibility": "private"
+              },
+              {
+                "name": "response_channel",
+                "type_name": "Mutex < mpsc :: UnboundedReceiver < Result < WorkerResponse , JsError > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "onmessage",
+                "type_name": "Closure < dyn Fn (MessageEvent) >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#impl_WorkerClient",
+            "target_type": "WorkerClient",
+            "trait_name": null,
+            "items": [
+              "pub fn new (port : MessagePortLike) -> Result < Self , JsError > { let (response_tx , response_rx) = mpsc :: unbounded_channel () ; let onmessage : Closure < dyn Fn (MessageEvent) > = Closure :: new (move | message_event : MessageEvent | { if let Ok (response) = from_value (message_event . data ()) { if response_tx . send (Ok (response)) . is_err () { console :: error_1 (& \"Failed to forward response\" . into ()) ; } } }) ; port . set_onmessage (Some (onmessage . as_ref () . unchecked_ref ())) ; Ok (WorkerClient { port , response_channel : Mutex :: new (response_rx) , onmessage , }) }",
+              "pub async fn exec (& self , command : LightClientCommand) -> Result < WorkerResponse , JsError > { let value = to_value (& command) ? ; self . port . post_message (& value) . map_err (| e | JsError :: new (& format ! (\"Failed to post message: {:?}\" , e))) ? ; let mut response_channel = self . response_channel . lock () . await ; response_channel . recv () . await . ok_or_else (| | JsError :: new (\"response channel should never drop\")) ? }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#WorkerServer",
+            "name": "WorkerServer",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "port",
+                "type_name": "MessagePortLike",
+                "visibility": "private"
+              },
+              {
+                "name": "command_rx",
+                "type_name": "mpsc :: UnboundedReceiver < LightClientCommand >",
+                "visibility": "private"
+              },
+              {
+                "name": "onmessage",
+                "type_name": "Closure < dyn Fn (MessageEvent) >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#impl_WorkerServer",
+            "target_type": "WorkerServer",
+            "trait_name": null,
+            "items": [
+              "pub fn new (port : MessagePortLike) -> Result < Self , JsError > { let (command_tx , command_rx) = mpsc :: unbounded_channel () ; let onmessage : Closure < dyn Fn (MessageEvent) > = Closure :: new (move | message_event : MessageEvent | { if let Ok (command) = from_value (message_event . data ()) { if let Err (e) = command_tx . send (command) { console :: error_1 (& format ! (\"Failed to process command: {}\" , e) . into ()) ; } } }) ; port . set_onmessage (Some (onmessage . as_ref () . unchecked_ref ())) ; console :: log_1 (& \"✅ WorkerServer initialized\" . into ()) ; Ok (WorkerServer { port , command_rx , onmessage , }) }",
+              "pub async fn recv (& mut self) -> Result < LightClientCommand , JsError > { self . command_rx . recv () . await . ok_or_else (| | JsError :: new (\"Channel closed\")) }",
+              "pub fn respond (& self , response : WorkerResponse) -> Result < () , JsError > { let value = to_value (& response) . map_err (| e | JsError :: new (& e . to_string ())) ? ; self . port . post_message (& value) . map_err (| e | JsError :: new (& format ! (\"Failed to serialize response: {:?}\" , e))) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_js_sys_Math",
+            "path": "js_sys :: Math",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_serde_wasm_bindgen_{from_value,to_value}",
+            "path": "serde_wasm_bindgen :: { from_value , to_value }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_tokio_sync_{mpsc,Mutex}",
+            "path": "tokio :: sync :: { mpsc , Mutex }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_wasm_bindgen_{closure_Closure,prelude_*}",
+            "path": "wasm_bindgen :: { closure :: Closure , prelude :: * }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_web_sys_{console,MessageEvent}",
+            "path": "web_sys :: { console , MessageEvent }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#use_crate_{commands_{LightClientCommand,WorkerResponse},worker_MessagePortLike,}",
+            "path": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker :: MessagePortLike , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#random_id",
+            "name": "random_id",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "u32",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "Math::random",
+              "is_method": false
+            },
+            {
+              "callee": "f64::from",
+              "is_method": false
+            }
+          ],
+          "local_variables": [],
+          "type_references": [
+            "u32"
+          ],
+          "macro_invocations": []
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#WorkerClient",
+            "name": "WorkerClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "port",
+                "type_name": "MessagePortLike",
+                "visibility": "private"
+              },
+              {
+                "name": "response_channel",
+                "type_name": "Mutex < mpsc :: UnboundedReceiver < Result < WorkerResponse , JsError > > >",
+                "visibility": "private"
+              },
+              {
+                "name": "onmessage",
+                "type_name": "Closure < dyn Fn (MessageEvent) >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#impl_WorkerClient",
+            "target_type": "WorkerClient",
+            "trait_name": null,
+            "items": [
+              "pub fn new (port : MessagePortLike) -> Result < Self , JsError > { let (response_tx , response_rx) = mpsc :: unbounded_channel () ; let onmessage : Closure < dyn Fn (MessageEvent) > = Closure :: new (move | message_event : MessageEvent | { if let Ok (response) = from_value (message_event . data ()) { if response_tx . send (Ok (response)) . is_err () { console :: error_1 (& \"Failed to forward response\" . into ()) ; } } }) ; port . set_onmessage (Some (onmessage . as_ref () . unchecked_ref ())) ; Ok (WorkerClient { port , response_channel : Mutex :: new (response_rx) , onmessage , }) }",
+              "pub async fn exec (& self , command : LightClientCommand) -> Result < WorkerResponse , JsError > { let value = to_value (& command) ? ; self . port . post_message (& value) . map_err (| e | JsError :: new (& format ! (\"Failed to post message: {:?}\" , e))) ? ; let mut response_channel = self . response_channel . lock () . await ; response_channel . recv () . await . ok_or_else (| | JsError :: new (\"response channel should never drop\")) ? }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "WorkerClient"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#WorkerServer",
+            "name": "WorkerServer",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "port",
+                "type_name": "MessagePortLike",
+                "visibility": "private"
+              },
+              {
+                "name": "command_rx",
+                "type_name": "mpsc :: UnboundedReceiver < LightClientCommand >",
+                "visibility": "private"
+              },
+              {
+                "name": "onmessage",
+                "type_name": "Closure < dyn Fn (MessageEvent) >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#impl_WorkerServer",
+            "target_type": "WorkerServer",
+            "trait_name": null,
+            "items": [
+              "pub fn new (port : MessagePortLike) -> Result < Self , JsError > { let (command_tx , command_rx) = mpsc :: unbounded_channel () ; let onmessage : Closure < dyn Fn (MessageEvent) > = Closure :: new (move | message_event : MessageEvent | { if let Ok (command) = from_value (message_event . data ()) { if let Err (e) = command_tx . send (command) { console :: error_1 (& format ! (\"Failed to process command: {}\" , e) . into ()) ; } } }) ; port . set_onmessage (Some (onmessage . as_ref () . unchecked_ref ())) ; console :: log_1 (& \"✅ WorkerServer initialized\" . into ()) ; Ok (WorkerServer { port , command_rx , onmessage , }) }",
+              "pub async fn recv (& mut self) -> Result < LightClientCommand , JsError > { self . command_rx . recv () . await . ok_or_else (| | JsError :: new (\"Channel closed\")) }",
+              "pub fn respond (& self , response : WorkerResponse) -> Result < () , JsError > { let value = to_value (& response) . map_err (| e | JsError :: new (& e . to_string ())) ? ; self . port . post_message (& value) . map_err (| e | JsError :: new (& format ! (\"Failed to serialize response: {:?}\" , e))) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "WorkerServer"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/client.rs",
+      "to_id": "wasm_bindgen :: prelude :: *",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/client.rs",
+      "to_id": "web_sys :: BroadcastChannel",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/client.rs",
+      "to_id": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker :: MessagePortLike , worker_communication :: WorkerClient , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/error.rs",
+      "to_id": "anyhow :: { Error as AnyhowError , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/error.rs",
+      "to_id": "prism_errors :: { DataAvailabilityError , GeneralError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/error.rs",
+      "to_id": "thiserror :: Error",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/error.rs#WasmLightClientError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/error.rs#WasmLightClientError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/error.rs#WorkerError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/error.rs#WorkerError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "to_id": "js_sys :: Function",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "to_id": "prism_da :: celestia :: { light_client :: LightClientConnection , utils :: Network }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "to_id": "prism_lightclient :: { LightClient , events :: { EventChannel , EventPublisher , EventSubscriber , LightClientEvent } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "to_id": "std :: { str :: FromStr , sync :: Arc }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "to_id": "wasm_bindgen_futures :: spawn_local",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "to_id": "web_sys :: { BroadcastChannel , MessagePort , console }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "to_id": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker_communication :: { WorkerServer , random_id } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs",
+      "to_id": "wasm_bindgen :: { JsCast , prelude :: * }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#impl_From<MessagePort>_MessagePortLike",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+      "to_id": "EventChannel::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+      "to_id": "publisher",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+      "to_id": "subscribe",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+      "to_id": "BroadcastChannel::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+      "to_id": "as_str",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+      "to_id": "JsError::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#initialize_event_channel",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+      "to_id": "recv",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+      "to_id": "serde_wasm_bindgen::to_value",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+      "to_id": "console::log_2",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+      "to_id": "into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+      "to_id": "post_message",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+      "to_id": "console::error_1",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker.rs#forward_events",
+      "to_id": "into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/commands.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/commands.rs#LightClientCommand",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/commands.rs#LightClientCommand",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/commands.rs#LightClientCommand",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/commands.rs#WorkerResponse",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/commands.rs#WorkerResponse",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/commands.rs#WorkerResponse",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "to_id": "js_sys :: Math",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "to_id": "serde_wasm_bindgen :: { from_value , to_value }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "to_id": "tokio :: sync :: { mpsc , Mutex }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "to_id": "wasm_bindgen :: { closure :: Closure , prelude :: * }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "to_id": "web_sys :: { console , MessageEvent }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker_communication.rs",
+      "to_id": "crate :: { commands :: { LightClientCommand , WorkerResponse } , worker :: MessagePortLike , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#random_id",
+      "to_id": "Math::random",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/wasm-lightclient/src/worker_communication.rs#random_id",
+      "to_id": "f64::from",
+      "ref_type": "FunctionCall"
+    }
+  ],
+  "total_files": 6,
+  "successfully_parsed": 6,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 3,
+    "total_structs": 5,
+    "total_enums": 4,
+    "total_traits": 0,
+    "total_impls": 6,
+    "total_tests": 0,
+    "total_function_calls": 17,
+    "total_derives": 10,
+    "total_macro_uses": 3
+  }
+}

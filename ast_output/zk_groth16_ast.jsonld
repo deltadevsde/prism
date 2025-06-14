@@ -1,0 +1,3672 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:zk_groth16",
+  "crate_name": "zk_groth16",
+  "crate_path": "crates/zk/groth16",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/groth16/src/hashchain.rs",
+      "path": "../crates/zk/groth16/src/hashchain.rs",
+      "relative_path": "crates/zk/groth16/src/hashchain.rs",
+      "file_size": 2207,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_anyhow_{anyhow,Result}",
+            "path": "anyhow :: { anyhow , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_bellman_{Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_bls12_381_Scalar",
+            "path": "bls12_381 :: Scalar",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_indexed_merkle_tree_sha256_mod",
+            "path": "indexed_merkle_tree :: sha256_mod",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_prism_common_hashchain_HashchainEntry",
+            "path": "prism_common :: hashchain :: HashchainEntry",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/hashchain.rs#HashChainEntryCircuit",
+            "name": "HashChainEntryCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "value",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "chain",
+                "type_name": "Vec < Scalar >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/hashchain.rs#impl_HashChainEntryCircuit",
+            "target_type": "HashChainEntryCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn create (value : & str , hashchain : Vec < HashchainEntry >) -> Result < HashChainEntryCircuit > { let hashed_value = sha256_mod (value . as_bytes ()) ; let parsed_value = hashed_value . try_into () ? ; let mut parsed_hashchain : Vec < Scalar > = vec ! [] ; for entry in hashchain { let public_key_value = entry . operation . get_public_key () . ok_or_else (| | anyhow ! (\"Missing public key value in hashchain entry\")) ? ; let hashed_entry_value = sha256_mod (public_key_value . as_bytes ()) ; parsed_hashchain . push (hashed_entry_value . try_into () ?) } Ok (HashChainEntryCircuit { value : parsed_value , chain : parsed_hashchain , }) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/hashchain.rs#impl_Circuit<Scalar>_HashChainEntryCircuit",
+            "target_type": "HashChainEntryCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { if self . chain . is_empty () { return Err (SynthesisError :: AssignmentMissing) ; } let provided_value = cs . alloc_input (| | \"provided hashed value\" , | | Ok (self . value)) ? ; for entry in self . chain { if entry == self . value { let found_value = cs . alloc (| | \"found hashed value\" , | | Ok (entry)) ? ; cs . enforce (| | \"found value check\" , | lc | lc + found_value , | lc | lc + CS :: one () , | lc | lc + provided_value ,) ; return Ok (()) ; } } Err (SynthesisError :: Unsatisfiable) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_anyhow_{anyhow,Result}",
+            "path": "anyhow :: { anyhow , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_bellman_{Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_bls12_381_Scalar",
+            "path": "bls12_381 :: Scalar",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_indexed_merkle_tree_sha256_mod",
+            "path": "indexed_merkle_tree :: sha256_mod",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/hashchain.rs#use_prism_common_hashchain_HashchainEntry",
+            "path": "prism_common :: hashchain :: HashchainEntry",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/hashchain.rs#HashChainEntryCircuit",
+            "name": "HashChainEntryCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "value",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "chain",
+                "type_name": "Vec < Scalar >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/hashchain.rs#impl_HashChainEntryCircuit",
+            "target_type": "HashChainEntryCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn create (value : & str , hashchain : Vec < HashchainEntry >) -> Result < HashChainEntryCircuit > { let hashed_value = sha256_mod (value . as_bytes ()) ; let parsed_value = hashed_value . try_into () ? ; let mut parsed_hashchain : Vec < Scalar > = vec ! [] ; for entry in hashchain { let public_key_value = entry . operation . get_public_key () . ok_or_else (| | anyhow ! (\"Missing public key value in hashchain entry\")) ? ; let hashed_entry_value = sha256_mod (public_key_value . as_bytes ()) ; parsed_hashchain . push (hashed_entry_value . try_into () ?) } Ok (HashChainEntryCircuit { value : parsed_value , chain : parsed_hashchain , }) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "HashChainEntryCircuit"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/hashchain.rs#impl_Circuit<Scalar>_HashChainEntryCircuit",
+            "target_type": "HashChainEntryCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { if self . chain . is_empty () { return Err (SynthesisError :: AssignmentMissing) ; } let provided_value = cs . alloc_input (| | \"provided hashed value\" , | | Ok (self . value)) ? ; for entry in self . chain { if entry == self . value { let found_value = cs . alloc (| | \"found hashed value\" , | | Ok (entry)) ? ; cs . enforce (| | \"found value check\" , | lc | lc + found_value , | lc | lc + CS :: one () , | lc | lc + provided_value ,) ; return Ok (()) ; } } Err (SynthesisError :: Unsatisfiable) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "HashChainEntryCircuit"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/groth16/src/merkle_insertion.rs",
+      "path": "../crates/zk/groth16/src/merkle_insertion.rs",
+      "relative_path": "crates/zk/groth16/src/merkle_insertion.rs",
+      "file_size": 7244,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_crate_{merkle_update_prove_update,utils_{create_and_verify_snark,recalculate_hash_as_scalar,unpack_and_process},LessThanCircuit,ProofVariantCircuit,UpdateMerkleProofCircuit,}",
+            "path": "crate :: { merkle_update :: prove_update , utils :: { create_and_verify_snark , recalculate_hash_as_scalar , unpack_and_process } , LessThanCircuit , ProofVariantCircuit , UpdateMerkleProofCircuit , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_bellman_{groth16,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_bls12_381_{Bls12,Scalar}",
+            "path": "bls12_381 :: { Bls12 , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_indexed_merkle_tree_{node_{LeafNode,Node},tree_InsertProof,}",
+            "path": "indexed_merkle_tree :: { node :: { LeafNode , Node } , tree :: InsertProof , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_prism_errors_PrismError",
+            "path": "prism_errors :: PrismError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#InsertMerkleProofCircuit",
+            "name": "InsertMerkleProofCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "pre_insertion_root",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "insertion_path",
+                "type_name": "Vec < Node >",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_leaf_node",
+                "type_name": "LeafNode",
+                "visibility": "pub"
+              },
+              {
+                "name": "existing_leaf_update",
+                "type_name": "UpdateMerkleProofCircuit",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_leaf_activation",
+                "type_name": "UpdateMerkleProofCircuit",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#impl_InsertMerkleProofCircuit",
+            "target_type": "InsertMerkleProofCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn new (proof : & InsertProof) -> Result < InsertMerkleProofCircuit , PrismError > { let (non_membership_root , non_membership_path) = unpack_and_process (& proof . non_membership_proof . merkle_proof) ? ; let first_merkle_circuit = UpdateMerkleProofCircuit :: new (& proof . first_proof) ? ; let second_merkle_circuit = UpdateMerkleProofCircuit :: new (& proof . second_proof) ? ; Ok (InsertMerkleProofCircuit { pre_insertion_root : non_membership_root , insertion_path : non_membership_path . clone () , new_leaf_node : proof . non_membership_proof . missing_node . clone () , existing_leaf_update : first_merkle_circuit , new_leaf_activation : second_merkle_circuit , }) }",
+              "pub fn create_and_verify_snark (& self ,) -> Result < (groth16 :: Proof < Bls12 > , groth16 :: VerifyingKey < Bls12 >) > { let scalars : Vec < Scalar > = vec ! [self . pre_insertion_root , self . existing_leaf_update . old_root , self . existing_leaf_update . updated_root , self . new_leaf_activation . old_root , self . new_leaf_activation . updated_root ,] ; create_and_verify_snark (ProofVariantCircuit :: Insert (Box :: new (self . clone ())) , scalars) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#impl_Circuit<Scalar>_InsertMerkleProofCircuit",
+            "target_type": "InsertMerkleProofCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { match prove_insertion (cs , self . pre_insertion_root , & self . insertion_path , self . new_leaf_node , self . existing_leaf_update , self . new_leaf_activation ,) { Ok (_) => Ok (()) , Err (_) => Err (SynthesisError :: Unsatisfiable) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#prove_insertion",
+            "name": "prove_insertion",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "pre_insertion_root : Scalar",
+              "insertion_path : & [Node]",
+              "new_leaf_node : LeafNode",
+              "existing_leaf_update : UpdateMerkleProofCircuit",
+              "new_leaf_activation : UpdateMerkleProofCircuit"
+            ],
+            "output": "Result < Scalar , SynthesisError >",
+            "generics": [
+              "CS"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+            "name": "prove_non_membership",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "pre_insertion_root : Scalar",
+              "insertion_path : & [Node]",
+              "new_leaf_node : LeafNode"
+            ],
+            "output": "Result < () , SynthesisError >",
+            "generics": [
+              "CS"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_crate_{merkle_update_prove_update,utils_{create_and_verify_snark,recalculate_hash_as_scalar,unpack_and_process},LessThanCircuit,ProofVariantCircuit,UpdateMerkleProofCircuit,}",
+            "path": "crate :: { merkle_update :: prove_update , utils :: { create_and_verify_snark , recalculate_hash_as_scalar , unpack_and_process } , LessThanCircuit , ProofVariantCircuit , UpdateMerkleProofCircuit , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_bellman_{groth16,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_bls12_381_{Bls12,Scalar}",
+            "path": "bls12_381 :: { Bls12 , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_indexed_merkle_tree_{node_{LeafNode,Node},tree_InsertProof,}",
+            "path": "indexed_merkle_tree :: { node :: { LeafNode , Node } , tree :: InsertProof , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#use_prism_errors_PrismError",
+            "path": "prism_errors :: PrismError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#InsertMerkleProofCircuit",
+            "name": "InsertMerkleProofCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "pre_insertion_root",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "insertion_path",
+                "type_name": "Vec < Node >",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_leaf_node",
+                "type_name": "LeafNode",
+                "visibility": "pub"
+              },
+              {
+                "name": "existing_leaf_update",
+                "type_name": "UpdateMerkleProofCircuit",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_leaf_activation",
+                "type_name": "UpdateMerkleProofCircuit",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#impl_InsertMerkleProofCircuit",
+            "target_type": "InsertMerkleProofCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn new (proof : & InsertProof) -> Result < InsertMerkleProofCircuit , PrismError > { let (non_membership_root , non_membership_path) = unpack_and_process (& proof . non_membership_proof . merkle_proof) ? ; let first_merkle_circuit = UpdateMerkleProofCircuit :: new (& proof . first_proof) ? ; let second_merkle_circuit = UpdateMerkleProofCircuit :: new (& proof . second_proof) ? ; Ok (InsertMerkleProofCircuit { pre_insertion_root : non_membership_root , insertion_path : non_membership_path . clone () , new_leaf_node : proof . non_membership_proof . missing_node . clone () , existing_leaf_update : first_merkle_circuit , new_leaf_activation : second_merkle_circuit , }) }",
+              "pub fn create_and_verify_snark (& self ,) -> Result < (groth16 :: Proof < Bls12 > , groth16 :: VerifyingKey < Bls12 >) > { let scalars : Vec < Scalar > = vec ! [self . pre_insertion_root , self . existing_leaf_update . old_root , self . existing_leaf_update . updated_root , self . new_leaf_activation . old_root , self . new_leaf_activation . updated_root ,] ; create_and_verify_snark (ProofVariantCircuit :: Insert (Box :: new (self . clone ())) , scalars) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InsertMerkleProofCircuit"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#impl_Circuit<Scalar>_InsertMerkleProofCircuit",
+            "target_type": "InsertMerkleProofCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { match prove_insertion (cs , self . pre_insertion_root , & self . insertion_path , self . new_leaf_node , self . existing_leaf_update , self . new_leaf_activation ,) { Ok (_) => Ok (()) , Err (_) => Err (SynthesisError :: Unsatisfiable) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InsertMerkleProofCircuit"
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#prove_insertion",
+            "name": "prove_insertion",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "pre_insertion_root : Scalar",
+              "insertion_path : & [Node]",
+              "new_leaf_node : LeafNode",
+              "existing_leaf_update : UpdateMerkleProofCircuit",
+              "new_leaf_activation : UpdateMerkleProofCircuit"
+            ],
+            "output": "Result < Scalar , SynthesisError >",
+            "generics": [
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "prove_non_membership",
+              "is_method": false
+            },
+            {
+              "callee": "prove_update",
+              "is_method": false
+            },
+            {
+              "callee": "prove_update",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "updated_root_after_existing_leaf_update",
+              "is_mutable": false
+            },
+            {
+              "name": "new_root",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+            "name": "prove_non_membership",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "pre_insertion_root : Scalar",
+              "insertion_path : & [Node]",
+              "new_leaf_node : LeafNode"
+            ],
+            "output": "Result < () , SynthesisError >",
+            "generics": [
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "try_into",
+              "is_method": true
+            },
+            {
+              "callee": "get_label",
+              "is_method": true
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "try_into",
+              "is_method": true
+            },
+            {
+              "callee": "get_next",
+              "is_method": true
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "try_into",
+              "is_method": true
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "synthesize",
+              "is_method": true
+            },
+            {
+              "callee": "LessThanCircuit::new",
+              "is_method": false
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "synthesize",
+              "is_method": true
+            },
+            {
+              "callee": "LessThanCircuit::new",
+              "is_method": false
+            },
+            {
+              "callee": "alloc",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "recalculate_hash_as_scalar",
+              "is_method": false
+            },
+            {
+              "callee": "alloc",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "enforce",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "allocated_pre_insertion_root",
+              "is_mutable": false
+            },
+            {
+              "name": "recalculated_root",
+              "is_mutable": false
+            },
+            {
+              "name": "allocated_recalculated_root",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Scalar"
+          ],
+          "macro_invocations": []
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/groth16/src/lib.rs",
+      "path": "../crates/zk/groth16/src/lib.rs",
+      "relative_path": "crates/zk/groth16/src/lib.rs",
+      "file_size": 11174,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_anyhow_{anyhow,Context,Result}",
+            "path": "anyhow :: { anyhow , Context , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_bellman_{groth16,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_bls12_381_{Bls12,G1Affine,G2Affine,Scalar}",
+            "path": "bls12_381 :: { Bls12 , G1Affine , G2Affine , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_prism_errors_{GeneralError,PrismError}",
+            "path": "prism_errors :: { GeneralError , PrismError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_std_fmt",
+            "path": "std :: fmt",
+            "visibility": "private"
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#hashchain",
+            "name": "hashchain",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#less_than",
+            "name": "less_than",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#merkle_batch",
+            "name": "merkle_batch",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#merkle_insertion",
+            "name": "merkle_insertion",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#merkle_update",
+            "name": "merkle_update",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#utils",
+            "name": "utils",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_hashchain_HashChainEntryCircuit",
+            "path": "hashchain :: HashChainEntryCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_less_than_LessThanCircuit",
+            "path": "less_than :: LessThanCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_merkle_batch_BatchMerkleProofCircuit",
+            "path": "merkle_batch :: BatchMerkleProofCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_merkle_insertion_InsertMerkleProofCircuit",
+            "path": "merkle_insertion :: InsertMerkleProofCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_merkle_update_UpdateMerkleProofCircuit",
+            "path": "merkle_update :: UpdateMerkleProofCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/zk/groth16/src/lib.rs#ProofVariantCircuit",
+            "name": "ProofVariantCircuit",
+            "visibility": "pub",
+            "variants": [
+              "Update",
+              "Insert",
+              "Batch"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_Circuit<Scalar>_ProofVariantCircuit",
+            "target_type": "ProofVariantCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { match self { ProofVariantCircuit :: Update (circuit) => circuit . synthesize (cs) , ProofVariantCircuit :: Insert (circuit) => circuit . synthesize (cs) , ProofVariantCircuit :: Batch (circuit) => circuit . synthesize (cs) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/lib.rs#G1",
+            "name": "G1",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "0",
+                "type_name": "[u8 ; 48]",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/lib.rs#G2",
+            "name": "G2",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "0",
+                "type_name": "[u8 ; 96]",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_fmt::Debug_G1",
+            "target_type": "G1",
+            "trait_name": "fmt :: Debug",
+            "items": [
+              "fn fmt (& self , f : & mut fmt :: Formatter < '_ >) -> fmt :: Result { write ! (f , \"G1(0x{})\" , hex :: encode (self . 0)) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_fmt::Debug_G2",
+            "target_type": "G2",
+            "trait_name": "fmt :: Debug",
+            "items": [
+              "fn fmt (& self , f : & mut fmt :: Formatter < '_ >) -> fmt :: Result { write ! (f , \"G2(0x{})\" , hex :: encode (self . 0)) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<G1>_bls12_381::G1Affine",
+            "target_type": "bls12_381 :: G1Affine",
+            "trait_name": "TryFrom < G1 >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (g1 : G1) -> Result < bls12_381 :: G1Affine > { match bls12_381 :: G1Affine :: from_compressed (& g1 . 0) . into_option () { Some (affine) => Ok (affine) , None => Err (anyhow ! (GeneralError :: DecodingError (\"G2Affine\" . to_string () ,))) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<G2>_bls12_381::G2Affine",
+            "target_type": "bls12_381 :: G2Affine",
+            "trait_name": "TryFrom < G2 >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (g2 : G2) -> Result < bls12_381 :: G2Affine > { match bls12_381 :: G2Affine :: from_compressed (& g2 . 0) . into_option () { Some (affine) => Ok (affine) , None => Err (anyhow ! (GeneralError :: DecodingError (\"G2Affine\" . to_string () ,))) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/lib.rs#Bls12Proof",
+            "name": "Bls12Proof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "a",
+                "type_name": "G1",
+                "visibility": "pub"
+              },
+              {
+                "name": "b",
+                "type_name": "G2",
+                "visibility": "pub"
+              },
+              {
+                "name": "c",
+                "type_name": "G1",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<Bls12Proof>_groth16::Proof<Bls12>",
+            "target_type": "groth16 :: Proof < Bls12 >",
+            "trait_name": "TryFrom < Bls12Proof >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (proof : Bls12Proof) -> Result < Self > { let a : G1Affine = proof . a . try_into () . context (\"affine: a\") ? ; let b : G2Affine = proof . b . try_into () . context (\"affine: b\") ? ; let c : G1Affine = proof . c . try_into () . context (\"affine: c\") ? ; Ok (groth16 :: Proof { a , b , c }) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_From<groth16::Proof<Bls12>>_Bls12Proof",
+            "target_type": "Bls12Proof",
+            "trait_name": "From < groth16 :: Proof < Bls12 > >",
+            "items": [
+              "fn from (proof : groth16 :: Proof < Bls12 >) -> Self { Bls12Proof { a : G1 (proof . a . to_compressed ()) , b : G2 (proof . b . to_compressed ()) , c : G1 (proof . c . to_compressed ()) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/lib.rs#VerifyingKey",
+            "name": "VerifyingKey",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "alpha_g1",
+                "type_name": "G1",
+                "visibility": "pub"
+              },
+              {
+                "name": "beta_g1",
+                "type_name": "G1",
+                "visibility": "pub"
+              },
+              {
+                "name": "beta_g2",
+                "type_name": "G2",
+                "visibility": "pub"
+              },
+              {
+                "name": "delta_g1",
+                "type_name": "G1",
+                "visibility": "pub"
+              },
+              {
+                "name": "delta_g2",
+                "type_name": "G2",
+                "visibility": "pub"
+              },
+              {
+                "name": "gamma_g2",
+                "type_name": "G2",
+                "visibility": "pub"
+              },
+              {
+                "name": "ic",
+                "type_name": "Vec < G1 >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_From<groth16::VerifyingKey<Bls12>>_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "From < groth16 :: VerifyingKey < Bls12 > >",
+            "items": [
+              "fn from (verifying_key : groth16 :: VerifyingKey < Bls12 >) -> Self { VerifyingKey { alpha_g1 : G1 (verifying_key . alpha_g1 . to_compressed ()) , beta_g1 : G1 (verifying_key . beta_g1 . to_compressed ()) , beta_g2 : G2 (verifying_key . beta_g2 . to_compressed ()) , delta_g1 : G1 (verifying_key . delta_g1 . to_compressed ()) , delta_g2 : G2 (verifying_key . delta_g2 . to_compressed ()) , gamma_g2 : G2 (verifying_key . gamma_g2 . to_compressed ()) , ic : verifying_key . ic . iter () . map (| x | G1 (x . to_compressed ())) . collect :: < Vec < G1 > > () , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<VerifyingKey>_groth16::VerifyingKey<Bls12>",
+            "target_type": "groth16 :: VerifyingKey < Bls12 >",
+            "trait_name": "TryFrom < VerifyingKey >",
+            "items": [
+              "type Error = PrismError ;",
+              "fn try_from (custom_vk : VerifyingKey) -> Result < Self , PrismError > { let alpha_g1 : G1Affine = custom_vk . alpha_g1 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}:alpha_g1\" , e))) ? ; let beta_g1 : G1Affine = custom_vk . beta_g1 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: beta_g1\" , e))) ? ; let beta_g2 : G2Affine = custom_vk . beta_g2 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: beta_g2\" , e))) ? ; let delta_g1 : G1Affine = custom_vk . delta_g1 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: delta_g1\" , e))) ? ; let delta_g2 : G2Affine = custom_vk . delta_g2 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: delta_g1\" , e))) ? ; let gamma_g2 : G2Affine = custom_vk . gamma_g2 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: gamma_g2\" , e))) ? ; let ic = custom_vk . ic . into_iter () . map (| s | s . try_into ()) . collect :: < Result < Vec < G1Affine > > > () ? ; Ok (bellman :: groth16 :: VerifyingKey { alpha_g1 , beta_g1 , beta_g2 , gamma_g2 , delta_g1 , delta_g2 , ic : ic . into_iter () . collect () , }) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": [
+              "use super :: * ;",
+              "use bellman :: groth16 ;",
+              "use bls12_381 :: Bls12 ;",
+              "use indexed_merkle_tree :: { node :: Node , sha256_mod , tree :: { IndexedMerkleTree , Proof } , Hash , } ;",
+              "use rand :: rngs :: OsRng ;",
+              "fn head_scalar () -> Scalar { Node :: HEAD . try_into () . unwrap () }",
+              "fn small_scalar () -> Scalar { let small_hash = Hash :: from_hex (\"13ae3ed6fe76d459c9c66fe38ff187593561a1f24d34cb22e06148c77e4cc02b\") . unwrap () ; small_hash . try_into () . unwrap () }",
+              "fn mid_scalar () -> Scalar { let mid_hash = Hash :: from_hex (\"3d1e830624b2572adc05351a7cbee2d3aa3f6a52b34fa38a260c9c78f96fcd07\") . unwrap () ; mid_hash . try_into () . unwrap () }",
+              "fn big_scalar () -> Scalar { let big_hash = Hash :: from_hex (\"6714dda957170ad7720bbd2c38004152f34ea5d4350a154b84a259cc62a5dbb4\") . unwrap () ; big_hash . try_into () . unwrap () }",
+              "fn tail_scalar () -> Scalar { Node :: TAIL . try_into () . unwrap () }",
+              "fn create_scalars () -> (Scalar , Scalar , Scalar , Scalar , Scalar) { (head_scalar () , small_scalar () , mid_scalar () , big_scalar () , tail_scalar () ,) }",
+              "fn setup_and_test_less_than_circuit (a : Scalar , b : Scalar) { let circuit = LessThanCircuit :: new (a , b) ; let rng = & mut OsRng ; let params = groth16 :: generate_random_parameters :: < Bls12 , _ , _ > (circuit . clone () , rng) . expect (\"unable to generate random parameters\") ; let proof = groth16 :: create_random_proof (circuit . clone () , & params , rng) . expect (\"unable to create random proof\") ; let pvk = groth16 :: prepare_verifying_key (& params . vk) ; groth16 :: verify_proof (& pvk , & proof , & []) . expect (\"unable to verify proof\") }",
+              "# [test] fn le_with_scalar_valid () { let (head , small , mid , big , tail) = create_scalars () ; setup_and_test_less_than_circuit (head , small) ; setup_and_test_less_than_circuit (small , tail) ; setup_and_test_less_than_circuit (small , big) ; setup_and_test_less_than_circuit (big , tail) ; setup_and_test_less_than_circuit (head , mid) ; setup_and_test_less_than_circuit (mid , big) ; }",
+              "# [test] # [should_panic (expected = \"unable to verify proof\")] fn invalid_less_than_circuit_a_gt_b () { let (_ , _ , _ , big , tail) = create_scalars () ; setup_and_test_less_than_circuit (tail , big) }",
+              "# [test] # [should_panic (expected = \"unable to verify proof\")] fn invalid_less_than_circuit_a_eq_b () { let head = head_scalar () ; setup_and_test_less_than_circuit (head , head) }",
+              "# [test] fn test_serialize_and_deserialize_proof () { let mut tree = IndexedMerkleTree :: new_with_size (4) . unwrap () ; let prev_commitment = tree . get_commitment () . unwrap () ; let ryan = sha256_mod (b\"Ryan\") ; let ford = sha256_mod (b\"Ford\") ; let sebastian = sha256_mod (b\"Sebastian\") ; let pusch = sha256_mod (b\"Pusch\") ; let ethan = sha256_mod (b\"Ethan\") ; let triple_zero = sha256_mod (b\"000\") ; let mut ryans_node = Node :: new_leaf (true , ryan , ford , Node :: TAIL) ; let mut sebastians_node = Node :: new_leaf (true , sebastian , pusch , Node :: TAIL) ; let mut ethans_node = Node :: new_leaf (true , ethan , triple_zero , Node :: TAIL) ; let first_insert_proof = tree . insert_node (& mut ryans_node) . unwrap () ; let second_insert_proof = tree . insert_node (& mut sebastians_node) . unwrap () ; let third_insert_proof = tree . insert_node (& mut ethans_node) . unwrap () ; let first_insert_zk_snark = Proof :: Insert (first_insert_proof) ; let second_insert_zk_snark = Proof :: Insert (second_insert_proof) ; let third_insert_zk_snark = Proof :: Insert (third_insert_proof) ; let proofs = vec ! [first_insert_zk_snark , second_insert_zk_snark , third_insert_zk_snark ,] ; let current_commitment = tree . get_commitment () . unwrap () ; let batched_proof = BatchMerkleProofCircuit :: new (& prev_commitment , & current_commitment , proofs) . unwrap () ; let rng = & mut OsRng ; let params = groth16 :: generate_random_parameters :: < Bls12 , _ , _ > (batched_proof . clone () , rng) . unwrap () ; let proof = groth16 :: create_random_proof (batched_proof . clone () , & params , rng) . unwrap () ; let serialized_proof : Bls12Proof = proof . clone () . into () ; let deserialized_proof_result : Result < groth16 :: Proof < Bls12 > > = serialized_proof . clone () . try_into () ; assert ! (deserialized_proof_result . is_ok () , \"Deserialization failed\") ; let deserialized_proof = deserialized_proof_result . unwrap () ; assert_eq ! (proof . a , deserialized_proof . a) ; assert_eq ! (proof . b , deserialized_proof . b) ; assert_eq ! (proof . c , deserialized_proof . c) ; }",
+              "# [test] fn test_deserialize_invalid_proof () { let invalid_proof = Bls12Proof { a : G1 ([1 ; 48]) , b : G2 ([2 ; 96]) , c : G1 ([3 ; 48]) , } ; let deserialized_proof_result : Result < groth16 :: Proof < Bls12 > > = invalid_proof . clone () . try_into () ; assert ! (deserialized_proof_result . is_err ()) ; }"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_anyhow_{anyhow,Context,Result}",
+            "path": "anyhow :: { anyhow , Context , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_bellman_{groth16,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_bls12_381_{Bls12,G1Affine,G2Affine,Scalar}",
+            "path": "bls12_381 :: { Bls12 , G1Affine , G2Affine , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_prism_errors_{GeneralError,PrismError}",
+            "path": "prism_errors :: { GeneralError , PrismError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_std_fmt",
+            "path": "std :: fmt",
+            "visibility": "private"
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#hashchain",
+            "name": "hashchain",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#less_than",
+            "name": "less_than",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#merkle_batch",
+            "name": "merkle_batch",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#merkle_insertion",
+            "name": "merkle_insertion",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#merkle_update",
+            "name": "merkle_update",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#utils",
+            "name": "utils",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_hashchain_HashChainEntryCircuit",
+            "path": "hashchain :: HashChainEntryCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_less_than_LessThanCircuit",
+            "path": "less_than :: LessThanCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_merkle_batch_BatchMerkleProofCircuit",
+            "path": "merkle_batch :: BatchMerkleProofCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_merkle_insertion_InsertMerkleProofCircuit",
+            "path": "merkle_insertion :: InsertMerkleProofCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/lib.rs#use_merkle_update_UpdateMerkleProofCircuit",
+            "path": "merkle_update :: UpdateMerkleProofCircuit",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/zk/groth16/src/lib.rs#ProofVariantCircuit",
+            "name": "ProofVariantCircuit",
+            "visibility": "pub",
+            "variants": [
+              "Update",
+              "Insert",
+              "Batch"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_Circuit<Scalar>_ProofVariantCircuit",
+            "target_type": "ProofVariantCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { match self { ProofVariantCircuit :: Update (circuit) => circuit . synthesize (cs) , ProofVariantCircuit :: Insert (circuit) => circuit . synthesize (cs) , ProofVariantCircuit :: Batch (circuit) => circuit . synthesize (cs) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "ProofVariantCircuit"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/lib.rs#G1",
+            "name": "G1",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "0",
+                "type_name": "[u8 ; 48]",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/lib.rs#G2",
+            "name": "G2",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "0",
+                "type_name": "[u8 ; 96]",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_fmt::Debug_G1",
+            "target_type": "G1",
+            "trait_name": "fmt :: Debug",
+            "items": [
+              "fn fmt (& self , f : & mut fmt :: Formatter < '_ >) -> fmt :: Result { write ! (f , \"G1(0x{})\" , hex :: encode (self . 0)) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "G1"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_fmt::Debug_G2",
+            "target_type": "G2",
+            "trait_name": "fmt :: Debug",
+            "items": [
+              "fn fmt (& self , f : & mut fmt :: Formatter < '_ >) -> fmt :: Result { write ! (f , \"G2(0x{})\" , hex :: encode (self . 0)) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "G2"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<G1>_bls12_381::G1Affine",
+            "target_type": "bls12_381 :: G1Affine",
+            "trait_name": "TryFrom < G1 >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (g1 : G1) -> Result < bls12_381 :: G1Affine > { match bls12_381 :: G1Affine :: from_compressed (& g1 . 0) . into_option () { Some (affine) => Ok (affine) , None => Err (anyhow ! (GeneralError :: DecodingError (\"G2Affine\" . to_string () ,))) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "bls12_381::G1Affine"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<G2>_bls12_381::G2Affine",
+            "target_type": "bls12_381 :: G2Affine",
+            "trait_name": "TryFrom < G2 >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (g2 : G2) -> Result < bls12_381 :: G2Affine > { match bls12_381 :: G2Affine :: from_compressed (& g2 . 0) . into_option () { Some (affine) => Ok (affine) , None => Err (anyhow ! (GeneralError :: DecodingError (\"G2Affine\" . to_string () ,))) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "bls12_381::G2Affine"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/lib.rs#Bls12Proof",
+            "name": "Bls12Proof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "a",
+                "type_name": "G1",
+                "visibility": "pub"
+              },
+              {
+                "name": "b",
+                "type_name": "G2",
+                "visibility": "pub"
+              },
+              {
+                "name": "c",
+                "type_name": "G1",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<Bls12Proof>_groth16::Proof<Bls12>",
+            "target_type": "groth16 :: Proof < Bls12 >",
+            "trait_name": "TryFrom < Bls12Proof >",
+            "items": [
+              "type Error = anyhow :: Error ;",
+              "fn try_from (proof : Bls12Proof) -> Result < Self > { let a : G1Affine = proof . a . try_into () . context (\"affine: a\") ? ; let b : G2Affine = proof . b . try_into () . context (\"affine: b\") ? ; let c : G1Affine = proof . c . try_into () . context (\"affine: c\") ? ; Ok (groth16 :: Proof { a , b , c }) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "groth16::Proof",
+            "Bls12"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_From<groth16::Proof<Bls12>>_Bls12Proof",
+            "target_type": "Bls12Proof",
+            "trait_name": "From < groth16 :: Proof < Bls12 > >",
+            "items": [
+              "fn from (proof : groth16 :: Proof < Bls12 >) -> Self { Bls12Proof { a : G1 (proof . a . to_compressed ()) , b : G2 (proof . b . to_compressed ()) , c : G1 (proof . c . to_compressed ()) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Bls12Proof"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/lib.rs#VerifyingKey",
+            "name": "VerifyingKey",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "alpha_g1",
+                "type_name": "G1",
+                "visibility": "pub"
+              },
+              {
+                "name": "beta_g1",
+                "type_name": "G1",
+                "visibility": "pub"
+              },
+              {
+                "name": "beta_g2",
+                "type_name": "G2",
+                "visibility": "pub"
+              },
+              {
+                "name": "delta_g1",
+                "type_name": "G1",
+                "visibility": "pub"
+              },
+              {
+                "name": "delta_g2",
+                "type_name": "G2",
+                "visibility": "pub"
+              },
+              {
+                "name": "gamma_g2",
+                "type_name": "G2",
+                "visibility": "pub"
+              },
+              {
+                "name": "ic",
+                "type_name": "Vec < G1 >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_From<groth16::VerifyingKey<Bls12>>_VerifyingKey",
+            "target_type": "VerifyingKey",
+            "trait_name": "From < groth16 :: VerifyingKey < Bls12 > >",
+            "items": [
+              "fn from (verifying_key : groth16 :: VerifyingKey < Bls12 >) -> Self { VerifyingKey { alpha_g1 : G1 (verifying_key . alpha_g1 . to_compressed ()) , beta_g1 : G1 (verifying_key . beta_g1 . to_compressed ()) , beta_g2 : G2 (verifying_key . beta_g2 . to_compressed ()) , delta_g1 : G1 (verifying_key . delta_g1 . to_compressed ()) , delta_g2 : G2 (verifying_key . delta_g2 . to_compressed ()) , gamma_g2 : G2 (verifying_key . gamma_g2 . to_compressed ()) , ic : verifying_key . ic . iter () . map (| x | G1 (x . to_compressed ())) . collect :: < Vec < G1 > > () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "VerifyingKey"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<VerifyingKey>_groth16::VerifyingKey<Bls12>",
+            "target_type": "groth16 :: VerifyingKey < Bls12 >",
+            "trait_name": "TryFrom < VerifyingKey >",
+            "items": [
+              "type Error = PrismError ;",
+              "fn try_from (custom_vk : VerifyingKey) -> Result < Self , PrismError > { let alpha_g1 : G1Affine = custom_vk . alpha_g1 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}:alpha_g1\" , e))) ? ; let beta_g1 : G1Affine = custom_vk . beta_g1 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: beta_g1\" , e))) ? ; let beta_g2 : G2Affine = custom_vk . beta_g2 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: beta_g2\" , e))) ? ; let delta_g1 : G1Affine = custom_vk . delta_g1 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: delta_g1\" , e))) ? ; let delta_g2 : G2Affine = custom_vk . delta_g2 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: delta_g1\" , e))) ? ; let gamma_g2 : G2Affine = custom_vk . gamma_g2 . try_into () . map_err (| e | GeneralError :: EncodingError (format ! (\"{}: gamma_g2\" , e))) ? ; let ic = custom_vk . ic . into_iter () . map (| s | s . try_into ()) . collect :: < Result < Vec < G1Affine > > > () ? ; Ok (bellman :: groth16 :: VerifyingKey { alpha_g1 , beta_g1 , beta_g2 , gamma_g2 , delta_g1 , delta_g2 , ic : ic . into_iter () . collect () , }) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "groth16::VerifyingKey",
+            "Bls12"
+          ]
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/groth16/src/lib.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": [
+              "use super :: * ;",
+              "use bellman :: groth16 ;",
+              "use bls12_381 :: Bls12 ;",
+              "use indexed_merkle_tree :: { node :: Node , sha256_mod , tree :: { IndexedMerkleTree , Proof } , Hash , } ;",
+              "use rand :: rngs :: OsRng ;",
+              "fn head_scalar () -> Scalar { Node :: HEAD . try_into () . unwrap () }",
+              "fn small_scalar () -> Scalar { let small_hash = Hash :: from_hex (\"13ae3ed6fe76d459c9c66fe38ff187593561a1f24d34cb22e06148c77e4cc02b\") . unwrap () ; small_hash . try_into () . unwrap () }",
+              "fn mid_scalar () -> Scalar { let mid_hash = Hash :: from_hex (\"3d1e830624b2572adc05351a7cbee2d3aa3f6a52b34fa38a260c9c78f96fcd07\") . unwrap () ; mid_hash . try_into () . unwrap () }",
+              "fn big_scalar () -> Scalar { let big_hash = Hash :: from_hex (\"6714dda957170ad7720bbd2c38004152f34ea5d4350a154b84a259cc62a5dbb4\") . unwrap () ; big_hash . try_into () . unwrap () }",
+              "fn tail_scalar () -> Scalar { Node :: TAIL . try_into () . unwrap () }",
+              "fn create_scalars () -> (Scalar , Scalar , Scalar , Scalar , Scalar) { (head_scalar () , small_scalar () , mid_scalar () , big_scalar () , tail_scalar () ,) }",
+              "fn setup_and_test_less_than_circuit (a : Scalar , b : Scalar) { let circuit = LessThanCircuit :: new (a , b) ; let rng = & mut OsRng ; let params = groth16 :: generate_random_parameters :: < Bls12 , _ , _ > (circuit . clone () , rng) . expect (\"unable to generate random parameters\") ; let proof = groth16 :: create_random_proof (circuit . clone () , & params , rng) . expect (\"unable to create random proof\") ; let pvk = groth16 :: prepare_verifying_key (& params . vk) ; groth16 :: verify_proof (& pvk , & proof , & []) . expect (\"unable to verify proof\") }",
+              "# [test] fn le_with_scalar_valid () { let (head , small , mid , big , tail) = create_scalars () ; setup_and_test_less_than_circuit (head , small) ; setup_and_test_less_than_circuit (small , tail) ; setup_and_test_less_than_circuit (small , big) ; setup_and_test_less_than_circuit (big , tail) ; setup_and_test_less_than_circuit (head , mid) ; setup_and_test_less_than_circuit (mid , big) ; }",
+              "# [test] # [should_panic (expected = \"unable to verify proof\")] fn invalid_less_than_circuit_a_gt_b () { let (_ , _ , _ , big , tail) = create_scalars () ; setup_and_test_less_than_circuit (tail , big) }",
+              "# [test] # [should_panic (expected = \"unable to verify proof\")] fn invalid_less_than_circuit_a_eq_b () { let head = head_scalar () ; setup_and_test_less_than_circuit (head , head) }",
+              "# [test] fn test_serialize_and_deserialize_proof () { let mut tree = IndexedMerkleTree :: new_with_size (4) . unwrap () ; let prev_commitment = tree . get_commitment () . unwrap () ; let ryan = sha256_mod (b\"Ryan\") ; let ford = sha256_mod (b\"Ford\") ; let sebastian = sha256_mod (b\"Sebastian\") ; let pusch = sha256_mod (b\"Pusch\") ; let ethan = sha256_mod (b\"Ethan\") ; let triple_zero = sha256_mod (b\"000\") ; let mut ryans_node = Node :: new_leaf (true , ryan , ford , Node :: TAIL) ; let mut sebastians_node = Node :: new_leaf (true , sebastian , pusch , Node :: TAIL) ; let mut ethans_node = Node :: new_leaf (true , ethan , triple_zero , Node :: TAIL) ; let first_insert_proof = tree . insert_node (& mut ryans_node) . unwrap () ; let second_insert_proof = tree . insert_node (& mut sebastians_node) . unwrap () ; let third_insert_proof = tree . insert_node (& mut ethans_node) . unwrap () ; let first_insert_zk_snark = Proof :: Insert (first_insert_proof) ; let second_insert_zk_snark = Proof :: Insert (second_insert_proof) ; let third_insert_zk_snark = Proof :: Insert (third_insert_proof) ; let proofs = vec ! [first_insert_zk_snark , second_insert_zk_snark , third_insert_zk_snark ,] ; let current_commitment = tree . get_commitment () . unwrap () ; let batched_proof = BatchMerkleProofCircuit :: new (& prev_commitment , & current_commitment , proofs) . unwrap () ; let rng = & mut OsRng ; let params = groth16 :: generate_random_parameters :: < Bls12 , _ , _ > (batched_proof . clone () , rng) . unwrap () ; let proof = groth16 :: create_random_proof (batched_proof . clone () , & params , rng) . unwrap () ; let serialized_proof : Bls12Proof = proof . clone () . into () ; let deserialized_proof_result : Result < groth16 :: Proof < Bls12 > > = serialized_proof . clone () . try_into () ; assert ! (deserialized_proof_result . is_ok () , \"Deserialization failed\") ; let deserialized_proof = deserialized_proof_result . unwrap () ; assert_eq ! (proof . a , deserialized_proof . a) ; assert_eq ! (proof . b , deserialized_proof . b) ; assert_eq ! (proof . c , deserialized_proof . c) ; }",
+              "# [test] fn test_deserialize_invalid_proof () { let invalid_proof = Bls12Proof { a : G1 ([1 ; 48]) , b : G2 ([2 ; 96]) , c : G1 ([3 ; 48]) , } ; let deserialized_proof_result : Result < groth16 :: Proof < Bls12 > > = invalid_proof . clone () . try_into () ; assert ! (deserialized_proof_result . is_err ()) ; }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/groth16/src/merkle_batch.rs",
+      "path": "../crates/zk/groth16/src/merkle_batch.rs",
+      "relative_path": "crates/zk/groth16/src/merkle_batch.rs",
+      "file_size": 5919,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_crate_{merkle_insertion_prove_insertion,merkle_update_prove_update,utils_create_and_verify_snark,InsertMerkleProofCircuit,ProofVariantCircuit,UpdateMerkleProofCircuit,}",
+            "path": "crate :: { merkle_insertion :: prove_insertion , merkle_update :: prove_update , utils :: create_and_verify_snark , InsertMerkleProofCircuit , ProofVariantCircuit , UpdateMerkleProofCircuit , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_bellman_{groth16,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_bls12_381_{Bls12,Scalar}",
+            "path": "bls12_381 :: { Bls12 , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_indexed_merkle_tree_{tree_Proof,Hash}",
+            "path": "indexed_merkle_tree :: { tree :: Proof , Hash }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#BatchMerkleProofCircuit",
+            "name": "BatchMerkleProofCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "old_commitment",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_commitment",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "proofs",
+                "type_name": "Vec < ProofVariantCircuit >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#impl_BatchMerkleProofCircuit",
+            "target_type": "BatchMerkleProofCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn new (old_commitment : & Hash , new_commitment : & Hash , proofs : Vec < Proof > ,) -> Result < BatchMerkleProofCircuit > { let parsed_old_commitment : Scalar = (* old_commitment) . try_into () ? ; let parsed_new_commitment : Scalar = (* new_commitment) . try_into () ? ; let mut proof_circuit_array : Vec < ProofVariantCircuit > = vec ! [] ; for proof in proofs { match proof { Proof :: Update (update_proof) => { proof_circuit_array . push (ProofVariantCircuit :: Update (Box :: new (UpdateMerkleProofCircuit :: new (& update_proof) ? ,))) ; } Proof :: Insert (insertion_proof) => { proof_circuit_array . push (ProofVariantCircuit :: Insert (Box :: new (InsertMerkleProofCircuit :: new (& insertion_proof) ? ,))) ; } } } Ok (BatchMerkleProofCircuit { old_commitment : parsed_old_commitment , new_commitment : parsed_new_commitment , proofs : proof_circuit_array , }) }",
+              "pub fn create_and_verify_snark (& self ,) -> Result < (groth16 :: Proof < Bls12 > , groth16 :: VerifyingKey < Bls12 >) > { let scalars : Vec < Scalar > = vec ! [self . old_commitment , self . new_commitment] ; create_and_verify_snark (ProofVariantCircuit :: Batch (self . clone ()) , scalars) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#impl_Circuit<Scalar>_BatchMerkleProofCircuit",
+            "target_type": "BatchMerkleProofCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { if self . proofs . is_empty () { let provided_old_commitment = cs . alloc_input (| | \"provided old commitment\" , | | Ok (self . old_commitment)) ? ; let provided_new_commitment = cs . alloc_input (| | \"provided new commitment\" , | | Ok (self . new_commitment)) ? ; cs . enforce (| | \"old commitment check\" , | lc | lc + provided_old_commitment , | lc | lc + CS :: one () , | lc | lc + provided_new_commitment ,) ; return Ok (()) ; } let old_root = match & self . proofs [0] { ProofVariantCircuit :: Update (update_proof_circuit) => update_proof_circuit . old_root , ProofVariantCircuit :: Insert (insert_proof_circuit) => { insert_proof_circuit . pre_insertion_root } ProofVariantCircuit :: Batch (batch_proof_circuit) => batch_proof_circuit . old_commitment , } ; let provided_old_commitment = cs . alloc_input (| | \"provided old commitment\" , | | Ok (self . old_commitment)) ? ; let old_commitment_from_proofs = cs . alloc (| | \"old commitment from proofs\" , | | Ok (old_root)) ? ; cs . enforce (| | \"old commitment check\" , | lc | lc + old_commitment_from_proofs , | lc | lc + CS :: one () , | lc | lc + provided_old_commitment ,) ; let mut new_commitment : Scalar = Scalar :: zero () ; for proof in self . proofs { match proof { ProofVariantCircuit :: Update (update_proof_circuit) => { new_commitment = prove_update (cs , update_proof_circuit . old_root , & update_proof_circuit . old_path , update_proof_circuit . updated_root , & update_proof_circuit . updated_path ,) ? ; } ProofVariantCircuit :: Insert (insert_proof_circuit) => { new_commitment = prove_insertion (cs , insert_proof_circuit . pre_insertion_root , & insert_proof_circuit . insertion_path , insert_proof_circuit . new_leaf_node , insert_proof_circuit . existing_leaf_update , insert_proof_circuit . new_leaf_activation ,) ? ; } ProofVariantCircuit :: Batch (_) => { return Err (SynthesisError :: Unsatisfiable) ; } } } let provided_new_commitment = cs . alloc_input (| | \"provided commitment\" , | | Ok (self . new_commitment)) ? ; let recalculated_new_commitment = cs . alloc (| | \"recalculated commitment\" , | | Ok (new_commitment)) ? ; cs . enforce (| | \"new commitment check\" , | lc | lc + recalculated_new_commitment , | lc | lc + CS :: one () , | lc | lc + provided_new_commitment ,) ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_crate_{merkle_insertion_prove_insertion,merkle_update_prove_update,utils_create_and_verify_snark,InsertMerkleProofCircuit,ProofVariantCircuit,UpdateMerkleProofCircuit,}",
+            "path": "crate :: { merkle_insertion :: prove_insertion , merkle_update :: prove_update , utils :: create_and_verify_snark , InsertMerkleProofCircuit , ProofVariantCircuit , UpdateMerkleProofCircuit , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_bellman_{groth16,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_bls12_381_{Bls12,Scalar}",
+            "path": "bls12_381 :: { Bls12 , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#use_indexed_merkle_tree_{tree_Proof,Hash}",
+            "path": "indexed_merkle_tree :: { tree :: Proof , Hash }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#BatchMerkleProofCircuit",
+            "name": "BatchMerkleProofCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "old_commitment",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_commitment",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "proofs",
+                "type_name": "Vec < ProofVariantCircuit >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#impl_BatchMerkleProofCircuit",
+            "target_type": "BatchMerkleProofCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn new (old_commitment : & Hash , new_commitment : & Hash , proofs : Vec < Proof > ,) -> Result < BatchMerkleProofCircuit > { let parsed_old_commitment : Scalar = (* old_commitment) . try_into () ? ; let parsed_new_commitment : Scalar = (* new_commitment) . try_into () ? ; let mut proof_circuit_array : Vec < ProofVariantCircuit > = vec ! [] ; for proof in proofs { match proof { Proof :: Update (update_proof) => { proof_circuit_array . push (ProofVariantCircuit :: Update (Box :: new (UpdateMerkleProofCircuit :: new (& update_proof) ? ,))) ; } Proof :: Insert (insertion_proof) => { proof_circuit_array . push (ProofVariantCircuit :: Insert (Box :: new (InsertMerkleProofCircuit :: new (& insertion_proof) ? ,))) ; } } } Ok (BatchMerkleProofCircuit { old_commitment : parsed_old_commitment , new_commitment : parsed_new_commitment , proofs : proof_circuit_array , }) }",
+              "pub fn create_and_verify_snark (& self ,) -> Result < (groth16 :: Proof < Bls12 > , groth16 :: VerifyingKey < Bls12 >) > { let scalars : Vec < Scalar > = vec ! [self . old_commitment , self . new_commitment] ; create_and_verify_snark (ProofVariantCircuit :: Batch (self . clone ()) , scalars) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "BatchMerkleProofCircuit"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_batch.rs#impl_Circuit<Scalar>_BatchMerkleProofCircuit",
+            "target_type": "BatchMerkleProofCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { if self . proofs . is_empty () { let provided_old_commitment = cs . alloc_input (| | \"provided old commitment\" , | | Ok (self . old_commitment)) ? ; let provided_new_commitment = cs . alloc_input (| | \"provided new commitment\" , | | Ok (self . new_commitment)) ? ; cs . enforce (| | \"old commitment check\" , | lc | lc + provided_old_commitment , | lc | lc + CS :: one () , | lc | lc + provided_new_commitment ,) ; return Ok (()) ; } let old_root = match & self . proofs [0] { ProofVariantCircuit :: Update (update_proof_circuit) => update_proof_circuit . old_root , ProofVariantCircuit :: Insert (insert_proof_circuit) => { insert_proof_circuit . pre_insertion_root } ProofVariantCircuit :: Batch (batch_proof_circuit) => batch_proof_circuit . old_commitment , } ; let provided_old_commitment = cs . alloc_input (| | \"provided old commitment\" , | | Ok (self . old_commitment)) ? ; let old_commitment_from_proofs = cs . alloc (| | \"old commitment from proofs\" , | | Ok (old_root)) ? ; cs . enforce (| | \"old commitment check\" , | lc | lc + old_commitment_from_proofs , | lc | lc + CS :: one () , | lc | lc + provided_old_commitment ,) ; let mut new_commitment : Scalar = Scalar :: zero () ; for proof in self . proofs { match proof { ProofVariantCircuit :: Update (update_proof_circuit) => { new_commitment = prove_update (cs , update_proof_circuit . old_root , & update_proof_circuit . old_path , update_proof_circuit . updated_root , & update_proof_circuit . updated_path ,) ? ; } ProofVariantCircuit :: Insert (insert_proof_circuit) => { new_commitment = prove_insertion (cs , insert_proof_circuit . pre_insertion_root , & insert_proof_circuit . insertion_path , insert_proof_circuit . new_leaf_node , insert_proof_circuit . existing_leaf_update , insert_proof_circuit . new_leaf_activation ,) ? ; } ProofVariantCircuit :: Batch (_) => { return Err (SynthesisError :: Unsatisfiable) ; } } } let provided_new_commitment = cs . alloc_input (| | \"provided commitment\" , | | Ok (self . new_commitment)) ? ; let recalculated_new_commitment = cs . alloc (| | \"recalculated commitment\" , | | Ok (new_commitment)) ? ; cs . enforce (| | \"new commitment check\" , | lc | lc + recalculated_new_commitment , | lc | lc + CS :: one () , | lc | lc + provided_new_commitment ,) ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "BatchMerkleProofCircuit"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/groth16/src/merkle_update.rs",
+      "path": "../crates/zk/groth16/src/merkle_update.rs",
+      "relative_path": "crates/zk/groth16/src/merkle_update.rs",
+      "file_size": 4366,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_crate_{utils_{create_and_verify_snark,recalculate_hash_as_scalar,unpack_and_process},ProofVariantCircuit,}",
+            "path": "crate :: { utils :: { create_and_verify_snark , recalculate_hash_as_scalar , unpack_and_process } , ProofVariantCircuit , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_bellman_{groth16,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_bls12_381_{Bls12,Scalar}",
+            "path": "bls12_381 :: { Bls12 , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_indexed_merkle_tree_{node_Node,tree_UpdateProof}",
+            "path": "indexed_merkle_tree :: { node :: Node , tree :: UpdateProof }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_prism_errors_PrismError",
+            "path": "prism_errors :: PrismError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#UpdateMerkleProofCircuit",
+            "name": "UpdateMerkleProofCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "old_root",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "old_path",
+                "type_name": "Vec < Node >",
+                "visibility": "pub"
+              },
+              {
+                "name": "updated_root",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "updated_path",
+                "type_name": "Vec < Node >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#impl_UpdateMerkleProofCircuit",
+            "target_type": "UpdateMerkleProofCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn new (proof : & UpdateProof) -> Result < UpdateMerkleProofCircuit , PrismError > { let (old_root , old_path) = unpack_and_process (& proof . old_proof) ? ; let (updated_root , updated_path) = unpack_and_process (& proof . new_proof) ? ; Ok (UpdateMerkleProofCircuit { old_root , old_path : old_path . clone () , updated_root , updated_path : updated_path . clone () , }) }",
+              "pub fn create_and_verify_snark (& self ,) -> Result < (groth16 :: Proof < Bls12 > , groth16 :: VerifyingKey < Bls12 >) > { let scalars : Vec < Scalar > = vec ! [self . old_root , self . updated_root] ; create_and_verify_snark (ProofVariantCircuit :: Update (Box :: new (self . clone ())) , scalars) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#impl_Circuit<Scalar>_UpdateMerkleProofCircuit",
+            "target_type": "UpdateMerkleProofCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { match prove_update (cs , self . old_root , & self . old_path , self . updated_root , & self . updated_path ,) { Ok (_) => Ok (()) , Err (_) => Err (SynthesisError :: Unsatisfiable) , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+            "name": "prove_update",
+            "visibility": "pub(pub (crate))",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "old_root : Scalar",
+              "old_path : & [Node]",
+              "new_root : Scalar",
+              "new_path : & [Node]"
+            ],
+            "output": "Result < Scalar , SynthesisError >",
+            "generics": [
+              "CS"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_crate_{utils_{create_and_verify_snark,recalculate_hash_as_scalar,unpack_and_process},ProofVariantCircuit,}",
+            "path": "crate :: { utils :: { create_and_verify_snark , recalculate_hash_as_scalar , unpack_and_process } , ProofVariantCircuit , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_bellman_{groth16,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_bls12_381_{Bls12,Scalar}",
+            "path": "bls12_381 :: { Bls12 , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_indexed_merkle_tree_{node_Node,tree_UpdateProof}",
+            "path": "indexed_merkle_tree :: { node :: Node , tree :: UpdateProof }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#use_prism_errors_PrismError",
+            "path": "prism_errors :: PrismError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#UpdateMerkleProofCircuit",
+            "name": "UpdateMerkleProofCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "old_root",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "old_path",
+                "type_name": "Vec < Node >",
+                "visibility": "pub"
+              },
+              {
+                "name": "updated_root",
+                "type_name": "Scalar",
+                "visibility": "pub"
+              },
+              {
+                "name": "updated_path",
+                "type_name": "Vec < Node >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#impl_UpdateMerkleProofCircuit",
+            "target_type": "UpdateMerkleProofCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn new (proof : & UpdateProof) -> Result < UpdateMerkleProofCircuit , PrismError > { let (old_root , old_path) = unpack_and_process (& proof . old_proof) ? ; let (updated_root , updated_path) = unpack_and_process (& proof . new_proof) ? ; Ok (UpdateMerkleProofCircuit { old_root , old_path : old_path . clone () , updated_root , updated_path : updated_path . clone () , }) }",
+              "pub fn create_and_verify_snark (& self ,) -> Result < (groth16 :: Proof < Bls12 > , groth16 :: VerifyingKey < Bls12 >) > { let scalars : Vec < Scalar > = vec ! [self . old_root , self . updated_root] ; create_and_verify_snark (ProofVariantCircuit :: Update (Box :: new (self . clone ())) , scalars) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "UpdateMerkleProofCircuit"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#impl_Circuit<Scalar>_UpdateMerkleProofCircuit",
+            "target_type": "UpdateMerkleProofCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { match prove_update (cs , self . old_root , & self . old_path , self . updated_root , & self . updated_path ,) { Ok (_) => Ok (()) , Err (_) => Err (SynthesisError :: Unsatisfiable) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "UpdateMerkleProofCircuit"
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+            "name": "prove_update",
+            "visibility": "pub(pub (crate))",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "old_root : Scalar",
+              "old_path : & [Node]",
+              "new_root : Scalar",
+              "new_path : & [Node]"
+            ],
+            "output": "Result < Scalar , SynthesisError >",
+            "generics": [
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "alloc",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "alloc",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "recalculate_hash_as_scalar",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "recalculate_hash_as_scalar",
+              "is_method": false
+            },
+            {
+              "callee": "alloc",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "alloc",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "enforce",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "enforce",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "root_with_old_pointer",
+              "is_mutable": false
+            },
+            {
+              "name": "root_with_new_pointer",
+              "is_mutable": false
+            },
+            {
+              "name": "recalculated_root_with_old_pointer",
+              "is_mutable": false
+            },
+            {
+              "name": "recalculated_root_with_new_pointer",
+              "is_mutable": false
+            },
+            {
+              "name": "allocated_recalculated_root_with_old_pointer",
+              "is_mutable": false
+            },
+            {
+              "name": "allocated_recalculated_root_with_new_pointer",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/groth16/src/less_than.rs",
+      "path": "../crates/zk/groth16/src/less_than.rs",
+      "relative_path": "crates/zk/groth16/src/less_than.rs",
+      "file_size": 2113,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/less_than.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/less_than.rs#use_bellman_{gadgets_boolean_Boolean,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { gadgets :: boolean :: Boolean , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/less_than.rs#use_bls12_381_Scalar",
+            "path": "bls12_381 :: Scalar",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/less_than.rs#use_ff_PrimeFieldBits",
+            "path": "ff :: PrimeFieldBits",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/less_than.rs#LessThanCircuit",
+            "name": "LessThanCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "a",
+                "type_name": "Scalar",
+                "visibility": "private"
+              },
+              {
+                "name": "b",
+                "type_name": "Scalar",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/less_than.rs#impl_LessThanCircuit",
+            "target_type": "LessThanCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn new (a : Scalar , b : Scalar) -> LessThanCircuit { LessThanCircuit { a , b } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/less_than.rs#impl_Circuit<Scalar>_LessThanCircuit",
+            "target_type": "LessThanCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { let a_bits = self . a . to_le_bits () ; let b_bits = self . b . to_le_bits () ; let mut result = Boolean :: constant (false) ; for i in (0 .. a_bits . len ()) . rev () { let a_val = Boolean :: constant (a_bits [i]) ; let b_val = Boolean :: constant (b_bits [i]) ; let not_a = a_val . not () ; let not_b = b_val . not () ; let a_and_b = Boolean :: and (cs . namespace (| | format ! (\"a_and_b_{}\" , i)) , & a_val , & b_val) ? ; let not_a_and_not_b = Boolean :: and (cs . namespace (| | format ! (\"not_a_and_not_b_{}\" , i)) , & not_a , & not_b ,) ? ; if not_a_and_not_b . get_value () . unwrap () || a_and_b . get_value () . unwrap () { continue ; } else { result = Boolean :: and (cs . namespace (| | format ! (\"b_and_not_a_{}\" , i)) , & b_val , & not_a ,) ? ; break ; } } cs . enforce (| | \"a < b\" , | _ | result . lc (CS :: one () , Scalar :: one ()) , | lc | lc + CS :: one () , | lc | lc + CS :: one () ,) ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/less_than.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/less_than.rs#use_bellman_{gadgets_boolean_Boolean,Circuit,ConstraintSystem,SynthesisError}",
+            "path": "bellman :: { gadgets :: boolean :: Boolean , Circuit , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/less_than.rs#use_bls12_381_Scalar",
+            "path": "bls12_381 :: Scalar",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/less_than.rs#use_ff_PrimeFieldBits",
+            "path": "ff :: PrimeFieldBits",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/groth16/src/less_than.rs#LessThanCircuit",
+            "name": "LessThanCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "a",
+                "type_name": "Scalar",
+                "visibility": "private"
+              },
+              {
+                "name": "b",
+                "type_name": "Scalar",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/less_than.rs#impl_LessThanCircuit",
+            "target_type": "LessThanCircuit",
+            "trait_name": null,
+            "items": [
+              "pub fn new (a : Scalar , b : Scalar) -> LessThanCircuit { LessThanCircuit { a , b } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LessThanCircuit"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/groth16/src/less_than.rs#impl_Circuit<Scalar>_LessThanCircuit",
+            "target_type": "LessThanCircuit",
+            "trait_name": "Circuit < Scalar >",
+            "items": [
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (self , cs : & mut CS) -> Result < () , SynthesisError > { let a_bits = self . a . to_le_bits () ; let b_bits = self . b . to_le_bits () ; let mut result = Boolean :: constant (false) ; for i in (0 .. a_bits . len ()) . rev () { let a_val = Boolean :: constant (a_bits [i]) ; let b_val = Boolean :: constant (b_bits [i]) ; let not_a = a_val . not () ; let not_b = b_val . not () ; let a_and_b = Boolean :: and (cs . namespace (| | format ! (\"a_and_b_{}\" , i)) , & a_val , & b_val) ? ; let not_a_and_not_b = Boolean :: and (cs . namespace (| | format ! (\"not_a_and_not_b_{}\" , i)) , & not_a , & not_b ,) ? ; if not_a_and_not_b . get_value () . unwrap () || a_and_b . get_value () . unwrap () { continue ; } else { result = Boolean :: and (cs . namespace (| | format ! (\"b_and_not_a_{}\" , i)) , & b_val , & not_a ,) ? ; break ; } } cs . enforce (| | \"a < b\" , | _ | result . lc (CS :: one () , Scalar :: one ()) , | lc | lc + CS :: one () , | lc | lc + CS :: one () ,) ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LessThanCircuit"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/groth16/src/utils.rs",
+      "path": "../crates/zk/groth16/src/utils.rs",
+      "relative_path": "crates/zk/groth16/src/utils.rs",
+      "file_size": 3088,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_crate_ProofVariantCircuit",
+            "path": "crate :: ProofVariantCircuit",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_anyhow_{anyhow,Result}",
+            "path": "anyhow :: { anyhow , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_bellman_groth16_{self,VerifyingKey}",
+            "path": "bellman :: groth16 :: { self , VerifyingKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_bls12_381_{Bls12,Scalar}",
+            "path": "bls12_381 :: { Bls12 , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_indexed_merkle_tree_{node_Node,sha256_mod,tree_MerkleProof,Hash}",
+            "path": "indexed_merkle_tree :: { node :: Node , sha256_mod , tree :: MerkleProof , Hash }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_prism_errors_{GeneralError,PrismError,ProofError}",
+            "path": "prism_errors :: { GeneralError , PrismError , ProofError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_rand_rngs_OsRng",
+            "path": "rand :: rngs :: OsRng",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+            "name": "create_and_verify_snark",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "circuit : ProofVariantCircuit",
+              "scalars : Vec < Scalar >"
+            ],
+            "output": "Result < (groth16 :: Proof < Bls12 > , VerifyingKey < Bls12 >) >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/utils.rs#unpack_and_process",
+            "name": "unpack_and_process",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "proof : & MerkleProof"
+            ],
+            "output": "Result < (Scalar , & Vec < Node >) >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+            "name": "validate_epoch",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "previous_commitment : & Hash",
+              "current_commitment : & Hash",
+              "proof : groth16 :: Proof < Bls12 >",
+              "verifying_key : VerifyingKey < Bls12 >"
+            ],
+            "output": "Result < groth16 :: Proof < Bls12 > , PrismError >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+            "name": "recalculate_hash_as_scalar",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "path : & [Node]"
+            ],
+            "output": "Result < Scalar >",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_crate_ProofVariantCircuit",
+            "path": "crate :: ProofVariantCircuit",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_anyhow_{anyhow,Result}",
+            "path": "anyhow :: { anyhow , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_bellman_groth16_{self,VerifyingKey}",
+            "path": "bellman :: groth16 :: { self , VerifyingKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_bls12_381_{Bls12,Scalar}",
+            "path": "bls12_381 :: { Bls12 , Scalar }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_indexed_merkle_tree_{node_Node,sha256_mod,tree_MerkleProof,Hash}",
+            "path": "indexed_merkle_tree :: { node :: Node , sha256_mod , tree :: MerkleProof , Hash }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_prism_errors_{GeneralError,PrismError,ProofError}",
+            "path": "prism_errors :: { GeneralError , PrismError , ProofError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/groth16/src/utils.rs#use_rand_rngs_OsRng",
+            "path": "rand :: rngs :: OsRng",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+            "name": "create_and_verify_snark",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "circuit : ProofVariantCircuit",
+              "scalars : Vec < Scalar >"
+            ],
+            "output": "Result < (groth16 :: Proof < Bls12 > , VerifyingKey < Bls12 >) >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "groth16::generate_random_parameters",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "circuit"
+            },
+            {
+              "callee": "PrismError::Proof",
+              "is_method": false
+            },
+            {
+              "callee": "ProofError::ProofUnpackError",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "groth16::create_random_proof",
+              "is_method": false
+            },
+            {
+              "callee": "PrismError::Proof",
+              "is_method": false
+            },
+            {
+              "callee": "ProofError::GenerationError",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "groth16::prepare_verifying_key",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "groth16::verify_proof",
+              "is_method": false
+            },
+            {
+              "callee": "PrismError::Proof",
+              "is_method": false
+            },
+            {
+              "callee": "ProofError::VerificationError",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "rng",
+              "is_mutable": false
+            },
+            {
+              "name": "params",
+              "is_mutable": false
+            },
+            {
+              "name": "proof",
+              "is_mutable": false
+            },
+            {
+              "name": "pvk",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Bls12"
+          ],
+          "macro_invocations": [
+            {
+              "name": "trace",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "trace",
+              "kind": "function-like"
+            },
+            {
+              "name": "trace",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/utils.rs#unpack_and_process",
+            "name": "unpack_and_process",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "proof : & MerkleProof"
+            ],
+            "output": "Result < (Scalar , & Vec < Node >) >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "is_empty",
+              "is_method": true
+            },
+            {
+              "callee": "try_into",
+              "is_method": true
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Err",
+              "is_method": false
+            }
+          ],
+          "local_variables": [],
+          "type_references": [
+            "Scalar"
+          ],
+          "macro_invocations": [
+            {
+              "name": "anyhow",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+            "name": "validate_epoch",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "previous_commitment : & Hash",
+              "current_commitment : & Hash",
+              "proof : groth16 :: Proof < Bls12 >",
+              "verifying_key : VerifyingKey < Bls12 >"
+            ],
+            "output": "Result < groth16 :: Proof < Bls12 > , PrismError >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "groth16::prepare_verifying_key",
+              "is_method": false
+            },
+            {
+              "callee": "collect",
+              "is_method": true
+            },
+            {
+              "callee": "into_iter",
+              "is_method": true
+            },
+            {
+              "callee": "map_err",
+              "is_method": true,
+              "receiver_type": "scalars"
+            },
+            {
+              "callee": "PrismError::General",
+              "is_method": false
+            },
+            {
+              "callee": "GeneralError::ParsingError",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "groth16::verify_proof",
+              "is_method": false
+            },
+            {
+              "callee": "PrismError::Proof",
+              "is_method": false
+            },
+            {
+              "callee": "ProofError::VerificationError",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "pvk",
+              "is_mutable": false
+            },
+            {
+              "name": "scalars",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Scalar",
+            "Result",
+            "Vec"
+          ],
+          "macro_invocations": [
+            {
+              "name": "trace",
+              "kind": "function-like"
+            },
+            {
+              "name": "vec",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "trace",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+            "name": "recalculate_hash_as_scalar",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "path : & [Node]"
+            ],
+            "output": "Result < Scalar >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "get_hash",
+              "is_method": true
+            },
+            {
+              "callee": "skip",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "path"
+            },
+            {
+              "callee": "is_left_sibling",
+              "is_method": true,
+              "receiver_type": "node"
+            },
+            {
+              "callee": "concat",
+              "is_method": true
+            },
+            {
+              "callee": "as_ref",
+              "is_method": true
+            },
+            {
+              "callee": "get_hash",
+              "is_method": true,
+              "receiver_type": "node"
+            },
+            {
+              "callee": "as_ref",
+              "is_method": true,
+              "receiver_type": "current_hash"
+            },
+            {
+              "callee": "concat",
+              "is_method": true
+            },
+            {
+              "callee": "as_ref",
+              "is_method": true,
+              "receiver_type": "current_hash"
+            },
+            {
+              "callee": "as_ref",
+              "is_method": true
+            },
+            {
+              "callee": "get_hash",
+              "is_method": true,
+              "receiver_type": "node"
+            },
+            {
+              "callee": "sha256_mod",
+              "is_method": false
+            },
+            {
+              "callee": "try_into",
+              "is_method": true,
+              "receiver_type": "current_hash"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "current_hash",
+              "is_mutable": true
+            },
+            {
+              "name": "combined",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/zk/groth16/src/hashchain.rs",
+      "to_id": "anyhow :: { anyhow , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/hashchain.rs",
+      "to_id": "bellman :: { Circuit , ConstraintSystem , SynthesisError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/hashchain.rs",
+      "to_id": "bls12_381 :: Scalar",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/hashchain.rs",
+      "to_id": "indexed_merkle_tree :: sha256_mod",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/hashchain.rs",
+      "to_id": "prism_common :: hashchain :: HashchainEntry",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/hashchain.rs#HashChainEntryCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/hashchain.rs#impl_Circuit<Scalar>_HashChainEntryCircuit",
+      "to_id": "trait:Circuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs",
+      "to_id": "crate :: { merkle_update :: prove_update , utils :: { create_and_verify_snark , recalculate_hash_as_scalar , unpack_and_process } , LessThanCircuit , ProofVariantCircuit , UpdateMerkleProofCircuit , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs",
+      "to_id": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs",
+      "to_id": "bls12_381 :: { Bls12 , Scalar }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs",
+      "to_id": "indexed_merkle_tree :: { node :: { LeafNode , Node } , tree :: InsertProof , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs",
+      "to_id": "prism_errors :: PrismError",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#InsertMerkleProofCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#impl_Circuit<Scalar>_InsertMerkleProofCircuit",
+      "to_id": "trait:Circuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_insertion",
+      "to_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_insertion",
+      "to_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_insertion",
+      "to_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_insertion",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "try_into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "get_label",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "try_into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "get_next",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "try_into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "synthesize",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "LessThanCircuit::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "synthesize",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "LessThanCircuit::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "alloc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "alloc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "enforce",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_insertion.rs#prove_non_membership",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "anyhow :: { anyhow , Context , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "bls12_381 :: { Bls12 , G1Affine , G2Affine , Scalar }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "prism_errors :: { GeneralError , PrismError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "std :: fmt",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "hashchain :: HashChainEntryCircuit",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "less_than :: LessThanCircuit",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "merkle_batch :: BatchMerkleProofCircuit",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "merkle_insertion :: InsertMerkleProofCircuit",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs",
+      "to_id": "merkle_update :: UpdateMerkleProofCircuit",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#ProofVariantCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_Circuit<Scalar>_ProofVariantCircuit",
+      "to_id": "trait:Circuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#G1",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#G2",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_fmt::Debug_G1",
+      "to_id": "trait:fmt::Debug",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_fmt::Debug_G2",
+      "to_id": "trait:fmt::Debug",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<G1>_bls12_381::G1Affine",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<G2>_bls12_381::G2Affine",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#Bls12Proof",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#Bls12Proof",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<Bls12Proof>_groth16::Proof<Bls12>",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_From<groth16::Proof<Bls12>>_Bls12Proof",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#VerifyingKey",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#VerifyingKey",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_From<groth16::VerifyingKey<Bls12>>_VerifyingKey",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/lib.rs#impl_TryFrom<VerifyingKey>_groth16::VerifyingKey<Bls12>",
+      "to_id": "trait:TryFrom",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_batch.rs",
+      "to_id": "crate :: { merkle_insertion :: prove_insertion , merkle_update :: prove_update , utils :: create_and_verify_snark , InsertMerkleProofCircuit , ProofVariantCircuit , UpdateMerkleProofCircuit , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_batch.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_batch.rs",
+      "to_id": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_batch.rs",
+      "to_id": "bls12_381 :: { Bls12 , Scalar }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_batch.rs",
+      "to_id": "indexed_merkle_tree :: { tree :: Proof , Hash }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_batch.rs#BatchMerkleProofCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_batch.rs#impl_Circuit<Scalar>_BatchMerkleProofCircuit",
+      "to_id": "trait:Circuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs",
+      "to_id": "crate :: { utils :: { create_and_verify_snark , recalculate_hash_as_scalar , unpack_and_process } , ProofVariantCircuit , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs",
+      "to_id": "bellman :: { groth16 , Circuit , ConstraintSystem , SynthesisError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs",
+      "to_id": "bls12_381 :: { Bls12 , Scalar }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs",
+      "to_id": "indexed_merkle_tree :: { node :: Node , tree :: UpdateProof }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs",
+      "to_id": "prism_errors :: PrismError",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#UpdateMerkleProofCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#impl_Circuit<Scalar>_UpdateMerkleProofCircuit",
+      "to_id": "trait:Circuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "alloc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "alloc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "alloc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "alloc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "enforce",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "enforce",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/merkle_update.rs#prove_update",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/less_than.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/less_than.rs",
+      "to_id": "bellman :: { gadgets :: boolean :: Boolean , Circuit , ConstraintSystem , SynthesisError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/less_than.rs",
+      "to_id": "bls12_381 :: Scalar",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/less_than.rs",
+      "to_id": "ff :: PrimeFieldBits",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/less_than.rs#LessThanCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/less_than.rs#impl_Circuit<Scalar>_LessThanCircuit",
+      "to_id": "trait:Circuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs",
+      "to_id": "crate :: ProofVariantCircuit",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs",
+      "to_id": "anyhow :: { anyhow , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs",
+      "to_id": "bellman :: groth16 :: { self , VerifyingKey }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs",
+      "to_id": "bls12_381 :: { Bls12 , Scalar }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs",
+      "to_id": "indexed_merkle_tree :: { node :: Node , sha256_mod , tree :: MerkleProof , Hash }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs",
+      "to_id": "prism_errors :: { GeneralError , PrismError , ProofError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs",
+      "to_id": "rand :: rngs :: OsRng",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "groth16::generate_random_parameters",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "PrismError::Proof",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "ProofError::ProofUnpackError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "groth16::create_random_proof",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "PrismError::Proof",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "ProofError::GenerationError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "groth16::prepare_verifying_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "groth16::verify_proof",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "PrismError::Proof",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "ProofError::VerificationError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#create_and_verify_snark",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#unpack_and_process",
+      "to_id": "is_empty",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#unpack_and_process",
+      "to_id": "try_into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#unpack_and_process",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#unpack_and_process",
+      "to_id": "Err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "groth16::prepare_verifying_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "collect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "into_iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "PrismError::General",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "GeneralError::ParsingError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "groth16::verify_proof",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "PrismError::Proof",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "ProofError::VerificationError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#validate_epoch",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "get_hash",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "skip",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "is_left_sibling",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "concat",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "as_ref",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "get_hash",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "as_ref",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "concat",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "as_ref",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "as_ref",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "get_hash",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "sha256_mod",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/groth16/src/utils.rs#recalculate_hash_as_scalar",
+      "to_id": "try_into",
+      "ref_type": "FunctionCall"
+    }
+  ],
+  "total_files": 7,
+  "successfully_parsed": 7,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 7,
+    "total_structs": 9,
+    "total_enums": 1,
+    "total_traits": 0,
+    "total_impls": 19,
+    "total_tests": 0,
+    "total_function_calls": 91,
+    "total_derives": 12,
+    "total_macro_uses": 9
+  }
+}

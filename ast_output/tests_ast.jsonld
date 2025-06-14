@@ -1,0 +1,1623 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:tests",
+  "crate_name": "tests",
+  "crate_path": "crates/tests",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/tests/src/lib.rs",
+      "path": "../crates/tests/src/lib.rs",
+      "relative_path": "crates/tests/src/lib.rs",
+      "file_size": 8652,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_common_test_transaction_builder_TestTransactionBuilder",
+            "path": "prism_common :: test_transaction_builder :: TestTransactionBuilder",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_da_{DataAvailabilityLayer,celestia_{full_node_CelestiaConnectionasFullNodeCelestiaConn,light_client_LightClientConnectionasLightClientCelestiaConn,utils_{CelestiaConfig,NetworkConfig},},}",
+            "path": "prism_da :: { DataAvailabilityLayer , celestia :: { full_node :: CelestiaConnection as FullNodeCelestiaConn , light_client :: LightClientConnection as LightClientCelestiaConn , utils :: { CelestiaConfig , NetworkConfig } , } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_keys_{CryptoAlgorithm,SigningKey}",
+            "path": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_lightclient_{LightClient,events_EventChannel}",
+            "path": "prism_lightclient :: { LightClient , events :: EventChannel }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_prover_Prover",
+            "path": "prism_prover :: Prover",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_storage_{Database,rocksdb_{RocksDBConfig,RocksDBConnection},}",
+            "path": "prism_storage :: { Database , rocksdb :: { RocksDBConfig , RocksDBConnection } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_rand_{Rng,SeedableRng,rngs_StdRng}",
+            "path": "rand :: { Rng , SeedableRng , rngs :: StdRng }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_tokio_{spawn,sync_mpsc,time_Duration}",
+            "path": "tokio :: { spawn , sync :: mpsc , time :: Duration }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_tempfile_TempDir",
+            "path": "tempfile :: TempDir",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tests/src/lib.rs#setup_db",
+            "name": "setup_db",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Arc < Box < dyn Database > >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+            "name": "test_light_client_prover_talking",
+            "visibility": "private",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Result < () >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tests/src/lib.rs#random_algorithm",
+            "name": "random_algorithm",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "rng : & mut StdRng"
+            ],
+            "output": "CryptoAlgorithm",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_common_test_transaction_builder_TestTransactionBuilder",
+            "path": "prism_common :: test_transaction_builder :: TestTransactionBuilder",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_da_{DataAvailabilityLayer,celestia_{full_node_CelestiaConnectionasFullNodeCelestiaConn,light_client_LightClientConnectionasLightClientCelestiaConn,utils_{CelestiaConfig,NetworkConfig},},}",
+            "path": "prism_da :: { DataAvailabilityLayer , celestia :: { full_node :: CelestiaConnection as FullNodeCelestiaConn , light_client :: LightClientConnection as LightClientCelestiaConn , utils :: { CelestiaConfig , NetworkConfig } , } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_keys_{CryptoAlgorithm,SigningKey}",
+            "path": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_lightclient_{LightClient,events_EventChannel}",
+            "path": "prism_lightclient :: { LightClient , events :: EventChannel }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_prover_Prover",
+            "path": "prism_prover :: Prover",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_prism_storage_{Database,rocksdb_{RocksDBConfig,RocksDBConnection},}",
+            "path": "prism_storage :: { Database , rocksdb :: { RocksDBConfig , RocksDBConnection } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_rand_{Rng,SeedableRng,rngs_StdRng}",
+            "path": "rand :: { Rng , SeedableRng , rngs :: StdRng }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_tokio_{spawn,sync_mpsc,time_Duration}",
+            "path": "tokio :: { spawn , sync :: mpsc , time :: Duration }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tests/src/lib.rs#use_tempfile_TempDir",
+            "path": "tempfile :: TempDir",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tests/src/lib.rs#setup_db",
+            "name": "setup_db",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Arc < Box < dyn Database > >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "TempDir::new",
+              "is_method": false
+            },
+            {
+              "callee": "RocksDBConfig::new",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "to_str",
+              "is_method": true
+            },
+            {
+              "callee": "path",
+              "is_method": true,
+              "receiver_type": "temp_dir"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "RocksDBConnection::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "Box::new",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "temp_dir",
+              "is_mutable": false
+            },
+            {
+              "name": "cfg",
+              "is_mutable": false
+            },
+            {
+              "name": "db",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Box"
+          ],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+            "name": "test_light_client_prover_talking",
+            "visibility": "private",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Result < () >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "init",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_module",
+              "is_method": true
+            },
+            {
+              "callee": "filter_level",
+              "is_method": true
+            },
+            {
+              "callee": "pretty_env_logger::formatted_builder",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "CelestiaConfig::default",
+              "is_method": false
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "CelestiaConfig::default",
+              "is_method": false
+            },
+            {
+              "callee": "NetworkConfig::default",
+              "is_method": false
+            },
+            {
+              "callee": "StdRng::from_entropy",
+              "is_method": false
+            },
+            {
+              "callee": "random_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "FullNodeCelestiaConn::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "LightClientCelestiaConn::new",
+              "is_method": false
+            },
+            {
+              "callee": "setup_db",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "SigningKey::new_with_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "verifying_key",
+              "is_method": true,
+              "receiver_type": "signing_key"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "pubkey"
+            },
+            {
+              "callee": "prism_prover::WebServerConfig::default",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "Prover::new",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "db"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "bridge_da_layer"
+            },
+            {
+              "callee": "tokio_util::sync::CancellationToken::new",
+              "is_method": false
+            },
+            {
+              "callee": "EventChannel::new",
+              "is_method": false
+            },
+            {
+              "callee": "mpsc::channel",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "LightClient::new",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "lc_da_layer"
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "publisher",
+              "is_method": true,
+              "receiver_type": "event_channel"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "prover"
+            },
+            {
+              "callee": "spawn",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "run",
+              "is_method": true,
+              "receiver_type": "prover_clone"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "lightclient"
+            },
+            {
+              "callee": "spawn",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "run",
+              "is_method": true,
+              "receiver_type": "lc_clone"
+            },
+            {
+              "callee": "spawn",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "transaction_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "validate_and_queue_update",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "prover"
+            },
+            {
+              "callee": "Vec::new",
+              "is_method": false
+            },
+            {
+              "callee": "is_ok",
+              "is_method": true
+            },
+            {
+              "callee": "try_recv",
+              "is_method": true,
+              "receiver_type": "shutdown_rx"
+            },
+            {
+              "callee": "gen_range",
+              "is_method": true,
+              "receiver_type": "rng"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "transaction_builder"
+            },
+            {
+              "callee": "random_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "as_str",
+              "is_method": true,
+              "receiver_type": "random_user_id"
+            },
+            {
+              "callee": "validate_and_queue_update",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "prover"
+            },
+            {
+              "callee": "push",
+              "is_method": true,
+              "receiver_type": "added_account_ids"
+            },
+            {
+              "callee": "len",
+              "is_method": true,
+              "receiver_type": "added_account_ids"
+            },
+            {
+              "callee": "map_or",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "added_account_ids"
+            },
+            {
+              "callee": "gen_range",
+              "is_method": true,
+              "receiver_type": "rng"
+            },
+            {
+              "callee": "len",
+              "is_method": true,
+              "receiver_type": "added_account_ids"
+            },
+            {
+              "callee": "as_str",
+              "is_method": true,
+              "receiver_type": "id"
+            },
+            {
+              "callee": "random_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "gen_range",
+              "is_method": true,
+              "receiver_type": "rng"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_random_key_verified_with_root",
+              "is_method": true,
+              "receiver_type": "transaction_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_randomly_signed_data_verified_with_root",
+              "is_method": true,
+              "receiver_type": "transaction_builder"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "set_randomly_signed_data_verified_with_root",
+              "is_method": true,
+              "receiver_type": "transaction_builder"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "validate_and_queue_update",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "prover"
+            },
+            {
+              "callee": "tokio::time::sleep",
+              "is_method": false
+            },
+            {
+              "callee": "Duration::from_secs",
+              "is_method": false
+            },
+            {
+              "callee": "spawn",
+              "is_method": false
+            },
+            {
+              "callee": "subscribe_to_heights",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "bridge_da_layer"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "recv",
+              "is_method": true,
+              "receiver_type": "rx"
+            },
+            {
+              "callee": "recv",
+              "is_method": true,
+              "receiver_type": "rx"
+            },
+            {
+              "callee": "send",
+              "is_method": true,
+              "receiver_type": "shutdown_tx"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "bridge_cfg",
+              "is_mutable": false
+            },
+            {
+              "name": "lc_cfg",
+              "is_mutable": false
+            },
+            {
+              "name": "rng",
+              "is_mutable": true
+            },
+            {
+              "name": "prover_algorithm",
+              "is_mutable": false
+            },
+            {
+              "name": "service_algorithm",
+              "is_mutable": false
+            },
+            {
+              "name": "bridge_da_layer",
+              "is_mutable": false
+            },
+            {
+              "name": "lc_da_layer",
+              "is_mutable": false
+            },
+            {
+              "name": "db",
+              "is_mutable": false
+            },
+            {
+              "name": "signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "pubkey",
+              "is_mutable": false
+            },
+            {
+              "name": "prover_cfg",
+              "is_mutable": false
+            },
+            {
+              "name": "prover",
+              "is_mutable": false
+            },
+            {
+              "name": "event_channel",
+              "is_mutable": false
+            },
+            {
+              "name": "lightclient",
+              "is_mutable": false
+            },
+            {
+              "name": "prover_clone",
+              "is_mutable": false
+            },
+            {
+              "name": "_prover_handle",
+              "is_mutable": false
+            },
+            {
+              "name": "lc_clone",
+              "is_mutable": false
+            },
+            {
+              "name": "_lc_handle",
+              "is_mutable": false
+            },
+            {
+              "name": "tx_handle",
+              "is_mutable": false
+            },
+            {
+              "name": "transaction_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "register_service_req",
+              "is_mutable": false
+            },
+            {
+              "name": "i",
+              "is_mutable": true
+            },
+            {
+              "name": "num_new_accounts",
+              "is_mutable": false
+            },
+            {
+              "name": "random_user_id",
+              "is_mutable": false
+            },
+            {
+              "name": "new_acc",
+              "is_mutable": false
+            },
+            {
+              "name": "acc_id",
+              "is_mutable": false
+            },
+            {
+              "name": "algorithm",
+              "is_mutable": false
+            },
+            {
+              "name": "update_acc",
+              "is_mutable": false
+            },
+            {
+              "name": "height_monitor",
+              "is_mutable": false
+            },
+            {
+              "name": "rx",
+              "is_mutable": true
+            },
+            {
+              "name": "initial_height",
+              "is_mutable": false
+            },
+            {
+              "name": "target_height",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Vec",
+            "String"
+          ],
+          "macro_invocations": [
+            {
+              "name": "debug",
+              "kind": "function-like"
+            },
+            {
+              "name": "debug",
+              "kind": "function-like"
+            },
+            {
+              "name": "debug",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "eprintln",
+              "kind": "function-like"
+            },
+            {
+              "name": "eprintln",
+              "kind": "function-like"
+            },
+            {
+              "name": "debug",
+              "kind": "function-like"
+            },
+            {
+              "name": "debug",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tests/src/lib.rs#random_algorithm",
+            "name": "random_algorithm",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "rng : & mut StdRng"
+            ],
+            "output": "CryptoAlgorithm",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "gen_range",
+              "is_method": true,
+              "receiver_type": "rng"
+            }
+          ],
+          "local_variables": [],
+          "type_references": [],
+          "macro_invocations": []
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "prism_common :: test_transaction_builder :: TestTransactionBuilder",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "prism_da :: { DataAvailabilityLayer , celestia :: { full_node :: CelestiaConnection as FullNodeCelestiaConn , light_client :: LightClientConnection as LightClientCelestiaConn , utils :: { CelestiaConfig , NetworkConfig } , } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "prism_lightclient :: { LightClient , events :: EventChannel }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "prism_prover :: Prover",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "prism_storage :: { Database , rocksdb :: { RocksDBConfig , RocksDBConnection } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "rand :: { Rng , SeedableRng , rngs :: StdRng }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "std :: sync :: Arc",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "tokio :: { spawn , sync :: mpsc , time :: Duration }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs",
+      "to_id": "tempfile :: TempDir",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "TempDir::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "RocksDBConfig::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "to_str",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "path",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "RocksDBConnection::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#setup_db",
+      "to_id": "Box::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "crates/telemetry/src/init.rs#init",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_module",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "filter_level",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "pretty_env_logger::formatted_builder",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "CelestiaConfig::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "CelestiaConfig::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "NetworkConfig::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "StdRng::from_entropy",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "crates/tests/src/lib.rs#random_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "FullNodeCelestiaConn::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "LightClientCelestiaConn::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "crates/tests/src/lib.rs#setup_db",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "SigningKey::new_with_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "verifying_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "prism_prover::WebServerConfig::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Prover::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "tokio_util::sync::CancellationToken::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "EventChannel::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "mpsc::channel",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "LightClient::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "publisher",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "spawn",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "run",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "spawn",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "run",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "spawn",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "validate_and_queue_update",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Vec::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "is_ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "try_recv",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "gen_range",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "crates/tests/src/lib.rs#random_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "as_str",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "validate_and_queue_update",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "push",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "len",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "map_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "gen_range",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "len",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "as_str",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "crates/tests/src/lib.rs#random_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "gen_range",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "add_random_key_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "add_randomly_signed_data_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "set_randomly_signed_data_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "validate_and_queue_update",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "tokio::time::sleep",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Duration::from_secs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "spawn",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "subscribe_to_heights",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "recv",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "recv",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "send",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#test_light_client_prover_talking",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tests/src/lib.rs#random_algorithm",
+      "to_id": "gen_range",
+      "ref_type": "FunctionCall"
+    }
+  ],
+  "total_files": 1,
+  "successfully_parsed": 1,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 3,
+    "total_structs": 0,
+    "total_enums": 0,
+    "total_traits": 0,
+    "total_impls": 0,
+    "total_tests": 0,
+    "total_function_calls": 111,
+    "total_derives": 0,
+    "total_macro_uses": 9
+  }
+}

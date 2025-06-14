@@ -1,0 +1,807 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:benches",
+  "crate_name": "benches",
+  "crate_path": "benches",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "benches/zk_benchmarks.rs",
+      "path": "../benches/zk_benchmarks.rs",
+      "relative_path": "benches/zk_benchmarks.rs",
+      "file_size": 3964,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "benches/zk_benchmarks.rs#use_criterion_{black_box,criterion_group,criterion_main,BenchmarkId,Criterion}",
+            "path": "criterion :: { black_box , criterion_group , criterion_main , BenchmarkId , Criterion }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "benches/zk_benchmarks.rs#use_indexed_merkle_tree_{node_Node,sha256_mod,tree_{IndexedMerkleTree,Proof},Hash,}",
+            "path": "indexed_merkle_tree :: { node :: Node , sha256_mod , tree :: { IndexedMerkleTree , Proof } , Hash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "benches/zk_benchmarks.rs#use_rand_Rng",
+            "path": "rand :: Rng",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "benches/zk_benchmarks.rs#use_std_time_Duration",
+            "path": "std :: time :: Duration",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "benches/zk_benchmarks.rs#create_random_test_hash",
+            "name": "create_random_test_hash",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Hash",
+            "generics": []
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "benches/zk_benchmarks.rs#SIZES",
+            "name": "SIZES",
+            "visibility": "private",
+            "type_name": "[usize ; 3]"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "benches/zk_benchmarks.rs#BATCH_SIZES",
+            "name": "BATCH_SIZES",
+            "visibility": "private",
+            "type_name": "[usize ; 3]"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+            "name": "setup_tree_and_proofs",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "tree_size : usize",
+              "batch_size : usize"
+            ],
+            "output": "(IndexedMerkleTree , Vec < Proof > , Hash , Hash)",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "benches/zk_benchmarks.rs#bench_proof_generation",
+            "name": "bench_proof_generation",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "c : & mut Criterion"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "benches/zk_benchmarks.rs#bench_proof_verification",
+            "name": "bench_proof_verification",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "c : & mut Criterion"
+            ],
+            "output": null,
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "benches/zk_benchmarks.rs#use_criterion_{black_box,criterion_group,criterion_main,BenchmarkId,Criterion}",
+            "path": "criterion :: { black_box , criterion_group , criterion_main , BenchmarkId , Criterion }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "benches/zk_benchmarks.rs#use_indexed_merkle_tree_{node_Node,sha256_mod,tree_{IndexedMerkleTree,Proof},Hash,}",
+            "path": "indexed_merkle_tree :: { node :: Node , sha256_mod , tree :: { IndexedMerkleTree , Proof } , Hash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "benches/zk_benchmarks.rs#use_rand_Rng",
+            "path": "rand :: Rng",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "benches/zk_benchmarks.rs#use_std_time_Duration",
+            "path": "std :: time :: Duration",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "benches/zk_benchmarks.rs#create_random_test_hash",
+            "name": "create_random_test_hash",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Hash",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "rand::thread_rng",
+              "is_method": false
+            },
+            {
+              "callee": "gen",
+              "is_method": true,
+              "receiver_type": "rng"
+            },
+            {
+              "callee": "sha256_mod",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "rng",
+              "is_mutable": true
+            }
+          ],
+          "type_references": [
+            "u8"
+          ],
+          "macro_invocations": []
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "benches/zk_benchmarks.rs#SIZES",
+            "name": "SIZES",
+            "visibility": "private",
+            "type_name": "[usize ; 3]"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "benches/zk_benchmarks.rs#BATCH_SIZES",
+            "name": "BATCH_SIZES",
+            "visibility": "private",
+            "type_name": "[usize ; 3]"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+            "name": "setup_tree_and_proofs",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "tree_size : usize",
+              "batch_size : usize"
+            ],
+            "output": "(IndexedMerkleTree , Vec < Proof > , Hash , Hash)",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "IndexedMerkleTree::new_with_size",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_commitment",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "Vec::with_capacity",
+              "is_method": false
+            },
+            {
+              "callee": "Node::new_leaf",
+              "is_method": false
+            },
+            {
+              "callee": "create_random_test_hash",
+              "is_method": false
+            },
+            {
+              "callee": "create_random_test_hash",
+              "is_method": false
+            },
+            {
+              "callee": "create_random_test_hash",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "insert_node",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "push",
+              "is_method": true,
+              "receiver_type": "proofs"
+            },
+            {
+              "callee": "Proof::Insert",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_commitment",
+              "is_method": true,
+              "receiver_type": "tree"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "prev_commitment",
+              "is_mutable": false
+            },
+            {
+              "name": "proofs",
+              "is_mutable": true
+            },
+            {
+              "name": "node",
+              "is_mutable": true
+            },
+            {
+              "name": "proof",
+              "is_mutable": false
+            },
+            {
+              "name": "current_commitment",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "benches/zk_benchmarks.rs#bench_proof_generation",
+            "name": "bench_proof_generation",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "c : & mut Criterion"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "benchmark_group",
+              "is_method": true,
+              "receiver_type": "c"
+            },
+            {
+              "callee": "sample_size",
+              "is_method": true,
+              "receiver_type": "group"
+            },
+            {
+              "callee": "measurement_time",
+              "is_method": true,
+              "receiver_type": "group"
+            },
+            {
+              "callee": "Duration::from_secs",
+              "is_method": false
+            },
+            {
+              "callee": "warm_up_time",
+              "is_method": true,
+              "receiver_type": "group"
+            },
+            {
+              "callee": "Duration::from_secs",
+              "is_method": false
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "SIZES"
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "BATCH_SIZES"
+            },
+            {
+              "callee": "bench_with_input",
+              "is_method": true,
+              "receiver_type": "group"
+            },
+            {
+              "callee": "BenchmarkId::new",
+              "is_method": false
+            },
+            {
+              "callee": "setup_tree_and_proofs",
+              "is_method": false
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "b"
+            },
+            {
+              "callee": "finish",
+              "is_method": true,
+              "receiver_type": "group"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "group",
+              "is_mutable": true
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "benches/zk_benchmarks.rs#bench_proof_verification",
+            "name": "bench_proof_verification",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "c : & mut Criterion"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "benchmark_group",
+              "is_method": true,
+              "receiver_type": "c"
+            },
+            {
+              "callee": "sample_size",
+              "is_method": true,
+              "receiver_type": "group"
+            },
+            {
+              "callee": "measurement_time",
+              "is_method": true,
+              "receiver_type": "group"
+            },
+            {
+              "callee": "Duration::from_secs",
+              "is_method": false
+            },
+            {
+              "callee": "warm_up_time",
+              "is_method": true,
+              "receiver_type": "group"
+            },
+            {
+              "callee": "Duration::from_secs",
+              "is_method": false
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "SIZES"
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "BATCH_SIZES"
+            },
+            {
+              "callee": "bench_with_input",
+              "is_method": true,
+              "receiver_type": "group"
+            },
+            {
+              "callee": "BenchmarkId::new",
+              "is_method": false
+            },
+            {
+              "callee": "setup_tree_and_proofs",
+              "is_method": false
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "b"
+            },
+            {
+              "callee": "finish",
+              "is_method": true,
+              "receiver_type": "group"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "group",
+              "is_mutable": true
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "benches/zk_benchmarks.rs",
+      "to_id": "criterion :: { black_box , criterion_group , criterion_main , BenchmarkId , Criterion }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs",
+      "to_id": "indexed_merkle_tree :: { node :: Node , sha256_mod , tree :: { IndexedMerkleTree , Proof } , Hash , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs",
+      "to_id": "rand :: Rng",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs",
+      "to_id": "std :: time :: Duration",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#create_random_test_hash",
+      "to_id": "rand::thread_rng",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#create_random_test_hash",
+      "to_id": "gen",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#create_random_test_hash",
+      "to_id": "sha256_mod",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "IndexedMerkleTree::new_with_size",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_commitment",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "Vec::with_capacity",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "Node::new_leaf",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "benches/zk_benchmarks.rs#create_random_test_hash",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "benches/zk_benchmarks.rs#create_random_test_hash",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "benches/zk_benchmarks.rs#create_random_test_hash",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "insert_node",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "push",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "Proof::Insert",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_commitment",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "benchmark_group",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "sample_size",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "measurement_time",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "Duration::from_secs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "warm_up_time",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "Duration::from_secs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "bench_with_input",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "BenchmarkId::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_generation",
+      "to_id": "finish",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "benchmark_group",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "sample_size",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "measurement_time",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "Duration::from_secs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "warm_up_time",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "Duration::from_secs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "bench_with_input",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "BenchmarkId::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "benches/zk_benchmarks.rs#setup_tree_and_proofs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "benches/zk_benchmarks.rs#bench_proof_verification",
+      "to_id": "finish",
+      "ref_type": "FunctionCall"
+    }
+  ],
+  "total_files": 1,
+  "successfully_parsed": 1,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 4,
+    "total_structs": 0,
+    "total_enums": 0,
+    "total_traits": 0,
+    "total_impls": 0,
+    "total_tests": 0,
+    "total_function_calls": 44,
+    "total_derives": 0,
+    "total_macro_uses": 2
+  }
+}

@@ -1,0 +1,1390 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:node_types_lightclient",
+  "crate_name": "node_types_lightclient",
+  "crate_path": "crates/node_types/lightclient",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/lightclient/src/lightclient.rs",
+      "path": "../crates/node_types/lightclient/src/lightclient.rs",
+      "relative_path": "crates/node_types/lightclient/src/lightclient.rs",
+      "file_size": 15482,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_lumina_node_events_NodeEvent",
+            "path": "lumina_node :: events :: NodeEvent",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_prism_da_{FinalizedEpoch,LightDataAvailabilityLayer}",
+            "path": "prism_da :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_prism_keys_VerifyingKey",
+            "path": "prism_keys :: VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_prism_telemetry_registry_metrics_registry_get_metrics",
+            "path": "prism_telemetry_registry :: metrics_registry :: get_metrics",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_serde_Deserialize",
+            "path": "serde :: Deserialize",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_std_{self,future_Future,sync_Arc}",
+            "path": "std :: { self , future :: Future , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_tokio_sync_RwLock",
+            "path": "tokio :: sync :: RwLock",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_tracing_{error,info}",
+            "path": "tracing :: { error , info }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_sp1_verifier_Groth16Verifier",
+            "path": "sp1_verifier :: Groth16Verifier",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_crate_events_{EventPublisher,LightClientEvent}",
+            "path": "crate :: events :: { EventPublisher , LightClientEvent }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#spawn_task",
+            "name": "spawn_task",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "future : F"
+            ],
+            "output": null,
+            "generics": [
+              "F"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#spawn_task",
+            "name": "spawn_task",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "future : F"
+            ],
+            "output": null,
+            "generics": [
+              "F"
+            ]
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#VerificationKeys",
+            "name": "VerificationKeys",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "base_vk",
+                "type_name": "String",
+                "visibility": "pub"
+              },
+              {
+                "name": "recursive_vk",
+                "type_name": "String",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#EMBEDDED_KEYS_JSON",
+            "name": "EMBEDDED_KEYS_JSON",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#MAX_BACKWARD_SEARCH_DEPTH",
+            "name": "MAX_BACKWARD_SEARCH_DEPTH",
+            "visibility": "private",
+            "type_name": "u64"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#load_sp1_verifying_keys",
+            "name": "load_sp1_verifying_keys",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Result < VerificationKeys >",
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#LightClient",
+            "name": "LightClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "da",
+                "type_name": "Arc < dyn LightDataAvailabilityLayer + Send + Sync >",
+                "visibility": "pub"
+              },
+              {
+                "name": "da",
+                "type_name": "Arc < dyn LightDataAvailabilityLayer >",
+                "visibility": "pub"
+              },
+              {
+                "name": "prover_pubkey",
+                "type_name": "Option < VerifyingKey >",
+                "visibility": "pub"
+              },
+              {
+                "name": "sp1_vkeys",
+                "type_name": "VerificationKeys",
+                "visibility": "pub"
+              },
+              {
+                "name": "event_publisher",
+                "type_name": "EventPublisher",
+                "visibility": "pub"
+              },
+              {
+                "name": "latest_commitment",
+                "type_name": "Arc < RwLock < Option < Digest > > >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#SyncState",
+            "name": "SyncState",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "current_height",
+                "type_name": "u64",
+                "visibility": "private"
+              },
+              {
+                "name": "initial_sync_completed",
+                "type_name": "bool",
+                "visibility": "private"
+              },
+              {
+                "name": "initial_sync_in_progress",
+                "type_name": "bool",
+                "visibility": "private"
+              },
+              {
+                "name": "latest_finalized_epoch",
+                "type_name": "Option < u64 >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#impl_LightClient",
+            "target_type": "LightClient",
+            "trait_name": null,
+            "items": [
+              "pub fn new (# [cfg (not (target_arch = \"wasm32\"))] da : Arc < dyn LightDataAvailabilityLayer + Send + Sync > , # [cfg (target_arch = \"wasm32\")] da : Arc < dyn LightDataAvailabilityLayer > , prover_pubkey : Option < VerifyingKey > , event_publisher : EventPublisher ,) -> LightClient { let sp1_vkeys = load_sp1_verifying_keys () . expect (\"Failed to load SP1 verifying keys\") ; LightClient { da , sp1_vkeys , prover_pubkey , event_publisher , latest_commitment : Arc :: new (RwLock :: new (None)) , } }",
+              "pub async fn run (self : Arc < Self >) -> Result < () > { if let Some (lumina_event_subscriber) = self . da . event_subscriber () { let mut subscriber = lumina_event_subscriber . lock () . await ; let sync_state = Arc :: new (RwLock :: new (SyncState { current_height : 0 , initial_sync_completed : false , initial_sync_in_progress : false , latest_finalized_epoch : None , })) ; while let Ok (event_info) = subscriber . recv () . await { self . clone () . event_publisher . send (LightClientEvent :: LuminaEvent { event : event_info . event . clone () , }) ; if let NodeEvent :: AddedHeaderFromHeaderSub { height } = event_info . event { # [cfg (feature = \"telemetry\")] if let Some (metrics) = get_metrics () { metrics . record_celestia_synced_height (height , vec ! []) ; if let Some (latest_finalized_epoch) = sync_state . read () . await . latest_finalized_epoch { metrics . record_current_epoch (latest_finalized_epoch , vec ! []) ; } } info ! (\"new height from headersub {}\" , height) ; self . clone () . handle_new_header (height , sync_state . clone ()) . await ; } } } Ok (()) }",
+              "async fn handle_new_header (self : Arc < Self > , height : u64 , state : Arc < RwLock < SyncState > >) { self . event_publisher . send (LightClientEvent :: UpdateDAHeight { height }) ; { let mut state_handle = state . write () . await ; if ! state_handle . initial_sync_completed && ! state_handle . initial_sync_in_progress { state_handle . initial_sync_in_progress = true ; drop (state_handle) ; self . start_backward_sync (height , state . clone ()) . await ; return ; } } match self . da . get_finalized_epoch (height) . await { Ok (epochs) => { if epochs . is_empty () { info ! (\"no data found at height {}\" , height) ; } for epoch in epochs { if self . process_epoch (& epoch) . await . is_ok () { self . event_publisher . send (LightClientEvent :: RecursiveVerificationCompleted { height }) ; let mut state = state . write () . await ; state . latest_finalized_epoch = Some (height) ; if state . initial_sync_in_progress && ! state . initial_sync_completed { info ! (\"finished initial sync\") ; state . initial_sync_completed = true ; state . initial_sync_in_progress = false ; } state . current_height = height + 1 ; } } } Err (e) => { error ! (\"failed to fetch data at height {}\" , e) } } }",
+              "async fn start_backward_sync (self : Arc < Self > , network_height : u64 , state : Arc < RwLock < SyncState > > ,) { info ! (\"starting historical sync\") ; self . event_publisher . send (LightClientEvent :: SyncStarted { height : network_height , }) ; self . event_publisher . send (LightClientEvent :: RecursiveVerificationStarted { height : network_height , }) ; let light_client = Arc :: clone (& self) ; let state = state . clone () ; spawn_task (async move { if let Some (epoch_height) = light_client . find_most_recent_epoch (network_height , state . clone ()) . await { match light_client . process_height (epoch_height) . await { Ok (_) => { info ! (\"found historical finalized epoch at height {}\" , epoch_height) ; light_client . event_publisher . send (LightClientEvent :: RecursiveVerificationCompleted { height : epoch_height , } ,) ; let mut state = state . write () . await ; state . initial_sync_completed = true ; state . initial_sync_in_progress = false ; state . latest_finalized_epoch = Some (epoch_height) ; state . current_height = epoch_height + 1 ; } Err (e) => { error ! (\"Failed to process epoch at height {}: {}\" , epoch_height , e) ; light_client . event_publisher . send (LightClientEvent :: EpochVerificationFailed { height : epoch_height , error : e . to_string () , } ,) ; let mut state = state . write () . await ; state . initial_sync_completed = true ; state . initial_sync_in_progress = false ; } } } else { let mut state = state . write () . await ; state . initial_sync_completed = true ; state . initial_sync_in_progress = false ; } }) }",
+              "async fn find_most_recent_epoch (& self , start_height : u64 , state : Arc < RwLock < SyncState > > ,) -> Option < u64 > { let mut height = start_height ; let min_height = if start_height > MAX_BACKWARD_SEARCH_DEPTH { start_height - MAX_BACKWARD_SEARCH_DEPTH } else { 1 } ; while height >= min_height { if state . read () . await . latest_finalized_epoch . is_some () { info ! (\"abandoning historical sync after finding recursive proof at incoming height\") ; return None ; } match self . da . get_finalized_epoch (height) . await { Ok (epochs) => { if epochs . is_empty () { info ! (\"no data found at height {}\" , height) ; } else { return Some (height) ; } } Err (e) => { error ! (\"failed to fetch data at height {}: {}\" , height , e) } } self . event_publisher . send (LightClientEvent :: NoEpochFound { height }) ; height -= 1 ; } info ! (\"abandoning historical sync after exhausting last {} heights\" , MAX_BACKWARD_SEARCH_DEPTH) ; None }",
+              "async fn process_epoch (& self , finalized_epoch : & FinalizedEpoch) -> Result < () > { if let Some (pubkey) = & self . prover_pubkey { finalized_epoch . verify_signature (pubkey . clone ()) . map_err (| e | anyhow :: anyhow ! (\"Invalid signature: {:?}\" , e)) ? ; } if finalized_epoch . public_values . len () < 64 { return Err (anyhow :: anyhow ! (\"Public values length is less than 64 bytes\")) ; } let (proof_prev_commitment , proof_current_commitment) = self . extract_commitments (& finalized_epoch . public_values) ? ; self . verify_commitments (finalized_epoch , proof_prev_commitment , proof_current_commitment ,) ? ; self . latest_commitment . write () . await . replace (proof_current_commitment) ; self . verify_snark_proof (finalized_epoch , finalized_epoch . public_values . as_slice ()) ? ; self . event_publisher . send (LightClientEvent :: EpochVerified { height : finalized_epoch . height , }) ; Ok (()) }",
+              "async fn process_height (& self , height : u64) -> Result < () > { info ! (\"processing at DA height {}\" , height) ; self . event_publisher . send (LightClientEvent :: EpochVerificationStarted { height }) ; match self . da . get_finalized_epoch (height) . await { Ok (finalized_epochs) => { if finalized_epochs . is_empty () { self . event_publisher . send (LightClientEvent :: NoEpochFound { height }) ; } for epoch in finalized_epochs { if let Err (e) = self . process_epoch (& epoch) . await { let error = format ! (\"Failed to process epoch: {}\" , e) ; self . event_publisher . send (LightClientEvent :: EpochVerificationFailed { height , error : error . clone () , }) ; } } Ok (()) } Err (e) => { let error = format ! (\"Failed to get epoch: {}\" , e) ; self . event_publisher . send (LightClientEvent :: EpochVerificationFailed { height , error : error . clone () , }) ; Err (anyhow :: anyhow ! (error)) } } }",
+              "fn extract_commitments (& self , public_values : & [u8]) -> Result < (Digest , Digest) > { let mut slice = [0u8 ; 32] ; slice . copy_from_slice (& public_values [.. 32]) ; let proof_prev_commitment = Digest :: from (slice) ; let mut slice = [0u8 ; 32] ; slice . copy_from_slice (& public_values [32 .. 64]) ; let proof_current_commitment = Digest :: from (slice) ; Ok ((proof_prev_commitment , proof_current_commitment)) }",
+              "fn verify_commitments (& self , finalized_epoch : & FinalizedEpoch , proof_prev_commitment : Digest , proof_current_commitment : Digest ,) -> Result < () > { if finalized_epoch . prev_commitment != proof_prev_commitment || finalized_epoch . current_commitment != proof_current_commitment { return Err (anyhow :: anyhow ! (\"Commitment mismatch: prev={:?}/{:?}, current={:?}/{:?}\" , finalized_epoch . prev_commitment , proof_prev_commitment , finalized_epoch . current_commitment , proof_current_commitment)) ; } Ok (()) }",
+              "fn verify_snark_proof (& self , finalized_epoch : & FinalizedEpoch , public_values : & [u8] ,) -> Result < () > { # [cfg (target_arch = \"wasm32\")] let finalized_epoch_proof = & finalized_epoch . proof ; # [cfg (not (target_arch = \"wasm32\"))] let finalized_epoch_proof = & finalized_epoch . proof . bytes () ; let vkey = if finalized_epoch . height == 0 { & self . sp1_vkeys . base_vk } else { & self . sp1_vkeys . recursive_vk } ; Groth16Verifier :: verify (finalized_epoch_proof , public_values , vkey , & sp1_verifier :: GROTH16_VK_BYTES ,) . map_err (| e | anyhow :: anyhow ! (\"SNARK verification failed: {:?}\" , e)) }",
+              "pub async fn get_latest_commitment (& self) -> Option < Digest > { * self . latest_commitment . read () . await }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_lumina_node_events_NodeEvent",
+            "path": "lumina_node :: events :: NodeEvent",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_prism_da_{FinalizedEpoch,LightDataAvailabilityLayer}",
+            "path": "prism_da :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_prism_keys_VerifyingKey",
+            "path": "prism_keys :: VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_prism_telemetry_registry_metrics_registry_get_metrics",
+            "path": "prism_telemetry_registry :: metrics_registry :: get_metrics",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_serde_Deserialize",
+            "path": "serde :: Deserialize",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_std_{self,future_Future,sync_Arc}",
+            "path": "std :: { self , future :: Future , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_tokio_sync_RwLock",
+            "path": "tokio :: sync :: RwLock",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_tracing_{error,info}",
+            "path": "tracing :: { error , info }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_sp1_verifier_Groth16Verifier",
+            "path": "sp1_verifier :: Groth16Verifier",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#use_crate_events_{EventPublisher,LightClientEvent}",
+            "path": "crate :: events :: { EventPublisher , LightClientEvent }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#spawn_task",
+            "name": "spawn_task",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "future : F"
+            ],
+            "output": null,
+            "generics": [
+              "F"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "wasm_bindgen_futures::spawn_local",
+              "is_method": false
+            }
+          ],
+          "local_variables": [],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#spawn_task",
+            "name": "spawn_task",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "future : F"
+            ],
+            "output": null,
+            "generics": [
+              "F"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "tokio::spawn",
+              "is_method": false
+            }
+          ],
+          "local_variables": [],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#VerificationKeys",
+            "name": "VerificationKeys",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "base_vk",
+                "type_name": "String",
+                "visibility": "pub"
+              },
+              {
+                "name": "recursive_vk",
+                "type_name": "String",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Deserialize"
+          ]
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#EMBEDDED_KEYS_JSON",
+            "name": "EMBEDDED_KEYS_JSON",
+            "visibility": "private",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#MAX_BACKWARD_SEARCH_DEPTH",
+            "name": "MAX_BACKWARD_SEARCH_DEPTH",
+            "visibility": "private",
+            "type_name": "u64"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#load_sp1_verifying_keys",
+            "name": "load_sp1_verifying_keys",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Result < VerificationKeys >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "serde_json::from_str",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [],
+          "type_references": [
+            "VerificationKeys"
+          ],
+          "macro_invocations": []
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#LightClient",
+            "name": "LightClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "da",
+                "type_name": "Arc < dyn LightDataAvailabilityLayer + Send + Sync >",
+                "visibility": "pub"
+              },
+              {
+                "name": "da",
+                "type_name": "Arc < dyn LightDataAvailabilityLayer >",
+                "visibility": "pub"
+              },
+              {
+                "name": "prover_pubkey",
+                "type_name": "Option < VerifyingKey >",
+                "visibility": "pub"
+              },
+              {
+                "name": "sp1_vkeys",
+                "type_name": "VerificationKeys",
+                "visibility": "pub"
+              },
+              {
+                "name": "event_publisher",
+                "type_name": "EventPublisher",
+                "visibility": "pub"
+              },
+              {
+                "name": "latest_commitment",
+                "type_name": "Arc < RwLock < Option < Digest > > >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#SyncState",
+            "name": "SyncState",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "current_height",
+                "type_name": "u64",
+                "visibility": "private"
+              },
+              {
+                "name": "initial_sync_completed",
+                "type_name": "bool",
+                "visibility": "private"
+              },
+              {
+                "name": "initial_sync_in_progress",
+                "type_name": "bool",
+                "visibility": "private"
+              },
+              {
+                "name": "latest_finalized_epoch",
+                "type_name": "Option < u64 >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/lightclient.rs#impl_LightClient",
+            "target_type": "LightClient",
+            "trait_name": null,
+            "items": [
+              "pub fn new (# [cfg (not (target_arch = \"wasm32\"))] da : Arc < dyn LightDataAvailabilityLayer + Send + Sync > , # [cfg (target_arch = \"wasm32\")] da : Arc < dyn LightDataAvailabilityLayer > , prover_pubkey : Option < VerifyingKey > , event_publisher : EventPublisher ,) -> LightClient { let sp1_vkeys = load_sp1_verifying_keys () . expect (\"Failed to load SP1 verifying keys\") ; LightClient { da , sp1_vkeys , prover_pubkey , event_publisher , latest_commitment : Arc :: new (RwLock :: new (None)) , } }",
+              "pub async fn run (self : Arc < Self >) -> Result < () > { if let Some (lumina_event_subscriber) = self . da . event_subscriber () { let mut subscriber = lumina_event_subscriber . lock () . await ; let sync_state = Arc :: new (RwLock :: new (SyncState { current_height : 0 , initial_sync_completed : false , initial_sync_in_progress : false , latest_finalized_epoch : None , })) ; while let Ok (event_info) = subscriber . recv () . await { self . clone () . event_publisher . send (LightClientEvent :: LuminaEvent { event : event_info . event . clone () , }) ; if let NodeEvent :: AddedHeaderFromHeaderSub { height } = event_info . event { # [cfg (feature = \"telemetry\")] if let Some (metrics) = get_metrics () { metrics . record_celestia_synced_height (height , vec ! []) ; if let Some (latest_finalized_epoch) = sync_state . read () . await . latest_finalized_epoch { metrics . record_current_epoch (latest_finalized_epoch , vec ! []) ; } } info ! (\"new height from headersub {}\" , height) ; self . clone () . handle_new_header (height , sync_state . clone ()) . await ; } } } Ok (()) }",
+              "async fn handle_new_header (self : Arc < Self > , height : u64 , state : Arc < RwLock < SyncState > >) { self . event_publisher . send (LightClientEvent :: UpdateDAHeight { height }) ; { let mut state_handle = state . write () . await ; if ! state_handle . initial_sync_completed && ! state_handle . initial_sync_in_progress { state_handle . initial_sync_in_progress = true ; drop (state_handle) ; self . start_backward_sync (height , state . clone ()) . await ; return ; } } match self . da . get_finalized_epoch (height) . await { Ok (epochs) => { if epochs . is_empty () { info ! (\"no data found at height {}\" , height) ; } for epoch in epochs { if self . process_epoch (& epoch) . await . is_ok () { self . event_publisher . send (LightClientEvent :: RecursiveVerificationCompleted { height }) ; let mut state = state . write () . await ; state . latest_finalized_epoch = Some (height) ; if state . initial_sync_in_progress && ! state . initial_sync_completed { info ! (\"finished initial sync\") ; state . initial_sync_completed = true ; state . initial_sync_in_progress = false ; } state . current_height = height + 1 ; } } } Err (e) => { error ! (\"failed to fetch data at height {}\" , e) } } }",
+              "async fn start_backward_sync (self : Arc < Self > , network_height : u64 , state : Arc < RwLock < SyncState > > ,) { info ! (\"starting historical sync\") ; self . event_publisher . send (LightClientEvent :: SyncStarted { height : network_height , }) ; self . event_publisher . send (LightClientEvent :: RecursiveVerificationStarted { height : network_height , }) ; let light_client = Arc :: clone (& self) ; let state = state . clone () ; spawn_task (async move { if let Some (epoch_height) = light_client . find_most_recent_epoch (network_height , state . clone ()) . await { match light_client . process_height (epoch_height) . await { Ok (_) => { info ! (\"found historical finalized epoch at height {}\" , epoch_height) ; light_client . event_publisher . send (LightClientEvent :: RecursiveVerificationCompleted { height : epoch_height , } ,) ; let mut state = state . write () . await ; state . initial_sync_completed = true ; state . initial_sync_in_progress = false ; state . latest_finalized_epoch = Some (epoch_height) ; state . current_height = epoch_height + 1 ; } Err (e) => { error ! (\"Failed to process epoch at height {}: {}\" , epoch_height , e) ; light_client . event_publisher . send (LightClientEvent :: EpochVerificationFailed { height : epoch_height , error : e . to_string () , } ,) ; let mut state = state . write () . await ; state . initial_sync_completed = true ; state . initial_sync_in_progress = false ; } } } else { let mut state = state . write () . await ; state . initial_sync_completed = true ; state . initial_sync_in_progress = false ; } }) }",
+              "async fn find_most_recent_epoch (& self , start_height : u64 , state : Arc < RwLock < SyncState > > ,) -> Option < u64 > { let mut height = start_height ; let min_height = if start_height > MAX_BACKWARD_SEARCH_DEPTH { start_height - MAX_BACKWARD_SEARCH_DEPTH } else { 1 } ; while height >= min_height { if state . read () . await . latest_finalized_epoch . is_some () { info ! (\"abandoning historical sync after finding recursive proof at incoming height\") ; return None ; } match self . da . get_finalized_epoch (height) . await { Ok (epochs) => { if epochs . is_empty () { info ! (\"no data found at height {}\" , height) ; } else { return Some (height) ; } } Err (e) => { error ! (\"failed to fetch data at height {}: {}\" , height , e) } } self . event_publisher . send (LightClientEvent :: NoEpochFound { height }) ; height -= 1 ; } info ! (\"abandoning historical sync after exhausting last {} heights\" , MAX_BACKWARD_SEARCH_DEPTH) ; None }",
+              "async fn process_epoch (& self , finalized_epoch : & FinalizedEpoch) -> Result < () > { if let Some (pubkey) = & self . prover_pubkey { finalized_epoch . verify_signature (pubkey . clone ()) . map_err (| e | anyhow :: anyhow ! (\"Invalid signature: {:?}\" , e)) ? ; } if finalized_epoch . public_values . len () < 64 { return Err (anyhow :: anyhow ! (\"Public values length is less than 64 bytes\")) ; } let (proof_prev_commitment , proof_current_commitment) = self . extract_commitments (& finalized_epoch . public_values) ? ; self . verify_commitments (finalized_epoch , proof_prev_commitment , proof_current_commitment ,) ? ; self . latest_commitment . write () . await . replace (proof_current_commitment) ; self . verify_snark_proof (finalized_epoch , finalized_epoch . public_values . as_slice ()) ? ; self . event_publisher . send (LightClientEvent :: EpochVerified { height : finalized_epoch . height , }) ; Ok (()) }",
+              "async fn process_height (& self , height : u64) -> Result < () > { info ! (\"processing at DA height {}\" , height) ; self . event_publisher . send (LightClientEvent :: EpochVerificationStarted { height }) ; match self . da . get_finalized_epoch (height) . await { Ok (finalized_epochs) => { if finalized_epochs . is_empty () { self . event_publisher . send (LightClientEvent :: NoEpochFound { height }) ; } for epoch in finalized_epochs { if let Err (e) = self . process_epoch (& epoch) . await { let error = format ! (\"Failed to process epoch: {}\" , e) ; self . event_publisher . send (LightClientEvent :: EpochVerificationFailed { height , error : error . clone () , }) ; } } Ok (()) } Err (e) => { let error = format ! (\"Failed to get epoch: {}\" , e) ; self . event_publisher . send (LightClientEvent :: EpochVerificationFailed { height , error : error . clone () , }) ; Err (anyhow :: anyhow ! (error)) } } }",
+              "fn extract_commitments (& self , public_values : & [u8]) -> Result < (Digest , Digest) > { let mut slice = [0u8 ; 32] ; slice . copy_from_slice (& public_values [.. 32]) ; let proof_prev_commitment = Digest :: from (slice) ; let mut slice = [0u8 ; 32] ; slice . copy_from_slice (& public_values [32 .. 64]) ; let proof_current_commitment = Digest :: from (slice) ; Ok ((proof_prev_commitment , proof_current_commitment)) }",
+              "fn verify_commitments (& self , finalized_epoch : & FinalizedEpoch , proof_prev_commitment : Digest , proof_current_commitment : Digest ,) -> Result < () > { if finalized_epoch . prev_commitment != proof_prev_commitment || finalized_epoch . current_commitment != proof_current_commitment { return Err (anyhow :: anyhow ! (\"Commitment mismatch: prev={:?}/{:?}, current={:?}/{:?}\" , finalized_epoch . prev_commitment , proof_prev_commitment , finalized_epoch . current_commitment , proof_current_commitment)) ; } Ok (()) }",
+              "fn verify_snark_proof (& self , finalized_epoch : & FinalizedEpoch , public_values : & [u8] ,) -> Result < () > { # [cfg (target_arch = \"wasm32\")] let finalized_epoch_proof = & finalized_epoch . proof ; # [cfg (not (target_arch = \"wasm32\"))] let finalized_epoch_proof = & finalized_epoch . proof . bytes () ; let vkey = if finalized_epoch . height == 0 { & self . sp1_vkeys . base_vk } else { & self . sp1_vkeys . recursive_vk } ; Groth16Verifier :: verify (finalized_epoch_proof , public_values , vkey , & sp1_verifier :: GROTH16_VK_BYTES ,) . map_err (| e | anyhow :: anyhow ! (\"SNARK verification failed: {:?}\" , e)) }",
+              "pub async fn get_latest_commitment (& self) -> Option < Digest > { * self . latest_commitment . read () . await }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LightClient"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/lightclient/src/events.rs",
+      "path": "../crates/node_types/lightclient/src/events.rs",
+      "relative_path": "crates/node_types/lightclient/src/events.rs",
+      "file_size": 4134,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_lumina_node_events_NodeEvent",
+            "path": "lumina_node :: events :: NodeEvent",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_serde_Serialize",
+            "path": "serde :: Serialize",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_std_fmt",
+            "path": "std :: fmt",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_tokio_sync_broadcast",
+            "path": "tokio :: sync :: broadcast",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_web_time_SystemTime",
+            "path": "web_time :: SystemTime",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/node_types/lightclient/src/events.rs#EVENT_CHANNEL_CAPACITY",
+            "name": "EVENT_CHANNEL_CAPACITY",
+            "visibility": "private",
+            "type_name": "usize"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/lightclient/src/events.rs#LightClientEvent",
+            "name": "LightClientEvent",
+            "visibility": "pub",
+            "variants": [
+              "SyncStarted",
+              "UpdateDAHeight",
+              "EpochVerificationStarted",
+              "EpochVerified",
+              "EpochVerificationFailed",
+              "NoEpochFound",
+              "HeightChannelClosed",
+              "GetCurrentCommitment",
+              "RecursiveVerificationStarted",
+              "RecursiveVerificationCompleted",
+              "LuminaEvent"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_fmt::Display_LightClientEvent",
+            "target_type": "LightClientEvent",
+            "trait_name": "fmt :: Display",
+            "items": [
+              "fn fmt (& self , f : & mut fmt :: Formatter < '_ >) -> fmt :: Result { match self { LightClientEvent :: SyncStarted { height } => { write ! (f , \"Starting sync at height {}\" , height) } LightClientEvent :: UpdateDAHeight { height } => { write ! (f , \"Updated DA height to {}\" , height) } LightClientEvent :: EpochVerificationStarted { height } => { write ! (f , \"Starting verification of epoch {}\" , height) } LightClientEvent :: EpochVerified { height } => { write ! (f , \"Verified epoch {}\" , height) } LightClientEvent :: EpochVerificationFailed { height , error } => { write ! (f , \"Failed to verify epoch {}: {}\" , height , error) } LightClientEvent :: NoEpochFound { height } => { write ! (f , \"No epoch found for height {}\" , height) } LightClientEvent :: HeightChannelClosed => { write ! (f , \"Height channel closed unexpectedly\") } LightClientEvent :: GetCurrentCommitment { commitment } => { write ! (f , \"Current commitment: {}\" , commitment) } LightClientEvent :: RecursiveVerificationStarted { height } => { write ! (f , \"Starting recursive verification at height {}\" , height) } LightClientEvent :: RecursiveVerificationCompleted { height } => { write ! (f , \"Completed recursive verification at height {}\" , height) } LightClientEvent :: LuminaEvent { event } => { write ! (f , \"Lumina event: {}\" , event) } } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/events.rs#EventInfo",
+            "name": "EventInfo",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "event",
+                "type_name": "LightClientEvent",
+                "visibility": "pub"
+              },
+              {
+                "name": "time",
+                "type_name": "SystemTime",
+                "visibility": "pub"
+              },
+              {
+                "name": "formatted_log",
+                "type_name": "String",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/events.rs#EventChannel",
+            "name": "EventChannel",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "tx",
+                "type_name": "broadcast :: Sender < EventInfo >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_Default_EventChannel",
+            "target_type": "EventChannel",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { Self :: new () }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_EventChannel",
+            "target_type": "EventChannel",
+            "trait_name": null,
+            "items": [
+              "pub fn new () -> Self { let (tx , _) = broadcast :: channel (EVENT_CHANNEL_CAPACITY) ; Self { tx } }",
+              "pub fn publisher (& self) -> EventPublisher { EventPublisher { tx : self . tx . clone () , } }",
+              "pub fn subscribe (& self) -> EventSubscriber { EventSubscriber { rx : self . tx . subscribe () , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/events.rs#EventPublisher",
+            "name": "EventPublisher",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "tx",
+                "type_name": "broadcast :: Sender < EventInfo >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_EventPublisher",
+            "target_type": "EventPublisher",
+            "trait_name": null,
+            "items": [
+              "pub fn send (& self , event : LightClientEvent) { let formatted_log = event . to_string () ; let event_info = EventInfo { event , time : SystemTime :: now () , formatted_log , } ; let _ = self . tx . send (event_info) ; }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/events.rs#EventSubscriber",
+            "name": "EventSubscriber",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "rx",
+                "type_name": "broadcast :: Receiver < EventInfo >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_EventSubscriber",
+            "target_type": "EventSubscriber",
+            "trait_name": null,
+            "items": [
+              "pub async fn recv (& mut self) -> Result < EventInfo , broadcast :: error :: RecvError > { self . rx . recv () . await }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_lumina_node_events_NodeEvent",
+            "path": "lumina_node :: events :: NodeEvent",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_serde_Serialize",
+            "path": "serde :: Serialize",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_std_fmt",
+            "path": "std :: fmt",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_tokio_sync_broadcast",
+            "path": "tokio :: sync :: broadcast",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/events.rs#use_web_time_SystemTime",
+            "path": "web_time :: SystemTime",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/node_types/lightclient/src/events.rs#EVENT_CHANNEL_CAPACITY",
+            "name": "EVENT_CHANNEL_CAPACITY",
+            "visibility": "private",
+            "type_name": "usize"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/lightclient/src/events.rs#LightClientEvent",
+            "name": "LightClientEvent",
+            "visibility": "pub",
+            "variants": [
+              "SyncStarted",
+              "UpdateDAHeight",
+              "EpochVerificationStarted",
+              "EpochVerified",
+              "EpochVerificationFailed",
+              "NoEpochFound",
+              "HeightChannelClosed",
+              "GetCurrentCommitment",
+              "RecursiveVerificationStarted",
+              "RecursiveVerificationCompleted",
+              "LuminaEvent"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone",
+            "Serialize"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_fmt::Display_LightClientEvent",
+            "target_type": "LightClientEvent",
+            "trait_name": "fmt :: Display",
+            "items": [
+              "fn fmt (& self , f : & mut fmt :: Formatter < '_ >) -> fmt :: Result { match self { LightClientEvent :: SyncStarted { height } => { write ! (f , \"Starting sync at height {}\" , height) } LightClientEvent :: UpdateDAHeight { height } => { write ! (f , \"Updated DA height to {}\" , height) } LightClientEvent :: EpochVerificationStarted { height } => { write ! (f , \"Starting verification of epoch {}\" , height) } LightClientEvent :: EpochVerified { height } => { write ! (f , \"Verified epoch {}\" , height) } LightClientEvent :: EpochVerificationFailed { height , error } => { write ! (f , \"Failed to verify epoch {}: {}\" , height , error) } LightClientEvent :: NoEpochFound { height } => { write ! (f , \"No epoch found for height {}\" , height) } LightClientEvent :: HeightChannelClosed => { write ! (f , \"Height channel closed unexpectedly\") } LightClientEvent :: GetCurrentCommitment { commitment } => { write ! (f , \"Current commitment: {}\" , commitment) } LightClientEvent :: RecursiveVerificationStarted { height } => { write ! (f , \"Starting recursive verification at height {}\" , height) } LightClientEvent :: RecursiveVerificationCompleted { height } => { write ! (f , \"Completed recursive verification at height {}\" , height) } LightClientEvent :: LuminaEvent { event } => { write ! (f , \"Lumina event: {}\" , event) } } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LightClientEvent"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/events.rs#EventInfo",
+            "name": "EventInfo",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "event",
+                "type_name": "LightClientEvent",
+                "visibility": "pub"
+              },
+              {
+                "name": "time",
+                "type_name": "SystemTime",
+                "visibility": "pub"
+              },
+              {
+                "name": "formatted_log",
+                "type_name": "String",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone",
+            "Serialize"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/events.rs#EventChannel",
+            "name": "EventChannel",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "tx",
+                "type_name": "broadcast :: Sender < EventInfo >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_Default_EventChannel",
+            "target_type": "EventChannel",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { Self :: new () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "EventChannel"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_EventChannel",
+            "target_type": "EventChannel",
+            "trait_name": null,
+            "items": [
+              "pub fn new () -> Self { let (tx , _) = broadcast :: channel (EVENT_CHANNEL_CAPACITY) ; Self { tx } }",
+              "pub fn publisher (& self) -> EventPublisher { EventPublisher { tx : self . tx . clone () , } }",
+              "pub fn subscribe (& self) -> EventSubscriber { EventSubscriber { rx : self . tx . subscribe () , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "EventChannel"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/events.rs#EventPublisher",
+            "name": "EventPublisher",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "tx",
+                "type_name": "broadcast :: Sender < EventInfo >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_EventPublisher",
+            "target_type": "EventPublisher",
+            "trait_name": null,
+            "items": [
+              "pub fn send (& self , event : LightClientEvent) { let formatted_log = event . to_string () ; let event_info = EventInfo { event , time : SystemTime :: now () , formatted_log , } ; let _ = self . tx . send (event_info) ; }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "EventPublisher"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/lightclient/src/events.rs#EventSubscriber",
+            "name": "EventSubscriber",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "rx",
+                "type_name": "broadcast :: Receiver < EventInfo >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/lightclient/src/events.rs#impl_EventSubscriber",
+            "target_type": "EventSubscriber",
+            "trait_name": null,
+            "items": [
+              "pub async fn recv (& mut self) -> Result < EventInfo , broadcast :: error :: RecvError > { self . rx . recv () . await }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "EventSubscriber"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/lightclient/src/lib.rs",
+      "path": "../crates/node_types/lightclient/src/lib.rs",
+      "relative_path": "crates/node_types/lightclient/src/lib.rs",
+      "file_size": 71,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/lightclient/src/lib.rs#events",
+            "name": "events",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/lightclient/src/lib.rs#lightclient",
+            "name": "lightclient",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lib.rs#use_lightclient_LightClient",
+            "path": "lightclient :: LightClient",
+            "visibility": "pub"
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/lightclient/src/lib.rs#events",
+            "name": "events",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/lightclient/src/lib.rs#lightclient",
+            "name": "lightclient",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/lightclient/src/lib.rs#use_lightclient_LightClient",
+            "path": "lightclient :: LightClient",
+            "visibility": "pub"
+          }
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "lumina_node :: events :: NodeEvent",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "prism_da :: { FinalizedEpoch , LightDataAvailabilityLayer }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "prism_keys :: VerifyingKey",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "prism_telemetry_registry :: metrics_registry :: get_metrics",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "serde :: Deserialize",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "std :: { self , future :: Future , sync :: Arc }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "tokio :: sync :: RwLock",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "tracing :: { error , info }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "sp1_verifier :: Groth16Verifier",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs",
+      "to_id": "crate :: events :: { EventPublisher , LightClientEvent }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs#spawn_task",
+      "to_id": "wasm_bindgen_futures::spawn_local",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs#spawn_task",
+      "to_id": "tokio::spawn",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs#VerificationKeys",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs#load_sp1_verifying_keys",
+      "to_id": "serde_json::from_str",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lightclient.rs#load_sp1_verifying_keys",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs",
+      "to_id": "lumina_node :: events :: NodeEvent",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs",
+      "to_id": "serde :: Serialize",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs",
+      "to_id": "std :: fmt",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs",
+      "to_id": "tokio :: sync :: broadcast",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs",
+      "to_id": "web_time :: SystemTime",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#LightClientEvent",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#LightClientEvent",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#LightClientEvent",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#impl_fmt::Display_LightClientEvent",
+      "to_id": "trait:fmt::Display",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#EventInfo",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#EventInfo",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#EventInfo",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#EventChannel",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#impl_Default_EventChannel",
+      "to_id": "trait:Default",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#EventPublisher",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#EventPublisher",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/events.rs#EventSubscriber",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/lightclient/src/lib.rs",
+      "to_id": "lightclient :: LightClient",
+      "ref_type": "Import"
+    }
+  ],
+  "total_files": 3,
+  "successfully_parsed": 3,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 3,
+    "total_structs": 7,
+    "total_enums": 1,
+    "total_traits": 0,
+    "total_impls": 6,
+    "total_tests": 0,
+    "total_function_calls": 4,
+    "total_derives": 11,
+    "total_macro_uses": 0
+  }
+}

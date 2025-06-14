@@ -1,0 +1,3947 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:zk_nova",
+  "crate_name": "zk_nova",
+  "crate_path": "crates/zk/nova",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/nova/src/batch.rs",
+      "path": "../crates/zk/nova/src/batch.rs",
+      "relative_path": "crates/zk/nova/src/batch.rs",
+      "file_size": 7674,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_super_{insert_InsertCircuit,update_UpdateCircuit}",
+            "path": "super :: { insert :: InsertCircuit , update :: UpdateCircuit }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_arecibo_{supernova_{StepCircuit,TrivialSecondaryCircuit},traits_{CurveCycleEquipped,Dual,Engine},}",
+            "path": "arecibo :: { supernova :: { StepCircuit , TrivialSecondaryCircuit } , traits :: { CurveCycleEquipped , Dual , Engine } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_ff_{PrimeField,PrimeFieldBits}",
+            "path": "ff :: { PrimeField , PrimeFieldBits }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_prism_common_tree_{InsertProof,UpdateProof}",
+            "path": "prism_common :: tree :: { InsertProof , UpdateProof }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_std_cell_RefCell",
+            "path": "std :: cell :: RefCell",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/nova/src/batch.rs#EpochCircuitSequence",
+            "name": "EpochCircuitSequence",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "insert_circuits",
+                "type_name": "Vec < EpochCircuit < E1 :: Scalar > >",
+                "visibility": "private"
+              },
+              {
+                "name": "update_circuits",
+                "type_name": "Vec < EpochCircuit < E1 :: Scalar > >",
+                "visibility": "private"
+              },
+              {
+                "name": "rom",
+                "type_name": "Vec < usize >",
+                "visibility": "private"
+              },
+              {
+                "name": "insert_index",
+                "type_name": "RefCell < usize >",
+                "visibility": "private"
+              },
+              {
+                "name": "update_index",
+                "type_name": "RefCell < usize >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "E1"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/batch.rs#impl_EpochCircuitSequence<E1>",
+            "target_type": "EpochCircuitSequence < E1 >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (operations : Vec < (usize , EpochCircuit < E1 :: Scalar >) >) -> Self { let rom = operations . iter () . map (| (op , _) | * op) . collect () ; let (insert_circuits , update_circuits) : (Vec < _ > , Vec < _ >) = operations . into_iter () . map (| (_ , circuit) | circuit) . partition (| circuit | matches ! (circuit , EpochCircuit :: Insert (_))) ; Self { insert_circuits , update_circuits , rom , insert_index : RefCell :: new (0) , update_index : RefCell :: new (0) , } }",
+              "pub fn reset_indices (& self) { * self . insert_index . borrow_mut () = 0 ; * self . update_index . borrow_mut () = 0 ; }"
+            ],
+            "generics": [
+              "E1"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/batch.rs#impl_arecibo::supernova::NonUniformCircuit<E1>_EpochCircuitSequence<E1>",
+            "target_type": "EpochCircuitSequence < E1 >",
+            "trait_name": "arecibo :: supernova :: NonUniformCircuit < E1 >",
+            "items": [
+              "type C1 = EpochCircuit < E1 :: Scalar > ;",
+              "type C2 = TrivialSecondaryCircuit < < Dual < E1 > as Engine > :: Scalar > ;",
+              "fn num_circuits (& self) -> usize { self . insert_circuits . len () + self . update_circuits . len () }",
+              "fn primary_circuit (& self , circuit_index : usize) -> Self :: C1 { let (circuits , index) = if circuit_index == 0 { (& self . insert_circuits , & self . insert_index) } else { (& self . update_circuits , & self . update_index) } ; let mut current_index = index . borrow_mut () ; if * current_index >= circuits . len () { * current_index = 0 ; } let circuit = circuits [* current_index] . clone () ; * current_index += 1 ; circuit }",
+              "fn secondary_circuit (& self) -> Self :: C2 { TrivialSecondaryCircuit :: default () }",
+              "fn initial_circuit_index (& self) -> usize { self . rom [0] }"
+            ],
+            "generics": [
+              "E1"
+            ]
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/zk/nova/src/batch.rs#EpochCircuit",
+            "name": "EpochCircuit",
+            "visibility": "pub",
+            "variants": [
+              "Insert",
+              "Update"
+            ],
+            "generics": [
+              "F"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/batch.rs#impl_EpochCircuit<F>",
+            "target_type": "EpochCircuit < F >",
+            "trait_name": null,
+            "items": [
+              "pub fn new_insert (insertion_proof : InsertProof , rom_size : usize) -> Self { Self :: Insert (InsertCircuit :: new (insertion_proof , rom_size)) }",
+              "pub fn new_update (update_proof : UpdateProof , rom_size : usize) -> Self { Self :: Update (UpdateCircuit :: new (update_proof , rom_size)) }"
+            ],
+            "generics": [
+              "F"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/batch.rs#impl_StepCircuit<F>_EpochCircuit<F>",
+            "target_type": "EpochCircuit < F >",
+            "trait_name": "StepCircuit < F >",
+            "items": [
+              "fn arity (& self) -> usize { match self { Self :: Insert (x) => x . arity () , Self :: Update (x) => x . arity () , } }",
+              "fn synthesize < CS : bellpepper_core :: ConstraintSystem < F > > (& self , cs : & mut CS , pc : Option < & bellpepper_core :: num :: AllocatedNum < F > > , z : & [bellpepper_core :: num :: AllocatedNum < F >] ,) -> Result < (Option < bellpepper_core :: num :: AllocatedNum < F > > , Vec < bellpepper_core :: num :: AllocatedNum < F > > ,) , bellpepper_core :: SynthesisError , > { match self { Self :: Insert (x) => x . synthesize (cs , pc , z) , Self :: Update (x) => x . synthesize (cs , pc , z) , } }",
+              "fn circuit_index (& self) -> usize { match self { Self :: Insert (x) => x . circuit_index () , Self :: Update (x) => x . circuit_index () , } }"
+            ],
+            "generics": [
+              "F"
+            ]
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/batch.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": [
+              "use super :: * ;",
+              "use crate :: utils :: Digest as NovaDigest ;",
+              "use arecibo :: { provider :: PallasEngine , supernova :: { NonUniformCircuit , PublicParams , RecursiveSNARK } , traits :: snark :: default_ck_hint , } ;",
+              "use ff :: Field ;",
+              "use prism_common :: test_utils :: { create_random_insert , create_random_update , TestTreeState } ;",
+              "use rand :: { rngs :: StdRng , SeedableRng } ;",
+              "# [ignore] # [test] fn test_recursive_epoch_circuit_proof () { type E1 = PallasEngine ; let mut state = TestTreeState :: new () ; let mut rng = StdRng :: from_entropy () ; let initial_commitment : < E1 as Engine > :: Scalar = NovaDigest :: from_root_hash (state . tree . get_commitment () . unwrap () . into ()) . to_scalar () . unwrap () ; let operations = vec ! [(0 , EpochCircuit :: new_insert (create_random_insert (& mut state , & mut rng) , 2) ,) , (1 , EpochCircuit :: new_update (create_random_update (& mut state , & mut rng) , 2) ,) ,] ; let circuit_sequence = EpochCircuitSequence :: < E1 > :: new (operations) ; let pp = PublicParams :: setup (& circuit_sequence , & * default_ck_hint () , & * default_ck_hint ()) ; let mut z0_primary = vec ! [initial_commitment] ; z0_primary . push (< E1 as Engine > :: Scalar :: ZERO) ; z0_primary . extend (circuit_sequence . rom . iter () . map (| & x | < E1 as Engine > :: Scalar :: from (x as u64))) ; let z0_secondary = vec ! [<< Dual < E1 > as Engine >:: Scalar >:: ONE] ; let mut recursive_snark_option : Option < RecursiveSNARK < E1 > > = None ; circuit_sequence . reset_indices () ; println ! (\"ROM sequence: {:?}\" , circuit_sequence . rom) ; for & op_code in circuit_sequence . rom . iter () { println ! (\"Processing operation: {}\" , op_code) ; let primary_circuit = circuit_sequence . primary_circuit (op_code) ; let secondary_circuit = circuit_sequence . secondary_circuit () ; let mut recursive_snark = recursive_snark_option . unwrap_or_else (| | { RecursiveSNARK :: new (& pp , & circuit_sequence , & primary_circuit , & secondary_circuit , & z0_primary , & z0_secondary ,) . unwrap () }) ; recursive_snark . prove_step (& pp , & primary_circuit , & secondary_circuit) . unwrap () ; recursive_snark . verify (& pp , & z0_primary , & z0_secondary) . unwrap () ; recursive_snark_option = Some (recursive_snark) } assert ! (recursive_snark_option . is_some ()) ; let recursive_snark = recursive_snark_option . unwrap () ; assert ! (recursive_snark . verify (& pp , & z0_primary , & z0_secondary) . is_ok ()) ; let zi_primary = recursive_snark . zi_primary () ; println ! (\"Final primary state: {:?}\" , zi_primary) ; assert_eq ! (zi_primary . len () , z0_primary . len () , \"Primary state vector length should remain constant\") ; let final_commitment : < E1 as Engine > :: Scalar = NovaDigest :: new (state . tree . get_commitment () . unwrap ()) . to_scalar () . unwrap () ; assert_eq ! (zi_primary [0] , final_commitment , \"Final commitment should match the tree state\") ; }"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_super_{insert_InsertCircuit,update_UpdateCircuit}",
+            "path": "super :: { insert :: InsertCircuit , update :: UpdateCircuit }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_arecibo_{supernova_{StepCircuit,TrivialSecondaryCircuit},traits_{CurveCycleEquipped,Dual,Engine},}",
+            "path": "arecibo :: { supernova :: { StepCircuit , TrivialSecondaryCircuit } , traits :: { CurveCycleEquipped , Dual , Engine } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_ff_{PrimeField,PrimeFieldBits}",
+            "path": "ff :: { PrimeField , PrimeFieldBits }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_prism_common_tree_{InsertProof,UpdateProof}",
+            "path": "prism_common :: tree :: { InsertProof , UpdateProof }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/batch.rs#use_std_cell_RefCell",
+            "path": "std :: cell :: RefCell",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/nova/src/batch.rs#EpochCircuitSequence",
+            "name": "EpochCircuitSequence",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "insert_circuits",
+                "type_name": "Vec < EpochCircuit < E1 :: Scalar > >",
+                "visibility": "private"
+              },
+              {
+                "name": "update_circuits",
+                "type_name": "Vec < EpochCircuit < E1 :: Scalar > >",
+                "visibility": "private"
+              },
+              {
+                "name": "rom",
+                "type_name": "Vec < usize >",
+                "visibility": "private"
+              },
+              {
+                "name": "insert_index",
+                "type_name": "RefCell < usize >",
+                "visibility": "private"
+              },
+              {
+                "name": "update_index",
+                "type_name": "RefCell < usize >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "E1"
+            ]
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/batch.rs#impl_EpochCircuitSequence<E1>",
+            "target_type": "EpochCircuitSequence < E1 >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (operations : Vec < (usize , EpochCircuit < E1 :: Scalar >) >) -> Self { let rom = operations . iter () . map (| (op , _) | * op) . collect () ; let (insert_circuits , update_circuits) : (Vec < _ > , Vec < _ >) = operations . into_iter () . map (| (_ , circuit) | circuit) . partition (| circuit | matches ! (circuit , EpochCircuit :: Insert (_))) ; Self { insert_circuits , update_circuits , rom , insert_index : RefCell :: new (0) , update_index : RefCell :: new (0) , } }",
+              "pub fn reset_indices (& self) { * self . insert_index . borrow_mut () = 0 ; * self . update_index . borrow_mut () = 0 ; }"
+            ],
+            "generics": [
+              "E1"
+            ]
+          },
+          "type_references": [
+            "EpochCircuitSequence",
+            "E1"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/batch.rs#impl_arecibo::supernova::NonUniformCircuit<E1>_EpochCircuitSequence<E1>",
+            "target_type": "EpochCircuitSequence < E1 >",
+            "trait_name": "arecibo :: supernova :: NonUniformCircuit < E1 >",
+            "items": [
+              "type C1 = EpochCircuit < E1 :: Scalar > ;",
+              "type C2 = TrivialSecondaryCircuit < < Dual < E1 > as Engine > :: Scalar > ;",
+              "fn num_circuits (& self) -> usize { self . insert_circuits . len () + self . update_circuits . len () }",
+              "fn primary_circuit (& self , circuit_index : usize) -> Self :: C1 { let (circuits , index) = if circuit_index == 0 { (& self . insert_circuits , & self . insert_index) } else { (& self . update_circuits , & self . update_index) } ; let mut current_index = index . borrow_mut () ; if * current_index >= circuits . len () { * current_index = 0 ; } let circuit = circuits [* current_index] . clone () ; * current_index += 1 ; circuit }",
+              "fn secondary_circuit (& self) -> Self :: C2 { TrivialSecondaryCircuit :: default () }",
+              "fn initial_circuit_index (& self) -> usize { self . rom [0] }"
+            ],
+            "generics": [
+              "E1"
+            ]
+          },
+          "type_references": [
+            "E1",
+            "EpochCircuitSequence"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/zk/nova/src/batch.rs#EpochCircuit",
+            "name": "EpochCircuit",
+            "visibility": "pub",
+            "variants": [
+              "Insert",
+              "Update"
+            ],
+            "generics": [
+              "F"
+            ]
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/batch.rs#impl_EpochCircuit<F>",
+            "target_type": "EpochCircuit < F >",
+            "trait_name": null,
+            "items": [
+              "pub fn new_insert (insertion_proof : InsertProof , rom_size : usize) -> Self { Self :: Insert (InsertCircuit :: new (insertion_proof , rom_size)) }",
+              "pub fn new_update (update_proof : UpdateProof , rom_size : usize) -> Self { Self :: Update (UpdateCircuit :: new (update_proof , rom_size)) }"
+            ],
+            "generics": [
+              "F"
+            ]
+          },
+          "type_references": [
+            "EpochCircuit",
+            "F"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/batch.rs#impl_StepCircuit<F>_EpochCircuit<F>",
+            "target_type": "EpochCircuit < F >",
+            "trait_name": "StepCircuit < F >",
+            "items": [
+              "fn arity (& self) -> usize { match self { Self :: Insert (x) => x . arity () , Self :: Update (x) => x . arity () , } }",
+              "fn synthesize < CS : bellpepper_core :: ConstraintSystem < F > > (& self , cs : & mut CS , pc : Option < & bellpepper_core :: num :: AllocatedNum < F > > , z : & [bellpepper_core :: num :: AllocatedNum < F >] ,) -> Result < (Option < bellpepper_core :: num :: AllocatedNum < F > > , Vec < bellpepper_core :: num :: AllocatedNum < F > > ,) , bellpepper_core :: SynthesisError , > { match self { Self :: Insert (x) => x . synthesize (cs , pc , z) , Self :: Update (x) => x . synthesize (cs , pc , z) , } }",
+              "fn circuit_index (& self) -> usize { match self { Self :: Insert (x) => x . circuit_index () , Self :: Update (x) => x . circuit_index () , } }"
+            ],
+            "generics": [
+              "F"
+            ]
+          },
+          "type_references": [
+            "F",
+            "EpochCircuit"
+          ]
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/batch.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": [
+              "use super :: * ;",
+              "use crate :: utils :: Digest as NovaDigest ;",
+              "use arecibo :: { provider :: PallasEngine , supernova :: { NonUniformCircuit , PublicParams , RecursiveSNARK } , traits :: snark :: default_ck_hint , } ;",
+              "use ff :: Field ;",
+              "use prism_common :: test_utils :: { create_random_insert , create_random_update , TestTreeState } ;",
+              "use rand :: { rngs :: StdRng , SeedableRng } ;",
+              "# [ignore] # [test] fn test_recursive_epoch_circuit_proof () { type E1 = PallasEngine ; let mut state = TestTreeState :: new () ; let mut rng = StdRng :: from_entropy () ; let initial_commitment : < E1 as Engine > :: Scalar = NovaDigest :: from_root_hash (state . tree . get_commitment () . unwrap () . into ()) . to_scalar () . unwrap () ; let operations = vec ! [(0 , EpochCircuit :: new_insert (create_random_insert (& mut state , & mut rng) , 2) ,) , (1 , EpochCircuit :: new_update (create_random_update (& mut state , & mut rng) , 2) ,) ,] ; let circuit_sequence = EpochCircuitSequence :: < E1 > :: new (operations) ; let pp = PublicParams :: setup (& circuit_sequence , & * default_ck_hint () , & * default_ck_hint ()) ; let mut z0_primary = vec ! [initial_commitment] ; z0_primary . push (< E1 as Engine > :: Scalar :: ZERO) ; z0_primary . extend (circuit_sequence . rom . iter () . map (| & x | < E1 as Engine > :: Scalar :: from (x as u64))) ; let z0_secondary = vec ! [<< Dual < E1 > as Engine >:: Scalar >:: ONE] ; let mut recursive_snark_option : Option < RecursiveSNARK < E1 > > = None ; circuit_sequence . reset_indices () ; println ! (\"ROM sequence: {:?}\" , circuit_sequence . rom) ; for & op_code in circuit_sequence . rom . iter () { println ! (\"Processing operation: {}\" , op_code) ; let primary_circuit = circuit_sequence . primary_circuit (op_code) ; let secondary_circuit = circuit_sequence . secondary_circuit () ; let mut recursive_snark = recursive_snark_option . unwrap_or_else (| | { RecursiveSNARK :: new (& pp , & circuit_sequence , & primary_circuit , & secondary_circuit , & z0_primary , & z0_secondary ,) . unwrap () }) ; recursive_snark . prove_step (& pp , & primary_circuit , & secondary_circuit) . unwrap () ; recursive_snark . verify (& pp , & z0_primary , & z0_secondary) . unwrap () ; recursive_snark_option = Some (recursive_snark) } assert ! (recursive_snark_option . is_some ()) ; let recursive_snark = recursive_snark_option . unwrap () ; assert ! (recursive_snark . verify (& pp , & z0_primary , & z0_secondary) . is_ok ()) ; let zi_primary = recursive_snark . zi_primary () ; println ! (\"Final primary state: {:?}\" , zi_primary) ; assert_eq ! (zi_primary . len () , z0_primary . len () , \"Primary state vector length should remain constant\") ; let final_commitment : < E1 as Engine > :: Scalar = NovaDigest :: new (state . tree . get_commitment () . unwrap ()) . to_scalar () . unwrap () ; assert_eq ! (zi_primary [0] , final_commitment , \"Final commitment should match the tree state\") ; }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/nova/src/lib.rs",
+      "path": "../crates/zk/nova/src/lib.rs",
+      "relative_path": "crates/zk/nova/src/lib.rs",
+      "file_size": 62,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/lib.rs#batch",
+            "name": "batch",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/lib.rs#insert",
+            "name": "insert",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/lib.rs#update",
+            "name": "update",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/lib.rs#utils",
+            "name": "utils",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/lib.rs#batch",
+            "name": "batch",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/lib.rs#insert",
+            "name": "insert",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/lib.rs#update",
+            "name": "update",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/zk/nova/src/lib.rs#utils",
+            "name": "utils",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/nova/src/update.rs",
+      "path": "../crates/zk/nova/src/update.rs",
+      "relative_path": "crates/zk/nova/src/update.rs",
+      "file_size": 3186,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_crate_utils_{allocate_bits_to_binary_number,next_rom_index_and_pc,verify_membership_proof,DigestasNovaDigest,}",
+            "path": "crate :: utils :: { allocate_bits_to_binary_number , next_rom_index_and_pc , verify_membership_proof , Digest as NovaDigest , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_arecibo_supernova_StepCircuit",
+            "path": "arecibo :: supernova :: StepCircuit",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_bellpepper_core_{num_AllocatedNum,ConstraintSystem,SynthesisError}",
+            "path": "bellpepper_core :: { num :: AllocatedNum , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_ff_{PrimeField,PrimeFieldBits}",
+            "path": "ff :: { PrimeField , PrimeFieldBits }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_prism_common_tree_UpdateProof",
+            "path": "prism_common :: tree :: UpdateProof",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/nova/src/update.rs#UpdateCircuit",
+            "name": "UpdateCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "update_proof",
+                "type_name": "UpdateProof",
+                "visibility": "pub"
+              },
+              {
+                "name": "rom_size",
+                "type_name": "usize",
+                "visibility": "private"
+              },
+              {
+                "name": "_phantom",
+                "type_name": "std :: marker :: PhantomData < F >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "F"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/update.rs#impl_UpdateCircuit<F>",
+            "target_type": "UpdateCircuit < F >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (update_proof : UpdateProof , rom_size : usize) -> Self { Self { update_proof , rom_size , _phantom : std :: marker :: PhantomData , } }"
+            ],
+            "generics": [
+              "F"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/update.rs#impl_StepCircuit<F>_UpdateCircuit<F>",
+            "target_type": "UpdateCircuit < F >",
+            "trait_name": "StepCircuit < F >",
+            "items": [
+              "fn arity (& self) -> usize { 2 + self . rom_size }",
+              "fn circuit_index (& self) -> usize { 1 }",
+              "fn synthesize < CS : ConstraintSystem < F > > (& self , cs : & mut CS , pc : Option < & AllocatedNum < F > > , z : & [AllocatedNum < F >] ,) -> Result < (Option < AllocatedNum < F > > , Vec < AllocatedNum < F > >) , SynthesisError > { let old_root = & z [0] ; let rom_index = & z [1] ; let allocated_rom = & z [2 ..] ; let pc = pc . ok_or (SynthesisError :: AssignmentMissing) ? ; let (rom_index_next , pc_next) = next_rom_index_and_pc (& mut cs . namespace (| | \"next rom_index and pc\") , rom_index , allocated_rom , pc ,) ? ; let pre_insertion_scalar = NovaDigest :: from_root_hash (self . update_proof . old_root) . to_scalar () . map_err (| _ | SynthesisError :: Unsatisfiable) ; let pre_insertion_root = AllocatedNum :: alloc (cs . namespace (| | \"pre_insertion_root\") , | | { pre_insertion_scalar }) ? ; let new_scalar = NovaDigest :: from_root_hash (self . update_proof . new_root) . to_scalar () . map_err (| _ | SynthesisError :: Unsatisfiable) ; let new_root = AllocatedNum :: alloc (cs . namespace (| | \"new_root\") , | | new_scalar) ? ; let old_root_bits = allocate_bits_to_binary_number (cs , self . update_proof . old_root . 0 . to_vec ()) ? ; cs . enforce (| | \"z0 == pre_insertion_root\" , | lc | lc + old_root . get_variable () , | lc | lc + CS :: one () , | lc | lc + pre_insertion_root . get_variable () ,) ; let update_proof = & self . update_proof . update_proof . proofs () [0] ; let leaf = & update_proof . leaf () . ok_or (SynthesisError :: AssignmentMissing) ? ; verify_membership_proof (cs , update_proof , old_root_bits , * leaf) ? ; self . update_proof . verify () . map_err (| _ | SynthesisError :: Unsatisfiable) ? ; let mut z_next = vec ! [new_root] ; z_next . push (rom_index_next) ; z_next . extend (z [2 ..] . iter () . cloned ()) ; Ok ((Some (pc_next) , z_next)) }"
+            ],
+            "generics": [
+              "F"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_crate_utils_{allocate_bits_to_binary_number,next_rom_index_and_pc,verify_membership_proof,DigestasNovaDigest,}",
+            "path": "crate :: utils :: { allocate_bits_to_binary_number , next_rom_index_and_pc , verify_membership_proof , Digest as NovaDigest , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_arecibo_supernova_StepCircuit",
+            "path": "arecibo :: supernova :: StepCircuit",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_bellpepper_core_{num_AllocatedNum,ConstraintSystem,SynthesisError}",
+            "path": "bellpepper_core :: { num :: AllocatedNum , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_ff_{PrimeField,PrimeFieldBits}",
+            "path": "ff :: { PrimeField , PrimeFieldBits }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/update.rs#use_prism_common_tree_UpdateProof",
+            "path": "prism_common :: tree :: UpdateProof",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/nova/src/update.rs#UpdateCircuit",
+            "name": "UpdateCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "update_proof",
+                "type_name": "UpdateProof",
+                "visibility": "pub"
+              },
+              {
+                "name": "rom_size",
+                "type_name": "usize",
+                "visibility": "private"
+              },
+              {
+                "name": "_phantom",
+                "type_name": "std :: marker :: PhantomData < F >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "F"
+            ]
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/update.rs#impl_UpdateCircuit<F>",
+            "target_type": "UpdateCircuit < F >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (update_proof : UpdateProof , rom_size : usize) -> Self { Self { update_proof , rom_size , _phantom : std :: marker :: PhantomData , } }"
+            ],
+            "generics": [
+              "F"
+            ]
+          },
+          "type_references": [
+            "F",
+            "UpdateCircuit"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/update.rs#impl_StepCircuit<F>_UpdateCircuit<F>",
+            "target_type": "UpdateCircuit < F >",
+            "trait_name": "StepCircuit < F >",
+            "items": [
+              "fn arity (& self) -> usize { 2 + self . rom_size }",
+              "fn circuit_index (& self) -> usize { 1 }",
+              "fn synthesize < CS : ConstraintSystem < F > > (& self , cs : & mut CS , pc : Option < & AllocatedNum < F > > , z : & [AllocatedNum < F >] ,) -> Result < (Option < AllocatedNum < F > > , Vec < AllocatedNum < F > >) , SynthesisError > { let old_root = & z [0] ; let rom_index = & z [1] ; let allocated_rom = & z [2 ..] ; let pc = pc . ok_or (SynthesisError :: AssignmentMissing) ? ; let (rom_index_next , pc_next) = next_rom_index_and_pc (& mut cs . namespace (| | \"next rom_index and pc\") , rom_index , allocated_rom , pc ,) ? ; let pre_insertion_scalar = NovaDigest :: from_root_hash (self . update_proof . old_root) . to_scalar () . map_err (| _ | SynthesisError :: Unsatisfiable) ; let pre_insertion_root = AllocatedNum :: alloc (cs . namespace (| | \"pre_insertion_root\") , | | { pre_insertion_scalar }) ? ; let new_scalar = NovaDigest :: from_root_hash (self . update_proof . new_root) . to_scalar () . map_err (| _ | SynthesisError :: Unsatisfiable) ; let new_root = AllocatedNum :: alloc (cs . namespace (| | \"new_root\") , | | new_scalar) ? ; let old_root_bits = allocate_bits_to_binary_number (cs , self . update_proof . old_root . 0 . to_vec ()) ? ; cs . enforce (| | \"z0 == pre_insertion_root\" , | lc | lc + old_root . get_variable () , | lc | lc + CS :: one () , | lc | lc + pre_insertion_root . get_variable () ,) ; let update_proof = & self . update_proof . update_proof . proofs () [0] ; let leaf = & update_proof . leaf () . ok_or (SynthesisError :: AssignmentMissing) ? ; verify_membership_proof (cs , update_proof , old_root_bits , * leaf) ? ; self . update_proof . verify () . map_err (| _ | SynthesisError :: Unsatisfiable) ? ; let mut z_next = vec ! [new_root] ; z_next . push (rom_index_next) ; z_next . extend (z [2 ..] . iter () . cloned ()) ; Ok ((Some (pc_next) , z_next)) }"
+            ],
+            "generics": [
+              "F"
+            ]
+          },
+          "type_references": [
+            "UpdateCircuit",
+            "F"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/nova/src/insert.rs",
+      "path": "../crates/zk/nova/src/insert.rs",
+      "relative_path": "crates/zk/nova/src/insert.rs",
+      "file_size": 3177,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_crate_utils_{allocate_bits_to_binary_number,next_rom_index_and_pc,verify_membership_proof,Digest,}",
+            "path": "crate :: utils :: { allocate_bits_to_binary_number , next_rom_index_and_pc , verify_membership_proof , Digest , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_arecibo_supernova_StepCircuit",
+            "path": "arecibo :: supernova :: StepCircuit",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_bellpepper_core_{num_AllocatedNum,ConstraintSystem,SynthesisError}",
+            "path": "bellpepper_core :: { num :: AllocatedNum , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_ff_{PrimeField,PrimeFieldBits}",
+            "path": "ff :: { PrimeField , PrimeFieldBits }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_prism_common_tree_InsertProof",
+            "path": "prism_common :: tree :: InsertProof",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/nova/src/insert.rs#InsertCircuit",
+            "name": "InsertCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "proof",
+                "type_name": "InsertProof",
+                "visibility": "pub"
+              },
+              {
+                "name": "rom_size",
+                "type_name": "usize",
+                "visibility": "private"
+              },
+              {
+                "name": "_phantom",
+                "type_name": "std :: marker :: PhantomData < F >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "F"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/insert.rs#impl_InsertCircuit<Scalar>",
+            "target_type": "InsertCircuit < Scalar >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (proof : InsertProof , rom_size : usize) -> Self { Self { proof , rom_size , _phantom : std :: marker :: PhantomData , } }"
+            ],
+            "generics": [
+              "Scalar"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/insert.rs#impl_StepCircuit<Scalar>_InsertCircuit<Scalar>",
+            "target_type": "InsertCircuit < Scalar >",
+            "trait_name": "StepCircuit < Scalar >",
+            "items": [
+              "fn arity (& self) -> usize { 2 + self . rom_size }",
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (& self , cs : & mut CS , pc : Option < & AllocatedNum < Scalar > > , z : & [AllocatedNum < Scalar >] ,) -> Result < (Option < AllocatedNum < Scalar > > , Vec < AllocatedNum < Scalar > >) , SynthesisError > { let old_root = & z [0] ; let rom_index = & z [1] ; let allocated_rom = & z [2 ..] ; let pc = pc . ok_or (SynthesisError :: AssignmentMissing) ? ; let (rom_index_next , pc_next) = next_rom_index_and_pc (& mut cs . namespace (| | \"next and rom_index and pc\") , rom_index , allocated_rom , pc ,) ? ; let pre_insertion_scalar = Digest :: new (self . proof . non_membership_proof . root) . to_scalar () . map_err (| _ | SynthesisError :: Unsatisfiable) ; let pre_insertion_root = AllocatedNum :: alloc (cs . namespace (| | \"pre_insertion_root\") , | | { pre_insertion_scalar }) ? ; cs . enforce (| | \"z0 == pre_insertion_root\" , | lc | lc + old_root . get_variable () , | lc | lc + CS :: one () , | lc | lc + pre_insertion_root . get_variable () ,) ; let new_root = AllocatedNum :: alloc (cs . namespace (| | \"new_root\") , | | { Digest :: new (self . proof . new_root) . to_scalar () . map_err (| _ | SynthesisError :: Unsatisfiable) }) ? ; let new_root_bits = allocate_bits_to_binary_number (cs , self . proof . membership_proof . root_hash () . 0 . to_vec ()) ? ; self . proof . verify () . map_err (| _ | SynthesisError :: Unsatisfiable) ? ; let leaf = & self . proof . membership_proof . leaf () . ok_or (SynthesisError :: AssignmentMissing) ? ; verify_membership_proof (cs , & self . proof . membership_proof , new_root_bits , * leaf) ? ; let mut z_next = vec ! [new_root] ; z_next . push (rom_index_next) ; z_next . extend (z [2 ..] . iter () . cloned ()) ; Ok ((Some (pc_next) , z_next)) }",
+              "fn circuit_index (& self) -> usize { 0 }"
+            ],
+            "generics": [
+              "Scalar"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_crate_utils_{allocate_bits_to_binary_number,next_rom_index_and_pc,verify_membership_proof,Digest,}",
+            "path": "crate :: utils :: { allocate_bits_to_binary_number , next_rom_index_and_pc , verify_membership_proof , Digest , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_arecibo_supernova_StepCircuit",
+            "path": "arecibo :: supernova :: StepCircuit",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_bellpepper_core_{num_AllocatedNum,ConstraintSystem,SynthesisError}",
+            "path": "bellpepper_core :: { num :: AllocatedNum , ConstraintSystem , SynthesisError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_ff_{PrimeField,PrimeFieldBits}",
+            "path": "ff :: { PrimeField , PrimeFieldBits }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/insert.rs#use_prism_common_tree_InsertProof",
+            "path": "prism_common :: tree :: InsertProof",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/nova/src/insert.rs#InsertCircuit",
+            "name": "InsertCircuit",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "proof",
+                "type_name": "InsertProof",
+                "visibility": "pub"
+              },
+              {
+                "name": "rom_size",
+                "type_name": "usize",
+                "visibility": "private"
+              },
+              {
+                "name": "_phantom",
+                "type_name": "std :: marker :: PhantomData < F >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "F"
+            ]
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/insert.rs#impl_InsertCircuit<Scalar>",
+            "target_type": "InsertCircuit < Scalar >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (proof : InsertProof , rom_size : usize) -> Self { Self { proof , rom_size , _phantom : std :: marker :: PhantomData , } }"
+            ],
+            "generics": [
+              "Scalar"
+            ]
+          },
+          "type_references": [
+            "InsertCircuit",
+            "Scalar"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/insert.rs#impl_StepCircuit<Scalar>_InsertCircuit<Scalar>",
+            "target_type": "InsertCircuit < Scalar >",
+            "trait_name": "StepCircuit < Scalar >",
+            "items": [
+              "fn arity (& self) -> usize { 2 + self . rom_size }",
+              "fn synthesize < CS : ConstraintSystem < Scalar > > (& self , cs : & mut CS , pc : Option < & AllocatedNum < Scalar > > , z : & [AllocatedNum < Scalar >] ,) -> Result < (Option < AllocatedNum < Scalar > > , Vec < AllocatedNum < Scalar > >) , SynthesisError > { let old_root = & z [0] ; let rom_index = & z [1] ; let allocated_rom = & z [2 ..] ; let pc = pc . ok_or (SynthesisError :: AssignmentMissing) ? ; let (rom_index_next , pc_next) = next_rom_index_and_pc (& mut cs . namespace (| | \"next and rom_index and pc\") , rom_index , allocated_rom , pc ,) ? ; let pre_insertion_scalar = Digest :: new (self . proof . non_membership_proof . root) . to_scalar () . map_err (| _ | SynthesisError :: Unsatisfiable) ; let pre_insertion_root = AllocatedNum :: alloc (cs . namespace (| | \"pre_insertion_root\") , | | { pre_insertion_scalar }) ? ; cs . enforce (| | \"z0 == pre_insertion_root\" , | lc | lc + old_root . get_variable () , | lc | lc + CS :: one () , | lc | lc + pre_insertion_root . get_variable () ,) ; let new_root = AllocatedNum :: alloc (cs . namespace (| | \"new_root\") , | | { Digest :: new (self . proof . new_root) . to_scalar () . map_err (| _ | SynthesisError :: Unsatisfiable) }) ? ; let new_root_bits = allocate_bits_to_binary_number (cs , self . proof . membership_proof . root_hash () . 0 . to_vec ()) ? ; self . proof . verify () . map_err (| _ | SynthesisError :: Unsatisfiable) ? ; let leaf = & self . proof . membership_proof . leaf () . ok_or (SynthesisError :: AssignmentMissing) ? ; verify_membership_proof (cs , & self . proof . membership_proof , new_root_bits , * leaf) ? ; let mut z_next = vec ! [new_root] ; z_next . push (rom_index_next) ; z_next . extend (z [2 ..] . iter () . cloned ()) ; Ok ((Some (pc_next) , z_next)) }",
+              "fn circuit_index (& self) -> usize { 0 }"
+            ],
+            "generics": [
+              "Scalar"
+            ]
+          },
+          "type_references": [
+            "InsertCircuit",
+            "Scalar"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/zk/nova/src/utils.rs",
+      "path": "../crates/zk/nova/src/utils.rs",
+      "relative_path": "crates/zk/nova/src/utils.rs",
+      "file_size": 14168,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_crate_batch_{EpochCircuit,EpochCircuitSequence}",
+            "path": "crate :: batch :: { EpochCircuit , EpochCircuitSequence }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_arecibo_{provider_PallasEngine,supernova_PublicParams,traits_snark_default_ck_hint}",
+            "path": "arecibo :: { provider :: PallasEngine , supernova :: PublicParams , traits :: snark :: default_ck_hint }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_bellpepper_gadgets_sha256_sha256",
+            "path": "bellpepper :: gadgets :: sha256 :: sha256",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_bellpepper_core_{boolean_{AllocatedBit,Boolean},num_AllocatedNum,ConstraintSystem,LinearCombination,SynthesisError,}",
+            "path": "bellpepper_core :: { boolean :: { AllocatedBit , Boolean } , num :: AllocatedNum , ConstraintSystem , LinearCombination , SynthesisError , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_ff_PrimeField",
+            "path": "ff :: PrimeField",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_itertools_Itertoolsas_",
+            "path": "itertools :: Itertools as _",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_jmt_{bytes32ext_Bytes32Ext,proof_{SparseMerkleLeafNode,SparseMerkleNode,SparseMerkleProof,INTERNAL_DOMAIN_SEPARATOR},RootHash,}",
+            "path": "jmt :: { bytes32ext :: Bytes32Ext , proof :: { SparseMerkleLeafNode , SparseMerkleNode , SparseMerkleProof , INTERNAL_DOMAIN_SEPARATOR } , RootHash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_prism_common_{test_utils_TestTreeState,tree_*}",
+            "path": "prism_common :: { test_utils :: TestTreeState , tree :: * }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_std_marker_PhantomData",
+            "path": "std :: marker :: PhantomData",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_prism_common_tree",
+            "path": "prism_common :: tree",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/nova/src/utils.rs#Digest",
+            "name": "Digest",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "digest",
+                "type_name": "tree :: Digest",
+                "visibility": "private"
+              },
+              {
+                "name": "_p",
+                "type_name": "PhantomData < Scalar >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "Scalar"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/utils.rs#impl_Digest<Scalar>",
+            "target_type": "Digest < Scalar >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (digest : tree :: Digest) -> Self { Self { digest , _p : PhantomData , } }",
+              "pub fn from_root_hash (root_hash : RootHash) -> Self { Self :: new (root_hash . into ()) }",
+              "pub fn to_scalar (& self) -> Result < Scalar > { let bytes = self . digest . as_ref () ; let lower = u128 :: from_le_bytes (bytes [0 .. 16] . try_into () ?) ; let upper = u128 :: from_le_bytes (bytes [16 .. 32] . try_into () ?) ; let mut tmp = Scalar :: from_u128 (upper) ; for _ in 0 .. 128 { tmp = tmp . double () ; } Ok (tmp + Scalar :: from_u128 (lower)) }"
+            ],
+            "generics": [
+              "Scalar"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+            "name": "next_rom_index_and_pc",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "rom_index : & AllocatedNum < F >",
+              "allocated_rom : & [AllocatedNum < F >]",
+              "pc : & AllocatedNum < F >"
+            ],
+            "output": "Result < (AllocatedNum < F > , AllocatedNum < F >) , SynthesisError >",
+            "generics": [
+              "F",
+              "CS"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+            "name": "get_selector_vec_from_index",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "mut cs : CS",
+              "target_index : & AllocatedNum < F >",
+              "num_indices : usize"
+            ],
+            "output": "Result < Vec < Boolean > , SynthesisError >",
+            "generics": [
+              "F",
+              "CS"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#create_pp",
+            "name": "create_pp",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "PublicParams < PallasEngine >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+            "name": "allocate_bits_to_binary_number",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "value : Vec < u8 >"
+            ],
+            "output": "Result < Vec < Boolean > , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#hash_node",
+            "name": "hash_node",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "node : & SparseMerkleNode"
+            ],
+            "output": "Result < Vec < Boolean > , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+            "name": "verify_membership_proof",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "proof : & SparseMerkleProof < Hasher >",
+              "root : Vec < Boolean >",
+              "leaf : SparseMerkleLeafNode"
+            ],
+            "output": "Result < () , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+            "name": "conditionally_swap",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "a : & [Boolean]",
+              "b : & [Boolean]",
+              "condition : & Boolean"
+            ],
+            "output": "Result < (Vec < Boolean > , Vec < Boolean >) , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+            "name": "conditionally_select_vector",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "condition : & Boolean",
+              "a : & [Boolean]",
+              "b : & [Boolean]"
+            ],
+            "output": "Result < Vec < Boolean > , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+            "name": "boolvec_to_bytes",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "value : Vec < Boolean >"
+            ],
+            "output": "Vec < u8 >",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_crate_batch_{EpochCircuit,EpochCircuitSequence}",
+            "path": "crate :: batch :: { EpochCircuit , EpochCircuitSequence }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_arecibo_{provider_PallasEngine,supernova_PublicParams,traits_snark_default_ck_hint}",
+            "path": "arecibo :: { provider :: PallasEngine , supernova :: PublicParams , traits :: snark :: default_ck_hint }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_bellpepper_gadgets_sha256_sha256",
+            "path": "bellpepper :: gadgets :: sha256 :: sha256",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_bellpepper_core_{boolean_{AllocatedBit,Boolean},num_AllocatedNum,ConstraintSystem,LinearCombination,SynthesisError,}",
+            "path": "bellpepper_core :: { boolean :: { AllocatedBit , Boolean } , num :: AllocatedNum , ConstraintSystem , LinearCombination , SynthesisError , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_ff_PrimeField",
+            "path": "ff :: PrimeField",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_itertools_Itertoolsas_",
+            "path": "itertools :: Itertools as _",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_jmt_{bytes32ext_Bytes32Ext,proof_{SparseMerkleLeafNode,SparseMerkleNode,SparseMerkleProof,INTERNAL_DOMAIN_SEPARATOR},RootHash,}",
+            "path": "jmt :: { bytes32ext :: Bytes32Ext , proof :: { SparseMerkleLeafNode , SparseMerkleNode , SparseMerkleProof , INTERNAL_DOMAIN_SEPARATOR } , RootHash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_prism_common_{test_utils_TestTreeState,tree_*}",
+            "path": "prism_common :: { test_utils :: TestTreeState , tree :: * }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_std_marker_PhantomData",
+            "path": "std :: marker :: PhantomData",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/zk/nova/src/utils.rs#use_prism_common_tree",
+            "path": "prism_common :: tree",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/zk/nova/src/utils.rs#Digest",
+            "name": "Digest",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "digest",
+                "type_name": "tree :: Digest",
+                "visibility": "private"
+              },
+              {
+                "name": "_p",
+                "type_name": "PhantomData < Scalar >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "Scalar"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/zk/nova/src/utils.rs#impl_Digest<Scalar>",
+            "target_type": "Digest < Scalar >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (digest : tree :: Digest) -> Self { Self { digest , _p : PhantomData , } }",
+              "pub fn from_root_hash (root_hash : RootHash) -> Self { Self :: new (root_hash . into ()) }",
+              "pub fn to_scalar (& self) -> Result < Scalar > { let bytes = self . digest . as_ref () ; let lower = u128 :: from_le_bytes (bytes [0 .. 16] . try_into () ?) ; let upper = u128 :: from_le_bytes (bytes [16 .. 32] . try_into () ?) ; let mut tmp = Scalar :: from_u128 (upper) ; for _ in 0 .. 128 { tmp = tmp . double () ; } Ok (tmp + Scalar :: from_u128 (lower)) }"
+            ],
+            "generics": [
+              "Scalar"
+            ]
+          },
+          "type_references": [
+            "Scalar",
+            "Digest"
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+            "name": "next_rom_index_and_pc",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "rom_index : & AllocatedNum < F >",
+              "allocated_rom : & [AllocatedNum < F >]",
+              "pc : & AllocatedNum < F >"
+            ],
+            "output": "Result < (AllocatedNum < F > , AllocatedNum < F >) , SynthesisError >",
+            "generics": [
+              "F",
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "get_selector_vec_from_index",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "len",
+              "is_method": true,
+              "receiver_type": "allocated_rom"
+            },
+            {
+              "callee": "zip_eq",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "allocated_rom"
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "current_rom_selector"
+            },
+            {
+              "callee": "enforce",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "lc",
+              "is_method": true,
+              "receiver_type": "bit"
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "get_variable",
+              "is_method": true,
+              "receiver_type": "rom"
+            },
+            {
+              "callee": "get_variable",
+              "is_method": true,
+              "receiver_type": "pc"
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true
+            },
+            {
+              "callee": "position",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "current_rom_selector"
+            },
+            {
+              "callee": "is_some_and",
+              "is_method": true
+            },
+            {
+              "callee": "get_value",
+              "is_method": true,
+              "receiver_type": "bit"
+            },
+            {
+              "callee": "AllocatedNum::alloc_infallible",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "F::from",
+              "is_method": false
+            },
+            {
+              "callee": "enforce",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "get_variable",
+              "is_method": true,
+              "receiver_type": "rom_index"
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "get_variable",
+              "is_method": true,
+              "receiver_type": "rom_index_next"
+            },
+            {
+              "callee": "AllocatedNum::alloc_infallible",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "and_then",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "allocated_rom"
+            },
+            {
+              "callee": "get_value",
+              "is_method": true,
+              "receiver_type": "v"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "current_rom_selector",
+              "is_mutable": false
+            },
+            {
+              "name": "current_rom_index",
+              "is_mutable": false
+            },
+            {
+              "name": "next_rom_index",
+              "is_mutable": false
+            },
+            {
+              "name": "rom_index_next",
+              "is_mutable": false
+            },
+            {
+              "name": "pc_next",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "u64"
+          ],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+            "name": "get_selector_vec_from_index",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "mut cs : CS",
+              "target_index : & AllocatedNum < F >",
+              "num_indices : usize"
+            ],
+            "output": "Result < Vec < Boolean > , SynthesisError >",
+            "generics": [
+              "F",
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "collect",
+              "is_method": true
+            },
+            {
+              "callee": "map",
+              "is_method": true
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Boolean::Is",
+              "is_method": false
+            },
+            {
+              "callee": "AllocatedBit::alloc",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "map",
+              "is_method": true
+            },
+            {
+              "callee": "get_value",
+              "is_method": true,
+              "receiver_type": "target_index"
+            },
+            {
+              "callee": "F::from",
+              "is_method": false
+            },
+            {
+              "callee": "fold",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "selector"
+            },
+            {
+              "callee": "LinearCombination::zero",
+              "is_method": false
+            },
+            {
+              "callee": "lc",
+              "is_method": true,
+              "receiver_type": "bit"
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "enforce",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "fold",
+              "is_method": true
+            },
+            {
+              "callee": "enumerate",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "selector"
+            },
+            {
+              "callee": "LinearCombination::zero",
+              "is_method": false
+            },
+            {
+              "callee": "lc",
+              "is_method": true,
+              "receiver_type": "bit"
+            },
+            {
+              "callee": "CS::one",
+              "is_method": false
+            },
+            {
+              "callee": "F::from",
+              "is_method": false
+            },
+            {
+              "callee": "enforce",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "get_variable",
+              "is_method": true,
+              "receiver_type": "target_index"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "selector",
+              "is_mutable": false
+            },
+            {
+              "name": "selected_sum",
+              "is_mutable": false
+            },
+            {
+              "name": "selected_value",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Vec",
+            "u64",
+            "Result",
+            "Boolean",
+            "SynthesisError"
+          ],
+          "macro_invocations": [
+            {
+              "name": "assert_ne",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#create_pp",
+            "name": "create_pp",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "PublicParams < PallasEngine >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "TestTreeState::default",
+              "is_method": false
+            },
+            {
+              "callee": "register_service",
+              "is_method": true,
+              "receiver_type": "test_tree"
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "create_account",
+              "is_method": true,
+              "receiver_type": "test_tree"
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "service"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "insert",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "insert",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "add_key_to_account",
+              "is_method": true,
+              "receiver_type": "test_tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "update_account",
+              "is_method": true,
+              "receiver_type": "test_tree"
+            },
+            {
+              "callee": "EpochCircuitSequence::new",
+              "is_method": false
+            },
+            {
+              "callee": "PublicParams::setup",
+              "is_method": false
+            },
+            {
+              "callee": "default_ck_hint",
+              "is_method": false
+            },
+            {
+              "callee": "default_ck_hint",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "test_tree",
+              "is_mutable": true
+            },
+            {
+              "name": "service",
+              "is_mutable": false
+            },
+            {
+              "name": "account",
+              "is_mutable": true
+            },
+            {
+              "name": "insert_proof",
+              "is_mutable": false
+            },
+            {
+              "name": "update_proof",
+              "is_mutable": false
+            },
+            {
+              "name": "operations",
+              "is_mutable": false
+            },
+            {
+              "name": "circuit_sequence",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "E1",
+            "PallasEngine"
+          ],
+          "macro_invocations": [
+            {
+              "name": "vec",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+            "name": "allocate_bits_to_binary_number",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "value : Vec < u8 >"
+            ],
+            "output": "Result < Vec < Boolean > , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "collect",
+              "is_method": true
+            },
+            {
+              "callee": "flat_map",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "value"
+            },
+            {
+              "callee": "map",
+              "is_method": true
+            },
+            {
+              "callee": "rev",
+              "is_method": true
+            },
+            {
+              "callee": "collect",
+              "is_method": true
+            },
+            {
+              "callee": "map",
+              "is_method": true
+            },
+            {
+              "callee": "enumerate",
+              "is_method": true
+            },
+            {
+              "callee": "into_iter",
+              "is_method": true,
+              "receiver_type": "bits"
+            },
+            {
+              "callee": "AllocatedBit::alloc",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Boolean::from",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "allocated_bit",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "SynthesisError",
+            "Result",
+            "Boolean",
+            "bool",
+            "Vec"
+          ],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#hash_node",
+            "name": "hash_node",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "node : & SparseMerkleNode"
+            ],
+            "output": "Result < Vec < Boolean > , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "allocate_bits_to_binary_number",
+              "is_method": false
+            },
+            {
+              "callee": "to_bytes",
+              "is_method": true,
+              "receiver_type": "node"
+            },
+            {
+              "callee": "sha256",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "allocate_bits_to_binary_number",
+              "is_method": false
+            },
+            {
+              "callee": "to_bytes",
+              "is_method": true,
+              "receiver_type": "node"
+            },
+            {
+              "callee": "sha256",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "allocate_bits_to_binary_number",
+              "is_method": false
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "to_bytes",
+              "is_method": true,
+              "receiver_type": "SPARSE_MERKLE_PLACEHOLDER_HASH"
+            },
+            {
+              "callee": "sha256",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "concat",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "node_bits"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "node_bits"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "node_bits"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "node_bits",
+              "is_mutable": false
+            },
+            {
+              "name": "node_bits",
+              "is_mutable": false
+            },
+            {
+              "name": "node_bits",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+            "name": "verify_membership_proof",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "proof : & SparseMerkleProof < Hasher >",
+              "root : Vec < Boolean >",
+              "leaf : SparseMerkleLeafNode"
+            ],
+            "output": "Result < () , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "len",
+              "is_method": true
+            },
+            {
+              "callee": "siblings",
+              "is_method": true,
+              "receiver_type": "proof"
+            },
+            {
+              "callee": "hash_node",
+              "is_method": false
+            },
+            {
+              "callee": "SparseMerkleNode::Leaf",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "hash_node",
+              "is_method": false
+            },
+            {
+              "callee": "siblings",
+              "is_method": true,
+              "receiver_type": "proof"
+            },
+            {
+              "callee": "allocate_bits_to_binary_number",
+              "is_method": false
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "to_bytes",
+              "is_method": true,
+              "receiver_type": "SPARSE_MERKLE_PLACEHOLDER_HASH"
+            },
+            {
+              "callee": "sha256",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "concat",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "bits"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "bits"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "bits"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "nth",
+              "is_method": true
+            },
+            {
+              "callee": "rev",
+              "is_method": true
+            },
+            {
+              "callee": "iter_bits",
+              "is_method": true
+            },
+            {
+              "callee": "allocate_bits_to_binary_number",
+              "is_method": false
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true,
+              "receiver_type": "INTERNAL_DOMAIN_SEPARATOR"
+            },
+            {
+              "callee": "Vec::new",
+              "is_method": false
+            },
+            {
+              "callee": "extend_from_slice",
+              "is_method": true,
+              "receiver_type": "hash_input"
+            },
+            {
+              "callee": "extend_from_slice",
+              "is_method": true,
+              "receiver_type": "hash_input"
+            },
+            {
+              "callee": "extend_from_slice",
+              "is_method": true,
+              "receiver_type": "hash_input"
+            },
+            {
+              "callee": "extend_from_slice",
+              "is_method": true,
+              "receiver_type": "hash_input"
+            },
+            {
+              "callee": "extend_from_slice",
+              "is_method": true,
+              "receiver_type": "hash_input"
+            },
+            {
+              "callee": "extend_from_slice",
+              "is_method": true,
+              "receiver_type": "hash_input"
+            },
+            {
+              "callee": "sha256",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "enumerate",
+              "is_method": true
+            },
+            {
+              "callee": "zip",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "current"
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "root"
+            },
+            {
+              "callee": "Boolean::enforce_equal",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "max_depth",
+              "is_mutable": false
+            },
+            {
+              "name": "actual_depth",
+              "is_mutable": false
+            },
+            {
+              "name": "current",
+              "is_mutable": true
+            },
+            {
+              "name": "element_key",
+              "is_mutable": false
+            },
+            {
+              "name": "cs",
+              "is_mutable": false
+            },
+            {
+              "name": "sibling_hash",
+              "is_mutable": false
+            },
+            {
+              "name": "bits",
+              "is_mutable": false
+            },
+            {
+              "name": "key_bit",
+              "is_mutable": false
+            },
+            {
+              "name": "separator",
+              "is_mutable": false
+            },
+            {
+              "name": "hash_input",
+              "is_mutable": true
+            },
+            {
+              "name": "hashed",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+            "name": "conditionally_swap",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "a : & [Boolean]",
+              "b : & [Boolean]",
+              "condition : & Boolean"
+            ],
+            "output": "Result < (Vec < Boolean > , Vec < Boolean >) , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "Vec::with_capacity",
+              "is_method": false
+            },
+            {
+              "callee": "len",
+              "is_method": true,
+              "receiver_type": "a"
+            },
+            {
+              "callee": "Vec::with_capacity",
+              "is_method": false
+            },
+            {
+              "callee": "len",
+              "is_method": true,
+              "receiver_type": "a"
+            },
+            {
+              "callee": "zip",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "a"
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "b"
+            },
+            {
+              "callee": "Boolean::and",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Boolean::and",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "not",
+              "is_method": true,
+              "receiver_type": "condition"
+            },
+            {
+              "callee": "Boolean::xor",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Boolean::and",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Boolean::and",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "not",
+              "is_method": true,
+              "receiver_type": "condition"
+            },
+            {
+              "callee": "Boolean::xor",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "push",
+              "is_method": true,
+              "receiver_type": "left"
+            },
+            {
+              "callee": "push",
+              "is_method": true,
+              "receiver_type": "right"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "left",
+              "is_mutable": true
+            },
+            {
+              "name": "right",
+              "is_mutable": true
+            },
+            {
+              "name": "and1",
+              "is_mutable": false
+            },
+            {
+              "name": "and2",
+              "is_mutable": false
+            },
+            {
+              "name": "left",
+              "is_mutable": false
+            },
+            {
+              "name": "and3",
+              "is_mutable": false
+            },
+            {
+              "name": "and4",
+              "is_mutable": false
+            },
+            {
+              "name": "right",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+            "name": "conditionally_select_vector",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cs : & mut CS",
+              "condition : & Boolean",
+              "a : & [Boolean]",
+              "b : & [Boolean]"
+            ],
+            "output": "Result < Vec < Boolean > , SynthesisError >",
+            "generics": [
+              "Scalar",
+              "CS"
+            ]
+          },
+          "function_calls": [
+            {
+              "callee": "Vec::with_capacity",
+              "is_method": false
+            },
+            {
+              "callee": "len",
+              "is_method": true,
+              "receiver_type": "a"
+            },
+            {
+              "callee": "enumerate",
+              "is_method": true
+            },
+            {
+              "callee": "zip",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "a"
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "b"
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Boolean::and",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Boolean::and",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "Boolean::not",
+              "is_method": false
+            },
+            {
+              "callee": "Boolean::xor",
+              "is_method": false
+            },
+            {
+              "callee": "namespace",
+              "is_method": true,
+              "receiver_type": "cs"
+            },
+            {
+              "callee": "push",
+              "is_method": true,
+              "receiver_type": "result"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "result",
+              "is_mutable": true
+            },
+            {
+              "name": "cs",
+              "is_mutable": false
+            },
+            {
+              "name": "and1",
+              "is_mutable": false
+            },
+            {
+              "name": "and2",
+              "is_mutable": false
+            },
+            {
+              "name": "selected_bit",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+            "name": "boolvec_to_bytes",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "value : Vec < Boolean >"
+            ],
+            "output": "Vec < u8 >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "collect",
+              "is_method": true
+            },
+            {
+              "callee": "map",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "value"
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "get_value",
+              "is_method": true,
+              "receiver_type": "b"
+            },
+            {
+              "callee": "collect",
+              "is_method": true
+            },
+            {
+              "callee": "map",
+              "is_method": true
+            },
+            {
+              "callee": "chunks",
+              "is_method": true,
+              "receiver_type": "bits"
+            },
+            {
+              "callee": "fold",
+              "is_method": true
+            },
+            {
+              "callee": "enumerate",
+              "is_method": true
+            },
+            {
+              "callee": "iter",
+              "is_method": true,
+              "receiver_type": "chunk"
+            }
+          ],
+          "local_variables": [],
+          "type_references": [
+            "Vec",
+            "bool",
+            "u8"
+          ],
+          "macro_invocations": []
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/zk/nova/src/batch.rs",
+      "to_id": "super :: { insert :: InsertCircuit , update :: UpdateCircuit }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/batch.rs",
+      "to_id": "arecibo :: { supernova :: { StepCircuit , TrivialSecondaryCircuit } , traits :: { CurveCycleEquipped , Dual , Engine } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/batch.rs",
+      "to_id": "ff :: { PrimeField , PrimeFieldBits }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/batch.rs",
+      "to_id": "prism_common :: tree :: { InsertProof , UpdateProof }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/batch.rs",
+      "to_id": "std :: cell :: RefCell",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/batch.rs#EpochCircuitSequence",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/nova/src/batch.rs#impl_arecibo::supernova::NonUniformCircuit<E1>_EpochCircuitSequence<E1>",
+      "to_id": "trait:arecibo::supernova::NonUniformCircuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/nova/src/batch.rs#EpochCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/nova/src/batch.rs#impl_StepCircuit<F>_EpochCircuit<F>",
+      "to_id": "trait:StepCircuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/nova/src/update.rs",
+      "to_id": "crate :: utils :: { allocate_bits_to_binary_number , next_rom_index_and_pc , verify_membership_proof , Digest as NovaDigest , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/update.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/update.rs",
+      "to_id": "arecibo :: supernova :: StepCircuit",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/update.rs",
+      "to_id": "bellpepper_core :: { num :: AllocatedNum , ConstraintSystem , SynthesisError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/update.rs",
+      "to_id": "ff :: { PrimeField , PrimeFieldBits }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/update.rs",
+      "to_id": "prism_common :: tree :: UpdateProof",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/update.rs#UpdateCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/nova/src/update.rs#impl_StepCircuit<F>_UpdateCircuit<F>",
+      "to_id": "trait:StepCircuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/nova/src/insert.rs",
+      "to_id": "crate :: utils :: { allocate_bits_to_binary_number , next_rom_index_and_pc , verify_membership_proof , Digest , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/insert.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/insert.rs",
+      "to_id": "arecibo :: supernova :: StepCircuit",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/insert.rs",
+      "to_id": "bellpepper_core :: { num :: AllocatedNum , ConstraintSystem , SynthesisError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/insert.rs",
+      "to_id": "ff :: { PrimeField , PrimeFieldBits }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/insert.rs",
+      "to_id": "prism_common :: tree :: InsertProof",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/insert.rs#InsertCircuit",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/zk/nova/src/insert.rs#impl_StepCircuit<Scalar>_InsertCircuit<Scalar>",
+      "to_id": "trait:StepCircuit",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "crate :: batch :: { EpochCircuit , EpochCircuitSequence }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "arecibo :: { provider :: PallasEngine , supernova :: PublicParams , traits :: snark :: default_ck_hint }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "bellpepper :: gadgets :: sha256 :: sha256",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "bellpepper_core :: { boolean :: { AllocatedBit , Boolean } , num :: AllocatedNum , ConstraintSystem , LinearCombination , SynthesisError , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "ff :: PrimeField",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "itertools :: Itertools as _",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "jmt :: { bytes32ext :: Bytes32Ext , proof :: { SparseMerkleLeafNode , SparseMerkleNode , SparseMerkleProof , INTERNAL_DOMAIN_SEPARATOR } , RootHash , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "prism_common :: { test_utils :: TestTreeState , tree :: * }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "std :: marker :: PhantomData",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs",
+      "to_id": "prism_common :: tree",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "len",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "zip_eq",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "enforce",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "lc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "get_variable",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "get_variable",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "position",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "is_some_and",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "get_value",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "AllocatedNum::alloc_infallible",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "F::from",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "enforce",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "get_variable",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "get_variable",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "AllocatedNum::alloc_infallible",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "and_then",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "get_value",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#next_rom_index_and_pc",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "collect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "map",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "Boolean::Is",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "AllocatedBit::alloc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "map",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "get_value",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "F::from",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "fold",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "LinearCombination::zero",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "lc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "enforce",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "fold",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "enumerate",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "LinearCombination::zero",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "lc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "CS::one",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "F::from",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "enforce",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "get_variable",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#get_selector_vec_from_index",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "TestTreeState::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "register_service",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "create_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "insert",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "insert",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "add_key_to_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "update_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "EpochCircuitSequence::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "PublicParams::setup",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "default_ck_hint",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#create_pp",
+      "to_id": "default_ck_hint",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "collect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "flat_map",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "map",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "rev",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "collect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "map",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "enumerate",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "into_iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "AllocatedBit::alloc",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "to_id": "Boolean::from",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "to_bytes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "sha256",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "to_bytes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "sha256",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "to_bytes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "sha256",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "concat",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "len",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "siblings",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "SparseMerkleNode::Leaf",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "crates/zk/nova/src/utils.rs#hash_node",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "siblings",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "to_bytes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "sha256",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "concat",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "nth",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "rev",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "iter_bits",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "crates/zk/nova/src/utils.rs#allocate_bits_to_binary_number",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "Vec::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "extend_from_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "extend_from_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "extend_from_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "extend_from_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "extend_from_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "extend_from_slice",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "sha256",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "enumerate",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "zip",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "Boolean::enforce_equal",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#verify_membership_proof",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Vec::with_capacity",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "len",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Vec::with_capacity",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "len",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "zip",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Boolean::and",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Boolean::and",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "not",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Boolean::xor",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Boolean::and",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Boolean::and",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "not",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Boolean::xor",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "push",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "push",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_swap",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "Vec::with_capacity",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "len",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "enumerate",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "zip",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "Boolean::and",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "Boolean::and",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "Boolean::not",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "Boolean::xor",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "namespace",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "push",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#conditionally_select_vector",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "collect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "map",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "get_value",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "collect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "map",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "chunks",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "fold",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "enumerate",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/zk/nova/src/utils.rs#boolvec_to_bytes",
+      "to_id": "iter",
+      "ref_type": "FunctionCall"
+    }
+  ],
+  "total_files": 5,
+  "successfully_parsed": 5,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 9,
+    "total_structs": 4,
+    "total_enums": 1,
+    "total_traits": 0,
+    "total_impls": 9,
+    "total_tests": 0,
+    "total_function_calls": 198,
+    "total_derives": 4,
+    "total_macro_uses": 8
+  }
+}

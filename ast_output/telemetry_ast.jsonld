@@ -1,0 +1,906 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:telemetry",
+  "crate_name": "telemetry",
+  "crate_path": "crates/telemetry",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/telemetry/src/metrics_registry.rs",
+      "path": "../crates/telemetry/src/metrics_registry.rs",
+      "relative_path": "crates/telemetry/src/metrics_registry.rs",
+      "file_size": 3330,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_lazy_static_lazy_static",
+            "path": "lazy_static :: lazy_static",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_opentelemetry_{global,metrics_{Gauge,Meter}}",
+            "path": "opentelemetry :: { global , metrics :: { Gauge , Meter } }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_parking_lot_Mutex",
+            "path": "parking_lot :: Mutex",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_tracing_info",
+            "path": "tracing :: info",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_prism_telemetry_telemetry_build_attributes",
+            "path": "prism_telemetry :: telemetry :: build_attributes",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/telemetry/src/metrics_registry.rs#PrismMetrics",
+            "name": "PrismMetrics",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "meter",
+                "type_name": "Meter",
+                "visibility": "private"
+              },
+              {
+                "name": "node_info",
+                "type_name": "Gauge < u64 >",
+                "visibility": "pub"
+              },
+              {
+                "name": "celestia_synced_height",
+                "type_name": "Gauge < u64 >",
+                "visibility": "pub"
+              },
+              {
+                "name": "current_epoch",
+                "type_name": "Gauge < u64 >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/telemetry/src/metrics_registry.rs#impl_Default_PrismMetrics",
+            "target_type": "PrismMetrics",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { Self :: new () }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/telemetry/src/metrics_registry.rs#impl_PrismMetrics",
+            "target_type": "PrismMetrics",
+            "trait_name": null,
+            "items": [
+              "pub fn new () -> Self { info ! (\"Initializing Prism metrics registry\") ; let meter = global :: meter (\"prism\") ; let prefix = \"prism_\" ; let node_info = meter . u64_gauge (format ! (\"{}node_info\" , prefix)) . with_description (\"Prism node info\") . build () ; let celestia_synced_height = meter . u64_gauge (format ! (\"{}celestia_synced_height\" , prefix)) . with_description (\"Celestia synced height\") . build () ; let current_epoch = meter . u64_gauge (format ! (\"{}current_epoch\" , prefix)) . with_description (\"Celestia current epoch\") . build () ; PrismMetrics { meter , node_info , celestia_synced_height , current_epoch , } }",
+              "# [doc = \" Records basic node information with the given attributes.\"] # [doc = \"\"] # [doc = \" # Parameters\"] # [doc = \" * `attributes` - Vector of key-value pairs to attach to the metric\"] pub fn record_node_info (& self , attributes : Vec < (String , String) >) { self . node_info . record (1 , build_attributes (attributes) . as_slice ()) ; }",
+              "# [doc = \" Records the current Celestia synced height with the given attributes.\"] # [doc = \"\"] # [doc = \" # Parameters\"] # [doc = \" * `height` - The current synced height value\"] # [doc = \" * `attributes` - Vector of key-value pairs to attach to the metric\"] pub fn record_celestia_synced_height (& self , height : u64 , attributes : Vec < (String , String) >) { self . celestia_synced_height . record (height , build_attributes (attributes) . as_slice ()) ; }",
+              "# [doc = \" Records the current epoch with the given attributes.\"] # [doc = \"\"] # [doc = \" # Parameters\"] # [doc = \" * `epoch` - The current epoch value\"] # [doc = \" * `attributes` - Vector of key-value pairs to attach to the metric\"] pub fn record_current_epoch (& self , epoch : u64 , attributes : Vec < (String , String) >) { self . current_epoch . record (epoch , build_attributes (attributes) . as_slice ()) ; }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/telemetry/src/metrics_registry.rs#init_metrics_registry",
+            "name": "init_metrics_registry",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/telemetry/src/metrics_registry.rs#get_metrics",
+            "name": "get_metrics",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Option < Arc < PrismMetrics > >",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_lazy_static_lazy_static",
+            "path": "lazy_static :: lazy_static",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_opentelemetry_{global,metrics_{Gauge,Meter}}",
+            "path": "opentelemetry :: { global , metrics :: { Gauge , Meter } }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_parking_lot_Mutex",
+            "path": "parking_lot :: Mutex",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_tracing_info",
+            "path": "tracing :: info",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/metrics_registry.rs#use_prism_telemetry_telemetry_build_attributes",
+            "path": "prism_telemetry :: telemetry :: build_attributes",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/telemetry/src/metrics_registry.rs#PrismMetrics",
+            "name": "PrismMetrics",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "meter",
+                "type_name": "Meter",
+                "visibility": "private"
+              },
+              {
+                "name": "node_info",
+                "type_name": "Gauge < u64 >",
+                "visibility": "pub"
+              },
+              {
+                "name": "celestia_synced_height",
+                "type_name": "Gauge < u64 >",
+                "visibility": "pub"
+              },
+              {
+                "name": "current_epoch",
+                "type_name": "Gauge < u64 >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/telemetry/src/metrics_registry.rs#impl_Default_PrismMetrics",
+            "target_type": "PrismMetrics",
+            "trait_name": "Default",
+            "items": [
+              "fn default () -> Self { Self :: new () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismMetrics"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/telemetry/src/metrics_registry.rs#impl_PrismMetrics",
+            "target_type": "PrismMetrics",
+            "trait_name": null,
+            "items": [
+              "pub fn new () -> Self { info ! (\"Initializing Prism metrics registry\") ; let meter = global :: meter (\"prism\") ; let prefix = \"prism_\" ; let node_info = meter . u64_gauge (format ! (\"{}node_info\" , prefix)) . with_description (\"Prism node info\") . build () ; let celestia_synced_height = meter . u64_gauge (format ! (\"{}celestia_synced_height\" , prefix)) . with_description (\"Celestia synced height\") . build () ; let current_epoch = meter . u64_gauge (format ! (\"{}current_epoch\" , prefix)) . with_description (\"Celestia current epoch\") . build () ; PrismMetrics { meter , node_info , celestia_synced_height , current_epoch , } }",
+              "# [doc = \" Records basic node information with the given attributes.\"] # [doc = \"\"] # [doc = \" # Parameters\"] # [doc = \" * `attributes` - Vector of key-value pairs to attach to the metric\"] pub fn record_node_info (& self , attributes : Vec < (String , String) >) { self . node_info . record (1 , build_attributes (attributes) . as_slice ()) ; }",
+              "# [doc = \" Records the current Celestia synced height with the given attributes.\"] # [doc = \"\"] # [doc = \" # Parameters\"] # [doc = \" * `height` - The current synced height value\"] # [doc = \" * `attributes` - Vector of key-value pairs to attach to the metric\"] pub fn record_celestia_synced_height (& self , height : u64 , attributes : Vec < (String , String) >) { self . celestia_synced_height . record (height , build_attributes (attributes) . as_slice ()) ; }",
+              "# [doc = \" Records the current epoch with the given attributes.\"] # [doc = \"\"] # [doc = \" # Parameters\"] # [doc = \" * `epoch` - The current epoch value\"] # [doc = \" * `attributes` - Vector of key-value pairs to attach to the metric\"] pub fn record_current_epoch (& self , epoch : u64 , attributes : Vec < (String , String) >) { self . current_epoch . record (epoch , build_attributes (attributes) . as_slice ()) ; }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismMetrics"
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/telemetry/src/metrics_registry.rs#init_metrics_registry",
+            "name": "init_metrics_registry",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "lock",
+              "is_method": true,
+              "receiver_type": "METRICS"
+            },
+            {
+              "callee": "is_none",
+              "is_method": true,
+              "receiver_type": "metrics"
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "PrismMetrics::new",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "metrics",
+              "is_mutable": true
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "info",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/telemetry/src/metrics_registry.rs#get_metrics",
+            "name": "get_metrics",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "Option < Arc < PrismMetrics > >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "try_lock",
+              "is_method": true,
+              "receiver_type": "METRICS"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "guard"
+            }
+          ],
+          "local_variables": [],
+          "type_references": [],
+          "macro_invocations": []
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/telemetry/src/lib.rs",
+      "path": "../crates/telemetry/src/lib.rs",
+      "relative_path": "crates/telemetry/src/lib.rs",
+      "file_size": 40,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/telemetry/src/lib.rs#init",
+            "name": "init",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/telemetry/src/lib.rs#metrics_registry",
+            "name": "metrics_registry",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/telemetry/src/lib.rs#init",
+            "name": "init",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/telemetry/src/lib.rs#metrics_registry",
+            "name": "metrics_registry",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/telemetry/src/init.rs",
+      "path": "../crates/telemetry/src/init.rs",
+      "relative_path": "crates/telemetry/src/init.rs",
+      "file_size": 2438,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_std_io_Error",
+            "path": "std :: io :: Error",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_crate_metrics_registry_init_metrics_registry",
+            "path": "crate :: metrics_registry :: init_metrics_registry",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_opentelemetry_global_{self}",
+            "path": "opentelemetry :: global :: { self }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_opentelemetry_sdk_logs_SdkLoggerProvider",
+            "path": "opentelemetry_sdk :: logs :: SdkLoggerProvider",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_opentelemetry_sdk_metrics_SdkMeterProvider",
+            "path": "opentelemetry_sdk :: metrics :: SdkMeterProvider",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_prism_telemetry_telemetry_{init_telemetry,build_resource,set_global_attributes}",
+            "path": "prism_telemetry :: telemetry :: { init_telemetry , build_resource , set_global_attributes }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_prism_telemetry_logs_setup_log_subscriber",
+            "path": "prism_telemetry :: logs :: setup_log_subscriber",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_prism_telemetry_config_TelemetryConfig",
+            "path": "prism_telemetry :: config :: TelemetryConfig",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/telemetry/src/init.rs#init",
+            "name": "init",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "telemetry_config : TelemetryConfig",
+              "attributes : Vec < (String , String) >"
+            ],
+            "output": "Result < (Option < SdkMeterProvider > , Option < SdkLoggerProvider >) , Error >",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_std_io_Error",
+            "path": "std :: io :: Error",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_crate_metrics_registry_init_metrics_registry",
+            "path": "crate :: metrics_registry :: init_metrics_registry",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_opentelemetry_global_{self}",
+            "path": "opentelemetry :: global :: { self }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_opentelemetry_sdk_logs_SdkLoggerProvider",
+            "path": "opentelemetry_sdk :: logs :: SdkLoggerProvider",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_opentelemetry_sdk_metrics_SdkMeterProvider",
+            "path": "opentelemetry_sdk :: metrics :: SdkMeterProvider",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_prism_telemetry_telemetry_{init_telemetry,build_resource,set_global_attributes}",
+            "path": "prism_telemetry :: telemetry :: { init_telemetry , build_resource , set_global_attributes }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_prism_telemetry_logs_setup_log_subscriber",
+            "path": "prism_telemetry :: logs :: setup_log_subscriber",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/telemetry/src/init.rs#use_prism_telemetry_config_TelemetryConfig",
+            "path": "prism_telemetry :: config :: TelemetryConfig",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/telemetry/src/init.rs#init",
+            "name": "init",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "telemetry_config : TelemetryConfig",
+              "attributes : Vec < (String , String) >"
+            ],
+            "output": "Result < (Option < SdkMeterProvider > , Option < SdkLoggerProvider >) , Error >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "attributes"
+            },
+            {
+              "callee": "extend",
+              "is_method": true,
+              "receiver_type": "attributes"
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "set_global_attributes",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "attributes"
+            },
+            {
+              "callee": "build_resource",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "init_telemetry",
+              "is_method": false
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "setup_log_subscriber",
+              "is_method": false
+            },
+            {
+              "callee": "as_ref",
+              "is_method": true,
+              "receiver_type": "log_provider"
+            },
+            {
+              "callee": "global::set_meter_provider",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "provider"
+            },
+            {
+              "callee": "init_metrics_registry",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "attributes",
+              "is_mutable": true
+            },
+            {
+              "name": "resource",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs",
+      "to_id": "lazy_static :: lazy_static",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs",
+      "to_id": "opentelemetry :: { global , metrics :: { Gauge , Meter } }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs",
+      "to_id": "parking_lot :: Mutex",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs",
+      "to_id": "tracing :: info",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs",
+      "to_id": "std :: sync :: Arc",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs",
+      "to_id": "prism_telemetry :: telemetry :: build_attributes",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#PrismMetrics",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#impl_Default_PrismMetrics",
+      "to_id": "trait:Default",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#init_metrics_registry",
+      "to_id": "lock",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#init_metrics_registry",
+      "to_id": "is_none",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#init_metrics_registry",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#init_metrics_registry",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#init_metrics_registry",
+      "to_id": "PrismMetrics::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#get_metrics",
+      "to_id": "try_lock",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/metrics_registry.rs#get_metrics",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs",
+      "to_id": "std :: io :: Error",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs",
+      "to_id": "crate :: metrics_registry :: init_metrics_registry",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs",
+      "to_id": "opentelemetry :: global :: { self }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs",
+      "to_id": "opentelemetry_sdk :: logs :: SdkLoggerProvider",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs",
+      "to_id": "opentelemetry_sdk :: metrics :: SdkMeterProvider",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs",
+      "to_id": "prism_telemetry :: telemetry :: { init_telemetry , build_resource , set_global_attributes }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs",
+      "to_id": "prism_telemetry :: logs :: setup_log_subscriber",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs",
+      "to_id": "prism_telemetry :: config :: TelemetryConfig",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "extend",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "set_global_attributes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "build_resource",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "init_telemetry",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "setup_log_subscriber",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "as_ref",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "global::set_meter_provider",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "crates/telemetry/src/metrics_registry.rs#init_metrics_registry",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/telemetry/src/init.rs#init",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    }
+  ],
+  "total_files": 3,
+  "successfully_parsed": 3,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 3,
+    "total_structs": 1,
+    "total_enums": 0,
+    "total_traits": 0,
+    "total_impls": 2,
+    "total_tests": 0,
+    "total_function_calls": 23,
+    "total_derives": 1,
+    "total_macro_uses": 2
+  }
+}

@@ -1,0 +1,671 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:node_types_uniffi-lightclient",
+  "crate_name": "node_types_uniffi-lightclient",
+  "crate_path": "crates/node_types/uniffi-lightclient",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/uniffi-lightclient/src/types.rs",
+      "path": "../crates/node_types/uniffi-lightclient/src/types.rs",
+      "relative_path": "crates/node_types/uniffi-lightclient/src/types.rs",
+      "file_size": 3527,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/types.rs#use_prism_lightclient_events_LightClientEvent",
+            "path": "prism_lightclient :: events :: LightClientEvent",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/uniffi-lightclient/src/types.rs#UniffiLightClientEvent",
+            "name": "UniffiLightClientEvent",
+            "visibility": "pub",
+            "variants": [
+              "SyncStarted",
+              "UpdateDAHeight",
+              "EpochVerificationStarted",
+              "EpochVerified",
+              "EpochVerificationFailed",
+              "NoEpochFound",
+              "HeightChannelClosed",
+              "GetCurrentCommitment",
+              "RecursiveVerificationStarted",
+              "RecursiveVerificationCompleted",
+              "LuminaEvent"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/uniffi-lightclient/src/types.rs#impl_From<LightClientEvent>_UniffiLightClientEvent",
+            "target_type": "UniffiLightClientEvent",
+            "trait_name": "From < LightClientEvent >",
+            "items": [
+              "fn from (event : LightClientEvent) -> Self { match event { LightClientEvent :: SyncStarted { height } => { UniffiLightClientEvent :: SyncStarted { height } } LightClientEvent :: UpdateDAHeight { height } => { UniffiLightClientEvent :: UpdateDAHeight { height } } LightClientEvent :: EpochVerificationStarted { height } => { UniffiLightClientEvent :: EpochVerificationStarted { height } } LightClientEvent :: EpochVerified { height } => { UniffiLightClientEvent :: EpochVerified { height } } LightClientEvent :: EpochVerificationFailed { height , error } => { UniffiLightClientEvent :: EpochVerificationFailed { height , error } } LightClientEvent :: NoEpochFound { height } => { UniffiLightClientEvent :: NoEpochFound { height } } LightClientEvent :: HeightChannelClosed => UniffiLightClientEvent :: HeightChannelClosed , LightClientEvent :: GetCurrentCommitment { commitment } => { UniffiLightClientEvent :: GetCurrentCommitment { commitment : commitment . to_string () , } } LightClientEvent :: RecursiveVerificationStarted { height } => { UniffiLightClientEvent :: RecursiveVerificationStarted { height } } LightClientEvent :: RecursiveVerificationCompleted { height } => { UniffiLightClientEvent :: RecursiveVerificationCompleted { height } } LightClientEvent :: LuminaEvent { event } => UniffiLightClientEvent :: LuminaEvent { event : event . to_string () , } , } }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/types.rs#use_prism_lightclient_events_LightClientEvent",
+            "path": "prism_lightclient :: events :: LightClientEvent",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/uniffi-lightclient/src/types.rs#UniffiLightClientEvent",
+            "name": "UniffiLightClientEvent",
+            "visibility": "pub",
+            "variants": [
+              "SyncStarted",
+              "UpdateDAHeight",
+              "EpochVerificationStarted",
+              "EpochVerified",
+              "EpochVerificationFailed",
+              "NoEpochFound",
+              "HeightChannelClosed",
+              "GetCurrentCommitment",
+              "RecursiveVerificationStarted",
+              "RecursiveVerificationCompleted",
+              "LuminaEvent"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "uniffi",
+            "Enum"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/uniffi-lightclient/src/types.rs#impl_From<LightClientEvent>_UniffiLightClientEvent",
+            "target_type": "UniffiLightClientEvent",
+            "trait_name": "From < LightClientEvent >",
+            "items": [
+              "fn from (event : LightClientEvent) -> Self { match event { LightClientEvent :: SyncStarted { height } => { UniffiLightClientEvent :: SyncStarted { height } } LightClientEvent :: UpdateDAHeight { height } => { UniffiLightClientEvent :: UpdateDAHeight { height } } LightClientEvent :: EpochVerificationStarted { height } => { UniffiLightClientEvent :: EpochVerificationStarted { height } } LightClientEvent :: EpochVerified { height } => { UniffiLightClientEvent :: EpochVerified { height } } LightClientEvent :: EpochVerificationFailed { height , error } => { UniffiLightClientEvent :: EpochVerificationFailed { height , error } } LightClientEvent :: NoEpochFound { height } => { UniffiLightClientEvent :: NoEpochFound { height } } LightClientEvent :: HeightChannelClosed => UniffiLightClientEvent :: HeightChannelClosed , LightClientEvent :: GetCurrentCommitment { commitment } => { UniffiLightClientEvent :: GetCurrentCommitment { commitment : commitment . to_string () , } } LightClientEvent :: RecursiveVerificationStarted { height } => { UniffiLightClientEvent :: RecursiveVerificationStarted { height } } LightClientEvent :: RecursiveVerificationCompleted { height } => { UniffiLightClientEvent :: RecursiveVerificationCompleted { height } } LightClientEvent :: LuminaEvent { event } => UniffiLightClientEvent :: LuminaEvent { event : event . to_string () , } , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "UniffiLightClientEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/uniffi-lightclient/src/bin/uniffi-bindgen.rs",
+      "path": "../crates/node_types/uniffi-lightclient/src/bin/uniffi-bindgen.rs",
+      "relative_path": "crates/node_types/uniffi-lightclient/src/bin/uniffi-bindgen.rs",
+      "file_size": 241,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/uniffi-lightclient/src/bin/uniffi-bindgen.rs#main",
+            "name": "main",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/node_types/uniffi-lightclient/src/bin/uniffi-bindgen.rs#main",
+            "name": "main",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "uniffi::uniffi_bindgen_main",
+              "is_method": false
+            }
+          ],
+          "local_variables": [],
+          "type_references": [],
+          "macro_invocations": []
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/uniffi-lightclient/src/error.rs",
+      "path": "../crates/node_types/uniffi-lightclient/src/error.rs",
+      "relative_path": "crates/node_types/uniffi-lightclient/src/error.rs",
+      "file_size": 1829,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/error.rs#use_thiserror_Error",
+            "path": "thiserror :: Error",
+            "visibility": "private"
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/node_types/uniffi-lightclient/src/error.rs#Result",
+            "name": "Result",
+            "visibility": "pub",
+            "target_type": "std :: result :: Result < T , E >",
+            "generics": [
+              "T",
+              "E"
+            ]
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/uniffi-lightclient/src/error.rs#LightClientError",
+            "name": "LightClientError",
+            "visibility": "pub",
+            "variants": [
+              "Network",
+              "Initialization",
+              "Verification",
+              "Event",
+              "General"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/uniffi-lightclient/src/error.rs#impl_LightClientError",
+            "target_type": "LightClientError",
+            "trait_name": null,
+            "items": [
+              "pub fn network_error (msg : impl Into < String >) -> Self { Self :: Network { msg : msg . into () } }",
+              "pub fn initialization_error (msg : impl Into < String >) -> Self { Self :: Initialization { msg : msg . into () } }",
+              "pub fn verification_error (msg : impl Into < String >) -> Self { Self :: Verification { msg : msg . into () } }",
+              "pub fn event_error (msg : impl Into < String >) -> Self { Self :: Event { msg : msg . into () } }",
+              "pub fn general_error (msg : impl Into < String >) -> Self { Self :: General { msg : msg . into () } }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/error.rs#use_thiserror_Error",
+            "path": "thiserror :: Error",
+            "visibility": "private"
+          }
+        },
+        {
+          "TypeAlias": {
+            "@type": "rust:TypeAlias",
+            "@id": "crates/node_types/uniffi-lightclient/src/error.rs#Result",
+            "name": "Result",
+            "visibility": "pub",
+            "target_type": "std :: result :: Result < T , E >",
+            "generics": [
+              "T",
+              "E"
+            ]
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/node_types/uniffi-lightclient/src/error.rs#LightClientError",
+            "name": "LightClientError",
+            "visibility": "pub",
+            "variants": [
+              "Network",
+              "Initialization",
+              "Verification",
+              "Event",
+              "General"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Error",
+            "Debug",
+            "uniffi",
+            "Error"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/uniffi-lightclient/src/error.rs#impl_LightClientError",
+            "target_type": "LightClientError",
+            "trait_name": null,
+            "items": [
+              "pub fn network_error (msg : impl Into < String >) -> Self { Self :: Network { msg : msg . into () } }",
+              "pub fn initialization_error (msg : impl Into < String >) -> Self { Self :: Initialization { msg : msg . into () } }",
+              "pub fn verification_error (msg : impl Into < String >) -> Self { Self :: Verification { msg : msg . into () } }",
+              "pub fn event_error (msg : impl Into < String >) -> Self { Self :: Event { msg : msg . into () } }",
+              "pub fn general_error (msg : impl Into < String >) -> Self { Self :: General { msg : msg . into () } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LightClientError"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "path": "../crates/node_types/uniffi-lightclient/src/lib.rs",
+      "relative_path": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "file_size": 3619,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#error",
+            "name": "error",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#types",
+            "name": "types",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_error_{LightClientError,Result}",
+            "path": "error :: { LightClientError , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_prism_da_celestia_{light_client_LightClientConnection,utils_Network}",
+            "path": "prism_da :: celestia :: { light_client :: LightClientConnection , utils :: Network }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_prism_lightclient_{LightClientasCoreLightClient,events_{EventChannel,EventSubscriber},}",
+            "path": "prism_lightclient :: { LightClient as CoreLightClient , events :: { EventChannel , EventSubscriber } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_std_{str_FromStr,sync_Arc}",
+            "path": "std :: { str :: FromStr , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_tokio_sync_Mutex",
+            "path": "tokio :: sync :: Mutex",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_types_UniffiLightClientEvent",
+            "path": "types :: UniffiLightClientEvent",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_uniffi_Object",
+            "path": "uniffi :: Object",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#LightClient",
+            "name": "LightClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "inner",
+                "type_name": "Arc < CoreLightClient >",
+                "visibility": "private"
+              },
+              {
+                "name": "event_subscriber",
+                "type_name": "Mutex < Option < EventSubscriber > >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#impl_LightClient",
+            "target_type": "LightClient",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" Creates a new Lightclient for the specified network.\"] # [uniffi :: constructor] pub async fn new (network_name : String , base_path : String) -> Result < Self > { let network = Network :: from_str (& network_name) . map_err (| e | LightClientError :: network_error (format ! (\"Invalid network: {}\" , e))) ? ; let network_config = network . config () ; let node_config = lumina_node_uniffi :: types :: NodeConfig { base_path : Some (base_path) , network : network_config . celestia_network . clone () , bootnodes : None , pruning_delay_secs : None , batch_size : None , ed25519_secret_key_bytes : None , syncing_window_secs : None , } ; let da = LightClientConnection :: new_with_config (& network_config , Some (node_config)) . await . map_err (| e | { LightClientError :: network_error (format ! (\"Failed to connect to light client: {}\" , e)) }) ? ; let event_channel = EventChannel :: new () ; let event_publisher = event_channel . publisher () ; let event_subscriber = event_channel . subscribe () ; let inner = Arc :: new (CoreLightClient :: new (Arc :: new (da) , network_config . verifying_key , event_publisher ,)) ; Ok (Self { inner , event_subscriber : Mutex :: new (Some (event_subscriber)) , }) }",
+              "# [doc = \" Starts the lightclient and begins syncing with the network.\"] pub async fn start (& self) -> Result < () > { let inner_clone = self . inner . clone () ; inner_clone . run () . await . map_err (| e | LightClientError :: general_error (e . to_string ())) }",
+              "# [doc = \" Gets the current commitment.\"] pub async fn get_current_commitment (& self) -> Result < Option < String > > { match self . inner . get_latest_commitment () . await { Some (commitment) => Ok (Some (commitment . to_string ())) , None => Ok (None) , } }",
+              "# [doc = \" Returns the next event from the lightclient's event channel.\"] pub async fn next_event (& self) -> Result < UniffiLightClientEvent > { let mut event_subscriber = self . event_subscriber . lock () . await ; match event_subscriber . as_mut () { Some (subscriber) => { let event_info = subscriber . recv () . await . map_err (| _ | LightClientError :: event_error (\"Event channel closed\")) ? ; Ok (event_info . event . into ()) } None => Err (LightClientError :: event_error (\"Event subscriber not initialized\" ,)) , } }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#error",
+            "name": "error",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#types",
+            "name": "types",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_error_{LightClientError,Result}",
+            "path": "error :: { LightClientError , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_prism_da_celestia_{light_client_LightClientConnection,utils_Network}",
+            "path": "prism_da :: celestia :: { light_client :: LightClientConnection , utils :: Network }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_prism_lightclient_{LightClientasCoreLightClient,events_{EventChannel,EventSubscriber},}",
+            "path": "prism_lightclient :: { LightClient as CoreLightClient , events :: { EventChannel , EventSubscriber } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_std_{str_FromStr,sync_Arc}",
+            "path": "std :: { str :: FromStr , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_tokio_sync_Mutex",
+            "path": "tokio :: sync :: Mutex",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_types_UniffiLightClientEvent",
+            "path": "types :: UniffiLightClientEvent",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#use_uniffi_Object",
+            "path": "uniffi :: Object",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#LightClient",
+            "name": "LightClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "inner",
+                "type_name": "Arc < CoreLightClient >",
+                "visibility": "private"
+              },
+              {
+                "name": "event_subscriber",
+                "type_name": "Mutex < Option < EventSubscriber > >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Object"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/node_types/uniffi-lightclient/src/lib.rs#impl_LightClient",
+            "target_type": "LightClient",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" Creates a new Lightclient for the specified network.\"] # [uniffi :: constructor] pub async fn new (network_name : String , base_path : String) -> Result < Self > { let network = Network :: from_str (& network_name) . map_err (| e | LightClientError :: network_error (format ! (\"Invalid network: {}\" , e))) ? ; let network_config = network . config () ; let node_config = lumina_node_uniffi :: types :: NodeConfig { base_path : Some (base_path) , network : network_config . celestia_network . clone () , bootnodes : None , pruning_delay_secs : None , batch_size : None , ed25519_secret_key_bytes : None , syncing_window_secs : None , } ; let da = LightClientConnection :: new_with_config (& network_config , Some (node_config)) . await . map_err (| e | { LightClientError :: network_error (format ! (\"Failed to connect to light client: {}\" , e)) }) ? ; let event_channel = EventChannel :: new () ; let event_publisher = event_channel . publisher () ; let event_subscriber = event_channel . subscribe () ; let inner = Arc :: new (CoreLightClient :: new (Arc :: new (da) , network_config . verifying_key , event_publisher ,)) ; Ok (Self { inner , event_subscriber : Mutex :: new (Some (event_subscriber)) , }) }",
+              "# [doc = \" Starts the lightclient and begins syncing with the network.\"] pub async fn start (& self) -> Result < () > { let inner_clone = self . inner . clone () ; inner_clone . run () . await . map_err (| e | LightClientError :: general_error (e . to_string ())) }",
+              "# [doc = \" Gets the current commitment.\"] pub async fn get_current_commitment (& self) -> Result < Option < String > > { match self . inner . get_latest_commitment () . await { Some (commitment) => Ok (Some (commitment . to_string ())) , None => Ok (None) , } }",
+              "# [doc = \" Returns the next event from the lightclient's event channel.\"] pub async fn next_event (& self) -> Result < UniffiLightClientEvent > { let mut event_subscriber = self . event_subscriber . lock () . await ; match event_subscriber . as_mut () { Some (subscriber) => { let event_info = subscriber . recv () . await . map_err (| _ | LightClientError :: event_error (\"Event channel closed\")) ? ; Ok (event_info . event . into ()) } None => Err (LightClientError :: event_error (\"Event subscriber not initialized\" ,)) , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "LightClient"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/types.rs",
+      "to_id": "prism_lightclient :: events :: LightClientEvent",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/types.rs#UniffiLightClientEvent",
+      "to_id": "trait:uniffi",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/types.rs#UniffiLightClientEvent",
+      "to_id": "trait:Enum",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/types.rs#impl_From<LightClientEvent>_UniffiLightClientEvent",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/bin/uniffi-bindgen.rs#main",
+      "to_id": "uniffi::uniffi_bindgen_main",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/error.rs",
+      "to_id": "thiserror :: Error",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/error.rs#LightClientError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/error.rs#LightClientError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/error.rs#LightClientError",
+      "to_id": "trait:uniffi",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/error.rs#LightClientError",
+      "to_id": "trait:Error",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "to_id": "error :: { LightClientError , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "to_id": "prism_da :: celestia :: { light_client :: LightClientConnection , utils :: Network }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "to_id": "prism_lightclient :: { LightClient as CoreLightClient , events :: { EventChannel , EventSubscriber } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "to_id": "std :: { str :: FromStr , sync :: Arc }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "to_id": "tokio :: sync :: Mutex",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "to_id": "types :: UniffiLightClientEvent",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/lib.rs",
+      "to_id": "uniffi :: Object",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/node_types/uniffi-lightclient/src/lib.rs#LightClient",
+      "to_id": "trait:Object",
+      "ref_type": "Derive"
+    }
+  ],
+  "total_files": 4,
+  "successfully_parsed": 4,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 1,
+    "total_structs": 1,
+    "total_enums": 2,
+    "total_traits": 0,
+    "total_impls": 3,
+    "total_tests": 0,
+    "total_function_calls": 1,
+    "total_derives": 7,
+    "total_macro_uses": 0
+  }
+}

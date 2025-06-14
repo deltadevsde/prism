@@ -1,0 +1,5438 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:tree",
+  "crate_name": "tree",
+  "crate_path": "crates/tree",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/tree/src/lib.rs",
+      "path": "../crates/tree/src/lib.rs",
+      "relative_path": "crates/tree/src/lib.rs",
+      "file_size": 539,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#hasher",
+            "name": "hasher",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#key_directory_tree",
+            "name": "key_directory_tree",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#proofs",
+            "name": "proofs",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#snarkable_tree",
+            "name": "snarkable_tree",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/lib.rs#use_prism_common_account_Account",
+            "path": "prism_common :: account :: Account",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/lib.rs#use_proofs_MerkleProof",
+            "path": "proofs :: MerkleProof",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/tree/src/lib.rs#AccountResponse",
+            "name": "AccountResponse",
+            "visibility": "pub",
+            "variants": [
+              "Found",
+              "NotFound"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#hasher",
+            "name": "hasher",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#key_directory_tree",
+            "name": "key_directory_tree",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#proofs",
+            "name": "proofs",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#snarkable_tree",
+            "name": "snarkable_tree",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/lib.rs#use_prism_common_account_Account",
+            "path": "prism_common :: account :: Account",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/lib.rs#use_proofs_MerkleProof",
+            "path": "proofs :: MerkleProof",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/tree/src/lib.rs#AccountResponse",
+            "name": "AccountResponse",
+            "visibility": "pub",
+            "variants": [
+              "Found",
+              "NotFound"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug"
+          ]
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/tree/src/lib.rs#tests",
+            "name": "tests",
+            "visibility": "private",
+            "items": []
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/tree/src/tests/mod.rs",
+      "path": "../crates/tree/src/tests/mod.rs",
+      "relative_path": "crates/tree/src/tests/mod.rs",
+      "file_size": 17428,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_jmt_{mock_MockTreeStore,KeyHash}",
+            "path": "jmt :: { mock :: MockTreeStore , KeyHash }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_prism_common_{operation_SignatureBundle,test_transaction_builder_TestTransactionBuilder}",
+            "path": "prism_common :: { operation :: SignatureBundle , test_transaction_builder :: TestTransactionBuilder }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_prism_keys_{CryptoAlgorithm,SigningKey}",
+            "path": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_crate_{hasher_TreeHasher,key_directory_tree_KeyDirectoryTree,proofs_Proof,snarkable_tree_SnarkableTree,AccountResponse_*,}",
+            "path": "crate :: { hasher :: TreeHasher , key_directory_tree :: KeyDirectoryTree , proofs :: Proof , snarkable_tree :: SnarkableTree , AccountResponse :: * , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+            "name": "test_insert_and_get",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+            "name": "test_insert_for_nonexistent_service_fails",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+            "name": "test_insert_with_invalid_service_challenge_fails",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+            "name": "test_insert_duplicate_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+            "name": "test_update_existing_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+            "name": "test_update_non_existing_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_data_ops",
+            "name": "test_data_ops",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+            "name": "test_multiple_inserts_and_updates",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+            "name": "test_interleaved_inserts_and_updates",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+            "name": "test_root_hash_changes",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+            "name": "test_batch_writing",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_get_non_existing_key",
+            "name": "test_get_non_existing_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_jmt_{mock_MockTreeStore,KeyHash}",
+            "path": "jmt :: { mock :: MockTreeStore , KeyHash }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_prism_common_{operation_SignatureBundle,test_transaction_builder_TestTransactionBuilder}",
+            "path": "prism_common :: { operation :: SignatureBundle , test_transaction_builder :: TestTransactionBuilder }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_prism_keys_{CryptoAlgorithm,SigningKey}",
+            "path": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/tests/mod.rs#use_crate_{hasher_TreeHasher,key_directory_tree_KeyDirectoryTree,proofs_Proof,snarkable_tree_SnarkableTree,AccountResponse_*,}",
+            "path": "crate :: { hasher :: TreeHasher , key_directory_tree :: KeyDirectoryTree , proofs :: Proof , snarkable_tree :: SnarkableTree , AccountResponse :: * , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+            "name": "test_insert_and_get",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "service_challenge",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "account_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "service_challenge",
+              "is_mutable": false
+            },
+            {
+              "name": "test_account",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "TreeHasher"
+          ],
+          "macro_invocations": [
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+            "name": "test_insert_for_nonexistent_service_fails",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "SigningKey::new_with_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "build",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "invalid_account_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "insertion_result",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+            "name": "test_insert_with_invalid_service_challenge_fails",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "SigningKey::new_with_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "SigningKey::new_with_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "build",
+              "is_method": true
+            },
+            {
+              "callee": "create_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "incorrect_service_signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "initial_acc_signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "acc_with_invalid_challenge_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "create_account_result",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+            "name": "test_insert_duplicate_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "build",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "service_challenge",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "account_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "account_with_same_id_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "service_challenge",
+              "is_mutable": false
+            },
+            {
+              "name": "create_acc_with_same_id_result",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+            "name": "test_update_existing_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_random_key_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "acc_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "key_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "get_result",
+              "is_mutable": false
+            },
+            {
+              "name": "test_account",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "TreeHasher"
+          ],
+          "macro_invocations": [
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+            "name": "test_update_non_existing_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "SigningKey::new_with_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "build",
+              "is_method": true
+            },
+            {
+              "callee": "add_random_key",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "random_signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "invalid_key_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "result",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_data_ops",
+            "name": "test_data_ops",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_internally_signed_data_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_randomly_signed_data_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "set_randomly_signed_data_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "SigningKey::new_with_algorithm",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "sign",
+              "is_method": true,
+              "receiver_type": "random_signing_key"
+            },
+            {
+              "callee": "verifying_key",
+              "is_method": true,
+              "receiver_type": "random_signing_key"
+            },
+            {
+              "callee": "build",
+              "is_method": true
+            },
+            {
+              "callee": "add_pre_signed_data_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "acc1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "add_data_1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "add_data_2_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "test_account",
+              "is_mutable": false
+            },
+            {
+              "name": "set_data_1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "random_signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "invalid_signature",
+              "is_mutable": false
+            },
+            {
+              "name": "invalid_signature_bundle",
+              "is_mutable": false
+            },
+            {
+              "name": "invalid_data_tx",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "TreeHasher"
+          ],
+          "macro_invocations": [
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+            "name": "test_multiple_inserts_and_updates",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_random_key_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_internally_signed_data_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_randomly_signed_data_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "to_vec",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "acc1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "acc2_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "key_1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "data_1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "data_2_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "get_result1",
+              "is_mutable": false
+            },
+            {
+              "name": "get_result2",
+              "is_mutable": false
+            },
+            {
+              "name": "test_acc1",
+              "is_mutable": false
+            },
+            {
+              "name": "test_acc2",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "TreeHasher"
+          ],
+          "macro_invocations": [
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+            "name": "test_interleaved_inserts_and_updates",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_random_key_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "add_random_key_verified_with_root",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "acc1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "acc2_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "add_key_to_1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "add_key_to_2_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "last_proof",
+              "is_mutable": false
+            },
+            {
+              "name": "get_result1",
+              "is_mutable": false
+            },
+            {
+              "name": "get_result2",
+              "is_mutable": false
+            },
+            {
+              "name": "test_acc1",
+              "is_mutable": false
+            },
+            {
+              "name": "test_acc2",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "TreeHasher"
+          ],
+          "macro_invocations": [
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert_eq",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+            "name": "test_root_hash_changes",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_current_root",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_current_root",
+              "is_method": true,
+              "receiver_type": "tree"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "account1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "root_before",
+              "is_mutable": false
+            },
+            {
+              "name": "root_after",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "assert_ne",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+            "name": "test_batch_writing",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "algorithm : CryptoAlgorithm"
+            ],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "TestTransactionBuilder::new",
+              "is_method": false
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "register_service_with_random_keys",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "commit",
+              "is_method": true
+            },
+            {
+              "callee": "create_account_with_random_key_signed",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "process_transaction",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_account",
+              "is_method": true,
+              "receiver_type": "tx_builder"
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": true
+            },
+            {
+              "name": "tx_builder",
+              "is_mutable": true
+            },
+            {
+              "name": "service_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "account1_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "account2_tx",
+              "is_mutable": false
+            },
+            {
+              "name": "get_result1",
+              "is_mutable": false
+            },
+            {
+              "name": "get_result1",
+              "is_mutable": false
+            },
+            {
+              "name": "get_result2",
+              "is_mutable": false
+            },
+            {
+              "name": "test_acc1",
+              "is_mutable": false
+            },
+            {
+              "name": "test_acc2",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "TreeHasher"
+          ],
+          "macro_invocations": [
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "println",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/tree/src/tests/mod.rs#test_get_non_existing_key",
+            "name": "test_get_non_existing_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": null,
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "KeyDirectoryTree::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "MockTreeStore::default",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get",
+              "is_method": true,
+              "receiver_type": "tree"
+            },
+            {
+              "callee": "KeyHash::with",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "tree",
+              "is_mutable": false
+            },
+            {
+              "name": "result",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "TreeHasher"
+          ],
+          "macro_invocations": [
+            {
+              "name": "panic",
+              "kind": "function-like"
+            },
+            {
+              "name": "assert",
+              "kind": "function-like"
+            }
+          ],
+          "test_attributes": {
+            "is_test": true,
+            "is_benchmark": false,
+            "test_name": null,
+            "should_panic": false,
+            "ignore": false
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/tree/src/proofs.rs",
+      "path": "../crates/tree/src/proofs.rs",
+      "relative_path": "crates/tree/src/proofs.rs",
+      "file_size": 7900,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_std_collections_HashMap",
+            "path": "std :: collections :: HashMap",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_anyhow_{bail,Context,Result}",
+            "path": "anyhow :: { bail , Context , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_jmt_{proof_{SparseMerkleNode,SparseMerkleProof,UpdateMerkleProof},KeyHash,RootHash,}",
+            "path": "jmt :: { proof :: { SparseMerkleNode , SparseMerkleProof , UpdateMerkleProof } , KeyHash , RootHash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_prism_common_{account_Account,digest_Digest,operation_{Operation,ServiceChallenge,ServiceChallengeInput},transaction_Transaction,}",
+            "path": "prism_common :: { account :: Account , digest :: Digest , operation :: { Operation , ServiceChallenge , ServiceChallengeInput } , transaction :: Transaction , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_prism_serde_binary_ToBinary",
+            "path": "prism_serde :: binary :: ToBinary",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_crate_hasher_TreeHasher",
+            "path": "crate :: hasher :: TreeHasher",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#Batch",
+            "name": "Batch",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "prev_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "service_proofs",
+                "type_name": "HashMap < String , ServiceProof >",
+                "visibility": "pub"
+              },
+              {
+                "name": "proofs",
+                "type_name": "Vec < Proof >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_Batch",
+            "target_type": "Batch",
+            "trait_name": null,
+            "items": [
+              "pub fn init (prev_root : Digest , next_root : Digest , proofs : Vec < Proof >) -> Self { Batch { prev_root , new_root : next_root , service_proofs : HashMap :: new () , proofs , } }",
+              "pub fn verify (& self) -> Result < () > { let mut root = self . prev_root ; for proof in & self . proofs { match proof { Proof :: Insert (insert_proof) => { let challenge = match & insert_proof . tx . operation { Operation :: CreateAccount { service_id , .. } => { let service_challenge = self . service_proofs . get (service_id) . and_then (| service_proof | service_proof . service_challenge ()) ; if service_challenge . is_none () { bail ! (\"Service proof for {} is missing from batch for CreateAccount verification\" , service_id) ; } service_challenge } _ => None , } ; insert_proof . verify (challenge) ? ; root = insert_proof . new_root ; } Proof :: Update (update_proof) => { update_proof . verify () ? ; root = update_proof . new_root ; } } } assert_eq ! (root , self . new_root) ; for (id , service_proof) in & self . service_proofs { let keyhash = KeyHash :: with :: < TreeHasher > (& id) ; let serialized_account = service_proof . service . encode_to_bytes () ? ; service_proof . proof . verify_existence (RootHash (root . 0) , keyhash , serialized_account) ? ; } Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#ServiceProof",
+            "name": "ServiceProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "proof",
+                "type_name": "SparseMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              },
+              {
+                "name": "service",
+                "type_name": "Account",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_ServiceProof",
+            "target_type": "ServiceProof",
+            "trait_name": null,
+            "items": [
+              "pub fn service_challenge (& self) -> Option < & ServiceChallenge > { self . service . service_challenge () }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/tree/src/proofs.rs#Proof",
+            "name": "Proof",
+            "visibility": "pub",
+            "variants": [
+              "Update",
+              "Insert"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#InsertProof",
+            "name": "InsertProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "non_membership_proof",
+                "type_name": "MerkleProof",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "membership_proof",
+                "type_name": "SparseMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              },
+              {
+                "name": "tx",
+                "type_name": "Transaction",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_InsertProof",
+            "target_type": "InsertProof",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" The method called in circuit to verify the state transition to the new root.\"] pub fn verify (& self , service_challenge : Option < & ServiceChallenge >) -> Result < () > { self . non_membership_proof . verify_nonexistence () . context (\"Invalid NonMembershipProof\") ? ; let mut account = Account :: default () ; account . process_transaction (& self . tx) ? ; if let Operation :: CreateAccount { id , service_id , challenge , key , } = & self . tx . operation { let hash = Digest :: hash_items (& [id . as_bytes () , service_id . as_bytes () , & key . to_bytes ()]) ; if service_challenge . is_none () { bail ! (\"Service challenge is missing for CreateAccount verification\") ; } let ServiceChallenge :: Signed (challenge_vk) = service_challenge . unwrap () ; let ServiceChallengeInput :: Signed (challenge_signature) = challenge ; challenge_vk . verify_signature (hash , challenge_signature) ? ; } let serialized_account = account . encode_to_bytes () ? ; self . membership_proof . clone () . verify_existence (RootHash (self . new_root . 0) , self . non_membership_proof . key , serialized_account ,) ? ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#UpdateProof",
+            "name": "UpdateProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "old_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "key",
+                "type_name": "KeyHash",
+                "visibility": "pub"
+              },
+              {
+                "name": "old_account",
+                "type_name": "Account",
+                "visibility": "pub"
+              },
+              {
+                "name": "tx",
+                "type_name": "Transaction",
+                "visibility": "pub"
+              },
+              {
+                "name": "inclusion_proof",
+                "type_name": "SparseMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              },
+              {
+                "name": "update_proof",
+                "type_name": "UpdateMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_UpdateProof",
+            "target_type": "UpdateProof",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" The method called in circuit to verify the state transition to the new root.\"] pub fn verify (& self) -> Result < () > { let old_serialized_account = self . old_account . encode_to_bytes () ? ; self . inclusion_proof . verify_existence (RootHash (self . old_root . 0) , self . key , old_serialized_account ,) ? ; let mut new_account = self . old_account . clone () ; new_account . process_transaction (& self . tx) ? ; let new_serialized_account = new_account . encode_to_bytes () ? ; self . update_proof . clone () . verify_update (RootHash (self . old_root . 0) , RootHash (self . new_root . 0) , vec ! [(self . key , Some (new_serialized_account))] ,) ? ; Ok (()) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#MerkleProof",
+            "name": "MerkleProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "proof",
+                "type_name": "SparseMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              },
+              {
+                "name": "key",
+                "type_name": "KeyHash",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_MerkleProof",
+            "target_type": "MerkleProof",
+            "trait_name": null,
+            "items": [
+              "pub fn verify_existence (& self , value : & Account) -> Result < () > { let value = value . encode_to_bytes () ? ; self . proof . verify_existence (RootHash (self . root . 0) , self . key , value) }",
+              "pub fn verify_nonexistence (& self) -> Result < () > { self . proof . verify_nonexistence (RootHash (self . root . 0) , self . key) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_MerkleProof",
+            "target_type": "MerkleProof",
+            "trait_name": null,
+            "items": [
+              "pub fn hashed (self) -> HashedMerkleProof { let leaf_hash = self . proof . leaf () . map (| node | node . hash :: < TreeHasher > ()) . map (Digest :: new) ; let sibling_hashes = self . proof . siblings () . iter () . map (SparseMerkleNode :: hash :: < TreeHasher >) . map (Digest :: new) . collect () ; HashedMerkleProof { leaf : leaf_hash , siblings : sibling_hashes , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#HashedMerkleProof",
+            "name": "HashedMerkleProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "leaf",
+                "type_name": "Option < Digest >",
+                "visibility": "pub"
+              },
+              {
+                "name": "siblings",
+                "type_name": "Vec < Digest >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_std_collections_HashMap",
+            "path": "std :: collections :: HashMap",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_anyhow_{bail,Context,Result}",
+            "path": "anyhow :: { bail , Context , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_jmt_{proof_{SparseMerkleNode,SparseMerkleProof,UpdateMerkleProof},KeyHash,RootHash,}",
+            "path": "jmt :: { proof :: { SparseMerkleNode , SparseMerkleProof , UpdateMerkleProof } , KeyHash , RootHash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_prism_common_{account_Account,digest_Digest,operation_{Operation,ServiceChallenge,ServiceChallengeInput},transaction_Transaction,}",
+            "path": "prism_common :: { account :: Account , digest :: Digest , operation :: { Operation , ServiceChallenge , ServiceChallengeInput } , transaction :: Transaction , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_prism_serde_binary_ToBinary",
+            "path": "prism_serde :: binary :: ToBinary",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/proofs.rs#use_crate_hasher_TreeHasher",
+            "path": "crate :: hasher :: TreeHasher",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#Batch",
+            "name": "Batch",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "prev_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "service_proofs",
+                "type_name": "HashMap < String , ServiceProof >",
+                "visibility": "pub"
+              },
+              {
+                "name": "proofs",
+                "type_name": "Vec < Proof >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_Batch",
+            "target_type": "Batch",
+            "trait_name": null,
+            "items": [
+              "pub fn init (prev_root : Digest , next_root : Digest , proofs : Vec < Proof >) -> Self { Batch { prev_root , new_root : next_root , service_proofs : HashMap :: new () , proofs , } }",
+              "pub fn verify (& self) -> Result < () > { let mut root = self . prev_root ; for proof in & self . proofs { match proof { Proof :: Insert (insert_proof) => { let challenge = match & insert_proof . tx . operation { Operation :: CreateAccount { service_id , .. } => { let service_challenge = self . service_proofs . get (service_id) . and_then (| service_proof | service_proof . service_challenge ()) ; if service_challenge . is_none () { bail ! (\"Service proof for {} is missing from batch for CreateAccount verification\" , service_id) ; } service_challenge } _ => None , } ; insert_proof . verify (challenge) ? ; root = insert_proof . new_root ; } Proof :: Update (update_proof) => { update_proof . verify () ? ; root = update_proof . new_root ; } } } assert_eq ! (root , self . new_root) ; for (id , service_proof) in & self . service_proofs { let keyhash = KeyHash :: with :: < TreeHasher > (& id) ; let serialized_account = service_proof . service . encode_to_bytes () ? ; service_proof . proof . verify_existence (RootHash (root . 0) , keyhash , serialized_account) ? ; } Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Batch"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#ServiceProof",
+            "name": "ServiceProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "proof",
+                "type_name": "SparseMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              },
+              {
+                "name": "service",
+                "type_name": "Account",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_ServiceProof",
+            "target_type": "ServiceProof",
+            "trait_name": null,
+            "items": [
+              "pub fn service_challenge (& self) -> Option < & ServiceChallenge > { self . service . service_challenge () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "ServiceProof"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/tree/src/proofs.rs#Proof",
+            "name": "Proof",
+            "visibility": "pub",
+            "variants": [
+              "Update",
+              "Insert"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#InsertProof",
+            "name": "InsertProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "non_membership_proof",
+                "type_name": "MerkleProof",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "membership_proof",
+                "type_name": "SparseMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              },
+              {
+                "name": "tx",
+                "type_name": "Transaction",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_InsertProof",
+            "target_type": "InsertProof",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" The method called in circuit to verify the state transition to the new root.\"] pub fn verify (& self , service_challenge : Option < & ServiceChallenge >) -> Result < () > { self . non_membership_proof . verify_nonexistence () . context (\"Invalid NonMembershipProof\") ? ; let mut account = Account :: default () ; account . process_transaction (& self . tx) ? ; if let Operation :: CreateAccount { id , service_id , challenge , key , } = & self . tx . operation { let hash = Digest :: hash_items (& [id . as_bytes () , service_id . as_bytes () , & key . to_bytes ()]) ; if service_challenge . is_none () { bail ! (\"Service challenge is missing for CreateAccount verification\") ; } let ServiceChallenge :: Signed (challenge_vk) = service_challenge . unwrap () ; let ServiceChallengeInput :: Signed (challenge_signature) = challenge ; challenge_vk . verify_signature (hash , challenge_signature) ? ; } let serialized_account = account . encode_to_bytes () ? ; self . membership_proof . clone () . verify_existence (RootHash (self . new_root . 0) , self . non_membership_proof . key , serialized_account ,) ? ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "InsertProof"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#UpdateProof",
+            "name": "UpdateProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "old_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "new_root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "key",
+                "type_name": "KeyHash",
+                "visibility": "pub"
+              },
+              {
+                "name": "old_account",
+                "type_name": "Account",
+                "visibility": "pub"
+              },
+              {
+                "name": "tx",
+                "type_name": "Transaction",
+                "visibility": "pub"
+              },
+              {
+                "name": "inclusion_proof",
+                "type_name": "SparseMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              },
+              {
+                "name": "update_proof",
+                "type_name": "UpdateMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_UpdateProof",
+            "target_type": "UpdateProof",
+            "trait_name": null,
+            "items": [
+              "# [doc = \" The method called in circuit to verify the state transition to the new root.\"] pub fn verify (& self) -> Result < () > { let old_serialized_account = self . old_account . encode_to_bytes () ? ; self . inclusion_proof . verify_existence (RootHash (self . old_root . 0) , self . key , old_serialized_account ,) ? ; let mut new_account = self . old_account . clone () ; new_account . process_transaction (& self . tx) ? ; let new_serialized_account = new_account . encode_to_bytes () ? ; self . update_proof . clone () . verify_update (RootHash (self . old_root . 0) , RootHash (self . new_root . 0) , vec ! [(self . key , Some (new_serialized_account))] ,) ? ; Ok (()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "UpdateProof"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#MerkleProof",
+            "name": "MerkleProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "root",
+                "type_name": "Digest",
+                "visibility": "pub"
+              },
+              {
+                "name": "proof",
+                "type_name": "SparseMerkleProof < TreeHasher >",
+                "visibility": "pub"
+              },
+              {
+                "name": "key",
+                "type_name": "KeyHash",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_MerkleProof",
+            "target_type": "MerkleProof",
+            "trait_name": null,
+            "items": [
+              "pub fn verify_existence (& self , value : & Account) -> Result < () > { let value = value . encode_to_bytes () ? ; self . proof . verify_existence (RootHash (self . root . 0) , self . key , value) }",
+              "pub fn verify_nonexistence (& self) -> Result < () > { self . proof . verify_nonexistence (RootHash (self . root . 0) , self . key) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "MerkleProof"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/proofs.rs#impl_MerkleProof",
+            "target_type": "MerkleProof",
+            "trait_name": null,
+            "items": [
+              "pub fn hashed (self) -> HashedMerkleProof { let leaf_hash = self . proof . leaf () . map (| node | node . hash :: < TreeHasher > ()) . map (Digest :: new) ; let sibling_hashes = self . proof . siblings () . iter () . map (SparseMerkleNode :: hash :: < TreeHasher >) . map (Digest :: new) . collect () ; HashedMerkleProof { leaf : leaf_hash , siblings : sibling_hashes , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "MerkleProof"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/proofs.rs#HashedMerkleProof",
+            "name": "HashedMerkleProof",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "leaf",
+                "type_name": "Option < Digest >",
+                "visibility": "pub"
+              },
+              {
+                "name": "siblings",
+                "type_name": "Vec < Digest >",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/tree/src/snarkable_tree.rs",
+      "path": "../crates/tree/src/snarkable_tree.rs",
+      "relative_path": "crates/tree/src/snarkable_tree.rs",
+      "file_size": 9183,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_std_collections_HashSet",
+            "path": "std :: collections :: HashSet",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_anyhow_{bail,ensure,Result}",
+            "path": "anyhow :: { bail , ensure , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_jmt_{storage_{TreeReader,TreeWriter},KeyHash,}",
+            "path": "jmt :: { storage :: { TreeReader , TreeWriter } , KeyHash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_tracing_{debug,warn}",
+            "path": "tracing :: { debug , warn }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_prism_errors_DatabaseError",
+            "path": "prism_errors :: DatabaseError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_prism_serde_binary_{FromBinary,ToBinary}",
+            "path": "prism_serde :: binary :: { FromBinary , ToBinary }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_prism_common_{account_Account,digest_Digest,operation_{Operation,ServiceChallenge,ServiceChallengeInput},transaction_Transaction,}",
+            "path": "prism_common :: { account :: Account , digest :: Digest , operation :: { Operation , ServiceChallenge , ServiceChallengeInput } , transaction :: Transaction , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_crate_{hasher_TreeHasher,key_directory_tree_KeyDirectoryTree,proofs_{Batch,InsertProof,MerkleProof,Proof,ServiceProof,UpdateProof},AccountResponse_{self,*},}",
+            "path": "crate :: { hasher :: TreeHasher , key_directory_tree :: KeyDirectoryTree , proofs :: { Batch , InsertProof , MerkleProof , Proof , ServiceProof , UpdateProof } , AccountResponse :: { self , * } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/tree/src/snarkable_tree.rs#SnarkableTree",
+            "name": "SnarkableTree",
+            "visibility": "pub",
+            "items": [
+              "fn process_batch (& mut self , transactions : Vec < Transaction >) -> Result < Batch > ;",
+              "fn process_transaction (& mut self , transaction : Transaction) -> Result < Proof > ;",
+              "fn insert (& mut self , key : KeyHash , tx : Transaction) -> Result < InsertProof > ;",
+              "fn update (& mut self , key : KeyHash , tx : Transaction) -> Result < UpdateProof > ;",
+              "fn get (& self , key : KeyHash) -> Result < AccountResponse > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/snarkable_tree.rs#impl_SnarkableTree_KeyDirectoryTree<S>",
+            "target_type": "KeyDirectoryTree < S >",
+            "trait_name": "SnarkableTree",
+            "items": [
+              "fn process_batch (& mut self , transactions : Vec < Transaction >) -> Result < Batch > { debug ! (\"creating block with {} transactions\" , transactions . len ()) ; let prev_commitment = self . get_commitment () ? ; let mut services = HashSet :: new () ; let mut proofs = Vec :: new () ; for transaction in transactions { match self . process_transaction (transaction . clone ()) { Ok (proof) => { if let Operation :: CreateAccount { service_id , .. } = transaction . operation { services . insert (service_id) ; } proofs . push (proof) } Err (e) => { warn ! (\"Failed to process transaction: {:?}. Error: {}\" , transaction , e) ; } } } let current_commitment = self . get_commitment () ? ; let mut batch = Batch :: init (prev_commitment , current_commitment , proofs) ; for service in services { let service_key_hash = KeyHash :: with :: < TreeHasher > (& service) ; let response = self . get (service_key_hash) ? ; match response { Found (account , proof) => { let service_proof = ServiceProof { root : current_commitment , service : * account , proof : proof . proof , } ; batch . service_proofs . insert (service . clone () , service_proof) ; } NotFound (proof) => { bail ! (\"Service account not found: {:?}\" , proof) ; } } } Ok (batch) }",
+              "fn process_transaction (& mut self , transaction : Transaction) -> Result < Proof > { match & transaction . operation { Operation :: AddKey { .. } | Operation :: RevokeKey { .. } | Operation :: AddData { .. } | Operation :: SetData { .. } => { let key_hash = KeyHash :: with :: < TreeHasher > (& transaction . id) ; debug ! (\"updating account for user id {}\" , transaction . id) ; let proof = self . update (key_hash , transaction) ? ; Ok (Proof :: Update (Box :: new (proof))) } Operation :: CreateAccount { id , service_id , challenge , key , } => { ensure ! (transaction . id == id . as_str () , \"Id of transaction needs to be equal to operation id\") ; let account_key_hash = KeyHash :: with :: < TreeHasher > (id) ; if matches ! (self . get (account_key_hash) ?, Found (_ , _)) { bail ! (DatabaseError :: NotFoundError (format ! (\"Account already exists for ID {}\" , id))) ; } let service_key_hash = KeyHash :: with :: < TreeHasher > (service_id) ; let Found (service_account , _) = self . get (service_key_hash) ? else { bail ! (\"Failed to get account for service ID {}\" , service_id) ; } ; let Some (service_challenge) = service_account . service_challenge () else { bail ! (\"Service account does not contain a service challenge\") ; } ; let hash = Digest :: hash_items (& [id . as_bytes () , service_id . as_bytes () , & key . to_bytes ()]) ; let ServiceChallenge :: Signed (service_pubkey) = service_challenge ; let ServiceChallengeInput :: Signed (challenge_signature) = & challenge ; service_pubkey . verify_signature (hash , challenge_signature) ? ; debug ! (\"creating new account for user ID {}\" , id) ; let insert_proof = self . insert (account_key_hash , transaction) ? ; Ok (Proof :: Insert (Box :: new (insert_proof))) } Operation :: RegisterService { id , .. } => { ensure ! (transaction . id == id . as_str () , \"Id of transaction needs to be equal to operation id\") ; let key_hash = KeyHash :: with :: < TreeHasher > (id) ; debug ! (\"creating new account for service id {}\" , id) ; let insert_proof = self . insert (key_hash , transaction) ? ; Ok (Proof :: Insert (Box :: new (insert_proof))) } } }",
+              "fn insert (& mut self , key : KeyHash , transaction : Transaction) -> Result < InsertProof > { let old_root = self . get_commitment () ? ; let (None , non_membership_merkle_proof) = self . jmt . get_with_proof (key , self . epoch) ? else { bail ! (\"Key already exists\") ; } ; let non_membership_proof = MerkleProof { root : old_root , proof : non_membership_merkle_proof , key , } ; let mut account = Account :: default () ; account . process_transaction (& transaction) ? ; let serialized_account = account . encode_to_bytes () ? ; let (new_root , _ , tree_update_batch) = self . jmt . put_value_set_with_proof (vec ! [(key , Some (serialized_account))] , self . epoch + 1) ? ; self . queue_batch (tree_update_batch) ; self . write_batch () ? ; let (_ , membership_proof) = self . jmt . get_with_proof (key , self . epoch) ? ; Ok (InsertProof { new_root : Digest (new_root . 0) , tx : transaction , non_membership_proof , membership_proof , }) }",
+              "fn update (& mut self , key : KeyHash , transaction : Transaction) -> Result < UpdateProof > { let old_root = self . get_current_root () ? ; let (Some (old_serialized_account) , inclusion_proof) = self . jmt . get_with_proof (key , self . epoch) ? else { bail ! (\"Key does not exist\") ; } ; let old_account = Account :: decode_from_bytes (& old_serialized_account) ? ; let mut new_account = old_account . clone () ; new_account . process_transaction (& transaction) ? ; let serialized_value = new_account . encode_to_bytes () ? ; let (new_root , update_proof , tree_update_batch) = self . jmt . put_value_set_with_proof (vec ! [(key , Some (serialized_value . clone ()))] , self . epoch + 1 ,) ? ; self . queue_batch (tree_update_batch) ; self . write_batch () ? ; Ok (UpdateProof { old_root : Digest (old_root . 0) , new_root : Digest (new_root . 0) , inclusion_proof , old_account , key , update_proof , tx : transaction , }) }",
+              "fn get (& self , key : KeyHash) -> Result < AccountResponse > { let root = self . get_commitment () ? ; let (value , proof) = self . jmt . get_with_proof (key , self . epoch) ? ; match value { Some (serialized_value) => { let deserialized_value = Account :: decode_from_bytes (& serialized_value) ? ; let membership_proof = MerkleProof { root , proof , key } ; Ok (Found (Box :: new (deserialized_value) , membership_proof)) } None => { let non_membership_proof = MerkleProof { root , proof , key } ; Ok (NotFound (non_membership_proof)) } } }"
+            ],
+            "generics": [
+              "S"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_std_collections_HashSet",
+            "path": "std :: collections :: HashSet",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_anyhow_{bail,ensure,Result}",
+            "path": "anyhow :: { bail , ensure , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_jmt_{storage_{TreeReader,TreeWriter},KeyHash,}",
+            "path": "jmt :: { storage :: { TreeReader , TreeWriter } , KeyHash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_tracing_{debug,warn}",
+            "path": "tracing :: { debug , warn }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_prism_errors_DatabaseError",
+            "path": "prism_errors :: DatabaseError",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_prism_serde_binary_{FromBinary,ToBinary}",
+            "path": "prism_serde :: binary :: { FromBinary , ToBinary }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_prism_common_{account_Account,digest_Digest,operation_{Operation,ServiceChallenge,ServiceChallengeInput},transaction_Transaction,}",
+            "path": "prism_common :: { account :: Account , digest :: Digest , operation :: { Operation , ServiceChallenge , ServiceChallengeInput } , transaction :: Transaction , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/snarkable_tree.rs#use_crate_{hasher_TreeHasher,key_directory_tree_KeyDirectoryTree,proofs_{Batch,InsertProof,MerkleProof,Proof,ServiceProof,UpdateProof},AccountResponse_{self,*},}",
+            "path": "crate :: { hasher :: TreeHasher , key_directory_tree :: KeyDirectoryTree , proofs :: { Batch , InsertProof , MerkleProof , Proof , ServiceProof , UpdateProof } , AccountResponse :: { self , * } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/tree/src/snarkable_tree.rs#SnarkableTree",
+            "name": "SnarkableTree",
+            "visibility": "pub",
+            "items": [
+              "fn process_batch (& mut self , transactions : Vec < Transaction >) -> Result < Batch > ;",
+              "fn process_transaction (& mut self , transaction : Transaction) -> Result < Proof > ;",
+              "fn insert (& mut self , key : KeyHash , tx : Transaction) -> Result < InsertProof > ;",
+              "fn update (& mut self , key : KeyHash , tx : Transaction) -> Result < UpdateProof > ;",
+              "fn get (& self , key : KeyHash) -> Result < AccountResponse > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/snarkable_tree.rs#impl_SnarkableTree_KeyDirectoryTree<S>",
+            "target_type": "KeyDirectoryTree < S >",
+            "trait_name": "SnarkableTree",
+            "items": [
+              "fn process_batch (& mut self , transactions : Vec < Transaction >) -> Result < Batch > { debug ! (\"creating block with {} transactions\" , transactions . len ()) ; let prev_commitment = self . get_commitment () ? ; let mut services = HashSet :: new () ; let mut proofs = Vec :: new () ; for transaction in transactions { match self . process_transaction (transaction . clone ()) { Ok (proof) => { if let Operation :: CreateAccount { service_id , .. } = transaction . operation { services . insert (service_id) ; } proofs . push (proof) } Err (e) => { warn ! (\"Failed to process transaction: {:?}. Error: {}\" , transaction , e) ; } } } let current_commitment = self . get_commitment () ? ; let mut batch = Batch :: init (prev_commitment , current_commitment , proofs) ; for service in services { let service_key_hash = KeyHash :: with :: < TreeHasher > (& service) ; let response = self . get (service_key_hash) ? ; match response { Found (account , proof) => { let service_proof = ServiceProof { root : current_commitment , service : * account , proof : proof . proof , } ; batch . service_proofs . insert (service . clone () , service_proof) ; } NotFound (proof) => { bail ! (\"Service account not found: {:?}\" , proof) ; } } } Ok (batch) }",
+              "fn process_transaction (& mut self , transaction : Transaction) -> Result < Proof > { match & transaction . operation { Operation :: AddKey { .. } | Operation :: RevokeKey { .. } | Operation :: AddData { .. } | Operation :: SetData { .. } => { let key_hash = KeyHash :: with :: < TreeHasher > (& transaction . id) ; debug ! (\"updating account for user id {}\" , transaction . id) ; let proof = self . update (key_hash , transaction) ? ; Ok (Proof :: Update (Box :: new (proof))) } Operation :: CreateAccount { id , service_id , challenge , key , } => { ensure ! (transaction . id == id . as_str () , \"Id of transaction needs to be equal to operation id\") ; let account_key_hash = KeyHash :: with :: < TreeHasher > (id) ; if matches ! (self . get (account_key_hash) ?, Found (_ , _)) { bail ! (DatabaseError :: NotFoundError (format ! (\"Account already exists for ID {}\" , id))) ; } let service_key_hash = KeyHash :: with :: < TreeHasher > (service_id) ; let Found (service_account , _) = self . get (service_key_hash) ? else { bail ! (\"Failed to get account for service ID {}\" , service_id) ; } ; let Some (service_challenge) = service_account . service_challenge () else { bail ! (\"Service account does not contain a service challenge\") ; } ; let hash = Digest :: hash_items (& [id . as_bytes () , service_id . as_bytes () , & key . to_bytes ()]) ; let ServiceChallenge :: Signed (service_pubkey) = service_challenge ; let ServiceChallengeInput :: Signed (challenge_signature) = & challenge ; service_pubkey . verify_signature (hash , challenge_signature) ? ; debug ! (\"creating new account for user ID {}\" , id) ; let insert_proof = self . insert (account_key_hash , transaction) ? ; Ok (Proof :: Insert (Box :: new (insert_proof))) } Operation :: RegisterService { id , .. } => { ensure ! (transaction . id == id . as_str () , \"Id of transaction needs to be equal to operation id\") ; let key_hash = KeyHash :: with :: < TreeHasher > (id) ; debug ! (\"creating new account for service id {}\" , id) ; let insert_proof = self . insert (key_hash , transaction) ? ; Ok (Proof :: Insert (Box :: new (insert_proof))) } } }",
+              "fn insert (& mut self , key : KeyHash , transaction : Transaction) -> Result < InsertProof > { let old_root = self . get_commitment () ? ; let (None , non_membership_merkle_proof) = self . jmt . get_with_proof (key , self . epoch) ? else { bail ! (\"Key already exists\") ; } ; let non_membership_proof = MerkleProof { root : old_root , proof : non_membership_merkle_proof , key , } ; let mut account = Account :: default () ; account . process_transaction (& transaction) ? ; let serialized_account = account . encode_to_bytes () ? ; let (new_root , _ , tree_update_batch) = self . jmt . put_value_set_with_proof (vec ! [(key , Some (serialized_account))] , self . epoch + 1) ? ; self . queue_batch (tree_update_batch) ; self . write_batch () ? ; let (_ , membership_proof) = self . jmt . get_with_proof (key , self . epoch) ? ; Ok (InsertProof { new_root : Digest (new_root . 0) , tx : transaction , non_membership_proof , membership_proof , }) }",
+              "fn update (& mut self , key : KeyHash , transaction : Transaction) -> Result < UpdateProof > { let old_root = self . get_current_root () ? ; let (Some (old_serialized_account) , inclusion_proof) = self . jmt . get_with_proof (key , self . epoch) ? else { bail ! (\"Key does not exist\") ; } ; let old_account = Account :: decode_from_bytes (& old_serialized_account) ? ; let mut new_account = old_account . clone () ; new_account . process_transaction (& transaction) ? ; let serialized_value = new_account . encode_to_bytes () ? ; let (new_root , update_proof , tree_update_batch) = self . jmt . put_value_set_with_proof (vec ! [(key , Some (serialized_value . clone ()))] , self . epoch + 1 ,) ? ; self . queue_batch (tree_update_batch) ; self . write_batch () ? ; Ok (UpdateProof { old_root : Digest (old_root . 0) , new_root : Digest (new_root . 0) , inclusion_proof , old_account , key , update_proof , tx : transaction , }) }",
+              "fn get (& self , key : KeyHash) -> Result < AccountResponse > { let root = self . get_commitment () ? ; let (value , proof) = self . jmt . get_with_proof (key , self . epoch) ? ; match value { Some (serialized_value) => { let deserialized_value = Account :: decode_from_bytes (& serialized_value) ? ; let membership_proof = MerkleProof { root , proof , key } ; Ok (Found (Box :: new (deserialized_value) , membership_proof)) } None => { let non_membership_proof = MerkleProof { root , proof , key } ; Ok (NotFound (non_membership_proof)) } } }"
+            ],
+            "generics": [
+              "S"
+            ]
+          },
+          "type_references": [
+            "KeyDirectoryTree",
+            "S"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/tree/src/hasher.rs",
+      "path": "../crates/tree/src/hasher.rs",
+      "relative_path": "crates/tree/src/hasher.rs",
+      "file_size": 1415,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/hasher.rs#use_jmt_SimpleHasher",
+            "path": "jmt :: SimpleHasher",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/hasher.rs#use_serde_{ser_SerializeTupleStruct,Deserialize,Serialize}",
+            "path": "serde :: { ser :: SerializeTupleStruct , Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/hasher.rs#TreeHasher",
+            "name": "TreeHasher",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "0",
+                "type_name": "sha2 :: Sha256",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/hasher.rs#impl_SimpleHasher_TreeHasher",
+            "target_type": "TreeHasher",
+            "trait_name": "SimpleHasher",
+            "items": [
+              "fn new () -> Self { Self (sha2 :: Sha256 :: new ()) }",
+              "fn update (& mut self , data : & [u8]) { self . 0 . update (data) ; }",
+              "fn finalize (self) -> [u8 ; 32] { self . 0 . finalize () }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/hasher.rs#impl_Serialize_TreeHasher",
+            "target_type": "TreeHasher",
+            "trait_name": "Serialize",
+            "items": [
+              "fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : serde :: Serializer , { serializer . serialize_tuple_struct (\"Sha256Wrapper\" , 0) ? . end () }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/hasher.rs#impl_Deserialize<'de>_TreeHasher",
+            "target_type": "TreeHasher",
+            "trait_name": "Deserialize < 'de >",
+            "items": [
+              "fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : serde :: Deserializer < 'de > , { struct Sha256WrapperVisitor ; impl < 'de > serde :: de :: Visitor < 'de > for Sha256WrapperVisitor { type Value = TreeHasher ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str (\"a Sha256Wrapper\") } fn visit_seq < A > (self , _seq : A) -> Result < Self :: Value , A :: Error > where A : serde :: de :: SeqAccess < 'de > , { Ok (TreeHasher :: default ()) } } deserializer . deserialize_tuple_struct (\"Sha256Wrapper\" , 0 , Sha256WrapperVisitor) }"
+            ],
+            "generics": [
+              "'de"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/hasher.rs#use_jmt_SimpleHasher",
+            "path": "jmt :: SimpleHasher",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/hasher.rs#use_serde_{ser_SerializeTupleStruct,Deserialize,Serialize}",
+            "path": "serde :: { ser :: SerializeTupleStruct , Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/hasher.rs#TreeHasher",
+            "name": "TreeHasher",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "0",
+                "type_name": "sha2 :: Sha256",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Clone",
+            "Default"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/hasher.rs#impl_SimpleHasher_TreeHasher",
+            "target_type": "TreeHasher",
+            "trait_name": "SimpleHasher",
+            "items": [
+              "fn new () -> Self { Self (sha2 :: Sha256 :: new ()) }",
+              "fn update (& mut self , data : & [u8]) { self . 0 . update (data) ; }",
+              "fn finalize (self) -> [u8 ; 32] { self . 0 . finalize () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "TreeHasher"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/hasher.rs#impl_Serialize_TreeHasher",
+            "target_type": "TreeHasher",
+            "trait_name": "Serialize",
+            "items": [
+              "fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : serde :: Serializer , { serializer . serialize_tuple_struct (\"Sha256Wrapper\" , 0) ? . end () }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "TreeHasher"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/hasher.rs#impl_Deserialize<'de>_TreeHasher",
+            "target_type": "TreeHasher",
+            "trait_name": "Deserialize < 'de >",
+            "items": [
+              "fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : serde :: Deserializer < 'de > , { struct Sha256WrapperVisitor ; impl < 'de > serde :: de :: Visitor < 'de > for Sha256WrapperVisitor { type Value = TreeHasher ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str (\"a Sha256Wrapper\") } fn visit_seq < A > (self , _seq : A) -> Result < Self :: Value , A :: Error > where A : serde :: de :: SeqAccess < 'de > , { Ok (TreeHasher :: default ()) } } deserializer . deserialize_tuple_struct (\"Sha256Wrapper\" , 0 , Sha256WrapperVisitor) }"
+            ],
+            "generics": [
+              "'de"
+            ]
+          },
+          "type_references": [
+            "TreeHasher"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/tree/src/key_directory_tree.rs",
+      "path": "../crates/tree/src/key_directory_tree.rs",
+      "relative_path": "crates/tree/src/key_directory_tree.rs",
+      "file_size": 2407,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_anyhow_{anyhow,Result}",
+            "path": "anyhow :: { anyhow , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_jmt_{self,storage_{NodeBatch,TreeReader,TreeUpdateBatch,TreeWriter},JellyfishMerkleTree,KeyHash,RootHash,}",
+            "path": "jmt :: { self , storage :: { NodeBatch , TreeReader , TreeUpdateBatch , TreeWriter } , JellyfishMerkleTree , KeyHash , RootHash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_crate_hasher_TreeHasher",
+            "path": "crate :: hasher :: TreeHasher",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/tree/src/key_directory_tree.rs#SPARSE_MERKLE_PLACEHOLDER_HASH",
+            "name": "SPARSE_MERKLE_PLACEHOLDER_HASH",
+            "visibility": "pub",
+            "type_name": "KeyHash"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/key_directory_tree.rs#KeyDirectoryTree",
+            "name": "KeyDirectoryTree",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "jmt",
+                "type_name": "JellyfishMerkleTree < Arc < S > , TreeHasher >",
+                "visibility": "pub(pub (crate))"
+              },
+              {
+                "name": "epoch",
+                "type_name": "u64",
+                "visibility": "pub(pub (crate))"
+              },
+              {
+                "name": "pending_batch",
+                "type_name": "Option < NodeBatch >",
+                "visibility": "private"
+              },
+              {
+                "name": "db",
+                "type_name": "Arc < S >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "S"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/key_directory_tree.rs#impl_KeyDirectoryTree<S>",
+            "target_type": "KeyDirectoryTree < S >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (store : Arc < S >) -> Self { let tree = Self { db : store . clone () , jmt : JellyfishMerkleTree :: < Arc < S > , TreeHasher > :: new (store) , pending_batch : None , epoch : 0 , } ; let (_ , batch) = tree . jmt . put_value_set (vec ! [(KeyHash (SPARSE_MERKLE_PLACEHOLDER_HASH . 0) , None)] , 0) . unwrap () ; tree . db . write_node_batch (& batch . node_batch) . unwrap () ; tree }",
+              "pub fn load (store : Arc < S > , epoch : u64) -> Self { if epoch == 0 { return KeyDirectoryTree :: new (store) ; } Self { db : store . clone () , jmt : JellyfishMerkleTree :: < Arc < S > , TreeHasher > :: new (store) , pending_batch : None , epoch , } }",
+              "pub fn get_commitment (& self) -> Result < Digest > { let root = self . get_current_root () ? ; Ok (Digest (root . 0)) }",
+              "pub (crate) fn queue_batch (& mut self , batch : TreeUpdateBatch) { match self . pending_batch { Some (ref mut pending_batch) => pending_batch . merge (batch . node_batch) , None => self . pending_batch = Some (batch . node_batch) , } }",
+              "pub (crate) fn write_batch (& mut self) -> Result < () > { if let Some (batch) = self . pending_batch . take () { self . db . write_node_batch (& batch) ? ; self . epoch += 1 ; } Ok (()) }",
+              "pub fn get_current_root (& self) -> Result < RootHash > { self . jmt . get_root_hash (self . epoch) . map_err (| e | anyhow ! (\"Failed to get root hash: {}\" , e)) }"
+            ],
+            "generics": [
+              "S"
+            ]
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_anyhow_{anyhow,Result}",
+            "path": "anyhow :: { anyhow , Result }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_jmt_{self,storage_{NodeBatch,TreeReader,TreeUpdateBatch,TreeWriter},JellyfishMerkleTree,KeyHash,RootHash,}",
+            "path": "jmt :: { self , storage :: { NodeBatch , TreeReader , TreeUpdateBatch , TreeWriter } , JellyfishMerkleTree , KeyHash , RootHash , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_prism_common_digest_Digest",
+            "path": "prism_common :: digest :: Digest",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/tree/src/key_directory_tree.rs#use_crate_hasher_TreeHasher",
+            "path": "crate :: hasher :: TreeHasher",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/tree/src/key_directory_tree.rs#SPARSE_MERKLE_PLACEHOLDER_HASH",
+            "name": "SPARSE_MERKLE_PLACEHOLDER_HASH",
+            "visibility": "pub",
+            "type_name": "KeyHash"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/tree/src/key_directory_tree.rs#KeyDirectoryTree",
+            "name": "KeyDirectoryTree",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "jmt",
+                "type_name": "JellyfishMerkleTree < Arc < S > , TreeHasher >",
+                "visibility": "pub(pub (crate))"
+              },
+              {
+                "name": "epoch",
+                "type_name": "u64",
+                "visibility": "pub(pub (crate))"
+              },
+              {
+                "name": "pending_batch",
+                "type_name": "Option < NodeBatch >",
+                "visibility": "private"
+              },
+              {
+                "name": "db",
+                "type_name": "Arc < S >",
+                "visibility": "private"
+              }
+            ],
+            "generics": [
+              "S"
+            ]
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/tree/src/key_directory_tree.rs#impl_KeyDirectoryTree<S>",
+            "target_type": "KeyDirectoryTree < S >",
+            "trait_name": null,
+            "items": [
+              "pub fn new (store : Arc < S >) -> Self { let tree = Self { db : store . clone () , jmt : JellyfishMerkleTree :: < Arc < S > , TreeHasher > :: new (store) , pending_batch : None , epoch : 0 , } ; let (_ , batch) = tree . jmt . put_value_set (vec ! [(KeyHash (SPARSE_MERKLE_PLACEHOLDER_HASH . 0) , None)] , 0) . unwrap () ; tree . db . write_node_batch (& batch . node_batch) . unwrap () ; tree }",
+              "pub fn load (store : Arc < S > , epoch : u64) -> Self { if epoch == 0 { return KeyDirectoryTree :: new (store) ; } Self { db : store . clone () , jmt : JellyfishMerkleTree :: < Arc < S > , TreeHasher > :: new (store) , pending_batch : None , epoch , } }",
+              "pub fn get_commitment (& self) -> Result < Digest > { let root = self . get_current_root () ? ; Ok (Digest (root . 0)) }",
+              "pub (crate) fn queue_batch (& mut self , batch : TreeUpdateBatch) { match self . pending_batch { Some (ref mut pending_batch) => pending_batch . merge (batch . node_batch) , None => self . pending_batch = Some (batch . node_batch) , } }",
+              "pub (crate) fn write_batch (& mut self) -> Result < () > { if let Some (batch) = self . pending_batch . take () { self . db . write_node_batch (& batch) ? ; self . epoch += 1 ; } Ok (()) }",
+              "pub fn get_current_root (& self) -> Result < RootHash > { self . jmt . get_root_hash (self . epoch) . map_err (| e | anyhow ! (\"Failed to get root hash: {}\" , e)) }"
+            ],
+            "generics": [
+              "S"
+            ]
+          },
+          "type_references": [
+            "KeyDirectoryTree",
+            "S"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/tree/src/lib.rs",
+      "to_id": "prism_common :: account :: Account",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/lib.rs",
+      "to_id": "proofs :: MerkleProof",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/lib.rs#AccountResponse",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs",
+      "to_id": "std :: sync :: Arc",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs",
+      "to_id": "jmt :: { mock :: MockTreeStore , KeyHash }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs",
+      "to_id": "prism_common :: { operation :: SignatureBundle , test_transaction_builder :: TestTransactionBuilder }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs",
+      "to_id": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs",
+      "to_id": "crate :: { hasher :: TreeHasher , key_directory_tree :: KeyDirectoryTree , proofs :: Proof , snarkable_tree :: SnarkableTree , AccountResponse :: * , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "service_challenge",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_and_get",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "SigningKey::new_with_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "build",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "create_account_with_random_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_for_nonexistent_service_fails",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "SigningKey::new_with_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "SigningKey::new_with_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "build",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "create_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_with_invalid_service_challenge_fails",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "build",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "service_challenge",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_insert_duplicate_key",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "add_random_key_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_existing_key",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "SigningKey::new_with_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "build",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "add_random_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_update_non_existing_key",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "add_internally_signed_data_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "add_randomly_signed_data_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "set_randomly_signed_data_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "SigningKey::new_with_algorithm",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "sign",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "verifying_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "build",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "add_pre_signed_data_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_data_ops",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "add_random_key_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "add_internally_signed_data_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "add_randomly_signed_data_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "to_vec",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_multiple_inserts_and_updates",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "add_random_key_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "add_random_key_verified_with_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_interleaved_inserts_and_updates",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "get_current_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_root_hash_changes",
+      "to_id": "get_current_root",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "TestTransactionBuilder::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "register_service_with_random_keys",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "commit",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "create_account_with_random_key_signed",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "process_transaction",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_batch_writing",
+      "to_id": "crates/node_types/prover/src/webserver.rs#get_account",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_get_non_existing_key",
+      "to_id": "KeyDirectoryTree::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_get_non_existing_key",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_get_non_existing_key",
+      "to_id": "MockTreeStore::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_get_non_existing_key",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_get_non_existing_key",
+      "to_id": "get",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/tests/mod.rs#test_get_non_existing_key",
+      "to_id": "KeyHash::with",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs",
+      "to_id": "std :: collections :: HashMap",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs",
+      "to_id": "anyhow :: { bail , Context , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs",
+      "to_id": "jmt :: { proof :: { SparseMerkleNode , SparseMerkleProof , UpdateMerkleProof } , KeyHash , RootHash , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs",
+      "to_id": "prism_common :: { account :: Account , digest :: Digest , operation :: { Operation , ServiceChallenge , ServiceChallengeInput } , transaction :: Transaction , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs",
+      "to_id": "prism_serde :: binary :: ToBinary",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs",
+      "to_id": "crate :: hasher :: TreeHasher",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#Batch",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#Batch",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#ServiceProof",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#ServiceProof",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#Proof",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#Proof",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#Proof",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#Proof",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#InsertProof",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#InsertProof",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#InsertProof",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#InsertProof",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#UpdateProof",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#UpdateProof",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#UpdateProof",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#UpdateProof",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#MerkleProof",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#MerkleProof",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#MerkleProof",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#MerkleProof",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#HashedMerkleProof",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/proofs.rs#HashedMerkleProof",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs",
+      "to_id": "std :: collections :: HashSet",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs",
+      "to_id": "anyhow :: { bail , ensure , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs",
+      "to_id": "jmt :: { storage :: { TreeReader , TreeWriter } , KeyHash , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs",
+      "to_id": "tracing :: { debug , warn }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs",
+      "to_id": "prism_errors :: DatabaseError",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs",
+      "to_id": "prism_serde :: binary :: { FromBinary , ToBinary }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs",
+      "to_id": "prism_common :: { account :: Account , digest :: Digest , operation :: { Operation , ServiceChallenge , ServiceChallengeInput } , transaction :: Transaction , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs",
+      "to_id": "crate :: { hasher :: TreeHasher , key_directory_tree :: KeyDirectoryTree , proofs :: { Batch , InsertProof , MerkleProof , Proof , ServiceProof , UpdateProof } , AccountResponse :: { self , * } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/snarkable_tree.rs#impl_SnarkableTree_KeyDirectoryTree<S>",
+      "to_id": "trait:SnarkableTree",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/tree/src/hasher.rs",
+      "to_id": "jmt :: SimpleHasher",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/hasher.rs",
+      "to_id": "serde :: { ser :: SerializeTupleStruct , Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/hasher.rs#TreeHasher",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/hasher.rs#TreeHasher",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/hasher.rs#TreeHasher",
+      "to_id": "trait:Default",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/tree/src/hasher.rs#impl_SimpleHasher_TreeHasher",
+      "to_id": "trait:SimpleHasher",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/tree/src/hasher.rs#impl_Serialize_TreeHasher",
+      "to_id": "trait:Serialize",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/tree/src/hasher.rs#impl_Deserialize<'de>_TreeHasher",
+      "to_id": "trait:Deserialize",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/tree/src/key_directory_tree.rs",
+      "to_id": "anyhow :: { anyhow , Result }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/key_directory_tree.rs",
+      "to_id": "jmt :: { self , storage :: { NodeBatch , TreeReader , TreeUpdateBatch , TreeWriter } , JellyfishMerkleTree , KeyHash , RootHash , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/key_directory_tree.rs",
+      "to_id": "prism_common :: digest :: Digest",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/key_directory_tree.rs",
+      "to_id": "std :: sync :: Arc",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/tree/src/key_directory_tree.rs",
+      "to_id": "crate :: hasher :: TreeHasher",
+      "ref_type": "Import"
+    }
+  ],
+  "total_files": 6,
+  "successfully_parsed": 6,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 12,
+    "total_structs": 8,
+    "total_enums": 2,
+    "total_traits": 1,
+    "total_impls": 11,
+    "total_tests": 1,
+    "total_function_calls": 263,
+    "total_derives": 26,
+    "total_macro_uses": 54
+  }
+}

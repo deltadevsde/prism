@@ -1,0 +1,732 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:client",
+  "crate_name": "client",
+  "crate_path": "crates/client",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/client/src/lib.rs",
+      "path": "../crates/client/src/lib.rs",
+      "relative_path": "crates/client/src/lib.rs",
+      "file_size": 556,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/client/src/lib.rs#http_client",
+            "name": "http_client",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/client/src/lib.rs#prism_api",
+            "name": "prism_api",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_http_client_{PrismHttpClient,PrismHttpClientError}",
+            "path": "http_client :: { PrismHttpClient , PrismHttpClientError }",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_prism_common_{account_Account,api_{PendingTransaction,PrismApi,PrismApiError,types_*},builder,digest_Digest,operation_{ServiceChallenge,ServiceChallengeInput,SignatureBundle},transaction_{Transaction,TransactionError,UnsignedTransaction},}",
+            "path": "prism_common :: { account :: Account , api :: { PendingTransaction , PrismApi , PrismApiError , types :: * } , builder , digest :: Digest , operation :: { ServiceChallenge , ServiceChallengeInput , SignatureBundle } , transaction :: { Transaction , TransactionError , UnsignedTransaction } , }",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_prism_keys_{CryptoAlgorithm,Signature,SigningKey,VerifyingKey}",
+            "path": "prism_keys :: { CryptoAlgorithm , Signature , SigningKey , VerifyingKey }",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_prism_serde_binary",
+            "path": "prism_serde :: binary",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_prism_common_api_mock",
+            "path": "prism_common :: api :: mock",
+            "visibility": "pub"
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/client/src/lib.rs#http_client",
+            "name": "http_client",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/client/src/lib.rs#prism_api",
+            "name": "prism_api",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_http_client_{PrismHttpClient,PrismHttpClientError}",
+            "path": "http_client :: { PrismHttpClient , PrismHttpClientError }",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_prism_common_{account_Account,api_{PendingTransaction,PrismApi,PrismApiError,types_*},builder,digest_Digest,operation_{ServiceChallenge,ServiceChallengeInput,SignatureBundle},transaction_{Transaction,TransactionError,UnsignedTransaction},}",
+            "path": "prism_common :: { account :: Account , api :: { PendingTransaction , PrismApi , PrismApiError , types :: * } , builder , digest :: Digest , operation :: { ServiceChallenge , ServiceChallengeInput , SignatureBundle } , transaction :: { Transaction , TransactionError , UnsignedTransaction } , }",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_prism_keys_{CryptoAlgorithm,Signature,SigningKey,VerifyingKey}",
+            "path": "prism_keys :: { CryptoAlgorithm , Signature , SigningKey , VerifyingKey }",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_prism_serde_binary",
+            "path": "prism_serde :: binary",
+            "visibility": "pub"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/lib.rs#use_prism_common_api_mock",
+            "path": "prism_common :: api :: mock",
+            "visibility": "pub"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/client/src/prism_api.rs",
+      "path": "../crates/client/src/prism_api.rs",
+      "relative_path": "crates/client/src/prism_api.rs",
+      "file_size": 1972,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/prism_api.rs#use_std_{future_Future,time_Duration}",
+            "path": "std :: { future :: Future , time :: Duration }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/prism_api.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/prism_api.rs#use_prism_common_{api_{types_{AccountRequest,AccountResponse,CommitmentResponse},PendingTransaction,PendingTransactionImpl,PrismApi,PrismApiError,PrismApiTimer,},transaction_Transaction,}",
+            "path": "prism_common :: { api :: { types :: { AccountRequest , AccountResponse , CommitmentResponse } , PendingTransaction , PendingTransactionImpl , PrismApi , PrismApiError , PrismApiTimer , } , transaction :: Transaction , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/prism_api.rs#use_crate_{PrismHttpClient,PrismHttpClientError}",
+            "path": "crate :: { PrismHttpClient , PrismHttpClientError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/client/src/prism_api.rs#PrismHttpTokioTimer",
+            "name": "PrismHttpTokioTimer",
+            "visibility": "pub",
+            "fields": [],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/prism_api.rs#impl_PrismApiTimer_PrismHttpTokioTimer",
+            "target_type": "PrismHttpTokioTimer",
+            "trait_name": "PrismApiTimer",
+            "items": [
+              "fn sleep (duration : Duration) -> impl Future < Output = () > + Send { tokio :: time :: sleep (duration) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/prism_api.rs#impl_PrismApi_PrismHttpClient",
+            "target_type": "PrismHttpClient",
+            "trait_name": "PrismApi",
+            "items": [
+              "type Timer = PrismHttpTokioTimer ;",
+              "async fn get_account (& self , id : & str) -> Result < AccountResponse , PrismApiError > { let request = AccountRequest { id : id . to_string () } ; let response = self . post (\"/get-account\" , & request) . await ? ; Ok (response) }",
+              "async fn get_commitment (& self) -> Result < CommitmentResponse , PrismApiError > { let response = self . fetch (\"/commitment\") . await ? ; Ok (response) }",
+              "async fn post_transaction (& self , transaction : Transaction ,) -> Result < impl PendingTransaction < Timer = Self :: Timer > , PrismApiError > { self . post_no_response (\"/transaction\" , & transaction) . await ? ; Ok (PendingTransactionImpl :: new (self , transaction)) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/prism_api.rs#impl_From<PrismHttpClientError>_PrismApiError",
+            "target_type": "PrismApiError",
+            "trait_name": "From < PrismHttpClientError >",
+            "items": [
+              "fn from (err : PrismHttpClientError) -> Self { match err { PrismHttpClientError :: Decode => PrismApiError :: SerdeFailed (err . to_string ()) , PrismHttpClientError :: Request => PrismApiError :: RequestFailed (\"unspecific\" . to_string ()) , PrismHttpClientError :: Status (status) => { PrismApiError :: RequestFailed (format ! (\"Status: {}\" , status)) } PrismHttpClientError :: Url (msg) => PrismApiError :: InvalidTarget (msg) , PrismHttpClientError :: Unknown => PrismApiError :: Unknown , } }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/prism_api.rs#use_std_{future_Future,time_Duration}",
+            "path": "std :: { future :: Future , time :: Duration }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/prism_api.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/prism_api.rs#use_prism_common_{api_{types_{AccountRequest,AccountResponse,CommitmentResponse},PendingTransaction,PendingTransactionImpl,PrismApi,PrismApiError,PrismApiTimer,},transaction_Transaction,}",
+            "path": "prism_common :: { api :: { types :: { AccountRequest , AccountResponse , CommitmentResponse } , PendingTransaction , PendingTransactionImpl , PrismApi , PrismApiError , PrismApiTimer , } , transaction :: Transaction , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/prism_api.rs#use_crate_{PrismHttpClient,PrismHttpClientError}",
+            "path": "crate :: { PrismHttpClient , PrismHttpClientError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/client/src/prism_api.rs#PrismHttpTokioTimer",
+            "name": "PrismHttpTokioTimer",
+            "visibility": "pub",
+            "fields": [],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/prism_api.rs#impl_PrismApiTimer_PrismHttpTokioTimer",
+            "target_type": "PrismHttpTokioTimer",
+            "trait_name": "PrismApiTimer",
+            "items": [
+              "fn sleep (duration : Duration) -> impl Future < Output = () > + Send { tokio :: time :: sleep (duration) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismHttpTokioTimer"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/prism_api.rs#impl_PrismApi_PrismHttpClient",
+            "target_type": "PrismHttpClient",
+            "trait_name": "PrismApi",
+            "items": [
+              "type Timer = PrismHttpTokioTimer ;",
+              "async fn get_account (& self , id : & str) -> Result < AccountResponse , PrismApiError > { let request = AccountRequest { id : id . to_string () } ; let response = self . post (\"/get-account\" , & request) . await ? ; Ok (response) }",
+              "async fn get_commitment (& self) -> Result < CommitmentResponse , PrismApiError > { let response = self . fetch (\"/commitment\") . await ? ; Ok (response) }",
+              "async fn post_transaction (& self , transaction : Transaction ,) -> Result < impl PendingTransaction < Timer = Self :: Timer > , PrismApiError > { self . post_no_response (\"/transaction\" , & transaction) . await ? ; Ok (PendingTransactionImpl :: new (self , transaction)) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismHttpClient"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/prism_api.rs#impl_From<PrismHttpClientError>_PrismApiError",
+            "target_type": "PrismApiError",
+            "trait_name": "From < PrismHttpClientError >",
+            "items": [
+              "fn from (err : PrismHttpClientError) -> Self { match err { PrismHttpClientError :: Decode => PrismApiError :: SerdeFailed (err . to_string ()) , PrismHttpClientError :: Request => PrismApiError :: RequestFailed (\"unspecific\" . to_string ()) , PrismHttpClientError :: Status (status) => { PrismApiError :: RequestFailed (format ! (\"Status: {}\" , status)) } PrismHttpClientError :: Url (msg) => PrismApiError :: InvalidTarget (msg) , PrismHttpClientError :: Unknown => PrismApiError :: Unknown , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismApiError"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/client/src/http_client.rs",
+      "path": "../crates/client/src/http_client.rs",
+      "relative_path": "crates/client/src/http_client.rs",
+      "file_size": 3077,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/http_client.rs#use_serde_{de_DeserializeOwned,Serialize}",
+            "path": "serde :: { de :: DeserializeOwned , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/http_client.rs#use_std_{error_Error,fmt_{Display,Formatter},}",
+            "path": "std :: { error :: Error , fmt :: { Display , Formatter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/client/src/http_client.rs#PrismHttpClient",
+            "name": "PrismHttpClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "client",
+                "type_name": "reqwest :: Client",
+                "visibility": "private"
+              },
+              {
+                "name": "base_url",
+                "type_name": "url :: Url",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_PrismHttpClient",
+            "target_type": "PrismHttpClient",
+            "trait_name": null,
+            "items": [
+              "pub fn new (base_url : & str) -> Result < Self , PrismHttpClientError > { Ok (Self { client : reqwest :: Client :: new () , base_url : reqwest :: Url :: parse (base_url) . map_err (Into :: < PrismHttpClientError > :: into) ? , }) }",
+              "pub async fn fetch < T > (& self , path : & str) -> Result < T , PrismHttpClientError > where T : DeserializeOwned , { let url = self . join_url (path) ? ; let response = self . client . get (& url) . send () . await ? ; response . json :: < T > () . await . map_err (Into :: < PrismHttpClientError > :: into) }",
+              "pub async fn post < T , U > (& self , path : & str , body : & T) -> Result < U , PrismHttpClientError > where T : Serialize , U : DeserializeOwned , { let url = self . join_url (path) ? ; let response = self . client . post (& url) . json (body) . send () . await ? ; response . json :: < U > () . await . map_err (Into :: < PrismHttpClientError > :: into) }",
+              "pub async fn post_no_response < T > (& self , path : & str , body : & T ,) -> Result < () , PrismHttpClientError > where T : Serialize , { let url = self . join_url (path) ? ; self . client . post (& url) . json (body) . send () . await ? ; Ok (()) }",
+              "fn join_url (& self , path : & str) -> Result < String , PrismHttpClientError > { self . base_url . join (path) . map (| url | url . to_string ()) . map_err (Into :: < PrismHttpClientError > :: into) }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/client/src/http_client.rs#PrismHttpClientError",
+            "name": "PrismHttpClientError",
+            "visibility": "pub",
+            "variants": [
+              "Decode",
+              "Request",
+              "Status",
+              "Url",
+              "Unknown"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_Display_PrismHttpClientError",
+            "target_type": "PrismHttpClientError",
+            "trait_name": "Display",
+            "items": [
+              "fn fmt (& self , f : & mut Formatter < '_ >) -> std :: fmt :: Result { match self { PrismHttpClientError :: Decode => write ! (f , \"Failed to decode response\") , PrismHttpClientError :: Request => write ! (f , \"Request failed\") , PrismHttpClientError :: Status (code) => { write ! (f , \"Request failed with status code: {}\" , code) } PrismHttpClientError :: Url (err) => write ! (f , \"URL parse error: {}\" , err) , PrismHttpClientError :: Unknown => write ! (f , \"Unknown error occurred\") , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_Error_PrismHttpClientError",
+            "target_type": "PrismHttpClientError",
+            "trait_name": "Error",
+            "items": [],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_From<reqwest::Error>_PrismHttpClientError",
+            "target_type": "PrismHttpClientError",
+            "trait_name": "From < reqwest :: Error >",
+            "items": [
+              "fn from (err : reqwest :: Error) -> Self { if err . is_request () { PrismHttpClientError :: Request } else if err . is_decode () { PrismHttpClientError :: Decode } else if err . is_status () { PrismHttpClientError :: Status (err . status () . expect (\"Status error should contain status\") . into () ,) } else { PrismHttpClientError :: Unknown } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_From<url::ParseError>_PrismHttpClientError",
+            "target_type": "PrismHttpClientError",
+            "trait_name": "From < url :: ParseError >",
+            "items": [
+              "fn from (err : url :: ParseError) -> Self { PrismHttpClientError :: Url (err . to_string ()) }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/http_client.rs#use_serde_{de_DeserializeOwned,Serialize}",
+            "path": "serde :: { de :: DeserializeOwned , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/client/src/http_client.rs#use_std_{error_Error,fmt_{Display,Formatter},}",
+            "path": "std :: { error :: Error , fmt :: { Display , Formatter } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/client/src/http_client.rs#PrismHttpClient",
+            "name": "PrismHttpClient",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "client",
+                "type_name": "reqwest :: Client",
+                "visibility": "private"
+              },
+              {
+                "name": "base_url",
+                "type_name": "url :: Url",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_PrismHttpClient",
+            "target_type": "PrismHttpClient",
+            "trait_name": null,
+            "items": [
+              "pub fn new (base_url : & str) -> Result < Self , PrismHttpClientError > { Ok (Self { client : reqwest :: Client :: new () , base_url : reqwest :: Url :: parse (base_url) . map_err (Into :: < PrismHttpClientError > :: into) ? , }) }",
+              "pub async fn fetch < T > (& self , path : & str) -> Result < T , PrismHttpClientError > where T : DeserializeOwned , { let url = self . join_url (path) ? ; let response = self . client . get (& url) . send () . await ? ; response . json :: < T > () . await . map_err (Into :: < PrismHttpClientError > :: into) }",
+              "pub async fn post < T , U > (& self , path : & str , body : & T) -> Result < U , PrismHttpClientError > where T : Serialize , U : DeserializeOwned , { let url = self . join_url (path) ? ; let response = self . client . post (& url) . json (body) . send () . await ? ; response . json :: < U > () . await . map_err (Into :: < PrismHttpClientError > :: into) }",
+              "pub async fn post_no_response < T > (& self , path : & str , body : & T ,) -> Result < () , PrismHttpClientError > where T : Serialize , { let url = self . join_url (path) ? ; self . client . post (& url) . json (body) . send () . await ? ; Ok (()) }",
+              "fn join_url (& self , path : & str) -> Result < String , PrismHttpClientError > { self . base_url . join (path) . map (| url | url . to_string ()) . map_err (Into :: < PrismHttpClientError > :: into) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismHttpClient"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/client/src/http_client.rs#PrismHttpClientError",
+            "name": "PrismHttpClientError",
+            "visibility": "pub",
+            "variants": [
+              "Decode",
+              "Request",
+              "Status",
+              "Url",
+              "Unknown"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_Display_PrismHttpClientError",
+            "target_type": "PrismHttpClientError",
+            "trait_name": "Display",
+            "items": [
+              "fn fmt (& self , f : & mut Formatter < '_ >) -> std :: fmt :: Result { match self { PrismHttpClientError :: Decode => write ! (f , \"Failed to decode response\") , PrismHttpClientError :: Request => write ! (f , \"Request failed\") , PrismHttpClientError :: Status (code) => { write ! (f , \"Request failed with status code: {}\" , code) } PrismHttpClientError :: Url (err) => write ! (f , \"URL parse error: {}\" , err) , PrismHttpClientError :: Unknown => write ! (f , \"Unknown error occurred\") , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismHttpClientError"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_Error_PrismHttpClientError",
+            "target_type": "PrismHttpClientError",
+            "trait_name": "Error",
+            "items": [],
+            "generics": []
+          },
+          "type_references": [
+            "PrismHttpClientError"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_From<reqwest::Error>_PrismHttpClientError",
+            "target_type": "PrismHttpClientError",
+            "trait_name": "From < reqwest :: Error >",
+            "items": [
+              "fn from (err : reqwest :: Error) -> Self { if err . is_request () { PrismHttpClientError :: Request } else if err . is_decode () { PrismHttpClientError :: Decode } else if err . is_status () { PrismHttpClientError :: Status (err . status () . expect (\"Status error should contain status\") . into () ,) } else { PrismHttpClientError :: Unknown } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismHttpClientError"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/client/src/http_client.rs#impl_From<url::ParseError>_PrismHttpClientError",
+            "target_type": "PrismHttpClientError",
+            "trait_name": "From < url :: ParseError >",
+            "items": [
+              "fn from (err : url :: ParseError) -> Self { PrismHttpClientError :: Url (err . to_string ()) }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "PrismHttpClientError"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/client/src/lib.rs",
+      "to_id": "http_client :: { PrismHttpClient , PrismHttpClientError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/lib.rs",
+      "to_id": "prism_common :: { account :: Account , api :: { PendingTransaction , PrismApi , PrismApiError , types :: * } , builder , digest :: Digest , operation :: { ServiceChallenge , ServiceChallengeInput , SignatureBundle } , transaction :: { Transaction , TransactionError , UnsignedTransaction } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/lib.rs",
+      "to_id": "prism_keys :: { CryptoAlgorithm , Signature , SigningKey , VerifyingKey }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/lib.rs",
+      "to_id": "prism_serde :: binary",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/lib.rs",
+      "to_id": "prism_common :: api :: mock",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/prism_api.rs",
+      "to_id": "std :: { future :: Future , time :: Duration }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/prism_api.rs",
+      "to_id": "async_trait :: async_trait",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/prism_api.rs",
+      "to_id": "prism_common :: { api :: { types :: { AccountRequest , AccountResponse , CommitmentResponse } , PendingTransaction , PendingTransactionImpl , PrismApi , PrismApiError , PrismApiTimer , } , transaction :: Transaction , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/prism_api.rs",
+      "to_id": "crate :: { PrismHttpClient , PrismHttpClientError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/prism_api.rs#impl_PrismApiTimer_PrismHttpTokioTimer",
+      "to_id": "trait:PrismApiTimer",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/client/src/prism_api.rs#impl_PrismApi_PrismHttpClient",
+      "to_id": "trait:PrismApi",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/client/src/prism_api.rs#impl_From<PrismHttpClientError>_PrismApiError",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/client/src/http_client.rs",
+      "to_id": "serde :: { de :: DeserializeOwned , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/http_client.rs",
+      "to_id": "std :: { error :: Error , fmt :: { Display , Formatter } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/client/src/http_client.rs#PrismHttpClientError",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/client/src/http_client.rs#impl_Display_PrismHttpClientError",
+      "to_id": "trait:Display",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/client/src/http_client.rs#impl_Error_PrismHttpClientError",
+      "to_id": "trait:Error",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/client/src/http_client.rs#impl_From<reqwest::Error>_PrismHttpClientError",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/client/src/http_client.rs#impl_From<url::ParseError>_PrismHttpClientError",
+      "to_id": "trait:From",
+      "ref_type": "TraitImpl"
+    }
+  ],
+  "total_files": 3,
+  "successfully_parsed": 3,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 0,
+    "total_structs": 2,
+    "total_enums": 1,
+    "total_traits": 0,
+    "total_impls": 8,
+    "total_tests": 0,
+    "total_function_calls": 0,
+    "total_derives": 1,
+    "total_macro_uses": 0
+  }
+}

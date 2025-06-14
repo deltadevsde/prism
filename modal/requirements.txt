@@ -1,0 +1,12 @@
+modal>=0.57.0
+torch>=2.0.0
+transformers>=4.30.0
+datasets>=2.12.0
+accelerate>=0.20.0
+wandb>=0.15.0
+rdflib>=6.3.0
+pyld>=2.0.3
+numpy>=1.24.0
+scikit-learn>=1.3.0
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4

@@ -1,0 +1,4557 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@vocab": "https://schema.org/",
+    "attributes": "rust:attributes",
+    "crate": "https://w3id.org/rust/crate/",
+    "crate_name": "name",
+    "crate_path": "rust:cratePath",
+    "cross_references": "rust:crossReferences",
+    "dcterms": "http://purl.org/dc/terms/",
+    "derives": "rust:derives",
+    "edge_type": "rust:edgeType",
+    "edges": "rust:edges",
+    "failed_files": "rust:failedFiles",
+    "fields": "rust:fields",
+    "file_size": "contentSize",
+    "files": "hasPart",
+    "function_calls": "rust:functionCalls",
+    "generics": "rust:generics",
+    "items": "hasPart",
+    "label": "rdfs:label",
+    "last_modified": "dateModified",
+    "local_variables": "rust:localVariables",
+    "macro_invocations": "rust:macroInvocations",
+    "name": "name",
+    "nodes": "hasPart",
+    "path": "rust:path",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "relative_path": "rust:relativePath",
+    "rust": "https://w3id.org/rust/vocab#",
+    "source": "rust:source",
+    "stats": "rust:statistics",
+    "successfully_parsed": "rust:successfullyParsed",
+    "target": "rust:target",
+    "target_type": "rust:targetType",
+    "test_attributes": "rust:testAttributes",
+    "total_files": "rust:totalFiles",
+    "trait_name": "rust:traitName",
+    "type_references": "rust:typeReferences",
+    "variants": "rust:variants",
+    "visibility": "rust:visibility",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@type": "rust:Crate",
+  "@id": "crate:cli",
+  "crate_name": "cli",
+  "crate_path": "crates/cli",
+  "files": [
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/cli/src/lib.rs",
+      "path": "../crates/cli/src/lib.rs",
+      "relative_path": "crates/cli/src/lib.rs",
+      "file_size": 71,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/cli/src/lib.rs#cfg",
+            "name": "cfg",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/cli/src/lib.rs#node_types",
+            "name": "node_types",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/cli/src/lib.rs#cfg",
+            "name": "cfg",
+            "visibility": "pub",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/cli/src/lib.rs#node_types",
+            "name": "node_types",
+            "visibility": "pub",
+            "items": []
+          }
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/cli/src/cfg.rs",
+      "path": "../crates/cli/src/cfg.rs",
+      "relative_path": "crates/cli/src/cfg.rs",
+      "file_size": 15015,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_anyhow_{Context,Result,anyhow}",
+            "path": "anyhow :: { Context , Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_clap_{Args,Parser,Subcommand,ValueEnum}",
+            "path": "clap :: { Args , Parser , Subcommand , ValueEnum }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_config_{ConfigBuilder,File,builder_DefaultState}",
+            "path": "config :: { ConfigBuilder , File , builder :: DefaultState }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_dirs_home_dir",
+            "path": "dirs :: home_dir",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_dotenvy_dotenv",
+            "path": "dotenvy :: dotenv",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_errors_{DataAvailabilityError,GeneralError}",
+            "path": "prism_errors :: { DataAvailabilityError , GeneralError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_keys_VerifyingKey",
+            "path": "prism_keys :: VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_prover_{prover_DEFAULT_MAX_EPOCHLESS_GAP,webserver_WebServerConfig}",
+            "path": "prism_prover :: { prover :: DEFAULT_MAX_EPOCHLESS_GAP , webserver :: WebServerConfig }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_serde_base64_FromBase64",
+            "path": "prism_serde :: base64 :: FromBase64",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_storage_{Database,RedisConnection,database_StorageBackend,inmemory_InMemoryDatabase,redis_RedisConfig,rocksdb_{RocksDBConfig,RocksDBConnection},}",
+            "path": "prism_storage :: { Database , RedisConnection , database :: StorageBackend , inmemory :: InMemoryDatabase , redis :: RedisConfig , rocksdb :: { RocksDBConfig , RocksDBConnection } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_telemetry_config_{TelemetryConfig,get_default_telemetry_config}",
+            "path": "prism_telemetry :: config :: { TelemetryConfig , get_default_telemetry_config }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_std_{fs,path_Path,str_FromStr,sync_Arc,time_Duration}",
+            "path": "std :: { fs , path :: Path , str :: FromStr , sync :: Arc , time :: Duration }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_tracing_{error,info,warn}",
+            "path": "tracing :: { error , info , warn }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_da_{DataAvailabilityLayer,LightDataAvailabilityLayer,celestia_{full_node_CelestiaConnection,light_client_LightClientConnection,utils_{CelestiaConfig,Network,NetworkConfig},},consts_{DA_RETRY_COUNT,DA_RETRY_INTERVAL},memory_InMemoryDataAvailabilityLayer,}",
+            "path": "prism_da :: { DataAvailabilityLayer , LightDataAvailabilityLayer , celestia :: { full_node :: CelestiaConnection , light_client :: LightClientConnection , utils :: { CelestiaConfig , Network , NetworkConfig } , } , consts :: { DA_RETRY_COUNT , DA_RETRY_INTERVAL } , memory :: InMemoryDataAvailabilityLayer , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/cli/src/cfg.rs#Commands",
+            "name": "Commands",
+            "visibility": "pub",
+            "variants": [
+              "LightClient",
+              "FullNode",
+              "Prover"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#CommandArgs",
+            "name": "CommandArgs",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "network_name",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "verifying_key",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "home_path",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "database",
+                "type_name": "DatabaseArgs",
+                "visibility": "private"
+              },
+              {
+                "name": "keystore_type",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "keystore_path",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "celestia",
+                "type_name": "CelestiaArgs",
+                "visibility": "private"
+              },
+              {
+                "name": "webserver",
+                "type_name": "WebserverArgs",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#Cli",
+            "name": "Cli",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "command",
+                "type_name": "Commands",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#CelestiaArgs",
+            "name": "CelestiaArgs",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "celestia_client",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "snark_namespace_id",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "operation_namespace_id",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "celestia_start_height",
+                "type_name": "Option < u64 >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#WebserverArgs",
+            "name": "WebserverArgs",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "webserver_active",
+                "type_name": "Option < bool >",
+                "visibility": "private"
+              },
+              {
+                "name": "host",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "port",
+                "type_name": "Option < u16 >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#Config",
+            "name": "Config",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "webserver",
+                "type_name": "Option < WebServerConfig >",
+                "visibility": "pub"
+              },
+              {
+                "name": "network",
+                "type_name": "NetworkConfig",
+                "visibility": "pub"
+              },
+              {
+                "name": "keystore_type",
+                "type_name": "Option < String >",
+                "visibility": "pub"
+              },
+              {
+                "name": "keystore_path",
+                "type_name": "Option < String >",
+                "visibility": "pub"
+              },
+              {
+                "name": "da_layer",
+                "type_name": "DALayerOption",
+                "visibility": "pub"
+              },
+              {
+                "name": "db",
+                "type_name": "StorageBackend",
+                "visibility": "pub"
+              },
+              {
+                "name": "telemetry",
+                "type_name": "Option < TelemetryConfig >",
+                "visibility": "pub"
+              },
+              {
+                "name": "max_epochless_gap",
+                "type_name": "u64",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/cli/src/cfg.rs#impl_Config",
+            "target_type": "Config",
+            "trait_name": null,
+            "items": [
+              "fn initialize (path : & str , network_name : & str) -> Self { Config { webserver : Some (WebServerConfig :: default ()) , keystore_type : Some (\"keychain\" . to_string ()) , keystore_path : Some (format ! (\"{}keystore.json\" , path)) , network : Network :: from_str (network_name) . unwrap () . config () , da_layer : DALayerOption :: default () , db : StorageBackend :: RocksDB (RocksDBConfig :: new (& format ! (\"{}data\" , path))) , telemetry : Some (get_default_telemetry_config ()) , max_epochless_gap : DEFAULT_MAX_EPOCHLESS_GAP , } }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/cli/src/cfg.rs#DALayerOption",
+            "name": "DALayerOption",
+            "visibility": "pub",
+            "variants": [
+              "Celestia",
+              "InMemory"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/cli/src/cfg.rs#DBValues",
+            "name": "DBValues",
+            "visibility": "pub",
+            "variants": [
+              "RocksDB",
+              "InMemory",
+              "Redis"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#DatabaseArgs",
+            "name": "DatabaseArgs",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "db_type",
+                "type_name": "DBValues",
+                "visibility": "private"
+              },
+              {
+                "name": "rocksdb_path",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "redis_url",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#load_config",
+            "name": "load_config",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "args : CommandArgs"
+            ],
+            "output": "Result < Config >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#get_prism_home",
+            "name": "get_prism_home",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "args : & CommandArgs"
+            ],
+            "output": "Result < String >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+            "name": "ensure_config_file_exists",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "home_path : & str",
+              "network_name : & str"
+            ],
+            "output": "Result < () >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#apply_command_line_args",
+            "name": "apply_command_line_args",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "config : Config",
+              "args : CommandArgs"
+            ],
+            "output": "Config",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#initialize_db",
+            "name": "initialize_db",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cfg : & Config"
+            ],
+            "output": "Result < Arc < Box < dyn Database > > >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#initialize_da_layer",
+            "name": "initialize_da_layer",
+            "visibility": "pub",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [
+              "config : & Config"
+            ],
+            "output": "Result < Arc < dyn DataAvailabilityLayer + 'static > >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+            "name": "initialize_light_da_layer",
+            "visibility": "pub",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [
+              "config : & Config"
+            ],
+            "output": "Result < Arc < dyn LightDataAvailabilityLayer + Send + Sync + 'static > >",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_anyhow_{Context,Result,anyhow}",
+            "path": "anyhow :: { Context , Result , anyhow }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_clap_{Args,Parser,Subcommand,ValueEnum}",
+            "path": "clap :: { Args , Parser , Subcommand , ValueEnum }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_config_{ConfigBuilder,File,builder_DefaultState}",
+            "path": "config :: { ConfigBuilder , File , builder :: DefaultState }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_dirs_home_dir",
+            "path": "dirs :: home_dir",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_dotenvy_dotenv",
+            "path": "dotenvy :: dotenv",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_errors_{DataAvailabilityError,GeneralError}",
+            "path": "prism_errors :: { DataAvailabilityError , GeneralError }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_keys_VerifyingKey",
+            "path": "prism_keys :: VerifyingKey",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_prover_{prover_DEFAULT_MAX_EPOCHLESS_GAP,webserver_WebServerConfig}",
+            "path": "prism_prover :: { prover :: DEFAULT_MAX_EPOCHLESS_GAP , webserver :: WebServerConfig }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_serde_base64_FromBase64",
+            "path": "prism_serde :: base64 :: FromBase64",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_storage_{Database,RedisConnection,database_StorageBackend,inmemory_InMemoryDatabase,redis_RedisConfig,rocksdb_{RocksDBConfig,RocksDBConnection},}",
+            "path": "prism_storage :: { Database , RedisConnection , database :: StorageBackend , inmemory :: InMemoryDatabase , redis :: RedisConfig , rocksdb :: { RocksDBConfig , RocksDBConnection } , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_telemetry_config_{TelemetryConfig,get_default_telemetry_config}",
+            "path": "prism_telemetry :: config :: { TelemetryConfig , get_default_telemetry_config }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_serde_{Deserialize,Serialize}",
+            "path": "serde :: { Deserialize , Serialize }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_std_{fs,path_Path,str_FromStr,sync_Arc,time_Duration}",
+            "path": "std :: { fs , path :: Path , str :: FromStr , sync :: Arc , time :: Duration }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_tracing_{error,info,warn}",
+            "path": "tracing :: { error , info , warn }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/cfg.rs#use_prism_da_{DataAvailabilityLayer,LightDataAvailabilityLayer,celestia_{full_node_CelestiaConnection,light_client_LightClientConnection,utils_{CelestiaConfig,Network,NetworkConfig},},consts_{DA_RETRY_COUNT,DA_RETRY_INTERVAL},memory_InMemoryDataAvailabilityLayer,}",
+            "path": "prism_da :: { DataAvailabilityLayer , LightDataAvailabilityLayer , celestia :: { full_node :: CelestiaConnection , light_client :: LightClientConnection , utils :: { CelestiaConfig , Network , NetworkConfig } , } , consts :: { DA_RETRY_COUNT , DA_RETRY_INTERVAL } , memory :: InMemoryDataAvailabilityLayer , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/cli/src/cfg.rs#Commands",
+            "name": "Commands",
+            "visibility": "pub",
+            "variants": [
+              "LightClient",
+              "FullNode",
+              "Prover"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Clone",
+            "Debug",
+            "Subcommand",
+            "Deserialize"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#CommandArgs",
+            "name": "CommandArgs",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "network_name",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "verifying_key",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "home_path",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "database",
+                "type_name": "DatabaseArgs",
+                "visibility": "private"
+              },
+              {
+                "name": "keystore_type",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "keystore_path",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "celestia",
+                "type_name": "CelestiaArgs",
+                "visibility": "private"
+              },
+              {
+                "name": "webserver",
+                "type_name": "WebserverArgs",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Args",
+            "Deserialize",
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#Cli",
+            "name": "Cli",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "command",
+                "type_name": "Commands",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Parser",
+            "Clone",
+            "Debug",
+            "Deserialize"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#CelestiaArgs",
+            "name": "CelestiaArgs",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "celestia_client",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "snark_namespace_id",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "operation_namespace_id",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "celestia_start_height",
+                "type_name": "Option < u64 >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Args",
+            "Deserialize",
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#WebserverArgs",
+            "name": "WebserverArgs",
+            "visibility": "private",
+            "fields": [
+              {
+                "name": "webserver_active",
+                "type_name": "Option < bool >",
+                "visibility": "private"
+              },
+              {
+                "name": "host",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "port",
+                "type_name": "Option < u16 >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Args",
+            "Deserialize",
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#Config",
+            "name": "Config",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "webserver",
+                "type_name": "Option < WebServerConfig >",
+                "visibility": "pub"
+              },
+              {
+                "name": "network",
+                "type_name": "NetworkConfig",
+                "visibility": "pub"
+              },
+              {
+                "name": "keystore_type",
+                "type_name": "Option < String >",
+                "visibility": "pub"
+              },
+              {
+                "name": "keystore_path",
+                "type_name": "Option < String >",
+                "visibility": "pub"
+              },
+              {
+                "name": "da_layer",
+                "type_name": "DALayerOption",
+                "visibility": "pub"
+              },
+              {
+                "name": "db",
+                "type_name": "StorageBackend",
+                "visibility": "pub"
+              },
+              {
+                "name": "telemetry",
+                "type_name": "Option < TelemetryConfig >",
+                "visibility": "pub"
+              },
+              {
+                "name": "max_epochless_gap",
+                "type_name": "u64",
+                "visibility": "pub"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Serialize",
+            "Deserialize",
+            "Clone"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/cli/src/cfg.rs#impl_Config",
+            "target_type": "Config",
+            "trait_name": null,
+            "items": [
+              "fn initialize (path : & str , network_name : & str) -> Self { Config { webserver : Some (WebServerConfig :: default ()) , keystore_type : Some (\"keychain\" . to_string ()) , keystore_path : Some (format ! (\"{}keystore.json\" , path)) , network : Network :: from_str (network_name) . unwrap () . config () , da_layer : DALayerOption :: default () , db : StorageBackend :: RocksDB (RocksDBConfig :: new (& format ! (\"{}data\" , path))) , telemetry : Some (get_default_telemetry_config ()) , max_epochless_gap : DEFAULT_MAX_EPOCHLESS_GAP , } }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "Config"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/cli/src/cfg.rs#DALayerOption",
+            "name": "DALayerOption",
+            "visibility": "pub",
+            "variants": [
+              "Celestia",
+              "InMemory"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Default",
+            "Clone",
+            "Eq",
+            "PartialEq",
+            "Serialize",
+            "Deserialize"
+          ]
+        },
+        {
+          "Enum": {
+            "@type": "rust:Enum",
+            "@id": "crates/cli/src/cfg.rs#DBValues",
+            "name": "DBValues",
+            "visibility": "pub",
+            "variants": [
+              "RocksDB",
+              "InMemory",
+              "Redis"
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Debug",
+            "Default",
+            "Clone",
+            "Eq",
+            "PartialEq",
+            "Serialize",
+            "Deserialize",
+            "ValueEnum"
+          ]
+        },
+        {
+          "Struct": {
+            "@type": "rust:Struct",
+            "@id": "crates/cli/src/cfg.rs#DatabaseArgs",
+            "name": "DatabaseArgs",
+            "visibility": "pub",
+            "fields": [
+              {
+                "name": "db_type",
+                "type_name": "DBValues",
+                "visibility": "private"
+              },
+              {
+                "name": "rocksdb_path",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              },
+              {
+                "name": "redis_url",
+                "type_name": "Option < String >",
+                "visibility": "private"
+              }
+            ],
+            "generics": []
+          },
+          "derives": [
+            "Args",
+            "Deserialize",
+            "Clone",
+            "Debug"
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#load_config",
+            "name": "load_config",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "args : CommandArgs"
+            ],
+            "output": "Result < Config >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "ok",
+              "is_method": true
+            },
+            {
+              "callee": "dotenv",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "get_prism_home",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "ensure_config_file_exists",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "args"
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "fs::create_dir_all",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "build",
+              "is_method": true
+            },
+            {
+              "callee": "add_source",
+              "is_method": true
+            },
+            {
+              "callee": "ConfigBuilder::default",
+              "is_method": false
+            },
+            {
+              "callee": "File::with_name",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "try_deserialize",
+              "is_method": true,
+              "receiver_type": "config_source"
+            },
+            {
+              "callee": "apply_command_line_args",
+              "is_method": false
+            },
+            {
+              "callee": "is_none",
+              "is_method": true
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "home_path",
+              "is_mutable": false
+            },
+            {
+              "name": "config_source",
+              "is_mutable": false
+            },
+            {
+              "name": "final_config",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Config",
+            "DefaultState"
+          ],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "warn",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#get_prism_home",
+            "name": "get_prism_home",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "args : & CommandArgs"
+            ],
+            "output": "Result < String >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "unwrap_or_else",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "ok_or_else",
+              "is_method": true
+            },
+            {
+              "callee": "or_else",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "map",
+              "is_method": true
+            },
+            {
+              "callee": "home_dir",
+              "is_method": false
+            },
+            {
+              "callee": "into",
+              "is_method": true
+            },
+            {
+              "callee": "GeneralError::MissingArgumentError",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "network_name",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+            "name": "ensure_config_file_exists",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "home_path : & str",
+              "network_name : & str"
+            ],
+            "output": "Result < () >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "exists",
+              "is_method": true
+            },
+            {
+              "callee": "Path::new",
+              "is_method": false
+            },
+            {
+              "callee": "parent",
+              "is_method": true
+            },
+            {
+              "callee": "Path::new",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "fs::create_dir_all",
+              "is_method": false
+            },
+            {
+              "callee": "Config::initialize",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "toml::to_string",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "fs::write",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "config_path",
+              "is_mutable": false
+            },
+            {
+              "name": "default_config",
+              "is_mutable": false
+            },
+            {
+              "name": "config_toml",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#apply_command_line_args",
+            "name": "apply_command_line_args",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "config : Config",
+              "args : CommandArgs"
+            ],
+            "output": "Config",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true
+            },
+            {
+              "callee": "config",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "get_prism_home",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "args"
+            },
+            {
+              "callee": "CelestiaConfig::default",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "or",
+              "is_method": true
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "or",
+              "is_method": true
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "or",
+              "is_method": true
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "or",
+              "is_method": true
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "Some",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap_or",
+              "is_method": true
+            },
+            {
+              "callee": "StorageBackend::RocksDB",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or_else",
+              "is_method": true
+            },
+            {
+              "callee": "StorageBackend::Redis",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap",
+              "is_method": true
+            },
+            {
+              "callee": "Network::from_str",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "or",
+              "is_method": true
+            },
+            {
+              "callee": "and_then",
+              "is_method": true
+            },
+            {
+              "callee": "ok",
+              "is_method": true
+            },
+            {
+              "callee": "VerifyingKey::from_base64",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "network_config"
+            },
+            {
+              "callee": "or",
+              "is_method": true
+            },
+            {
+              "callee": "or",
+              "is_method": true
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "webserver_config",
+              "is_mutable": false
+            },
+            {
+              "name": "network_config",
+              "is_mutable": false
+            },
+            {
+              "name": "prism_home",
+              "is_mutable": false
+            },
+            {
+              "name": "default_celestia_config",
+              "is_mutable": false
+            },
+            {
+              "name": "celestia_config",
+              "is_mutable": false
+            },
+            {
+              "name": "existing_config",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#initialize_db",
+            "name": "initialize_db",
+            "visibility": "pub",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "cfg : & Config"
+            ],
+            "output": "Result < Arc < Box < dyn Database > > >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "RocksDBConnection::new",
+              "is_method": false
+            },
+            {
+              "callee": "GeneralError::InitializationError",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "Box::new",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "Box::new",
+              "is_method": false
+            },
+            {
+              "callee": "InMemoryDatabase::new",
+              "is_method": false
+            },
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "RedisConnection::new",
+              "is_method": false
+            },
+            {
+              "callee": "GeneralError::InitializationError",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "Box::new",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "db",
+              "is_mutable": false
+            },
+            {
+              "name": "db",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Box"
+          ],
+          "macro_invocations": []
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#initialize_da_layer",
+            "name": "initialize_da_layer",
+            "visibility": "pub",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [
+              "config : & Config"
+            ],
+            "output": "Result < Arc < dyn DataAvailabilityLayer + 'static > >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "context",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "CelestiaConnection::new",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "Err",
+              "is_method": false
+            },
+            {
+              "callee": "into",
+              "is_method": true
+            },
+            {
+              "callee": "DataAvailabilityError::NetworkError",
+              "is_method": false
+            },
+            {
+              "callee": "tokio::time::sleep",
+              "is_method": false
+            },
+            {
+              "callee": "InMemoryDataAvailabilityLayer::new",
+              "is_method": false
+            },
+            {
+              "callee": "Duration::from_secs",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "celestia_conf",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Arc"
+          ],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "error",
+              "kind": "function-like"
+            },
+            {
+              "name": "unreachable",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+            "name": "initialize_light_da_layer",
+            "visibility": "pub",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [
+              "config : & Config"
+            ],
+            "output": "Result < Arc < dyn LightDataAvailabilityLayer + Send + Sync + 'static > >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "LightClientConnection::new",
+              "is_method": false
+            },
+            {
+              "callee": "Err",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "InMemoryDataAvailabilityLayer::new",
+              "is_method": false
+            },
+            {
+              "callee": "Duration::from_secs",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "connection",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Arc"
+          ],
+          "macro_invocations": [
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "error",
+              "kind": "function-like"
+            },
+            {
+              "name": "error",
+              "kind": "function-like"
+            },
+            {
+              "name": "error",
+              "kind": "function-like"
+            },
+            {
+              "name": "error",
+              "kind": "function-like"
+            },
+            {
+              "name": "anyhow",
+              "kind": "function-like"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/cli/src/main.rs",
+      "path": "../crates/cli/src/main.rs",
+      "relative_path": "crates/cli/src/main.rs",
+      "file_size": 9369,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/cli/src/main.rs#cfg",
+            "name": "cfg",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/cli/src/main.rs#node_types",
+            "name": "node_types",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_cfg_{Cli,Commands,initialize_da_layer,initialize_db,initialize_light_da_layer,load_config,}",
+            "path": "cfg :: { Cli , Commands , initialize_da_layer , initialize_db , initialize_light_da_layer , load_config , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_clap_Parser",
+            "path": "clap :: Parser",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_keystore_rs_{FileStore,KeyChain,KeyStore}",
+            "path": "keystore_rs :: { FileStore , KeyChain , KeyStore }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_keys_{CryptoAlgorithm,SigningKey}",
+            "path": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_serde_base64_ToBase64",
+            "path": "prism_serde :: base64 :: ToBase64",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_telemetry_telemetry_shutdown_telemetry",
+            "path": "prism_telemetry :: telemetry :: shutdown_telemetry",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_telemetry_registry_{init_init,metrics_registry_get_metrics}",
+            "path": "prism_telemetry_registry :: { init :: init , metrics_registry :: get_metrics }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_std_io_{Error,ErrorKind}",
+            "path": "std :: io :: { Error , ErrorKind }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_node_types_NodeType",
+            "path": "node_types :: NodeType",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_lightclient_{LightClient,events_EventChannel}",
+            "path": "prism_lightclient :: { LightClient , events :: EventChannel }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_prover_Prover",
+            "path": "prism_prover :: Prover",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_tokio_util_sync_CancellationToken",
+            "path": "tokio_util :: sync :: CancellationToken",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_tracing_{error,info}",
+            "path": "tracing :: { error , info }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/cli/src/main.rs#SIGNING_KEY_ID",
+            "name": "SIGNING_KEY_ID",
+            "visibility": "pub",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/main.rs#main",
+            "name": "main",
+            "visibility": "private",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "std :: io :: Result < () >",
+            "generics": []
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/main.rs#get_signing_key",
+            "name": "get_signing_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "keystore_type : Option < String >",
+              "keystore_path : Option < String >"
+            ],
+            "output": "std :: io :: Result < SigningKey >",
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/cli/src/main.rs#cfg",
+            "name": "cfg",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Module": {
+            "@type": "rust:Module",
+            "@id": "crates/cli/src/main.rs#node_types",
+            "name": "node_types",
+            "visibility": "private",
+            "items": []
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_cfg_{Cli,Commands,initialize_da_layer,initialize_db,initialize_light_da_layer,load_config,}",
+            "path": "cfg :: { Cli , Commands , initialize_da_layer , initialize_db , initialize_light_da_layer , load_config , }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_clap_Parser",
+            "path": "clap :: Parser",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_keystore_rs_{FileStore,KeyChain,KeyStore}",
+            "path": "keystore_rs :: { FileStore , KeyChain , KeyStore }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_keys_{CryptoAlgorithm,SigningKey}",
+            "path": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_serde_base64_ToBase64",
+            "path": "prism_serde :: base64 :: ToBase64",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_telemetry_telemetry_shutdown_telemetry",
+            "path": "prism_telemetry :: telemetry :: shutdown_telemetry",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_telemetry_registry_{init_init,metrics_registry_get_metrics}",
+            "path": "prism_telemetry_registry :: { init :: init , metrics_registry :: get_metrics }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_std_io_{Error,ErrorKind}",
+            "path": "std :: io :: { Error , ErrorKind }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_node_types_NodeType",
+            "path": "node_types :: NodeType",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_lightclient_{LightClient,events_EventChannel}",
+            "path": "prism_lightclient :: { LightClient , events :: EventChannel }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_prism_prover_Prover",
+            "path": "prism_prover :: Prover",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_std_sync_Arc",
+            "path": "std :: sync :: Arc",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_tokio_util_sync_CancellationToken",
+            "path": "tokio_util :: sync :: CancellationToken",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/main.rs#use_tracing_{error,info}",
+            "path": "tracing :: { error , info }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Const": {
+            "@type": "rust:Const",
+            "@id": "crates/cli/src/main.rs#SIGNING_KEY_ID",
+            "name": "SIGNING_KEY_ID",
+            "visibility": "pub",
+            "type_name": "& str"
+          }
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/main.rs#main",
+            "name": "main",
+            "visibility": "private",
+            "is_async": true,
+            "is_unsafe": false,
+            "inputs": [],
+            "output": "std :: io :: Result < () >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "Cli::parse",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "cli"
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "load_config",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "args"
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "Err",
+              "is_method": false
+            },
+            {
+              "callee": "Error::new",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "to_string",
+              "is_method": true
+            },
+            {
+              "callee": "init",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "telemetry_config"
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "CancellationToken::new",
+              "is_method": false
+            },
+            {
+              "callee": "get_metrics",
+              "is_method": false
+            },
+            {
+              "callee": "record_node_info",
+              "is_method": true,
+              "receiver_type": "metrics"
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "initialize_light_da_layer",
+              "is_method": false
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "EventChannel::new",
+              "is_method": false
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "LightClient::new",
+              "is_method": false
+            },
+            {
+              "callee": "publisher",
+              "is_method": true,
+              "receiver_type": "event_channel"
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "initialize_db",
+              "is_method": false
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "initialize_da_layer",
+              "is_method": false
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "get_signing_key",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "keystore_type"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "keystore_path"
+            },
+            {
+              "callee": "verifying_key",
+              "is_method": true,
+              "receiver_type": "signing_key"
+            },
+            {
+              "callee": "map_or",
+              "is_method": true
+            },
+            {
+              "callee": "std::env::var",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "webserver_config"
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "Prover::new",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "cancellation_token"
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "initialize_db",
+              "is_method": false
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "initialize_da_layer",
+              "is_method": false
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "get_signing_key",
+              "is_method": false
+            },
+            {
+              "callee": "ok_or_else",
+              "is_method": true
+            },
+            {
+              "callee": "clone",
+              "is_method": true
+            },
+            {
+              "callee": "Error::new",
+              "is_method": false
+            },
+            {
+              "callee": "map_or",
+              "is_method": true
+            },
+            {
+              "callee": "std::env::var",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true,
+              "receiver_type": "webserver_config"
+            },
+            {
+              "callee": "Arc::new",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "Prover::new",
+              "is_method": false
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "cancellation_token"
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "clone",
+              "is_method": true,
+              "receiver_type": "cancellation_token"
+            },
+            {
+              "callee": "tokio::spawn",
+              "is_method": false
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "signal",
+              "is_method": false
+            },
+            {
+              "callee": "SignalKind::interrupt",
+              "is_method": false
+            },
+            {
+              "callee": "expect",
+              "is_method": true
+            },
+            {
+              "callee": "signal",
+              "is_method": false
+            },
+            {
+              "callee": "SignalKind::terminate",
+              "is_method": false
+            },
+            {
+              "callee": "cancel",
+              "is_method": true,
+              "receiver_type": "cancellation_for_signal"
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "start",
+              "is_method": true,
+              "receiver_type": "node"
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "shutdown_telemetry",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "cli",
+              "is_mutable": false
+            },
+            {
+              "name": "args",
+              "is_mutable": false
+            },
+            {
+              "name": "config",
+              "is_mutable": false
+            },
+            {
+              "name": "telemetry_config",
+              "is_mutable": false
+            },
+            {
+              "name": "keystore_type",
+              "is_mutable": false
+            },
+            {
+              "name": "keystore_path",
+              "is_mutable": false
+            },
+            {
+              "name": "webserver_config",
+              "is_mutable": false
+            },
+            {
+              "name": "node_type",
+              "is_mutable": false
+            },
+            {
+              "name": "celestia_config",
+              "is_mutable": false
+            },
+            {
+              "name": "start_height",
+              "is_mutable": false
+            },
+            {
+              "name": "cancellation_token",
+              "is_mutable": false
+            },
+            {
+              "name": "verifying_key",
+              "is_mutable": false
+            },
+            {
+              "name": "da",
+              "is_mutable": false
+            },
+            {
+              "name": "event_channel",
+              "is_mutable": false
+            },
+            {
+              "name": "db",
+              "is_mutable": false
+            },
+            {
+              "name": "da",
+              "is_mutable": false
+            },
+            {
+              "name": "signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "verifying_key",
+              "is_mutable": false
+            },
+            {
+              "name": "recursive_proofs",
+              "is_mutable": false
+            },
+            {
+              "name": "prover_cfg",
+              "is_mutable": false
+            },
+            {
+              "name": "db",
+              "is_mutable": false
+            },
+            {
+              "name": "da",
+              "is_mutable": false
+            },
+            {
+              "name": "signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "verifying_key",
+              "is_mutable": false
+            },
+            {
+              "name": "recursive_proofs",
+              "is_mutable": false
+            },
+            {
+              "name": "prover_cfg",
+              "is_mutable": false
+            },
+            {
+              "name": "cancellation_for_signal",
+              "is_mutable": false
+            },
+            {
+              "name": "sigint",
+              "is_mutable": true
+            },
+            {
+              "name": "sigterm",
+              "is_mutable": true
+            },
+            {
+              "name": "result",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Arc",
+            "String",
+            "Vec"
+          ],
+          "macro_invocations": [
+            {
+              "name": "vec",
+              "kind": "function-like"
+            },
+            {
+              "name": "vec",
+              "kind": "function-like"
+            },
+            {
+              "name": "error",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "error",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "info",
+              "kind": "function-like"
+            },
+            {
+              "name": "error",
+              "kind": "function-like"
+            }
+          ]
+        },
+        {
+          "Function": {
+            "@type": "rust:Function",
+            "@id": "crates/cli/src/main.rs#get_signing_key",
+            "name": "get_signing_key",
+            "visibility": "private",
+            "is_async": false,
+            "is_unsafe": false,
+            "inputs": [
+              "keystore_type : Option < String >",
+              "keystore_path : Option < String >"
+            ],
+            "output": "std :: io :: Result < SigningKey >",
+            "generics": []
+          },
+          "function_calls": [
+            {
+              "callee": "as_str",
+              "is_method": true
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true,
+              "receiver_type": "keystore_type"
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "FileStore::new",
+              "is_method": false
+            },
+            {
+              "callee": "unwrap_or_default",
+              "is_method": true,
+              "receiver_type": "keystore_path"
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "to_string",
+              "is_method": true,
+              "receiver_type": "e"
+            },
+            {
+              "callee": "Box::new",
+              "is_method": false
+            },
+            {
+              "callee": "Box::new",
+              "is_method": false
+            },
+            {
+              "callee": "Err",
+              "is_method": false
+            },
+            {
+              "callee": "Error::new",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "get_or_create_signing_key",
+              "is_method": true,
+              "receiver_type": "keystore"
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "map_err",
+              "is_method": true
+            },
+            {
+              "callee": "SigningKey::from_algorithm_and_bytes",
+              "is_method": false
+            },
+            {
+              "callee": "as_bytes",
+              "is_method": true,
+              "receiver_type": "raw_signing_key"
+            },
+            {
+              "callee": "Error::other",
+              "is_method": false
+            },
+            {
+              "callee": "Ok",
+              "is_method": false
+            }
+          ],
+          "local_variables": [
+            {
+              "name": "file_store",
+              "is_mutable": false
+            },
+            {
+              "name": "raw_signing_key",
+              "is_mutable": false
+            },
+            {
+              "name": "signing_key",
+              "is_mutable": false
+            }
+          ],
+          "type_references": [
+            "Box"
+          ],
+          "macro_invocations": [
+            {
+              "name": "format",
+              "kind": "function-like"
+            },
+            {
+              "name": "format",
+              "kind": "function-like"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "rust:SourceFile",
+      "@id": "crates/cli/src/node_types.rs",
+      "path": "../crates/cli/src/node_types.rs",
+      "relative_path": "crates/cli/src/node_types.rs",
+      "file_size": 513,
+      "last_modified": "2025-06-14 08:09:03 UTC",
+      "items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/node_types.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/node_types.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/node_types.rs#use_std_{self,sync_Arc}",
+            "path": "std :: { self , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/cli/src/node_types.rs#NodeType",
+            "name": "NodeType",
+            "visibility": "pub",
+            "items": [
+              "async fn start (self : Arc < Self >) -> Result < () > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/cli/src/node_types.rs#impl_NodeType_prism_prover::Prover",
+            "target_type": "prism_prover :: Prover",
+            "trait_name": "NodeType",
+            "items": [
+              "async fn start (self : Arc < Self >) -> Result < () > { self . run () . await }"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/cli/src/node_types.rs#impl_NodeType_prism_lightclient::LightClient",
+            "target_type": "prism_lightclient :: LightClient",
+            "trait_name": "NodeType",
+            "items": [
+              "async fn start (self : Arc < Self >) -> Result < () > { self . run () . await }"
+            ],
+            "generics": []
+          }
+        }
+      ],
+      "enhanced_items": [
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/node_types.rs#use_anyhow_Result",
+            "path": "anyhow :: Result",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/node_types.rs#use_async_trait_async_trait",
+            "path": "async_trait :: async_trait",
+            "visibility": "private"
+          }
+        },
+        {
+          "Use": {
+            "@type": "rust:Use",
+            "@id": "crates/cli/src/node_types.rs#use_std_{self,sync_Arc}",
+            "path": "std :: { self , sync :: Arc }",
+            "visibility": "private"
+          }
+        },
+        {
+          "Trait": {
+            "@type": "rust:Trait",
+            "@id": "crates/cli/src/node_types.rs#NodeType",
+            "name": "NodeType",
+            "visibility": "pub",
+            "items": [
+              "async fn start (self : Arc < Self >) -> Result < () > ;"
+            ],
+            "generics": []
+          }
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/cli/src/node_types.rs#impl_NodeType_prism_prover::Prover",
+            "target_type": "prism_prover :: Prover",
+            "trait_name": "NodeType",
+            "items": [
+              "async fn start (self : Arc < Self >) -> Result < () > { self . run () . await }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "prism_prover::Prover"
+          ]
+        },
+        {
+          "Impl": {
+            "@type": "rust:Impl",
+            "@id": "crates/cli/src/node_types.rs#impl_NodeType_prism_lightclient::LightClient",
+            "target_type": "prism_lightclient :: LightClient",
+            "trait_name": "NodeType",
+            "items": [
+              "async fn start (self : Arc < Self >) -> Result < () > { self . run () . await }"
+            ],
+            "generics": []
+          },
+          "type_references": [
+            "prism_lightclient::LightClient"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "anyhow :: { Context , Result , anyhow }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "clap :: { Args , Parser , Subcommand , ValueEnum }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "config :: { ConfigBuilder , File , builder :: DefaultState }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "dirs :: home_dir",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "dotenvy :: dotenv",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "prism_errors :: { DataAvailabilityError , GeneralError }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "prism_keys :: VerifyingKey",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "prism_prover :: { prover :: DEFAULT_MAX_EPOCHLESS_GAP , webserver :: WebServerConfig }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "prism_serde :: base64 :: FromBase64",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "prism_storage :: { Database , RedisConnection , database :: StorageBackend , inmemory :: InMemoryDatabase , redis :: RedisConfig , rocksdb :: { RocksDBConfig , RocksDBConnection } , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "prism_telemetry :: config :: { TelemetryConfig , get_default_telemetry_config }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "serde :: { Deserialize , Serialize }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "std :: { fs , path :: Path , str :: FromStr , sync :: Arc , time :: Duration }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "tracing :: { error , info , warn }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs",
+      "to_id": "prism_da :: { DataAvailabilityLayer , LightDataAvailabilityLayer , celestia :: { full_node :: CelestiaConnection , light_client :: LightClientConnection , utils :: { CelestiaConfig , Network , NetworkConfig } , } , consts :: { DA_RETRY_COUNT , DA_RETRY_INTERVAL } , memory :: InMemoryDataAvailabilityLayer , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Commands",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Commands",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Commands",
+      "to_id": "trait:Subcommand",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Commands",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#CommandArgs",
+      "to_id": "trait:Args",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#CommandArgs",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#CommandArgs",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#CommandArgs",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Cli",
+      "to_id": "trait:Parser",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Cli",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Cli",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Cli",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#CelestiaArgs",
+      "to_id": "trait:Args",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#CelestiaArgs",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#CelestiaArgs",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#CelestiaArgs",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#WebserverArgs",
+      "to_id": "trait:Args",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#WebserverArgs",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#WebserverArgs",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#WebserverArgs",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Config",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Config",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Config",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#Config",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DALayerOption",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DALayerOption",
+      "to_id": "trait:Default",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DALayerOption",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DALayerOption",
+      "to_id": "trait:Eq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DALayerOption",
+      "to_id": "trait:PartialEq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DALayerOption",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DALayerOption",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DBValues",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DBValues",
+      "to_id": "trait:Default",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DBValues",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DBValues",
+      "to_id": "trait:Eq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DBValues",
+      "to_id": "trait:PartialEq",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DBValues",
+      "to_id": "trait:Serialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DBValues",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DBValues",
+      "to_id": "trait:ValueEnum",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DatabaseArgs",
+      "to_id": "trait:Args",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DatabaseArgs",
+      "to_id": "trait:Deserialize",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DatabaseArgs",
+      "to_id": "trait:Clone",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#DatabaseArgs",
+      "to_id": "trait:Debug",
+      "ref_type": "Derive"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "dotenv",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "fs::create_dir_all",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "build",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "add_source",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "ConfigBuilder::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "File::with_name",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "try_deserialize",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "is_none",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#load_config",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "unwrap_or_else",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "ok_or_else",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "or_else",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "map",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "home_dir",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "GeneralError::MissingArgumentError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "exists",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "Path::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "parent",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "Path::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "fs::create_dir_all",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "Config::initialize",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "toml::to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "fs::write",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#ensure_config_file_exists",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "config",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "crates/cli/src/cfg.rs#get_prism_home",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "CelestiaConfig::default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "Some",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "StorageBackend::RocksDB",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or_else",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "StorageBackend::Redis",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "Network::from_str",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "and_then",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "VerifyingKey::from_base64",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#apply_command_line_args",
+      "to_id": "or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "RocksDBConnection::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "GeneralError::InitializationError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Box::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Box::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "InMemoryDatabase::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "RedisConnection::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "GeneralError::InitializationError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_db",
+      "to_id": "Box::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "context",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "CelestiaConnection::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "Err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "into",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "DataAvailabilityError::NetworkError",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "tokio::time::sleep",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "InMemoryDataAvailabilityLayer::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "Duration::from_secs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "to_id": "LightClientConnection::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "to_id": "Err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "to_id": "InMemoryDataAvailabilityLayer::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "to_id": "Duration::from_secs",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "cfg :: { Cli , Commands , initialize_da_layer , initialize_db , initialize_light_da_layer , load_config , }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "clap :: Parser",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "keystore_rs :: { FileStore , KeyChain , KeyStore }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "prism_keys :: { CryptoAlgorithm , SigningKey }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "prism_serde :: base64 :: ToBase64",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "prism_telemetry :: telemetry :: shutdown_telemetry",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "prism_telemetry_registry :: { init :: init , metrics_registry :: get_metrics }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "std :: io :: { Error , ErrorKind }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "node_types :: NodeType",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "prism_lightclient :: { LightClient , events :: EventChannel }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "prism_prover :: Prover",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "std :: sync :: Arc",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "tokio_util :: sync :: CancellationToken",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs",
+      "to_id": "tracing :: { error , info }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Cli::parse",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/cli/src/cfg.rs#load_config",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/telemetry/src/init.rs#init",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "CancellationToken::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/telemetry/src/metrics_registry.rs#get_metrics",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "record_node_info",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/cli/src/cfg.rs#initialize_light_da_layer",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "EventChannel::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "LightClient::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "publisher",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/cli/src/cfg.rs#initialize_db",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/cli/src/main.rs#get_signing_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "verifying_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "std::env::var",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Prover::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/cli/src/cfg.rs#initialize_db",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/cli/src/cfg.rs#initialize_da_layer",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "crates/cli/src/main.rs#get_signing_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "ok_or_else",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_or",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "std::env::var",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Arc::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Prover::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "clone",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "tokio::spawn",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "signal",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "SignalKind::interrupt",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "expect",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "signal",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "SignalKind::terminate",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "cancel",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "start",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#main",
+      "to_id": "shutdown_telemetry",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "as_str",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "FileStore::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "unwrap_or_default",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "to_string",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "Box::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "Box::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "Err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "Error::new",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "get_or_create_signing_key",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "map_err",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "SigningKey::from_algorithm_and_bytes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "as_bytes",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "Error::other",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/main.rs#get_signing_key",
+      "to_id": "Ok",
+      "ref_type": "FunctionCall"
+    },
+    {
+      "from_id": "crates/cli/src/node_types.rs",
+      "to_id": "anyhow :: Result",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/node_types.rs",
+      "to_id": "async_trait :: async_trait",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/node_types.rs",
+      "to_id": "std :: { self , sync :: Arc }",
+      "ref_type": "Import"
+    },
+    {
+      "from_id": "crates/cli/src/node_types.rs#impl_NodeType_prism_prover::Prover",
+      "to_id": "trait:NodeType",
+      "ref_type": "TraitImpl"
+    },
+    {
+      "from_id": "crates/cli/src/node_types.rs#impl_NodeType_prism_lightclient::LightClient",
+      "to_id": "trait:NodeType",
+      "ref_type": "TraitImpl"
+    }
+  ],
+  "total_files": 4,
+  "successfully_parsed": 4,
+  "failed_files": [],
+  "stats": {
+    "total_functions": 9,
+    "total_structs": 6,
+    "total_enums": 3,
+    "total_traits": 1,
+    "total_impls": 3,
+    "total_tests": 0,
+    "total_function_calls": 234,
+    "total_derives": 43,
+    "total_macro_uses": 29
+  }
+}
