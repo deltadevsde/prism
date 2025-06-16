@@ -18,8 +18,10 @@ uniffi = ["dep:lumina-node-uniffi"]
 blockstore = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
+web-time = { workspace = true, features = ["serde"] }
 redb = { workspace = true }
 lumina-node = { workspace = true }
 prism-serde = { workspace = true }
@@ -30,6 +32,7 @@ prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-common = { workspace = true }
 libp2p = { workspace = true, features = ["serde"] }
+mockall = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 celestia-rpc = { workspace = true }

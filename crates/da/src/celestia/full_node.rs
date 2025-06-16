@@ -1,10 +1,12 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
+use crate::{
+    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
+    events::{EventChannel, EventSubscriber},
+};
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
-use lumina_node::events::EventSubscriber;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
     self,
@@ -106,7 +108,7 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
+    fn event_channel(&self) -> Option<Arc<EventChannel>> {
         None
     }
 }
