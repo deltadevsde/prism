@@ -7016,6 +7016,7 @@ dependencies = [
  "serde_json",
  "sp1-sdk",
  "sp1-verifier",
+ "thiserror 2.0.12",
  "tokio",
  "tracing",
  "wasm-bindgen",

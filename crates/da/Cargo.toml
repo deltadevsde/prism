@@ -16,6 +16,7 @@ uniffi = ["dep:lumina-node-uniffi"]
 
 [dependencies]
 blockstore = { workspace = true }
+thiserror = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
