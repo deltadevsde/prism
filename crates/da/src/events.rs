@@ -3,7 +3,7 @@ use prism_common::digest::Digest;
 use serde::Serialize;
 use std::{fmt, sync::Arc};
 use tokio::sync::{Mutex, broadcast};
-use tracing::subscriber;
+use tracing::trace;
 use web_time::SystemTime;
 
 use crate::utils::spawn_task;
@@ -119,7 +119,17 @@ impl EventChannel {
                 };
                 match event {
                     Ok(event) => {
-                        publisher.send(PrismEvent::LuminaEvent { event: event.event });
+                        if let lumina_node::events::NodeEvent::AddedHeaderFromHeaderSub { height } =
+                            event.event
+                        {
+                            publisher.send(PrismEvent::UpdateDAHeight { height });
+                        } else {
+                            #[cfg(target_arch = "wasm32")]
+                            publisher.send(PrismEvent::LuminaEvent { event: event.event });
+
+                            #[cfg(not(target_arch = "wasm32"))]
+                            trace!("lumina event: {:?}", event);
+                        }
                     }
                     Err(_) => break,
                 }

@@ -1,14 +1,14 @@
 #![cfg(not(target_arch = "wasm32"))]
 use crate::{
-    DataAvailabilityLayer, EventSubscriber, FinalizedEpoch, LightDataAvailabilityLayer,
-    VerifiableEpoch, events::EventChannel,
+    DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
+    events::{EventChannel, PrismEvent},
 };
 use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::transaction::Transaction;
 use std::sync::Arc;
 use tokio::{
-    sync::{Mutex, RwLock, broadcast},
+    sync::{RwLock, broadcast},
     time::{Duration, interval},
 };
 use tracing::debug;
@@ -29,6 +29,7 @@ pub struct InMemoryDataAvailabilityLayer {
     height_update_tx: broadcast::Sender<u64>,
     block_update_tx: broadcast::Sender<Block>,
     block_time: Duration,
+    event_channel: Arc<EventChannel>,
 
     // For testing: Because mock proofs are generated very quickly, it is
     // helpful to delay the posting of the epoch to test some latency scenarios.
@@ -41,6 +42,7 @@ impl InMemoryDataAvailabilityLayer {
     ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
+        let event_channel = Arc::new(EventChannel::new());
         (
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
@@ -50,6 +52,7 @@ impl InMemoryDataAvailabilityLayer {
                 height_update_tx: height_tx,
                 block_update_tx: block_tx,
                 block_time,
+                event_channel,
                 epoch_posting_delay: None,
             },
             height_rx,
@@ -63,6 +66,7 @@ impl InMemoryDataAvailabilityLayer {
     ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
+        let event_channel = Arc::new(EventChannel::new());
         (
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
@@ -72,6 +76,7 @@ impl InMemoryDataAvailabilityLayer {
                 height_update_tx: height_tx,
                 block_update_tx: block_tx,
                 block_time,
+                event_channel,
                 epoch_posting_delay: Some(epoch_delay),
             },
             height_rx,
@@ -81,6 +86,7 @@ impl InMemoryDataAvailabilityLayer {
 
     async fn produce_blocks(self: Arc<Self>) {
         let mut interval = interval(self.block_time);
+        let event_publisher = self.event_channel.publisher();
         loop {
             interval.tick().await;
             let mut blocks = self.blocks.write().await;
@@ -104,6 +110,11 @@ impl InMemoryDataAvailabilityLayer {
             // Notify subscribers of the new height and block
             let _ = self.height_update_tx.send(*latest_height);
             let _ = self.block_update_tx.send(new_block);
+
+            // Publish UpdateDAHeight event
+            event_publisher.send(PrismEvent::UpdateDAHeight {
+                height: *latest_height,
+            });
         }
     }
 
@@ -127,8 +138,8 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         }
     }
 
-    fn event_channel(&self) -> Option<Arc<EventChannel>> {
-        None
+    fn event_channel(&self) -> Arc<EventChannel> {
+        self.event_channel.clone()
     }
 }
 

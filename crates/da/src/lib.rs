@@ -223,7 +223,7 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 pub trait LightDataAvailabilityLayer {
     async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>>;
 
-    fn event_channel(&self) -> Option<Arc<EventChannel>>;
+    fn event_channel(&self) -> Arc<EventChannel>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
