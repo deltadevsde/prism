@@ -16,7 +16,7 @@ use tracing::{error, info};
 use sp1_verifier::Groth16Verifier;
 
 use prism_da::{
-    events::{EventPublisher, LightClientEvent},
+    events::{EventPublisher, PrismEvent},
     utils::spawn_task,
 };
 
@@ -88,7 +88,7 @@ impl LightClient {
 
         let mut event_sub = self.event_chan.subscribe();
         while let Ok(event_info) = event_sub.recv().await {
-            if let LightClientEvent::LuminaEvent {
+            if let PrismEvent::LuminaEvent {
                 event: NodeEvent::AddedHeaderFromHeaderSub { height },
             } = event_info.event
             {
@@ -110,7 +110,7 @@ impl LightClient {
     }
 
     async fn handle_new_header(self: Arc<Self>, height: u64, state: Arc<RwLock<SyncState>>) {
-        self.event_pub.send(LightClientEvent::UpdateDAHeight { height });
+        self.event_pub.send(PrismEvent::UpdateDAHeight { height });
 
         // start initial historical backward sync if needed and not already in progress
         {
@@ -133,8 +133,7 @@ impl LightClient {
                 for epoch in epochs {
                     // Found a new finalized epoch, process it immediately
                     if self.process_epoch(epoch).await.is_ok() {
-                        self.event_pub
-                            .send(LightClientEvent::RecursiveVerificationCompleted { height });
+                        self.event_pub.send(PrismEvent::RecursiveVerificationCompleted { height });
 
                         // Update our latest known finalized epoch
                         let mut state = state.write().await;
@@ -165,10 +164,10 @@ impl LightClient {
     ) {
         info!("starting historical sync");
         // Announce that sync has started
-        self.event_pub.send(LightClientEvent::SyncStarted {
+        self.event_pub.send(PrismEvent::SyncStarted {
             height: network_height,
         });
-        self.event_pub.send(LightClientEvent::RecursiveVerificationStarted {
+        self.event_pub.send(PrismEvent::RecursiveVerificationStarted {
             height: network_height,
         });
 
@@ -188,11 +187,9 @@ impl LightClient {
                             "found historical finalized epoch at height {}",
                             epoch_height
                         );
-                        light_client.event_pub.send(
-                            LightClientEvent::RecursiveVerificationCompleted {
-                                height: epoch_height,
-                            },
-                        );
+                        light_client.event_pub.send(PrismEvent::RecursiveVerificationCompleted {
+                            height: epoch_height,
+                        });
 
                         let mut state = state.write().await;
                         state.initial_sync_completed = true;
@@ -202,7 +199,7 @@ impl LightClient {
                     }
                     Err(e) => {
                         error!("Failed to process epoch at height {}: {}", epoch_height, e);
-                        light_client.event_pub.send(LightClientEvent::EpochVerificationFailed {
+                        light_client.event_pub.send(PrismEvent::EpochVerificationFailed {
                             height: epoch_height,
                             error: e.to_string(),
                         });
@@ -257,7 +254,7 @@ impl LightClient {
                 }
             }
 
-            self.event_pub.send(LightClientEvent::NoEpochFound { height });
+            self.event_pub.send(PrismEvent::NoEpochFound { height });
             height -= 1;
         }
 
@@ -275,7 +272,7 @@ impl LightClient {
         // Update latest commitment
         self.latest_commitment.write().await.replace(curr_commitment);
 
-        self.event_pub.send(LightClientEvent::EpochVerified {
+        self.event_pub.send(PrismEvent::EpochVerified {
             height: epoch.height(),
         });
 
@@ -284,19 +281,19 @@ impl LightClient {
 
     async fn process_height(&self, height: u64) -> Result<()> {
         info!("processing at DA height {}", height);
-        self.event_pub.send(LightClientEvent::EpochVerificationStarted { height });
+        self.event_pub.send(PrismEvent::EpochVerificationStarted { height });
 
         match self.da.get_finalized_epoch(height).await {
             Ok(finalized_epochs) => {
                 if finalized_epochs.is_empty() {
-                    self.event_pub.send(LightClientEvent::NoEpochFound { height });
+                    self.event_pub.send(PrismEvent::NoEpochFound { height });
                 }
 
                 // Process each finalized epoch
                 for epoch in finalized_epochs {
                     if let Err(e) = self.process_epoch(epoch).await {
                         let error = format!("Failed to process epoch: {}", e);
-                        self.event_pub.send(LightClientEvent::EpochVerificationFailed {
+                        self.event_pub.send(PrismEvent::EpochVerificationFailed {
                             height,
                             error: error.clone(),
                         });
@@ -306,7 +303,7 @@ impl LightClient {
             }
             Err(e) => {
                 let error = format!("Failed to get epoch: {}", e);
-                self.event_pub.send(LightClientEvent::EpochVerificationFailed {
+                self.event_pub.send(PrismEvent::EpochVerificationFailed {
                     height,
                     error: error.clone(),
                 });
