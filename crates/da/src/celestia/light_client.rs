@@ -1,7 +1,7 @@
 use super::utils::{NetworkConfig, create_namespace};
 use crate::{
     FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
-    events::{EventChannel, EventPublisher, EventSubscriber},
+    events::{EventChannel, EventPublisher},
 };
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
@@ -163,8 +163,8 @@ impl LightClientConnection {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for LightClientConnection {
-    fn event_channel(&self) -> Option<Arc<EventChannel>> {
-        Some(self.event_channel.clone())
+    fn event_channel(&self) -> Arc<EventChannel> {
+        self.event_channel.clone()
     }
 
     async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {

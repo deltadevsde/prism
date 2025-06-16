@@ -62,19 +62,17 @@ impl LightClient {
     ) -> LightClient {
         let sp1_vkeys = load_sp1_verifying_keys().expect("Failed to load SP1 verifying keys");
 
-        if let Some(event_chan) = da.event_channel() {
-            let event_pub = Arc::new(event_chan.publisher());
-            return Self {
-                da,
-                sp1_vkeys,
-                prover_pubkey,
-                event_chan,
-                event_pub,
-                latest_commitment: Arc::new(RwLock::new(None)),
-            };
-        }
+        let event_chan = da.event_channel();
+        let event_pub = Arc::new(event_chan.publisher());
 
-        panic!("Expected event_publisher")
+        Self {
+            da,
+            sp1_vkeys,
+            prover_pubkey,
+            event_chan,
+            event_pub,
+            latest_commitment: Arc::new(RwLock::new(None)),
+        }
     }
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
@@ -88,10 +86,7 @@ impl LightClient {
 
         let mut event_sub = self.event_chan.subscribe();
         while let Ok(event_info) = event_sub.recv().await {
-            if let PrismEvent::LuminaEvent {
-                event: NodeEvent::AddedHeaderFromHeaderSub { height },
-            } = event_info.event
-            {
+            if let PrismEvent::UpdateDAHeight { height } = event_info.event {
                 #[cfg(feature = "telemetry")]
                 if let Some(metrics) = get_metrics() {
                     metrics.record_celestia_synced_height(height, vec![]);
@@ -110,8 +105,6 @@ impl LightClient {
     }
 
     async fn handle_new_header(self: Arc<Self>, height: u64, state: Arc<RwLock<SyncState>>) {
-        self.event_pub.send(PrismEvent::UpdateDAHeight { height });
-
         // start initial historical backward sync if needed and not already in progress
         {
             let mut state_handle = state.write().await;
