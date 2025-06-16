@@ -29,10 +29,10 @@ sha2.workspace = true
 # misc
 anyhow.workspace = true
 rand.workspace = true
+thiserror.workspace = true
 
 # testing
 mockall = { workspace = true, optional = true }
-thiserror.workspace = true
 
 [features]
 default = []

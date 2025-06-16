@@ -14,10 +14,8 @@ use std::{
 };
 
 use crate::{
-    account::Account,
-    builder::RequestBuilder,
-    operation::SignatureBundle,
-    transaction::{Transaction, TransactionError},
+    account::Account, builder::RequestBuilder, errors::TransactionError,
+    operation::SignatureBundle, transaction::Transaction,
 };
 use types::{AccountResponse, CommitmentResponse};
 

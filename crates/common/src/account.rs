@@ -1,12 +1,13 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow};
 use prism_keys::VerifyingKey;
 use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    api::{noop::NoopPrismApi, PrismApi},
+    api::{PrismApi, noop::NoopPrismApi},
     builder::{ModifyAccountRequestBuilder, RequestBuilder},
+    errors::AccountError,
     operation::{Operation, ServiceChallenge},
     transaction::Transaction,
 };
@@ -108,31 +109,36 @@ impl Account {
 
     /// Validates a transaction against the current account state. Please note
     /// that the operation must be validated separately.
-    fn validate_transaction(&self, tx: &Transaction) -> Result<()> {
+    fn validate_transaction(&self, tx: &Transaction) -> Result<(), AccountError> {
         if tx.nonce != self.nonce {
-            return Err(anyhow!(
-                "Nonce does not match. {} != {}",
-                tx.nonce,
-                self.nonce
-            ));
+            return Err(AccountError::NonceError(tx.nonce, self.nonce));
         }
 
         match &tx.operation {
             Operation::CreateAccount { id, key, .. }
             | Operation::RegisterService { id, key, .. } => {
                 if &tx.id != id {
-                    bail!("Transaction ID does not match operation ID");
+                    return Err(AccountError::AccountIdError(
+                        tx.id.to_string(),
+                        id.to_string(),
+                    ));
                 }
                 if &tx.vk != key {
-                    bail!("Transaction key does not match operation key");
+                    return Err(AccountError::AccountKeyError(
+                        tx.vk.to_string(),
+                        key.to_string(),
+                    ));
                 }
             }
             _ => {
                 if tx.id != self.id {
-                    bail!("Transaction ID does not match account ID");
+                    return Err(AccountError::TransactionIdError(
+                        tx.id.to_string(),
+                        self.id.to_string(),
+                    ));
                 }
                 if !self.valid_keys.contains(&tx.vk) {
-                    bail!("Invalid key");
+                    return Err(AccountError::InvalidKey);
                 }
             }
         }
