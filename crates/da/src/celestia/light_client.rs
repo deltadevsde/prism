@@ -2,48 +2,32 @@ use super::utils::{NetworkConfig, create_namespace};
 use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use blockstore::EitherBlockstore;
 use celestia_types::nmt::Namespace;
-use lumina_node::{
-    Node, NodeError,
-    blockstore::InMemoryBlockstore,
-    events::EventSubscriber,
-    store::{EitherStore, InMemoryStore, StoreError},
-};
+use lumina_node::{Node, NodeError, events::EventSubscriber, store::StoreError};
 use prism_errors::DataAvailabilityError;
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, trace, warn};
 
 #[cfg(target_arch = "wasm32")]
-use {
-    lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore},
-    lumina_node_wasm::utils::resolve_dnsaddr_multiaddress,
-};
+use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
 
-use libp2p::Multiaddr;
 use lumina_node::NodeBuilder;
 
 #[cfg(not(target_arch = "wasm32"))]
-use {redb::Database, tokio::task::spawn_blocking};
+use {
+    blockstore::EitherBlockstore,
+    lumina_node::blockstore::InMemoryBlockstore,
+    lumina_node::store::{EitherStore, InMemoryStore},
+    redb::Database,
+    tokio::task::spawn_blocking,
+};
 
 #[cfg(feature = "uniffi")]
 use lumina_node_uniffi::types::NodeConfig;
 
 #[cfg(not(target_arch = "wasm32"))]
 use lumina_node::{blockstore::RedbBlockstore, store::RedbStore};
-
-#[cfg(target_arch = "wasm32")]
-pub async fn resolve_bootnodes(bootnodes: &Vec<Multiaddr>) -> Result<Vec<Multiaddr>> {
-    let mut bootnodes = bootnodes.clone();
-    // Resolve DNS addresses (for now, will be fixed in the future (will be handled by nodebuilder eventually: https://github.com/eigerco/lumina/issues/515))
-    for addr in bootnodes.clone() {
-        let resolved_addrs = resolve_dnsaddr_multiaddress(addr).await.unwrap();
-        bootnodes.extend(resolved_addrs);
-    }
-
-    Ok(bootnodes)
-}
 
 #[cfg(target_arch = "wasm32")]
 pub type LuminaNode = Node<IndexedDbBlockstore, IndexedDbStore>;
@@ -95,11 +79,6 @@ impl LightClientConnection {
     }
 
     pub async fn new(config: &NetworkConfig) -> Result<Self> {
-        #[cfg(not(target_arch = "wasm32"))]
-        let bootnodes = config.celestia_network.canonical_bootnodes().collect::<Vec<Multiaddr>>();
-        #[cfg(target_arch = "wasm32")]
-        let bootnodes = resolve_bootnodes(&bootnodes).await?;
-
         #[cfg(target_arch = "wasm32")]
         let (blockstore, store) = Self::setup_stores().await.unwrap();
         #[cfg(not(target_arch = "wasm32"))]
@@ -114,7 +93,6 @@ impl LightClientConnection {
             .network(config.celestia_network.clone())
             .store(store)
             .blockstore(blockstore)
-            .bootnodes(bootnodes)
             .pruning_delay(celestia_config.pruning_delay)
             .sampling_window(celestia_config.sampling_window)
             .start_subscribed()
