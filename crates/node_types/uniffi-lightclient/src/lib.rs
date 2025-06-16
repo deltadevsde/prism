@@ -7,9 +7,8 @@ mod types;
 
 use error::{LightClientError, Result};
 use prism_da::{
-    LightDataAvailabilityLayer,
     celestia::{light_client::LightClientConnection, utils::Network},
-    events::{EventChannel, EventSubscriber},
+    events::EventSubscriber,
 };
 use prism_lightclient::LightClient as CoreLightClient;
 use std::{str::FromStr, sync::Arc};

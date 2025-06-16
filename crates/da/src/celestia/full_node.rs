@@ -2,7 +2,7 @@
 
 use crate::{
     FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
-    events::{EventChannel, EventPublisher, PrismEvent},
+    events::{EventChannel, PrismEvent},
 };
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;

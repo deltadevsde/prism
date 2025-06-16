@@ -1,6 +1,6 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Result, anyhow};
 use prism_common::transaction::Transaction;
-use prism_da::{DataAvailabilityLayer, FinalizedEpoch, VerifiableEpoch};
+use prism_da::{DataAvailabilityLayer, VerifiableEpoch};
 use prism_keys::VerifyingKey;
 use prism_storage::database::Database;
 use prism_telemetry_registry::metrics_registry::get_metrics;
@@ -8,11 +8,7 @@ use std::sync::Arc;
 use tokio::sync::{RwLock, broadcast};
 use tokio_util::sync::CancellationToken;
 
-use crate::{
-    prover_engine::{self, ProverEngine},
-    sequencer::Sequencer,
-    tx_buffer::TxBuffer,
-};
+use crate::{prover_engine::ProverEngine, sequencer::Sequencer, tx_buffer::TxBuffer};
 
 #[derive(Clone)]
 pub struct Syncer {

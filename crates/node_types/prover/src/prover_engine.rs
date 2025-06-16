@@ -1,6 +1,5 @@
 use anyhow::{Result, anyhow};
-use prism_da::{VerifiableEpoch, VerificationKeys};
-use prism_keys::VerifyingKey;
+use prism_da::VerificationKeys;
 use prism_storage::database::Database;
 use prism_tree::proofs::Batch;
 use sp1_sdk::{
