@@ -3,11 +3,7 @@ use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
-use lumina_node::{
-    Node, NodeError,
-    events::EventSubscriber,
-    store::{EitherStore, InMemoryStore, StoreError},
-};
+use lumina_node::{Node, NodeError, events::EventSubscriber, store::StoreError};
 use prism_errors::DataAvailabilityError;
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
@@ -20,7 +16,10 @@ use lumina_node::NodeBuilder;
 
 #[cfg(not(target_arch = "wasm32"))]
 use {
-    blockstore::EitherBlockstore, lumina_node::blockstore::InMemoryBlockstore, redb::Database,
+    blockstore::EitherBlockstore,
+    lumina_node::blockstore::InMemoryBlockstore,
+    lumina_node::store::{EitherStore, InMemoryStore},
+    redb::Database,
     tokio::task::spawn_blocking,
 };
 
