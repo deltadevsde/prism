@@ -14,7 +14,7 @@ use prism_da::{
     },
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
-use prism_lightclient::{LightClient, events::EventChannel};
+use prism_lightclient::LightClient;
 use prism_prover::Prover;
 use prism_storage::{
     Database,
@@ -98,14 +98,9 @@ async fn test_light_client_prover_talking() -> Result<()> {
         tokio_util::sync::CancellationToken::new(),
     )?);
 
-    let event_channel = EventChannel::new();
     let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
 
-    let lightclient = Arc::new(LightClient::new(
-        lc_da_layer.clone(),
-        Some(pubkey),
-        event_channel.publisher(),
-    ));
+    let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), pubkey));
 
     let prover_clone = prover.clone();
     let _prover_handle = spawn(async move {

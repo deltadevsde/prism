@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, anyhow};
 use prism_common::transaction::Transaction;
-use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
+use prism_da::{DataAvailabilityLayer, FinalizedEpoch, VerifiableEpoch};
 use prism_keys::VerifyingKey;
 use prism_storage::database::Database;
 use prism_telemetry_registry::metrics_registry::get_metrics;
@@ -8,7 +8,11 @@ use std::sync::Arc;
 use tokio::sync::{RwLock, broadcast};
 use tokio_util::sync::CancellationToken;
 
-use crate::{prover_engine::ProverEngine, sequencer::Sequencer, tx_buffer::TxBuffer};
+use crate::{
+    prover_engine::{self, ProverEngine},
+    sequencer::Sequencer,
+    tx_buffer::TxBuffer,
+};
 
 #[derive(Clone)]
 pub struct Syncer {
@@ -162,7 +166,8 @@ impl Syncer {
             for epoch in epoch_result {
                 debug!(
                     "Found finalized epoch {} at height {}",
-                    epoch.height, height
+                    epoch.height(),
+                    height
                 );
                 self.process_epoch(epoch).await?;
             }
@@ -212,37 +217,37 @@ impl Syncer {
         Ok(())
     }
 
-    async fn process_epoch(&self, epoch: FinalizedEpoch) -> Result<()> {
+    async fn process_epoch(&self, epoch: VerifiableEpoch) -> Result<()> {
         let current_epoch = match self.db.get_latest_epoch_height() {
             Ok(height) => height + 1,
             Err(_) => 0,
         };
 
-        if epoch.height < current_epoch {
+        let height = epoch.height();
+
+        if height < current_epoch {
             debug!("epoch {} already processed internally", current_epoch);
             return Ok(());
         }
 
-        epoch
-            .verify_signature(self.verifying_key.clone())
-            .with_context(|| format!("Invalid signature in epoch {}", epoch.height))?;
-        trace!("valid signature for epoch {}", epoch.height);
+        let (proof_prev_commitment, proof_current_commitment) =
+            epoch.verify(&self.verifying_key, &self.prover_engine.verification_keys())?;
 
-        let prev_commitment = if epoch.height == 0 {
+        let prev_commitment = if height == 0 {
             self.sequencer.get_commitment().await?
         } else {
-            self.db.get_epoch(&epoch.height.saturating_sub(1))?.current_commitment
+            self.db.get_epoch(&height.saturating_sub(1))?.current_commitment
         };
 
-        if epoch.height != current_epoch {
+        if height != current_epoch {
             return Err(anyhow!(
                 "epoch height mismatch: expected {}, got {}",
                 current_epoch,
-                epoch.height
+                height
             ));
         }
 
-        if epoch.prev_commitment != prev_commitment {
+        if proof_prev_commitment != prev_commitment {
             return Err(anyhow!(
                 "previous commitment mismatch at epoch {}",
                 current_epoch
@@ -251,29 +256,18 @@ impl Syncer {
 
         // Only execute transactions up to the tip DA height that the prover used
         let mut tx_buffer = self.tx_buffer.write().await;
-        let transactions_to_execute = tx_buffer.take_to_range(epoch.tip_da_height);
+        let transactions_to_execute = tx_buffer.take_to_range(epoch.da_height());
 
         if !transactions_to_execute.is_empty() {
             self.sequencer.execute_block(transactions_to_execute).await?;
         }
 
         let new_commitment = self.sequencer.get_commitment().await?;
-        if epoch.current_commitment != new_commitment {
+        if proof_current_commitment != new_commitment {
             return Err(anyhow!(
                 "new commitment mismatch at epoch {}",
                 current_epoch
             ));
-        }
-
-        match self.prover_engine.verify_epoch_proof(epoch.height, &epoch.proof).await {
-            Ok(_) => info!(
-                "zkSNARK for epoch {} was validated successfully",
-                epoch.height
-            ),
-            Err(err) => panic!(
-                "failed to validate epoch at height {}: {:?}",
-                epoch.height, err
-            ),
         }
 
         debug!(
@@ -281,7 +275,7 @@ impl Syncer {
             current_epoch, new_commitment
         );
 
-        self.db.add_epoch(&epoch)?;
+        self.db.add_epoch(&epoch.try_convert()?)?;
 
         Ok(())
     }

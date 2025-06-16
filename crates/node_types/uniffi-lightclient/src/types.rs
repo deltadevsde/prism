@@ -1,4 +1,4 @@
-use prism_lightclient::events::LightClientEvent;
+use prism_da::events::PrismEvent;
 
 /// Event types emitted by the LightClient.
 #[derive(uniffi::Enum)]
@@ -59,40 +59,36 @@ pub enum UniffiLightClientEvent {
     },
 }
 
-impl From<LightClientEvent> for UniffiLightClientEvent {
-    fn from(event: LightClientEvent) -> Self {
+impl From<PrismEvent> for UniffiLightClientEvent {
+    fn from(event: PrismEvent) -> Self {
         match event {
-            LightClientEvent::SyncStarted { height } => {
-                UniffiLightClientEvent::SyncStarted { height }
-            }
-            LightClientEvent::UpdateDAHeight { height } => {
+            PrismEvent::SyncStarted { height } => UniffiLightClientEvent::SyncStarted { height },
+            PrismEvent::UpdateDAHeight { height } => {
                 UniffiLightClientEvent::UpdateDAHeight { height }
             }
-            LightClientEvent::EpochVerificationStarted { height } => {
+            PrismEvent::EpochVerificationStarted { height } => {
                 UniffiLightClientEvent::EpochVerificationStarted { height }
             }
-            LightClientEvent::EpochVerified { height } => {
+            PrismEvent::EpochVerified { height } => {
                 UniffiLightClientEvent::EpochVerified { height }
             }
-            LightClientEvent::EpochVerificationFailed { height, error } => {
+            PrismEvent::EpochVerificationFailed { height, error } => {
                 UniffiLightClientEvent::EpochVerificationFailed { height, error }
             }
-            LightClientEvent::NoEpochFound { height } => {
-                UniffiLightClientEvent::NoEpochFound { height }
-            }
-            LightClientEvent::HeightChannelClosed => UniffiLightClientEvent::HeightChannelClosed,
-            LightClientEvent::GetCurrentCommitment { commitment } => {
+            PrismEvent::NoEpochFound { height } => UniffiLightClientEvent::NoEpochFound { height },
+            PrismEvent::HeightChannelClosed => UniffiLightClientEvent::HeightChannelClosed,
+            PrismEvent::GetCurrentCommitment { commitment } => {
                 UniffiLightClientEvent::GetCurrentCommitment {
                     commitment: commitment.to_string(),
                 }
             }
-            LightClientEvent::RecursiveVerificationStarted { height } => {
+            PrismEvent::RecursiveVerificationStarted { height } => {
                 UniffiLightClientEvent::RecursiveVerificationStarted { height }
             }
-            LightClientEvent::RecursiveVerificationCompleted { height } => {
+            PrismEvent::RecursiveVerificationCompleted { height } => {
                 UniffiLightClientEvent::RecursiveVerificationCompleted { height }
             }
-            LightClientEvent::LuminaEvent { event } => UniffiLightClientEvent::LuminaEvent {
+            PrismEvent::LuminaEvent { event } => UniffiLightClientEvent::LuminaEvent {
                 event: event.to_string(),
             },
         }
