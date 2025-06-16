@@ -1,9 +1,12 @@
-use lumina_node::events::NodeEvent;
+use lumina_node::events::{NodeEvent, NodeEventInfo};
 use prism_common::digest::Digest;
 use serde::Serialize;
-use std::fmt;
-use tokio::sync::broadcast;
+use std::{fmt, sync::Arc};
+use tokio::sync::{Mutex, broadcast};
+use tracing::subscriber;
 use web_time::SystemTime;
+
+use crate::utils::spawn_task;
 
 const EVENT_CHANNEL_CAPACITY: usize = 1024;
 
@@ -104,6 +107,32 @@ impl EventChannel {
         EventSubscriber {
             rx: self.tx.subscribe(),
         }
+    }
+
+    pub fn start_forwarding(&self, sub: Arc<Mutex<lumina_node::events::EventSubscriber>>) {
+        let publisher = self.publisher();
+        spawn_task(async move {
+            loop {
+                let event = {
+                    let mut subscriber = sub.lock().await;
+                    subscriber.recv().await
+                };
+                match event {
+                    Ok(event) => {
+                        publisher.send(LightClientEvent::LuminaEvent { event: event.event });
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+    }
+}
+
+impl From<Arc<Mutex<lumina_node::events::EventSubscriber>>> for EventChannel {
+    fn from(sub: Arc<Mutex<lumina_node::events::EventSubscriber>>) -> Self {
+        let chan = Self::new();
+        chan.start_forwarding(sub);
+        chan
     }
 }
 
