@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::Blob;
 use mockall::automock;
@@ -11,6 +10,7 @@ use prism_serde::{
     hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tokio::sync::Mutex;
 
 #[allow(unused_imports)]
@@ -44,11 +44,15 @@ pub type VerifiableEpoch = Box<dyn VerifiableStateTransition>;
 /// `VerifiableStateTransition` is a trait wrapper around `FinalizedEpoch` that allows for mocking.
 /// The only concrete implementation of this trait is by `FinalizedEpoch`.
 pub trait VerifiableStateTransition: Send {
-    fn verify(&self, vk: &VerifyingKey, sp1_vkeys: &VerificationKeys) -> Result<(Digest, Digest)>;
+    fn verify(
+        &self,
+        vk: &VerifyingKey,
+        sp1_vkeys: &VerificationKeys,
+    ) -> Result<(Digest, Digest), EpochVerificationError>;
     fn height(&self) -> u64;
     fn da_height(&self) -> u64;
     fn commitments(&self) -> (Digest, Digest);
-    fn try_convert(&self) -> Result<FinalizedEpoch>;
+    fn try_convert(&self) -> Result<FinalizedEpoch, EpochVerificationError>;
 }
 
 // FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
@@ -95,7 +99,7 @@ impl VerifiableStateTransition for FinalizedEpoch {
         self.tip_da_height
     }
 
-    fn try_convert(&self) -> Result<FinalizedEpoch> {
+    fn try_convert(&self) -> Result<FinalizedEpoch, EpochVerificationError> {
         Ok(self.clone())
     }
 
@@ -103,12 +107,17 @@ impl VerifiableStateTransition for FinalizedEpoch {
         (self.prev_commitment, self.current_commitment)
     }
 
-    fn verify(&self, vk: &VerifyingKey, sp1_vkeys: &VerificationKeys) -> Result<(Digest, Digest)> {
-        // TODO: Err
+    fn verify(
+        &self,
+        vk: &VerifyingKey,
+        sp1_vkeys: &VerificationKeys,
+    ) -> Result<(Digest, Digest), EpochVerificationError> {
         &self.verify_signature(vk.clone())?;
 
         if self.public_values.len() < 64 {
-            // TODO: Err
+            return Err(EpochVerificationError::InvalidPublicValues(
+                self.public_values.len(),
+            ));
         }
 
         self.verify_commitments()?;
@@ -125,27 +134,28 @@ impl VerifiableStateTransition for FinalizedEpoch {
             &sp1_vkeys.recursive_vk
         };
 
-        // TODO: err
         Groth16Verifier::verify(
             &finalized_epoch_proof,
             &self.public_values,
             vkey,
             &sp1_verifier::GROTH16_VK_BYTES,
-        )?;
+        )
+        .map_err(|e| EpochVerificationError::ProofVerificationError(e.to_string()))?;
 
         Ok((self.prev_commitment, self.current_commitment))
     }
 }
 
 impl FinalizedEpoch {
-    pub fn insert_signature(&mut self, key: &SigningKey) -> Result<()> {
+    pub fn insert_signature(&mut self, key: &SigningKey) -> Result<(), EpochVerificationError> {
         let plaintext = self.encode_to_bytes().unwrap();
-        let signature = key.sign(&plaintext)?;
+        let signature =
+            key.sign(&plaintext).map_err(|e| SignatureError::SignatureError(e.to_string()))?;
         self.signature = Some(signature.to_bytes().to_hex());
         Ok(())
     }
 
-    fn extract_commitments(&self) -> Result<(Digest, Digest)> {
+    fn extract_commitments(&self) -> Result<(Digest, Digest), EpochVerificationError> {
         let mut slice = [0u8; 32];
         slice.copy_from_slice(&self.public_values[..32]);
         let proof_prev_commitment = Digest::from(slice);
@@ -157,23 +167,21 @@ impl FinalizedEpoch {
         Ok((proof_prev_commitment, proof_current_commitment))
     }
 
-    fn verify_commitments(&self) -> Result<()> {
+    fn verify_commitments(&self) -> Result<(), EpochVerificationError> {
         let (proof_prev_commitment, proof_current_commitment) = self.extract_commitments()?;
 
         if self.prev_commitment != proof_prev_commitment {
-            // TODO: err
-            return Err(anyhow::anyhow!("Invalid previous commitment"));
+            return Err(CommitmentError::PreviousCommitmentMismatch.into());
         }
 
         if self.current_commitment != proof_current_commitment {
-            // TODO: err
-            return Err(anyhow::anyhow!("Invalid current commitment"));
+            return Err(CommitmentError::CurrentCommitmentMismatch.into());
         }
 
         Ok(())
     }
 
-    pub fn verify_signature(&self, vk: VerifyingKey) -> Result<()> {
+    pub fn verify_signature(&self, vk: VerifyingKey) -> Result<(), EpochVerificationError> {
         let epoch_without_signature = FinalizedEpoch {
             height: self.height,
             prev_commitment: self.prev_commitment,
@@ -187,41 +195,76 @@ impl FinalizedEpoch {
 
         let message = epoch_without_signature
             .encode_to_bytes()
-            .map_err(|e| anyhow::anyhow!("Failed to serialize epoch: {}", e))?;
+            .map_err(|e| EpochVerificationError::SerializationError(e.to_string()))?;
 
-        let signature =
-            self.signature.as_ref().ok_or_else(|| anyhow::anyhow!("No signature present"))?;
+        let signature = self.signature.as_ref().ok_or_else(|| SignatureError::MissingSignature)?;
 
         let signature_bytes = Vec::<u8>::from_hex(signature)
-            .map_err(|e| anyhow::anyhow!("Failed to decode signature: {}", e))?;
+            .map_err(|e| SignatureError::DecodingError(e.to_string()))?;
 
         let signature: Signature =
             Signature::from_algorithm_and_bytes(vk.algorithm(), signature_bytes.as_slice())
-                .map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
+                .map_err(|_| SignatureError::InvalidLength)?;
 
         vk.verify_signature(&message, &signature)
-            .map_err(|e| anyhow::anyhow!("Signature verification failed: {}", e))?;
+            .map_err(|e| SignatureError::VerificationError(e.to_string()))?;
         Ok(())
     }
 }
 
 impl TryFrom<&Blob> for FinalizedEpoch {
-    type Error = anyhow::Error;
+    type Error = EpochVerificationError;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
-            anyhow!(format!(
-                "Failed to decode blob into FinalizedEpoch: {value:?}"
-            ))
-        })
+        FinalizedEpoch::decode_from_bytes(&value.data)
+            .map_err(|_| EpochVerificationError::DecodingError(value.clone()))
     }
+}
+
+#[derive(Error, Debug)]
+pub enum EpochVerificationError {
+    #[error("public values too short, has length {0}")]
+    InvalidPublicValues(usize),
+    #[error("commitment error: {0}")]
+    CommitmentError(#[from] CommitmentError),
+    #[error("signature error: {0}")]
+    SignatureError(#[from] SignatureError),
+    #[error("failed to decode finalized epoch from blob: {0:?}")]
+    DecodingError(Blob),
+    #[error("serialization error: {0}")]
+    SerializationError(String),
+    #[error("epoch proo verification error: {0}")]
+    ProofVerificationError(String),
+}
+
+#[derive(Error, Debug)]
+pub enum SignatureError {
+    #[error("invalid length")]
+    InvalidLength,
+    #[error("missing signature")]
+    MissingSignature,
+    #[error("decoding error: {0}")]
+    DecodingError(String),
+    // TODO: This error should be replaced once we have sensible errors in the keys crate
+    #[error("verification error")]
+    VerificationError(String),
+    #[error("signature error: {0}")]
+    SignatureError(String),
+}
+
+#[derive(Error, Debug)]
+pub enum CommitmentError {
+    #[error("previous commitment mismatch")]
+    PreviousCommitmentMismatch,
+    #[error("current commitment mismatch")]
+    CurrentCommitmentMismatch,
 }
 
 #[automock]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>>;
+    async fn get_finalized_epoch(&self, height: u64) -> anyhow::Result<Vec<VerifiableEpoch>>;
 
     fn event_channel(&self) -> Arc<EventChannel>;
 }
@@ -229,11 +272,11 @@ pub trait LightDataAvailabilityLayer {
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 pub trait DataAvailabilityLayer: LightDataAvailabilityLayer + Send + Sync {
-    async fn start(&self) -> Result<()>;
-    async fn get_latest_height(&self) -> Result<u64>;
-    async fn initialize_sync_target(&self) -> Result<u64>;
-    async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64>;
-    async fn get_transactions(&self, height: u64) -> Result<Vec<Transaction>>;
-    async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<u64>;
+    async fn start(&self) -> anyhow::Result<()>;
+    async fn get_latest_height(&self) -> anyhow::Result<u64>;
+    async fn initialize_sync_target(&self) -> anyhow::Result<u64>;
+    async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> anyhow::Result<u64>;
+    async fn get_transactions(&self, height: u64) -> anyhow::Result<Vec<Transaction>>;
+    async fn submit_transactions(&self, transactions: Vec<Transaction>) -> anyhow::Result<u64>;
     fn subscribe_to_heights(&self) -> tokio::sync::broadcast::Receiver<u64>;
 }
