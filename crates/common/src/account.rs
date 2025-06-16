@@ -124,7 +124,10 @@ impl Account {
                     ));
                 }
                 if &tx.vk != key {
-                    return Err(AccountError::AccountKeyError);
+                    return Err(AccountError::AccountKeyError(
+                        tx.vk.to_string(),
+                        key.to_string(),
+                    ));
                 }
             }
             _ => {

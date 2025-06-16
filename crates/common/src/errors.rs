@@ -35,7 +35,7 @@ pub enum AccountError {
     #[error("transaction id doesn't match operation id: {0} != {1}")]
     AccountIdError(String, String),
     #[error("transaction key doesn't match operation key")]
-    AccountKeyError,
+    AccountKeyError(String, String),
     #[error("transaction id doesn't match account id: {0} != {1}")]
     TransactionIdError(String, String),
     #[error("invalid key")]
