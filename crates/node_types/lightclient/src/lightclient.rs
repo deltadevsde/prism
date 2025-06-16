@@ -1,5 +1,4 @@
 use anyhow::Result;
-use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
 use prism_da::{
     FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys,
@@ -259,8 +258,7 @@ impl LightClient {
     }
 
     async fn process_epoch(&self, epoch: VerifiableEpoch) -> Result<()> {
-        let (prev_commitment, curr_commitment) =
-            epoch.verify(&self.prover_pubkey, &self.sp1_vkeys)?;
+        let (_, curr_commitment) = epoch.verify(&self.prover_pubkey, &self.sp1_vkeys)?;
 
         // Update latest commitment
         self.latest_commitment.write().await.replace(curr_commitment);

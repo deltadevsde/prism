@@ -1,4 +1,4 @@
-use lumina_node::events::{NodeEvent, NodeEventInfo};
+use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
 use serde::Serialize;
 use std::{fmt, sync::Arc};

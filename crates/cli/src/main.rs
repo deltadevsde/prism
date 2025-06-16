@@ -14,7 +14,6 @@ use prism_telemetry_registry::{init::init, metrics_registry::get_metrics};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
-use prism_da::events::EventChannel;
 use prism_lightclient::LightClient;
 use prism_prover::Prover;
 use std::sync::Arc;

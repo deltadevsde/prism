@@ -11,12 +11,11 @@ use prism_serde::{
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::sync::Mutex;
 
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
 
-use crate::events::{EventChannel, EventSubscriber};
+use crate::events::EventChannel;
 
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
@@ -112,7 +111,7 @@ impl VerifiableStateTransition for FinalizedEpoch {
         vk: &VerifyingKey,
         sp1_vkeys: &VerificationKeys,
     ) -> Result<(Digest, Digest), EpochVerificationError> {
-        &self.verify_signature(vk.clone())?;
+        self.verify_signature(vk.clone())?;
 
         if self.public_values.len() < 64 {
             return Err(EpochVerificationError::InvalidPublicValues(
@@ -197,7 +196,7 @@ impl FinalizedEpoch {
             .encode_to_bytes()
             .map_err(|e| EpochVerificationError::SerializationError(e.to_string()))?;
 
-        let signature = self.signature.as_ref().ok_or_else(|| SignatureError::MissingSignature)?;
+        let signature = self.signature.as_ref().ok_or(SignatureError::MissingSignature)?;
 
         let signature_bytes = Vec::<u8>::from_hex(signature)
             .map_err(|e| SignatureError::DecodingError(e.to_string()))?;

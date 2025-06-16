@@ -17,7 +17,7 @@ use prism_storage::{
 use prism_telemetry::config::{TelemetryConfig, get_default_telemetry_config};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc, time::Duration};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 use prism_da::{
     DataAvailabilityLayer, LightDataAvailabilityLayer,
