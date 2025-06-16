@@ -51,7 +51,7 @@ impl UnsignedTransaction {
 
     /// Returns the transaction's payload that needs to be signed, or a TransactionError if encoding fails.
     pub fn signing_payload(&self) -> Result<Vec<u8>, TransactionError> {
-        self.encode_to_bytes().map_err(|_| TransactionError::EncodingFailed)
+        self.encode_to_bytes().map_err(|_| TransactionError::EncodingFailed(String::new()))
     }
 }
 
@@ -77,7 +77,7 @@ impl Transaction {
         let message = self
             .to_unsigned_tx()
             .encode_to_bytes()
-            .map_err(|e| TransactionError::EncodingFailedWith(e.to_string()))?;
+            .map_err(|e| TransactionError::EncodingFailed(e.to_string()))?;
 
         self.vk
             .verify_signature(&message, &self.signature)
