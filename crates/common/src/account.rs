@@ -118,7 +118,10 @@ impl Account {
             Operation::CreateAccount { id, key, .. }
             | Operation::RegisterService { id, key, .. } => {
                 if &tx.id != id {
-                    return Err(AccountError::AccountIdError);
+                    return Err(AccountError::AccountIdError(
+                        tx.id.to_string(),
+                        id.to_string(),
+                    ));
                 }
                 if &tx.vk != key {
                     return Err(AccountError::AccountKeyError);
@@ -126,7 +129,10 @@ impl Account {
             }
             _ => {
                 if tx.id != self.id {
-                    return Err(AccountError::TransactionIdError);
+                    return Err(AccountError::TransactionIdError(
+                        tx.id.to_string(),
+                        self.id.to_string(),
+                    ));
                 }
                 if !self.valid_keys.contains(&tx.vk) {
                     return Err(AccountError::InvalidKey);
