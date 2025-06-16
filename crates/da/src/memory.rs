@@ -1,8 +1,10 @@
 #![cfg(not(target_arch = "wasm32"))]
-use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
+use crate::{
+    DataAvailabilityLayer, EventSubscriber, FinalizedEpoch, LightDataAvailabilityLayer,
+    VerifiableEpoch, events::EventChannel,
+};
 use anyhow::Result;
 use async_trait::async_trait;
-use lumina_node::events::EventSubscriber;
 use prism_common::transaction::Transaction;
 use std::sync::Arc;
 use tokio::{
@@ -125,7 +127,7 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
         }
     }
 
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
+    fn event_channel(&self) -> Option<Arc<EventChannel>> {
         None
     }
 }

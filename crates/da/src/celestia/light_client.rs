@@ -1,9 +1,16 @@
 use super::utils::{NetworkConfig, create_namespace};
-use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
+use crate::{
+    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
+    events::{EventChannel, EventPublisher, EventSubscriber},
+};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
-use lumina_node::{Node, NodeError, events::EventSubscriber, store::StoreError};
+use lumina_node::{
+    Node, NodeError,
+    blockstore::InMemoryBlockstore,
+    store::{EitherStore, InMemoryStore, StoreError},
+};
 use prism_errors::DataAvailabilityError;
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
@@ -40,7 +47,7 @@ pub type LuminaNode = Node<
 
 pub struct LightClientConnection {
     pub node: Arc<RwLock<LuminaNode>>,
-    pub event_subscriber: Arc<Mutex<EventSubscriber>>,
+    pub event_channel: Arc<EventChannel>,
     pub snark_namespace: Namespace,
 }
 
@@ -98,11 +105,16 @@ impl LightClientConnection {
             .start_subscribed()
             .await?;
 
+        let lumina_sub = Arc::new(Mutex::new(event_subscriber));
+
+        // Creates an EventChannel that starts forwarding lumina events to the subscriber
+        let prism_chan = EventChannel::from(lumina_sub.clone());
+
         let snark_namespace = create_namespace(&celestia_config.snark_namespace_id)?;
 
         Ok(LightClientConnection {
             node: Arc::new(RwLock::new(node)),
-            event_subscriber: Arc::new(Mutex::new(event_subscriber)),
+            event_channel: Arc::new(prism_chan),
             snark_namespace,
         })
     }
@@ -129,22 +141,30 @@ impl LightClientConnection {
             .await?;
         let (node, event_subscriber) = node_builder.start_subscribed().await?;
 
+        let lumina_sub = Arc::new(Mutex::new(event_subscriber));
+
+        // Creates an EventChannel that starts forwarding lumina events to the subscriber
+        let prism_chan = EventChannel::from(lumina_sub.clone());
+
         let snark_namespace = create_namespace(&celestia_config.snark_namespace_id)?;
 
         Ok(LightClientConnection {
             node: Arc::new(RwLock::new(node)),
-            event_subscriber: Arc::new(Mutex::new(event_subscriber)),
+            event_channel: Arc::new(prism_chan),
             snark_namespace,
         })
+    }
+
+    pub fn event_publisher(&self) -> EventPublisher {
+        self.event_channel.publisher()
     }
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for LightClientConnection {
-    // since the lumina node is already started in the constructor, we don't need to start it again. We need the event_subscriber to start forwarding events.
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
-        Some(self.event_subscriber.clone())
+    fn event_channel(&self) -> Option<Arc<EventChannel>> {
+        Some(self.event_channel.clone())
     }
 
     async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {

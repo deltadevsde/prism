@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::Blob;
-use lumina_node::events::EventSubscriber;
+use mockall::automock;
 use prism_common::digest::Digest;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
@@ -16,12 +16,16 @@ use tokio::sync::Mutex;
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
 
+use crate::events::{EventChannel, EventSubscriber};
+
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
 
 pub mod celestia;
 pub mod consts;
+pub mod events;
 pub mod memory;
+pub mod utils;
 
 #[cfg(target_arch = "wasm32")]
 type Groth16Proof = Vec<u8>;
@@ -213,13 +217,13 @@ impl TryFrom<&Blob> for FinalizedEpoch {
     }
 }
 
+#[automock]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
     async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>>;
 
-    // starts the event subscriber, optional because inmemory and rpc based fullnode still need the start function
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>>;
+    fn event_channel(&self) -> Option<Arc<EventChannel>>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
