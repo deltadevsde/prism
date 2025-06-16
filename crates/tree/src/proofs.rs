@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use jmt::{
-    proof::{SparseMerkleNode, SparseMerkleProof, UpdateMerkleProof},
     KeyHash, RootHash,
+    proof::{SparseMerkleNode, SparseMerkleProof, UpdateMerkleProof},
 };
 use prism_common::{
     account::Account,
@@ -13,6 +13,7 @@ use prism_common::{
 };
 use prism_serde::binary::ToBinary;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::hasher::TreeHasher;
 
@@ -38,7 +39,7 @@ impl Batch {
         }
     }
 
-    pub fn verify(&self) -> Result<()> {
+    pub fn verify(&self) -> Result<(), ProofError> {
         let mut root = self.prev_root;
         for proof in &self.proofs {
             match proof {
@@ -51,7 +52,9 @@ impl Batch {
                                 .get(service_id)
                                 .and_then(|service_proof| service_proof.service_challenge());
                             if service_challenge.is_none() {
-                                bail!("Service proof for {} is missing from batch for CreateAccount verification", service_id);
+                                return Err(ProofError::MissingServiceChallenge(
+                                    service_id.to_string(),
+                                ));
                             }
                             service_challenge
                         }
@@ -72,7 +75,10 @@ impl Batch {
         for (id, service_proof) in &self.service_proofs {
             let keyhash = KeyHash::with::<TreeHasher>(&id);
             let serialized_account = service_proof.service.encode_to_bytes()?;
-            service_proof.proof.verify_existence(RootHash(root.0), keyhash, serialized_account)?;
+            service_proof
+                .proof
+                .verify_existence(RootHash(root.0), keyhash, serialized_account)
+                .map_err(|e| ProofError::VerificationError)?;
         }
 
         Ok(())
@@ -119,7 +125,7 @@ pub struct InsertProof {
 
 impl InsertProof {
     /// The method called in circuit to verify the state transition to the new root.
-    pub fn verify(&self, service_challenge: Option<&ServiceChallenge>) -> Result<()> {
+    pub fn verify(&self, service_challenge: Option<&ServiceChallenge>) -> Result<(), ProofError> {
         self.non_membership_proof.verify_nonexistence().context("Invalid NonMembershipProof")?;
 
         let mut account = Account::default();
@@ -136,7 +142,7 @@ impl InsertProof {
             let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &key.to_bytes()]);
 
             if service_challenge.is_none() {
-                bail!("Service challenge is missing for CreateAccount verification");
+                return Err(ProofError::MissingServiceChallenge(service_id.to_string()));
             }
 
             let ServiceChallenge::Signed(challenge_vk) = service_challenge.unwrap();
@@ -175,7 +181,7 @@ pub struct UpdateProof {
 
 impl UpdateProof {
     /// The method called in circuit to verify the state transition to the new root.
-    pub fn verify(&self) -> Result<()> {
+    pub fn verify(&self) -> Result<(), ProofError> {
         // Verify existence of old value.
         // Otherwise, any arbitrary account could be set as old_account.
         let old_serialized_account = self.old_account.encode_to_bytes()?;
@@ -190,11 +196,14 @@ impl UpdateProof {
 
         // Ensure the update proof corresponds to the new account value
         let new_serialized_account = new_account.encode_to_bytes()?;
-        self.update_proof.clone().verify_update(
-            RootHash(self.old_root.0),
-            RootHash(self.new_root.0),
-            vec![(self.key, Some(new_serialized_account))],
-        )?;
+        self.update_proof
+            .clone()
+            .verify_update(
+                RootHash(self.old_root.0),
+                RootHash(self.new_root.0),
+                vec![(self.key, Some(new_serialized_account))],
+            )
+            .map_err(|e| ProofError::AccountError(e.to_string()))?;
 
         Ok(())
     }
@@ -239,4 +248,28 @@ impl MerkleProof {
 pub struct HashedMerkleProof {
     pub leaf: Option<Digest>,
     pub siblings: Vec<Digest>,
+}
+
+#[derive(Error, Clone, Debug)]
+pub enum ProofError {
+    #[error("service proof is missing from batch for create account verification: {0}")]
+    MissingServiceProof(String),
+    #[error("service challengge is missing for create account verification: {0}")]
+    MissingServiceChallenge(String),
+    #[error("encoding error: {0}")]
+    EncodingError(String),
+    #[error("account update error: {0}")]
+    AccountError(String),
+    #[error("verification error: {0}")]
+    VerificationError(String),
+    // #[error("jmt error: {0}")]
+    // JmtError(#[from] jmt::proof::ProofError),
+    // #[error("general error: {0}")]
+    // Other(#[from] anyhow::Error),
+}
+
+impl From<bincode::Error> for ProofError {
+    fn from(err: bincode::Error) -> Self {
+        ProofError::EncodingError(err.to_string())
+    }
 }

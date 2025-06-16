@@ -162,8 +162,7 @@ impl Operation {
             Operation::AddData { data, .. } | Operation::SetData { data, .. } => {
                 let data_len = data.len();
                 // TODO determine proper max data size here
-                const MAX_DATA_SIZE: usize = 1_000_000; // 1MB limit for now
-                if data_len >= MAX_DATA_SIZE {
+                if data_len < usize::MAX {
                     return Err(OperationError::DataTooLarge(data_len));
                 }
                 Ok(())

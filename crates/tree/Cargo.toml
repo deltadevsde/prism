@@ -26,7 +26,9 @@ serde.workspace = true
 
 # misc
 anyhow.workspace = true
+bincode.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 paste = { workspace = true }

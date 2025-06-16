@@ -7248,6 +7248,7 @@ name = "prism-tree"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "jmt",
  "paste",
  "prism-common",
@@ -7256,6 +7257,7 @@ dependencies = [
  "prism-serde",
  "serde",
  "sha2 0.10.8",
+ "thiserror 2.0.12",
  "tracing",
 ]
 
