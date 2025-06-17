@@ -263,7 +263,7 @@ pub struct HashedMerkleProof {
 pub enum ProofError {
     #[error("service proof is missing from batch for create account verification: {0}")]
     MissingServiceProof(String),
-    #[error("service challengge is missing for create account verification: {0}")]
+    #[error("service challenge is missing for create account verification: {0}")]
     MissingServiceChallenge(String),
     #[error("encoding error: {0}")]
     EncodingError(String),
@@ -277,10 +277,6 @@ pub enum ProofError {
     NonexistenceError(String),
     #[error("Transaction error: {0}")]
     TransactionError(String),
-    // #[error("jmt error: {0}")]
-    // JmtError(#[from] jmt::proof::ProofError),
-    // #[error("general error: {0}")]
-    // Other(#[from] anyhow::Error),
 }
 
 impl From<bincode::Error> for ProofError {
