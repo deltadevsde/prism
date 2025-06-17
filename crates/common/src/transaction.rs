@@ -1,4 +1,3 @@
-use anyhow::Result;
 use celestia_types::Blob;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::binary::{FromBinary, ToBinary};
