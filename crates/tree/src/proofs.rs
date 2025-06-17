@@ -78,7 +78,7 @@ impl Batch {
             service_proof
                 .proof
                 .verify_existence(RootHash(root.0), keyhash, serialized_account)
-                .map_err(|e| ProofError::VerificationError)?;
+                .map_err(|e| ProofError::ExistenceError(e.to_string()))?;
         }
 
         Ok(())
@@ -126,10 +126,14 @@ pub struct InsertProof {
 impl InsertProof {
     /// The method called in circuit to verify the state transition to the new root.
     pub fn verify(&self, service_challenge: Option<&ServiceChallenge>) -> Result<(), ProofError> {
-        self.non_membership_proof.verify_nonexistence().context("Invalid NonMembershipProof")?;
-
+        self.non_membership_proof
+            .verify_nonexistence()
+            .context("Invalid NonMembershipProof")
+            .map_err(|e| ProofError::NonexistenceError(e.to_string()))?;
         let mut account = Account::default();
-        account.process_transaction(&self.tx)?;
+        account
+            .process_transaction(&self.tx)
+            .map_err(|e| ProofError::TransactionError(e.to_string()))?;
 
         // If we are creating an account, we need to additionally verify the service challenge
         if let Operation::CreateAccount {
@@ -147,16 +151,21 @@ impl InsertProof {
 
             let ServiceChallenge::Signed(challenge_vk) = service_challenge.unwrap();
             let ServiceChallengeInput::Signed(challenge_signature) = challenge;
-            challenge_vk.verify_signature(hash, challenge_signature)?;
+            challenge_vk
+                .verify_signature(hash, challenge_signature)
+                .map_err(|e| ProofError::VerificationError(e.to_string()))?;
         }
 
         let serialized_account = account.encode_to_bytes()?;
 
-        self.membership_proof.clone().verify_existence(
-            RootHash(self.new_root.0),
-            self.non_membership_proof.key,
-            serialized_account,
-        )?;
+        self.membership_proof
+            .clone()
+            .verify_existence(
+                RootHash(self.new_root.0),
+                self.non_membership_proof.key,
+                serialized_account,
+            )
+            .map_err(|e| ProofError::VerificationError(e.to_string()))?;
 
         Ok(())
     }
@@ -185,14 +194,14 @@ impl UpdateProof {
         // Verify existence of old value.
         // Otherwise, any arbitrary account could be set as old_account.
         let old_serialized_account = self.old_account.encode_to_bytes()?;
-        self.inclusion_proof.verify_existence(
-            RootHash(self.old_root.0),
-            self.key,
-            old_serialized_account,
-        )?;
+        self.inclusion_proof
+            .verify_existence(RootHash(self.old_root.0), self.key, old_serialized_account)
+            .map_err(|e| ProofError::VerificationError(e.to_string()))?;
 
         let mut new_account = self.old_account.clone();
-        new_account.process_transaction(&self.tx)?;
+        new_account
+            .process_transaction(&self.tx)
+            .map_err(|e| ProofError::TransactionError(e.to_string()))?;
 
         // Ensure the update proof corresponds to the new account value
         let new_serialized_account = new_account.encode_to_bytes()?;
@@ -262,6 +271,12 @@ pub enum ProofError {
     AccountError(String),
     #[error("verification error: {0}")]
     VerificationError(String),
+    #[error("existence error: {0}")]
+    ExistenceError(String),
+    #[error("nonexistence error: {0}")]
+    NonexistenceError(String),
+    #[error("Transaction error: {0}")]
+    TransactionError(String),
     // #[error("jmt error: {0}")]
     // JmtError(#[from] jmt::proof::ProofError),
     // #[error("general error: {0}")]
