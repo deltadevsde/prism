@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use anyhow::{Context, Result};
 use jmt::{
     KeyHash, RootHash,
     proof::{SparseMerkleNode, SparseMerkleProof, UpdateMerkleProof},
@@ -128,7 +127,6 @@ impl InsertProof {
     pub fn verify(&self, service_challenge: Option<&ServiceChallenge>) -> Result<(), ProofError> {
         self.non_membership_proof
             .verify_nonexistence()
-            .context("Invalid NonMembershipProof")
             .map_err(|e| ProofError::NonexistenceError(e.to_string()))?;
         let mut account = Account::default();
         account
@@ -226,13 +224,17 @@ pub struct MerkleProof {
 }
 
 impl MerkleProof {
-    pub fn verify_existence(&self, value: &Account) -> Result<()> {
+    pub fn verify_existence(&self, value: &Account) -> Result<(), ProofError> {
         let value = value.encode_to_bytes()?;
-        self.proof.verify_existence(RootHash(self.root.0), self.key, value)
+        self.proof
+            .verify_existence(RootHash(self.root.0), self.key, value)
+            .map_err(|e| ProofError::VerificationError(e.to_string()))
     }
 
-    pub fn verify_nonexistence(&self) -> Result<()> {
-        self.proof.verify_nonexistence(RootHash(self.root.0), self.key)
+    pub fn verify_nonexistence(&self) -> Result<(), ProofError> {
+        self.proof
+            .verify_nonexistence(RootHash(self.root.0), self.key)
+            .map_err(|e| ProofError::VerificationError(e.to_string()))
     }
 }
 
@@ -269,7 +271,7 @@ pub enum ProofError {
     EncodingError(String),
     #[error("account update error: {0}")]
     AccountError(String),
-    #[error("verification error: {0}")]
+    #[error("proof verification error: {0}")]
     VerificationError(String),
     #[error("existence error: {0}")]
     ExistenceError(String),
