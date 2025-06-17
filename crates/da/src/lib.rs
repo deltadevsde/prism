@@ -66,6 +66,7 @@ impl From<EpochCommitments> for (Digest, Digest) {
 
 /// `VerifiableStateTransition` is a trait wrapper around `FinalizedEpoch` that allows for mocking.
 /// The only concrete implementation of this trait is by `FinalizedEpoch`.
+#[automock]
 pub trait VerifiableStateTransition: Send {
     fn verify(
         &self,
