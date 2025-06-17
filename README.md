@@ -19,7 +19,7 @@
 
 Prism is a decentralized key transparency protocol, first inspired by the paper [Tzialla et. al](https://eprint.iacr.org/2021/1263.pdf), leveraging zkSNARKs and DA solutions to enable trust-minimized verification of E2EE services via WASM/Native light clients. This eliminates the possibility for hidden backdoors in E2EE services through a user-verifiable key management system. It uses transparency dictionaries under the hood, offering a generalized solution for managing a label-value map in environments where the service maintaining the map is not completely trusted.
 
-Prism provides the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM/Native light clients over a data availability layer. Alternative DA solutions are in planning, allowing for a less trust-minimized client where a p2p node cannot be embedded.
+Prism provides the first key-transparency solution to enable automatic verification of the service provider. This is achieved by providing constant size succinct proofs to WASM/Native light clients over a [data availability layer](https://arxiv.org/abs/1809.09044). Alternative DA solutions are in planning, allowing for a less trust-minimized client where a p2p node cannot be embedded.
 
 The system is designed to be efficient, scalable and secure, making it suitable for a wide range of applications.
 
@@ -61,7 +61,7 @@ This will compile the `prism-cli` binary and sp1 `ELF` that are used to run the 
 
 ### Running a local DA layer
 
-To run a local Celestia network for testing, use:
+To run a local [Celestia](https://docs.celestia.org/learn/how-celestia-works/overview) network for testing, use:
 
 ```bash
 just celestia-up
