@@ -20,9 +20,9 @@ We've made significant progress in the rollup logic:
 - Implemented full nodes, light nodes, and prover
 - Successfully implemented based sequencing with a batcher + prover
 - Enabled direct base layer update operations for users
-- Developed a robust proof of concept for further refinement
+- Implemented recursive snarks for near instant sync of light nodes
 
-**Next steps:** Implement checkpoint SNARKs for fast sync (ADR-001)
+**Next steps:** Bring in own p2p layer for light nodes to request state without relying on boostrapper
 
 ## 3. API Development
 
@@ -39,15 +39,25 @@ Since our last update, we have migrated fully to using a Jellyfish Merkle Tree. 
 
 - Evaluating lower level proof verification optimizations to reduce cycle count in SP1
 - Upstreaming our changes or publishing our fork as a crate if not reconcilable
-- Implementing a LSM datastore, moving away from the Redis PoC
 
-**Next steps:** Analyze SP1 cycles during proof verification, implement LSM-backed datastore
+**Next steps:** Analyze SP1 cycles during proof verification
 
-## 5. WASM Compatibility
+## 5. WASM + Uniffi Compatibility
 
-We're making strides in WASM compatibility to ensure widespread accessibility:
+We now have full WASM support, as well as native bindings via uniffi.
 
-- Nearing completion of WASM compatibility for light nodes
-- Working towards full integration with Lumina's WASM nodes for blob submission and retrieval
+They can be found in the `node_types/uniffi-lightclient` and `node_types/wasm-lightclient` crates.
 
-**Next steps:** Integrate Lumina's WASM nodes and develop an SDK for seamless mobile framework integration
+
+## 6. Alternative DA Solutions
+
+Not all clients can rely on Celestia's DA solution, particularly where a p2p node cannot be integrated or better performance is required.
+
+For this, we are building a DA Multiplexer that will allow posting the FinalizedEpochs to centralized providers as well, such as AWS.
+
+In addition, we are exploring a gossip-based solution to supplement the use of DA providers. This is the approach that iMessage takes, and the one that Certificate Transparency was supposed to take.
+
+## 7. Further reducing trust assumptions + ensuring compliance with regulatory requirements
+
+- Adding another layer of protection to the zkSNARKs with TEEs [(see here)](https://blog.succinct.xyz/sp1-2fa/)
+- Ensuring GDPR and SOC compliance
