@@ -16,6 +16,7 @@ use jmt::mock::MockTreeStore;
 use plotters::prelude::*;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_keys::{CryptoAlgorithm, SigningKey};
+use prism_storage::rocksdb::{RocksDBConnection, RocksDBConfig};
 use prism_tree::{
     key_directory_tree::KeyDirectoryTree, proofs::Batch, snarkable_tree::SnarkableTree,
 };
@@ -24,7 +25,11 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256, Sha512};
 use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Proof, SP1Stdin};
 use std::{collections::HashMap, fs, path::Path, sync::Arc, time::Instant};
+
+use tempfile::tempdir;
 use tokio::{self, task};
+
+
 
 /// The ELF (executable and linkable format) files for the Succinct RISC-V zkVM.
 pub const BASE_PRISM_ELF: &[u8] =
@@ -99,44 +104,58 @@ struct SimulationResult {
 
 /// Get a random service ID from the transaction builder
 fn get_random_service_id(rng: &mut impl Rng, builder: &TestTransactionBuilder) -> String {
-    let service_keys = builder.get_service_keys().clone();
-    let service_id = service_keys.keys().nth(rng.gen_range(0..service_keys.len())).unwrap();
-    service_id.to_string()
+    let service_keys = builder.get_service_keys();
+    let index = rng.gen_range(0..service_keys.len());
+    service_keys.keys().nth(index).unwrap().to_string()
 }
 
 /// Get the service key for a given service ID from the transaction builder
 fn _get_service_key(builder: &TestTransactionBuilder, service_id: &str) -> SigningKey {
-    let service_keys = builder.get_service_keys().clone();
+    let service_keys = builder.get_service_keys();
     let service_key = service_keys.get(service_id).unwrap();
     service_key.clone()
 }
 
 /// Get a random account ID from the transaction builder
 fn get_random_account_id(rng: &mut impl Rng, builder: &TestTransactionBuilder) -> String {
-    let account_keys = builder.get_account_keys().clone();
-    let account_id = account_keys.keys().nth(rng.gen_range(0..account_keys.len())).unwrap();
-    account_id.to_string()
+    let account_keys = builder.get_account_keys();
+    let index = rng.gen_range(0..account_keys.len());
+    account_keys.keys().nth(index).unwrap().to_string()
 }
 
 /// Get the first account key for a given account ID from the transaction builder
 fn get_first_account_key(builder: &TestTransactionBuilder, account_id: &str) -> SigningKey {
-    let account_keys_map = builder.get_account_keys().clone();
+    let account_keys_map = builder.get_account_keys();
     let account_keys = account_keys_map.get(account_id).unwrap();
     account_keys.first().unwrap().clone()
 }
 
 /// Create a batch of transactions to prepare the initial state of the tree
-fn create_preparation_batch(
+/// OPTIMIZED: Stream processing to minimize TestTransactionBuilder memory usage
+fn create_preparation_batch<S>(
     builder: &mut TestTransactionBuilder,
-    tree: &mut KeyDirectoryTree<MockTreeStore>,
+    tree: &mut KeyDirectoryTree<S>,
     config: &SimulationConfig,
-) -> Batch {
-    let mut transactions =
-        Vec::with_capacity(config.num_existing_services + config.num_existing_accounts);
+) -> Batch
+where
+    S: jmt::storage::TreeReader + jmt::storage::TreeWriter + Send + Sync,
+{
+    // Optimized batch sizes for disk storage to balance performance and memory
+    let batch_size = if config.num_existing_accounts >= 500_000 {
+        1_000 // Small batches for 500k+ accounts with disk storage
+    } else if config.num_existing_accounts >= 100_000 {
+        2_000 // Medium batches for 100k+ accounts
+    } else if config.num_existing_accounts >= 10_000 {
+        5_000 // Moderate batches for 10k+ accounts
+    } else {
+        10_000 // Normal batch size for smaller tests
+    };
 
     let mut rng = rand::thread_rng();
+    let mut last_batch = None;
 
-    // Register existing services with random keys
+    // Register existing services first
+    let mut service_transactions = Vec::with_capacity(config.num_existing_services);
     for i in 0..config.num_existing_services {
         let algorithm = config.algorithms[i % config.algorithms.len()];
         let service_id = format!(
@@ -145,40 +164,140 @@ fn create_preparation_batch(
         );
         let transaction =
             builder.register_service_with_random_keys(algorithm, &service_id).commit();
-        transactions.push(transaction);
+        service_transactions.push(transaction);
     }
 
-    // Create existing accounts with random keys
-    for i in 0..config.num_existing_accounts {
-        let algorithm = config.algorithms[i % config.algorithms.len()];
-        let account_id = format!("account_{}", hex::encode(Sha256::digest(i.to_le_bytes())));
-        let service_id = get_random_service_id(&mut rng, builder);
-        let transaction = builder
-            .create_account_with_random_key_signed(algorithm, &account_id, &service_id)
-            .commit();
-        transactions.push(transaction);
+    if !service_transactions.is_empty() {
+        last_batch = Some(tree.process_batch(service_transactions).unwrap());
     }
 
-    tree.process_batch(transactions).unwrap()
+    // For large benchmarks, use memory-efficient approach
+    if config.num_existing_accounts >= 100_000 {
+        println!("Using memory-efficient processing for {} accounts", config.num_existing_accounts);
+        
+        // Process in very small batches and clear builder memory periodically
+        let memory_batch_size = 1_000; // Very small batches
+        let clear_interval = 10_000; // Clear builder memory every 10k accounts
+        let mut accounts_created = 0;
+        
+        for batch_start in (0..config.num_existing_accounts).step_by(memory_batch_size) {
+            let batch_end = (batch_start + memory_batch_size).min(config.num_existing_accounts);
+            let mut account_transactions = Vec::with_capacity(batch_end - batch_start);
+
+            for i in batch_start..batch_end {
+                let algorithm = config.algorithms[i % config.algorithms.len()];
+                let account_id = format!("account_{}", hex::encode(Sha256::digest(i.to_le_bytes())));
+                let service_id = get_random_service_id(&mut rng, builder);
+                let transaction = builder
+                    .create_account_with_random_key_signed(algorithm, &account_id, &service_id)
+                    .commit();
+                account_transactions.push(transaction);
+            }
+
+            if !account_transactions.is_empty() {
+                last_batch = Some(tree.process_batch(account_transactions).unwrap());
+                accounts_created += batch_end - batch_start;
+
+                // Progress reporting
+                if batch_start % 10_000 == 0 {
+                    println!("Processed {} of {} accounts ({:.1}%) - builder has {} accounts", 
+                            batch_end, config.num_existing_accounts,
+                            (batch_end as f64 / config.num_existing_accounts as f64) * 100.0,
+                            builder.get_account_keys().len());
+                }
+                
+                // Clear builder memory periodically to prevent OOM, but keep some accounts for benchmark
+                if accounts_created >= clear_interval && builder.get_account_keys().len() > 2000 {
+                    println!("Clearing TestTransactionBuilder memory at {} accounts (keeping 1000 for benchmark)...", accounts_created);
+                    
+                    // Create new builder with services and subset of accounts
+                    let mut new_builder = TestTransactionBuilder::new();
+                    
+                    // Preserve services
+                    let service_keys = builder.get_service_keys();
+                    for (service_id, _) in service_keys.iter() {
+                        let algorithm = config.algorithms[0];
+                        new_builder.register_service_with_random_keys(algorithm, service_id).commit();
+                    }
+                    
+                    // Keep up to 1000 accounts for benchmark operations
+                    let account_keys = builder.get_account_keys();
+                    let accounts_to_keep: Vec<_> = account_keys.keys().take(1000).collect();
+                    
+                    for account_id in accounts_to_keep.iter() {
+                        let algorithm = config.algorithms[0];
+                        let service_id = service_keys.keys().next().unwrap();
+                        new_builder.create_account_with_random_key_signed(algorithm, account_id, service_id).commit();
+                    }
+                    
+                    *builder = new_builder;
+                    accounts_created = 0; // Reset counter
+                }
+            }
+        }
+    } else {
+        // Process accounts in smaller batches for moderate sizes
+        for batch_start in (0..config.num_existing_accounts).step_by(batch_size) {
+            let batch_end = (batch_start + batch_size).min(config.num_existing_accounts);
+            let mut account_transactions = Vec::with_capacity(batch_end - batch_start);
+
+            for i in batch_start..batch_end {
+                let algorithm = config.algorithms[i % config.algorithms.len()];
+                let account_id = format!("account_{}", hex::encode(Sha256::digest(i.to_le_bytes())));
+                let service_id = get_random_service_id(&mut rng, builder);
+                let transaction = builder
+                    .create_account_with_random_key_signed(algorithm, &account_id, &service_id)
+                    .commit();
+                account_transactions.push(transaction);
+            }
+
+            if !account_transactions.is_empty() {
+                last_batch = Some(tree.process_batch(account_transactions).unwrap());
+
+                // Progress indicator for large benchmarks
+                if config.num_existing_accounts >= 10_000 && batch_start % (batch_size * 10) == 0 {
+                    println!("Processed {} of {} accounts ({:.1}%) using disk storage", 
+                            batch_end, config.num_existing_accounts,
+                            (batch_end as f64 / config.num_existing_accounts as f64) * 100.0);
+                }
+            }
+        }
+    }
+
+    let final_batch = last_batch.expect("Should have processed at least one batch");
+    
+    // Log completion for large benchmarks
+    if config.num_existing_accounts >= 100_000 {
+        println!("Completed preparation phase with {} accounts", config.num_existing_accounts);
+    }
+    
+    final_batch
 }
 
 /// Create a batch of transactions to benchmark the performance of the tree
-fn create_benchmark_batch(
+fn create_benchmark_batch<S>(
     builder: &mut TestTransactionBuilder,
-    tree: &mut KeyDirectoryTree<MockTreeStore>,
+    tree: &mut KeyDirectoryTree<S>,
     config: &SimulationConfig,
-) -> Batch {
-    let mut transactions = Vec::new();
+) -> Batch
+where
+    S: jmt::storage::TreeReader + jmt::storage::TreeWriter + Send + Sync,
+{
+    // Pre-allocate with expected capacity to reduce reallocations
+    let total_ops = config.num_new_services + config.num_new_accounts + 
+                   config.num_add_keys + config.num_revoke_key + 
+                   config.num_add_data + config.num_set_data;
+    let mut transactions = Vec::with_capacity(total_ops);
 
     let mut rng = rand::thread_rng();
 
     // Create new services
-    let service_keys = builder.get_service_keys().clone();
+    let service_keys_len = builder.get_service_keys().len();
     for i in 0..config.num_new_services {
         let algorithm = config.algorithms[i % config.algorithms.len()];
         let service_id = format!(
             "service_{}",
-            hex::encode(Sha256::digest((i + service_keys.len()).to_le_bytes()))
+            hex::encode(Sha256::digest((i + service_keys_len).to_le_bytes()))
         );
         let transaction =
             builder.register_service_with_random_keys(algorithm, &service_id).commit();
@@ -392,7 +511,12 @@ async fn main() {
 
 /// Execute simulations based on the provided arguments
 async fn execute_simulations(args: Args) {
-    let num_simulations = 100; // Number of times to run each configuration
+    // For wire benchmark, use only 1 simulation to prevent parallel OOM
+    let num_simulations = if args.tag.as_ref().map_or(false, |tag| tag == "wire") {
+        1 // Wire benchmark uses only 1 simulation
+    } else {
+        100 // Other benchmarks use 100 simulations
+    };
 
     // Define default configuration
     let default_config = SimulationConfig::default();
@@ -411,6 +535,16 @@ async fn execute_simulations(args: Args) {
 
         println!("Testing configuration: {:?}", config);
 
+        // Use disk-backed storage for large benchmarks to prevent OOM
+        // Lower threshold to use disk storage more aggressively
+        let use_disk_storage = config.tags.contains(&"wire".to_string()) ||
+                              config.tags.contains(&"wire-full".to_string()) ||
+                              config.num_existing_accounts >= 5_000;
+
+        if use_disk_storage {
+            println!("Using RocksDB disk-backed storage for large benchmark with {} accounts", config.num_existing_accounts);
+        }
+
         let mut tasks = Vec::new();
 
         for _ in 0..num_simulations {
@@ -421,17 +555,45 @@ async fn execute_simulations(args: Args) {
                 let client = ProverClient::from_env();
 
                 let mut builder = TestTransactionBuilder::new();
-                let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
 
-                // Setup the inputs for each configuration.
-                let initial_batch = create_preparation_batch(&mut builder, &mut tree, &config);
+                // Use disk-backed storage for large benchmarks to prevent OOM
+                let operations_batch = if use_disk_storage {
+                    // Create temporary directory for RocksDB
+                    let temp_dir = tempdir().expect("Failed to create temp directory");
+                    let db_path = temp_dir.path().join("large_benchmark_db");
 
-                // Execute the initial batch to add accounts (only once per configuration)
-                let mut stdin = SP1Stdin::new();
-                stdin.write(&initial_batch);
+                    // Initialize RocksDB with optimized settings for large datasets
+                    let db_config = RocksDBConfig::new(db_path.to_str().unwrap());
+                    let db = RocksDBConnection::new(&db_config).expect("Failed to create RocksDB connection");
+                    let mut tree = KeyDirectoryTree::new(Arc::new(db));
 
-                // Create operations batch
-                let operations_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
+                    println!("Starting large benchmark preparation ({} accounts)...", config.num_existing_accounts);
+                    let start_time = std::time::Instant::now();
+
+                    // Process preparation batch using disk storage
+                    let _initial = create_preparation_batch(&mut builder, &mut tree, &config);
+
+                    println!("Preparation completed in {:?}", start_time.elapsed());
+                    println!("Starting benchmark operations...");
+
+                    // Create benchmark batch
+                    let operations = create_benchmark_batch(&mut builder, &mut tree, &config);
+
+                    // Clean up tree reference before dropping temp directory
+                    drop(tree);
+                    
+                    println!("Completed large benchmark operations successfully");
+
+                    // Keep temp directory alive longer to ensure cleanup doesn't interfere with result
+                    std::mem::forget(temp_dir);
+
+                    operations
+                } else {
+                    // Use regular MockTreeStore for smaller benchmarks
+                    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+                    let _initial = create_preparation_batch(&mut builder, &mut tree, &config);
+                    create_benchmark_batch(&mut builder, &mut tree, &config)
+                };
 
                 // Reset stdin by creating a new instance and write the operations batch
                 let mut stdin = SP1Stdin::new();
@@ -614,14 +776,13 @@ fn get_configurations(
         }
     }
 
-    // Wire configuration: 500k existing users, 41 CREATE_ACCOUNT/hour, 250 ADD_KEY/hour, 20 REMOVE_KEY/hour
-    // All using ED25519
+    // Wire benchmark - original requirements must be preserved
     configs.push(SimulationConfig {
         tags: vec!["wire".to_string()],
         num_simulations: 1,
         algorithms: vec![CryptoAlgorithm::Ed25519],
         num_existing_services: 1, // Reasonable number of Wire services
-        num_existing_accounts: 250_000, // Current Wire user base
+        num_existing_accounts: 500_000, // Current Wire user base - REQUIRED
         num_new_services: 0,
         num_new_accounts: 41, // 41 new users per hour (1k per day)
         num_add_keys: 250, // 0.1% of users add key/device per hour (500k * 0.001 = 500, scaled to 250 for performance)

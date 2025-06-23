@@ -26,3 +26,5 @@ sha2 = { workspace = true }
 tokio = { workspace = true }
 futures = { workspace = true }
 plotters = { workspace = true }
+prism-storage = { workspace = true }
+tempfile = { workspace = true }

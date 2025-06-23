@@ -9286,6 +9286,7 @@ dependencies = [
  "prism-common",
  "prism-keys",
  "prism-serde",
+ "prism-storage",
  "prism-tree",
  "rand 0.8.5",
  "serde",
@@ -9293,6 +9294,7 @@ dependencies = [
  "sha2 0.10.8",
  "sp1-sdk",
  "sp1-zkvm",
+ "tempfile",
  "tokio",
 ]
 

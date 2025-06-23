@@ -1,5 +1,5 @@
 {
-  "green_3_3_1_1_3_3_1_1_1": {
+  "green_3_3_1000_1_3_3_1_1_1": {
     "config": {
       "tags": [
         "green"
@@ -11,7 +11,7 @@
         "secp256r1"
       ],
       "num_existing_services": 3,
-      "num_existing_accounts": 1,
+      "num_existing_accounts": 1000,
       "num_new_services": 1,
       "num_new_accounts": 3,
       "num_add_keys": 3,
@@ -19,12 +19,12 @@
       "num_add_data": 1,
       "num_set_data": 1
     },
-    "min_cycles": 3439513,
-    "max_cycles": 4349609,
-    "avg_cycles": 3836466.35,
-    "median_cycles": 3832863,
-    "std_dev": 209070.63956511806,
-    "std_dev_percentage": 5.4495627093176005
+    "min_cycles": 4237307,
+    "max_cycles": 5408336,
+    "avg_cycles": 4938772.37,
+    "median_cycles": 4942848,
+    "std_dev": 220153.70853831444,
+    "std_dev_percentage": 4.457660569165175
   },
   "green_3_3_5000_1_3_3_1_1_1": {
     "config": {
@@ -52,33 +52,6 @@
     "median_cycles": 5298879,
     "std_dev": 248928.8659195225,
     "std_dev_percentage": 4.725550567486906
-  },
-  "green_3_3_1000_1_3_3_1_1_1": {
-    "config": {
-      "tags": [
-        "green"
-      ],
-      "num_simulations": 100,
-      "algorithms": [
-        "ed25519",
-        "secp256k1",
-        "secp256r1"
-      ],
-      "num_existing_services": 3,
-      "num_existing_accounts": 1000,
-      "num_new_services": 1,
-      "num_new_accounts": 3,
-      "num_add_keys": 3,
-      "num_revoke_key": 1,
-      "num_add_data": 1,
-      "num_set_data": 1
-    },
-    "min_cycles": 4237307,
-    "max_cycles": 5408336,
-    "avg_cycles": 4938772.37,
-    "median_cycles": 4942848,
-    "std_dev": 220153.70853831444,
-    "std_dev_percentage": 4.457660569165175
   },
   "green_3_3_10000_1_3_3_1_1_1": {
     "config": {
@@ -131,7 +104,59 @@
     "max_cycles": 5021213,
     "avg_cycles": 4519581.79,
     "median_cycles": 4526194,
-    "std_dev": 250674.91239106058,
+    "std_dev": 250674.91239106056,
     "std_dev_percentage": 5.546418320068959
+  },
+  "green_3_3_1_1_3_3_1_1_1": {
+    "config": {
+      "tags": [
+        "green"
+      ],
+      "num_simulations": 100,
+      "algorithms": [
+        "ed25519",
+        "secp256k1",
+        "secp256r1"
+      ],
+      "num_existing_services": 3,
+      "num_existing_accounts": 1,
+      "num_new_services": 1,
+      "num_new_accounts": 3,
+      "num_add_keys": 3,
+      "num_revoke_key": 1,
+      "num_add_data": 1,
+      "num_set_data": 1
+    },
+    "min_cycles": 3439513,
+    "max_cycles": 4349609,
+    "avg_cycles": 3836466.35,
+    "median_cycles": 3832863,
+    "std_dev": 209070.6395651181,
+    "std_dev_percentage": 5.4495627093176005
+  },
+  "wire_1_1_50000_0_41_250_20_0_0": {
+    "config": {
+      "tags": [
+        "wire"
+      ],
+      "num_simulations": 1,
+      "algorithms": [
+        "ed25519"
+      ],
+      "num_existing_services": 1,
+      "num_existing_accounts": 50000,
+      "num_new_services": 0,
+      "num_new_accounts": 41,
+      "num_add_keys": 250,
+      "num_revoke_key": 20,
+      "num_add_data": 0,
+      "num_set_data": 0
+    },
+    "min_cycles": 130357363,
+    "max_cycles": 131773864,
+    "avg_cycles": 131234251.04,
+    "median_cycles": 131226888,
+    "std_dev": 281554.7113235337,
+    "std_dev_percentage": 0.2145436188283775
   }
 }
