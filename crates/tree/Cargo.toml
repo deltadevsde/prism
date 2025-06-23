@@ -21,12 +21,14 @@ jmt.workspace = true
 sha2.workspace = true
 
 # serde
+bincode.workspace = true
 prism-serde.workspace = true
 serde.workspace = true
 
 # misc
 anyhow.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 paste = { workspace = true }
