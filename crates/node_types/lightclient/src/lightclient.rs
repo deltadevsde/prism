@@ -40,16 +40,18 @@ pub struct LightClient {
     /// The event channel, used to spawn new subscribers and publishers.
     event_chan: Arc<EventChannel>,
     event_pub: Arc<EventPublisher>,
+    sync_state: Arc<RwLock<SyncState>>,
 
     // The latest commitment.
     latest_commitment: Arc<RwLock<Option<Digest>>>,
 }
 
-struct SyncState {
-    current_height: u64,
-    initial_sync_completed: bool,
-    initial_sync_in_progress: bool,
-    latest_finalized_epoch: Option<u64>,
+#[derive(Default, Clone)]
+pub struct SyncState {
+    pub current_height: u64,
+    pub initial_sync_completed: bool,
+    pub initial_sync_in_progress: bool,
+    pub latest_finalized_epoch: Option<u64>,
 }
 
 #[allow(dead_code)]
@@ -64,6 +66,8 @@ impl LightClient {
         let event_chan = da.event_channel();
         let event_pub = Arc::new(event_chan.publisher());
 
+        let sync_state = Arc::new(RwLock::new(SyncState::default()));
+
         Self {
             da,
             sp1_vkeys,
@@ -71,17 +75,16 @@ impl LightClient {
             event_chan,
             event_pub,
             latest_commitment: Arc::new(RwLock::new(None)),
+            sync_state,
         }
+    }
+
+    pub async fn get_sync_state(&self) -> SyncState {
+        self.sync_state.read().await.clone()
     }
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
-        let sync_state = Arc::new(RwLock::new(SyncState {
-            current_height: 0,
-            initial_sync_completed: false,
-            initial_sync_in_progress: false,
-            latest_finalized_epoch: None,
-        }));
 
         let mut event_sub = self.event_chan.subscribe();
         while let Ok(event_info) = event_sub.recv().await {
@@ -90,27 +93,27 @@ impl LightClient {
                 if let Some(metrics) = get_metrics() {
                     metrics.record_celestia_synced_height(height, vec![]);
                     if let Some(latest_finalized_epoch) =
-                        sync_state.read().await.latest_finalized_epoch
+                        self.sync_state.read().await.latest_finalized_epoch
                     {
                         metrics.record_current_epoch(latest_finalized_epoch, vec![]);
                     }
                 }
                 info!("new height from headersub {}", height);
-                self.clone().handle_new_header(height, sync_state.clone()).await;
+                self.clone().handle_new_header(height).await;
             }
         }
 
         Ok(())
     }
 
-    async fn handle_new_header(self: Arc<Self>, height: u64, state: Arc<RwLock<SyncState>>) {
+    async fn handle_new_header(self: Arc<Self>, height: u64) {
         // start initial historical backward sync if needed and not already in progress
         {
-            let mut state_handle = state.write().await;
+            let mut state_handle = self.sync_state.write().await;
             if !state_handle.initial_sync_completed && !state_handle.initial_sync_in_progress {
                 state_handle.initial_sync_in_progress = true;
                 drop(state_handle);
-                self.start_backward_sync(height, state.clone()).await;
+                self.start_backward_sync(height).await;
                 return;
             }
         }
@@ -128,7 +131,7 @@ impl LightClient {
                         self.event_pub.send(PrismEvent::RecursiveVerificationCompleted { height });
 
                         // Update our latest known finalized epoch
-                        let mut state = state.write().await;
+                        let mut state = self.sync_state.write().await;
                         state.latest_finalized_epoch = Some(height);
 
                         // If we're waiting for initial sync, this completes it
@@ -149,11 +152,7 @@ impl LightClient {
         }
     }
 
-    async fn start_backward_sync(
-        self: Arc<Self>,
-        network_height: u64,
-        state: Arc<RwLock<SyncState>>,
-    ) {
+    async fn start_backward_sync(self: Arc<Self>, network_height: u64) {
         info!("starting historical sync");
         // Announce that sync has started
         self.event_pub.send(PrismEvent::SyncStarted {
@@ -166,7 +165,7 @@ impl LightClient {
         // Start a task to find a finalized epoch by searching backward
         let light_client = Arc::clone(&self);
 
-        let state = state.clone();
+        let state = self.sync_state.clone();
         spawn_task(async move {
             // Find the most recent valid epoch by searching backward
             if let Some(epoch_height) =
