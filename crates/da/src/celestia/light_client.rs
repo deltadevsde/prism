@@ -24,8 +24,6 @@ use lumina_node::NodeBuilder;
 #[cfg(not(target_arch = "wasm32"))]
 use {
     blockstore::EitherBlockstore,
-    lumina_node::blockstore::InMemoryBlockstore,
-    lumina_node::store::{EitherStore, InMemoryStore},
     redb::Database,
     tokio::task::spawn_blocking,
 };
