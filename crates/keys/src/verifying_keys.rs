@@ -250,18 +250,14 @@ impl VerifyingKey {
                 })?;
                 Ok(VerifyingKey::Secp256r1(secp256r1_key))
             }
-            CryptoAlgorithm::Eip191 => {
-                return Err(VerificationError::NotImplementedError(
-                    "Eth".to_string(),
-                    "from".to_string(),
-                ));
-            }
-            CryptoAlgorithm::CosmosAdr36 => {
-                return Err(VerificationError::NotImplementedError(
-                    "Cosmos ADR-36".to_string(),
-                    "from".to_string(),
-                ));
-            }
+            CryptoAlgorithm::Eip191 => Err(VerificationError::NotImplementedError(
+                "Eth".to_string(),
+                "from".to_string(),
+            )),
+            CryptoAlgorithm::CosmosAdr36 => Err(VerificationError::NotImplementedError(
+                "Cosmos ADR-36".to_string(),
+                "from".to_string(),
+            )),
         }
     }
 
@@ -378,7 +374,6 @@ pub enum VerificationError {
     IntoRefError(String, String),
     #[error("{0} vk {1} DER format is not implemented")]
     NotImplementedError(String, String),
-
     #[error("something went wrong {0}")]
     GeneralError(String),
 }

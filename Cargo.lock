@@ -7037,7 +7037,6 @@ name = "prism-keys"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
- "anyhow",
  "ed25519",
  "ed25519-consensus",
  "getrandom 0.2.16",

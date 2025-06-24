@@ -1,6 +1,6 @@
-use anyhow::bail;
 use pkcs8::{AlgorithmIdentifierRef, ObjectIdentifier};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use utoipa::ToSchema;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, ToSchema)]
@@ -60,7 +60,7 @@ pub const SECP256K1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.13
 pub const SECP256R1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7");
 
 impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
-    type Error = anyhow::Error;
+    type Error = AlgorithmError;
 
     fn try_from(algorithm_identifier: AlgorithmIdentifierRef<'a>) -> Result<Self, Self::Error> {
         let oid = algorithm_identifier.oid;
@@ -68,16 +68,28 @@ impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
         if oid == ED25519_OID {
             Ok(CryptoAlgorithm::Ed25519)
         } else if oid == ELLIPTIC_CURVE_OID || oid == ECDSA_SHA256_OID {
-            let parameter_oid = algorithm_identifier.parameters_oid()?;
+            let parameter_oid = algorithm_identifier
+                .parameters_oid()
+                .map_err(|e| AlgorithmError::GeneralError(e.to_string()))?;
             if parameter_oid == SECP256K1_OID {
                 Ok(CryptoAlgorithm::Secp256k1)
             } else if parameter_oid == SECP256R1_OID {
                 Ok(CryptoAlgorithm::Secp256r1)
             } else {
-                bail!("Unsupported elliptic curve OID")
+                return Err(AlgorithmError::GeneralError(
+                    "Unsupported elliptic curve OID".to_string(),
+                ));
             }
         } else {
-            bail!("Unsupported algorithm OID")
+            return Err(AlgorithmError::GeneralError(
+                "Unsupported algorithm OID".to_string(),
+            ));
         }
     }
+}
+
+#[derive(Error, Clone, Debug)]
+pub enum AlgorithmError {
+    #[error("error: {0}")]
+    GeneralError(String),
 }
