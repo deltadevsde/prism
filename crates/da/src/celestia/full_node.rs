@@ -1,10 +1,12 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
+use crate::{
+    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
+    events::{EventChannel, PrismEvent},
+};
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
-use lumina_node::events::EventSubscriber;
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
     self,
@@ -15,7 +17,7 @@ use std::{
 };
 use tracing::{error, trace};
 
-use tokio::sync::{Mutex, broadcast};
+use tokio::sync::broadcast;
 
 use crate::DataAvailabilityLayer;
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
@@ -34,6 +36,7 @@ pub struct CelestiaConnection {
 
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
+    event_channel: Arc<EventChannel>,
 }
 
 impl CelestiaConnection {
@@ -55,6 +58,7 @@ impl CelestiaConnection {
             ))?;
 
         let (height_update_tx, _) = broadcast::channel(100);
+        let event_channel = Arc::new(EventChannel::new());
 
         Ok(CelestiaConnection {
             client,
@@ -62,23 +66,24 @@ impl CelestiaConnection {
             operation_namespace,
             height_update_tx,
             sync_target: Arc::new(AtomicU64::new(0)),
+            event_channel,
         })
     }
 }
 
 #[async_trait]
 impl LightDataAvailabilityLayer for CelestiaConnection {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
 
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
             Ok(maybe_blobs) => match maybe_blobs {
                 Some(blobs) => {
-                    let valid_epoch: Vec<FinalizedEpoch> = blobs
+                    let valid_epochs: Vec<VerifiableEpoch> = blobs
                         .into_iter()
                         .filter_map(|blob| {
                             match FinalizedEpoch::try_from(&blob) {
-                                Ok(epoch) => Some(epoch),
+                                Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
                                 Err(e) => {
                                     warn!(
                                         "Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}",
@@ -89,7 +94,7 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
                             }
                         })
                         .collect();
-                    Ok(valid_epoch)
+                    Ok(valid_epochs)
                 }
                 None => Ok(vec![]),
             },
@@ -106,8 +111,8 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
-        None
+    fn event_channel(&self) -> Arc<EventChannel> {
+        self.event_channel.clone()
     }
 }
 
@@ -120,6 +125,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
 
         let sync_target = self.sync_target.clone();
         let height_update_tx = self.height_update_tx.clone();
+        let event_publisher = self.event_channel.publisher();
 
         spawn(async move {
             while let Some(extended_header_result) = header_sub.next().await {
@@ -130,6 +136,8 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         // todo: correct error handling
                         let _ = height_update_tx.send(height);
                         trace!("updated sync target for height {}", height);
+
+                        event_publisher.send(PrismEvent::UpdateDAHeight { height });
                     }
                     Err(e) => {
                         error!("Error retrieving header from DA layer: {}", e);

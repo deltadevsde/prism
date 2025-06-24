@@ -6,11 +6,11 @@ mod error;
 mod types;
 
 use error::{LightClientError, Result};
-use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
-use prism_lightclient::{
-    LightClient as CoreLightClient,
-    events::{EventChannel, EventSubscriber},
+use prism_da::{
+    celestia::{light_client::LightClientConnection, utils::Network},
+    events::EventSubscriber,
 };
+use prism_lightclient::LightClient as CoreLightClient;
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 use types::UniffiLightClientEvent;
@@ -22,7 +22,7 @@ uniffi::setup_scaffolding!();
 #[derive(Object)]
 pub struct LightClient {
     inner: Arc<CoreLightClient>,
-    event_subscriber: Mutex<Option<EventSubscriber>>,
+    event_subscriber: Mutex<EventSubscriber>,
 }
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -51,19 +51,16 @@ impl LightClient {
             LightClientError::network_error(format!("Failed to connect to light client: {}", e))
         })?;
 
-        let event_channel = EventChannel::new();
-        let event_publisher = event_channel.publisher();
-        let event_subscriber = event_channel.subscribe();
+        let event_sub = da.event_channel.subscribe();
 
         let inner = Arc::new(CoreLightClient::new(
             Arc::new(da),
             network_config.verifying_key,
-            event_publisher,
         ));
 
         Ok(Self {
             inner,
-            event_subscriber: Mutex::new(Some(event_subscriber)),
+            event_subscriber: Mutex::new(event_sub),
         })
     }
 
@@ -84,18 +81,11 @@ impl LightClient {
     /// Returns the next event from the lightclient's event channel.
     pub async fn next_event(&self) -> Result<UniffiLightClientEvent> {
         let mut event_subscriber = self.event_subscriber.lock().await;
-        match event_subscriber.as_mut() {
-            Some(subscriber) => {
-                let event_info = subscriber
-                    .recv()
-                    .await
-                    .map_err(|_| LightClientError::event_error("Event channel closed"))?;
+        let event_info = event_subscriber
+            .recv()
+            .await
+            .map_err(|_| LightClientError::event_error("Event channel closed"))?;
 
-                Ok(event_info.event.into())
-            }
-            None => Err(LightClientError::event_error(
-                "Event subscriber not initialized",
-            )),
-        }
+        Ok(event_info.event.into())
     }
 }

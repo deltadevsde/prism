@@ -14,7 +14,7 @@ use prism_telemetry_registry::{init::init, metrics_registry::get_metrics};
 use std::io::{Error, ErrorKind};
 
 use node_types::NodeType;
-use prism_lightclient::{LightClient, events::EventChannel};
+use prism_lightclient::LightClient;
 use prism_prover::Prover;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
@@ -90,13 +90,7 @@ async fn main() -> std::io::Result<()> {
                 Error::other(e.to_string())
             })?;
 
-            let event_channel = EventChannel::new();
-
-            Arc::new(LightClient::new(
-                da,
-                verifying_key,
-                event_channel.publisher(),
-            ))
+            Arc::new(LightClient::new(da, verifying_key))
         }
         Commands::Prover(_) => {
             let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
@@ -155,10 +149,7 @@ async fn main() -> std::io::Result<()> {
 
             let signing_key = get_signing_key(keystore_type, keystore_path)?;
 
-            let verifying_key =
-                config.network.verifying_key.clone().ok_or_else(|| {
-                    Error::new(ErrorKind::NotFound, "prover verifying key not found")
-                })?;
+            let verifying_key = config.network.verifying_key.clone();
 
             // When SP1_PROVER is set to mock, disable recursive proofs
             let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");

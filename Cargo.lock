@@ -7005,6 +7005,7 @@ dependencies = [
  "lumina-node",
  "lumina-node-uniffi",
  "lumina-node-wasm",
+ "mockall",
  "prism-common",
  "prism-errors",
  "prism-keys",
@@ -7012,11 +7013,15 @@ dependencies = [
  "redb",
  "serde",
  "serde-wasm-bindgen",
+ "serde_json",
  "sp1-sdk",
+ "sp1-verifier",
+ "thiserror 2.0.12",
  "tokio",
  "tracing",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-time",
 ]
 
 [[package]]

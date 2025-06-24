@@ -1,41 +1,23 @@
 use anyhow::Result;
-use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
-use prism_da::{FinalizedEpoch, LightDataAvailabilityLayer};
+use prism_da::{
+    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys,
+    events::EventChannel,
+};
 use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
-use serde::Deserialize;
-use std::{self, future::Future, sync::Arc};
+use std::{self, sync::Arc};
 use tokio::sync::RwLock;
 use tracing::{error, info};
 
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
 
-use crate::events::{EventPublisher, LightClientEvent};
-
-#[cfg(target_arch = "wasm32")]
-fn spawn_task<F>(future: F)
-where
-    F: Future<Output = ()> + 'static,
-{
-    wasm_bindgen_futures::spawn_local(future);
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn spawn_task<F>(future: F)
-where
-    F: Future<Output = ()> + Send + 'static,
-{
-    tokio::spawn(future);
-}
-
-#[derive(Deserialize)]
-pub struct VerificationKeys {
-    pub base_vk: String,
-    pub recursive_vk: String,
-}
+use prism_da::{
+    events::{EventPublisher, PrismEvent},
+    utils::spawn_task,
+};
 
 // Embed the JSON content directly in the binary at compile time because we can't read files in WASM.
 const EMBEDDED_KEYS_JSON: &str = include_str!("../../../../verification_keys/keys.json");
@@ -52,11 +34,13 @@ pub struct LightClient {
     #[cfg(target_arch = "wasm32")]
     pub da: Arc<dyn LightDataAvailabilityLayer>,
     /// The public key of the prover, used for verifying the signature of the epochs.
-    pub prover_pubkey: Option<VerifyingKey>,
+    pub prover_pubkey: VerifyingKey,
     /// The verification key for both (base and recursive) SP1 programs, generated within the build process (with just build).
     pub sp1_vkeys: VerificationKeys,
-    /// The event publisher.
-    pub event_publisher: EventPublisher,
+    /// The event channel, used to spawn new subscribers and publishers.
+    event_chan: Arc<EventChannel>,
+    event_pub: Arc<EventPublisher>,
+
     // The latest commitment.
     latest_commitment: Arc<RwLock<Option<Digest>>>,
 }
@@ -73,48 +57,46 @@ impl LightClient {
     pub fn new(
         #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
-        prover_pubkey: Option<VerifyingKey>,
-        event_publisher: EventPublisher,
+        prover_pubkey: VerifyingKey,
     ) -> LightClient {
         let sp1_vkeys = load_sp1_verifying_keys().expect("Failed to load SP1 verifying keys");
-        LightClient {
+
+        let event_chan = da.event_channel();
+        let event_pub = Arc::new(event_chan.publisher());
+
+        Self {
             da,
             sp1_vkeys,
             prover_pubkey,
-            event_publisher,
+            event_chan,
+            event_pub,
             latest_commitment: Arc::new(RwLock::new(None)),
         }
     }
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         // start listening for new headers to update sync target
-        if let Some(lumina_event_subscriber) = self.da.event_subscriber() {
-            let mut subscriber = lumina_event_subscriber.lock().await;
-            let sync_state = Arc::new(RwLock::new(SyncState {
-                current_height: 0,
-                initial_sync_completed: false,
-                initial_sync_in_progress: false,
-                latest_finalized_epoch: None,
-            }));
-            while let Ok(event_info) = subscriber.recv().await {
-                // forward all events to the event publisher
-                self.clone().event_publisher.send(LightClientEvent::LuminaEvent {
-                    event: event_info.event.clone(),
-                });
+        let sync_state = Arc::new(RwLock::new(SyncState {
+            current_height: 0,
+            initial_sync_completed: false,
+            initial_sync_in_progress: false,
+            latest_finalized_epoch: None,
+        }));
 
-                if let NodeEvent::AddedHeaderFromHeaderSub { height } = event_info.event {
-                    #[cfg(feature = "telemetry")]
-                    if let Some(metrics) = get_metrics() {
-                        metrics.record_celestia_synced_height(height, vec![]);
-                        if let Some(latest_finalized_epoch) =
-                            sync_state.read().await.latest_finalized_epoch
-                        {
-                            metrics.record_current_epoch(latest_finalized_epoch, vec![]);
-                        }
+        let mut event_sub = self.event_chan.subscribe();
+        while let Ok(event_info) = event_sub.recv().await {
+            if let PrismEvent::UpdateDAHeight { height } = event_info.event {
+                #[cfg(feature = "telemetry")]
+                if let Some(metrics) = get_metrics() {
+                    metrics.record_celestia_synced_height(height, vec![]);
+                    if let Some(latest_finalized_epoch) =
+                        sync_state.read().await.latest_finalized_epoch
+                    {
+                        metrics.record_current_epoch(latest_finalized_epoch, vec![]);
                     }
-                    info!("new height from headersub {}", height);
-                    self.clone().handle_new_header(height, sync_state.clone()).await;
                 }
+                info!("new height from headersub {}", height);
+                self.clone().handle_new_header(height, sync_state.clone()).await;
             }
         }
 
@@ -122,8 +104,6 @@ impl LightClient {
     }
 
     async fn handle_new_header(self: Arc<Self>, height: u64, state: Arc<RwLock<SyncState>>) {
-        self.event_publisher.send(LightClientEvent::UpdateDAHeight { height });
-
         // start initial historical backward sync if needed and not already in progress
         {
             let mut state_handle = state.write().await;
@@ -144,9 +124,8 @@ impl LightClient {
 
                 for epoch in epochs {
                     // Found a new finalized epoch, process it immediately
-                    if self.process_epoch(&epoch).await.is_ok() {
-                        self.event_publisher
-                            .send(LightClientEvent::RecursiveVerificationCompleted { height });
+                    if self.process_epoch(epoch).await.is_ok() {
+                        self.event_pub.send(PrismEvent::RecursiveVerificationCompleted { height });
 
                         // Update our latest known finalized epoch
                         let mut state = state.write().await;
@@ -177,10 +156,10 @@ impl LightClient {
     ) {
         info!("starting historical sync");
         // Announce that sync has started
-        self.event_publisher.send(LightClientEvent::SyncStarted {
+        self.event_pub.send(PrismEvent::SyncStarted {
             height: network_height,
         });
-        self.event_publisher.send(LightClientEvent::RecursiveVerificationStarted {
+        self.event_pub.send(PrismEvent::RecursiveVerificationStarted {
             height: network_height,
         });
 
@@ -200,11 +179,9 @@ impl LightClient {
                             "found historical finalized epoch at height {}",
                             epoch_height
                         );
-                        light_client.event_publisher.send(
-                            LightClientEvent::RecursiveVerificationCompleted {
-                                height: epoch_height,
-                            },
-                        );
+                        light_client.event_pub.send(PrismEvent::RecursiveVerificationCompleted {
+                            height: epoch_height,
+                        });
 
                         let mut state = state.write().await;
                         state.initial_sync_completed = true;
@@ -214,12 +191,10 @@ impl LightClient {
                     }
                     Err(e) => {
                         error!("Failed to process epoch at height {}: {}", epoch_height, e);
-                        light_client.event_publisher.send(
-                            LightClientEvent::EpochVerificationFailed {
-                                height: epoch_height,
-                                error: e.to_string(),
-                            },
-                        );
+                        light_client.event_pub.send(PrismEvent::EpochVerificationFailed {
+                            height: epoch_height,
+                            error: e.to_string(),
+                        });
 
                         // Mark initial sync as complete but don't update current height
                         let mut state = state.write().await;
@@ -271,7 +246,7 @@ impl LightClient {
                 }
             }
 
-            self.event_publisher.send(LightClientEvent::NoEpochFound { height });
+            self.event_pub.send(PrismEvent::NoEpochFound { height });
             height -= 1;
         }
 
@@ -282,37 +257,15 @@ impl LightClient {
         None
     }
 
-    async fn process_epoch(&self, finalized_epoch: &FinalizedEpoch) -> Result<()> {
-        if let Some(pubkey) = &self.prover_pubkey {
-            finalized_epoch
-                .verify_signature(pubkey.clone())
-                .map_err(|e| anyhow::anyhow!("Invalid signature: {:?}", e))?;
-        }
-
-        if finalized_epoch.public_values.len() < 64 {
-            return Err(anyhow::anyhow!(
-                "Public values length is less than 64 bytes"
-            ));
-        }
-
-        // Extract and verify commitments
-        let (proof_prev_commitment, proof_current_commitment) =
-            self.extract_commitments(&finalized_epoch.public_values)?;
-
-        self.verify_commitments(
-            finalized_epoch,
-            proof_prev_commitment,
-            proof_current_commitment,
-        )?;
+    async fn process_epoch(&self, epoch: VerifiableEpoch) -> Result<()> {
+        let commitments = epoch.verify(&self.prover_pubkey, &self.sp1_vkeys)?;
+        let curr_commitment = commitments.current;
 
         // Update latest commitment
-        self.latest_commitment.write().await.replace(proof_current_commitment);
+        self.latest_commitment.write().await.replace(curr_commitment);
 
-        // Verify SNARK proof
-        self.verify_snark_proof(finalized_epoch, finalized_epoch.public_values.as_slice())?;
-
-        self.event_publisher.send(LightClientEvent::EpochVerified {
-            height: finalized_epoch.height,
+        self.event_pub.send(PrismEvent::EpochVerified {
+            height: epoch.height(),
         });
 
         Ok(())
@@ -320,19 +273,19 @@ impl LightClient {
 
     async fn process_height(&self, height: u64) -> Result<()> {
         info!("processing at DA height {}", height);
-        self.event_publisher.send(LightClientEvent::EpochVerificationStarted { height });
+        self.event_pub.send(PrismEvent::EpochVerificationStarted { height });
 
         match self.da.get_finalized_epoch(height).await {
             Ok(finalized_epochs) => {
                 if finalized_epochs.is_empty() {
-                    self.event_publisher.send(LightClientEvent::NoEpochFound { height });
+                    self.event_pub.send(PrismEvent::NoEpochFound { height });
                 }
 
                 // Process each finalized epoch
                 for epoch in finalized_epochs {
-                    if let Err(e) = self.process_epoch(&epoch).await {
+                    if let Err(e) = self.process_epoch(epoch).await {
                         let error = format!("Failed to process epoch: {}", e);
-                        self.event_publisher.send(LightClientEvent::EpochVerificationFailed {
+                        self.event_pub.send(PrismEvent::EpochVerificationFailed {
                             height,
                             error: error.clone(),
                         });
@@ -342,7 +295,7 @@ impl LightClient {
             }
             Err(e) => {
                 let error = format!("Failed to get epoch: {}", e);
-                self.event_publisher.send(LightClientEvent::EpochVerificationFailed {
+                self.event_pub.send(PrismEvent::EpochVerificationFailed {
                     height,
                     error: error.clone(),
                 });

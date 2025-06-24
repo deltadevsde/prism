@@ -81,7 +81,47 @@ pub enum DataAvailabilityError {
     #[error("receiving message on channel")]
     ChannelReceiveError,
     #[error(transparent)]
+    EpochVerification(#[from] EpochVerificationError),
+    #[error(transparent)]
     GeneralError(#[from] GeneralError),
+}
+
+#[derive(Error, Debug)]
+pub enum EpochVerificationError {
+    #[error("public values too short, has length {0}")]
+    InvalidPublicValues(usize),
+    #[error("commitment error: {0}")]
+    CommitmentError(#[from] CommitmentError),
+    #[error("signature error: {0}")]
+    SignatureError(#[from] SignatureError),
+    #[error("failed to decode finalized epoch from blob")]
+    DecodingError(String),
+    #[error("serialization error: {0}")]
+    SerializationError(String),
+    #[error("epoch proof verification error: {0}")]
+    ProofVerificationError(String),
+}
+
+#[derive(Error, Debug)]
+pub enum SignatureError {
+    #[error("invalid length")]
+    InvalidLength,
+    #[error("missing signature")]
+    MissingSignature,
+    #[error("decoding error: {0}")]
+    DecodingError(String),
+    #[error("verification error: {0}")]
+    VerificationError(String),
+    #[error("signing error: {0}")]
+    SigningError(String),
+}
+
+#[derive(Error, Debug)]
+pub enum CommitmentError {
+    #[error("previous commitment mismatch")]
+    PreviousCommitmentMismatch,
+    #[error("current commitment mismatch")]
+    CurrentCommitmentMismatch,
 }
 
 #[derive(Error, Debug)]
