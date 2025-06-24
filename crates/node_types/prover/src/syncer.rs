@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use prism_common::transaction::Transaction;
 use prism_da::{DataAvailabilityLayer, VerifiableEpoch};
 use prism_keys::VerifyingKey;
@@ -226,13 +226,16 @@ impl Syncer {
             return Ok(());
         }
 
-        let (proof_prev_commitment, proof_current_commitment) =
-            epoch.verify(&self.verifying_key, &self.prover_engine.verification_keys())?;
+        let commitments = epoch.verify(&self.verifying_key, &self.prover_engine.verification_keys())?;
+        let (proof_prev_commitment, proof_current_commitment) = (commitments.previous, commitments.current);
 
         let prev_commitment = if height == 0 {
             self.sequencer.get_commitment().await?
         } else {
-            self.db.get_epoch(&height.saturating_sub(1))?.current_commitment
+            self.db
+                .get_epoch(&(height - 1))
+                .with_context(|| format!("previous epoch {} missing in DB", height - 1))?
+                .current_commitment
         };
 
         if height != current_epoch {

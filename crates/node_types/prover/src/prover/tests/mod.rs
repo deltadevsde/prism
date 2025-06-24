@@ -111,7 +111,8 @@ async fn test_posts_epoch_after_max_gap() {
     // Verify gap proof contents
     let epochs = prover.get_da().get_finalized_epoch(current_epoch_height).await.unwrap();
     let gap_proof = epochs.first().unwrap();
-    let (_, current_commitment) = gap_proof.commitments();
+    let commitments = gap_proof.commitments();
+    let current_commitment = commitments.current;
     assert_eq!(
         gap_proof.height(),
         initial_epoch.height() + 1,

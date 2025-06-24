@@ -1,4 +1,4 @@
-use lumina_node::events::NodeEvent;
+use lumina_node::events::{NodeEvent, EventSubscriber as LuminaEventSub};
 use prism_common::digest::Digest;
 use serde::Serialize;
 use std::{fmt, sync::Arc};
@@ -109,7 +109,7 @@ impl EventChannel {
         }
     }
 
-    pub fn start_forwarding(&self, sub: Arc<Mutex<lumina_node::events::EventSubscriber>>) {
+    pub fn start_forwarding(&self, sub: Arc<Mutex<LuminaEventSub>>) {
         let publisher = self.publisher();
         spawn_task(async move {
             loop {
@@ -138,8 +138,8 @@ impl EventChannel {
     }
 }
 
-impl From<Arc<Mutex<lumina_node::events::EventSubscriber>>> for EventChannel {
-    fn from(sub: Arc<Mutex<lumina_node::events::EventSubscriber>>) -> Self {
+impl From<Arc<Mutex<LuminaEventSub>>> for EventChannel {
+    fn from(sub: Arc<Mutex<LuminaEventSub>>) -> Self {
         let chan = Self::new();
         chan.start_forwarding(sub);
         chan

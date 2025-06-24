@@ -258,7 +258,8 @@ impl LightClient {
     }
 
     async fn process_epoch(&self, epoch: VerifiableEpoch) -> Result<()> {
-        let (_, curr_commitment) = epoch.verify(&self.prover_pubkey, &self.sp1_vkeys)?;
+        let commitments = epoch.verify(&self.prover_pubkey, &self.sp1_vkeys)?;
+        let curr_commitment = commitments.current;
 
         // Update latest commitment
         self.latest_commitment.write().await.replace(curr_commitment);

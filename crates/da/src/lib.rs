@@ -5,14 +5,13 @@ use celestia_types::Blob;
 use mockall::automock;
 use prism_common::digest::Digest;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
+use prism_errors::{EpochVerificationError, SignatureError, CommitmentError};
 use prism_serde::{
     binary::{FromBinary, ToBinary},
     hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
-#[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
 
 use crate::events::EventChannel;
@@ -40,6 +39,31 @@ type CompressedProof = SP1ProofWithPublicValues;
 
 pub type VerifiableEpoch = Box<dyn VerifiableStateTransition>;
 
+/// Represents the commitments from epoch verification (previous and current)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpochCommitments {
+    pub previous: Digest,
+    pub current: Digest,
+}
+
+impl EpochCommitments {
+    pub fn new(previous: Digest, current: Digest) -> Self {
+        Self { previous, current }
+    }
+}
+
+impl From<(Digest, Digest)> for EpochCommitments {
+    fn from((previous, current): (Digest, Digest)) -> Self {
+        Self::new(previous, current)
+    }
+}
+
+impl From<EpochCommitments> for (Digest, Digest) {
+    fn from(commitments: EpochCommitments) -> Self {
+        (commitments.previous, commitments.current)
+    }
+}
+
 /// `VerifiableStateTransition` is a trait wrapper around `FinalizedEpoch` that allows for mocking.
 /// The only concrete implementation of this trait is by `FinalizedEpoch`.
 pub trait VerifiableStateTransition: Send {
@@ -47,10 +71,10 @@ pub trait VerifiableStateTransition: Send {
         &self,
         vk: &VerifyingKey,
         sp1_vkeys: &VerificationKeys,
-    ) -> Result<(Digest, Digest), EpochVerificationError>;
+    ) -> Result<EpochCommitments, EpochVerificationError>;
     fn height(&self) -> u64;
     fn da_height(&self) -> u64;
-    fn commitments(&self) -> (Digest, Digest);
+    fn commitments(&self) -> EpochCommitments;
     fn try_convert(&self) -> Result<FinalizedEpoch, EpochVerificationError>;
 }
 
@@ -102,15 +126,15 @@ impl VerifiableStateTransition for FinalizedEpoch {
         Ok(self.clone())
     }
 
-    fn commitments(&self) -> (Digest, Digest) {
-        (self.prev_commitment, self.current_commitment)
+    fn commitments(&self) -> EpochCommitments {
+        EpochCommitments::new(self.prev_commitment, self.current_commitment)
     }
 
     fn verify(
         &self,
         vk: &VerifyingKey,
         sp1_vkeys: &VerificationKeys,
-    ) -> Result<(Digest, Digest), EpochVerificationError> {
+    ) -> Result<EpochCommitments, EpochVerificationError> {
         self.verify_signature(vk.clone())?;
 
         if self.public_values.len() < 64 {
@@ -141,7 +165,7 @@ impl VerifiableStateTransition for FinalizedEpoch {
         )
         .map_err(|e| EpochVerificationError::ProofVerificationError(e.to_string()))?;
 
-        Ok((self.prev_commitment, self.current_commitment))
+        Ok(EpochCommitments::new(self.prev_commitment, self.current_commitment))
     }
 }
 
@@ -149,7 +173,7 @@ impl FinalizedEpoch {
     pub fn insert_signature(&mut self, key: &SigningKey) -> Result<(), EpochVerificationError> {
         let plaintext = self.encode_to_bytes().unwrap();
         let signature =
-            key.sign(&plaintext).map_err(|e| SignatureError::SignatureError(e.to_string()))?;
+            key.sign(&plaintext).map_err(|e| SignatureError::SigningError(e.to_string()))?;
         self.signature = Some(signature.to_bytes().to_hex());
         Ok(())
     }
@@ -216,48 +240,10 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
         FinalizedEpoch::decode_from_bytes(&value.data)
-            .map_err(|_| EpochVerificationError::DecodingError(value.clone()))
+            .map_err(|_| EpochVerificationError::DecodingError(format!("Failed to decode blob: {value:?}")))
     }
 }
 
-#[derive(Error, Debug)]
-pub enum EpochVerificationError {
-    #[error("public values too short, has length {0}")]
-    InvalidPublicValues(usize),
-    #[error("commitment error: {0}")]
-    CommitmentError(#[from] CommitmentError),
-    #[error("signature error: {0}")]
-    SignatureError(#[from] SignatureError),
-    #[error("failed to decode finalized epoch from blob: {0:?}")]
-    DecodingError(Blob),
-    #[error("serialization error: {0}")]
-    SerializationError(String),
-    #[error("epoch proo verification error: {0}")]
-    ProofVerificationError(String),
-}
-
-#[derive(Error, Debug)]
-pub enum SignatureError {
-    #[error("invalid length")]
-    InvalidLength,
-    #[error("missing signature")]
-    MissingSignature,
-    #[error("decoding error: {0}")]
-    DecodingError(String),
-    // TODO: This error should be replaced once we have sensible errors in the keys crate
-    #[error("verification error")]
-    VerificationError(String),
-    #[error("signature error: {0}")]
-    SignatureError(String),
-}
-
-#[derive(Error, Debug)]
-pub enum CommitmentError {
-    #[error("previous commitment mismatch")]
-    PreviousCommitmentMismatch,
-    #[error("current commitment mismatch")]
-    CurrentCommitmentMismatch,
-}
 
 #[automock]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
