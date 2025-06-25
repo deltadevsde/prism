@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use prism_common::digest::Digest;
 use prism_da::{
@@ -167,6 +167,40 @@ async fn test_backwards_sync_ignores_error() {
             return;
         }
     }
+}
+
+#[tokio::test]
+async fn test_incoming_sync_ignores_error() {
+    let (lc, mut sub, publisher) =
+        setup(mock_da![(8, ("a", "b")), (10, "Error"), (12, ("c", "d"))]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
+    wait_for_sync(&mut sub, 8).await;
+    assert_current_commitment!(lc, "b");
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 10 });
+    publisher.send(PrismEvent::UpdateDAHeight { height: 12 });
+    wait_for_sync(&mut sub, 12).await;
+    assert_current_commitment!(lc, "d");
+}
+
+// NOTE TO SELF: Handle_new_header method's first block is sus af
+// I think we need to make sure it doesnt ever run twice
+
+#[tokio::test]
+async fn test_will_not_process_older_epoch() {
+    let (lc, mut sub, publisher) = setup(mock_da![(8, ("a", "b")), (9, ("c", "d"))]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 10 });
+    wait_for_sync(&mut sub, 9).await;
+    assert_current_commitment!(lc, "d");
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
+    // TODO: replace with event listener
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    let sync_state = lc.get_sync_state().await;
+    assert_eq!(sync_state.current_height, 9);
 }
 
 #[tokio::test]

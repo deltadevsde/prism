@@ -142,8 +142,8 @@ impl LightClient {
                             state.initial_sync_in_progress = false;
                         }
 
-                        // Update current height to the epoch height + 1
-                        state.current_height = height + 1;
+                        // Update current height to the da height
+                        state.current_height = height;
                     }
                 }
             }
@@ -200,7 +200,7 @@ impl LightClient {
                                 state.initial_sync_completed = true;
                                 state.initial_sync_in_progress = false;
                                 state.latest_finalized_epoch = Some(epoch_height);
-                                state.current_height = da_height + 1;
+                                state.current_height = da_height;
 
                                 // Break out of the loop if a single epoch is processed successfully
                                 return;
@@ -212,6 +212,8 @@ impl LightClient {
                                     error: e.to_string(),
                                 });
 
+                                let mut state = state.write().await;
+                                state.current_height = da_height;
                                 // Keep looking backwards, as long as we haven't reached min_height
                                 current_height = da_height - 1;
                             }
