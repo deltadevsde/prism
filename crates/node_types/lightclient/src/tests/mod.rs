@@ -129,11 +129,11 @@ async fn test_realtime_sync() {
     assert_current_commitment!(lc, "b");
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 7 });
-    wait_for_sync!(sub, 6);
+    wait_for_sync!(sub, 7);
     assert_current_commitment!(lc, "d");
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
-    wait_for_sync!(sub, 7);
+    wait_for_sync!(sub, 8);
     assert_current_commitment!(lc, "e");
 }
 
