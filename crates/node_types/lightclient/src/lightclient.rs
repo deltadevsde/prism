@@ -87,6 +87,7 @@ impl LightClient {
         // start listening for new headers to update sync target
 
         let mut event_sub = self.event_chan.subscribe();
+        self.event_pub.send(PrismEvent::Ready);
         while let Ok(event_info) = event_sub.recv().await {
             if let PrismEvent::UpdateDAHeight { height } = event_info.event {
                 #[cfg(feature = "telemetry")]

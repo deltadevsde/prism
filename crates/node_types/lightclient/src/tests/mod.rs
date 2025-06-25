@@ -1,9 +1,9 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use prism_common::digest::Digest;
 use prism_da::{
     MockLightDataAvailabilityLayer, MockVerifiableStateTransition, VerifiableStateTransition,
-    events::{EventChannel, PrismEvent},
+    events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent},
 };
 use prism_keys::SigningKey;
 use tokio::spawn;
@@ -59,26 +59,13 @@ macro_rules! mock_da {
     };
 }
 
-macro_rules! wait_for_sync {
-    ($sub:expr, $target_height:expr) => {{
-        while let Ok(event) = $sub.recv().await {
-            match event.event {
-                PrismEvent::EpochVerified { height } => {
-                    if height >= $target_height {
-                        return;
-                    }
-                }
-                PrismEvent::EpochVerificationFailed { height, error } => {
-                    if height >= $target_height {
-                        // TODO: Placeholder
-                        println!("Epoch verification failed at height {}: {}", height, error);
-                        return;
-                    }
-                }
-                _ => {}
-            }
-        }
-    }};
+async fn wait_for_sync(sub: &mut EventSubscriber, target_height: u64) {
+    wait_for_event(sub, |event| match event {
+        PrismEvent::EpochVerified { height } => height >= target_height,
+        PrismEvent::EpochVerificationFailed { height, .. } => height >= target_height,
+        _ => false,
+    })
+    .await;
 }
 
 macro_rules! assert_current_commitment {
@@ -88,14 +75,20 @@ macro_rules! assert_current_commitment {
     };
 }
 
-#[tokio::test]
-async fn test_realtime_sync() {
-    let mut mock_da = mock_da![
-        (4, ("g", "a")),
-        (5, ("a", "b")),
-        (7, ("b", "c"), ("c", "d")),
-        (8, ("d", "e")),
-    ];
+async fn wait_for_event<F>(sub: &mut EventSubscriber, mut handler: F)
+where
+    F: FnMut(PrismEvent) -> bool, // return true to break the loop
+{
+    while let Ok(event_info) = sub.recv().await {
+        if handler(event_info.event) {
+            break;
+        }
+    }
+}
+
+async fn setup(
+    mut mock_da: MockLightDataAvailabilityLayer,
+) -> (Arc<LightClient>, EventSubscriber, EventPublisher) {
     let chan = EventChannel::new();
     let publisher = chan.publisher();
     let arced_chan = Arc::new(chan);
@@ -111,56 +104,51 @@ async fn test_realtime_sync() {
         runner.run().await.unwrap();
     });
     let mut sub = arced_chan.clone().subscribe();
+    wait_for_event(&mut sub, |event| matches!(event, PrismEvent::Ready)).await;
+    (lc, sub, publisher)
+}
 
-    //TODO: Just wait for events
-    tokio::time::sleep(Duration::from_secs(1)).await;
+#[tokio::test]
+async fn test_realtime_sync() {
+    let (lc, mut sub, publisher) = setup(mock_da![
+        (4, ("g", "a")),
+        (5, ("a", "b")),
+        (7, ("b", "c"), ("c", "d")),
+        (8, ("d", "e")),
+    ])
+    .await;
+
     publisher.send(PrismEvent::UpdateDAHeight { height: 3 });
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 4 });
-    wait_for_sync!(sub, 4);
+    wait_for_sync(&mut sub, 4).await;
     assert_current_commitment!(lc, "a");
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 5 });
-    wait_for_sync!(sub, 5);
+    wait_for_sync(&mut sub, 5).await;
     assert_current_commitment!(lc, "b");
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 6 });
-    wait_for_sync!(sub, 6);
+    wait_for_sync(&mut sub, 6).await;
     assert_current_commitment!(lc, "b");
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 7 });
-    wait_for_sync!(sub, 7);
+    wait_for_sync(&mut sub, 7).await;
     assert_current_commitment!(lc, "d");
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
-    wait_for_sync!(sub, 8);
+    wait_for_sync(&mut sub, 8).await;
     assert_current_commitment!(lc, "e");
 }
 
 #[tokio::test]
 async fn test_backwards_sync() {
-    let mut mock_da = mock_da![(8, ("a", "b")),];
-    let chan = EventChannel::new();
-    let publisher = chan.publisher();
-    let arced_chan = Arc::new(chan);
-    mock_da.expect_event_channel().return_const(arced_chan.clone());
+    let (lc, mut sub, publisher) = setup(mock_da![(8, ("a", "b"))]).await;
 
-    let mock_da = Arc::new(mock_da);
-
-    let prover_key = SigningKey::new_ed25519();
-    let lc = Arc::new(LightClient::new(mock_da, prover_key.verifying_key()));
-
-    let runner = lc.clone();
-    spawn(async move {
-        runner.run().await.unwrap();
-    });
-    let mut sub = arced_chan.clone().subscribe();
-
-    //TODO: Just wait for events
-    tokio::time::sleep(Duration::from_secs(1)).await;
     publisher.send(PrismEvent::UpdateDAHeight { height: 20 });
     while let Ok(event_info) = sub.recv().await {
-        if let PrismEvent::RecursiveVerificationCompleted { height: _ } = event_info.event {
+        if let PrismEvent::RecursiveVerificationCompleted { height } = event_info.event {
+            assert_eq!(height, 8);
             assert_current_commitment!(lc, "b");
             return;
         }
@@ -169,25 +157,8 @@ async fn test_backwards_sync() {
 
 #[tokio::test]
 async fn test_incoming_epoch_during_backwards_sync() {
-    let mut mock_da = mock_da![(5000, ("a", "b")), (5101, ("c", "d"))];
-    let chan = EventChannel::new();
-    let publisher = chan.publisher();
-    let arced_chan = Arc::new(chan);
-    mock_da.expect_event_channel().return_const(arced_chan.clone());
+    let (lc, mut sub, publisher) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
 
-    let mock_da = Arc::new(mock_da);
-
-    let prover_key = SigningKey::new_ed25519();
-    let lc = Arc::new(LightClient::new(mock_da, prover_key.verifying_key()));
-
-    let runner = lc.clone();
-    spawn(async move {
-        runner.run().await.unwrap();
-    });
-    let mut sub = arced_chan.clone().subscribe();
-
-    //TODO: Just wait for events
-    tokio::time::sleep(Duration::from_secs(1)).await;
     publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
     publisher.send(PrismEvent::UpdateDAHeight { height: 5101 });
     while let Ok(event_info) = sub.recv().await {
