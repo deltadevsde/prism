@@ -1,3 +1,4 @@
+use crate::errors::KeysError;
 use alloy_primitives::eip191_hash_message;
 use ed25519::{
     PublicKeyBytes as Ed25519PublicKeyBytes, pkcs8::KeypairBytes as Ed25519KeypairBytes,
@@ -13,7 +14,6 @@ use pkcs8::{
     der::{Decode, pem::PemLabel},
 };
 use std::{path::Path, result::Result};
-use thiserror::Error;
 
 use sha2::Digest as _;
 
@@ -258,20 +258,4 @@ impl From<SigningKey> for CryptoPayload {
             bytes: signing_key.to_bytes(),
         }
     }
-}
-
-#[derive(Error, Clone, Debug)]
-pub enum KeysError {
-    #[error("creating PKCS8 DER failed")]
-    DerCreationError,
-    #[error("creating PKCS8 PEM failed")]
-    PemCreationError,
-    #[error("parsing key algorithm from PKCS#8 DER failed")]
-    ParseError,
-    #[error("invalid PEM label")]
-    PemLabelError,
-    #[error("invalid key bytes for algorithm {0}")]
-    InvalidKeyBytes(String),
-    #[error("signing operation failed {0}")]
-    SigningError(String),
 }

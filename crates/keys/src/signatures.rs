@@ -1,3 +1,4 @@
+use crate::errors::SignatureError;
 use ed25519_consensus::Signature as Ed25519Signature;
 use k256::ecdsa::Signature as Secp256k1Signature;
 use p256::ecdsa::Signature as Secp256r1Signature;
@@ -12,7 +13,6 @@ use std::{
     fmt::{Display, Formatter},
     result::Result,
 };
-use thiserror::Error;
 use utoipa::{
     PartialSchema, ToSchema,
     openapi::{RefOr, Schema},
@@ -169,16 +169,4 @@ impl PartialSchema for Signature {
     fn schema() -> RefOr<Schema> {
         CryptoPayload::schema()
     }
-}
-
-#[derive(Error, Clone, Debug)]
-pub enum SignatureError {
-    #[error("No EIP-191 specific signatures implemented")]
-    EipSignatureError,
-    #[error("No ADR-36 specific signatures implemented")]
-    AdrSignatureError,
-    #[error("malformed signature")]
-    MalformedSignError,
-    #[error("Algorithm Error {0}")]
-    AlgorithmError(String),
 }

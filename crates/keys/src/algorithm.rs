@@ -1,6 +1,6 @@
+use crate::errors::SignatureError;
 use pkcs8::{AlgorithmIdentifierRef, ObjectIdentifier};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use utoipa::ToSchema;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, ToSchema)]
@@ -60,7 +60,7 @@ pub const SECP256K1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.13
 pub const SECP256R1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7");
 
 impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
-    type Error = AlgorithmError;
+    type Error = SignatureError;
 
     fn try_from(algorithm_identifier: AlgorithmIdentifierRef<'a>) -> Result<Self, Self::Error> {
         let oid = algorithm_identifier.oid;
@@ -70,26 +70,20 @@ impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
         } else if oid == ELLIPTIC_CURVE_OID || oid == ECDSA_SHA256_OID {
             let parameter_oid = algorithm_identifier
                 .parameters_oid()
-                .map_err(|e| AlgorithmError::GeneralError(e.to_string()))?;
+                .map_err(|e| SignatureError::AlgorithmError(e.to_string()))?;
             if parameter_oid == SECP256K1_OID {
                 Ok(CryptoAlgorithm::Secp256k1)
             } else if parameter_oid == SECP256R1_OID {
                 Ok(CryptoAlgorithm::Secp256r1)
             } else {
-                return Err(AlgorithmError::GeneralError(
+                return Err(SignatureError::AlgorithmError(
                     "Unsupported elliptic curve OID".to_string(),
                 ));
             }
         } else {
-            return Err(AlgorithmError::GeneralError(
+            return Err(SignatureError::AlgorithmError(
                 "Unsupported algorithm OID".to_string(),
             ));
         }
     }
-}
-
-#[derive(Error, Clone, Debug)]
-pub enum AlgorithmError {
-    #[error("error: {0}")]
-    GeneralError(String),
 }

@@ -1,3 +1,4 @@
+use crate::errors::VerificationError;
 use alloy_primitives::eip191_hash_message;
 use ed25519::PublicKeyBytes as Ed25519PublicKeyBytes;
 use ed25519_consensus::VerificationKey as Ed25519VerifyingKey;
@@ -22,7 +23,6 @@ use std::{
     path::Path,
     result::Result,
 };
-use thiserror::Error;
 use utoipa::{
     PartialSchema, ToSchema,
     openapi::{RefOr, Schema},
@@ -150,11 +150,9 @@ impl VerifyingKey {
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
 
-                vk.verify_digest(digest, signature)
-                    // .map_err(|e| anyhow!("Failed to verify secp256k1 signature: {}", e))
-                    .map_err(|e| {
-                        VerificationError::VerifyError("secp256k1".to_string(), e.to_string())
-                    })
+                vk.verify_digest(digest, signature).map_err(|e| {
+                    VerificationError::VerifyError("secp256k1".to_string(), e.to_string())
+                })
             }
             VerifyingKey::Secp256r1(vk) => {
                 let Signature::Secp256r1(signature) = signature else {
@@ -163,11 +161,9 @@ impl VerifyingKey {
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
 
-                vk.verify_digest(digest, signature)
-                    // .map_err(|e| anyhow!("Failed to verify secp256r1 signature: {}", e))
-                    .map_err(|e| {
-                        VerificationError::VerifyError("secp256r1".to_string(), e.to_string())
-                    })
+                vk.verify_digest(digest, signature).map_err(|e| {
+                    VerificationError::VerifyError("secp256r1".to_string(), e.to_string())
+                })
             }
             VerifyingKey::Eip191(vk) => {
                 let Signature::Secp256k1(signature) = signature else {
@@ -358,22 +354,4 @@ impl PartialSchema for VerifyingKey {
     fn schema() -> RefOr<Schema> {
         CryptoPayload::schema()
     }
-}
-
-#[derive(Error, Clone, Debug)]
-pub enum VerificationError {
-    #[error("invalid signature type")]
-    InvalidSignError,
-    #[error("failed to verify {0} signature: {1}")]
-    VerifyError(String, String),
-    #[error("verifying key for {0} can only verify secp256k1 signatures")]
-    SignatureError(String),
-    #[error("creating {0} failed")]
-    CreationError(String),
-    #[error("{0} vk from DER format failed: {1}")]
-    IntoRefError(String, String),
-    #[error("{0} vk {1} DER format is not implemented")]
-    NotImplementedError(String, String),
-    #[error("something went wrong {0}")]
-    GeneralError(String),
 }

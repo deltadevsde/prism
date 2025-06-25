@@ -1,6 +1,7 @@
 mod algorithm;
 mod cosmos;
 mod der;
+pub mod errors;
 mod payload;
 mod signatures;
 mod signing_keys;
