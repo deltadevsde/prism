@@ -169,40 +169,56 @@ impl LightClient {
         let state = self.sync_state.clone();
         spawn_task(async move {
             // Find the most recent valid epoch by searching backward
-            if let Some(epoch_height) =
-                light_client.find_most_recent_epoch(network_height, state.clone()).await
-            {
-                // Process the found epoch
-                match light_client.process_height(epoch_height).await {
-                    Ok(_) => {
-                        info!(
-                            "found historical finalized epoch at height {}",
-                            epoch_height
-                        );
-                        light_client.event_pub.send(PrismEvent::RecursiveVerificationCompleted {
-                            height: epoch_height,
-                        });
+            let mut current_height = network_height;
+            let min_height = if current_height > MAX_BACKWARD_SEARCH_DEPTH {
+                current_height - MAX_BACKWARD_SEARCH_DEPTH
+            } else {
+                1
+            };
+            while current_height >= min_height {
+                // Look backwards for the first height with epochs
+                if let Some((da_height, epochs)) = light_client
+                    .find_most_recent_epoch(current_height, min_height, state.clone())
+                    .await
+                {
+                    // Try to find a single valid epoch
+                    for epoch in epochs {
+                        let epoch_height = epoch.height();
+                        match light_client.process_epoch(epoch).await {
+                            Ok(_) => {
+                                info!(
+                                    "found historical finalized epoch at da height {}",
+                                    da_height
+                                );
+                                light_client.event_pub.send(
+                                    PrismEvent::RecursiveVerificationCompleted {
+                                        height: da_height,
+                                    },
+                                );
 
-                        let mut state = state.write().await;
-                        state.initial_sync_completed = true;
-                        state.initial_sync_in_progress = false;
-                        state.latest_finalized_epoch = Some(epoch_height);
-                        state.current_height = epoch_height + 1;
-                    }
-                    Err(e) => {
-                        error!("Failed to process epoch at height {}: {}", epoch_height, e);
-                        light_client.event_pub.send(PrismEvent::EpochVerificationFailed {
-                            height: epoch_height,
-                            error: e.to_string(),
-                        });
+                                let mut state = state.write().await;
+                                state.initial_sync_completed = true;
+                                state.initial_sync_in_progress = false;
+                                state.latest_finalized_epoch = Some(epoch_height);
+                                state.current_height = da_height + 1;
 
-                        // Mark initial sync as complete but don't update current height
-                        let mut state = state.write().await;
-                        state.initial_sync_completed = true;
-                        state.initial_sync_in_progress = false;
+                                // Break out of the loop if a single epoch is processed successfully
+                                return;
+                            }
+                            Err(e) => {
+                                error!("Failed to process epoch at height {}: {}", da_height, e);
+                                light_client.event_pub.send(PrismEvent::EpochVerificationFailed {
+                                    height: da_height,
+                                    error: e.to_string(),
+                                });
+
+                                // Keep looking backwards, as long as we haven't reached min_height
+                                current_height = da_height - 1;
+                            }
+                        }
                     }
                 }
-            } else {
+
                 // No epoch found in backward search, mark initial sync as complete
                 // but don't update current height - we'll wait for new epochs
                 let mut state = state.write().await;
@@ -215,15 +231,10 @@ impl LightClient {
     async fn find_most_recent_epoch(
         &self,
         start_height: u64,
+        min_height: u64,
         state: Arc<RwLock<SyncState>>,
-    ) -> Option<u64> {
+    ) -> Option<(u64, Vec<VerifiableEpoch>)> {
         let mut height = start_height;
-        let min_height = if start_height > MAX_BACKWARD_SEARCH_DEPTH {
-            start_height - MAX_BACKWARD_SEARCH_DEPTH
-        } else {
-            1
-        };
-
         while height >= min_height {
             // if an epoch has been found, we no longer need to sync historically
             if state.read().await.latest_finalized_epoch.is_some() {
@@ -238,7 +249,7 @@ impl LightClient {
                     if epochs.is_empty() {
                         info!("no data found at height {}", height);
                     } else {
-                        return Some(height);
+                        return Some((height, epochs));
                     }
                 }
                 Err(e) => {

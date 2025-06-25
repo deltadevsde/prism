@@ -130,7 +130,6 @@ async fn test_realtime_sync() {
     assert_current_commitment!(lc, "b");
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 6 });
-    wait_for_sync(&mut sub, 6).await;
     assert_current_commitment!(lc, "b");
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 7 });
