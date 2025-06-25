@@ -271,7 +271,8 @@ impl LightClient {
         Ok(())
     }
 
-    async fn process_height(&self, height: u64) -> Result<()> {
+    /// Returns the count of successfully processed epochs
+    async fn process_height(&self, height: u64) -> Result<u64> {
         info!("processing at DA height {}", height);
         self.event_pub.send(PrismEvent::EpochVerificationStarted { height });
 
@@ -282,6 +283,7 @@ impl LightClient {
                 }
 
                 // Process each finalized epoch
+                let mut count = 0;
                 for epoch in finalized_epochs {
                     if let Err(e) = self.process_epoch(epoch).await {
                         let error = format!("Failed to process epoch: {}", e);
@@ -289,9 +291,11 @@ impl LightClient {
                             height,
                             error: error.clone(),
                         });
+                    } else {
+                        count += 1;
                     }
                 }
-                Ok(())
+                Ok(count)
             }
             Err(e) => {
                 let error = format!("Failed to get epoch: {}", e);

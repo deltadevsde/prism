@@ -5,6 +5,7 @@ use prism_da::{
     MockLightDataAvailabilityLayer, MockVerifiableStateTransition, VerifiableStateTransition,
     events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent},
 };
+use prism_errors::EpochVerificationError;
 use prism_keys::SigningKey;
 use tokio::spawn;
 
@@ -144,6 +145,20 @@ async fn test_realtime_sync() {
 #[tokio::test]
 async fn test_backwards_sync() {
     let (lc, mut sub, publisher) = setup(mock_da![(8, ("a", "b"))]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 20 });
+    while let Ok(event_info) = sub.recv().await {
+        if let PrismEvent::RecursiveVerificationCompleted { height } = event_info.event {
+            assert_eq!(height, 8);
+            assert_current_commitment!(lc, "b");
+            return;
+        }
+    }
+}
+
+#[tokio::test]
+async fn test_backwards_sync_ignores_error() {
+    let (lc, mut sub, publisher) = setup(mock_da![(8, ("a", "b")), (10, "Error")]).await;
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 20 });
     while let Ok(event_info) = sub.recv().await {
