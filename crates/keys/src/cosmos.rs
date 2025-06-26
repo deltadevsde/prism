@@ -1,4 +1,7 @@
-use anyhow::Result;
+use crate::{
+    Result,
+    errors::{ParseError, SignatureError},
+};
 use k256::ecdsa::VerifyingKey as Secp256k1VerifyingKey;
 use prism_serde::{bech32::ToBech32, raw_or_b64};
 use ripemd::Ripemd160;
@@ -75,7 +78,8 @@ pub fn cosmos_adr36_hash_message(
     const ADDRESS_PREFIX: &str = "cosmos";
 
     let signer = signer_from_key(ADDRESS_PREFIX, verifying_key)?;
-    let serialized_sign_doc = create_serialized_adr36_sign_doc(message.as_ref().to_vec(), signer)?;
+    let serialized_sign_doc = create_serialized_adr36_sign_doc(message.as_ref().to_vec(), signer)
+        .map_err(|e| ParseError::GeneralError(e.to_string()))?;
     let hashed_sign_doc = Sha256::digest(&serialized_sign_doc).to_vec();
     Ok(hashed_sign_doc)
 }
@@ -95,7 +99,8 @@ pub fn cosmos_adr36_hash_message(
 fn create_serialized_adr36_sign_doc(data: Vec<u8>, signer: String) -> Result<Vec<u8>> {
     let adr36_sign_doc = CosmosSignDoc::new(signer, data);
 
-    let sign_doc_str = serde_json::to_string(&adr36_sign_doc)?
+    let sign_doc_str = serde_json::to_string(&adr36_sign_doc)
+        .map_err(|e| ParseError::GeneralError(e.to_string()))?
         .replace("<", "\\u003c")
         .replace(">", "\\u003e")
         .replace("&", "\\u0026");
@@ -121,6 +126,8 @@ fn signer_from_key(address_prefix: &str, verifying_key: &Secp256k1VerifyingKey) 
     let hashed_key_bytes = Sha256::digest(verifying_key_bytes);
     let cosmos_address = Ripemd160::digest(hashed_key_bytes);
 
-    let signer = cosmos_address.to_bech32(address_prefix)?;
+    let signer = cosmos_address
+        .to_bech32(address_prefix)
+        .map_err(|e| SignatureError::CosmosError(e.to_string()))?;
     Ok(signer)
 }
