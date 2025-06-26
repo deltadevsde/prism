@@ -3,10 +3,16 @@ use prism_da::events::PrismEvent;
 /// Event types emitted by the LightClient.
 #[derive(uniffi::Enum)]
 pub enum UniffiLightClientEvent {
+    /// LightClient is ready to start syncing
+    Ready,
     /// Sync has started at a specific height
     SyncStarted {
         /// The height at which sync started
         height: u64,
+    },
+    SyncCompleted {
+        /// The height at which sync completed
+        height: Option<u64>,
     },
     /// DA layer height has been updated
     UpdateDAHeight {
@@ -62,7 +68,13 @@ pub enum UniffiLightClientEvent {
 impl From<PrismEvent> for UniffiLightClientEvent {
     fn from(event: PrismEvent) -> Self {
         match event {
-            PrismEvent::SyncStarted { height } => UniffiLightClientEvent::SyncStarted { height },
+            PrismEvent::Ready => UniffiLightClientEvent::Ready,
+            PrismEvent::BackwardsSyncStarted { height } => {
+                UniffiLightClientEvent::SyncStarted { height }
+            }
+            PrismEvent::BackwardsSyncCompleted { height } => {
+                UniffiLightClientEvent::SyncCompleted { height }
+            }
             PrismEvent::UpdateDAHeight { height } => {
                 UniffiLightClientEvent::UpdateDAHeight { height }
             }
