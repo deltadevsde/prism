@@ -1,6 +1,6 @@
 use crate::{
     CryptoError, Result,
-    errors::{KeysError, VerificationError},
+    errors::{ParseError, SignatureError, VerificationError},
 };
 use alloy_primitives::eip191_hash_message;
 use ed25519::PublicKeyBytes as Ed25519PublicKeyBytes;
@@ -135,7 +135,7 @@ impl VerifyingKey {
         match self {
             VerifyingKey::Ed25519(vk) => {
                 let Signature::Ed25519(signature) = signature else {
-                    return Err(VerificationError::InvalidSignError.into());
+                    return Err(SignatureError::InvalidSignError.into());
                 };
 
                 vk.verify(signature, message.as_ref()).map_err(|e| {
@@ -144,7 +144,7 @@ impl VerifyingKey {
             }
             VerifyingKey::Secp256k1(vk) => {
                 let Signature::Secp256k1(signature) = signature else {
-                    return Err(VerificationError::InvalidSignError.into());
+                    return Err(SignatureError::InvalidSignError.into());
                 };
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
@@ -155,7 +155,7 @@ impl VerifyingKey {
             }
             VerifyingKey::Secp256r1(vk) => {
                 let Signature::Secp256r1(signature) = signature else {
-                    return Err(VerificationError::InvalidSignError.into());
+                    return Err(SignatureError::InvalidSignError.into());
                 };
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
@@ -208,7 +208,7 @@ impl VerifyingKey {
                 ));
             }
         }
-        .map_err(|_| CryptoError::KeysError(KeysError::DerCreationError))
+        .map_err(|_| ParseError::DerCreationError.into())
     }
 
     pub fn to_spki_der(&self) -> Result<Vec<u8>> {
@@ -218,17 +218,17 @@ impl VerifyingKey {
     pub fn to_spki_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
         self.to_spki_der_doc()?
             .write_pem_file(filename, SubjectPublicKeyInfoRef::PEM_LABEL, LineEnding::LF)
-            .map_err(|_| VerificationError::CreationError("PKCS8 PEM file".to_string()).into())
+            .map_err(|_| VerificationError::VKCreationError("PKCS8 PEM file".to_string()).into())
     }
 
     fn from_spki(spki: SubjectPublicKeyInfoRef) -> Result<Self> {
         let algorithm = CryptoAlgorithm::try_from(spki.algorithm)
-            .map_err(|e| VerificationError::GeneralError(e.to_string()))?;
+            .map_err(|e| ParseError::GeneralError(e.to_string()))?;
 
         match algorithm {
             CryptoAlgorithm::Ed25519 => {
                 let ed25519_spki = Ed25519PublicKeyBytes::try_from(spki)
-                    .map_err(|e| VerificationError::GeneralError(e.to_string()))?;
+                    .map_err(|e| ParseError::GeneralError(e.to_string()))?;
                 let ed25519_key = Ed25519VerifyingKey::try_from(ed25519_spki.as_ref() as &[u8])
                     .map_err(|e| {
                         VerificationError::IntoRefError("ed25519".to_string(), e.to_string())
@@ -262,7 +262,7 @@ impl VerifyingKey {
 
     pub fn from_spki_der(bytes: &[u8]) -> Result<Self> {
         let spki = SubjectPublicKeyInfoRef::from_der(bytes)
-            .map_err(|e| VerificationError::GeneralError(e.to_string()))?;
+            .map_err(|e| ParseError::GeneralError(e.to_string()))?;
         Self::from_spki(spki)
     }
 
@@ -309,7 +309,7 @@ impl FromBase64 for VerifyingKey {
 
     fn from_base64<T: AsRef<[u8]>>(base64: T) -> Result<Self> {
         let bytes = Vec::<u8>::from_base64(base64)
-            .map_err(|e| (VerificationError::GeneralError(e.to_string())))?;
+            .map_err(|e| (ParseError::GeneralError(e.to_string())))?;
 
         match bytes.len() {
             32 => {
