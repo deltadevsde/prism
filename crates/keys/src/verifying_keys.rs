@@ -1,5 +1,8 @@
+use crate::{
+    CryptoError, Result,
+    errors::{ParseError, SignatureError, VerificationError},
+};
 use alloy_primitives::eip191_hash_message;
-use anyhow::{Result, anyhow, bail};
 use ed25519::PublicKeyBytes as Ed25519PublicKeyBytes;
 use ed25519_consensus::VerificationKey as Ed25519VerifyingKey;
 use k256::ecdsa::VerifyingKey as Secp256k1VerifyingKey;
@@ -90,21 +93,31 @@ impl VerifyingKey {
 
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            CryptoAlgorithm::Ed25519 => Ed25519VerifyingKey::try_from(bytes)
-                .map(VerifyingKey::Ed25519)
-                .map_err(|e| e.into()),
+            CryptoAlgorithm::Ed25519 => {
+                Ed25519VerifyingKey::try_from(bytes).map(VerifyingKey::Ed25519).map_err(|e| {
+                    VerificationError::VerifyError("ed25519".to_string(), e.to_string()).into()
+                })
+            }
             CryptoAlgorithm::Secp256k1 => Secp256k1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::Secp256k1)
-                .map_err(|e| e.into()),
+                .map_err(|e| {
+                    VerificationError::VerifyError("secp256k1".to_string(), e.to_string()).into()
+                }),
             CryptoAlgorithm::Secp256r1 => Secp256r1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::Secp256r1)
-                .map_err(|e| e.into()),
-            CryptoAlgorithm::Eip191 => Secp256k1VerifyingKey::from_sec1_bytes(bytes)
-                .map(VerifyingKey::Eip191)
-                .map_err(|e| e.into()),
+                .map_err(|e| {
+                    VerificationError::VerifyError("secp256r1".to_string(), e.to_string()).into()
+                }),
+            CryptoAlgorithm::Eip191 => {
+                Secp256k1VerifyingKey::from_sec1_bytes(bytes).map(VerifyingKey::Eip191).map_err(
+                    |e| VerificationError::VerifyError("eip191".to_string(), e.to_string()).into(),
+                )
+            }
             CryptoAlgorithm::CosmosAdr36 => Secp256k1VerifyingKey::from_sec1_bytes(bytes)
                 .map(VerifyingKey::CosmosAdr36)
-                .map_err(|e| e.into()),
+                .map_err(|e| {
+                    VerificationError::VerifyError("cosmos adr36".to_string(), e.to_string()).into()
+                }),
         }
     }
 
@@ -122,47 +135,56 @@ impl VerifyingKey {
         match self {
             VerifyingKey::Ed25519(vk) => {
                 let Signature::Ed25519(signature) = signature else {
-                    bail!("Invalid signature type");
+                    return Err(SignatureError::InvalidSignError.into());
                 };
 
-                vk.verify(signature, message.as_ref())
-                    .map_err(|e| anyhow!("Failed to verify ed25519 signature: {}", e))
+                vk.verify(signature, message.as_ref()).map_err(|e| {
+                    VerificationError::VerifyError("ed25519".to_string(), e.to_string()).into()
+                })
             }
             VerifyingKey::Secp256k1(vk) => {
                 let Signature::Secp256k1(signature) = signature else {
-                    bail!("Invalid signature type");
+                    return Err(SignatureError::InvalidSignError.into());
                 };
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
 
-                vk.verify_digest(digest, signature)
-                    .map_err(|e| anyhow!("Failed to verify secp256k1 signature: {}", e))
+                vk.verify_digest(digest, signature).map_err(|e| {
+                    VerificationError::VerifyError("secp256k1".to_string(), e.to_string()).into()
+                })
             }
             VerifyingKey::Secp256r1(vk) => {
                 let Signature::Secp256r1(signature) = signature else {
-                    bail!("Invalid signature type");
+                    return Err(SignatureError::InvalidSignError.into());
                 };
                 let mut digest = sha2::Sha256::new();
                 digest.update(message);
 
-                vk.verify_digest(digest, signature)
-                    .map_err(|e| anyhow!("Failed to verify secp256r1 signature: {}", e))
+                vk.verify_digest(digest, signature).map_err(|e| {
+                    VerificationError::VerifyError("secp256r1".to_string(), e.to_string()).into()
+                })
             }
             VerifyingKey::Eip191(vk) => {
                 let Signature::Secp256k1(signature) = signature else {
-                    bail!("Verifying key for EIP-191 can only verify secp256k1 signatures");
+                    return Err(VerificationError::SignatureError("EIP-191".to_string()).into());
                 };
                 let prehash = eip191_hash_message(message);
-                vk.verify_prehash(prehash.as_slice(), signature)
-                    .map_err(|e| anyhow!("Failed to verify EIP-191 signature: {}", e))
+                vk.verify_prehash(prehash.as_slice(), signature).map_err(|e| {
+                    VerificationError::VerifyError("EIP-191".to_string(), e.to_string()).into()
+                })
             }
             VerifyingKey::CosmosAdr36(vk) => {
                 let Signature::Secp256k1(signature) = signature else {
-                    bail!("Verifying key for cosmos ADR-36 can only verify secp256k1 signatures");
+                    return Err(
+                        VerificationError::SignatureError("cosmos ADR-36".to_string()).into(),
+                    );
                 };
-                let prehash = cosmos_adr36_hash_message(message, vk)?;
-                vk.verify_prehash(&prehash, signature)
-                    .map_err(|e| anyhow!("Failed to verify cosmos ADR-36 signature: {}", e))
+                let prehash = cosmos_adr36_hash_message(message, vk)
+                    .map_err(|e| VerificationError::GeneralError(e.to_string()))?;
+                vk.verify_prehash(&prehash, signature).map_err(|e| {
+                    VerificationError::VerifyError("cosmos ADR-36".to_string(), e.to_string())
+                        .into()
+                })
             }
         }
     }
@@ -172,12 +194,21 @@ impl VerifyingKey {
             VerifyingKey::Ed25519(vk) => Ed25519PublicKeyBytes(vk.to_bytes()).to_public_key_der(),
             VerifyingKey::Secp256k1(vk) => vk.to_public_key_der(),
             VerifyingKey::Secp256r1(vk) => vk.to_public_key_der(),
-            VerifyingKey::Eip191(_) => bail!("EIP-191 vk to DER format is not implemented"),
+            VerifyingKey::Eip191(_) => {
+                return Err(CryptoError::VerificationError(
+                    VerificationError::NotImplementedError("EIP-191".to_string(), "to".to_string()),
+                ));
+            }
             VerifyingKey::CosmosAdr36(_) => {
-                bail!("Cosmos ADR-36 vk to DER format is not implemented")
+                return Err(CryptoError::VerificationError(
+                    VerificationError::NotImplementedError(
+                        "cosmos ADR-36".to_string(),
+                        "to".to_string(),
+                    ),
+                ));
             }
         }
-        .map_err(|_| anyhow!("Creating SPKI DER failed"))
+        .map_err(|_| ParseError::DerCreationError.into())
     }
 
     pub fn to_spki_der(&self) -> Result<Vec<u8>> {
@@ -187,48 +218,65 @@ impl VerifyingKey {
     pub fn to_spki_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
         self.to_spki_der_doc()?
             .write_pem_file(filename, SubjectPublicKeyInfoRef::PEM_LABEL, LineEnding::LF)
-            .map_err(|_| anyhow!("Creating PKCS8 PEM file failed"))
+            .map_err(|_| VerificationError::VKCreationError("PKCS8 PEM file".to_string()).into())
     }
 
     fn from_spki(spki: SubjectPublicKeyInfoRef) -> Result<Self> {
-        let algorithm = CryptoAlgorithm::try_from(spki.algorithm)?;
+        let algorithm = CryptoAlgorithm::try_from(spki.algorithm)
+            .map_err(|e| ParseError::GeneralError(e.to_string()))?;
 
         match algorithm {
             CryptoAlgorithm::Ed25519 => {
-                let ed25519_spki = Ed25519PublicKeyBytes::try_from(spki)?;
-                let ed25519_key = Ed25519VerifyingKey::try_from(ed25519_spki.as_ref() as &[u8])?;
+                let ed25519_spki = Ed25519PublicKeyBytes::try_from(spki)
+                    .map_err(|e| ParseError::GeneralError(e.to_string()))?;
+                let ed25519_key = Ed25519VerifyingKey::try_from(ed25519_spki.as_ref() as &[u8])
+                    .map_err(|e| {
+                        VerificationError::IntoRefError("ed25519".to_string(), e.to_string())
+                    })?;
                 Ok(VerifyingKey::Ed25519(ed25519_key))
             }
             CryptoAlgorithm::Secp256k1 => {
-                let secp256k1_key = Secp256k1VerifyingKey::try_from(spki)?;
+                let secp256k1_key = Secp256k1VerifyingKey::try_from(spki).map_err(|e| {
+                    VerificationError::IntoRefError("secp256k1".to_string(), e.to_string())
+                })?;
                 Ok(VerifyingKey::Secp256k1(secp256k1_key))
             }
             CryptoAlgorithm::Secp256r1 => {
-                let secp256r1_key = Secp256r1VerifyingKey::try_from(spki)?;
+                let secp256r1_key = Secp256r1VerifyingKey::try_from(spki).map_err(|e| {
+                    VerificationError::IntoRefError("secp256r1".to_string(), e.to_string())
+                })?;
                 Ok(VerifyingKey::Secp256r1(secp256r1_key))
             }
-            CryptoAlgorithm::Eip191 => bail!("Eth vk from DER format is not implemented"),
-            CryptoAlgorithm::CosmosAdr36 => {
-                bail!("Cosmos ADR-36 vk from DER format is not implemented")
-            }
+            CryptoAlgorithm::Eip191 => Err(VerificationError::NotImplementedError(
+                "Eth".to_string(),
+                "from".to_string(),
+            )
+            .into()),
+            CryptoAlgorithm::CosmosAdr36 => Err(VerificationError::NotImplementedError(
+                "Cosmos ADR-36".to_string(),
+                "from".to_string(),
+            )
+            .into()),
         }
     }
 
     pub fn from_spki_der(bytes: &[u8]) -> Result<Self> {
-        let spki = SubjectPublicKeyInfoRef::from_der(bytes)?;
+        let spki = SubjectPublicKeyInfoRef::from_der(bytes)
+            .map_err(|e| ParseError::GeneralError(e.to_string()))?;
         Self::from_spki(spki)
     }
 
     pub fn from_spki_pem_file(filename: impl AsRef<Path>) -> Result<Self> {
-        let (label, doc) = Document::read_pem_file(filename)?;
+        let (label, doc) = Document::read_pem_file(filename)
+            .map_err(|e| VerificationError::GeneralError(e.to_string()))?;
         SubjectPublicKeyInfoRef::validate_pem_label(&label)
-            .map_err(|_| anyhow!("Incorrect PEM label"))?;
+            .map_err(|_| VerificationError::GeneralError("Incorrect PEM label".to_string()))?;
         Self::from_spki_der(doc.as_bytes())
     }
 }
 
 impl TryFrom<CryptoPayload> for VerifyingKey {
-    type Error = anyhow::Error;
+    type Error = CryptoError;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
         VerifyingKey::from_algorithm_and_bytes(value.algorithm, &value.bytes)
@@ -257,24 +305,29 @@ impl From<SigningKey> for VerifyingKey {
 }
 
 impl FromBase64 for VerifyingKey {
-    type Error = anyhow::Error;
+    type Error = CryptoError;
 
-    fn from_base64<T: AsRef<[u8]>>(base64: T) -> Result<Self, Self::Error> {
-        let bytes = Vec::<u8>::from_base64(base64)?;
+    fn from_base64<T: AsRef<[u8]>>(base64: T) -> Result<Self> {
+        let bytes = Vec::<u8>::from_base64(base64)
+            .map_err(|e| (ParseError::GeneralError(e.to_string())))?;
 
         match bytes.len() {
             32 => {
-                let vk = Ed25519VerifyingKey::try_from(bytes.as_slice())
-                    .map_err(|e| anyhow!("Invalid Ed25519 key: {}", e))?;
+                let vk = Ed25519VerifyingKey::try_from(bytes.as_slice()).map_err(|e| {
+                    VerificationError::GeneralError(format!("invalid ed25519 key: {}", e))
+                })?;
                 Ok(VerifyingKey::Ed25519(vk))
             }
-            _ => Err(anyhow!("Only Ed25519 keys can be initialized from base64")),
+            _ => Err(VerificationError::GeneralError(
+                "Only Ed25519 keys can be initialized from base64".to_string(),
+            )
+            .into()),
         }
     }
 }
 
 impl TryFrom<String> for VerifyingKey {
-    type Error = anyhow::Error;
+    type Error = CryptoError;
 
     fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
         Self::from_base64(s)

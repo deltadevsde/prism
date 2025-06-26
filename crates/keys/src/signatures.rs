@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use crate::{CryptoError, Result, errors::SignatureError};
 use ed25519_consensus::Signature as Ed25519Signature;
 use k256::ecdsa::Signature as Secp256k1Signature;
 use p256::ecdsa::Signature as Secp256r1Signature;
@@ -41,18 +41,20 @@ impl Signature {
 
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
-            CryptoAlgorithm::Ed25519 => {
-                Ed25519Signature::try_from(bytes).map(Signature::Ed25519).map_err(|e| e.into())
-            }
+            CryptoAlgorithm::Ed25519 => Ed25519Signature::try_from(bytes)
+                .map(Signature::Ed25519)
+                .map_err(|e| SignatureError::AlgorithmError(e.to_string()).into()),
             CryptoAlgorithm::Secp256k1 => Secp256k1Signature::from_slice(bytes)
                 .map(Signature::Secp256k1)
-                .map_err(|e| e.into()),
+                .map_err(|e| SignatureError::AlgorithmError(e.to_string()).into()),
             CryptoAlgorithm::Secp256r1 => Secp256r1Signature::from_slice(bytes)
                 .map(Signature::Secp256r1)
-                .map_err(|e| e.into()),
-            CryptoAlgorithm::Eip191 => bail!("No EIP-191 specific signatures implemented"),
+                .map_err(|e| SignatureError::AlgorithmError(e.to_string()).into()),
+            CryptoAlgorithm::Eip191 => {
+                Err(SignatureError::UnsupportedFormatError("EIP-191".to_string()).into())
+            }
             CryptoAlgorithm::CosmosAdr36 => {
-                bail!("No cosmos ADR-36 specific signatures implemented")
+                Err(SignatureError::UnsupportedFormatError("ADR-36".to_string()).into())
             }
         }
     }
@@ -87,22 +89,31 @@ impl Signature {
         let mut der_bytes = Vec::with_capacity(2 + signature_bytes.len());
 
         der_bytes.push(0x04); // octet stream
-        der_bytes.push(signature_bytes.len().try_into()?); // length of signature bytes
+        der_bytes.push(
+            signature_bytes
+                .len()
+                .try_into()
+                .map_err(|_| SignatureError::AlgorithmError("Map conversion failed".to_string()))?,
+        ); // length of signature bytes
         der_bytes.extend_from_slice(&signature_bytes);
 
         let signature_info = SignatureInfoRef {
             algorithm: self.algorithm_identifier(),
-            signature: OctetStringRef::new(&der_bytes)?,
+            signature: OctetStringRef::new(&der_bytes)
+                .map_err(|e| SignatureError::AlgorithmError(e.to_string()))?,
         };
 
-        let doc = SecretDocument::encode_msg(&signature_info)?;
+        let doc = SecretDocument::encode_msg(&signature_info)
+            .map_err(|e| SignatureError::AlgorithmError(e.to_string()))?;
         der_bytes.zeroize();
         Ok(doc.as_bytes().to_vec())
     }
 
     pub fn from_prism_der(bytes: &[u8]) -> Result<Self> {
-        let signature_info = SignatureInfoRef::from_der(bytes)?;
-        let algorithm = CryptoAlgorithm::try_from(signature_info.algorithm)?;
+        let signature_info = SignatureInfoRef::from_der(bytes)
+            .map_err(|e| SignatureError::AlgorithmError(e.to_string()))?;
+        let algorithm = CryptoAlgorithm::try_from(signature_info.algorithm)
+            .map_err(|e| SignatureError::AlgorithmError(e.to_string()))?;
 
         // Signature byte representation:
         // 1st byte: 0x04 (type OCTET STRING)
@@ -112,13 +123,13 @@ impl Signature {
             [0x04, _, signature_bytes @ ..] => {
                 Signature::from_algorithm_and_bytes(algorithm, signature_bytes)
             }
-            _ => bail!("Malformed signature"),
+            _ => Err(SignatureError::MalformedSignError.into()),
         }
     }
 }
 
 impl TryFrom<CryptoPayload> for Signature {
-    type Error = anyhow::Error;
+    type Error = CryptoError;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
         Signature::from_algorithm_and_bytes(value.algorithm, &value.bytes)

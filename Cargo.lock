@@ -2311,7 +2311,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d162beedaa69905488a8da94f5ac3edb4dd4788b732fadb7bd120b2625c1976"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 2.0.102",
 ]
 
 [[package]]
@@ -7037,7 +7037,6 @@ name = "prism-keys"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
- "anyhow",
  "ed25519",
  "ed25519-consensus",
  "getrandom 0.2.16",
@@ -7050,6 +7049,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.8",
+ "thiserror 2.0.12",
  "utoipa",
 ]
 
