@@ -9,7 +9,7 @@ use prism_keys::VerifyingKey;
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use std::{self, sync::Arc};
 use tokio::sync::RwLock;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
@@ -111,6 +111,13 @@ impl LightClient {
         // start initial historical backward sync if needed and not already in progress
         {
             let mut state_handle = self.sync_state.write().await;
+            if state_handle.current_height > height {
+                warn!(
+                    "new height from headersub {} is lower than synced height, skipping",
+                    height
+                );
+                return;
+            }
             if !state_handle.initial_sync_completed && !state_handle.initial_sync_in_progress {
                 state_handle.initial_sync_in_progress = true;
                 drop(state_handle);
