@@ -1,8 +1,7 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
 use prism_da::{
-    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys,
-    events::EventChannel,
+    LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys, events::EventChannel,
 };
 use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
@@ -48,9 +47,9 @@ pub struct LightClient {
 
 #[derive(Default, Clone)]
 pub struct SyncState {
+    /// The current synced DA height of the light client.
     pub current_height: u64,
-    pub initial_sync_completed: bool,
-    pub initial_sync_in_progress: bool,
+    /// The current synced epoch height of the light client.
     pub latest_finalized_epoch: Option<u64>,
 }
 
@@ -88,8 +87,12 @@ impl LightClient {
 
         let mut event_sub = self.event_chan.subscribe();
         self.event_pub.send(PrismEvent::Ready);
+
+        let mut backwards_sync_started = false;
         while let Ok(event_info) = event_sub.recv().await {
             if let PrismEvent::UpdateDAHeight { height } = event_info.event {
+                info!("new height from headersub {}", height);
+
                 #[cfg(feature = "telemetry")]
                 if let Some(metrics) = get_metrics() {
                     metrics.record_celestia_synced_height(height, vec![]);
@@ -99,7 +102,14 @@ impl LightClient {
                         metrics.record_current_epoch(latest_finalized_epoch, vec![]);
                     }
                 }
-                info!("new height from headersub {}", height);
+
+                // start initial historical backward sync if not already in progress
+                if !backwards_sync_started {
+                    backwards_sync_started = true;
+                    spawn_task(self.clone().start_backward_sync(height));
+                    continue;
+                }
+
                 self.clone().handle_new_header(height).await;
             }
         }
@@ -108,20 +118,14 @@ impl LightClient {
     }
 
     async fn handle_new_header(self: Arc<Self>, height: u64) {
-        // start initial historical backward sync if needed and not already in progress
         {
-            let mut state_handle = self.sync_state.write().await;
+            let state_handle = self.sync_state.read().await;
             if state_handle.current_height > height {
                 warn!(
                     "new height from headersub {} is lower than synced height, skipping",
                     height
                 );
-                return;
-            }
-            if !state_handle.initial_sync_completed && !state_handle.initial_sync_in_progress {
-                state_handle.initial_sync_in_progress = true;
                 drop(state_handle);
-                self.start_backward_sync(height).await;
                 return;
             }
         }
@@ -134,22 +138,14 @@ impl LightClient {
                 }
 
                 for epoch in epochs {
+                    let epoch_height = epoch.height();
                     // Found a new finalized epoch, process it immediately
                     if self.process_epoch(epoch).await.is_ok() {
                         self.event_pub.send(PrismEvent::RecursiveVerificationCompleted { height });
 
                         // Update our latest known finalized epoch
                         let mut state = self.sync_state.write().await;
-                        state.latest_finalized_epoch = Some(height);
-
-                        // If we're waiting for initial sync, this completes it
-                        if state.initial_sync_in_progress && !state.initial_sync_completed {
-                            info!("finished initial sync");
-                            state.initial_sync_completed = true;
-                            state.initial_sync_in_progress = false;
-                        }
-
-                        // Update current height to the da height
+                        state.latest_finalized_epoch = Some(epoch_height);
                         state.current_height = height;
                     }
                 }
@@ -184,9 +180,8 @@ impl LightClient {
             };
             while current_height >= min_height {
                 // Look backwards for the first height with epochs
-                if let Some((da_height, epochs)) = light_client
-                    .find_most_recent_epoch(current_height, min_height, state.clone())
-                    .await
+                if let Some((da_height, epochs)) =
+                    light_client.find_most_recent_epoch(current_height, min_height).await
                 {
                     // Try to find a single valid epoch
                     for epoch in epochs {
@@ -204,10 +199,10 @@ impl LightClient {
                                 );
 
                                 let mut state = state.write().await;
-                                state.initial_sync_completed = true;
-                                state.initial_sync_in_progress = false;
-                                state.latest_finalized_epoch = Some(epoch_height);
-                                state.current_height = da_height;
+                                if state.latest_finalized_epoch.is_none() {
+                                    state.latest_finalized_epoch = Some(epoch_height);
+                                    state.current_height = da_height;
+                                }
 
                                 // Break out of the loop if a single epoch is processed successfully
                                 return;
@@ -227,12 +222,6 @@ impl LightClient {
                         }
                     }
                 }
-
-                // No epoch found in backward search, mark initial sync as complete
-                // but don't update current height - we'll wait for new epochs
-                let mut state = state.write().await;
-                state.initial_sync_completed = true;
-                state.initial_sync_in_progress = false;
             }
         })
     }
@@ -241,12 +230,11 @@ impl LightClient {
         &self,
         start_height: u64,
         min_height: u64,
-        state: Arc<RwLock<SyncState>>,
     ) -> Option<(u64, Vec<VerifiableEpoch>)> {
         let mut height = start_height;
         while height >= min_height {
             // if an epoch has been found, we no longer need to sync historically
-            if state.read().await.latest_finalized_epoch.is_some() {
+            if self.sync_state.read().await.latest_finalized_epoch.is_some() {
                 info!(
                     "abandoning historical sync after finding recursive proof at incoming height"
                 );
@@ -328,64 +316,6 @@ impl LightClient {
         }
     }
 
-    fn extract_commitments(&self, public_values: &[u8]) -> Result<(Digest, Digest)> {
-        let mut slice = [0u8; 32];
-        slice.copy_from_slice(&public_values[..32]);
-        let proof_prev_commitment = Digest::from(slice);
-
-        let mut slice = [0u8; 32];
-        slice.copy_from_slice(&public_values[32..64]);
-        let proof_current_commitment = Digest::from(slice);
-
-        Ok((proof_prev_commitment, proof_current_commitment))
-    }
-
-    fn verify_commitments(
-        &self,
-        finalized_epoch: &FinalizedEpoch,
-        proof_prev_commitment: Digest,
-        proof_current_commitment: Digest,
-    ) -> Result<()> {
-        if finalized_epoch.prev_commitment != proof_prev_commitment
-            || finalized_epoch.current_commitment != proof_current_commitment
-        {
-            // maybe we should forwards events for these kind of errors as well.
-            return Err(anyhow::anyhow!(
-                "Commitment mismatch: prev={:?}/{:?}, current={:?}/{:?}",
-                finalized_epoch.prev_commitment,
-                proof_prev_commitment,
-                finalized_epoch.current_commitment,
-                proof_current_commitment
-            ));
-        }
-        Ok(())
-    }
-
-    fn verify_snark_proof(
-        &self,
-        finalized_epoch: &FinalizedEpoch,
-        public_values: &[u8],
-    ) -> Result<()> {
-        #[cfg(target_arch = "wasm32")]
-        let finalized_epoch_proof = &finalized_epoch.proof;
-
-        #[cfg(not(target_arch = "wasm32"))]
-        let finalized_epoch_proof = &finalized_epoch.proof.bytes();
-
-        let vkey = if finalized_epoch.height == 0 {
-            &self.sp1_vkeys.base_vk
-        } else {
-            &self.sp1_vkeys.recursive_vk
-        };
-
-        Groth16Verifier::verify(
-            finalized_epoch_proof,
-            public_values,
-            vkey,
-            &sp1_verifier::GROTH16_VK_BYTES,
-        )
-        .map_err(|e| anyhow::anyhow!("SNARK verification failed: {:?}", e))
-    }
     pub async fn get_latest_commitment(&self) -> Option<Digest> {
         *self.latest_commitment.read().await
     }

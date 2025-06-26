@@ -217,6 +217,5 @@ async fn test_incoming_epoch_during_backwards_sync() {
     }
 
     let sync_state = lc.get_sync_state().await;
-    assert!(sync_state.initial_sync_completed);
-    assert!(!sync_state.initial_sync_in_progress);
+    assert_eq!(sync_state.current_height, 5101);
 }
