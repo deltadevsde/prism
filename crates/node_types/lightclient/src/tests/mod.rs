@@ -184,8 +184,75 @@ async fn test_incoming_sync_ignores_error() {
     assert_current_commitment!(lc, "d");
 }
 
-// NOTE TO SELF: Handle_new_header method's first block is sus af
-// I think we need to make sure it doesnt ever run twice
+#[tokio::test]
+async fn test_sandwiched_epoch() {
+    let (lc, mut sub, publisher) = setup(mock_da![(8, "Error1", ("a", "b"), "Error2")]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
+    wait_for_sync(&mut sub, 8).await;
+    assert_current_commitment!(lc, "b");
+}
+
+#[tokio::test]
+async fn no_backwards_sync_underflow() {
+    let (_, mut sub, publisher) = setup(mock_da![]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 50 });
+    wait_for_event(&mut sub, |event| {
+        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+            assert!(height.is_none());
+            return true;
+        }
+        false
+    })
+    .await
+}
+
+#[tokio::test]
+async fn no_concurrent_backwards_sync() {
+    let (_, mut sub, publisher) = setup(mock_da![(999, ("a", "b"))]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 500 });
+    publisher.send(PrismEvent::UpdateDAHeight { height: 1000 });
+
+    wait_for_event(&mut sub, |event| {
+        if let PrismEvent::BackwardsSyncStarted { height } = event {
+            assert_eq!(height, 500);
+            return true;
+        }
+        false
+    })
+    .await;
+
+    wait_for_event(&mut sub, |event| {
+        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+            assert!(height.is_none());
+            return true;
+        }
+        false
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn test_backwards_sync_does_not_restart() {
+    let (lc, mut sub, publisher) = setup(mock_da![(999, ("a", "b"))]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 500 });
+
+    wait_for_event(&mut sub, |event| {
+        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+            assert!(height.is_none());
+            return true;
+        }
+        false
+    })
+    .await;
+    publisher.send(PrismEvent::UpdateDAHeight { height: 1000 });
+    // TODO: Find better way
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    assert!(lc.get_sync_state().await.latest_finalized_epoch.is_none());
+}
 
 #[tokio::test]
 async fn test_will_not_process_older_epoch() {
@@ -209,13 +276,57 @@ async fn test_incoming_epoch_during_backwards_sync() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
     publisher.send(PrismEvent::UpdateDAHeight { height: 5101 });
+
+    let mut condition_counter = 0;
+    while let Ok(event_info) = sub.recv().await {
+        if condition_counter >= 2 {
+            break;
+        }
+        match event_info.event {
+            PrismEvent::RecursiveVerificationCompleted { height: _ } => {
+                assert_current_commitment!(lc, "d");
+                condition_counter += 1;
+            }
+            PrismEvent::BackwardsSyncCompleted { height } => {
+                assert!(height.is_none());
+                condition_counter += 1;
+            }
+            _ => {}
+        }
+    }
+}
+
+#[tokio::test]
+async fn test_incoming_epoch_after_backwards_sync() {
+    let (lc, mut sub, publisher) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
+    wait_for_event(&mut sub, |event| {
+        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+            return matches!(height, Some(5000));
+        }
+        false
+    })
+    .await;
+    publisher.send(PrismEvent::UpdateDAHeight { height: 5101 });
     while let Ok(event_info) = sub.recv().await {
         if let PrismEvent::RecursiveVerificationCompleted { height: _ } = event_info.event {
             assert_current_commitment!(lc, "d");
             return;
         }
     }
+}
 
-    let sync_state = lc.get_sync_state().await;
-    assert_eq!(sync_state.current_height, 5101);
+#[tokio::test]
+async fn test_backwards_sync_completes() {
+    let (_, mut sub, publisher) = setup(mock_da![]).await;
+
+    publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
+    wait_for_event(&mut sub, |event| {
+        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+            return height.is_none();
+        }
+        false
+    })
+    .await;
 }

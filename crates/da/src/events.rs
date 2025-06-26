@@ -15,7 +15,8 @@ const EVENT_CHANNEL_CAPACITY: usize = 1024;
 #[serde(rename_all = "snake_case")]
 pub enum PrismEvent {
     Ready,
-    SyncStarted { height: u64 },
+    BackwardsSyncStarted { height: u64 },
+    BackwardsSyncCompleted { height: Option<u64> },
     UpdateDAHeight { height: u64 },
     EpochVerificationStarted { height: u64 },
     EpochVerified { height: u64 },
@@ -42,8 +43,15 @@ impl fmt::Display for PrismEvent {
                     "Node is ready to start sync and listening for incoming headers"
                 )
             }
-            PrismEvent::SyncStarted { height } => {
-                write!(f, "Starting sync at height {}", height)
+            PrismEvent::BackwardsSyncStarted { height } => {
+                write!(f, "Starting backwards sync at height {}", height)
+            }
+            PrismEvent::BackwardsSyncCompleted { height } => {
+                write!(
+                    f,
+                    "Backwards sync complete, found epoch: {}",
+                    height.is_some()
+                )
             }
             PrismEvent::UpdateDAHeight { height } => {
                 write!(f, "Updated DA height to {}", height)

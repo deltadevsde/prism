@@ -10,6 +10,10 @@ pub enum UniffiLightClientEvent {
         /// The height at which sync started
         height: u64,
     },
+    SyncCompleted {
+        /// The height at which sync completed
+        height: Option<u64>,
+    },
     /// DA layer height has been updated
     UpdateDAHeight {
         /// The new DA layer height
@@ -65,7 +69,12 @@ impl From<PrismEvent> for UniffiLightClientEvent {
     fn from(event: PrismEvent) -> Self {
         match event {
             PrismEvent::Ready => UniffiLightClientEvent::Ready,
-            PrismEvent::SyncStarted { height } => UniffiLightClientEvent::SyncStarted { height },
+            PrismEvent::BackwardsSyncStarted { height } => {
+                UniffiLightClientEvent::SyncStarted { height }
+            }
+            PrismEvent::BackwardsSyncCompleted { height } => {
+                UniffiLightClientEvent::SyncCompleted { height }
+            }
             PrismEvent::UpdateDAHeight { height } => {
                 UniffiLightClientEvent::UpdateDAHeight { height }
             }

@@ -106,7 +106,7 @@ impl LightClient {
                 // start initial historical backward sync if not already in progress
                 if !backwards_sync_started {
                     backwards_sync_started = true;
-                    spawn_task(self.clone().start_backward_sync(height));
+                    self.clone().start_backward_sync(height).await;
                     continue;
                 }
 
@@ -159,7 +159,7 @@ impl LightClient {
     async fn start_backward_sync(self: Arc<Self>, network_height: u64) {
         info!("starting historical sync");
         // Announce that sync has started
-        self.event_pub.send(PrismEvent::SyncStarted {
+        self.event_pub.send(PrismEvent::BackwardsSyncStarted {
             height: network_height,
         });
         self.event_pub.send(PrismEvent::RecursiveVerificationStarted {
@@ -204,6 +204,10 @@ impl LightClient {
                                     state.current_height = da_height;
                                 }
 
+                                light_client.event_pub.send(PrismEvent::BackwardsSyncCompleted {
+                                    height: Some(da_height),
+                                });
+
                                 // Break out of the loop if a single epoch is processed successfully
                                 return;
                             }
@@ -221,8 +225,15 @@ impl LightClient {
                             }
                         }
                     }
+                } else {
+                    // This case happens when the incoming sync finds an epoch before the backwards sync does
+                    light_client
+                        .event_pub
+                        .send(PrismEvent::BackwardsSyncCompleted { height: None });
                 }
             }
+            // Mark initial sync as completed, without any success
+            light_client.event_pub.send(PrismEvent::BackwardsSyncCompleted { height: None });
         })
     }
 
@@ -266,7 +277,17 @@ impl LightClient {
     }
 
     async fn process_epoch(&self, epoch: VerifiableEpoch) -> Result<()> {
-        let commitments = epoch.verify(&self.prover_pubkey, &self.sp1_vkeys)?;
+        let commitments = match epoch.verify(&self.prover_pubkey, &self.sp1_vkeys) {
+            Ok(commitments) => commitments,
+            Err(e) => {
+                error!("failed to verify epoch at height {}: {}", epoch.height(), e);
+                self.event_pub.send(PrismEvent::EpochVerificationFailed {
+                    height: epoch.height(),
+                    error: e.to_string(),
+                });
+                return Err(anyhow::anyhow!(e));
+            }
+        };
         let curr_commitment = commitments.current;
 
         // Update latest commitment
@@ -277,43 +298,6 @@ impl LightClient {
         });
 
         Ok(())
-    }
-
-    /// Returns the count of successfully processed epochs
-    async fn process_height(&self, height: u64) -> Result<u64> {
-        info!("processing at DA height {}", height);
-        self.event_pub.send(PrismEvent::EpochVerificationStarted { height });
-
-        match self.da.get_finalized_epoch(height).await {
-            Ok(finalized_epochs) => {
-                if finalized_epochs.is_empty() {
-                    self.event_pub.send(PrismEvent::NoEpochFound { height });
-                }
-
-                // Process each finalized epoch
-                let mut count = 0;
-                for epoch in finalized_epochs {
-                    if let Err(e) = self.process_epoch(epoch).await {
-                        let error = format!("Failed to process epoch: {}", e);
-                        self.event_pub.send(PrismEvent::EpochVerificationFailed {
-                            height,
-                            error: error.clone(),
-                        });
-                    } else {
-                        count += 1;
-                    }
-                }
-                Ok(count)
-            }
-            Err(e) => {
-                let error = format!("Failed to get epoch: {}", e);
-                self.event_pub.send(PrismEvent::EpochVerificationFailed {
-                    height,
-                    error: error.clone(),
-                });
-                Err(anyhow::anyhow!(error))
-            }
-        }
     }
 
     pub async fn get_latest_commitment(&self) -> Option<Digest> {
