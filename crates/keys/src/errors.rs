@@ -1,5 +1,20 @@
 use thiserror::Error;
 
+pub type Result<G> = std::result::Result<G, CryptoError>;
+
+// Top-level error type
+#[derive(Error, Debug, Clone)]
+pub enum CryptoError {
+    #[error("signature error: {0}")]
+    SignatureError(#[from] SignatureError),
+
+    #[error("keys error: {0}")]
+    KeysError(#[from] KeysError),
+
+    #[error("verification error: {0}")]
+    VerificationError(#[from] VerificationError),
+}
+
 #[derive(Error, Clone, Debug)]
 pub enum SignatureError {
     #[error("No EIP-191 specific signatures implemented")]
@@ -10,7 +25,7 @@ pub enum SignatureError {
     MalformedSignError,
     #[error("Algorithm Error: {0}")]
     AlgorithmError(String),
-    #[error("something went wrong: {0}")]
+    #[error("Something went wrong: {0}")]
     CosmosError(String),
 }
 
