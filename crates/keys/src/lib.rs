@@ -2,7 +2,7 @@ mod algorithm;
 mod cosmos;
 mod der;
 pub mod errors;
-pub use errors::{CryptoError, KeysError, Result, SignatureError, VerificationError};
+pub use errors::{CryptoError, ParseError, Result, SignatureError, VerificationError};
 mod payload;
 mod signatures;
 mod signing_keys;
