@@ -271,28 +271,58 @@ async fn test_will_not_process_older_epoch() {
 }
 
 #[tokio::test]
-async fn test_incoming_epoch_during_backwards_sync() {
+async fn test_incoming_epoch_during_backwards_sync_v1() {
     let (lc, mut sub, publisher) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
 
-    publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
-    publisher.send(PrismEvent::UpdateDAHeight { height: 5101 });
+    let result = tokio::time::timeout(Duration::from_secs(5), async {
+        // Start the event loop first, then send events after we're ready to receive
+        let event_task = tokio::spawn(async move {
+            let mut events_received = (false, false); // (recursive, backwards)
 
-    let mut condition_counter = 0;
-    while let Ok(event_info) = sub.recv().await {
-        if condition_counter >= 2 {
-            break;
-        }
-        match event_info.event {
-            PrismEvent::RecursiveVerificationCompleted { height: _ } => {
-                assert_current_commitment!(lc, "d");
-                condition_counter += 1;
+            while let Ok(event_info) = sub.recv().await {
+                match event_info.event {
+                    PrismEvent::RecursiveVerificationCompleted { height: _ } => {
+                        assert_current_commitment!(lc, "d");
+                        events_received.0 = true;
+                    }
+                    PrismEvent::BackwardsSyncCompleted { height } => {
+                        assert!(height.is_none());
+                        events_received.1 = true;
+                    }
+                    _ => {}
+                }
+
+                // Break when both conditions are met
+                if events_received.0 && events_received.1 {
+                    break;
+                }
             }
-            PrismEvent::BackwardsSyncCompleted { height } => {
-                assert!(height.is_none());
-                condition_counter += 1;
-            }
-            _ => {}
+            events_received
+        });
+
+        // Small delay to ensure the receiver is ready
+        tokio::time::sleep(Duration::from_millis(10)).await;
+
+        publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
+        publisher.send(PrismEvent::UpdateDAHeight { height: 5101 });
+
+        let (recursive_completed, backwards_completed) = event_task.await.unwrap();
+        (recursive_completed, backwards_completed)
+    })
+    .await;
+
+    match result {
+        Ok((recursive_completed, backwards_completed)) => {
+            assert!(
+                recursive_completed,
+                "RecursiveVerificationCompleted event not received"
+            );
+            assert!(
+                backwards_completed,
+                "BackwardsSyncCompleted event not received"
+            );
         }
+        Err(_) => panic!("Test timed out waiting for events"),
     }
 }
 

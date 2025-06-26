@@ -211,6 +211,9 @@ impl LightClient {
                                 // Break out of the loop if a single epoch is processed successfully
                                 return;
                             }
+                            // This is the only branch that should trigger the
+                            // while loop to continue, the other branches all
+                            // return
                             Err(e) => {
                                 error!("Failed to process epoch at height {}: {}", da_height, e);
                                 light_client.event_pub.send(PrismEvent::EpochVerificationFailed {
@@ -226,14 +229,15 @@ impl LightClient {
                         }
                     }
                 } else {
-                    // This case happens when the incoming sync finds an epoch before the backwards sync does
+                    // This case happens when the incoming sync finds an epoch
+                    // before the backwards sync does, or we have exhausted
+                    // minimum height
                     light_client
                         .event_pub
                         .send(PrismEvent::BackwardsSyncCompleted { height: None });
+                    return;
                 }
             }
-            // Mark initial sync as completed, without any success
-            light_client.event_pub.send(PrismEvent::BackwardsSyncCompleted { height: None });
         })
     }
 
