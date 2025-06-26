@@ -247,20 +247,16 @@ impl VerifyingKey {
                 })?;
                 Ok(VerifyingKey::Secp256r1(secp256r1_key))
             }
-            CryptoAlgorithm::Eip191 => {
-                return Err(VerificationError::NotImplementedError(
-                    "Eth".to_string(),
-                    "from".to_string(),
-                )
-                .into());
-            }
-            CryptoAlgorithm::CosmosAdr36 => {
-                return Err(VerificationError::NotImplementedError(
-                    "Cosmos ADR-36".to_string(),
-                    "from".to_string(),
-                )
-                .into());
-            }
+            CryptoAlgorithm::Eip191 => Err(VerificationError::NotImplementedError(
+                "Eth".to_string(),
+                "from".to_string(),
+            )
+            .into()),
+            CryptoAlgorithm::CosmosAdr36 => Err(VerificationError::NotImplementedError(
+                "Cosmos ADR-36".to_string(),
+                "from".to_string(),
+            )
+            .into()),
         }
     }
 

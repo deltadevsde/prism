@@ -1,4 +1,4 @@
-use crate::errors::SignatureError;
+use crate::{CryptoError, Result, errors::SignatureError};
 use pkcs8::{AlgorithmIdentifierRef, ObjectIdentifier};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -33,16 +33,16 @@ impl CryptoAlgorithm {
 }
 
 impl std::str::FromStr for CryptoAlgorithm {
-    type Err = ();
+    type Err = CryptoError;
 
-    fn from_str(input: &str) -> Result<CryptoAlgorithm, Self::Err> {
+    fn from_str(input: &str) -> Result<CryptoAlgorithm> {
         match input.to_lowercase().as_str() {
             "ed25519" => Ok(CryptoAlgorithm::Ed25519),
             "secp256k1" => Ok(CryptoAlgorithm::Secp256k1),
             "secp256r1" => Ok(CryptoAlgorithm::Secp256r1),
             "eip191" => Ok(CryptoAlgorithm::Eip191),
             "cosmos_adr36" => Ok(CryptoAlgorithm::CosmosAdr36),
-            _ => Err(()),
+            _ => Err(SignatureError::AlgorithmError(input.to_string()).into()),
         }
     }
 }
@@ -60,9 +60,9 @@ pub const SECP256K1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.13
 pub const SECP256R1_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7");
 
 impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
-    type Error = SignatureError;
+    type Error = CryptoError;
 
-    fn try_from(algorithm_identifier: AlgorithmIdentifierRef<'a>) -> Result<Self, Self::Error> {
+    fn try_from(algorithm_identifier: AlgorithmIdentifierRef<'a>) -> Result<Self> {
         let oid = algorithm_identifier.oid;
 
         if oid == ED25519_OID {
@@ -78,12 +78,13 @@ impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
             } else {
                 return Err(SignatureError::AlgorithmError(
                     "Unsupported elliptic curve OID".to_string(),
-                ));
+                )
+                .into());
             }
         } else {
-            return Err(SignatureError::AlgorithmError(
-                "Unsupported algorithm OID".to_string(),
-            ));
+            return Err(
+                SignatureError::AlgorithmError("Unsupported algorithm OID".to_string()).into(),
+            );
         }
     }
 }

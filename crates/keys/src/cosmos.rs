@@ -1,11 +1,9 @@
+use crate::{Result, errors::SignatureError};
 use k256::ecdsa::VerifyingKey as Secp256k1VerifyingKey;
 use prism_serde::{bech32::ToBech32, raw_or_b64};
 use ripemd::Ripemd160;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::result::Result;
-
-use crate::errors::SignatureError;
 
 #[derive(Serialize, Deserialize)]
 struct CosmosSignDoc {
@@ -70,7 +68,7 @@ impl CosmosSignDoc {
 pub fn cosmos_adr36_hash_message(
     message: impl AsRef<[u8]>,
     verifying_key: &Secp256k1VerifyingKey,
-) -> Result<Vec<u8>, SignatureError> {
+) -> Result<Vec<u8>> {
     // TODO: Support arbitrary address prefixes
     // At the moment we expect users to use "cosmoshub-4" as chainId when
     // signing prism data via `signArbitrary(..)`, resulting in "cosmos" as address prefix
@@ -95,10 +93,7 @@ pub fn cosmos_adr36_hash_message(
 ///
 /// # Returns
 /// * `Result<Vec<u8>>` - The serialized sign document as bytes or an error
-fn create_serialized_adr36_sign_doc(
-    data: Vec<u8>,
-    signer: String,
-) -> Result<Vec<u8>, SignatureError> {
+fn create_serialized_adr36_sign_doc(data: Vec<u8>, signer: String) -> Result<Vec<u8>> {
     let adr36_sign_doc = CosmosSignDoc::new(signer, data);
 
     let sign_doc_str = serde_json::to_string(&adr36_sign_doc)
@@ -123,10 +118,7 @@ fn create_serialized_adr36_sign_doc(
 ///
 /// # Returns
 /// * `Result<String>` - The bech32-encoded address or an error
-fn signer_from_key(
-    address_prefix: &str,
-    verifying_key: &Secp256k1VerifyingKey,
-) -> Result<String, SignatureError> {
+fn signer_from_key(address_prefix: &str, verifying_key: &Secp256k1VerifyingKey) -> Result<String> {
     let verifying_key_bytes = verifying_key.to_sec1_bytes();
     let hashed_key_bytes = Sha256::digest(verifying_key_bytes);
     let cosmos_address = Ripemd160::digest(hashed_key_bytes);

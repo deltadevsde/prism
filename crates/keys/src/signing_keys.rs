@@ -1,4 +1,4 @@
-use crate::errors::KeysError;
+use crate::{CryptoError, Result, errors::KeysError};
 use alloy_primitives::eip191_hash_message;
 use ed25519::{
     PublicKeyBytes as Ed25519PublicKeyBytes, pkcs8::KeypairBytes as Ed25519KeypairBytes,
@@ -13,7 +13,7 @@ use pkcs8::{
     Document, EncodePrivateKey, LineEnding, PrivateKeyInfo, SecretDocument,
     der::{Decode, pem::PemLabel},
 };
-use std::{path::Path, result::Result};
+use std::path::Path;
 
 use sha2::Digest as _;
 
@@ -66,7 +66,7 @@ impl SigningKey {
         SigningKey::CosmosAdr36(Secp256k1SigningKey::random(&mut get_rng()))
     }
 
-    pub fn new_with_algorithm(algorithm: CryptoAlgorithm) -> Result<Self, KeysError> {
+    pub fn new_with_algorithm(algorithm: CryptoAlgorithm) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => Ok(SigningKey::new_ed25519()),
             CryptoAlgorithm::Secp256k1 => Ok(SigningKey::new_secp256k1()),
@@ -90,7 +90,7 @@ impl SigningKey {
         }
     }
 
-    fn to_pkcs8_der_doc(&self) -> Result<SecretDocument, KeysError> {
+    fn to_pkcs8_der_doc(&self) -> Result<SecretDocument> {
         match self {
             SigningKey::Ed25519(sk) => {
                 let keypair_bytes = Ed25519KeypairBytes {
@@ -104,43 +104,40 @@ impl SigningKey {
             SigningKey::Eip191(sk) => sk.to_pkcs8_der(),
             SigningKey::CosmosAdr36(sk) => sk.to_pkcs8_der(),
         }
-        .map_err(|_| KeysError::DerCreationError)
+        .map_err(|_| KeysError::DerCreationError.into())
     }
 
-    pub fn to_pkcs8_der(&self) -> Result<Vec<u8>, KeysError> {
+    pub fn to_pkcs8_der(&self) -> Result<Vec<u8>> {
         Ok(self.to_pkcs8_der_doc()?.as_bytes().to_vec())
     }
 
-    pub fn to_pkcs8_pem_file(&self, filename: impl AsRef<Path>) -> Result<(), KeysError> {
+    pub fn to_pkcs8_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
         self.to_pkcs8_der_doc()?
             .write_pem_file(filename, PrivateKeyInfo::PEM_LABEL, LineEnding::LF)
-            .map_err(|_| KeysError::PemCreationError)
+            .map_err(|_| KeysError::PemCreationError.into())
     }
 
-    pub fn from_algorithm_and_bytes(
-        algorithm: CryptoAlgorithm,
-        bytes: &[u8],
-    ) -> Result<Self, KeysError> {
+    pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
         match algorithm {
             CryptoAlgorithm::Ed25519 => Ed25519SigningKey::try_from(bytes)
                 .map(SigningKey::Ed25519)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
             CryptoAlgorithm::Secp256k1 => Secp256k1SigningKey::from_slice(bytes)
                 .map(SigningKey::Secp256k1)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
             CryptoAlgorithm::Secp256r1 => Secp256r1SigningKey::from_slice(bytes)
                 .map(SigningKey::Secp256r1)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
             CryptoAlgorithm::Eip191 => Secp256k1SigningKey::from_slice(bytes)
                 .map(SigningKey::Eip191)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
             CryptoAlgorithm::CosmosAdr36 => Secp256k1SigningKey::from_slice(bytes)
                 .map(SigningKey::CosmosAdr36)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
         }
     }
 
-    pub fn from_pkcs8_der_doc(doc: &Document) -> Result<Self, KeysError> {
+    pub fn from_pkcs8_der_doc(doc: &Document) -> Result<Self> {
         let value = doc.as_bytes();
         let pk_info = PrivateKeyInfo::try_from(value).map_err(|_| KeysError::ParseError)?;
         let algorithm =
@@ -156,25 +153,25 @@ impl SigningKey {
             }
             CryptoAlgorithm::Secp256k1 => Secp256k1SigningKey::try_from(pk_info)
                 .map(SigningKey::Secp256k1)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
             CryptoAlgorithm::Secp256r1 => Secp256r1SigningKey::try_from(pk_info)
                 .map(SigningKey::Secp256r1)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
             CryptoAlgorithm::Eip191 => Secp256k1SigningKey::try_from(pk_info)
                 .map(SigningKey::Eip191)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
             CryptoAlgorithm::CosmosAdr36 => Secp256k1SigningKey::try_from(pk_info)
                 .map(SigningKey::CosmosAdr36)
-                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string())),
+                .map_err(|e| KeysError::InvalidKeyBytes(e.to_string()).into()),
         }
     }
 
-    pub fn from_pkcs8_der(bytes: &[u8]) -> Result<Self, KeysError> {
+    pub fn from_pkcs8_der(bytes: &[u8]) -> Result<Self> {
         let document = pkcs8::Document::from_der(bytes).map_err(|_| KeysError::ParseError)?;
         Self::from_pkcs8_der_doc(&document)
     }
 
-    pub fn from_pkcs8_pem_file(file_path: impl AsRef<Path>) -> Result<Self, KeysError> {
+    pub fn from_pkcs8_pem_file(file_path: impl AsRef<Path>) -> Result<Self> {
         let (label, document) =
             pkcs8::Document::read_pem_file(file_path).map_err(|_| KeysError::ParseError)?;
         PrivateKeyInfo::validate_pem_label(&label).map_err(|_| KeysError::PemLabelError)?;
@@ -192,7 +189,7 @@ impl SigningKey {
         }
     }
 
-    pub fn sign(&self, message: impl AsRef<[u8]>) -> Result<Signature, KeysError> {
+    pub fn sign(&self, message: impl AsRef<[u8]>) -> Result<Signature> {
         match self {
             SigningKey::Ed25519(sk) => Ok(Signature::Ed25519(sk.sign(message.as_ref()))),
             SigningKey::Secp256k1(sk) => {
@@ -244,7 +241,7 @@ impl PartialEq for SigningKey {
 }
 
 impl TryFrom<CryptoPayload> for SigningKey {
-    type Error = KeysError;
+    type Error = CryptoError;
 
     fn try_from(value: CryptoPayload) -> std::result::Result<Self, Self::Error> {
         SigningKey::from_algorithm_and_bytes(value.algorithm, &value.bytes)
