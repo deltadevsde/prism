@@ -10,6 +10,9 @@ use prism_keys::{SigningKey, VerifyingKey};
 use prism_serde::{self, base64::FromBase64, hex::FromHex};
 use serde::{Deserialize, Serialize};
 
+pub const FETCH_TIMEOUT: Duration = Duration::from_secs(120);
+pub const FETCH_MAX_RETRIES: u64 = 5;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CelestiaConfig {
     pub connection_string: String,
@@ -31,8 +34,8 @@ impl Default for CelestiaConfig {
             pruning_delay: DEFAULT_PRUNING_DELAY,
             snark_namespace_id: "00000000000000de1008".to_string(),
             operation_namespace_id: "00000000000000de1009".to_string(),
-            fetch_timeout: Duration::from_secs(120),
-            fetch_max_retries: 5,
+            fetch_timeout: FETCH_TIMEOUT,
+            fetch_max_retries: FETCH_MAX_RETRIES,
         }
     }
 }
