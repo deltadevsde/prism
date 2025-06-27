@@ -107,7 +107,7 @@ jobs:
           toolchain: nightly-2025-03-06
 
       - name: Install cargo-udeps
-        uses: taiki-e/cache-cargo-install-action@v1
+        uses: taiki-e/cache-cargo-install-action@v2
         with:
           tool: cargo-udeps
 
