@@ -1,5 +1,3 @@
 [[profile.default.overrides]]
 filter = 'test(/^prover::tests::/)'
-slow-timeout = "2m"
-# threads-required = "num-test-threads"
-priority = -100
+slow-timeout = { period = "60s", terminate-after = 30 }
