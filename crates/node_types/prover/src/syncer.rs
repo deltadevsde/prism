@@ -233,6 +233,7 @@ impl Syncer {
         #[cfg(test)]
         {
             commitments = epoch.commitments();
+            finalized_epoch.verify_signature(self.verifying_key.clone())?;
             self.prover_engine.verify_proof(epoch).await?;
         }
         #[cfg(not(test))]
