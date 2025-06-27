@@ -16,6 +16,8 @@ use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, trace, warn};
 
+use crate::celestia::CelestiaConfig;
+
 #[cfg(target_arch = "wasm32")]
 use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
 
@@ -179,28 +181,39 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             Err(e) => return Err(anyhow!("Failed to fetch header: {}", e)),
         };
 
-        // TODO(Zombeescott): Implement retries + timeout
-        match node.request_all_blobs(&header, self.snark_namespace, None).await {
-            Ok(blobs) => {
-                let epochs: Vec<VerifiableEpoch> = blobs
-                    .into_iter()
-                    .filter_map(|blob| match FinalizedEpoch::try_from(&blob) {
-                        Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
-                        Err(_) => {
-                            warn!(
-                                "marshalling blob from height {} to epoch json: {:?}",
-                                height, &blob
-                            );
-                            None
-                        }
-                    })
-                    .collect();
-                Ok(epochs)
+        let config = CelestiaConfig::default();
+        for attempt in 0..config.fetch_max_retries {
+            match node
+                .request_all_blobs(&header, self.snark_namespace, Some(config.fetch_timeout))
+                .await
+            {
+                Ok(blobs) => {
+                    let epochs: Vec<VerifiableEpoch> = blobs
+                        .into_iter()
+                        .filter_map(|blob| match FinalizedEpoch::try_from(&blob) {
+                            Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
+                            Err(_) => {
+                                warn!(
+                                    "marshalling blob from height {} to epoch json: {:?}",
+                                    height, &blob
+                                );
+                                None
+                            }
+                        })
+                        .collect();
+                    return Ok(epochs);
+                }
+                Err(e) => {
+                    warn!(
+                        "failed to fetch data on attempt {} with error: {}.",
+                        attempt, e
+                    );
+                }
             }
-            Err(e) => Err(anyhow!(DataAvailabilityError::DataRetrievalError(
-                height,
-                format!("getting epoch from da layer: {}", e)
-            ))),
         }
+        return Err(anyhow!(DataAvailabilityError::DataRetrievalError(
+            height,
+            "Max retry count exceeded".to_string()
+        )));
     }
 }
