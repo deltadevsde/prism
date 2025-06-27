@@ -18,6 +18,8 @@ pub struct CelestiaConfig {
     pub operation_namespace_id: String,
     pub sampling_window: Duration,
     pub pruning_delay: Duration,
+    pub fetch_timeout: Duration,
+    pub fetch_max_retries: u64,
 }
 
 impl Default for CelestiaConfig {
@@ -29,6 +31,8 @@ impl Default for CelestiaConfig {
             pruning_delay: DEFAULT_PRUNING_DELAY,
             snark_namespace_id: "00000000000000de1008".to_string(),
             operation_namespace_id: "00000000000000de1009".to_string(),
+            fetch_timeout: Duration::from_secs(120),
+            fetch_max_retries: 5,
         }
     }
 }
