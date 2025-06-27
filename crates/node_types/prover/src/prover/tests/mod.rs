@@ -1,5 +1,5 @@
 use super::*;
-use prism_common::{digest::Digest, test_transaction_builder::TestTransactionBuilder};
+use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_tree::proofs::Proof;
 use std::{self, sync::Arc, time::Duration};
