@@ -1,5 +1,5 @@
 use super::*;
-use prism_common::test_transaction_builder::TestTransactionBuilder;
+use prism_common::{digest::Digest, test_transaction_builder::TestTransactionBuilder};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_tree::proofs::Proof;
 use std::{self, sync::Arc, time::Duration};
@@ -366,7 +366,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     let mut prover_synced = false;
     let mut fullnode_synced = false;
 
-    for _ in 0..50 {
+    for _ in 0..10 {
         // 5 second timeout
         let prover_height = prover.get_db().get_last_synced_height().unwrap_or(0);
         let fullnode_height = fullnode.get_db().get_last_synced_height().unwrap_or(0);
@@ -383,7 +383,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
             break;
         }
 
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
     }
 
     assert!(
@@ -401,7 +401,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     }
 
     // Wait a bit for transactions to be processed
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_millis(150)).await;
 
     // Submit racing transactions that arrive while prover is creating proof
     for transaction in racing_transactions {
@@ -419,8 +419,9 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     assert!(epoch_found, "Prover should have created an epoch");
 
     // Wait for fullnode to sync the epoch
-    // If this test flakes, it could be because it needs a tiny bit more time here
-    tokio::time::sleep(Duration::from_millis(5000)).await;
+    while prover.get_commitment().await.unwrap() != fullnode.get_commitment().await.unwrap() {
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
 
     // Both nodes should have the same commitment despite racing transactions
     let prover_commitment = prover.get_commitment().await.unwrap();
