@@ -269,6 +269,8 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
 
                 pruning_delay: existing_config.pruning_delay,
                 sampling_window: existing_config.sampling_window,
+                fetch_timeout: Duration::from_secs(120),
+                fetch_max_retries: 5,
             })
         }
         DALayerOption::InMemory => None,
