@@ -45,6 +45,7 @@ pub struct LightClientConnection {
     pub node: Arc<RwLock<LuminaNode>>,
     pub event_channel: Arc<EventChannel>,
     pub snark_namespace: Namespace,
+    pub celestia_config: CelestiaConfig,
 }
 
 impl LightClientConnection {
@@ -90,7 +91,8 @@ impl LightClientConnection {
         let celestia_config = config
             .celestia_config
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?;
+            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?
+            .clone();
 
         let (node, event_subscriber) = NodeBuilder::new()
             .network(config.celestia_network.clone())
@@ -112,6 +114,7 @@ impl LightClientConnection {
             node: Arc::new(RwLock::new(node)),
             event_channel: Arc::new(prism_chan),
             snark_namespace,
+            celestia_config,
         })
     }
 
@@ -129,7 +132,8 @@ impl LightClientConnection {
         let celestia_config = config
             .celestia_config
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?;
+            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?
+            .clone();
 
         let node_builder = node_config
             .ok_or_else(|| anyhow::anyhow!("Node config is required for uniffi but not provided"))?
@@ -148,6 +152,7 @@ impl LightClientConnection {
             node: Arc::new(RwLock::new(node)),
             event_channel: Arc::new(prism_chan),
             snark_namespace,
+            celestia_config,
         })
     }
 
@@ -181,7 +186,7 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             Err(e) => return Err(anyhow!("Failed to fetch header: {}", e)),
         };
 
-        let config = CelestiaConfig::default();
+        let config = &self.celestia_config;
         for attempt in 0..config.fetch_max_retries {
             match node
                 .request_all_blobs(&header, self.snark_namespace, Some(config.fetch_timeout))
