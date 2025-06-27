@@ -1,4 +1,4 @@
-# Adherance to application-specific guidelines
+# Adherence to application-specific guidelines
 
 We recall at this point that we want to prove that a specified policy has been followed, which includes, among other things, that the account's current keyset is valid given the history of addition and removal operations performed on the account.
 

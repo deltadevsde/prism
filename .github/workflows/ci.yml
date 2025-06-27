@@ -107,9 +107,9 @@ jobs:
           toolchain: nightly-2025-03-06
 
       - name: Install cargo-udeps
-        uses: taiki-e/cache-cargo-install-action@v1
+        uses: taiki-e/cache-cargo-install-action@v2.1.2
         with:
-          tool: cargo-udeps@0.1
+          tool: cargo-udeps
 
       - name: Check for unused dependencies
         run: cargo +nightly-2025-03-06 udeps --all-features --all-targets
