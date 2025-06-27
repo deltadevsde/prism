@@ -1,31 +1,33 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use crate::{FinalizedEpoch, LightDataAvailabilityLayer};
-use anyhow::{anyhow, Context, Result};
+use crate::{
+    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
+    events::{EventChannel, PrismEvent},
+};
+use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
-use celestia_types::{nmt::Namespace, Blob};
-use log::{error, trace};
-use lumina_node::events::EventSubscriber;
+use celestia_types::{Blob, nmt::Namespace};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use std::{
     self,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
+        atomic::{AtomicU64, Ordering},
     },
 };
+use tracing::{error, trace};
 
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::broadcast;
 
 use crate::DataAvailabilityLayer;
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
 use celestia_types::AppVersion;
-use log::{debug, warn};
 use prism_common::transaction::Transaction;
 use prism_serde::binary::ToBinary;
 use tokio::task::spawn;
+use tracing::{debug, warn};
 
-use super::utils::{create_namespace, CelestiaConfig};
+use super::utils::{CelestiaConfig, create_namespace};
 
 pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
@@ -34,6 +36,7 @@ pub struct CelestiaConnection {
 
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
+    event_channel: Arc<EventChannel>,
 }
 
 impl CelestiaConnection {
@@ -55,6 +58,7 @@ impl CelestiaConnection {
             ))?;
 
         let (height_update_tx, _) = broadcast::channel(100);
+        let event_channel = Arc::new(EventChannel::new());
 
         Ok(CelestiaConnection {
             client,
@@ -62,34 +66,41 @@ impl CelestiaConnection {
             operation_namespace,
             height_update_tx,
             sync_target: Arc::new(AtomicU64::new(0)),
+            event_channel,
         })
     }
 }
 
 #[async_trait]
 impl LightDataAvailabilityLayer for CelestiaConnection {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Option<FinalizedEpoch>> {
+    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
 
         match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
             Ok(maybe_blobs) => match maybe_blobs {
-                Some(blobs) => blobs
-                    .into_iter()
-                    .next()
-                    .map(|blob| {
-                        FinalizedEpoch::try_from(&blob).map_err(|_| {
-                            anyhow!(GeneralError::ParsingError(format!(
-                                "marshalling blob from height {} to epoch json: {:?}",
-                                height, &blob
-                            )))
+                Some(blobs) => {
+                    let valid_epochs: Vec<VerifiableEpoch> = blobs
+                        .into_iter()
+                        .filter_map(|blob| {
+                            match FinalizedEpoch::try_from(&blob) {
+                                Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
+                                Err(e) => {
+                                    warn!(
+                                        "Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}",
+                                        height, e, &blob
+                                    );
+                                    None
+                                }
+                            }
                         })
-                    })
-                    .transpose(),
-                None => Ok(None),
+                        .collect();
+                    Ok(valid_epochs)
+                }
+                None => Ok(vec![]),
             },
             Err(err) => {
                 if err.to_string().contains("blob: not found") {
-                    Ok(None)
+                    Ok(vec![])
                 } else {
                     Err(anyhow!(DataAvailabilityError::DataRetrievalError(
                         height,
@@ -100,8 +111,8 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
         }
     }
 
-    fn event_subscriber(&self) -> Option<Arc<Mutex<EventSubscriber>>> {
-        None
+    fn event_channel(&self) -> Arc<EventChannel> {
+        self.event_channel.clone()
     }
 }
 
@@ -114,6 +125,7 @@ impl DataAvailabilityLayer for CelestiaConnection {
 
         let sync_target = self.sync_target.clone();
         let height_update_tx = self.height_update_tx.clone();
+        let event_publisher = self.event_channel.publisher();
 
         spawn(async move {
             while let Some(extended_header_result) = header_sub.next().await {
@@ -124,6 +136,8 @@ impl DataAvailabilityLayer for CelestiaConnection {
                         // todo: correct error handling
                         let _ = height_update_tx.send(height);
                         trace!("updated sync target for height {}", height);
+
+                        event_publisher.send(PrismEvent::UpdateDAHeight { height });
                     }
                     Err(e) => {
                         error!("Error retrieving header from DA layer: {}", e);
@@ -153,14 +167,20 @@ impl DataAvailabilityLayer for CelestiaConnection {
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
-        debug!("posting {}th epoch to da layer", epoch.height);
-
         let data = epoch.encode_to_bytes().map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
                 "serializing epoch {}: {}",
                 epoch.height, e
             )))
         })?;
+
+        debug!(
+            "posting {}th epoch to da layer ({} bytes)",
+            epoch.height,
+            data.len()
+        );
+
+        debug!("epoch: {:?}", epoch);
 
         let blob = Blob::new(self.snark_namespace, data, AppVersion::V3).map_err(|e| {
             DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))

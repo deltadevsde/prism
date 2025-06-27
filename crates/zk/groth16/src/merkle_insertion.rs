@@ -12,7 +12,7 @@ use indexed_merkle_tree::{
 };
 use prism_errors::PrismError;
 
-/// Represents a circuit for proving the insertion of a new leaf into a the IMT.
+/// Represents a circuit for proving the insertion of a new leaf into the IMT.
 ///
 /// This circuit encapsulates the entire process of inserting a new leaf,
 /// including proving non-membership of the new leaf, updating the existing leaf's next pointer,

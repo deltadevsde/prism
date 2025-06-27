@@ -12,7 +12,7 @@ repository.workspace = true
 # rand = { workspace = true }
 # hex = { workspace = true }
 # ff = { workspace = true }
-# log = { workspace = true }
+# tracing = { workspace = true }
 # indexed-merkle-tree = { workspace = true }
 # anyhow = { workspace = true }
 # prism-common = { workspace = true }

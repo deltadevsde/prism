@@ -1,9 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use jmt::{
-    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
     KeyHash, OwnedValue, Version,
+    storage::{LeafNode, Node, NodeBatch, NodeKey, TreeReader, TreeWriter},
 };
 use prism_common::digest::Digest;
+use prism_da::FinalizedEpoch;
 use prism_serde::{
     binary::{FromBinary, ToBinary},
     hex::{FromHex, ToHex},
@@ -20,8 +21,8 @@ use std::{
 
 use prism_errors::DatabaseError;
 
-use crate::database::{convert_to_connection_error, Database};
-use log::debug;
+use crate::database::{Database, convert_to_connection_error};
+use tracing::debug;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct RedisConfig {
@@ -71,7 +72,7 @@ impl RedisConnection {
     }
     // looks like we need lifetime annotations here, because we are returning a MutexGuard:
     // 'a is a generic lifetime and &'a Mutex<T> should make sure, that the MutexGuard is not dropped before the Mutex itself...
-    // because rust can not make sure that that's the case, we need to use the 'static lifetime here
+    // because rust can not make sure that's the case, we need to use the 'static lifetime here
     // (but i dont really know why the issue pops up now and not before, i think we were using the same/similar pattern in the other functions)
     fn lock_connection(&self) -> Result<MutexGuard<Connection>> {
         self.connection.lock().map_err(|_| anyhow!(DatabaseError::LockError))
@@ -184,18 +185,6 @@ impl Database for RedisConnection {
         })
     }
 
-    fn get_epoch(&self) -> Result<u64> {
-        let mut con = self.lock_connection()?;
-        con.get("app_state:epoch")
-            .map_err(|_| anyhow!(DatabaseError::NotFoundError("current epoch".to_string())))
-    }
-
-    fn set_epoch(&self, epoch: &u64) -> Result<()> {
-        let mut con = self.lock_connection()?;
-        con.set::<&str, &u64, ()>("app_state:epoch", epoch)
-            .map_err(|_| anyhow!(DatabaseError::WriteError(format!("epoch: {}", epoch))))
-    }
-
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()> {
         let mut con = self.lock_connection()?;
         con.set::<&String, &[u8; 32], ()>(&format!("commitments:epoch_{}", epoch), &commitment.0)
@@ -205,6 +194,70 @@ impl Database for RedisConnection {
                     epoch
                 )))
             })
+    }
+
+    fn get_epoch(&self, height: &u64) -> Result<FinalizedEpoch> {
+        let mut con = self.lock_connection()?;
+        let epoch_data: Vec<u8> = con
+            .get(format!("epochs:height_{}", height))
+            .map_err(|_| DatabaseError::NotFoundError(format!("epoch at height {}", height)))?;
+
+        FinalizedEpoch::decode_from_bytes(&epoch_data).map_err(|e| {
+            anyhow!(DatabaseError::ParsingError(format!(
+                "Failed to decode epoch at height {}: {}",
+                height, e
+            )))
+        })
+    }
+
+    fn add_epoch(&self, epoch: &FinalizedEpoch) -> Result<()> {
+        let mut con = self.lock_connection()?;
+
+        // Get the latest height to check for sequential ordering
+        let latest_height: Option<u64> = con.get("app_state:latest_epoch_height").ok();
+
+        if let Some(latest) = latest_height {
+            if latest as usize + 1 != epoch.height as usize {
+                return Err(anyhow!(DatabaseError::WriteError(format!(
+                    "epoch height mismatch: expected {}, got {}",
+                    latest + 1,
+                    epoch.height
+                ))));
+            }
+        } else if epoch.height != 0 {
+            // If there's no latest height, we expect the first epoch to have height 0
+            return Err(anyhow!(DatabaseError::WriteError(format!(
+                "first epoch must have height 0, got {}",
+                epoch.height
+            ))));
+        }
+
+        // Encode the epoch to bytes
+        let epoch_data = epoch.encode_to_bytes().map_err(|e| {
+            anyhow!(DatabaseError::ParsingError(format!(
+                "Failed to encode epoch at height {}: {}",
+                epoch.height, e
+            )))
+        })?;
+
+        // Store the epoch and update the latest height
+        let mut pipe = redis::pipe();
+        pipe.set(format!("epochs:height_{}", epoch.height), epoch_data)
+            .set("app_state:latest_epoch_height", epoch.height);
+
+        pipe.execute(&mut con);
+        Ok(())
+    }
+
+    fn get_latest_epoch_height(&self) -> Result<u64> {
+        let mut con = self.lock_connection()?;
+        con.get("app_state:latest_epoch_height")
+            .map_err(|_| DatabaseError::NotFoundError("latest epoch height".to_string()).into())
+    }
+
+    fn get_latest_epoch(&self) -> Result<FinalizedEpoch> {
+        let height = self.get_latest_epoch_height()?;
+        self.get_epoch(&height)
     }
 
     fn flush_database(&self) -> Result<()> {

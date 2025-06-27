@@ -1,11 +1,11 @@
-use anyhow::{bail, ensure, Result};
-
 use serde::{Deserialize, Serialize};
 use std::{self, fmt::Display};
 use utoipa::ToSchema;
 
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::raw_or_b64;
+
+use crate::errors::OperationError;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
 #[schema(
@@ -138,22 +138,22 @@ impl Operation {
         }
     }
 
-    pub fn validate_basic(&self) -> Result<()> {
+    pub fn validate_basic(&self) -> Result<(), OperationError> {
         match &self {
             Operation::RegisterService { id, .. } => {
                 if id.is_empty() {
-                    bail!("id must not be empty when registering service");
+                    return Err(OperationError::EmptyServiceId);
                 }
 
                 Ok(())
             }
             Operation::CreateAccount { id, service_id, .. } => {
                 if id.is_empty() {
-                    bail!("id must not be empty when creating account service");
+                    return Err(OperationError::EmptyAccountId);
                 }
 
                 if service_id.is_empty() {
-                    bail!("service_id must not be empty when creating account service");
+                    return Err(OperationError::EmptyServiceIdForAccount);
                 }
 
                 Ok(())
@@ -162,7 +162,10 @@ impl Operation {
             Operation::AddData { data, .. } | Operation::SetData { data, .. } => {
                 let data_len = data.len();
                 // TODO determine proper max data size here
-                ensure!(data_len < usize::MAX, "Incoming data size is {}", data_len);
+                const MAX_DATA_SIZE: usize = 1_000_000; // 1MB limit for now
+                if data_len >= MAX_DATA_SIZE {
+                    return Err(OperationError::DataTooLarge(data_len));
+                }
                 Ok(())
             }
         }

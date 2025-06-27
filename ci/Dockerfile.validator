@@ -2,7 +2,7 @@
 
 # A dockerfile for the celestia validator in consensus layer
 # Based on:
-# https://github.com/celestiaorg/celestia-app/blob/main/Dockerfile
+# https://github.com/celestiaorg/celestia-app/blob/main/docker/txsim/Dockerfile
 FROM docker.io/alpine:3.21.0
 
 ENV CELESTIA_HOME=/root

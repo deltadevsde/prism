@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 version = "0.1.0"
 name = "sp1-script"
-edition = "2021"
+edition = "2024"
 default-run = "sp1-script"
 
 [[bin]]

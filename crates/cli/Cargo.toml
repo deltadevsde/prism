@@ -12,17 +12,15 @@ path = "src/main.rs"
 
 [features]
 default = []
-groth16 = []
 test_utils = []
-mock_prover = []
+
 
 [dependencies]
 lumina-node = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
-log = { workspace = true }
-pretty_env_logger = { workspace = true }
+tokio-util = { workspace = true }
 clap = { workspace = true }
 config = { workspace = true }
 dotenvy = { workspace = true }
@@ -32,10 +30,13 @@ dirs = { workspace = true }
 anyhow = { workspace = true }
 prism-storage = { workspace = true }
 prism-errors = { workspace = true }
-sp1-sdk = { workspace = true }
 prism-prover = { workspace = true }
 prism-lightclient = { workspace = true }
 prism-da = { workspace = true }
 prism-keys = { workspace = true }
 prism-serde = { workspace = true }
 celestia-types = { workspace = true }
+prism-telemetry-registry = { workspace = true }
+prism-telemetry = { workspace = true }
+opentelemetry = { workspace = true }
+tracing = { workspace = true }

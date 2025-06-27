@@ -56,7 +56,7 @@ impl WorkerClient {
         response_channel
             .recv()
             .await
-            .ok_or_else(|| JsError::new("response channel shoulld  never drop"))?
+            .ok_or_else(|| JsError::new("response channel should never drop"))?
     }
 }
 

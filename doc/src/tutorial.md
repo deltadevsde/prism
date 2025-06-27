@@ -11,7 +11,7 @@ Prism services are the basis for creating new accounts in the prism protocol.
 To learn more, see [labels](./labels.md).
 
 We will cover:
-1. Starting a [local prism devnet](./architechture.md)
+1. Starting a [local prism devnet](./architecture.md)
 2. Registering a test [service](./labels.md)
 3. Creating [accounts](./datastructures.md) from your service
 4. Adding keys and data to existing accounts

@@ -1,24 +1,26 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use config::{builder::DefaultState, ConfigBuilder, File};
+use config::{ConfigBuilder, File, builder::DefaultState};
 use dirs::home_dir;
 use dotenvy::dotenv;
-use log::{error, warn};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
-use prism_prover::webserver::WebServerConfig;
+use prism_prover::{prover::DEFAULT_MAX_EPOCHLESS_GAP, webserver::WebServerConfig};
 use prism_serde::base64::FromBase64;
 use prism_storage::{
+    Database, RedisConnection,
     database::StorageBackend,
     inmemory::InMemoryDatabase,
     redis::RedisConfig,
     rocksdb::{RocksDBConfig, RocksDBConnection},
-    Database, RedisConnection,
 };
+use prism_telemetry::config::{TelemetryConfig, get_default_telemetry_config};
 use serde::{Deserialize, Serialize};
-use std::{fs, path::Path, str::FromStr, sync::Arc};
+use std::{fs, path::Path, str::FromStr, sync::Arc, time::Duration};
+use tracing::{error, info};
 
 use prism_da::{
+    DataAvailabilityLayer, LightDataAvailabilityLayer,
     celestia::{
         full_node::CelestiaConnection,
         light_client::LightClientConnection,
@@ -26,7 +28,6 @@ use prism_da::{
     },
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
-    DataAvailabilityLayer, LightDataAvailabilityLayer,
 };
 
 #[derive(Clone, Debug, Subcommand, Deserialize)]
@@ -38,10 +39,6 @@ pub enum Commands {
 
 #[derive(Args, Deserialize, Clone, Debug)]
 pub struct CommandArgs {
-    /// Log level
-    #[arg(short, long, default_value = "INFO")]
-    log_level: String,
-
     #[arg(short = 'n', long, default_value = "local")]
     network_name: Option<String>,
 
@@ -125,6 +122,9 @@ pub struct Config {
     pub keystore_path: Option<String>,
     pub da_layer: DALayerOption,
     pub db: StorageBackend,
+    pub telemetry: Option<TelemetryConfig>,
+    /// Maximum number of DA heights the prover will wait before posting a gapfiller proof
+    pub max_epochless_gap: u64,
 }
 
 impl Config {
@@ -136,6 +136,8 @@ impl Config {
             network: Network::from_str(network_name).unwrap().config(),
             da_layer: DALayerOption::default(),
             db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
+            telemetry: Some(get_default_telemetry_config()),
+            max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
         }
     }
 }
@@ -172,8 +174,6 @@ pub struct DatabaseArgs {
 
 pub fn load_config(args: CommandArgs) -> Result<Config> {
     dotenv().ok();
-    std::env::set_var("RUST_LOG", args.clone().log_level);
-    pretty_env_logger::init();
 
     let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
 
@@ -192,14 +192,14 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
         .build()
         .context("Failed to build config")?;
 
+    info!("Config file contents: {:?}", config_source);
+
     let loaded_config: Config =
         config_source.try_deserialize().context("Failed to deserialize config file")?;
 
     let final_config = apply_command_line_args(loaded_config, args);
 
-    if final_config.network.verifying_key.is_none() {
-        warn!("prover's verifying key was not provided. this is not recommended and epoch signatures will not be verified.");
-    }
+    info!("Final config: {:?}", final_config);
 
     Ok(final_config)
 }
@@ -239,26 +239,38 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
 
     let default_celestia_config = CelestiaConfig::default();
     let celestia_config = match config.da_layer {
-        DALayerOption::Celestia => Some(CelestiaConfig {
-            connection_string: args
-                .celestia
-                .celestia_client
-                .unwrap_or(default_celestia_config.connection_string),
-            start_height: args
-                .celestia
-                .celestia_start_height
-                .unwrap_or(default_celestia_config.start_height),
-            snark_namespace_id: args
-                .celestia
-                .snark_namespace_id
-                .unwrap_or(default_celestia_config.snark_namespace_id),
-            operation_namespace_id: args
-                .celestia
-                .operation_namespace_id
-                .unwrap_or(default_celestia_config.operation_namespace_id),
-            pruning_delay: default_celestia_config.pruning_delay,
-            sampling_window: default_celestia_config.sampling_window,
-        }),
+        DALayerOption::Celestia => {
+            let existing_config = config.network.celestia_config.clone().unwrap_or_default();
+
+            Some(CelestiaConfig {
+                connection_string: args
+                    .celestia
+                    .celestia_client
+                    .or(Some(existing_config.connection_string))
+                    .unwrap_or(default_celestia_config.connection_string),
+
+                start_height: args
+                    .celestia
+                    .celestia_start_height
+                    .or(Some(existing_config.start_height))
+                    .unwrap_or(default_celestia_config.start_height),
+
+                snark_namespace_id: args
+                    .celestia
+                    .snark_namespace_id
+                    .or(Some(existing_config.snark_namespace_id))
+                    .unwrap_or(default_celestia_config.snark_namespace_id),
+
+                operation_namespace_id: args
+                    .celestia
+                    .operation_namespace_id
+                    .or(Some(existing_config.operation_namespace_id))
+                    .unwrap_or(default_celestia_config.operation_namespace_id),
+
+                pruning_delay: existing_config.pruning_delay,
+                sampling_window: existing_config.sampling_window,
+            })
+        }
         DALayerOption::InMemory => None,
     };
 
@@ -283,12 +295,14 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             verifying_key: args
                 .verifying_key
                 .and_then(|x| VerifyingKey::from_base64(x).ok())
-                .or(network_config.clone().verifying_key),
+                .unwrap_or(network_config.verifying_key.clone()),
             celestia_config,
         },
         keystore_type: args.keystore_type.or(config.keystore_type),
         keystore_path: args.keystore_path.or(config.keystore_path),
         da_layer: config.da_layer,
+        telemetry: config.telemetry,
+        max_epochless_gap: config.max_epochless_gap,
     }
 }
 
@@ -335,7 +349,12 @@ pub async fn initialize_da_layer(
                             ))
                             .into());
                         }
-                        error!("Attempt {} to connect to celestia node failed: {}. Retrying in {} seconds...", attempt, e, DA_RETRY_INTERVAL.as_secs());
+                        error!(
+                            "Attempt {} to connect to celestia node failed: {}. Retrying in {} seconds...",
+                            attempt,
+                            e,
+                            DA_RETRY_INTERVAL.as_secs()
+                        );
                         tokio::time::sleep(DA_RETRY_INTERVAL).await;
                     }
                 }
@@ -343,7 +362,8 @@ pub async fn initialize_da_layer(
             unreachable!() // This line should never be reached due to the return in the last iteration
         }
         DALayerOption::InMemory => {
-            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
+            let (da_layer, _height_rx, _block_rx) =
+                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
             Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
         }
     }
@@ -354,16 +374,34 @@ pub async fn initialize_light_da_layer(
 ) -> Result<Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>> {
     match config.da_layer {
         DALayerOption::Celestia => {
-            let connection = LightClientConnection::new(&config.network)
-                .await
-                .context("Failed to initialize light client connection")?;
+            info!("Initializing light client connection...");
+            info!("Network config: {:?}", config.network);
+            let connection = match LightClientConnection::new(&config.network).await {
+                Ok(conn) => conn,
+                Err(e) => {
+                    error!("Failed to initialize light client connection: {:?}", e);
+                    error!("Network config: {:?}", config.network);
+                    if let Some(celestia_config) = &config.network.celestia_config {
+                        error!(
+                            "Celestia connection string: {}",
+                            celestia_config.connection_string
+                        );
+                        error!("Start height: {}", celestia_config.start_height);
+                    }
+                    return Err(anyhow!(
+                        "Failed to initialize light client connection: {}",
+                        e
+                    ));
+                }
+            };
             Ok(Arc::new(connection)
                 as Arc<
                     dyn LightDataAvailabilityLayer + Send + Sync + 'static,
                 >)
         }
         DALayerOption::InMemory => {
-            let (da_layer, _height_rx, _block_rx) = InMemoryDataAvailabilityLayer::new(30);
+            let (da_layer, _height_rx, _block_rx) =
+                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
             Ok(Arc::new(da_layer))
         }
     }

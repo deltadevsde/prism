@@ -5,7 +5,7 @@ use jmt::{
     storage::{TreeReader, TreeWriter},
     KeyHash,
 };
-use log::{debug, warn};
+use tracing::{debug, warn};
 use prism_errors::DatabaseError;
 use prism_serde::binary::{FromBinary, ToBinary};
 
@@ -139,7 +139,7 @@ where
                 let ServiceChallenge::Signed(service_pubkey) = service_challenge;
                 let ServiceChallengeInput::Signed(challenge_signature) = &challenge;
 
-                service_pubkey.verify_signature(&hash.to_bytes(), challenge_signature)?;
+                service_pubkey.verify_signature(hash, challenge_signature)?;
 
                 debug!("creating new account for user ID {}", id);
 

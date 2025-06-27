@@ -6,24 +6,25 @@ extern crate log;
 use anyhow::Result;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
-    celestia::{full_node::CelestiaConnection, utils::CelestiaConfig},
     DataAvailabilityLayer,
+    celestia::{
+        full_node::CelestiaConnection as FullNodeCelestiaConn,
+        light_client::LightClientConnection as LightClientCelestiaConn,
+        utils::{CelestiaConfig, NetworkConfig},
+    },
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
-use prism_lightclient::{events::EventChannel, LightClient};
+use prism_lightclient::LightClient;
 use prism_prover::Prover;
 use prism_storage::{
-    rocksdb::{RocksDBConfig, RocksDBConnection},
     Database,
+    rocksdb::{RocksDBConfig, RocksDBConnection},
 };
-use rand::{rngs::StdRng, Rng, SeedableRng};
-use sp1_sdk::{HashableKey, Prover as _, ProverClient};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::sync::Arc;
-use tokio::{spawn, time::Duration};
+use tokio::{spawn, sync::mpsc, time::Duration};
 
 use tempfile::TempDir;
-
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
 fn setup_db() -> Arc<Box<dyn Database>> {
     let temp_dir = TempDir::new().unwrap();
@@ -34,70 +35,86 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 
 #[tokio::test]
 async fn test_light_client_prover_talking() -> Result<()> {
-    std::env::set_var(
-        "RUST_LOG",
-        "DEBUG,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
-    );
-    pretty_env_logger::init();
-
-    let prover_client = ProverClient::builder().mock().build();
-
-    let (_, vk) = prover_client.setup(PRISM_ELF);
+    pretty_env_logger::formatted_builder()
+        .filter_level(log::LevelFilter::Debug)
+        .filter_module("tracing", log::LevelFilter::Off)
+        .filter_module("sp1_stark", log::LevelFilter::Info)
+        .filter_module("jmt", log::LevelFilter::Off)
+        .filter_module("p3_dft", log::LevelFilter::Off)
+        .filter_module("p3_fri", log::LevelFilter::Off)
+        .filter_module("sp1_core_executor", log::LevelFilter::Info)
+        .filter_module("sp1_recursion_program", log::LevelFilter::Info)
+        .filter_module("sp1_prover", log::LevelFilter::Info)
+        .filter_module("p3_merkle_tree", log::LevelFilter::Off)
+        .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
+        .filter_module("sp1_core_machine", log::LevelFilter::Off)
+        .init();
 
     let bridge_cfg = CelestiaConfig {
         connection_string: "ws://localhost:26658".to_string(),
         ..CelestiaConfig::default()
     };
-    let lc_cfg = CelestiaConfig {
-        connection_string: "ws://localhost:46658".to_string(),
-        ..CelestiaConfig::default()
+
+    let lc_cfg = NetworkConfig {
+        celestia_config: Some(CelestiaConfig {
+            connection_string: "ws://localhost:46658".to_string(),
+            ..CelestiaConfig::default()
+        }),
+        ..NetworkConfig::default()
     };
 
     let mut rng = StdRng::from_entropy();
     let prover_algorithm = CryptoAlgorithm::Ed25519;
     let service_algorithm = random_algorithm(&mut rng);
 
-    let bridge_da_layer = Arc::new(CelestiaConnection::new(&bridge_cfg, None).await.unwrap());
-    let lc_da_layer = Arc::new(CelestiaConnection::new(&lc_cfg, None).await.unwrap());
+    let bridge_da_layer = Arc::new(FullNodeCelestiaConn::new(&bridge_cfg, None).await.unwrap());
+    let lc_da_layer = Arc::new(LightClientCelestiaConn::new(&lc_cfg).await.unwrap());
     let db = setup_db();
     let signing_key = SigningKey::new_with_algorithm(prover_algorithm)
         .map_err(|e| anyhow::anyhow!("Failed to generate signing key: {}", e))?;
     let pubkey = signing_key.verifying_key();
 
     let prover_cfg = prism_prover::Config {
-        signing_key,
-        ..prism_prover::Config::default()
+        syncer: prism_prover::SyncerConfig {
+            verifying_key: pubkey.clone(),
+            start_height: 0,
+            max_epochless_gap: 300,
+            prover_enabled: true,
+        },
+        sequencer: prism_prover::SequencerConfig {
+            signing_key,
+            batcher_enabled: true,
+        },
+        prover_engine: prism_prover::ProverEngineConfig {
+            recursive_proofs: false,
+        },
+        webserver: prism_prover::WebServerConfig::default(),
     };
 
     let prover = Arc::new(Prover::new(
         db.clone(),
         bridge_da_layer.clone(),
         &prover_cfg,
+        tokio_util::sync::CancellationToken::new(),
     )?);
 
-    let event_channel = EventChannel::new();
+    let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
 
-    let lightclient = Arc::new(LightClient::new(
-        lc_da_layer.clone(),
-        lc_cfg.start_height,
-        Some(pubkey),
-        vk.bytes32(),
-        event_channel.publisher(),
-    ));
+    let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), pubkey));
 
     let prover_clone = prover.clone();
-    spawn(async move {
+    let _prover_handle = spawn(async move {
         debug!("starting prover");
         prover_clone.run().await.unwrap();
     });
 
     let lc_clone = lightclient.clone();
-    spawn(async move {
+    let _lc_handle = spawn(async move {
         debug!("starting light client");
         lc_clone.run().await.unwrap();
     });
 
-    spawn(async move {
+    let tx_handle = spawn(async move {
         let mut transaction_builder = TestTransactionBuilder::new();
         let register_service_req = transaction_builder
             .register_service_with_random_keys(service_algorithm, "test_service")
@@ -109,6 +126,12 @@ async fn test_light_client_prover_talking() -> Result<()> {
         let mut added_account_ids: Vec<String> = Vec::new();
 
         loop {
+            // Check if we should shut down
+            if shutdown_rx.try_recv().is_ok() {
+                debug!("Transaction generator received shutdown signal");
+                break;
+            }
+
             // Create 1 to 3 new accounts
             let num_new_accounts = rng.gen_range(1..=3);
             for _ in 0..num_new_accounts {
@@ -173,14 +196,32 @@ async fn test_light_client_prover_talking() -> Result<()> {
         }
     });
 
-    let mut rx = lc_da_layer.clone().subscribe_to_heights();
-    let initial_height = rx.recv().await.unwrap();
-    while let Ok(height) = rx.recv().await {
-        debug!("received height {}", height);
-        if height >= initial_height + 50 {
-            break;
+    // Monitor height and stop test when target height is reached
+    let height_monitor = spawn(async move {
+        let mut rx = bridge_da_layer.clone().subscribe_to_heights();
+        let initial_height = rx.recv().await.unwrap();
+        debug!("Initial height: {}", initial_height);
+        let target_height = initial_height + 50;
+
+        while let Ok(height) = rx.recv().await {
+            debug!("Received height {}", height);
+
+            if height >= target_height {
+                info!("Reached target height {}. Stopping test.", target_height);
+                let _ = shutdown_tx.send(()).await;
+                break;
+            }
         }
-    }
+    });
+
+    // Wait for height monitor to complete
+    height_monitor.await?;
+
+    // Wait for transaction generator to complete
+    tx_handle.await?;
+
+    // We could add code to gracefully shut down the prover and light client here
+    // but for test purposes, we'll just return
 
     Ok(())
 }

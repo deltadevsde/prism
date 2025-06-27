@@ -16,10 +16,12 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2025-03-06
+
+      - uses: taiki-e/install-action@nextest
 
       - name: Run non-integration tests
-        run: cargo test --lib --release --features mock_prover -- --skip test_light_client_prover_talking
+        run: SP1_PROVER=mock cargo nextest run --lib --release -- --skip test_light_client_prover_talking
 
   integration-test:
     runs-on: ubuntu-latest
@@ -29,7 +31,9 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2025-03-06
+
+      - uses: taiki-e/install-action@nextest
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -89,26 +93,51 @@ jobs:
           done
 
       - name: Run integration tests
-        run: cargo test -p prism-tests --lib --release --features mock_prover
+        run: SP1_PROVER=mock cargo nextest run -p prism-tests --lib --release
 
   unused-deps:
     runs-on: ubuntu-latest
     name: unused dependencies
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2025-03-06
 
       - name: Install cargo-udeps
-        uses: taiki-e/cache-cargo-install-action@v1
+        uses: taiki-e/cache-cargo-install-action@v2.1.2
         with:
-          tool: cargo-udeps@0.1
+          tool: cargo-udeps
 
       - name: Check for unused dependencies
-        run: cargo +nightly udeps --all-features --all-targets
+        run: cargo +nightly-2025-03-06 udeps --all-features --all-targets
+
+  coverage:
+    runs-on: ubuntu-latest
+    name: coverage
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly-2025-03-06
+          components: llvm-tools-preview
+
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: taiki-e/install-action@nextest
+
+      - name: Collect unit-test coverage data
+        run: |
+          SP1_PROVER=mock cargo llvm-cov --no-report nextest --lib --release -- --skip test_light_client_prover_talking
+          cargo llvm-cov report --release --codecov --output-path codecov.info
+
+      - name: Upload coverage data to codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: codecov.info
 
   clippy:
     runs-on: ubuntu-latest
@@ -120,7 +149,7 @@ jobs:
           sudo apt-get install -y fontconfig libfontconfig1-dev
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2025-03-06
           components: clippy
       - name: Run clippy
         run: cargo clippy --locked --all --all-targets -- -D warnings

@@ -11,6 +11,7 @@
 //! ```
 
 use clap::Parser;
+use core::panic;
 use jmt::mock::MockTreeStore;
 use plotters::prelude::*;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
@@ -20,12 +21,15 @@ use prism_tree::{
 };
 use rand::Rng;
 use sha2::{Digest, Sha256, Sha512};
-use sp1_sdk::{Prover, ProverClient, SP1Stdin};
+use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Proof, SP1Stdin};
 use std::{sync::Arc, time::Instant};
 use tokio::{self, task};
 
-/// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
-pub const PRISM_ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-elf");
+/// The ELF (executable and linkable format) files for the Succinct RISC-V zkVM.
+pub const BASE_PRISM_ELF: &[u8] =
+    include_bytes!("../../../../elf/base-riscv32im-succinct-zkvm-elf");
+pub const RECURSIVE_PRISM_ELF: &[u8] =
+    include_bytes!("../../../../elf/recursive-riscv32im-succinct-zkvm-elf");
 
 /// The arguments for the command.
 #[derive(Parser, Debug)]
@@ -178,13 +182,9 @@ fn create_benchmark_batch(
     }
 
     // Create new accounts
-    let account_keys = builder.get_account_keys().clone();
     for i in 0..config.num_new_accounts {
         let algorithm = config.algorithms[i % config.algorithms.len()];
-        let account_id = format!(
-            "account_{}",
-            hex::encode(Sha256::digest((i + account_keys.len()).to_le_bytes()))
-        );
+        let account_id = format!("account_{}", i + config.num_existing_accounts);
         let service_id = get_random_service_id(&mut rng, builder);
         let transaction = builder
             .create_account_with_random_key_signed(algorithm, &account_id, &service_id)
@@ -252,8 +252,10 @@ async fn main() {
         // Setup the prover client with CUDA support.
         let client = ProverClient::builder().cuda().build();
 
+        println!("------ PHASE 1: BASE PROOF GENERATION ------");
+
         // Setup the inputs for a single configuration for proof generation.
-        let mut stdin = SP1Stdin::new();
+        let mut stdin_base = SP1Stdin::new();
         let mut builder = TestTransactionBuilder::new();
         let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
         let config = SimulationConfig {
@@ -261,7 +263,7 @@ async fn main() {
             num_simulations: 1,
             algorithms: vec![CryptoAlgorithm::Secp256r1],
             num_existing_services: 1,
-            num_existing_accounts: 1000,
+            num_existing_accounts: 10,
             num_new_services: 1,
             num_new_accounts: 3,
             num_add_keys: 3,
@@ -269,25 +271,111 @@ async fn main() {
             num_add_data: 1,
             num_set_data: 1,
         };
+        println!("{:?}", tree.get_commitment().unwrap());
         println!("Starting to create benchmark batch");
-        let operations_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
+        let base_batch = create_benchmark_batch(&mut builder, &mut tree, &config);
+
         println!("Done creating benchmark batch");
-        stdin.write(&operations_batch);
 
-        // Setup the program for proving.
-        let (pk, vk) = client.setup(PRISM_ELF);
+        stdin_base.write(&base_batch);
 
-        // Measure the time taken to generate the proof
-        println!("Starting to generate proof");
+        // Setup the base program for proving.
+        let (base_pk, base_vk) = client.setup(BASE_PRISM_ELF);
+
+        // generate the base compressed proof
+        println!("Generating base proof");
         let start = Instant::now();
-        let proof = client.prove(&pk, &stdin).run().expect("failed to generate proof");
-        let duration = start.elapsed();
-        println!("Done generating proof in {:.2?} seconds!", duration);
+        let base_compressed_proof = client
+            .prove(&base_pk, &stdin_base)
+            .compressed()
+            .run()
+            .expect("failed to generate base proof");
 
-        // Verify the proof.
-        println!("Starting to verify proof");
-        client.verify(&proof, &vk).expect("failed to verify proof");
-        println!("Done verifying proof!");
+        // Generate the base groth16 proof
+        println!("Generating base proof");
+        let base_proof = client
+            .prove(&base_pk, &stdin_base)
+            .groth16()
+            .run()
+            .expect("failed to generate base proof");
+        let duration = start.elapsed();
+        println!("Generated base groth16 proof in {:.2?} seconds", duration);
+
+        println!("Verifying base proofs");
+        client.verify(&base_compressed_proof, &base_vk).expect("failed to verify base proof");
+        client.verify(&base_proof, &base_vk).expect("failed to verify base proof");
+        println!("Base proof verified successfully!");
+
+        println!("\n------ PHASE 2: RECURSIVE PROOF GENERATION ------");
+        let mut stdin_recursive = SP1Stdin::new();
+
+        let public_values = base_compressed_proof.public_values.clone();
+        let vkey_hash = base_vk.hash_u32();
+
+        // Write recursive inputs
+        let SP1Proof::Compressed(compressed_proof) = base_compressed_proof.proof else {
+            panic!("Expected compressed proof")
+        };
+        stdin_recursive.write_proof(*compressed_proof, base_vk.vk);
+        stdin_recursive.write_vec(public_values.to_vec());
+        stdin_recursive.write(&vkey_hash);
+
+        println!("Creating recursive batch");
+        let recursive_config = SimulationConfig {
+            tags: vec![],
+            num_simulations: 1,
+            algorithms: vec![CryptoAlgorithm::Secp256r1],
+            num_existing_services: 2,
+            num_existing_accounts: 13,
+            num_new_services: 10,
+            num_new_accounts: 10,
+            num_add_keys: 12,
+            num_revoke_key: 8,
+            num_add_data: 5,
+            num_set_data: 5,
+        };
+
+        let recursive_batch = create_benchmark_batch(&mut builder, &mut tree, &recursive_config);
+
+        if recursive_batch.prev_root != base_batch.new_root {
+            eprintln!("Error: State discontinuity between batches");
+            eprintln!("Base batch new_root: {:?}", base_batch.new_root);
+            eprintln!("Recursive batch prev_root: {:?}", recursive_batch.prev_root);
+            std::process::exit(1);
+        }
+        stdin_recursive.write(&recursive_batch);
+
+        let (recursive_pk, recursive_vk) = client.setup(RECURSIVE_PRISM_ELF);
+
+        println!("Generating compressed recursive proof");
+        let start = Instant::now();
+        let compressed_recursive_proof = client
+            .prove(&recursive_pk, &stdin_recursive)
+            .compressed()
+            .run()
+            .expect("failed to generate recursive proof");
+
+        println!(
+            "Generated compressed recursive proof in {:.2?} seconds",
+            duration
+        );
+
+        println!("Generating recursive groth16 proof");
+
+        let recursive_proof = client
+            .prove(&recursive_pk, &stdin_recursive)
+            .groth16()
+            .run()
+            .expect("failed to generate recursive proof");
+        let duration = start.elapsed();
+        println!("Generated recursive proof in {:.2?} seconds", duration);
+
+        println!("Verifying recursive proofs");
+        client
+            .verify(&compressed_recursive_proof, &recursive_vk)
+            .expect("failed to verify recursive proof");
+        client.verify(&recursive_proof, &recursive_vk).expect("failed to verify recursive proof");
+        println!("Recursive proof verified successfully!");
     }
 }
 
@@ -339,10 +427,11 @@ async fn execute_simulations(args: Args) {
                 stdin.write(&operations_batch);
 
                 // Execute the operations batch
-                let (_, report) =
-                    task::spawn_blocking(move || client.execute(PRISM_ELF, &stdin).run().unwrap())
-                        .await
-                        .unwrap();
+                let (_, report) = task::spawn_blocking(move || {
+                    client.execute(BASE_PRISM_ELF, &stdin).run().unwrap()
+                })
+                .await
+                .unwrap();
                 println!("Operations batch executed successfully.");
 
                 // Record the number of cycles executed.

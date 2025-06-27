@@ -2,10 +2,11 @@ use prism_keys::{SigningKey, VerifyingKey};
 
 use crate::{
     account::Account,
-    api::{noop::NoopPrismApi, PendingTransaction, PrismApi, PrismApiError},
+    api::{PendingTransaction, PrismApi, PrismApiError, noop::NoopPrismApi},
     digest::Digest,
+    errors::TransactionError,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
-    transaction::{Transaction, TransactionError, UnsignedTransaction},
+    transaction::{Transaction, UnsignedTransaction},
 };
 
 pub struct RequestBuilder<'a, P = NoopPrismApi> {
@@ -34,6 +35,13 @@ where
 
     pub fn to_modify_account(self, account: &Account) -> ModifyAccountRequestBuilder<'a, P> {
         ModifyAccountRequestBuilder::new(self.prism, account)
+    }
+
+    pub fn continue_transaction(
+        self,
+        unsigned_transaction: UnsignedTransaction,
+    ) -> SigningTransactionRequestBuilder<'a, P> {
+        SigningTransactionRequestBuilder::new(self.prism, unsigned_transaction)
     }
 }
 
@@ -98,7 +106,8 @@ where
             self.service_id.as_bytes(),
             &key.to_bytes(),
         ]);
-        let signature = service_signing_key.sign(hash);
+        let signature =
+            service_signing_key.sign(hash).map_err(|_| TransactionError::SigningFailed)?;
 
         let operation = Operation::CreateAccount {
             id: self.id.clone(),
@@ -359,7 +368,7 @@ where
 
     pub async fn send(
         self,
-    ) -> Result<impl PendingTransaction<Timer = P::Timer> + 'a, PrismApiError> {
+    ) -> Result<impl PendingTransaction<'a, Timer = P::Timer>, PrismApiError> {
         let Some(prism) = self.prism else {
             return Err(TransactionError::MissingSender.into());
         };

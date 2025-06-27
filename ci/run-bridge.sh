@@ -26,7 +26,7 @@ TRUSTED_PEERS_FILE="$SHARED_DIR/trusted_peers"
 wait_for_provision() {
   echo "Waiting for the validator node to start"
   while [[ ! ( -e "$GENESIS_HASH_FILE" && -e "$NODE_KEY_FILE" ) ]]; do
-    sleep 0.1
+    sleep 1
   done
 
   echo "Validator is ready"

@@ -9,4 +9,14 @@ repository.workspace = true
 [dependencies]
 prism-common = { workspace = true }
 prism-tree = { workspace = true }
-sp1-zkvm = { workspace = true }
+sp1-zkvm = { workspace = true, features = ["verify"]}
+sp1-verifier = { workspace = true }
+sha2 = { workspace = true }
+
+[[bin]]
+name = "base_prover"
+path = "src/bin/base_prover.rs"
+
+[[bin]]
+name = "recursive_prover"
+path = "src/bin/recursive_prover.rs"
