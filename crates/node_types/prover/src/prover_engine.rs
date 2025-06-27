@@ -1,4 +1,6 @@
 use anyhow::{Result, anyhow};
+#[cfg(test)]
+use prism_da::VerifiableEpoch;
 use prism_da::VerificationKeys;
 use prism_storage::database::Database;
 use prism_tree::proofs::Batch;
@@ -57,6 +59,19 @@ impl ProverEngine {
             base_vk: self.base_verifying_key.bytes32(),
             recursive_vk,
         }
+    }
+
+    #[cfg(test)]
+    /// This method is only used for testing purposes, as
+    /// VerifiableEpoch::verify cannot verify mock proofs unless they themselves
+    /// are mocked.
+    pub async fn verify_proof(&self, proof: VerifiableEpoch) -> Result<()> {
+        let proof = &proof.try_convert().unwrap().compressed_proof;
+        self.base_prover_client
+            .read()
+            .await
+            .verify(proof, &self.base_verifying_key)
+            .map_err(|e| anyhow!(e))
     }
 
     pub async fn prove_epoch(

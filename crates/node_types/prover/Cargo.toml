@@ -20,6 +20,8 @@ utoipa-axum = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
+log = { workspace = true }
+pretty_env_logger.workspace = true
 tracing = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }

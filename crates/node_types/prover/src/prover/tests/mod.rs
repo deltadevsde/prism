@@ -248,12 +248,13 @@ async fn test_restart_sync_from_scratch() {
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let mut cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     cfg.webserver.port = 0;
+    let cancellation_token = CancellationToken::new();
     let prover = Arc::new(
         Prover::new(
             db1.clone(),
             da_layer.clone(),
             &cfg,
-            CancellationToken::new(),
+            cancellation_token.clone(),
         )
         .unwrap(),
     );
@@ -275,6 +276,8 @@ async fn test_restart_sync_from_scratch() {
     }
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
+    let latest_commitment = prover.get_commitment().await.unwrap();
+    cancellation_token.cancel();
 
     let prover2 = Arc::new(
         Prover::new(
@@ -286,19 +289,23 @@ async fn test_restart_sync_from_scratch() {
         .unwrap(),
     );
     let runner = prover2.clone();
+    drop(db1);
+    drop(prover);
     spawn(async move { runner.run().await.unwrap() });
 
-    loop {
-        let epoch = prover2.get_db().get_latest_epoch_height();
-        if epoch.is_ok() && epoch.unwrap() == 3 {
-            assert_eq!(
-                prover.get_commitment().await.unwrap(),
-                prover2.get_commitment().await.unwrap()
-            );
-            break;
+    let res = tokio::time::timeout(Duration::from_secs(120), async move {
+        loop {
+            let epoch = prover2.get_db().get_latest_epoch_height();
+            if epoch.is_ok() && epoch.unwrap() == 3 {
+                assert_eq!(latest_commitment, prover2.get_commitment().await.unwrap());
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
         }
-        tokio::time::sleep(Duration::from_millis(200)).await;
-    }
+    })
+    .await;
+
+    assert!(res.is_ok());
 }
 
 #[tokio::test]
