@@ -137,6 +137,8 @@ jobs:
       - name: Upload coverage data to codecov
         uses: codecov/codecov-action@v5
         with:
+          fail_ci_if_error: true
+          use_oidc: true
           files: codecov.info
 
   clippy:
