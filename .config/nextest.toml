@@ -1,5 +1,5 @@
 [[profile.default.overrides]]
 filter = 'test(/^prover::tests::/)'
 slow-timeout = "2m"
-threads-required = "num-test-threads"
+# threads-required = "num-test-threads"
 priority = -100
