@@ -12,11 +12,11 @@ use lumina_node::{
     store::{EitherStore, InMemoryStore, StoreError},
 };
 use prism_errors::DataAvailabilityError;
-use std::{self, sync::Arc};
+use std::{self, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, trace, warn};
 
-use crate::celestia::CelestiaConfig;
+// use crate::celestia::CelestiaConfig;
 
 #[cfg(target_arch = "wasm32")]
 use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
@@ -45,7 +45,8 @@ pub struct LightClientConnection {
     pub node: Arc<RwLock<LuminaNode>>,
     pub event_channel: Arc<EventChannel>,
     pub snark_namespace: Namespace,
-    pub celestia_config: CelestiaConfig,
+    pub fetch_timeout: Duration,
+    pub fetch_max_retries: u64,
 }
 
 impl LightClientConnection {
@@ -114,7 +115,8 @@ impl LightClientConnection {
             node: Arc::new(RwLock::new(node)),
             event_channel: Arc::new(prism_chan),
             snark_namespace,
-            celestia_config,
+            fetch_timeout: celestia_config.fetch_timeout,
+            fetch_max_retries: celestia_config.fetch_max_retries,
         })
     }
 
@@ -132,8 +134,7 @@ impl LightClientConnection {
         let celestia_config = config
             .celestia_config
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?
-            .clone();
+            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?;
 
         let node_builder = node_config
             .ok_or_else(|| anyhow::anyhow!("Node config is required for uniffi but not provided"))?
@@ -152,7 +153,8 @@ impl LightClientConnection {
             node: Arc::new(RwLock::new(node)),
             event_channel: Arc::new(prism_chan),
             snark_namespace,
-            celestia_config,
+            fetch_timeout: celestia_config.fetch_timeout,
+            fetch_max_retries: celestia_config.fetch_max_retries,
         })
     }
 
@@ -186,10 +188,9 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             Err(e) => return Err(anyhow!("Failed to fetch header: {}", e)),
         };
 
-        let config = &self.celestia_config;
-        for attempt in 0..config.fetch_max_retries {
+        for attempt in 0..self.fetch_max_retries {
             match node
-                .request_all_blobs(&header, self.snark_namespace, Some(config.fetch_timeout))
+                .request_all_blobs(&header, self.snark_namespace, Some(self.fetch_timeout))
                 .await
             {
                 Ok(blobs) => {
