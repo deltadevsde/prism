@@ -226,36 +226,64 @@ impl DataAvailabilityLayer for CelestiaConnection {
             "searching for transactions on da layer at height {}",
             height
         );
-        let maybe_blobs =
-            BlobClient::blob_get_all(&self.client, height, &[self.operation_namespace])
-                .await
-                .map_err(|e| {
-                    anyhow!(DataAvailabilityError::DataRetrievalError(
-                        height,
-                        format!("getting transactions from da layer: {}", e)
-                    ))
-                })?;
 
-        let blobs = match maybe_blobs {
-            Some(blobs) => blobs,
-            None => return Ok(vec![]),
-        };
-
-        let transactions = blobs
-            .iter()
-            .filter_map(|blob| match Transaction::try_from(blob) {
-                Ok(transaction) => Some(transaction),
-                Err(e) => {
+        for attempt in 0..self.fetch_max_retries {
+            match tokio::time::timeout(
+                self.fetch_timeout,
+                BlobClient::blob_get_all(&self.client, height, &[self.operation_namespace]),
+            )
+            .await
+            {
+                Ok(blob_result) => match blob_result {
+                    Ok(maybe_blobs) => match maybe_blobs {
+                        Some(blobs) => {
+                            let transactions = blobs
+                                .iter()
+                                .filter_map(|blob| match Transaction::try_from(blob) {
+                                    Ok(transaction) => Some(transaction),
+                                    Err(e) => {
+                                        warn!(
+                                            "Failed to parse blob from height {} to transaction: {:?}",
+                                            height, e
+                                        );
+                                        None
+                                    }
+                                })
+                                .collect();
+                            return Ok(transactions);
+                        }
+                        None => return Ok(vec![]),
+                    },
+                    Err(err) => {
+                        if err.to_string().contains("blob: not found") {
+                            return Ok(vec![]);
+                        }
+                        warn!(
+                            "failed to fetch data on attempt {} with error: {}.",
+                            attempt + 1,
+                            err
+                        );
+                        if attempt == self.fetch_max_retries - 1 {
+                            return Err(anyhow!(DataAvailabilityError::DataRetrievalError(
+                                height,
+                                format!("getting epoch from da layer: {}", err)
+                            )));
+                        }
+                    }
+                },
+                Err(timeout_err) => {
                     warn!(
-                        "Failed to parse blob from height {} to transaction: {:?}",
-                        height, e
+                        "timeout on attempt {} with error: {}.",
+                        attempt + 1,
+                        timeout_err
                     );
-                    None
                 }
-            })
-            .collect();
-
-        Ok(transactions)
+            }
+        }
+        return Err(anyhow!(DataAvailabilityError::DataRetrievalError(
+            height,
+            "Max retry count exceeded".to_string()
+        )));
     }
 
     async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<u64> {
