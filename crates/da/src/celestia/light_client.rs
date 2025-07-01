@@ -12,7 +12,7 @@ use lumina_node::{
     store::{EitherStore, InMemoryStore, StoreError},
 };
 use prism_errors::DataAvailabilityError;
-use std::{self, sync::Arc};
+use std::{self, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, trace, warn};
 
@@ -43,6 +43,8 @@ pub struct LightClientConnection {
     pub node: Arc<RwLock<LuminaNode>>,
     pub event_channel: Arc<EventChannel>,
     pub snark_namespace: Namespace,
+    pub fetch_timeout: Duration,
+    pub fetch_max_retries: u64,
 }
 
 impl LightClientConnection {
@@ -88,7 +90,8 @@ impl LightClientConnection {
         let celestia_config = config
             .celestia_config
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?;
+            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?
+            .clone();
 
         let (node, event_subscriber) = NodeBuilder::new()
             .network(config.celestia_network.clone())
@@ -110,6 +113,8 @@ impl LightClientConnection {
             node: Arc::new(RwLock::new(node)),
             event_channel: Arc::new(prism_chan),
             snark_namespace,
+            fetch_timeout: celestia_config.fetch_timeout,
+            fetch_max_retries: celestia_config.fetch_max_retries,
         })
     }
 
@@ -146,6 +151,8 @@ impl LightClientConnection {
             node: Arc::new(RwLock::new(node)),
             event_channel: Arc::new(prism_chan),
             snark_namespace,
+            fetch_timeout: celestia_config.fetch_timeout,
+            fetch_max_retries: celestia_config.fetch_max_retries,
         })
     }
 
@@ -179,28 +186,38 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             Err(e) => return Err(anyhow!("Failed to fetch header: {}", e)),
         };
 
-        // TODO(Zombeescott): Implement retries + timeout
-        match node.request_all_blobs(&header, self.snark_namespace, None).await {
-            Ok(blobs) => {
-                let epochs: Vec<VerifiableEpoch> = blobs
-                    .into_iter()
-                    .filter_map(|blob| match FinalizedEpoch::try_from(&blob) {
-                        Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
-                        Err(_) => {
-                            warn!(
-                                "marshalling blob from height {} to epoch json: {:?}",
-                                height, &blob
-                            );
-                            None
-                        }
-                    })
-                    .collect();
-                Ok(epochs)
+        for attempt in 0..self.fetch_max_retries {
+            match node
+                .request_all_blobs(&header, self.snark_namespace, Some(self.fetch_timeout))
+                .await
+            {
+                Ok(blobs) => {
+                    let epochs: Vec<VerifiableEpoch> = blobs
+                        .into_iter()
+                        .filter_map(|blob| match FinalizedEpoch::try_from(&blob) {
+                            Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
+                            Err(_) => {
+                                warn!(
+                                    "marshalling blob from height {} to epoch json: {:?}",
+                                    height, &blob
+                                );
+                                None
+                            }
+                        })
+                        .collect();
+                    return Ok(epochs);
+                }
+                Err(e) => {
+                    warn!(
+                        "failed to fetch data on attempt {} with error: {}.",
+                        attempt, e
+                    );
+                }
             }
-            Err(e) => Err(anyhow!(DataAvailabilityError::DataRetrievalError(
-                height,
-                format!("getting epoch from da layer: {}", e)
-            ))),
         }
+        return Err(anyhow!(DataAvailabilityError::DataRetrievalError(
+            height,
+            "Max retry count exceeded".to_string()
+        )));
     }
 }

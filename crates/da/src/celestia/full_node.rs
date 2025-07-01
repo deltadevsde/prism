@@ -15,9 +15,8 @@ use std::{
         atomic::{AtomicU64, Ordering},
     },
 };
+use tokio::{sync::broadcast, time::Duration};
 use tracing::{error, trace};
-
-use tokio::sync::broadcast;
 
 use crate::DataAvailabilityLayer;
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
@@ -33,6 +32,8 @@ pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
     pub snark_namespace: Namespace,
     pub operation_namespace: Namespace,
+    pub fetch_timeout: Duration,
+    pub fetch_max_retries: u64,
 
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
@@ -67,7 +68,56 @@ impl CelestiaConnection {
             height_update_tx,
             sync_target: Arc::new(AtomicU64::new(0)),
             event_channel,
+            fetch_timeout: config.fetch_timeout,
+            fetch_max_retries: config.fetch_max_retries,
         })
+    }
+
+    async fn try_fetch_blobs(&self, height: u64, namespace: Namespace) -> Result<Vec<Blob>> {
+        for attempt in 0..self.fetch_max_retries {
+            match tokio::time::timeout(
+                self.fetch_timeout,
+                BlobClient::blob_get_all(&self.client, height, &[namespace]),
+            )
+            .await
+            {
+                Ok(blob_result) => match blob_result {
+                    Ok(maybe_blobs) => match maybe_blobs {
+                        Some(blobs) => {
+                            return Ok(blobs);
+                        }
+                        None => return Ok(vec![]),
+                    },
+                    Err(err) => {
+                        if err.to_string().contains("blob: not found") {
+                            return Ok(vec![]);
+                        }
+                        warn!(
+                            "failed to fetch data on attempt {} with error: {}.",
+                            attempt + 1,
+                            err
+                        );
+                        if attempt == self.fetch_max_retries - 1 {
+                            return Err(anyhow!(DataAvailabilityError::DataRetrievalError(
+                                height,
+                                format!("getting epoch from da layer: {}", err)
+                            )));
+                        }
+                    }
+                },
+                Err(timeout_err) => {
+                    warn!(
+                        "timeout on attempt {} with error: {}.",
+                        attempt + 1,
+                        timeout_err
+                    );
+                }
+            }
+        }
+        Err(anyhow!(DataAvailabilityError::DataRetrievalError(
+            height,
+            "Max retry count exceeded".to_string()
+        )))
     }
 }
 
@@ -75,40 +125,24 @@ impl CelestiaConnection {
 impl LightDataAvailabilityLayer for CelestiaConnection {
     async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
-
-        match BlobClient::blob_get_all(&self.client, height, &[self.snark_namespace]).await {
-            Ok(maybe_blobs) => match maybe_blobs {
-                Some(blobs) => {
-                    let valid_epochs: Vec<VerifiableEpoch> = blobs
-                        .into_iter()
-                        .filter_map(|blob| {
-                            match FinalizedEpoch::try_from(&blob) {
-                                Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
-                                Err(e) => {
-                                    warn!(
-                                        "Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}",
-                                        height, e, &blob
-                                    );
-                                    None
-                                }
-                            }
-                        })
-                        .collect();
-                    Ok(valid_epochs)
+        let valid_epochs: Vec<VerifiableEpoch> = self
+            .try_fetch_blobs(height, self.snark_namespace)
+            .await?
+            .into_iter()
+            .filter_map(|blob| {
+                match FinalizedEpoch::try_from(&blob) {
+                    Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
+                    Err(e) => {
+                        warn!(
+                            "Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}",
+                            height, e, &blob
+                        );
+                        None
+                    }
                 }
-                None => Ok(vec![]),
-            },
-            Err(err) => {
-                if err.to_string().contains("blob: not found") {
-                    Ok(vec![])
-                } else {
-                    Err(anyhow!(DataAvailabilityError::DataRetrievalError(
-                        height,
-                        format!("getting epoch from da layer: {}", err)
-                    )))
-                }
-            }
-        }
+            })
+            .collect();
+        Ok(valid_epochs)
     }
 
     fn event_channel(&self) -> Arc<EventChannel> {
@@ -197,22 +231,10 @@ impl DataAvailabilityLayer for CelestiaConnection {
             "searching for transactions on da layer at height {}",
             height
         );
-        let maybe_blobs =
-            BlobClient::blob_get_all(&self.client, height, &[self.operation_namespace])
-                .await
-                .map_err(|e| {
-                    anyhow!(DataAvailabilityError::DataRetrievalError(
-                        height,
-                        format!("getting transactions from da layer: {}", e)
-                    ))
-                })?;
 
-        let blobs = match maybe_blobs {
-            Some(blobs) => blobs,
-            None => return Ok(vec![]),
-        };
-
-        let transactions = blobs
+        let transactions = self
+            .try_fetch_blobs(height, self.operation_namespace)
+            .await?
             .iter()
             .filter_map(|blob| match Transaction::try_from(blob) {
                 Ok(transaction) => Some(transaction),
@@ -225,7 +247,6 @@ impl DataAvailabilityLayer for CelestiaConnection {
                 }
             })
             .collect();
-
         Ok(transactions)
     }
 
