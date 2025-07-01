@@ -123,7 +123,7 @@ impl CelestiaConnection {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for CelestiaConnection {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
+    async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
         let valid_epochs: Vec<VerifiableEpoch> = self
             .try_fetch_blobs(height, self.snark_namespace)
