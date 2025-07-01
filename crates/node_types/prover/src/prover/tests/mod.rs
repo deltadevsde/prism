@@ -248,12 +248,13 @@ async fn test_restart_sync_from_scratch() {
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let mut cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     cfg.webserver.port = 0;
+    let cancellation_token = CancellationToken::new();
     let prover = Arc::new(
         Prover::new(
             db1.clone(),
             da_layer.clone(),
             &cfg,
-            CancellationToken::new(),
+            cancellation_token.clone(),
         )
         .unwrap(),
     );
@@ -275,6 +276,8 @@ async fn test_restart_sync_from_scratch() {
     }
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
+    let latest_commitment = prover.get_commitment().await.unwrap();
+    cancellation_token.cancel();
 
     let prover2 = Arc::new(
         Prover::new(
@@ -286,19 +289,23 @@ async fn test_restart_sync_from_scratch() {
         .unwrap(),
     );
     let runner = prover2.clone();
+    drop(db1);
+    drop(prover);
     spawn(async move { runner.run().await.unwrap() });
 
-    loop {
-        let epoch = prover2.get_db().get_latest_epoch_height();
-        if epoch.is_ok() && epoch.unwrap() == 3 {
-            assert_eq!(
-                prover.get_commitment().await.unwrap(),
-                prover2.get_commitment().await.unwrap()
-            );
-            break;
+    let res = tokio::time::timeout(Duration::from_secs(120), async move {
+        loop {
+            let epoch = prover2.get_db().get_latest_epoch_height();
+            if epoch.is_ok() && epoch.unwrap() == 3 {
+                assert_eq!(latest_commitment, prover2.get_commitment().await.unwrap());
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
         }
-        tokio::time::sleep(Duration::from_millis(200)).await;
-    }
+    })
+    .await;
+
+    assert!(res.is_ok());
 }
 
 #[tokio::test]
@@ -359,7 +366,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     let mut prover_synced = false;
     let mut fullnode_synced = false;
 
-    for _ in 0..50 {
+    for _ in 0..10 {
         // 5 second timeout
         let prover_height = prover.get_db().get_last_synced_height().unwrap_or(0);
         let fullnode_height = fullnode.get_db().get_last_synced_height().unwrap_or(0);
@@ -376,7 +383,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
             break;
         }
 
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
     }
 
     assert!(
@@ -394,7 +401,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     }
 
     // Wait a bit for transactions to be processed
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_millis(150)).await;
 
     // Submit racing transactions that arrive while prover is creating proof
     for transaction in racing_transactions {
@@ -412,8 +419,9 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     assert!(epoch_found, "Prover should have created an epoch");
 
     // Wait for fullnode to sync the epoch
-    // If this test flakes, it could be because it needs a tiny bit more time here
-    tokio::time::sleep(Duration::from_millis(5000)).await;
+    while prover.get_commitment().await.unwrap() != fullnode.get_commitment().await.unwrap() {
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
 
     // Both nodes should have the same commitment despite racing transactions
     let prover_commitment = prover.get_commitment().await.unwrap();

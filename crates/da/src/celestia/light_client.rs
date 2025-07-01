@@ -22,11 +22,7 @@ use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
 use lumina_node::NodeBuilder;
 
 #[cfg(not(target_arch = "wasm32"))]
-use {
-    blockstore::EitherBlockstore,
-    redb::Database,
-    tokio::task::spawn_blocking,
-};
+use {blockstore::EitherBlockstore, redb::Database, tokio::task::spawn_blocking};
 
 #[cfg(feature = "uniffi")]
 use lumina_node_uniffi::types::NodeConfig;
@@ -183,6 +179,7 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             Err(e) => return Err(anyhow!("Failed to fetch header: {}", e)),
         };
 
+        // TODO(Zombeescott): Implement retries + timeout
         match node.request_all_blobs(&header, self.snark_namespace, None).await {
             Ok(blobs) => {
                 let epochs: Vec<VerifiableEpoch> = blobs

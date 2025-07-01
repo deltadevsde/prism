@@ -1,4 +1,4 @@
-use lumina_node::events::{NodeEvent, EventSubscriber as LuminaEventSub};
+use lumina_node::events::{EventSubscriber as LuminaEventSub, NodeEvent};
 use prism_common::digest::Digest;
 use serde::Serialize;
 use std::{fmt, sync::Arc};
@@ -14,7 +14,9 @@ const EVENT_CHANNEL_CAPACITY: usize = 1024;
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum PrismEvent {
-    SyncStarted { height: u64 },
+    Ready,
+    BackwardsSyncStarted { height: u64 },
+    BackwardsSyncCompleted { height: Option<u64> },
     UpdateDAHeight { height: u64 },
     EpochVerificationStarted { height: u64 },
     EpochVerified { height: u64 },
@@ -35,8 +37,21 @@ pub enum PrismEvent {
 impl fmt::Display for PrismEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PrismEvent::SyncStarted { height } => {
-                write!(f, "Starting sync at height {}", height)
+            PrismEvent::Ready => {
+                write!(
+                    f,
+                    "Node is ready to start sync and listening for incoming headers"
+                )
+            }
+            PrismEvent::BackwardsSyncStarted { height } => {
+                write!(f, "Starting backwards sync at height {}", height)
+            }
+            PrismEvent::BackwardsSyncCompleted { height } => {
+                write!(
+                    f,
+                    "Backwards sync complete, found epoch: {}",
+                    height.is_some()
+                )
             }
             PrismEvent::UpdateDAHeight { height } => {
                 write!(f, "Updated DA height to {}", height)

@@ -66,6 +66,7 @@ impl From<EpochCommitments> for (Digest, Digest) {
 
 /// `VerifiableStateTransition` is a trait wrapper around `FinalizedEpoch` that allows for mocking.
 /// The only concrete implementation of this trait is by `FinalizedEpoch`.
+#[automock]
 pub trait VerifiableStateTransition: Send {
     fn verify(
         &self,
@@ -92,7 +93,7 @@ pub struct FinalizedEpoch {
 
     /// Groth16 proof of the state transition.
     pub proof: Groth16Proof,
-    /// Auxillary data for WASM arch to read the public values of the proof.
+    /// Auxiliary data for WASM arch to read the public values of the proof.
     pub public_values: Vec<u8>,
 
     /// Compressed proof of the state transition, stored for cheaper recursive proving.

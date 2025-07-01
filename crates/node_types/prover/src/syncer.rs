@@ -220,14 +220,30 @@ impl Syncer {
         };
 
         let height = epoch.height();
+        let da_height = epoch.da_height();
+        let finalized_epoch = epoch.try_convert().unwrap();
 
         if height < current_epoch {
             debug!("epoch {} already processed internally", current_epoch);
             return Ok(());
         }
 
-        let commitments = epoch.verify(&self.verifying_key, &self.prover_engine.verification_keys())?;
-        let (proof_prev_commitment, proof_current_commitment) = (commitments.previous, commitments.current);
+        let commitments;
+        // See the documentation of [`ProverEngine::verify_proof`] for an explanation of this cfg enabled block.
+        #[cfg(test)]
+        {
+            commitments = epoch.commitments();
+            finalized_epoch.verify_signature(self.verifying_key.clone())?;
+            self.prover_engine.verify_proof(epoch).await?;
+        }
+        #[cfg(not(test))]
+        {
+            commitments =
+                epoch.verify(&self.verifying_key, &self.prover_engine.verification_keys())?;
+        }
+
+        let (proof_prev_commitment, proof_current_commitment) =
+            (commitments.previous, commitments.current);
 
         let prev_commitment = if height == 0 {
             self.sequencer.get_commitment().await?
@@ -255,7 +271,7 @@ impl Syncer {
 
         // Only execute transactions up to the tip DA height that the prover used
         let mut tx_buffer = self.tx_buffer.write().await;
-        let transactions_to_execute = tx_buffer.take_to_range(epoch.da_height());
+        let transactions_to_execute = tx_buffer.take_to_range(da_height);
 
         if !transactions_to_execute.is_empty() {
             self.sequencer.execute_block(transactions_to_execute).await?;
@@ -274,7 +290,7 @@ impl Syncer {
             current_epoch, new_commitment
         );
 
-        self.db.add_epoch(&epoch.try_convert()?)?;
+        self.db.add_epoch(&finalized_epoch)?;
 
         Ok(())
     }

@@ -22,7 +22,7 @@ We've made significant progress in the rollup logic:
 - Enabled direct base layer update operations for users
 - Implemented recursive snarks for near instant sync of light nodes
 
-**Next steps:** Bring in own p2p layer for light nodes to request state without relying on boostrapper
+**Next steps:** Bring in own p2p layer for light nodes to request state without relying on bootstrapper
 
 ## 3. API Development
 
