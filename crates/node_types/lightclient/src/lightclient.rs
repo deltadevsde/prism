@@ -131,7 +131,7 @@ impl LightClient {
         }
 
         // Check for a new finalized epoch at this height
-        match self.da.get_finalized_epoch(height).await {
+        match self.da.get_finalized_epochs(height).await {
             Ok(epochs) => {
                 if epochs.is_empty() {
                     info!("no data found at height {}", height);
@@ -256,7 +256,7 @@ impl LightClient {
                 return None;
             }
 
-            match self.da.get_finalized_epoch(height).await {
+            match self.da.get_finalized_epochs(height).await {
                 Ok(epochs) => {
                     if epochs.is_empty() {
                         info!("no data found at height {}", height);

@@ -14,7 +14,7 @@ use crate::LightClient;
 macro_rules! mock_da {
     ($(($height:expr, $($spec:tt),+)),* $(,)?) => {{
         let mut mock_da = MockLightDataAvailabilityLayer::new();
-        mock_da.expect_get_finalized_epoch().returning(move |height| {
+        mock_da.expect_get_finalized_epochs().returning(move |height| {
             match height {
                 $(
                     $height => {
