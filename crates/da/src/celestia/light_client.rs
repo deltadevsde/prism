@@ -16,8 +16,6 @@ use std::{self, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, trace, warn};
 
-// use crate::celestia::CelestiaConfig;
-
 #[cfg(target_arch = "wasm32")]
 use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
 
