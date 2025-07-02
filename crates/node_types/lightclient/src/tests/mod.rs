@@ -11,6 +11,23 @@ use tokio::spawn;
 
 use crate::LightClient;
 
+fn init_logger() {
+    pretty_env_logger::formatted_builder()
+        .filter_level(log::LevelFilter::Debug)
+        .filter_module("tracing", log::LevelFilter::Off)
+        .filter_module("sp1_stark", log::LevelFilter::Info)
+        .filter_module("jmt", log::LevelFilter::Off)
+        .filter_module("p3_dft", log::LevelFilter::Off)
+        .filter_module("p3_fri", log::LevelFilter::Off)
+        .filter_module("sp1_core_executor", log::LevelFilter::Info)
+        .filter_module("sp1_recursion_program", log::LevelFilter::Info)
+        .filter_module("sp1_prover", log::LevelFilter::Info)
+        .filter_module("p3_merkle_tree", log::LevelFilter::Off)
+        .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
+        .filter_module("sp1_core_machine", log::LevelFilter::Off)
+        .init();
+}
+
 macro_rules! mock_da {
     ($(($height:expr, $($spec:tt),+)),* $(,)?) => {{
         let mut mock_da = MockLightDataAvailabilityLayer::new();
@@ -90,6 +107,8 @@ where
 async fn setup(
     mut mock_da: MockLightDataAvailabilityLayer,
 ) -> (Arc<LightClient>, EventSubscriber, EventPublisher) {
+    init_logger();
+
     let chan = EventChannel::new();
     let publisher = chan.publisher();
     let arced_chan = Arc::new(chan);

@@ -9,6 +9,23 @@ use tokio_util::sync::CancellationToken;
 use prism_da::memory::InMemoryDataAvailabilityLayer;
 use prism_storage::inmemory::InMemoryDatabase;
 
+fn init_logger() {
+    pretty_env_logger::formatted_builder()
+        .filter_level(log::LevelFilter::Debug)
+        .filter_module("tracing", log::LevelFilter::Off)
+        .filter_module("sp1_stark", log::LevelFilter::Info)
+        .filter_module("jmt", log::LevelFilter::Off)
+        .filter_module("p3_dft", log::LevelFilter::Off)
+        .filter_module("p3_fri", log::LevelFilter::Off)
+        .filter_module("sp1_core_executor", log::LevelFilter::Info)
+        .filter_module("sp1_recursion_program", log::LevelFilter::Info)
+        .filter_module("sp1_prover", log::LevelFilter::Info)
+        .filter_module("p3_merkle_tree", log::LevelFilter::Off)
+        .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
+        .filter_module("sp1_core_machine", log::LevelFilter::Off)
+        .init();
+}
+
 // Helper function to create a test prover instance
 async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
     let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(500));
@@ -49,6 +66,7 @@ fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
 
 #[tokio::test]
 async fn test_posts_epoch_after_max_gap() {
+    init_logger();
     let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
 
     let prover_handle = prover.clone();
@@ -125,6 +143,7 @@ async fn test_posts_epoch_after_max_gap() {
 }
 
 async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
+    init_logger();
     let prover = create_test_prover(algorithm).await;
 
     let mut transaction_builder = TestTransactionBuilder::new();
@@ -142,6 +161,7 @@ async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
 
 #[tokio::test]
 async fn test_process_transactions() {
+    init_logger();
     let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
 
     let mut transaction_builder = TestTransactionBuilder::new();
@@ -186,6 +206,7 @@ async fn test_process_transactions() {
 
 #[tokio::test]
 async fn test_execute_block_with_invalid_tx() {
+    init_logger();
     let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
 
     let mut tx_builder = TestTransactionBuilder::new();
@@ -220,6 +241,7 @@ async fn test_execute_block_with_invalid_tx() {
 
 #[tokio::test]
 async fn test_execute_block() {
+    init_logger();
     let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
 
     let transactions = create_mock_transactions("test_service".to_string());
@@ -230,6 +252,7 @@ async fn test_execute_block() {
 
 #[tokio::test]
 async fn test_finalize_new_epoch() {
+    init_logger();
     let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
     let transactions = create_mock_transactions("test_service".to_string());
 
@@ -242,6 +265,7 @@ async fn test_finalize_new_epoch() {
 
 #[tokio::test]
 async fn test_restart_sync_from_scratch() {
+    init_logger();
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(200));
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
@@ -310,6 +334,7 @@ async fn test_restart_sync_from_scratch() {
 
 #[tokio::test]
 async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
+    init_logger();
     // Setup shared DA layer
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new_with_epoch_delay(
         Duration::from_millis(200),
@@ -443,6 +468,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
 
 #[tokio::test]
 async fn test_load_persisted_state() {
+    init_logger();
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(500));
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
