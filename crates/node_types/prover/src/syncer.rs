@@ -142,7 +142,7 @@ impl Syncer {
         };
 
         let transactions = self.da.get_transactions(height).await?;
-        let epoch_result = self.da.get_finalized_epoch(height).await?;
+        let epoch_result = self.da.get_finalized_epochs(height).await?;
 
         trace!(
             "DA query at height {}: {} transactions, epoch present: {}",

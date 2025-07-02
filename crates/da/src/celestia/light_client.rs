@@ -168,7 +168,7 @@ impl LightDataAvailabilityLayer for LightClientConnection {
         self.event_channel.clone()
     }
 
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
+    async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         trace!(
             "searching for epoch on da layer at height {} under namespace",
             height

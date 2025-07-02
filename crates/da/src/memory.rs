@@ -125,7 +125,7 @@ impl InMemoryDataAvailabilityLayer {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
-    async fn get_finalized_epoch(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
+    async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         let blocks = self.blocks.read().await;
         match blocks.get(height.saturating_sub(1) as usize) {
             Some(block) => Ok(block

@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use celestia_types::Blob;
 use mockall::automock;
 use prism_common::digest::Digest;
+use prism_errors::{CommitmentError, EpochVerificationError, SignatureError};
 use prism_keys::{Signature, SigningKey, VerifyingKey};
-use prism_errors::{EpochVerificationError, SignatureError, CommitmentError};
 use prism_serde::{
     binary::{FromBinary, ToBinary},
     hex::{FromHex, ToHex},
@@ -166,7 +166,10 @@ impl VerifiableStateTransition for FinalizedEpoch {
         )
         .map_err(|e| EpochVerificationError::ProofVerificationError(e.to_string()))?;
 
-        Ok(EpochCommitments::new(self.prev_commitment, self.current_commitment))
+        Ok(EpochCommitments::new(
+            self.prev_commitment,
+            self.current_commitment,
+        ))
     }
 }
 
@@ -240,17 +243,17 @@ impl TryFrom<&Blob> for FinalizedEpoch {
     type Error = EpochVerificationError;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        FinalizedEpoch::decode_from_bytes(&value.data)
-            .map_err(|_| EpochVerificationError::DecodingError(format!("Failed to decode blob: {value:?}")))
+        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
+            EpochVerificationError::DecodingError(format!("Failed to decode blob: {value:?}"))
+        })
     }
 }
-
 
 #[automock]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
-    async fn get_finalized_epoch(&self, height: u64) -> anyhow::Result<Vec<VerifiableEpoch>>;
+    async fn get_finalized_epochs(&self, height: u64) -> anyhow::Result<Vec<VerifiableEpoch>>;
 
     fn event_channel(&self) -> Arc<EventChannel>;
 }

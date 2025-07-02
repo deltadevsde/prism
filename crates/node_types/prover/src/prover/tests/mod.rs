@@ -67,7 +67,7 @@ async fn test_posts_epoch_after_max_gap() {
     }
 
     // Ensure no gap proof has been created
-    assert!(prover.get_da().get_finalized_epoch(0).await.unwrap().is_empty());
+    assert!(prover.get_da().get_finalized_epochs(0).await.unwrap().is_empty());
 
     // Create and submit transactions
     let test_transactions = create_mock_transactions("test_service".to_string());
@@ -88,7 +88,7 @@ async fn test_posts_epoch_after_max_gap() {
             break;
         }
     }
-    let epochs = prover.get_da().get_finalized_epoch(initial_epoch_height).await.unwrap();
+    let epochs = prover.get_da().get_finalized_epochs(initial_epoch_height).await.unwrap();
     let initial_epoch = epochs.first().unwrap();
 
     // Wait for gap length
@@ -109,7 +109,7 @@ async fn test_posts_epoch_after_max_gap() {
         }
     }
     // Verify gap proof contents
-    let epochs = prover.get_da().get_finalized_epoch(current_epoch_height).await.unwrap();
+    let epochs = prover.get_da().get_finalized_epochs(current_epoch_height).await.unwrap();
     let gap_proof = epochs.first().unwrap();
     let commitments = gap_proof.commitments();
     let current_commitment = commitments.current;
