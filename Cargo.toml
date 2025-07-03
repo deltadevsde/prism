@@ -31,6 +31,7 @@ default-members = [
   "crates/keys",
   "crates/tree",
   "crates/telemetry",
+  "crates/zk/sp1-builder",
 ]
 
 members = [
@@ -45,6 +46,7 @@ members = [
   "crates/errors",
   "crates/zk/sp1",
   "crates/zk/sp1-script",
+  "crates/zk/sp1-builder",
   "crates/storage",
   "crates/da",
   "crates/serde",
@@ -105,6 +107,7 @@ rand = "0.8.5"
 sp1-zkvm = { version = "5.0.5" }
 sp1-sdk = { version = "5.0.6" }
 sp1-verifier = { version = "5.0.5", default-features = false }
+sp1-build = { version = "5.0.5" }
 
 # curves
 ed25519 = { version = "2.2.3", features = ["pem"] }

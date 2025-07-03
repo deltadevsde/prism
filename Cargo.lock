@@ -6645,6 +6645,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "prism-sp1-builder"
+version = "0.1.0"
+dependencies = [
+ "prism-common",
+ "prism-tree",
+ "sp1-build",
+]
+
+[[package]]
 name = "prism-storage"
 version = "0.1.0"
 dependencies = [

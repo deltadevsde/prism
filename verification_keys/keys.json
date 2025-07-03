@@ -1,5 +1,1 @@
-<<<<<<< HEAD
-{"base_vk": "0x00be33b6e6e1167c7145354a852e122abdf71c72edcfa9a5e729eaa1d5a58f7f", "recursive_vk": "0x00b4a3f4d3b66b5aa086bcf04af04743bc0305500e7e99daa8dab2564a00c0be"}
-=======
-{"base_vk": "0x0020e0fafe13823c2cd1e961eaa37ab2a4758ba211c73720f0c7a33e6941921b", "recursive_vk": "0x00ae82a850ae627a9ab2d6ee7229ee591d73d467a564d46da9850bcad8f15d7b"}
->>>>>>> a4015d1 (chore(deps): upgrade sp1 and precompiles to v5)
+{"base_vk": "0x00d998f34e6da0c164a94912525b58930ca7d6419b95ed08737231a5ec6abf48", "recursive_vk": "0x00b9e11f94b9c5800d4360772812472d0279956f98a74fe4f3eacd47c96a26aa"}

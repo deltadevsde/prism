@@ -1,0 +1,13 @@
+[package]
+name = "prism-sp1-builder"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[build-dependencies]
+# Import the crates that need to be built before the ELFs are built
+prism-common = { workspace = true }
+prism-tree = { workspace = true }
+sp1-build = { workspace = true }
