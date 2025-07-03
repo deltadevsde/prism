@@ -8,6 +8,7 @@ use prism_da::{
 use prism_errors::EpochVerificationError;
 use prism_keys::SigningKey;
 use tokio::spawn;
+use tokio_util::sync::CancellationToken;
 
 use crate::LightClient;
 
@@ -117,7 +118,11 @@ async fn setup(
     let mock_da = Arc::new(mock_da);
 
     let prover_key = SigningKey::new_ed25519();
-    let lc = Arc::new(LightClient::new(mock_da, prover_key.verifying_key()));
+    let lc = Arc::new(LightClient::new(
+        mock_da,
+        prover_key.verifying_key(),
+        CancellationToken::new(),
+    ));
 
     let runner = lc.clone();
     spawn(async move {

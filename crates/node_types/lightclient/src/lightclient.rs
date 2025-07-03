@@ -8,6 +8,7 @@ use prism_keys::VerifyingKey;
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use std::{self, sync::Arc};
 use tokio::sync::RwLock;
+use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
 #[allow(unused_imports)]
@@ -40,6 +41,7 @@ pub struct LightClient {
     event_chan: Arc<EventChannel>,
     event_pub: Arc<EventPublisher>,
     sync_state: Arc<RwLock<SyncState>>,
+    cancellation_token: CancellationToken,
 
     // The latest commitment.
     latest_commitment: Arc<RwLock<Option<Digest>>>,
@@ -59,6 +61,7 @@ impl LightClient {
         #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
         prover_pubkey: VerifyingKey,
+        cancellation_token: CancellationToken,
     ) -> LightClient {
         let sp1_vkeys = load_sp1_verifying_keys().expect("Failed to load SP1 verifying keys");
 
@@ -75,6 +78,7 @@ impl LightClient {
             event_pub,
             latest_commitment: Arc::new(RwLock::new(None)),
             sync_state,
+            cancellation_token,
         }
     }
 
@@ -89,32 +93,47 @@ impl LightClient {
         self.event_pub.send(PrismEvent::Ready);
 
         let mut backwards_sync_started = false;
-        while let Ok(event_info) = event_sub.recv().await {
-            if let PrismEvent::UpdateDAHeight { height } = event_info.event {
-                info!("new height from headersub {}", height);
 
-                #[cfg(feature = "telemetry")]
-                if let Some(metrics) = get_metrics() {
-                    metrics.record_celestia_synced_height(height, vec![]);
-                    if let Some(latest_finalized_epoch) =
-                        self.sync_state.read().await.latest_finalized_epoch
-                    {
-                        metrics.record_current_epoch(latest_finalized_epoch, vec![]);
-                    }
+        loop {
+            tokio::select! {
+                info = event_sub.recv() => {
+                    match info {
+                        Ok(event_info) => {
+                            if let PrismEvent::UpdateDAHeight { height } = event_info.event {
+                                info!("new height from headersub {}", height);
+
+                                #[cfg(feature = "telemetry")]
+                                if let Some(metrics) = get_metrics() {
+                                    metrics.record_celestia_synced_height(height, vec![]);
+                                    if let Some(latest_finalized_epoch) =
+                                        self.sync_state.read().await.latest_finalized_epoch
+                                    {
+                                        metrics.record_current_epoch(latest_finalized_epoch, vec![]);
+                                    }
+                                }
+
+                                // start initial historical backward sync if not already in progress
+                                if !backwards_sync_started {
+                                    backwards_sync_started = true;
+                                    self.clone().start_backward_sync(height).await;
+                                    // continue;
+                                }
+
+                                self.clone().handle_new_header(height).await;
+                            }
+                        },
+                        Err(e) => {
+                            info!("Light Client: Gracefully stopping");
+                            return Err(e.into());
+                        }
+                    };
+                },
+                _ = self.cancellation_token.cancelled() => {
+                    info!("Light Client: Gracefully stopping");
+                    return Ok(());
                 }
-
-                // start initial historical backward sync if not already in progress
-                if !backwards_sync_started {
-                    backwards_sync_started = true;
-                    self.clone().start_backward_sync(height).await;
-                    continue;
-                }
-
-                self.clone().handle_new_header(height).await;
             }
         }
-
-        Ok(())
     }
 
     async fn handle_new_header(self: Arc<Self>, height: u64) {
@@ -157,6 +176,10 @@ impl LightClient {
     }
 
     async fn start_backward_sync(self: Arc<Self>, network_height: u64) {
+        if self.cancellation_token.is_cancelled() {
+            info!("Light Client: Gracefully stopping backward sync");
+            return;
+        }
         info!("starting historical sync");
         // Announce that sync has started
         self.event_pub.send(PrismEvent::BackwardsSyncStarted {

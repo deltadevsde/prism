@@ -13,6 +13,7 @@ use prism_da::{
 use prism_lightclient::LightClient as CoreLightClient;
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 use types::UniffiLightClientEvent;
 use uniffi::Object;
 
@@ -56,6 +57,7 @@ impl LightClient {
         let inner = Arc::new(CoreLightClient::new(
             Arc::new(da),
             network_config.verifying_key,
+            CancellationToken::new(),
         ));
 
         Ok(Self {

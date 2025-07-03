@@ -90,7 +90,11 @@ async fn main() -> std::io::Result<()> {
                 Error::other(e.to_string())
             })?;
 
-            Arc::new(LightClient::new(da, verifying_key))
+            Arc::new(LightClient::new(
+                da,
+                verifying_key,
+                CancellationToken::new(),
+            ))
         }
         Commands::Prover(_) => {
             let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
