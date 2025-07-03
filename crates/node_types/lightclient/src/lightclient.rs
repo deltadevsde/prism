@@ -113,23 +113,23 @@ impl LightClient {
                                 }
 
                                 // start initial historical backward sync if not already in progress
-                                if !backwards_sync_started {
+                                if backwards_sync_started {
+                                    self.clone().handle_new_header(height).await;
+                                } else {
                                     backwards_sync_started = true;
                                     self.clone().start_backward_sync(height).await;
                                     continue;
                                 }
-
-                                self.clone().handle_new_header(height).await;
                             }
                         },
                         Err(e) => {
-                            info!("Light Client: Gracefully stopping");
+                            info!("Light Client: Stopping after subscriber error");
                             return Err(e.into());
                         }
                     };
                 },
                 _ = self.cancellation_token.cancelled() => {
-                    info!("Light Client: Gracefully stopping");
+                    info!("Light Client: Gracefully stopping after cancellation");
                     return Ok(());
                 }
             }
@@ -176,10 +176,6 @@ impl LightClient {
     }
 
     async fn start_backward_sync(self: Arc<Self>, network_height: u64) {
-        if self.cancellation_token.is_cancelled() {
-            info!("Light Client: Gracefully stopping backward sync");
-            return;
-        }
         info!("starting historical sync");
         // Announce that sync has started
         self.event_pub.send(PrismEvent::BackwardsSyncStarted {
@@ -202,6 +198,11 @@ impl LightClient {
                 1
             };
             while current_height >= min_height {
+                if self.cancellation_token.is_cancelled() {
+                    info!("Light Client: Gracefully stopping backward sync");
+                    return;
+                }
+
                 // Look backwards for the first height with epochs
                 if let Some((da_height, epochs)) =
                     light_client.find_most_recent_epoch(current_height, min_height).await
