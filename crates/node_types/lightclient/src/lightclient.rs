@@ -7,7 +7,7 @@ use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use std::{self, sync::Arc};
-use tokio::sync::RwLock;
+use tokio::{select, sync::RwLock};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
@@ -117,8 +117,7 @@ impl LightClient {
                                     self.clone().handle_new_header(height).await;
                                 } else {
                                     backwards_sync_started = true;
-                                    self.clone().start_backward_sync(height).await;
-                                    continue;
+                                    self.clone().start_backward_sync(height, self.cancellation_token.clone()).await;
                                 }
                             }
                         },
@@ -175,7 +174,11 @@ impl LightClient {
         }
     }
 
-    async fn start_backward_sync(self: Arc<Self>, network_height: u64) {
+    async fn start_backward_sync(
+        self: Arc<Self>,
+        network_height: u64,
+        cancellation_token: CancellationToken,
+    ) {
         info!("starting historical sync");
         // Announce that sync has started
         self.event_pub.send(PrismEvent::BackwardsSyncStarted {
@@ -198,71 +201,75 @@ impl LightClient {
                 1
             };
             while current_height >= min_height {
-                if self.cancellation_token.is_cancelled() {
-                    info!("Light Client: Gracefully stopping backward sync");
-                    return;
-                }
+                tokio::select! {
+                    // Look backwards for the first height with epochs
+                    maybe_epoch = light_client.find_most_recent_epoch(current_height, min_height) => {
+                        match maybe_epoch {
+                            Some((da_height, epochs)) => {
+                                // Try to find a single valid epoch
+                                for epoch in epochs {
+                                    let epoch_height = epoch.height();
+                                    match light_client.process_epoch(epoch).await {
+                                        Ok(_) => {
+                                            info!(
+                                                "found historical finalized epoch at da height {}",
+                                                da_height
+                                            );
+                                            light_client.event_pub.send(
+                                                PrismEvent::RecursiveVerificationCompleted {
+                                                    height: da_height,
+                                                },
+                                            );
 
-                // Look backwards for the first height with epochs
-                if let Some((da_height, epochs)) =
-                    light_client.find_most_recent_epoch(current_height, min_height).await
-                {
-                    // Try to find a single valid epoch
-                    for epoch in epochs {
-                        let epoch_height = epoch.height();
-                        match light_client.process_epoch(epoch).await {
-                            Ok(_) => {
-                                info!(
-                                    "found historical finalized epoch at da height {}",
-                                    da_height
-                                );
-                                light_client.event_pub.send(
-                                    PrismEvent::RecursiveVerificationCompleted {
-                                        height: da_height,
-                                    },
-                                );
+                                            let mut state = state.write().await;
+                                            if state.latest_finalized_epoch.is_none() {
+                                                state.latest_finalized_epoch = Some(epoch_height);
+                                                state.current_height = da_height;
+                                            }
 
-                                let mut state = state.write().await;
-                                if state.latest_finalized_epoch.is_none() {
-                                    state.latest_finalized_epoch = Some(epoch_height);
-                                    state.current_height = da_height;
+                                            light_client.event_pub.send(PrismEvent::BackwardsSyncCompleted {
+                                                height: Some(da_height),
+                                            });
+
+                                            // Break out of the loop if a single epoch is processed successfully
+                                            return;
+                                        }
+                                        // This is the only branch that should trigger the
+                                        // while loop to continue, the other branches all
+                                        // return
+                                        Err(e) => {
+                                            error!("Failed to process epoch at height {}: {}", da_height, e);
+                                            light_client.event_pub.send(PrismEvent::EpochVerificationFailed {
+                                                height: da_height,
+                                                error: e.to_string(),
+                                            });
+
+                                            let mut state = state.write().await;
+                                            state.current_height = da_height;
+                                            // Keep looking backwards, as long as we haven't reached min_height
+                                            current_height = da_height - 1;
+                                        }
+                                    }
                                 }
-
-                                light_client.event_pub.send(PrismEvent::BackwardsSyncCompleted {
-                                    height: Some(da_height),
-                                });
-
-                                // Break out of the loop if a single epoch is processed successfully
+                            },
+                            None => {
+                                // This case happens when the incoming sync finds an epoch
+                                // before the backwards sync does, or we have exhausted
+                                // minimum height
+                                light_client
+                                    .event_pub
+                                    .send(PrismEvent::BackwardsSyncCompleted { height: None });
                                 return;
                             }
-                            // This is the only branch that should trigger the
-                            // while loop to continue, the other branches all
-                            // return
-                            Err(e) => {
-                                error!("Failed to process epoch at height {}: {}", da_height, e);
-                                light_client.event_pub.send(PrismEvent::EpochVerificationFailed {
-                                    height: da_height,
-                                    error: e.to_string(),
-                                });
-
-                                let mut state = state.write().await;
-                                state.current_height = da_height;
-                                // Keep looking backwards, as long as we haven't reached min_height
-                                current_height = da_height - 1;
-                            }
                         }
+                    },
+                    _ = cancellation_token.cancelled() => {
+                        info!("Light Client: Gracefully stopping backward sync");
+                        return;
                     }
-                } else {
-                    // This case happens when the incoming sync finds an epoch
-                    // before the backwards sync does, or we have exhausted
-                    // minimum height
-                    light_client
-                        .event_pub
-                        .send(PrismEvent::BackwardsSyncCompleted { height: None });
-                    return;
                 }
             }
-        })
+        });
     }
 
     async fn find_most_recent_epoch(
