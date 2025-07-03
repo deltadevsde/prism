@@ -14,6 +14,7 @@ anyhow = { workspace = true }
 bincode = { workspace = true }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
 wasm-bindgen = { workspace = true }
+wasm-bindgen-test = { workspace = true }
 js-sys = { workspace = true }
 web-sys = { workspace = true, features = [
     "BroadcastChannel",
@@ -32,5 +33,6 @@ sp1-verifier = { workspace = true }
 prism-errors = { workspace = true }
 prism-lightclient = { path = "../lightclient", default-features = false }
 prism-da = { workspace = true }
+prism-common = { workspace = true }
 serde = { workspace = true}
 serde-wasm-bindgen = { workspace = true }
