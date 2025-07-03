@@ -116,7 +116,7 @@ impl LightClient {
                                 if !backwards_sync_started {
                                     backwards_sync_started = true;
                                     self.clone().start_backward_sync(height).await;
-                                    // continue;
+                                    continue;
                                 }
 
                                 self.clone().handle_new_header(height).await;

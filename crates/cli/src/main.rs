@@ -93,7 +93,7 @@ async fn main() -> std::io::Result<()> {
             Arc::new(LightClient::new(
                 da,
                 verifying_key,
-                CancellationToken::new(),
+                cancellation_token.clone(),
             ))
         }
         Commands::Prover(_) => {
