@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use prism_common::digest::Digest;
 use prism_da::{
     MockLightDataAvailabilityLayer, MockVerifiableStateTransition, VerifiableStateTransition,
-    events::{EventChannel, EventPublisher, EventSubscriber, MockEventChannel, PrismEvent},
+    events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent},
 };
 use prism_errors::EpochVerificationError;
 use prism_keys::SigningKey;
