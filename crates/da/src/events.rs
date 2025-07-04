@@ -178,7 +178,6 @@ impl EventPublisher {
     }
 }
 
-// Used by subscribers (like the WASM layer for nwo) to receive events
 #[derive(Debug)]
 pub struct EventSubscriber {
     rx: broadcast::Receiver<EventInfo>,
