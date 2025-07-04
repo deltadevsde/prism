@@ -6,8 +6,8 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
-[package.metadata.cargo-udeps]
-ignore = ["prism-common", "prism-tree"]
+[package.metadata.cargo-udeps.ignore]
+build = ["prism-common", "prism-tree"]
 
 [build-dependencies]
 # Import the crates that need to be built before the ELFs are built
