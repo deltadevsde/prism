@@ -23,6 +23,7 @@ use prism_storage::{
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::sync::Arc;
 use tokio::{spawn, sync::mpsc, time::Duration};
+use tokio_util::sync::CancellationToken;
 
 use tempfile::TempDir;
 
@@ -100,7 +101,11 @@ async fn test_light_client_prover_talking() -> Result<()> {
 
     let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
 
-    let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), pubkey));
+    let lightclient = Arc::new(LightClient::new(
+        lc_da_layer.clone(),
+        pubkey,
+        CancellationToken::new(),
+    ));
 
     let prover_clone = prover.clone();
     let _prover_handle = spawn(async move {

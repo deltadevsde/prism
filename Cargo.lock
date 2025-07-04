@@ -7071,6 +7071,7 @@ dependencies = [
  "serde_json",
  "sp1-verifier",
  "tokio",
+ "tokio-util",
  "tracing",
  "wasm-bindgen-futures",
  "web-time",
@@ -7233,6 +7234,7 @@ dependencies = [
  "sp1-verifier",
  "thiserror 2.0.12",
  "tokio",
+ "tokio-util",
  "uniffi",
 ]
 

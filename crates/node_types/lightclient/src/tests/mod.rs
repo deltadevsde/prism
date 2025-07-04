@@ -8,6 +8,7 @@ use prism_da::{
 use prism_errors::EpochVerificationError;
 use prism_keys::SigningKey;
 use tokio::spawn;
+use tokio_util::sync::CancellationToken;
 
 use crate::LightClient;
 
@@ -117,7 +118,11 @@ async fn setup(
     let mock_da = Arc::new(mock_da);
 
     let prover_key = SigningKey::new_ed25519();
-    let lc = Arc::new(LightClient::new(mock_da, prover_key.verifying_key()));
+    let lc = Arc::new(LightClient::new(
+        mock_da,
+        prover_key.verifying_key(),
+        CancellationToken::new(),
+    ));
 
     let runner = lc.clone();
     spawn(async move {
@@ -378,4 +383,36 @@ async fn test_backwards_sync_completes() {
         false
     })
     .await;
+}
+
+#[tokio::test]
+async fn test_graceful_shutdown() {
+    init_logger();
+    let mut mock_da = mock_da![];
+
+    let chan = EventChannel::new();
+    let arced_chan = Arc::new(chan);
+    let mut sub = arced_chan.clone().subscribe();
+    mock_da.expect_event_channel().return_const(arced_chan.clone());
+
+    let mock_da = Arc::new(mock_da);
+
+    let prover_key = SigningKey::new_ed25519();
+    let ct = CancellationToken::new();
+    let lc = Arc::new(LightClient::new(
+        mock_da,
+        prover_key.verifying_key(),
+        ct.clone(),
+    ));
+
+    let handle = spawn(async move { lc.run().await });
+
+    // Wait for it to be ready syncing
+    wait_for_event(&mut sub, |event| matches!(event, PrismEvent::Ready)).await;
+
+    // Trigger cancellation
+    ct.cancel();
+
+    // Let the light node shut down
+    assert!(handle.await.unwrap().is_ok())
 }
