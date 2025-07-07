@@ -119,7 +119,7 @@ alloy-primitives = { version = "1.2.1", default-features = false, features = [
 ripemd = "0.1.3"
 
 # celestia
-celestia-rpc = "0.11.1"
+celestia-rpc = "0.11.2"
 celestia-types = "0.11.2"
 lumina-node = "0.12.0"
 
