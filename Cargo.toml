@@ -25,6 +25,7 @@ default-members = [
   "crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
+  "crates/events",
   "crates/storage",
   "crates/da",
   "crates/serde",
@@ -44,6 +45,7 @@ members = [
   "crates/node_types/uniffi-lightclient",
   "crates/common",
   "crates/errors",
+  "crates/events",
   "crates/zk/sp1",
   "crates/zk/sp1-script",
   "crates/zk/sp1-builder",
@@ -153,6 +155,7 @@ prism-tests = { path = "crates/tests" }
 prism-keys = { path = "crates/keys" }
 prism-serde = { path = "crates/serde" }
 prism-tree = { path = "crates/tree" }
+prism-events = { path = "crates/events" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 prism-telemetry-registry = { path = "crates/telemetry" }
 

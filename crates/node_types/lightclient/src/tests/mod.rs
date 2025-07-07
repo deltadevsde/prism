@@ -3,9 +3,9 @@ use std::{sync::Arc, time::Duration};
 use prism_common::digest::Digest;
 use prism_da::{
     MockLightDataAvailabilityLayer, MockVerifiableStateTransition, VerifiableStateTransition,
-    events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent},
 };
 use prism_errors::EpochVerificationError;
+use prism_events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent};
 use prism_keys::SigningKey;
 use tokio::spawn;
 use tokio_util::sync::CancellationToken;

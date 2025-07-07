@@ -1,11 +1,9 @@
 #![cfg(not(target_arch = "wasm32"))]
-use crate::{
-    DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
-    events::{EventChannel, PrismEvent},
-};
+use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::transaction::Transaction;
+use prism_events::{EventChannel, PrismEvent};
 use std::sync::Arc;
 use tokio::{
     sync::{RwLock, broadcast},

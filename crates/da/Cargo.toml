@@ -32,6 +32,7 @@ celestia-types = { workspace = true }
 prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-common = { workspace = true }
+prism-events = { workspace = true }
 libp2p = { workspace = true, features = ["serde"] }
 mockall = { workspace = true }
 

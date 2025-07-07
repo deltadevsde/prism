@@ -1,8 +1,7 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
-use prism_da::{
-    LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys, events::EventChannel,
-};
+use prism_da::{LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys};
+use prism_events::{EventChannel, EventPublisher, PrismEvent, utils::spawn_task};
 use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
@@ -14,6 +13,7 @@ use tracing::{error, info, warn};
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
 
+<<<<<<< HEAD
 use prism_da::{
     events::{EventPublisher, PrismEvent},
     utils::spawn_task,
@@ -21,6 +21,9 @@ use prism_da::{
 
 // Embed the JSON content directly in the binary at compile time because we can't read files in
 // WASM.
+=======
+// Embed the JSON content directly in the binary at compile time because we can't read files in WASM.
+>>>>>>> 6f0d040 (Added events crate)
 const EMBEDDED_KEYS_JSON: &str = include_str!("../../../../verification_keys/keys.json");
 const MAX_BACKWARD_SEARCH_DEPTH: u64 = 1000;
 

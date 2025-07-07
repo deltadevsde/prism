@@ -1,13 +1,11 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use crate::{
-    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
-    events::{EventChannel, PrismEvent},
-};
+use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
 use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_events::{EventChannel, PrismEvent};
 use std::{
     self,
     sync::{

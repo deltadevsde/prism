@@ -7,7 +7,7 @@ use tokio::sync::{Mutex, broadcast};
 use tracing::trace;
 use web_time::SystemTime;
 
-use crate::utils::spawn_task;
+pub mod utils;
 
 const EVENT_CHANNEL_CAPACITY: usize = 1024;
 
@@ -127,7 +127,7 @@ impl EventChannel {
 
     pub fn start_forwarding(&self, sub: Arc<Mutex<LuminaEventSub>>) {
         let publisher = self.publisher();
-        spawn_task(async move {
+        utils::spawn_task(async move {
             loop {
                 let event = {
                     let mut subscriber = sub.lock().await;

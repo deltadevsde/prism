@@ -5,6 +5,7 @@ use celestia_types::Blob;
 use mockall::automock;
 use prism_common::digest::Digest;
 use prism_errors::{CommitmentError, EpochVerificationError, SignatureError};
+use prism_events::EventChannel;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
     binary::{FromBinary, ToBinary},
@@ -14,16 +15,12 @@ use serde::{Deserialize, Serialize};
 
 use sp1_verifier::Groth16Verifier;
 
-use crate::events::EventChannel;
-
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
 
 pub mod celestia;
 pub mod consts;
-pub mod events;
 pub mod memory;
-pub mod utils;
 
 #[cfg(target_arch = "wasm32")]
 type Groth16Proof = Vec<u8>;

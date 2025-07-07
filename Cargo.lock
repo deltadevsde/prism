@@ -6539,6 +6539,7 @@ dependencies = [
  "mockall",
  "prism-common",
  "prism-errors",
+ "prism-events",
  "prism-keys",
  "prism-serde",
  "redb",
@@ -6561,6 +6562,20 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "thiserror 2.0.12",
+]
+
+[[package]]
+name = "prism-events"
+version = "0.1.0"
+dependencies = [
+ "lumina-node",
+ "prism-common",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tracing",
+ "web-time",
 ]
 
 [[package]]
@@ -6596,6 +6611,7 @@ dependencies = [
  "prism-common",
  "prism-da",
  "prism-errors",
+ "prism-events",
  "prism-keys",
  "prism-telemetry-registry",
  "serde",
@@ -6769,6 +6785,7 @@ dependencies = [
  "lumina-node-uniffi",
  "prism-da",
  "prism-errors",
+ "prism-events",
  "prism-keys",
  "prism-lightclient",
  "sp1-verifier",
