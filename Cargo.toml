@@ -160,10 +160,11 @@ mockall = "0.13.1"
 log = "0.4"
 lumina-node-wasm = { git = "https://github.com/deltadevsde/lumina.git" }
 wasm-bindgen = "0.2"
+wasm-bindgen-test = "0.3.50"
+wasm-bindgen-futures = "0.4"
+serde-wasm-bindgen = "0.6.5"
 js-sys = "0.3"
 web-sys = "0.3"
-serde-wasm-bindgen = "0.6.5"
-wasm-bindgen-futures = "0.4"
 web-time = "1.1.0"
 
 # telemetry
