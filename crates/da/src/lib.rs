@@ -148,7 +148,7 @@ impl VerifiableStateTransition for FinalizedEpoch {
         self.verify_commitments()?;
 
         #[cfg(target_arch = "wasm32")]
-        let finalized_epoch_proof = self.proof;
+        let finalized_epoch_proof = &self.proof;
 
         #[cfg(not(target_arch = "wasm32"))]
         let finalized_epoch_proof = self.proof.bytes();
