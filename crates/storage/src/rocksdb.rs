@@ -164,10 +164,17 @@ impl Database for RocksDBConnection {
     }
 }
 
+fn create_key(prefix: &str, node_key: impl AsRef<[u8]>) -> Result<Vec<u8>> {
+    let mut key = Vec::with_capacity(prefix.len() + node_key.as_ref().len());
+    key.extend_from_slice(prefix.as_bytes());
+    key.extend_from_slice(node_key.as_ref());
+    Ok(key)
+}
+
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        let key = format!("{KEY_PREFIX_NODE}{}", node_key.encode_to_bytes()?.to_hex());
-        let value = self.connection.get(key.as_bytes())?;
+        let key = create_key(KEY_PREFIX_NODE, &node_key.encode_to_bytes()?)?;
+        let value = self.connection.get(key)?;
 
         match value {
             Some(data) => Ok(Some(Node::decode_from_bytes(&data)?)),
@@ -181,8 +188,10 @@ impl TreeReader for RocksDBConnection {
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
         let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
+        // let value_key = create_key(KEY_PREFIX_VALUE_HISTORY, key_hash.0)?;
         let max_version_bytes = max_version.to_be_bytes();
         let max_key = format!("{}:{}", value_key, max_version_bytes.to_hex());
+        // let max_key = create_key(&value_key, max_version_bytes)?;
 
         let mut iter = self.connection.iterator(rocksdb::IteratorMode::From(
             max_key.as_bytes(),
@@ -191,7 +200,7 @@ impl TreeReader for RocksDBConnection {
 
         if let Some(Ok((key, value))) = iter.next() {
             if key.starts_with(value_key.as_bytes()) {
-                return OwnedValue::decode_from_bytes(&value).map(Some).map_err(|e| e.into());
+                return Ok(Some(OwnedValue::decode_from_bytes(&value)?));
             }
         }
 
@@ -222,9 +231,9 @@ impl TreeWriter for RocksDBConnection {
         let mut batch = rocksdb::WriteBatch::default();
 
         for (node_key, node) in node_batch.nodes() {
-            let key = format!("{KEY_PREFIX_NODE}{}", node_key.encode_to_bytes()?.to_hex());
+            let key = create_key(KEY_PREFIX_NODE, node_key.encode_to_bytes()?)?;
             let value = node.encode_to_bytes()?;
-            batch.put(key.as_bytes(), &value);
+            batch.put(key, &value);
         }
 
         for ((version, key_hash), value) in node_batch.values() {
