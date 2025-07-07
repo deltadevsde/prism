@@ -174,6 +174,48 @@ impl LightClient {
         }
     }
 
+    async fn verify_epoch(self: Arc<Self>, da_height: u64, epoch: VerifiableEpoch) -> Result<()> {
+        let epoch_height = epoch.height();
+        match self.process_epoch(epoch).await {
+            Ok(_) => {
+                info!(
+                    "found historical finalized epoch at da height {}",
+                    da_height
+                );
+                self.event_pub
+                    .send(PrismEvent::RecursiveVerificationCompleted { height: da_height });
+
+                let mut state = self.sync_state.write().await;
+                if state.latest_finalized_epoch.is_none() {
+                    state.latest_finalized_epoch = Some(epoch_height);
+                    state.current_height = da_height;
+                }
+
+                self.event_pub.send(PrismEvent::BackwardsSyncCompleted {
+                    height: Some(da_height),
+                });
+
+                // Stop searching if a single epoch is processed successfully
+                Ok(())
+            }
+            // This is the only branch that should trigger the
+            // while loop to continue, the other branches all
+            // return
+            Err(e) => {
+                error!("Failed to process epoch at height {}: {}", da_height, e);
+                self.event_pub.send(PrismEvent::EpochVerificationFailed {
+                    height: da_height,
+                    error: e.to_string(),
+                });
+
+                let mut state = self.sync_state.write().await;
+                state.current_height = da_height;
+
+                Err(e)
+            }
+        }
+    }
+
     async fn start_backward_sync(
         self: Arc<Self>,
         network_height: u64,
@@ -191,7 +233,6 @@ impl LightClient {
         // Start a task to find a finalized epoch by searching backward
         let light_client = Arc::clone(&self);
 
-        let state = self.sync_state.clone();
         spawn_task(async move {
             // Find the most recent valid epoch by searching backward
             let mut current_height = network_height;
@@ -208,47 +249,9 @@ impl LightClient {
                             Some((da_height, epochs)) => {
                                 // Try to find a single valid epoch
                                 for epoch in epochs {
-                                    let epoch_height = epoch.height();
-                                    match light_client.process_epoch(epoch).await {
-                                        Ok(_) => {
-                                            info!(
-                                                "found historical finalized epoch at da height {}",
-                                                da_height
-                                            );
-                                            light_client.event_pub.send(
-                                                PrismEvent::RecursiveVerificationCompleted {
-                                                    height: da_height,
-                                                },
-                                            );
-
-                                            let mut state = state.write().await;
-                                            if state.latest_finalized_epoch.is_none() {
-                                                state.latest_finalized_epoch = Some(epoch_height);
-                                                state.current_height = da_height;
-                                            }
-
-                                            light_client.event_pub.send(PrismEvent::BackwardsSyncCompleted {
-                                                height: Some(da_height),
-                                            });
-
-                                            // Break out of the loop if a single epoch is processed successfully
-                                            return;
-                                        }
-                                        // This is the only branch that should trigger the
-                                        // while loop to continue, the other branches all
-                                        // return
-                                        Err(e) => {
-                                            error!("Failed to process epoch at height {}: {}", da_height, e);
-                                            light_client.event_pub.send(PrismEvent::EpochVerificationFailed {
-                                                height: da_height,
-                                                error: e.to_string(),
-                                            });
-
-                                            let mut state = state.write().await;
-                                            state.current_height = da_height;
-                                            // Keep looking backwards, as long as we haven't reached min_height
-                                            current_height = da_height - 1;
-                                        }
+                                    if light_client.clone().verify_epoch(da_height, epoch).await.is_err() {
+                                        // Keep looking backwards, as long as we haven't reached min_height
+                                        current_height = da_height - 1;
                                     }
                                 }
                             },
