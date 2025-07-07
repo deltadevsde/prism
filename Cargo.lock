@@ -6575,7 +6575,10 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "tracing",
+<<<<<<< HEAD
  "wasm-bindgen-futures",
+=======
+>>>>>>> cc7ad7f (Added events crate)
  "web-time",
 ]
 
