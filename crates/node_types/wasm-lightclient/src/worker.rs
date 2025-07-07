@@ -125,7 +125,7 @@ impl LightClientWorker {
     }
 }
 
-// for testing purposes only
+#[cfg(test)]
 impl LightClientWorker {
     pub async fn new_with_da(
         port_value: JsValue,
