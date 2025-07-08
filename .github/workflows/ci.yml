@@ -6,6 +6,7 @@ on:
   pull_request:
     branches:
       - "**"
+  workflow_dispatch:
 
 jobs:
   unit-test:
@@ -138,6 +139,21 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           files: codecov.info
+
+  wasm-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly-2025-03-06
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | s
+      - name: Run wasm-pack tests
+        working-directory: crates/node_types/wasm-lightclient
+        run: wasm-pack test --headless --chrome .
 
   clippy:
     runs-on: ubuntu-latest
