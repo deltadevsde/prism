@@ -150,7 +150,9 @@ jobs:
       - name: Add wasm target
         run: rustup target add wasm32-unknown-unknown
       - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | s
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: "latest"
       - name: Run wasm-pack tests
         working-directory: crates/node_types/wasm-lightclient
         run: wasm-pack test --headless --chrome .
