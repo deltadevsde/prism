@@ -3,6 +3,7 @@ use prism_common::digest::Digest;
 use serde::Serialize;
 use std::{fmt, sync::Arc};
 use tokio::sync::{Mutex, broadcast};
+#[cfg(not(target_arch = "wasm32"))]
 use tracing::trace;
 use web_time::SystemTime;
 
