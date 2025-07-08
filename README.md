@@ -11,7 +11,10 @@
 ![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-0097FF.svg)
 [![GitHub Issues](https://img.shields.io/github/issues-raw/deltadevsde/transparency-dictionary?color=0097FF)](https://github.com/deltadevsde/transparency-dictionary/issues)
 ![Contributions welcome](https://img.shields.io/badge/contributions-welcome-0097FF.svg)
-[![License](https://img.shields.io/badge/license-MIT-0097FF.svg)](https://opensource.org/licenses/MIT)
+[![Telegram Chat][tg-badge]][tg-url]
+
+[tg-url]: https://t.me/+UufFgWsJR3tjOTkx
+[tg-badge]: https://img.shields.io/endpoint?color=neon&logo=telegram&label=chat&url=https%3A%2F%2Ftg.sumanjay.workers.dev%2Fprism%5Fdev
 
 **identity layer enabling automatic verification of end-to-end encrypted services, providing users with trust-minimized security and privacy through transparent key management.**
 
@@ -94,3 +97,14 @@ You can then interact with Prism via the interfaces defined in [webserver.rs](ht
 ## Contributions
 
 Contributions are welcome! Please refer to our [contributing guidelines](CONTRIBUTING.md) for information on how to submit pull requests, report issues, and contribute to the codebase.
+
+## Security
+
+See [`SECURITY.md`](./SECURITY.md).
+
+## License
+
+This project is dual-licensed:
+
+- **AGPL-3.0** for non-commercial use (see [LICENSE](LICENSE))
+- **Commercial license** available for commercial
