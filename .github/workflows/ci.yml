@@ -155,7 +155,7 @@ jobs:
           version: "latest"
       - name: Run wasm-pack tests
         working-directory: crates/node_types/wasm-lightclient
-        run: wasm-pack test --headless --chrome .
+        run: wasm-pack test --headless --chrome --release .
 
   clippy:
     runs-on: ubuntu-latest
