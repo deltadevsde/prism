@@ -13,18 +13,21 @@ crate-type = ["cdylib", "rlib"]
 anyhow = { workspace = true }
 bincode = { workspace = true }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
+futures = { workspace = true }
 wasm-bindgen = { workspace = true }
+wasm-bindgen-test = { workspace = true }
 js-sys = { workspace = true }
 web-sys = { workspace = true, features = [
-    "BroadcastChannel",
-    "console",
-    "MessageChannel",
-    "MessageEvent",
-    "MessagePort",
-    "Worker",
+  "BroadcastChannel",
+  "console",
+  "MessageChannel",
+  "MessageEvent",
+  "MessagePort",
+  "Worker",
 ] }
 wasm-bindgen-futures = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
+tokio-util = { workspace = true }
 libp2p = { workspace = true, features = ["serde"] }
 hex = { workspace = true }
 thiserror = { workspace = true }
@@ -32,5 +35,6 @@ sp1-verifier = { workspace = true }
 prism-errors = { workspace = true }
 prism-lightclient = { path = "../lightclient", default-features = false }
 prism-da = { workspace = true }
-serde = { workspace = true}
+prism-common = { workspace = true }
+serde = { workspace = true }
 serde-wasm-bindgen = { workspace = true }

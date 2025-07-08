@@ -141,6 +141,23 @@ jobs:
           use_oidc: true
           files: codecov.info
 
+  wasm-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly-2025-03-06
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: "latest"
+      - name: Run wasm-pack tests
+        working-directory: crates/node_types/wasm-lightclient
+        run: wasm-pack test --headless --chrome --release .
+
   clippy:
     runs-on: ubuntu-latest
     steps:

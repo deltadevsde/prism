@@ -100,12 +100,9 @@ async fn test_light_client_prover_talking() -> Result<()> {
     )?);
 
     let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
+    let ct = CancellationToken::new();
 
-    let lightclient = Arc::new(LightClient::new(
-        lc_da_layer.clone(),
-        pubkey,
-        CancellationToken::new(),
-    ));
+    let lightclient = Arc::new(LightClient::new(lc_da_layer.clone(), pubkey, ct));
 
     let prover_clone = prover.clone();
     let _prover_handle = spawn(async move {
