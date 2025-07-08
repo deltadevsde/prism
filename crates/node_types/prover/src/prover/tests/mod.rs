@@ -231,7 +231,8 @@ async fn test_execute_block_with_invalid_tx() {
         // revoke new key again
         tx_builder.revoke_key_verified_with_root("account_id", new_key_vk).commit(),
         // and adding in same block.
-        // both of these transactions are valid individually, but when processed together it will fail.
+        // both of these transactions are valid individually, but when processed together it will
+        // fail.
         tx_builder.add_random_key(CryptoAlgorithm::Secp256k1, "account_id", &new_key_1).build(),
     ];
 
@@ -433,7 +434,8 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
         da_layer.submit_transactions(vec![transaction.clone()]).await.unwrap();
     }
 
-    // Wait for the prover to create and publish an epoch (this should happen with the racing transactions buffered)
+    // Wait for the prover to create and publish an epoch (this should happen with the racing
+    // transactions buffered)
     let mut epoch_found = false;
     while let Ok(new_block) = brx.recv().await {
         if !new_block.epochs.is_empty() {

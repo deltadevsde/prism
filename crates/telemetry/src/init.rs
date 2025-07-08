@@ -3,21 +3,26 @@ use std::io::Error;
 use crate::metrics_registry::init_metrics_registry;
 
 use opentelemetry::global::{self};
-use opentelemetry_sdk::logs::SdkLoggerProvider;
-use opentelemetry_sdk::metrics::SdkMeterProvider;
-use prism_telemetry::telemetry::{init_telemetry, build_resource, set_global_attributes};
-use prism_telemetry::logs::setup_log_subscriber;
-use prism_telemetry::config::TelemetryConfig;
+use opentelemetry_sdk::{logs::SdkLoggerProvider, metrics::SdkMeterProvider};
+use prism_telemetry::{
+    config::TelemetryConfig,
+    logs::setup_log_subscriber,
+    telemetry::{build_resource, init_telemetry, set_global_attributes},
+};
 
 /// Initializes the telemetry system with metrics and logging providers.
 ///
-/// Merges the provided attributes with global labels from the telemetry configuration, sets them as global attributes, and builds a resource descriptor. Initializes telemetry using the configuration and resource, sets up the global meter provider and metrics registry if available, and configures the log subscriber if a logger provider is present.
+/// Merges the provided attributes with global labels from the telemetry configuration, sets them as
+/// global attributes, and builds a resource descriptor. Initializes telemetry using the
+/// configuration and resource, sets up the global meter provider and metrics registry if available,
+/// and configures the log subscriber if a logger provider is present.
 ///
 /// # Parameters
 /// - `attributes`: Initial global attribute key-value pairs to be merged with configuration labels.
 ///
 /// # Returns
-/// A tuple containing optional meter and logger providers on success, or an I/O error if initialization fails.
+/// A tuple containing optional meter and logger providers on success, or an I/O error if
+/// initialization fails.
 ///
 /// # Examples
 ///
@@ -27,7 +32,10 @@ use prism_telemetry::config::TelemetryConfig;
 /// let result = init(config, attrs);
 /// assert!(result.is_ok());
 /// ```
-pub fn init(telemetry_config: TelemetryConfig, attributes: Vec<(String, String)>) -> Result<(Option<SdkMeterProvider>, Option<SdkLoggerProvider>), Error> {
+pub fn init(
+    telemetry_config: TelemetryConfig,
+    attributes: Vec<(String, String)>,
+) -> Result<(Option<SdkMeterProvider>, Option<SdkLoggerProvider>), Error> {
     // Initialize the telemetry system
 
     let mut attributes = attributes.clone();
@@ -38,13 +46,10 @@ pub fn init(telemetry_config: TelemetryConfig, attributes: Vec<(String, String)>
     let resource = build_resource("prism".to_string(), attributes);
 
     let (meter_provider, log_provider) = init_telemetry(&telemetry_config, resource)
-    .map_err(|e| Error::other(format!("Failed to initialize telemetry: {}", e)))?;
+        .map_err(|e| Error::other(format!("Failed to initialize telemetry: {}", e)))?;
 
     // Initialize tracing subscriber, fallback to stdout/stderr if no log provider
-    setup_log_subscriber(
-      telemetry_config.logs.enabled,
-      log_provider.as_ref(),
-    );
+    setup_log_subscriber(telemetry_config.logs.enabled, log_provider.as_ref());
 
     if let Some(ref provider) = meter_provider {
         global::set_meter_provider(provider.clone());

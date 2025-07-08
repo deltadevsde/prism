@@ -12,7 +12,8 @@ pub enum AccountResponse {
     /// When an account was found, provides the value and its corresponding membership-proof
     Found(Box<Account>, MerkleProof),
 
-    /// When no account was found for a specific key, provides the corresponding non-membership-proof
+    /// When no account was found for a specific key, provides the corresponding
+    /// non-membership-proof
     NotFound(MerkleProof),
 }
 

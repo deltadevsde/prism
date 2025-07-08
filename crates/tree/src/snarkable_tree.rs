@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 use jmt::{
-    storage::{TreeReader, TreeWriter},
     KeyHash,
+    storage::{TreeReader, TreeWriter},
 };
-use tracing::{debug, warn};
 use prism_errors::DatabaseError;
 use prism_serde::binary::{FromBinary, ToBinary};
+use tracing::{debug, warn};
 
 use prism_common::{
     account::Account,
@@ -17,16 +17,17 @@ use prism_common::{
 };
 
 use crate::{
+    AccountResponse::{self, *},
     hasher::TreeHasher,
     key_directory_tree::KeyDirectoryTree,
     proofs::{Batch, InsertProof, MerkleProof, Proof, ServiceProof, UpdateProof},
-    AccountResponse::{self, *},
 };
 
 /// Represents a tree that can be used to verifiably store and retrieve [`Account`]s.
 ///
-/// The methods of this trait are NOT run in circuit: they are used to create verifiable inputs for the circuit.
-/// This distinction is critical because the returned proofs must contain all information necessary to verify the operations.
+/// The methods of this trait are NOT run in circuit: they are used to create verifiable inputs for
+/// the circuit. This distinction is critical because the returned proofs must contain all
+/// information necessary to verify the operations.
 pub trait SnarkableTree: Send + Sync {
     fn process_batch(&mut self, transactions: Vec<Transaction>) -> Result<Batch>;
     fn process_transaction(&mut self, transaction: Transaction) -> Result<Proof>;

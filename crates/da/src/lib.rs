@@ -79,7 +79,8 @@ pub trait VerifiableStateTransition: Send {
     fn try_convert(&self) -> Result<FinalizedEpoch, EpochVerificationError>;
 }
 
-// FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
+// FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to
+// the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FinalizedEpoch {
     /// The epoch height.

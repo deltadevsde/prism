@@ -26,7 +26,10 @@ pub const SIGNING_KEY_ID: &str = "prism";
 #[tokio::main()]
 /// Initializes and runs the appropriate prism node type based on CLI arguments.
 ///
-/// Parses command-line arguments, loads configuration, sets up telemetry, initializes key management and data availability layers, and starts the selected node type (`LightClient`, `Prover`, or `FullNode`). Handles errors during setup and ensures telemetry is properly shut down after execution.
+/// Parses command-line arguments, loads configuration, sets up telemetry, initializes key
+/// management and data availability layers, and starts the selected node type (`LightClient`,
+/// `Prover`, or `FullNode`). Handles errors during setup and ensures telemetry is properly shut
+/// down after execution.
 async fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
     let args = match cli.clone().command {

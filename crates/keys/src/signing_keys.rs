@@ -22,7 +22,9 @@ use crate::{
     payload::CryptoPayload,
 };
 
-// We have to decide for now if we want to have conditional compilation here or in prism_common etc. because they're relying on SigningKey, thats why we can't comment the whole file out for wasm in the current setup
+// We have to decide for now if we want to have conditional compilation here or in prism_common etc.
+// because they're relying on SigningKey, thats why we can't comment the whole file out for wasm in
+// the current setup
 #[cfg(target_arch = "wasm32")]
 fn get_rng() -> impl rand::RngCore + rand::CryptoRng {
     use rand::SeedableRng;

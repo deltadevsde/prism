@@ -43,7 +43,8 @@ pub struct CommandArgs {
     network_name: Option<String>,
 
     #[arg(long)]
-    /// Prover's verifying key, used to verify epoch signatures. Expected to be a base64-encoded string.
+    /// Prover's verifying key, used to verify epoch signatures. Expected to be a base64-encoded
+    /// string.
     verifying_key: Option<String>,
 
     #[arg(long)]

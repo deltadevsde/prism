@@ -1,7 +1,7 @@
 //! Native library providing Rust to mobile language bindings for the Prism Lightclient.
 //!
-//! This crate uses Mozilla's UniFFI to generate Swift and Kotlin bindings for the Prism lightclient,
-//! allowing it to be used from iOS and Android applications.
+//! This crate uses Mozilla's UniFFI to generate Swift and Kotlin bindings for the Prism
+//! lightclient, allowing it to be used from iOS and Android applications.
 mod error;
 mod types;
 

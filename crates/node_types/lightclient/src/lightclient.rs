@@ -19,7 +19,8 @@ use prism_da::{
     utils::spawn_task,
 };
 
-// Embed the JSON content directly in the binary at compile time because we can't read files in WASM.
+// Embed the JSON content directly in the binary at compile time because we can't read files in
+// WASM.
 const EMBEDDED_KEYS_JSON: &str = include_str!("../../../../verification_keys/keys.json");
 const MAX_BACKWARD_SEARCH_DEPTH: u64 = 1000;
 
@@ -35,7 +36,8 @@ pub struct LightClient {
     pub da: Arc<dyn LightDataAvailabilityLayer>,
     /// The public key of the prover, used for verifying the signature of the epochs.
     pub prover_pubkey: VerifyingKey,
-    /// The verification key for both (base and recursive) SP1 programs, generated within the build process (with just build).
+    /// The verification key for both (base and recursive) SP1 programs, generated within the build
+    /// process (with just build).
     pub sp1_vkeys: VerificationKeys,
     /// The event channel, used to spawn new subscribers and publishers.
     event_chan: Arc<EventChannel>,

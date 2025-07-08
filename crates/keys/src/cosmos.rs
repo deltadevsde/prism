@@ -63,7 +63,8 @@ impl CosmosSignDoc {
 /// serializes it according to ADR-36 requirements, and returns its SHA256 hash.
 ///
 /// # Arguments
-/// * `message` - The message to be hashed, which can be any type that can be referenced as a byte slice
+/// * `message` - The message to be hashed, which can be any type that can be referenced as a byte
+///   slice
 /// * `verifying_key` - The Secp256k1 verifying key associated with the signer
 ///
 /// # Returns
