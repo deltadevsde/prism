@@ -6,11 +6,9 @@ use crate::{
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
-use lumina_node::{
-    Node, NodeError,
-    blockstore::InMemoryBlockstore,
-    store::{EitherStore, InMemoryStore, StoreError},
-};
+#[cfg(not(target_arch = "wasm32"))]
+use lumina_node::store::{EitherStore, InMemoryStore};
+use lumina_node::{Node, NodeError, blockstore::InMemoryBlockstore, store::StoreError};
 use prism_errors::DataAvailabilityError;
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
