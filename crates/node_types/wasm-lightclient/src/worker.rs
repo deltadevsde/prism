@@ -5,6 +5,7 @@ use prism_da::{
 };
 use prism_lightclient::LightClient;
 use std::{str::FromStr, sync::Arc};
+use tokio_util::sync::CancellationToken;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{BroadcastChannel, MessagePort, console};
 
@@ -76,7 +77,8 @@ impl LightClientWorker {
 
         let verifying_key = network_config.verifying_key;
 
-        let light_client = Arc::new(LightClient::new(da, verifying_key));
+        let ct = CancellationToken::new();
+        let light_client = Arc::new(LightClient::new(da, verifying_key, ct));
 
         Ok(Self {
             server,
@@ -148,7 +150,8 @@ impl LightClientWorker {
             .map_err(|e| JsError::new(&format!("Invalid network: {}", e)))?;
         let verifying_key = network.config().verifying_key;
 
-        let light_client = Arc::new(LightClient::new(da, verifying_key));
+        let ct = CancellationToken::new();
+        let light_client = Arc::new(LightClient::new(da, verifying_key, ct));
 
         Ok(Self {
             server,

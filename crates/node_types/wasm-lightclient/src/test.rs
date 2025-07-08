@@ -10,7 +10,6 @@ mod tests {
     };
     use prism_errors::EpochVerificationError;
     use std::sync::{Arc, Mutex};
-    use tokio_util::sync::CancellationToken;
     use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
     use wasm_bindgen_futures::{JsFuture, spawn_local};
     use wasm_bindgen_test::*;
@@ -21,10 +20,10 @@ mod tests {
     struct TestSetup {
         event_channel: Arc<EventChannel>,
         client: WasmLightClient,
-        cancellation_token: CancellationToken,
     }
 
-    // helper functions: create message port like object, delay, and events similar to Ryans approach
+    // helper functions: create message port like object, delay, and events similar to Ryans
+    // approach
     fn create_mock_port() -> MessageChannel {
         MessageChannel::new().unwrap()
     }
@@ -42,7 +41,6 @@ mod tests {
 
     async fn setup_worker_and_client(mock_da: MockLightDataAvailabilityLayer) -> TestSetup {
         let event_channel = Arc::new(EventChannel::new());
-        let cancellation_token = CancellationToken::new();
 
         let mut mock_da = mock_da;
         mock_da.expect_event_channel().return_const(event_channel.clone());
@@ -55,14 +53,8 @@ mod tests {
 
         let client = WasmLightClient::new(channel.port2().into()).await.unwrap();
 
-        let ct = cancellation_token.clone();
         spawn_local(async move {
-            tokio::select! {
-                _ = worker.run() => {},
-                _ = ct.cancelled() => {
-                    console::log_1(&"Worker cancelled".into());
-                }
-            }
+            worker.run().await.unwrap();
         });
 
         delay_ms(50).await;
@@ -70,14 +62,6 @@ mod tests {
         TestSetup {
             client,
             event_channel,
-            cancellation_token,
-        }
-    }
-
-    impl TestSetup {
-        async fn cleanup(self) {
-            self.cancellation_token.cancel();
-            delay_ms(50).await;
         }
     }
 
@@ -125,8 +109,6 @@ mod tests {
         // Test GetEventsChannelName (maybe separate test later)
         let events_channel = setup.client.events_channel().await.unwrap();
         assert!(format!("{:?}", events_channel.name()).contains("lightclient-events-"));
-
-        setup.cleanup().await;
     }
 
     #[wasm_bindgen_test]
@@ -153,15 +135,13 @@ mod tests {
         console::log_1(&format!("Received events: {:?}", events).into());
         assert!(events.len() > 0);
         assert!(events.iter().any(|event| event.contains("Updated DA height to 100")));
-
-        setup.cleanup().await;
     }
 
     #[wasm_bindgen_test]
     async fn test_successful_epoch_verification() {
         let mut mock_da = MockLightDataAvailabilityLayer::new();
         // Mock successful epoch verification
-        mock_da.expect_get_finalized_epoch().times(1).returning(|height| {
+        mock_da.expect_get_finalized_epochs().times(1).returning(|height| {
             if height == 100 {
                 let mut mock_epoch = MockVerifiableStateTransition::new();
                 mock_epoch.expect_height().return_const(100_u64);
@@ -188,15 +168,13 @@ mod tests {
         // Check that the commitment was updated
         let commitment = setup.client.get_current_commitment().await.unwrap();
         assert_eq!(commitment, Digest::hash(b"current").to_string());
-
-        setup.cleanup().await;
     }
 
     #[wasm_bindgen_test]
     async fn test_failed_epoch_verification() {
         let mut mock_da = MockLightDataAvailabilityLayer::new();
         // Mock failed epoch verification
-        mock_da.expect_get_finalized_epoch().returning(|height| {
+        mock_da.expect_get_finalized_epochs().returning(|height| {
             if height == 100 {
                 let mut mock_epoch = MockVerifiableStateTransition::new();
                 mock_epoch.expect_height().return_const(100 as u64);
@@ -228,7 +206,9 @@ mod tests {
 
         let events = received_events.lock().unwrap();
 
-        // Ready and height update to 100 should be received, is also be used here as test for backwards sync, recursive verification etc., maybe we could write some extra tests if we should seperate these cases.
+        // Ready and height update to 100 should be received, is also be used here as test for
+        // backwards sync, recursive verification etc., maybe we could write some extra tests if we
+        // should seperate these cases.
         assert!(events.len() > 0);
         assert!(events.iter().any(|e| e == "Updated DA height to 100"));
         assert!(events.iter().any(|e| e == "Starting backwards sync at height 100"));
@@ -237,15 +217,13 @@ mod tests {
             events.iter().any(|e| e
                 == "Failed to verify epoch 100: epoch proof verification error: Invalid proof")
         );
-
-        setup.cleanup().await;
     }
 
     #[wasm_bindgen_test]
     async fn test_multiple_epochs_at_same_height() {
         let mut mock_da = MockLightDataAvailabilityLayer::new();
 
-        mock_da.expect_get_finalized_epoch().returning(|height| {
+        mock_da.expect_get_finalized_epochs().returning(|height| {
             if height == 100 {
                 let mut epochs = vec![];
 
@@ -284,8 +262,6 @@ mod tests {
 
         let commitment = setup.client.get_current_commitment().await.unwrap();
         assert_eq!(commitment, Digest::hash(b"curr").to_string());
-
-        setup.cleanup().await;
     }
 
     #[wasm_bindgen_test]
@@ -307,8 +283,6 @@ mod tests {
             assert!(result.is_err());
             assert!(format!("{:?}", result.unwrap_err()).contains("No commitment available"));
         }
-
-        setup.cleanup().await;
     }
 
     #[wasm_bindgen_test]
@@ -326,7 +300,7 @@ mod tests {
         let mut mock_da = MockLightDataAvailabilityLayer::new();
 
         // No epochs at any height
-        mock_da.expect_get_finalized_epoch().returning(|_| Ok(vec![]));
+        mock_da.expect_get_finalized_epochs().returning(|_| Ok(vec![]));
 
         let setup = setup_worker_and_client(mock_da).await;
         let broadcast_channel = setup.client.events_channel().await.unwrap();
@@ -345,7 +319,5 @@ mod tests {
         // Should complete without finding any epochs
         assert!(events.iter().any(|e| e.contains("Backwards sync complete")));
         assert!(events.iter().any(|e| e.contains("found epoch: false")));
-
-        setup.cleanup().await;
     }
 }
