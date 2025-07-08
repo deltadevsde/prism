@@ -7,8 +7,10 @@ use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
 #[cfg(not(target_arch = "wasm32"))]
+use lumina_node::blockstore::InMemoryBlockstore;
+#[cfg(not(target_arch = "wasm32"))]
 use lumina_node::store::{EitherStore, InMemoryStore};
-use lumina_node::{Node, NodeError, blockstore::InMemoryBlockstore, store::StoreError};
+use lumina_node::{Node, NodeError, store::StoreError};
 use prism_errors::DataAvailabilityError;
 use std::{self, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
