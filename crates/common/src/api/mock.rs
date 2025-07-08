@@ -5,8 +5,8 @@ use std::time::Duration;
 use crate::{account::Account, api::PendingTransaction, transaction::Transaction};
 
 use super::{
-    types::{AccountResponse, CommitmentResponse},
     PrismApi, PrismApiError, PrismApiTimer,
+    types::{AccountResponse, CommitmentResponse},
 };
 
 pub struct MockPrismTimer;

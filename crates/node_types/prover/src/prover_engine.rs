@@ -49,7 +49,8 @@ impl ProverEngine {
     }
 
     pub fn verification_keys(&self) -> VerificationKeys {
-        // If recursive proofs are disabled, we just tell the verifier to verify using the base proving key
+        // If recursive proofs are disabled, we just tell the verifier to verify using the base
+        // proving key
         let recursive_vk = match self.recursive_proofs_enabled {
             true => self.recursive_verifying_key.bytes32(),
             false => self.base_verifying_key.bytes32(),

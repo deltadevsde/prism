@@ -229,7 +229,8 @@ impl Syncer {
         }
 
         let commitments;
-        // See the documentation of [`ProverEngine::verify_proof`] for an explanation of this cfg enabled block.
+        // See the documentation of [`ProverEngine::verify_proof`] for an explanation of this cfg
+        // enabled block.
         #[cfg(test)]
         {
             commitments = epoch.commitments();

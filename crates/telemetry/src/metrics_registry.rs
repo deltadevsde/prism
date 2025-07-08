@@ -1,8 +1,11 @@
 use lazy_static::lazy_static;
-use opentelemetry::{global, metrics::{Gauge, Meter}};
+use opentelemetry::{
+    global,
+    metrics::{Gauge, Meter},
+};
 use parking_lot::Mutex;
-use tracing::info;
 use std::sync::Arc;
+use tracing::info;
 
 use prism_telemetry::telemetry::build_attributes;
 

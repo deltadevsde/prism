@@ -45,7 +45,8 @@ pub struct SyncerConfig {
 pub struct SequencerConfig {
     /// Key used to sign new [`FinalizedEpochs`].
     pub signing_key: SigningKey,
-    /// Enables accepting incoming transactions from the webserver and posting batches to the DA layer.
+    /// Enables accepting incoming transactions from the webserver and posting batches to the DA
+    /// layer.
     pub batcher_enabled: bool,
 }
 

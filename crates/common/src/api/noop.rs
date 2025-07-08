@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use std::time::Duration;
 
 use super::{
-    types::{AccountResponse, CommitmentResponse},
     PendingTransaction, PrismApi, PrismApiError, PrismApiTimer,
+    types::{AccountResponse, CommitmentResponse},
 };
 use crate::{account::Account, transaction::Transaction};
 

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use jmt::{mock::MockTreeStore, KeyHash};
+use jmt::{KeyHash, mock::MockTreeStore};
 use prism_common::{operation::SignatureBundle, test_transaction_builder::TestTransactionBuilder};
 use prism_keys::{CryptoAlgorithm, SigningKey};
 
 use crate::{
-    hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
-    snarkable_tree::SnarkableTree, AccountResponse::*,
+    AccountResponse::*, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
+    snarkable_tree::SnarkableTree,
 };
 
 fn test_insert_and_get(algorithm: CryptoAlgorithm) {

@@ -17,7 +17,8 @@ use thiserror::Error;
 use crate::hasher::TreeHasher;
 
 #[derive(Serialize, Deserialize)]
-/// Represents a contiguous stream of [`Proof`]s leading from [`Batch::prev_root`] to [`Batch::new_root`].
+/// Represents a contiguous stream of [`Proof`]s leading from [`Batch::prev_root`] to
+/// [`Batch::new_root`].
 ///
 /// Used as the input to the circuit.
 pub struct Batch {
@@ -110,7 +111,8 @@ pub enum Proof {
 /// [`crate::operation::Operation::CreateAccount`] and
 /// [`crate::operation::Operation::RegisterService`] operations.
 pub struct InsertProof {
-    /// Proof that the key does not already exist in the tree (i.e. it's not overwriting an existing key)
+    /// Proof that the key does not already exist in the tree (i.e. it's not overwriting an
+    /// existing key)
     pub non_membership_proof: MerkleProof,
 
     /// Post-insertion root hash of the tree
