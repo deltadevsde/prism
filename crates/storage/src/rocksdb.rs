@@ -164,16 +164,16 @@ impl Database for RocksDBConnection {
     }
 }
 
-fn create_key(prefix: &str, node_key: impl AsRef<[u8]>) -> Result<Vec<u8>> {
-    let mut key = Vec::with_capacity(prefix.len() + node_key.as_ref().len());
+fn create_key(prefix: &str, node_key: &NodeKey) -> Result<Vec<u8>> {
+    let mut key = Vec::with_capacity(prefix.len() + node_key.encode_to_bytes()?.len());
     key.extend_from_slice(prefix.as_bytes());
-    key.extend_from_slice(node_key.as_ref());
+    key.extend_from_slice(&node_key.encode_to_bytes()?);
     Ok(key)
 }
 
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        let key = create_key(KEY_PREFIX_NODE, &node_key.encode_to_bytes()?)?;
+        let key = create_key(KEY_PREFIX_NODE, &node_key)?;
         let value = self.connection.get(key)?;
 
         match value {
@@ -188,10 +188,8 @@ impl TreeReader for RocksDBConnection {
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
         let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
-        // let value_key = create_key(KEY_PREFIX_VALUE_HISTORY, key_hash.0)?;
         let max_version_bytes = max_version.to_be_bytes();
         let max_key = format!("{}:{}", value_key, max_version_bytes.to_hex());
-        // let max_key = create_key(&value_key, max_version_bytes)?;
 
         let mut iter = self.connection.iterator(rocksdb::IteratorMode::From(
             max_key.as_bytes(),
