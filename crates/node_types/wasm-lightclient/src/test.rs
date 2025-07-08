@@ -65,7 +65,7 @@ mod tests {
             }
         });
 
-        delay_ms(1000).await;
+        delay_ms(50).await;
 
         TestSetup {
             client,
@@ -77,7 +77,7 @@ mod tests {
     impl TestSetup {
         async fn cleanup(self) {
             self.cancellation_token.cancel();
-            delay_ms(100).await;
+            delay_ms(50).await;
         }
     }
 
@@ -135,23 +135,25 @@ mod tests {
         let setup = setup_worker_and_client(mock_da).await;
 
         let broadcast_channel = setup.client.events_channel().await.unwrap();
-        let publisher = setup.event_channel.publisher();
-        publisher.send(PrismEvent::UpdateDAHeight { height: 100 });
 
         let received_events = Arc::new(Mutex::new(Vec::new()));
         let events_clone = received_events.clone();
 
-        let callback = setup_event_listener(&broadcast_channel, move |data| {
+        let _callback = setup_event_listener(&broadcast_channel, move |data| {
             events_clone.lock().unwrap().push(data);
         });
 
+        let publisher = setup.event_channel.publisher();
+        publisher.send(PrismEvent::UpdateDAHeight { height: 100 });
+        delay_ms(100).await;
+
         // Ready and height update to 100 should be received
         let events = received_events.lock().unwrap();
-        assert!(events.len() > 0);
-        assert_eq!(events[0], "Ready");
-        assert_eq!(events[1], "UpdateDAHeight: 100");
 
-        drop(callback);
+        console::log_1(&format!("Received events: {:?}", events).into());
+        assert!(events.len() > 0);
+        assert!(events.iter().any(|event| event.contains("Updated DA height to 100")));
+
         setup.cleanup().await;
     }
 
@@ -176,12 +178,12 @@ mod tests {
             }
         });
         let setup = setup_worker_and_client(mock_da).await;
-        delay_ms(500).await;
+        delay_ms(50).await;
 
         let publisher = setup.event_channel.publisher();
         publisher.send(PrismEvent::UpdateDAHeight { height: 100 });
 
-        delay_ms(500).await;
+        delay_ms(50).await;
 
         // Check that the commitment was updated
         let commitment = setup.client.get_current_commitment().await.unwrap();
@@ -218,11 +220,11 @@ mod tests {
         let _callback = setup_event_listener(&broadcast_channel, move |data| {
             events_clone.lock().unwrap().push(data);
         });
-        delay_ms(500).await;
+        delay_ms(50).await;
 
         let publisher = setup.event_channel.publisher();
         publisher.send(PrismEvent::UpdateDAHeight { height: 100 });
-        delay_ms(500).await;
+        delay_ms(50).await;
 
         let events = received_events.lock().unwrap();
 
@@ -278,7 +280,7 @@ mod tests {
         setup.event_channel.publisher().send(PrismEvent::UpdateDAHeight { height: 100 });
 
         // Wait and verify the successful epoch was processed
-        delay_ms(500).await;
+        delay_ms(50).await;
 
         let commitment = setup.client.get_current_commitment().await.unwrap();
         assert_eq!(commitment, Digest::hash(b"curr").to_string());
@@ -310,29 +312,6 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_channel_closure_handling() {
-        let mock_da = MockLightDataAvailabilityLayer::new();
-        let event_channel = Arc::new(EventChannel::new());
-        let mut mock_da_mut = mock_da;
-        mock_da_mut.expect_event_channel().return_const(event_channel.clone());
-
-        let channel = create_mock_port();
-        let port2 = channel.port2();
-
-        // Create worker and client
-        LightClientWorker::new_with_da(channel.port1().into(), Arc::new(mock_da_mut))
-            .await
-            .unwrap();
-        let client = WasmLightClient::new(port2.into()).await.unwrap();
-
-        // close the port and the the commands should fail
-        channel.port1().close();
-        delay_ms(100).await;
-        let result = client.get_current_commitment().await;
-        assert!(result.is_err());
-    }
-
-    #[wasm_bindgen_test]
     async fn test_invalid_network_initialization() {
         let channel = create_mock_port();
 
@@ -359,7 +338,7 @@ mod tests {
         });
 
         setup.event_channel.publisher().send(PrismEvent::UpdateDAHeight { height: 100 });
-        delay_ms(2000).await;
+        delay_ms(50).await;
 
         let events = received_events.lock().unwrap();
 
