@@ -24,7 +24,7 @@ Thus, while interactive proofs in practical applications take place between a pr
 
 The acronym zkSNARK stands for **zero knowledge succinct non-interactive argument of knowledge**. We look at the individual relevant components now more exactly, in the previous sections bases for it are put, which I will not repeat here in detail again.
 
-Let's start with _succinctness:_ this property of proofs literally expresses that the proof should be (very) short, shorter than than the simple delivery of the secret itself to the verifier.
+Let's start with _succinctness:_ this property of proofs literally expresses that the proof should be (very) short, shorter than the simple delivery of the secret itself to the verifier.
 
 We have already discussed _non-interactive_: there is no exchange (certainly not over several rounds) between the prover and the verifier. The prover provides everything the verifier needs for verification in a single message.
 
