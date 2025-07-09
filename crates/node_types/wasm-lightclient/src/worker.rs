@@ -1,8 +1,6 @@
 use js_sys::Function;
-use prism_da::{
-    celestia::{light_client::LightClientConnection, utils::Network},
-    events::{EventSubscriber, PrismEvent},
-};
+use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
+use prism_events::{EventSubscriber, PrismEvent};
 use prism_lightclient::LightClient;
 use std::{str::FromStr, sync::Arc};
 use tokio_util::sync::CancellationToken;

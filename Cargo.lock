@@ -6575,6 +6575,7 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "tracing",
+ "wasm-bindgen-futures",
  "web-time",
 ]
 
@@ -6809,6 +6810,7 @@ dependencies = [
  "prism-common",
  "prism-da",
  "prism-errors",
+ "prism-events",
  "prism-lightclient",
  "serde",
  "serde-wasm-bindgen",

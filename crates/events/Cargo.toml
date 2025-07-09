@@ -16,3 +16,4 @@ tracing = { workspace = true }
 web-time = { workspace = true, features = ["serde"] }
 prism-common = { workspace = true }
 lumina-node = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
