@@ -15,19 +15,34 @@ const EVENT_CHANNEL_CAPACITY: usize = 1024;
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum PrismEvent {
+    /// Sent when ready to sync.
     Ready,
+    /// Sent when backwards sync starts at the given height.
     BackwardsSyncStarted { height: u64 },
+    /// Sent when the backwards sync completes. Is None when the sync did not find any
+    /// [`FinalizedEpochs`].
     BackwardsSyncCompleted { height: Option<u64> },
+    /// Sent when the DA height is updated to the given height.
     UpdateDAHeight { height: u64 },
+    /// Sent when Epoch Verification starts at the given height.
     EpochVerificationStarted { height: u64 },
+    /// Sent when the Epoch Verification was successfully verified at given height.
     EpochVerified { height: u64 },
+    /// Sent when the Epoch Verification failed. Gives the height it failed at and the error.
     EpochVerificationFailed { height: u64, error: String },
+    /// Sent when Epoch Verification cannot find an Epoch above the miniumum height. Gives the
+    /// height it failed at.
     NoEpochFound { height: u64 },
+    /// Sent when the Height Channel closes.
     HeightChannelClosed,
+    /// Sent when the current Commitment is retrieved. Gives the commitment retrieved.
     GetCurrentCommitment { commitment: Digest },
+    /// Sent when Recursive Verification starts at the given height.
     RecursiveVerificationStarted { height: u64 },
+    /// Sent when Epoch Verification completes at a given height.
     RecursiveVerificationCompleted { height: u64 },
 
+    /// Lumina Node event
     LuminaEvent { event: NodeEvent },
     // maybe place for Future P2P events like
     /* ConnectingToFullNode {
