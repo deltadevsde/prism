@@ -6810,6 +6810,7 @@ dependencies = [
  "prism-common",
  "prism-da",
  "prism-errors",
+ "prism-events",
  "prism-lightclient",
  "serde",
  "serde-wasm-bindgen",
