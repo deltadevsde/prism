@@ -6576,9 +6576,13 @@ dependencies = [
  "tokio",
  "tracing",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "wasm-bindgen-futures",
 =======
 >>>>>>> cc7ad7f (Added events crate)
+=======
+ "wasm-bindgen-futures",
+>>>>>>> 8af37a2 (fixed rebase wasm conflict)
  "web-time",
 ]
 

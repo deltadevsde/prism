@@ -9,7 +9,7 @@ repository.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
+[dependencies]
 anyhow = { workspace = true }
 bincode = { workspace = true }
 celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
@@ -24,6 +24,7 @@ web-sys = { workspace = true, features = [
   "MessageEvent",
   "MessagePort",
   "Worker",
+  "Window",
 ] }
 wasm-bindgen-futures = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
