@@ -10,7 +10,7 @@ use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
 use prism_serde::{
     binary::{FromBinary, ToBinary},
-    hex::{FromHex, ToHex},
+    hex::FromHex,
 };
 use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
@@ -164,18 +164,26 @@ impl Database for RocksDBConnection {
     }
 }
 
-fn create_key(prefix: &str, node_key: &NodeKey) -> Result<Vec<u8>> {
-    let mut key = Vec::with_capacity(prefix.len() + node_key.encode_to_bytes()?.len());
+fn create_key(prefix: &str, node_key: impl AsRef<[u8]>) -> Result<Vec<u8>> {
+    let mut key = Vec::with_capacity(prefix.len() + node_key.as_ref().len());
     key.extend_from_slice(prefix.as_bytes());
-    key.extend_from_slice(&node_key.encode_to_bytes()?);
+    key.extend_from_slice(node_key.as_ref());
+    Ok(key)
+}
+
+fn key_concat(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Result<Vec<u8>> {
+    let mut key = prefix.clone();
+    key.push(b':');
+    key.extend_from_slice(suffix.as_ref());
     Ok(key)
 }
 
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        let key = create_key(KEY_PREFIX_NODE, &node_key)?;
+        let key = create_key(KEY_PREFIX_NODE, node_key.encode_to_bytes()?)?;
         let value = self.connection.get(key)?;
 
+        // Check if node has valid data
         match value {
             Some(data) => Ok(Some(Node::decode_from_bytes(&data)?)),
             None => Ok(None),
@@ -187,17 +195,20 @@ impl TreeReader for RocksDBConnection {
         max_version: Version,
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
-        let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
+        let value_key = create_key(KEY_PREFIX_VALUE_HISTORY, key_hash.0)?;
         let max_version_bytes = max_version.to_be_bytes();
-        let max_key = format!("{}:{}", value_key, max_version_bytes.to_hex());
+        let max_key = key_concat(value_key.clone(), max_version_bytes)?;
 
+        // Search db backwards starting at max_key
         let mut iter = self.connection.iterator(rocksdb::IteratorMode::From(
-            max_key.as_bytes(),
+            &max_key,
             rocksdb::Direction::Reverse,
         ));
 
+        // Search for value
         if let Some(Ok((key, value))) = iter.next() {
-            if key.starts_with(value_key.as_bytes()) {
+            // Ensure the key is the same
+            if key.starts_with(&value_key) {
                 return Ok(Some(OwnedValue::decode_from_bytes(&value)?));
             }
         }
@@ -228,22 +239,25 @@ impl TreeWriter for RocksDBConnection {
     fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()> {
         let mut batch = rocksdb::WriteBatch::default();
 
+        // Put each node in the batch (for tree structure)
         for (node_key, node) in node_batch.nodes() {
             let key = create_key(KEY_PREFIX_NODE, node_key.encode_to_bytes()?)?;
             let value = node.encode_to_bytes()?;
             batch.put(key, &value);
         }
 
+        // Put each value in the batch (for versioning)
         for ((version, key_hash), value) in node_batch.values() {
-            let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
+            // Create base key
+            let value_key = create_key(KEY_PREFIX_VALUE_HISTORY, key_hash.0)?;
             let encoded_value =
                 value.as_ref().map(|v| v.encode_to_bytes()).transpose()?.unwrap_or_default();
             let version_bytes = version.to_be_bytes();
 
-            batch.put(
-                format!("{}:{}", value_key, version_bytes.to_hex()).as_bytes(),
-                &encoded_value,
-            );
+            // Create final key
+            let final_key = key_concat(value_key.clone(), version_bytes)?;
+
+            batch.put(final_key, &encoded_value);
         }
 
         self.connection.write(batch)?;
