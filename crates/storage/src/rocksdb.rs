@@ -172,7 +172,7 @@ fn create_key(prefix: &str, node_key: impl AsRef<[u8]>) -> Result<Vec<u8>> {
 }
 
 fn key_concat(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Result<Vec<u8>> {
-    let mut key = prefix.clone();
+    let mut key = prefix;
     key.push(b':');
     key.extend_from_slice(suffix.as_ref());
     Ok(key)
