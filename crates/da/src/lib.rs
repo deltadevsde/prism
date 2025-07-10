@@ -24,7 +24,7 @@ pub mod memory;
 
 pub type VerifiableEpoch = Box<dyn VerifiableStateTransition>;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 /// Represents an [`SP1ProofWithPublicValues`] that can be used in wasm32
 /// environments.
 ///
@@ -47,7 +47,7 @@ pub struct SuccinctProof {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl TryInto<SP1ProofWithPublicValues> for SuccinctProof {
-    type Error = std::boxed::Box<bincode::ErrorKind>;
+    type Error = Box<bincode::ErrorKind>;
 
     fn try_into(self) -> Result<SP1ProofWithPublicValues, Self::Error> {
         bincode::deserialize::<SP1ProofWithPublicValues>(&self.proof_bytes)
@@ -56,7 +56,7 @@ impl TryInto<SP1ProofWithPublicValues> for SuccinctProof {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl TryFrom<SP1ProofWithPublicValues> for SuccinctProof {
-    type Error = std::boxed::Box<bincode::ErrorKind>;
+    type Error = Box<bincode::ErrorKind>;
 
     fn try_from(proof: SP1ProofWithPublicValues) -> Result<Self, Self::Error> {
         let proof_bytes = bincode::serialize(&proof)?;
@@ -182,7 +182,7 @@ impl VerifiableStateTransition for FinalizedEpoch {
         };
 
         Groth16Verifier::verify(
-            &finalized_epoch_proof,
+            finalized_epoch_proof,
             &self.snark.public_values,
             vkey,
             &sp1_verifier::GROTH16_VK_BYTES,

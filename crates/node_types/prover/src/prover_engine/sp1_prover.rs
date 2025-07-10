@@ -64,9 +64,6 @@ impl ProverEngine for SP1ProverEngine {
     }
 
     #[cfg(test)]
-    /// This method is only used for testing purposes, as
-    /// VerifiableEpoch::verify cannot verify mock proofs unless they themselves
-    /// are mocked.
     async fn verify_proof(&self, proof: VerifiableEpoch) -> Result<()> {
         let succinct_proof = proof.try_convert().unwrap().stark;
         let sp1_proof: SP1ProofWithPublicValues = succinct_proof.try_into()?;
