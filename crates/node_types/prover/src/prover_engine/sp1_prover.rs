@@ -12,12 +12,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 pub const BASE_PRISM_ELF: &[u8] =
-    include_bytes!("../../../../elf/base-riscv32im-succinct-zkvm-elf");
+    include_bytes!("../../../../../elf/base-riscv32im-succinct-zkvm-elf");
 pub const RECURSIVE_PRISM_ELF: &[u8] =
-    include_bytes!("../../../../elf/recursive-riscv32im-succinct-zkvm-elf");
+    include_bytes!("../../../../../elf/recursive-riscv32im-succinct-zkvm-elf");
 
 #[derive(Clone)]
-pub struct ProverEngine {
+pub struct SP1ProverEngine {
     base_prover_client: Arc<RwLock<EnvProver>>,
     base_proving_key: SP1ProvingKey,
     base_verifying_key: SP1VerifyingKey,
@@ -29,7 +29,7 @@ pub struct ProverEngine {
     recursive_proofs_enabled: bool,
 }
 
-impl ProverEngine {
+impl SP1ProverEngine {
     pub fn new(config: &crate::prover::ProverEngineConfig) -> Result<Self> {
         let base_prover_client = ProverClient::from_env();
         let recursive_prover_client = ProverClient::from_env();
@@ -37,7 +37,7 @@ impl ProverEngine {
         let (base_pk, base_vk) = base_prover_client.setup(BASE_PRISM_ELF);
         let (recursive_pk, recursive_vk) = recursive_prover_client.setup(RECURSIVE_PRISM_ELF);
 
-        Ok(ProverEngine {
+        Ok(SP1ProverEngine {
             base_proving_key: base_pk,
             base_verifying_key: base_vk,
             recursive_proving_key: recursive_pk,
@@ -60,19 +60,6 @@ impl ProverEngine {
             base_vk: self.base_verifying_key.bytes32(),
             recursive_vk,
         }
-    }
-
-    #[cfg(test)]
-    /// This method is only used for testing purposes, as
-    /// VerifiableEpoch::verify cannot verify mock proofs unless they themselves
-    /// are mocked.
-    pub async fn verify_proof(&self, proof: VerifiableEpoch) -> Result<()> {
-        let proof = &proof.try_convert().unwrap().compressed_proof;
-        self.base_prover_client
-            .read()
-            .await
-            .verify(proof, &self.base_verifying_key)
-            .map_err(|e| anyhow!(e))
     }
 
     pub async fn prove_epoch(
@@ -194,5 +181,18 @@ impl ProverEngine {
         } else {
             &self.recursive_verifying_key
         }
+    }
+
+    #[cfg(test)]
+    /// This method is only used for testing purposes, as
+    /// VerifiableEpoch::verify cannot verify mock proofs unless they themselves
+    /// are mocked.
+    pub async fn verify_proof(&self, proof: VerifiableEpoch) -> Result<()> {
+        let proof = &proof.try_convert().unwrap().compressed_proof;
+        self.base_prover_client
+            .read()
+            .await
+            .verify(proof, &self.base_verifying_key)
+            .map_err(|e| anyhow!(e))
     }
 }

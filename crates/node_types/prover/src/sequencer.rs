@@ -14,7 +14,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 
-use crate::prover_engine::ProverEngine;
+use crate::prover_engine::sp1_prover::SP1ProverEngine;
 
 #[derive(Clone)]
 pub struct Sequencer {
@@ -114,7 +114,7 @@ impl Sequencer {
         &self,
         epoch_height: u64,
         transactions: Vec<Transaction>,
-        prover_engine: &Arc<ProverEngine>,
+        prover_engine: &Arc<SP1ProverEngine>,
         tip_da_height: u64,
     ) -> Result<u64> {
         let mut tree = self.tree.write().await;
