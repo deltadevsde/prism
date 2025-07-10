@@ -10,10 +10,18 @@ repository.workspace = true
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-
 tokio = { workspace = true }
 tracing = { workspace = true }
 web-time = { workspace = true, features = ["serde"] }
 prism-common = { workspace = true }
 lumina-node = { workspace = true }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+>>>>>>> b2fd9b4 (fix: remove wasm32 and change target dependency only for wasm-bindgen-futures)
+>>>>>>> ac59c8f (fix: remove wasm32 and change target dependency only for wasm-bindgen-futures)
 wasm-bindgen-futures = { workspace = true }
