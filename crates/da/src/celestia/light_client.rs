@@ -1,8 +1,5 @@
 use super::utils::{NetworkConfig, create_namespace};
-use crate::{
-    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
-    events::{EventChannel, EventPublisher},
-};
+use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
@@ -12,6 +9,7 @@ use lumina_node::blockstore::InMemoryBlockstore;
 use lumina_node::store::{EitherStore, InMemoryStore};
 use lumina_node::{Node, NodeError, store::StoreError};
 use prism_errors::DataAvailabilityError;
+use prism_events::{EventChannel, EventPublisher};
 use std::{self, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, trace, warn};

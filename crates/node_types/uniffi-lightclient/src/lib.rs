@@ -6,10 +6,9 @@ mod error;
 mod types;
 
 use error::{LightClientError, Result};
-use prism_da::{
-    celestia::{light_client::LightClientConnection, utils::Network},
-    events::EventSubscriber,
-};
+use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
+
+use prism_events::EventSubscriber;
 use prism_lightclient::LightClient as CoreLightClient;
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::Mutex;

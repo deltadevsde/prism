@@ -6,9 +6,9 @@ mod tests {
     use prism_da::{
         EpochCommitments, MockLightDataAvailabilityLayer, MockVerifiableStateTransition,
         VerifiableStateTransition,
-        events::{EventChannel, PrismEvent},
     };
     use prism_errors::EpochVerificationError;
+    use prism_events::{EventChannel, PrismEvent};
     use std::sync::{Arc, Mutex};
     use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
     use wasm_bindgen_futures::{JsFuture, spawn_local};

@@ -1,8 +1,7 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
-use prism_da::{
-    LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys, events::EventChannel,
-};
+use prism_da::{LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys};
+use prism_events::{EventChannel, EventPublisher, PrismEvent, utils::spawn_task};
 use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
@@ -13,11 +12,6 @@ use tracing::{error, info, warn};
 
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
-
-use prism_da::{
-    events::{EventPublisher, PrismEvent},
-    utils::spawn_task,
-};
 
 // Embed the JSON content directly in the binary at compile time because we can't read files in
 // WASM.

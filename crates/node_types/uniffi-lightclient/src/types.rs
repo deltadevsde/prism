@@ -1,4 +1,4 @@
-use prism_da::events::PrismEvent;
+use prism_events::PrismEvent;
 
 /// Event types emitted by the LightClient.
 #[derive(uniffi::Enum)]
