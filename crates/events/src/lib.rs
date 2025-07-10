@@ -1,4 +1,3 @@
-#![cfg(target_arch = "wasm32")]
 use lumina_node::events::{EventSubscriber as LuminaEventSub, NodeEvent};
 use prism_common::digest::Digest;
 use serde::Serialize;
