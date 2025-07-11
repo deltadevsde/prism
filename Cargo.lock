@@ -6735,6 +6735,7 @@ dependencies = [
  "opentelemetry_sdk",
  "parking_lot",
  "prism-telemetry",
+ "thiserror 2.0.12",
  "tracing",
 ]
 
