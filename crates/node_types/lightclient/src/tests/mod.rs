@@ -144,6 +144,10 @@ async fn test_realtime_sync() {
     .await;
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 3 });
+    wait_for_event(&mut sub, |event| {
+        matches!(event, PrismEvent::BackwardsSyncStarted { height: 3 })
+    })
+    .await;
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 4 });
     wait_for_sync(&mut sub, 4).await;
@@ -295,9 +299,10 @@ async fn test_will_not_process_older_epoch() {
 }
 
 #[tokio::test]
-async fn test_incoming_epoch_during_backwards_sync_v1() {
+async fn test_incoming_epoch_during_backwards_sync() {
     let (lc, mut sub, publisher) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
 
+    let mut sub2 = lc.da.event_channel().subscribe();
     let result = tokio::time::timeout(Duration::from_secs(5), async {
         // Start the event loop first, then send events after we're ready to receive
         let event_task = tokio::spawn(async move {
@@ -328,6 +333,10 @@ async fn test_incoming_epoch_during_backwards_sync_v1() {
         tokio::time::sleep(Duration::from_millis(10)).await;
 
         publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
+        wait_for_event(&mut sub2, |event| {
+            matches!(event, PrismEvent::BackwardsSyncStarted { height: 5100 })
+        })
+        .await;
         publisher.send(PrismEvent::UpdateDAHeight { height: 5101 });
 
         let (recursive_completed, backwards_completed) = event_task.await.unwrap();

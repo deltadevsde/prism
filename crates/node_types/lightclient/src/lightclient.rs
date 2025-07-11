@@ -1,18 +1,19 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
 use prism_da::{LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys};
-use prism_events::{EventChannel, EventPublisher, PrismEvent, utils::spawn_task};
+use prism_events::{EventChannel, EventPublisher, PrismEvent};
 use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use std::{self, sync::Arc};
 use tokio::sync::RwLock;
+#[cfg(not(target_arch = "wasm32"))]
+use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info, warn};
+use tracing::{error, info, trace, warn};
 
 #[allow(unused_imports)]
 use sp1_verifier::Groth16Verifier;
-
 // Embed the JSON content directly in the binary at compile time because we can't read files in
 // WASM.
 const EMBEDDED_KEYS_JSON: &str = include_str!("../../../../verification_keys/keys.json");
@@ -21,6 +22,45 @@ const MAX_BACKWARD_SEARCH_DEPTH: u64 = 1000;
 pub fn load_sp1_verifying_keys() -> Result<VerificationKeys> {
     let keys: VerificationKeys = serde_json::from_str(EMBEDDED_KEYS_JSON)?;
     Ok(keys)
+}
+
+/// Macro to handle event subscription with cancellation support
+macro_rules! select_with_cancellation {
+    ($cancellation_token:expr, {
+        $($event_arm:tt)*
+    }) => {
+        tokio::select! {
+            $($event_arm)*
+            _ = $cancellation_token.cancelled() => {
+                info!("Light Client: Gracefully stopping due to cancellation");
+                return Ok(());
+            }
+        };
+    };
+}
+
+/// Macro for generating a tokio::select! arm for event subscription
+macro_rules! await_event {
+    ($cancellation_token:expr, $event_sub:expr, |$event_var:ident| $handler:block) => {
+        tokio::select! {
+            event_res = $event_sub.recv() => {
+                match event_res {
+                    Ok(event_info) => {
+                        let $event_var = event_info.event;
+                        $handler
+                    }
+                    Err(e) => {
+                        info!("Light Client: Stopping after subscriber error");
+                        return Err(e.into());
+                    }
+                }
+            }
+            _ = $cancellation_token.cancelled() => {
+                info!("Light Client: Gracefully stopping due to cancellation");
+                return Ok(());
+            }
+        }
+    };
 }
 
 pub struct LightClient {
@@ -82,51 +122,53 @@ impl LightClient {
         self.sync_state.read().await.clone()
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub async fn run(self: Arc<Self>) -> Result<()> {
-        // start listening for new headers to update sync target
+        let (_, _) =
+            std::future::join!(self.clone().sync_incoming_heights(), self.sync_backwards()).await;
 
+        Ok(())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub async fn run(self: Arc<Self>) -> Result<()> {
+        let mut futures = JoinSet::new();
+
+        let lc = Arc::clone(&self);
+        futures.spawn(async move { lc.sync_incoming_heights().await });
+
+        let lc = Arc::clone(&self);
+        futures.spawn(async move { lc.sync_backwards().await });
+
+        futures.join_all().await;
+
+        Ok(())
+    }
+
+    async fn sync_incoming_heights(self: Arc<Self>) -> Result<()> {
         let mut event_sub = self.event_chan.subscribe();
         self.event_pub.send(PrismEvent::Ready);
 
-        let mut backwards_sync_started = false;
-
         loop {
-            tokio::select! {
-                info = event_sub.recv() => {
-                    match info {
-                        Ok(event_info) => {
-                            if let PrismEvent::UpdateDAHeight { height } = event_info.event {
-                                info!("new height from headersub {}", height);
-
-                                #[cfg(feature = "telemetry")]
-                                if let Some(metrics) = get_metrics() {
-                                    metrics.record_celestia_synced_height(height, vec![]);
-                                    if let Some(latest_finalized_epoch) =
-                                        self.sync_state.read().await.latest_finalized_epoch
-                                    {
-                                        metrics.record_current_epoch(latest_finalized_epoch, vec![]);
-                                    }
-                                }
-
-                                // start initial historical backward sync if not already in progress
-                                if backwards_sync_started {
-                                    self.clone().handle_new_header(height).await;
-                                } else {
-                                    backwards_sync_started = true;
-                                    self.clone().start_backward_sync(height, self.cancellation_token.clone()).await;
-                                }
-                            }
-                        },
-                        Err(e) => {
-                            info!("Light Client: Stopping after subscriber error");
-                            return Err(e.into());
-                        }
-                    };
-                },
-                _ = self.cancellation_token.cancelled() => {
-                    info!("Light Client: Gracefully stopping after cancellation");
-                    return Ok(());
+            await_event!(self.cancellation_token, event_sub, |event| {
+                trace!("Event: {:?}", event);
+                if let PrismEvent::UpdateDAHeight { height } = event {
+                    info!("new height from headersub {}", height);
+                    self.clone().handle_new_header(height).await;
                 }
+            });
+        }
+    }
+
+    #[cfg(feature = "telemetry")]
+    async fn collect_metrics(&self, height: u64) {
+        #[cfg(feature = "telemetry")]
+        if let Some(metrics) = get_metrics() {
+            metrics.record_celestia_synced_height(height, vec![]);
+            if let Some(latest_finalized_epoch) =
+                self.sync_state.read().await.latest_finalized_epoch
+            {
+                metrics.record_current_epoch(latest_finalized_epoch, vec![]);
             }
         }
     }
@@ -139,12 +181,21 @@ impl LightClient {
                     "new height from headersub {} is lower than synced height, skipping",
                     height
                 );
-                drop(state_handle);
                 return;
             }
+            // if current height is not initialized yet, backwards sync has yet to be started
+            else if state_handle.current_height == 0 {
+                return
+            }
+            drop(state_handle);
         }
+        #[cfg(feature = "telemetry")]
+        self.collect_metrics(height).await;
+        self.process_height(height).await;
+    }
 
-        // Check for a new finalized epoch at this height
+    /// Checks for a new finalized epoch at this height
+    async fn process_height(self: Arc<Self>, height: u64) {
         match self.da.get_finalized_epochs(height).await {
             Ok(epochs) => {
                 if epochs.is_empty() {
@@ -187,37 +238,33 @@ impl LightClient {
                     state.current_height = da_height;
                 }
 
-                self.event_pub.send(PrismEvent::BackwardsSyncCompleted {
-                    height: Some(da_height),
-                });
-
-                // Stop searching if a single epoch is processed successfully
                 Ok(())
             }
-            // This is the only branch that should trigger the
-            // while loop to continue, the other branches all
-            // return
             Err(e) => {
-                error!("Failed to process epoch at height {}: {}", da_height, e);
                 self.event_pub.send(PrismEvent::EpochVerificationFailed {
                     height: da_height,
                     error: e.to_string(),
                 });
-
-                let mut state = self.sync_state.write().await;
-                state.current_height = da_height;
 
                 Err(e)
             }
         }
     }
 
-    async fn start_backward_sync(
-        self: Arc<Self>,
-        network_height: u64,
-        cancellation_token: CancellationToken,
-    ) {
-        info!("starting historical sync");
+    async fn sync_backwards(self: Arc<Self>) -> Result<()> {
+        info!("starting backwards sync");
+
+        let mut event_sub = self.event_chan.subscribe();
+        let network_height = loop {
+            await_event!(self.cancellation_token, event_sub, |event| {
+                if let PrismEvent::UpdateDAHeight { height } = event {
+                    let mut sync_state = self.sync_state.write().await;
+                    sync_state.current_height = height;
+                    break height;
+                }
+            });
+        };
+
         // Announce that sync has started
         self.event_pub.send(PrismEvent::BackwardsSyncStarted {
             height: network_height,
@@ -226,49 +273,57 @@ impl LightClient {
             height: network_height,
         });
 
-        // Start a task to find a finalized epoch by searching backward
-        let light_client = Arc::clone(&self);
-
-        spawn_task(async move {
-            // Find the most recent valid epoch by searching backward
-            let mut current_height = network_height;
-            let min_height = if current_height > MAX_BACKWARD_SEARCH_DEPTH {
-                current_height - MAX_BACKWARD_SEARCH_DEPTH
-            } else {
-                1
-            };
-            while current_height >= min_height {
-                tokio::select! {
-                    // Look backwards for the first height with epochs
-                    maybe_epoch = light_client.find_most_recent_epoch(current_height, min_height) => {
-                        match maybe_epoch {
-                            Some((da_height, epochs)) => {
-                                // Try to find a single valid epoch
-                                for epoch in epochs {
-                                    if light_client.clone().verify_epoch(da_height, epoch).await.is_err() {
+        // Find the most recent valid epoch by searching backward
+        let mut current_height = network_height;
+        let min_height = if current_height > MAX_BACKWARD_SEARCH_DEPTH {
+            current_height - MAX_BACKWARD_SEARCH_DEPTH
+        } else {
+            1
+        };
+        while current_height >= min_height {
+            let sync_state = self.sync_state.read().await;
+            // [`sync_incoming_heights`] can find the first epoch before backwards sync finishes.
+            if sync_state.latest_finalized_epoch.is_some() {
+                self.event_pub.send(PrismEvent::BackwardsSyncCompleted { height: None });
+                return Ok(());
+            }
+            drop(sync_state);
+            select_with_cancellation!(self.cancellation_token, {
+                // Look backwards for the first height with epochs
+                maybe_epoch = self.find_most_recent_epoch(current_height, min_height) => {
+                    match maybe_epoch {
+                        Some((da_height, epochs)) => {
+                            // Try to find a single valid epoch
+                            for epoch in epochs {
+                                match self.clone().verify_epoch(da_height, epoch).await {
+                                    Ok(_) => {
+                                        // Found a valid epoch, stop looking backwards
+                                        self
+                                            .event_pub
+                                            .send(PrismEvent::BackwardsSyncCompleted { height: Some(da_height) });
+                                        return Ok(());
+                                    }
+                                    Err(_) => {
                                         // Keep looking backwards, as long as we haven't reached min_height
                                         current_height = da_height - 1;
                                     }
-                                }
-                            },
-                            None => {
-                                // This case happens when the incoming sync finds an epoch
-                                // before the backwards sync does, or we have exhausted
-                                // minimum height
-                                light_client
-                                    .event_pub
-                                    .send(PrismEvent::BackwardsSyncCompleted { height: None });
-                                return;
+                                };
                             }
+                        },
+                        None => {
+                            // This case happens when the incoming sync finds an epoch
+                            // before the backwards sync does, or we have exhausted
+                            // minimum height
+                            self
+                                .event_pub
+                                .send(PrismEvent::BackwardsSyncCompleted { height: None });
+                            return Ok(());
                         }
-                    },
-                    _ = cancellation_token.cancelled() => {
-                        info!("Light Client: Gracefully stopping backward sync");
-                        return;
-                    }
+                    };
                 }
-            }
-        });
+            });
+        }
+        Ok(())
     }
 
     async fn find_most_recent_epoch(
@@ -278,6 +333,10 @@ impl LightClient {
     ) -> Option<(u64, Vec<VerifiableEpoch>)> {
         let mut height = start_height;
         while height >= min_height {
+            // We yield here because this operation is quite blocking
+            #[cfg(not(target_arch = "wasm32"))]
+            tokio::task::yield_now().await;
+
             // if an epoch has been found, we no longer need to sync historically
             if self.sync_state.read().await.latest_finalized_epoch.is_some() {
                 info!(
@@ -290,6 +349,8 @@ impl LightClient {
                 Ok(epochs) => {
                     if epochs.is_empty() {
                         info!("no data found at height {}", height);
+                        let mut state = self.sync_state.write().await;
+                        state.current_height = height;
                     } else {
                         return Some((height, epochs));
                     }
