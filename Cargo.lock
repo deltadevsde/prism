@@ -6485,6 +6485,7 @@ dependencies = [
  "prism-telemetry",
  "prism-telemetry-registry",
  "serde",
+ "thiserror 2.0.12",
  "tokio",
  "tokio-util",
  "toml 0.8.23",
