@@ -278,7 +278,7 @@ async fn test_backwards_sync_does_not_restart() {
     .await;
     publisher.send(PrismEvent::UpdateDAHeight { height: 1000 });
     // TODO: Find better way
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_millis(200)).await;
     assert!(lc.get_sync_state().await.latest_finalized_epoch.is_none());
 }
 
@@ -292,7 +292,7 @@ async fn test_will_not_process_older_epoch() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
     // TODO: replace with event listener
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_millis(200)).await;
 
     let sync_state = lc.get_sync_state().await;
     assert_eq!(sync_state.current_height, 9);
