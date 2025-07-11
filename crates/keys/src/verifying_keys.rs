@@ -17,7 +17,7 @@ use pkcs8::{
     Document, LineEnding, SubjectPublicKeyInfoRef,
     der::{Decode, pem::PemLabel},
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Error};
 use sha2::Digest as _;
 use std::{
     self,
@@ -273,6 +273,21 @@ impl VerifyingKey {
             .map_err(|_| VerificationError::GeneralError("Incorrect PEM label".to_string()))?;
         Self::from_spki_der(doc.as_bytes())
     }
+
+    pub fn from_spki_pem_path_or_base64_der(input: &str) -> Result<Self> {
+        // Try as a file path first
+        let path = Path::new(input);
+        if path.exists() {
+            if let Ok(vk) = Self::from_spki_pem_file(path) {
+                return Ok(vk);
+            }
+        }
+
+        // If not a file path or file parsing failed, try as base64 DER
+        let bytes = Vec::<u8>::from_base64(input)
+            .map_err(|e| ParseError::GeneralError(format!("Invalid base64: {}", e)))?;
+        Self::from_spki_der(&bytes)
+    }
 }
 
 impl TryFrom<CryptoPayload> for VerifyingKey {
@@ -359,3 +374,22 @@ impl PartialSchema for VerifyingKey {
         CryptoPayload::schema()
     }
 }
+
+// // Custom Deserialization of VerifyingKeys
+
+// /// Deserialize a VerifyingKey from a path-like string input
+// /// This function can be used with #[serde(deserialize_with = "deserialize_verifying_key_from_path")]
+// pub fn from_spki_pem_path<'de, D>(deserializer: D) -> std::result::Result<VerifyingKey, D::Error>
+// where
+//     D: Deserializer<'de>,
+// {
+//     let path_str = String::deserialize(deserializer)?;
+//     let path = Path::new(&path_str);
+
+//     VerifyingKey::from_spki_pem_file(path).map_err(|e| {
+//         D::Error::custom(format!(
+//             "Failed to load VerifyingKey from path '{}': {}",
+//             path_str, e
+//         ))
+//     })
+// }

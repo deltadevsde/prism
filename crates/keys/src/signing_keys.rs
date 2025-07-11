@@ -181,6 +181,18 @@ impl SigningKey {
         Self::from_pkcs8_der_doc(&document)
     }
 
+    pub fn from_pkcs8_pem_path_or_create_ed25519(file_path: impl AsRef<Path>) -> Result<Self> {
+        let path = file_path.as_ref();
+
+        if path.exists() {
+            Self::from_pkcs8_pem_file(path)
+        } else {
+            let signing_key = SigningKey::new_ed25519();
+            signing_key.to_pkcs8_pem_file(path)?;
+            Ok(signing_key)
+        }
+    }
+
     pub fn algorithm(&self) -> CryptoAlgorithm {
         match self {
             SigningKey::Ed25519(_) => CryptoAlgorithm::Ed25519,
