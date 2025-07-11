@@ -134,11 +134,11 @@ impl LightClient {
     pub async fn run(self: Arc<Self>) -> Result<()> {
         let mut futures = JoinSet::new();
 
-        let ln = Arc::clone(&self);
-        futures.spawn(async move { ln.sync_incoming_heights().await });
+        let lc = Arc::clone(&self);
+        futures.spawn(async move { lc.sync_incoming_heights().await });
 
-        let ln = Arc::clone(&self);
-        futures.spawn(async move { ln.sync_backwards().await });
+        let lc = Arc::clone(&self);
+        futures.spawn(async move { lc.sync_backwards().await });
 
         futures.join_all().await;
 
@@ -160,6 +160,7 @@ impl LightClient {
         }
     }
 
+    #[cfg(feature = "telemetry")]
     async fn collect_metrics(&self, height: u64) {
         #[cfg(feature = "telemetry")]
         if let Some(metrics) = get_metrics() {
@@ -188,6 +189,7 @@ impl LightClient {
             }
             drop(state_handle);
         }
+        #[cfg(feature = "telemetry")]
         self.collect_metrics(height).await;
         self.process_height(height).await;
     }
