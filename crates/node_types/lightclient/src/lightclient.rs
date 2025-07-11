@@ -1,7 +1,7 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
 use prism_da::{LightDataAvailabilityLayer, VerifiableEpoch, VerificationKeys};
-use prism_events::{EventChannel, EventPublisher, PrismEvent, utils::spawn_task};
+use prism_events::{EventChannel, EventPublisher, PrismEvent};
 use prism_keys::VerifyingKey;
 #[cfg(feature = "telemetry")]
 use prism_telemetry_registry::metrics_registry::get_metrics;
