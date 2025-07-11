@@ -5,10 +5,14 @@ use prism_common::digest::Digest;
 use prism_da::FinalizedEpoch;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+use crate::{rocksdb::RocksDBConfig};
+
+// TODO: Replace with DatabaseConfig
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum StorageBackend {
-    RocksDB(crate::rocksdb::RocksDBConfig),
+    #[default]
     InMemory,
+    RocksDB(RocksDBConfig),
 }
 
 #[auto_impl(&, Box, Arc)]

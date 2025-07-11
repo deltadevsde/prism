@@ -34,9 +34,10 @@ pub struct RocksDBConnection {
 }
 
 impl RocksDBConnection {
-    pub fn new(cfg: &RocksDBConfig) -> Result<RocksDBConnection> {
+    pub fn new(cfg: &RocksDBConfig) -> Result<RocksDBConnection, DatabaseError> {
         let path = &cfg.path;
-        let db = DB::open_default(path)?;
+        let db = DB::open_default(path)
+            .map_err(|e| DatabaseError::InitializationError(e.into_string()))?;
 
         Ok(Self {
             connection: Arc::new(db),
