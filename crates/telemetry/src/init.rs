@@ -1,6 +1,4 @@
-use std::io::Error;
-
-use crate::metrics_registry::init_metrics_registry;
+use crate::{error::TelemetryError, metrics_registry::init_metrics_registry};
 
 use opentelemetry::global::{self};
 use opentelemetry_sdk::{logs::SdkLoggerProvider, metrics::SdkMeterProvider};
@@ -35,7 +33,7 @@ use prism_telemetry::{
 pub fn init(
     telemetry_config: TelemetryConfig,
     attributes: Vec<(String, String)>,
-) -> Result<(Option<SdkMeterProvider>, Option<SdkLoggerProvider>), Error> {
+) -> Result<(Option<SdkMeterProvider>, Option<SdkLoggerProvider>), TelemetryError> {
     // Initialize the telemetry system
 
     let mut attributes = attributes.clone();
@@ -45,8 +43,10 @@ pub fn init(
 
     let resource = build_resource("prism".to_string(), attributes);
 
-    let (meter_provider, log_provider) = init_telemetry(&telemetry_config, resource)
-        .map_err(|e| Error::other(format!("Failed to initialize telemetry: {}", e)))?;
+    let (meter_provider, log_provider) =
+        init_telemetry(&telemetry_config, resource).map_err(|e| {
+            TelemetryError::InitializationError(format!("Failed to initialize telemetry: {}", e))
+        })?;
 
     // Initialize tracing subscriber, fallback to stdout/stderr if no log provider
     setup_log_subscriber(telemetry_config.logs.enabled, log_provider.as_ref());
