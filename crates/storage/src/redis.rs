@@ -21,7 +21,7 @@ use std::{
 
 use prism_errors::DatabaseError;
 
-use crate::database::{Database, convert_to_connection_error};
+use crate::database::Database;
 use tracing::debug;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -45,10 +45,10 @@ pub struct RedisConnection {
 }
 
 impl RedisConnection {
-    pub fn new(cfg: &RedisConfig) -> Result<RedisConnection> {
+    pub fn new(cfg: &RedisConfig) -> Result<RedisConnection, DatabaseError> {
         let connection_string = cfg.connection_string.clone();
-        let try_client =
-            Client::open(connection_string.clone()).map_err(convert_to_connection_error)?;
+        let try_client = Client::open(connection_string.clone())
+            .map_err(|e| DatabaseError::InitializationError(e.to_string()))?;
         let try_connection = try_client.get_connection();
 
         if try_connection.is_err() {
@@ -63,8 +63,11 @@ impl RedisConnection {
             debug!("redis-server started");
         }
 
-        let client = Client::open(connection_string).map_err(convert_to_connection_error)?;
-        let connection = client.get_connection().map_err(convert_to_connection_error)?;
+        let client = Client::open(connection_string)
+            .map_err(|e| DatabaseError::InitializationError(e.to_string()))?;
+        let connection = client
+            .get_connection()
+            .map_err(|e| DatabaseError::InitializationError(e.to_string()))?;
 
         Ok(RedisConnection {
             connection: Mutex::new(connection),
