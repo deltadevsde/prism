@@ -31,10 +31,10 @@ async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
     let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(500));
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let mut cfg = Config::default_with_key_algorithm(algorithm).unwrap();
-    cfg.syncer.max_epochless_gap = 5;
-    cfg.webserver.port = 0;
-    Arc::new(Prover::new(db.clone(), da_layer, &cfg, CancellationToken::new()).unwrap())
+    let mut opts = ProverOptions::default_with_key_algorithm(algorithm).unwrap();
+    opts.syncer.max_epochless_gap = 5;
+    opts.webserver.port = 0;
+    Arc::new(Prover::new(db.clone(), da_layer, &opts, CancellationToken::new()).unwrap())
 }
 
 fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
@@ -271,14 +271,14 @@ async fn test_restart_sync_from_scratch() {
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let mut cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
-    cfg.webserver.port = 0;
+    let mut opts = ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
+    opts.webserver.port = 0;
     let cancellation_token = CancellationToken::new();
     let prover = Arc::new(
         Prover::new(
             db1.clone(),
             da_layer.clone(),
-            &cfg,
+            &opts,
             cancellation_token.clone(),
         )
         .unwrap(),
@@ -308,7 +308,7 @@ async fn test_restart_sync_from_scratch() {
         Prover::new(
             db2.clone(),
             da_layer.clone(),
-            &cfg,
+            &opts,
             CancellationToken::new(),
         )
         .unwrap(),
@@ -345,14 +345,15 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
 
     // Setup prover (with prover enabled)
     let prover_db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let mut prover_cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
-    prover_cfg.syncer.prover_enabled = true;
-    prover_cfg.webserver.port = 0;
+    let mut prover_opts =
+        ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
+    prover_opts.syncer.prover_enabled = true;
+    prover_opts.webserver.port = 0;
     let prover = Arc::new(
         Prover::new(
             prover_db.clone(),
             da_layer.clone(),
-            &prover_cfg,
+            &prover_opts,
             CancellationToken::new(),
         )
         .unwrap(),
@@ -360,15 +361,16 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
 
     // Setup fullnode (with prover disabled) - use same verifying key as prover
     let fullnode_db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let mut fullnode_cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
-    fullnode_cfg.syncer.prover_enabled = false;
-    fullnode_cfg.syncer.verifying_key = prover_cfg.syncer.verifying_key.clone();
-    fullnode_cfg.webserver.port = 0;
+    let mut fullnode_opts =
+        ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
+    fullnode_opts.syncer.prover_enabled = false;
+    fullnode_opts.syncer.verifying_key = prover_opts.syncer.verifying_key.clone();
+    fullnode_opts.webserver.port = 0;
     let fullnode = Arc::new(
         Prover::new(
             fullnode_db.clone(),
             da_layer.clone(),
-            &fullnode_cfg,
+            &fullnode_opts,
             CancellationToken::new(),
         )
         .unwrap(),
@@ -474,10 +476,16 @@ async fn test_load_persisted_state() {
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(500));
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
-    let mut cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
-    cfg.webserver.port = 0;
+    let mut opts = ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
+    opts.webserver.port = 0;
     let prover = Arc::new(
-        Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap(),
+        Prover::new(
+            db.clone(),
+            da_layer.clone(),
+            &opts,
+            CancellationToken::new(),
+        )
+        .unwrap(),
     );
 
     let runner = prover.clone();
@@ -499,7 +507,13 @@ async fn test_load_persisted_state() {
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
 
     let prover2 = Arc::new(
-        Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap(),
+        Prover::new(
+            db.clone(),
+            da_layer.clone(),
+            &opts,
+            CancellationToken::new(),
+        )
+        .unwrap(),
     );
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });

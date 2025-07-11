@@ -6615,6 +6615,7 @@ dependencies = [
  "prism-errors",
  "prism-events",
  "prism-keys",
+ "prism-serde",
  "prism-telemetry-registry",
  "serde",
  "serde_json",
