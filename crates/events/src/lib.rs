@@ -18,10 +18,10 @@ pub enum PrismEvent {
     /// Sent when ready to sync.
     Ready,
     /// Sent when backwards sync starts at the given height.
-    BackwardsSyncStarted { height: u64 },
+    HistoricalSyncStarted { height: u64 },
     /// Sent when the backwards sync completes. Is None when the sync did not find any
     /// [`FinalizedEpochs`].
-    BackwardsSyncCompleted { height: Option<u64> },
+    HistoricalSyncCompleted { height: Option<u64> },
     /// Sent when the DA height is updated to the given height.
     UpdateDAHeight { height: u64 },
     /// Sent when Epoch Verification starts at the given height.
@@ -59,13 +59,13 @@ impl fmt::Display for PrismEvent {
                     "Node is ready to start sync and listening for incoming headers"
                 )
             }
-            PrismEvent::BackwardsSyncStarted { height } => {
-                write!(f, "Starting backwards sync at height {}", height)
+            PrismEvent::HistoricalSyncStarted { height } => {
+                write!(f, "Starting historical sync at height {}", height)
             }
-            PrismEvent::BackwardsSyncCompleted { height } => {
+            PrismEvent::HistoricalSyncCompleted { height } => {
                 write!(
                     f,
-                    "Backwards sync complete, found epoch: {}",
+                    "Historical sync complete, found epoch: {}",
                     height.is_some()
                 )
             }

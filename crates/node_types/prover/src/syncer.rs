@@ -1,6 +1,7 @@
 use anyhow::{Context, Result, anyhow};
 use prism_common::transaction::Transaction;
 use prism_da::{DataAvailabilityLayer, VerifiableEpoch};
+use prism_events::{EventPublisher, PrismEvent};
 use prism_keys::VerifyingKey;
 use prism_storage::database::Database;
 use prism_telemetry_registry::metrics_registry::get_metrics;
@@ -21,6 +22,7 @@ pub struct Syncer {
     start_height: u64,
     sequencer: Arc<Sequencer>,
     prover_engine: Arc<ProverEngine>,
+    event_pub: Arc<EventPublisher>,
     is_prover_enabled: bool,
 }
 
@@ -33,6 +35,8 @@ impl Syncer {
         sequencer: Arc<Sequencer>,
         prover_engine: Arc<ProverEngine>,
     ) -> Self {
+        let event_pub = Arc::new(da.event_channel().publisher());
+
         Self {
             da,
             db,
@@ -43,6 +47,7 @@ impl Syncer {
             start_height: config.start_height,
             sequencer,
             prover_engine,
+            event_pub,
             is_prover_enabled: config.prover_enabled,
         }
     }
@@ -86,6 +91,10 @@ impl Syncer {
         cancellation_token: CancellationToken,
     ) -> Result<()> {
         let mut current_height = start_height;
+
+        self.event_pub.send(PrismEvent::UpdateDAHeight {
+            height: (current_height),
+        });
 
         while current_height <= end_height {
             tokio::select! {
@@ -168,6 +177,7 @@ impl Syncer {
                 self.process_epoch(epoch).await?;
             }
         } else {
+            self.event_pub.send(PrismEvent::NoEpochFound { height: (height) });
             debug!("No epoch found at height {}", height);
         }
 

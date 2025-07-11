@@ -227,7 +227,7 @@ async fn no_backwards_sync_underflow() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 50 });
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             assert!(height.is_none());
             return true;
         }
@@ -244,7 +244,7 @@ async fn no_concurrent_backwards_sync() {
     publisher.send(PrismEvent::UpdateDAHeight { height: 1000 });
 
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncStarted { height } = event {
+        if let PrismEvent::HistoricalSyncStarted { height } = event {
             assert_eq!(height, 500);
             return true;
         }
@@ -253,7 +253,7 @@ async fn no_concurrent_backwards_sync() {
     .await;
 
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             assert!(height.is_none());
             return true;
         }
@@ -269,7 +269,7 @@ async fn test_backwards_sync_does_not_restart() {
     publisher.send(PrismEvent::UpdateDAHeight { height: 500 });
 
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             assert!(height.is_none());
             return true;
         }
@@ -314,7 +314,7 @@ async fn test_incoming_epoch_during_backwards_sync() {
                         assert_current_commitment!(lc, "d");
                         events_received.0 = true;
                     }
-                    PrismEvent::BackwardsSyncCompleted { height } => {
+                    PrismEvent::HistoricalSyncCompleted { height } => {
                         assert!(height.is_none());
                         events_received.1 = true;
                     }
@@ -365,7 +365,7 @@ async fn test_incoming_epoch_after_backwards_sync() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             return matches!(height, Some(5000));
         }
         false
@@ -386,7 +386,7 @@ async fn test_backwards_sync_completes() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             return height.is_none();
         }
         false
