@@ -187,7 +187,7 @@ impl LightClient {
                     state.current_height = da_height;
                 }
 
-                self.event_pub.send(PrismEvent::BackwardsSyncCompleted {
+                self.event_pub.send(PrismEvent::HistoricalSyncCompleted {
                     height: Some(da_height),
                 });
 
@@ -219,7 +219,7 @@ impl LightClient {
     ) {
         info!("starting historical sync");
         // Announce that sync has started
-        self.event_pub.send(PrismEvent::BackwardsSyncStarted {
+        self.event_pub.send(PrismEvent::HistoricalSyncStarted {
             height: network_height,
         });
         self.event_pub.send(PrismEvent::RecursiveVerificationStarted {
@@ -257,7 +257,7 @@ impl LightClient {
                                 // minimum height
                                 light_client
                                     .event_pub
-                                    .send(PrismEvent::BackwardsSyncCompleted { height: None });
+                                    .send(PrismEvent::HistoricalSyncCompleted { height: None });
                                 return;
                             }
                         }

@@ -69,10 +69,10 @@ impl From<PrismEvent> for UniffiLightClientEvent {
     fn from(event: PrismEvent) -> Self {
         match event {
             PrismEvent::Ready => UniffiLightClientEvent::Ready,
-            PrismEvent::BackwardsSyncStarted { height } => {
+            PrismEvent::HistoricalSyncStarted { height } => {
                 UniffiLightClientEvent::SyncStarted { height }
             }
-            PrismEvent::BackwardsSyncCompleted { height } => {
+            PrismEvent::HistoricalSyncCompleted { height } => {
                 UniffiLightClientEvent::SyncCompleted { height }
             }
             PrismEvent::UpdateDAHeight { height } => {
