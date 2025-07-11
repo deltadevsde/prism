@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_events::{EventChannel, PrismEvent};
+use serde::{Deserialize, Serialize};
 use std::{
     self,
     sync::{
@@ -24,7 +25,29 @@ use prism_serde::binary::ToBinary;
 use tokio::task::spawn;
 use tracing::{debug, warn};
 
-use super::utils::{CelestiaConfig, create_namespace};
+use super::utils::create_namespace;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CelestiaFullNodeDAConfig {
+    pub url: String,
+    // pub celestia_network: CelestiaNetwork,
+    pub snark_namespace_id: String,
+    pub operation_namespace_id: String,
+    pub fetch_timeout: Duration,
+    pub fetch_max_retries: u64,
+}
+
+impl Default for CelestiaFullNodeDAConfig {
+    fn default() -> Self {
+        Self {
+            url: "ws://localhost:26658".to_string(),
+            snark_namespace_id: "00000000000000de1008".to_string(),
+            operation_namespace_id: "00000000000000de1009".to_string(),
+            fetch_timeout: Duration::from_secs(120),
+            fetch_max_retries: 5,
+        }
+    }
+}
 
 pub struct CelestiaConnection {
     pub client: celestia_rpc::Client,
@@ -39,8 +62,8 @@ pub struct CelestiaConnection {
 }
 
 impl CelestiaConnection {
-    pub async fn new(config: &CelestiaConfig, auth_token: Option<&str>) -> Result<Self> {
-        let client = Client::new(&config.connection_string, auth_token)
+    pub async fn new(config: &CelestiaFullNodeDAConfig, auth_token: Option<&str>) -> Result<Self> {
+        let client = Client::new(&config.url, auth_token)
             .await
             .context("Failed to initialize websocket connection")
             .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
