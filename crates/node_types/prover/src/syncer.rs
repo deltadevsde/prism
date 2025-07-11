@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tokio::sync::{RwLock, broadcast};
 use tokio_util::sync::CancellationToken;
 
-use crate::{prover_engine::ProverEngine, sequencer::Sequencer, tx_buffer::TxBuffer};
+use crate::{prover_engine::engine::ProverEngine, sequencer::Sequencer, tx_buffer::TxBuffer};
 
 #[derive(Clone)]
 pub struct Syncer {
@@ -20,7 +20,7 @@ pub struct Syncer {
     latest_epoch_da_height: Arc<RwLock<u64>>,
     start_height: u64,
     sequencer: Arc<Sequencer>,
-    prover_engine: Arc<ProverEngine>,
+    prover_engine: Arc<dyn ProverEngine>,
     is_prover_enabled: bool,
 }
 
@@ -31,7 +31,7 @@ impl Syncer {
         config: &crate::prover::SyncerConfig,
         latest_epoch_da_height: Arc<RwLock<u64>>,
         sequencer: Arc<Sequencer>,
-        prover_engine: Arc<ProverEngine>,
+        prover_engine: Arc<dyn ProverEngine>,
     ) -> Self {
         Self {
             da,

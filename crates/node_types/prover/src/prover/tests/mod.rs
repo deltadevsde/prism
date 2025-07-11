@@ -1,12 +1,14 @@
+use crate::prover_engine::engine::MockProverEngine;
+
 use super::*;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
-use prism_tree::proofs::Proof;
+use prism_tree::proofs::{Batch, Proof};
 use std::{self, sync::Arc, time::Duration};
 use tokio::spawn;
 use tokio_util::sync::CancellationToken;
 
-use prism_da::memory::InMemoryDataAvailabilityLayer;
+use prism_da::{SuccinctProof, VerifiableEpoch, memory::InMemoryDataAvailabilityLayer};
 use prism_storage::inmemory::InMemoryDatabase;
 
 fn init_logger() {
@@ -28,13 +30,37 @@ fn init_logger() {
 
 // Helper function to create a test prover instance
 async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
-    let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(500));
+    let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50));
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let mut cfg = Config::default_with_key_algorithm(algorithm).unwrap();
     cfg.syncer.max_epochless_gap = 5;
     cfg.webserver.port = 0;
-    Arc::new(Prover::new(db.clone(), da_layer, &cfg, CancellationToken::new()).unwrap())
+    let engine = create_mock_engine().await;
+    Arc::new(
+        Prover::new_with_engine(
+            db.clone(),
+            da_layer,
+            engine.clone(),
+            &cfg,
+            CancellationToken::new(),
+        )
+        .unwrap(),
+    )
+}
+
+async fn create_mock_engine() -> Arc<dyn ProverEngine> {
+    let mut engine = MockProverEngine::new();
+    engine.expect_prove_epoch().returning(|_: u64, batch: &Batch, _: &Arc<Box<dyn Database>>| {
+        match batch.verify() {
+            Ok(_) => Ok((SuccinctProof::default(), SuccinctProof::default())),
+            Err(e) => Err(anyhow!(e)),
+        }
+    });
+
+    // TODO: Maybe mock the verifiable epochs somehow as well
+    engine.expect_verify_proof().returning(|_: VerifiableEpoch| Ok(()));
+    Arc::new(engine)
 }
 
 fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
@@ -267,17 +293,19 @@ async fn test_finalize_new_epoch() {
 #[tokio::test]
 async fn test_restart_sync_from_scratch() {
     init_logger();
-    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(200));
+    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50));
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
+    let engine = create_mock_engine().await;
     let mut cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     cfg.webserver.port = 0;
     let cancellation_token = CancellationToken::new();
     let prover = Arc::new(
-        Prover::new(
+        Prover::new_with_engine(
             db1.clone(),
             da_layer.clone(),
+            engine.clone(),
             &cfg,
             cancellation_token.clone(),
         )
@@ -305,9 +333,10 @@ async fn test_restart_sync_from_scratch() {
     cancellation_token.cancel();
 
     let prover2 = Arc::new(
-        Prover::new(
+        Prover::new_with_engine(
             db2.clone(),
             da_layer.clone(),
+            engine.clone(),
             &cfg,
             CancellationToken::new(),
         )
@@ -338,20 +367,22 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     init_logger();
     // Setup shared DA layer
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new_with_epoch_delay(
-        Duration::from_millis(200),
-        Duration::from_secs(1),
+        Duration::from_millis(50),
+        Duration::from_millis(250),
     );
     let da_layer = Arc::new(da_layer);
 
     // Setup prover (with prover enabled)
     let prover_db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
+    let prover_engine = create_mock_engine().await;
     let mut prover_cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     prover_cfg.syncer.prover_enabled = true;
     prover_cfg.webserver.port = 0;
     let prover = Arc::new(
-        Prover::new(
+        Prover::new_with_engine(
             prover_db.clone(),
             da_layer.clone(),
+            prover_engine.clone(),
             &prover_cfg,
             CancellationToken::new(),
         )
@@ -360,14 +391,16 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
 
     // Setup fullnode (with prover disabled) - use same verifying key as prover
     let fullnode_db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
+    let fullnode_engine = create_mock_engine().await;
     let mut fullnode_cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     fullnode_cfg.syncer.prover_enabled = false;
     fullnode_cfg.syncer.verifying_key = prover_cfg.syncer.verifying_key.clone();
     fullnode_cfg.webserver.port = 0;
     let fullnode = Arc::new(
-        Prover::new(
+        Prover::new_with_engine(
             fullnode_db.clone(),
             da_layer.clone(),
+            fullnode_engine.clone(),
             &fullnode_cfg,
             CancellationToken::new(),
         )
@@ -471,13 +504,21 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
 #[tokio::test]
 async fn test_load_persisted_state() {
     init_logger();
-    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(500));
+    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50));
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
+    let engine = create_mock_engine().await;
     let mut cfg = Config::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     cfg.webserver.port = 0;
     let prover = Arc::new(
-        Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap(),
+        Prover::new_with_engine(
+            db.clone(),
+            da_layer.clone(),
+            engine.clone(),
+            &cfg,
+            CancellationToken::new(),
+        )
+        .unwrap(),
     );
 
     let runner = prover.clone();
@@ -499,7 +540,14 @@ async fn test_load_persisted_state() {
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
 
     let prover2 = Arc::new(
-        Prover::new(db.clone(), da_layer.clone(), &cfg, CancellationToken::new()).unwrap(),
+        Prover::new_with_engine(
+            db.clone(),
+            da_layer.clone(),
+            engine.clone(),
+            &cfg,
+            CancellationToken::new(),
+        )
+        .unwrap(),
     );
     let runner = prover2.clone();
     spawn(async move { runner.run().await.unwrap() });

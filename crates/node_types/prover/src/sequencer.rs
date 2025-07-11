@@ -14,7 +14,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 
-use crate::prover_engine::ProverEngine;
+use crate::prover_engine::engine::ProverEngine;
 
 #[derive(Clone)]
 pub struct Sequencer {
@@ -114,25 +114,21 @@ impl Sequencer {
         &self,
         epoch_height: u64,
         transactions: Vec<Transaction>,
-        prover_engine: &Arc<ProverEngine>,
+        prover_engine: &Arc<dyn ProverEngine>,
         tip_da_height: u64,
     ) -> Result<u64> {
         let mut tree = self.tree.write().await;
         let batch = tree.process_batch(transactions)?;
         batch.verify()?;
 
-        let (proof, compressed_proof) =
-            prover_engine.prove_epoch(epoch_height, &batch, &self.db).await?;
-
-        let public_values = proof.public_values.to_vec();
+        let (snark, stark) = prover_engine.prove_epoch(epoch_height, &batch, &self.db).await?;
 
         let mut epoch_json = FinalizedEpoch {
             height: epoch_height,
             prev_commitment: batch.prev_root,
             current_commitment: batch.new_root,
-            proof,
-            compressed_proof,
-            public_values,
+            snark,
+            stark,
             signature: None,
             tip_da_height,
         };

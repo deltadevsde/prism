@@ -6528,6 +6528,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bincode",
  "blockstore",
  "celestia-rpc",
  "celestia-types",
@@ -6634,6 +6635,7 @@ dependencies = [
  "axum 0.8.4",
  "jmt",
  "log",
+ "mockall",
  "paste",
  "pretty_env_logger",
  "prism-common",
