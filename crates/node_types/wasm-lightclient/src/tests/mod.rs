@@ -208,7 +208,7 @@ mod tests {
 
         // Ready and height update to 100 should be received, is also be used here as test for
         // backwards sync, recursive verification etc., maybe we could write some extra tests if we
-        // should seperate these cases.
+        // should separate these cases.
         assert!(events.len() > 0);
         assert!(events.iter().any(|e| e == "Updated DA height to 100"));
         assert!(events.iter().any(|e| e == "Starting backwards sync at height 100"));
