@@ -52,7 +52,7 @@ pub enum ParseError {
     #[error("Invalid key bytes for algorithm: {0}")]
     InvalidKeyBytes(String),
 
-    #[error("A parsing error occured: {0}")]
+    #[error("A parsing error occurred: {0}")]
     GeneralError(String),
 }
 
@@ -73,6 +73,6 @@ pub enum VerificationError {
     #[error("{0} vk {1} DER format is not implemented")]
     NotImplementedError(String, String),
 
-    #[error("A verification error occured: {0}")]
+    #[error("A verification error occurred: {0}")]
     GeneralError(String),
 }
