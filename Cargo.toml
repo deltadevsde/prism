@@ -109,7 +109,7 @@ rand = "0.8.5"
 sp1-zkvm = { version = "5.0.5" }
 sp1-sdk = { version = "5.0.6" }
 sp1-verifier = { version = "5.0.5", default-features = false }
-sp1-build = { version = "5.0.5" }
+sp1-build = { version = "5.0.8" }
 
 # curves
 ed25519 = { version = "2.2.3", features = ["pem"] }
