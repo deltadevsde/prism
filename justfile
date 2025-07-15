@@ -88,23 +88,7 @@ check:
 
 build:
   @echo "Building the project..."
-  cargo build --release
-
-  @echo "Building SP1 base binary..."
-  cd crates/zk/sp1 && cargo prove build --bin base_prover --output-directory ../../../elf/ --elf-name base-riscv32im-succinct-zkvm-elf
-  @echo "Base binary built successfully."
-
-  @echo "Building SP1 recursive binary..."
-  cd crates/zk/sp1 && cargo prove build --bin recursive_prover --output-directory ../../../elf/ --elf-name recursive-riscv32im-succinct-zkvm-elf
-  @echo "Recursive binary built successfully."
-
-  @echo "Creating verifying keys directory..."
-  mkdir -p ./verification_keys
-
-  @echo "Generating verification keys..."
-  echo "{\"base_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/base-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\", \"recursive_vk\": \"$(cd crates/zk/sp1 && cargo prove vkey --elf ../../../elf/recursive-riscv32im-succinct-zkvm-elf | grep '0x' | cut -d' ' -f2)\"}" > ./verification_keys/keys.json
-
-  @echo "Verification key hashes generated successfully"
+  SP1_SKIP_PROGRAM_BUILD=false cargo build --release
 
 unit-test:
   @echo "Running unit tests..."

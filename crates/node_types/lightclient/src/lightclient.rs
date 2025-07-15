@@ -92,6 +92,8 @@ pub struct LightClient {
 
     // The latest commitment.
     latest_commitment: Arc<RwLock<Option<Digest>>>,
+
+    mock_proof_verification: bool,
 }
 
 #[derive(Default, Clone)]
@@ -126,7 +128,13 @@ impl LightClient {
             latest_commitment: Arc::new(RwLock::new(None)),
             sync_state,
             cancellation_token,
+            mock_proof_verification: false,
         }
+    }
+
+    pub fn enable_mock_proof_verification(&mut self) {
+        error!("PROOF VERIFICATION IS DISABLED");
+        self.mock_proof_verification = true;
     }
 
     pub async fn get_sync_state(&self) -> SyncState {
@@ -396,7 +404,10 @@ impl LightClient {
                     height: epoch.height(),
                     error: e.to_string(),
                 });
-                return Err(anyhow::anyhow!(e));
+                if !self.mock_proof_verification {
+                    return Err(anyhow::anyhow!(e));
+                }
+                epoch.commitments()
             }
         };
         let curr_commitment = commitments.current;
