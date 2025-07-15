@@ -238,14 +238,11 @@ impl LightClient {
                     state.current_height = da_height;
                 }
 
-<<<<<<< HEAD
-=======
                 self.event_pub.send(PrismEvent::HistoricalSyncCompleted {
                     height: Some(da_height),
                 });
 
                 // Stop searching if a single epoch is processed successfully
->>>>>>> 5005427a (Added events to syncer.rs)
                 Ok(())
             }
             Err(e) => {
@@ -292,7 +289,7 @@ impl LightClient {
             let sync_state = self.sync_state.read().await;
             // [`sync_incoming_heights`] can find the first epoch before backwards sync finishes.
             if sync_state.latest_finalized_epoch.is_some() {
-                self.event_pub.send(PrismEvent::BackwardsSyncCompleted { height: None });
+                self.event_pub.send(PrismEvent::HistoricalSyncCompleted { height: None });
                 return Ok(());
             }
             drop(sync_state);
@@ -308,27 +305,14 @@ impl LightClient {
                                         // Found a valid epoch, stop looking backwards
                                         self
                                             .event_pub
-                                            .send(PrismEvent::BackwardsSyncCompleted { height: Some(da_height) });
+                                            .send(PrismEvent::HistoricalSyncCompleted { height: Some(da_height) });
                                         return Ok(());
                                     }
                                     Err(_) => {
                                         // Keep looking backwards, as long as we haven't reached min_height
                                         current_height = da_height - 1;
                                     }
-<<<<<<< HEAD
                                 };
-=======
-                                }
-                            },
-                            None => {
-                                // This case happens when the incoming sync finds an epoch
-                                // before the backwards sync does, or we have exhausted
-                                // minimum height
-                                light_client
-                                    .event_pub
-                                    .send(PrismEvent::HistoricalSyncCompleted { height: None });
-                                return;
->>>>>>> 5005427a (Added events to syncer.rs)
                             }
                         },
                         None => {
@@ -337,7 +321,7 @@ impl LightClient {
                             // minimum height
                             self
                                 .event_pub
-                                .send(PrismEvent::BackwardsSyncCompleted { height: None });
+                                .send(PrismEvent::HistoricalSyncCompleted { height: None });
                             return Ok(());
                         }
                     };

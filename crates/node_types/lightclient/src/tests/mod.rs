@@ -145,7 +145,7 @@ async fn test_realtime_sync() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 3 });
     wait_for_event(&mut sub, |event| {
-        matches!(event, PrismEvent::BackwardsSyncStarted { height: 3 })
+        matches!(event, PrismEvent::HistoricalSyncStarted { height: 3 })
     })
     .await;
 
@@ -334,7 +334,7 @@ async fn test_incoming_epoch_during_backwards_sync() {
 
         publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
         wait_for_event(&mut sub2, |event| {
-            matches!(event, PrismEvent::BackwardsSyncStarted { height: 5100 })
+            matches!(event, PrismEvent::HistoricalSyncStarted { height: 5100 })
         })
         .await;
         publisher.send(PrismEvent::UpdateDAHeight { height: 5101 });
