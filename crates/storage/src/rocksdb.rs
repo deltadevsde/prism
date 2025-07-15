@@ -198,31 +198,6 @@ impl Database for RocksDBConnection {
     }
 }
 
-<<<<<<< HEAD
-fn create_key(prefix: &str, node_key: impl AsRef<[u8]>) -> Result<Vec<u8>> {
-    let mut key = Vec::with_capacity(prefix.len() + node_key.as_ref().len());
-    key.extend_from_slice(prefix.as_bytes());
-    key.extend_from_slice(node_key.as_ref());
-    Ok(key)
-}
-
-fn key_concat(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Result<Vec<u8>> {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    let mut key = prefix;
-=======
-    let mut key = prefix.clone();
->>>>>>> bed1af7c (Refactored more key stuff in rocksdb)
-=======
-    let mut key = prefix;
->>>>>>> e7a8f98f (removed extra clone)
-    key.push(b':');
-    key.extend_from_slice(suffix.as_ref());
-    Ok(key)
-}
-
-=======
->>>>>>> 7ff4b466 (removed const usage)
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
         let key = Key::Node.with(node_key.encode_to_bytes()?);
