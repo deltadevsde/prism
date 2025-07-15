@@ -20,18 +20,19 @@ pub enum PrismEvent {
     /// Sent when backwards sync starts at the given DA height.
     HistoricalSyncStarted { height: u64 },
     /// Sent when the historical sync completes. Is None when the sync did not find any
-    /// [`FinalizedEpochs`].
+    /// [`FinalizedEpoch`]s.
     HistoricalSyncCompleted { height: Option<u64> },
     /// Sent when the DA height is updated to the given height.
     UpdateDAHeight { height: u64 },
     /// Sent when the Epoch Verification was successfully verified at given height.
     EpochVerified { height: u64 },
-    /// Sent when the Epoch Verification failed. Gives the height it failed at and the error.
+    /// Sent when a [`FinalizedEpoch`] fails validation. Gives the height it failed at and the
+    /// error.
     EpochVerificationFailed { height: u64, error: String },
-    /// Sent when Epoch Verification cannot find an Epoch above the miniumum height. Gives the
+    /// Sent when a DA height is queried and no [`FinalizedEpoch`] is found. Gives the
     /// height it failed at.
     NoEpochFound { height: u64 },
-    /// Sent when the Height Channel closes.
+    /// Sent when the DA Height Channel closes unexpectedly.
     HeightChannelClosed,
     /// Sent when the current Commitment is retrieved. Gives the commitment retrieved.
     GetCurrentCommitment { commitment: Digest },
@@ -40,7 +41,7 @@ pub enum PrismEvent {
     /// Sent when Epoch Verification completes at a given height.
     RecursiveVerificationCompleted { height: u64 },
 
-    /// Lumina Node event
+    /// Forwarded events from Lumina.
     LuminaEvent { event: NodeEvent },
     // maybe place for Future P2P events like
     /* ConnectingToFullNode {
