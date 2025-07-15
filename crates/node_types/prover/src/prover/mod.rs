@@ -18,7 +18,7 @@ use tokio::{sync::RwLock, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    prover_engine::ProverEngine,
+    prover_engine::{engine::ProverEngine, sp1_prover::SP1ProverEngine},
     sequencer::Sequencer,
     syncer::Syncer,
     webserver::{WebServer, WebServerConfig},
@@ -110,7 +110,7 @@ impl Config {
 #[allow(dead_code)]
 pub struct Prover {
     pub cfg: Config,
-    prover_engine: Arc<ProverEngine>,
+    prover_engine: Arc<dyn ProverEngine>,
     sequencer: Arc<Sequencer>,
     syncer: Arc<Syncer>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
@@ -125,9 +125,18 @@ impl Prover {
         cfg: &Config,
         cancellation_token: CancellationToken,
     ) -> Result<Prover> {
-        let latest_epoch_da_height = Arc::new(RwLock::new(0));
+        let prover_engine = Arc::new(SP1ProverEngine::new(&cfg.prover_engine)?);
+        Prover::new_with_engine(db, da, prover_engine, cfg, cancellation_token)
+    }
 
-        let prover_engine = Arc::new(ProverEngine::new(&cfg.prover_engine)?);
+    pub fn new_with_engine(
+        db: Arc<Box<dyn Database>>,
+        da: Arc<dyn DataAvailabilityLayer>,
+        prover_engine: Arc<dyn ProverEngine>,
+        cfg: &Config,
+        cancellation_token: CancellationToken,
+    ) -> Result<Prover> {
+        let latest_epoch_da_height = Arc::new(RwLock::new(0));
 
         let sequencer = Arc::new(Sequencer::new(
             db.clone(),

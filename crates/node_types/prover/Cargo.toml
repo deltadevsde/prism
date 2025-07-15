@@ -31,6 +31,7 @@ prism-keys = { workspace = true }
 prism-da = { workspace = true }
 sp1-sdk = { workspace = true }
 prism-telemetry-registry = { workspace = true }
+mockall = { workspace = true }
 
 [dev-dependencies]
 paste = { workspace = true }
