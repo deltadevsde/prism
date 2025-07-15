@@ -15,11 +15,6 @@ use prism_serde::{
 use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
 
-const KEY_PREFIX_COMMITMENTS: &str = "commitments:epoch_";
-const KEY_PREFIX_NODE: &str = "node:";
-const KEY_PREFIX_VALUE_HISTORY: &str = "value_history:";
-const KEY_PREFIX_EPOCHS: &str = "epochs:height_";
-
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -41,6 +36,45 @@ pub struct RocksDBConnection {
     path: String,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum Key {
+    Commitment,
+    Node,
+    ValueHistory,
+    Epoch,
+}
+
+fn create_key(prefix: Key, suffix: impl AsRef<[u8]>) -> Vec<u8> {
+    let id = prefix.as_byte();
+    let key = suffix.as_ref();
+    let mut fullkey = Vec::<u8>::with_capacity(key.len() + 1);
+    fullkey.push(id);
+    fullkey.extend_from_slice(key);
+    fullkey
+}
+
+fn create_final_key(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Vec<u8> {
+    let mut key = prefix.clone();
+    key.push(b':');
+    key.extend_from_slice(suffix.as_ref());
+    key
+}
+
+impl Key {
+    fn with<T: AsRef<[u8]>>(&self, suffix: T) -> Vec<u8> {
+        create_key(*self, suffix)
+    }
+
+    fn as_byte(&self) -> u8 {
+        match self {
+            Key::Commitment => 0,
+            Key::Node => 1,
+            Key::ValueHistory => 2,
+            Key::Epoch => 3,
+        }
+    }
+}
+
 impl RocksDBConnection {
     pub fn new(cfg: &RocksDBConfig) -> Result<RocksDBConnection> {
         let path = &cfg.path;
@@ -55,8 +89,8 @@ impl RocksDBConnection {
 
 impl Database for RocksDBConnection {
     fn get_commitment(&self, epoch: &u64) -> anyhow::Result<Digest> {
-        let key = format!("{KEY_PREFIX_COMMITMENTS}{}", epoch);
-        let raw_bytes = self.connection.get(key.as_bytes())?.ok_or_else(|| {
+        let key = Key::Commitment.with(epoch.encode_to_bytes()?);
+        let raw_bytes = self.connection.get(key)?.ok_or_else(|| {
             DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
         })?;
 
@@ -68,7 +102,7 @@ impl Database for RocksDBConnection {
 
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> anyhow::Result<()> {
         Ok(self.connection.put::<&[u8], [u8; 32]>(
-            format!("{KEY_PREFIX_COMMITMENTS}{}", epoch).as_bytes(),
+            Key::Commitment.with(epoch.encode_to_bytes()?).as_ref(),
             commitment.0,
         )?)
     }
@@ -89,10 +123,10 @@ impl Database for RocksDBConnection {
     }
 
     fn get_epoch(&self, height: &u64) -> anyhow::Result<prism_da::FinalizedEpoch> {
-        let key = format!("{}{}", KEY_PREFIX_EPOCHS, height);
+        let key = Key::Epoch.with(height.encode_to_bytes()?);
         let epoch_data = self
             .connection
-            .get(key.as_bytes())?
+            .get(key)?
             .ok_or_else(|| DatabaseError::NotFoundError(format!("epoch at height {}", height)))?;
 
         prism_da::FinalizedEpoch::decode_from_bytes(&epoch_data).map_err(|e| {
@@ -134,7 +168,7 @@ impl Database for RocksDBConnection {
         // Use a write batch to atomically store the epoch and update the latest height
         let mut batch = rocksdb::WriteBatch::default();
         batch.put(
-            format!("{}{}", KEY_PREFIX_EPOCHS, epoch.height).as_bytes(),
+            Key::Epoch.with(epoch.height.encode_to_bytes()?),
             &epoch_data,
         );
         batch.put(b"app_state:latest_epoch_height", epoch.height.to_be_bytes());
@@ -164,6 +198,7 @@ impl Database for RocksDBConnection {
     }
 }
 
+<<<<<<< HEAD
 fn create_key(prefix: &str, node_key: impl AsRef<[u8]>) -> Result<Vec<u8>> {
     let mut key = Vec::with_capacity(prefix.len() + node_key.as_ref().len());
     key.extend_from_slice(prefix.as_bytes());
@@ -186,9 +221,11 @@ fn key_concat(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Result<Vec<u8>> {
     Ok(key)
 }
 
+=======
+>>>>>>> 7ff4b466 (removed const usage)
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        let key = create_key(KEY_PREFIX_NODE, node_key.encode_to_bytes()?)?;
+        let key = Key::Node.with(node_key.encode_to_bytes()?);
         let value = self.connection.get(key)?;
 
         // Check if node has valid data
@@ -203,9 +240,9 @@ impl TreeReader for RocksDBConnection {
         max_version: Version,
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
-        let value_key = create_key(KEY_PREFIX_VALUE_HISTORY, key_hash.0)?;
+        let value_key = Key::ValueHistory.with(key_hash.0);
         let max_version_bytes = max_version.to_be_bytes();
-        let max_key = key_concat(value_key.clone(), max_version_bytes)?;
+        let max_key = create_final_key(value_key.clone(), max_version_bytes);
 
         // Search db backwards starting at max_key
         let mut iter = self.connection.iterator(rocksdb::IteratorMode::From(
@@ -228,12 +265,10 @@ impl TreeReader for RocksDBConnection {
         let mut iter = self.connection.iterator(rocksdb::IteratorMode::End);
 
         while let Some(Ok((key, value))) = iter.next() {
-            if key.starts_with(KEY_PREFIX_NODE.as_bytes()) {
+            if key.starts_with(&[Key::Node.as_byte()]) {
                 let node: Node = Node::decode_from_bytes(&value)?;
                 if let Node::Leaf(leaf) = node {
-                    let node_key = NodeKey::decode_from_bytes(&Vec::<u8>::from_hex(
-                        &key[KEY_PREFIX_NODE.len()..],
-                    )?)?;
+                    let node_key = NodeKey::decode_from_bytes(&Vec::<u8>::from_hex(&key[1..])?)?;
                     return Ok(Some((node_key, leaf)));
                 }
             }
@@ -249,7 +284,7 @@ impl TreeWriter for RocksDBConnection {
 
         // Put each node in the batch (for tree structure)
         for (node_key, node) in node_batch.nodes() {
-            let key = create_key(KEY_PREFIX_NODE, node_key.encode_to_bytes()?)?;
+            let key = Key::Node.with(node_key.encode_to_bytes()?);
             let value = node.encode_to_bytes()?;
             batch.put(key, &value);
         }
@@ -257,13 +292,13 @@ impl TreeWriter for RocksDBConnection {
         // Put each value in the batch (for versioning)
         for ((version, key_hash), value) in node_batch.values() {
             // Create base key
-            let value_key = create_key(KEY_PREFIX_VALUE_HISTORY, key_hash.0)?;
+            let value_key = Key::ValueHistory.with(key_hash.0);
             let encoded_value =
                 value.as_ref().map(|v| v.encode_to_bytes()).transpose()?.unwrap_or_default();
             let version_bytes = version.to_be_bytes();
 
             // Create final key
-            let final_key = key_concat(value_key.clone(), version_bytes)?;
+            let final_key = create_final_key(value_key, version_bytes);
 
             batch.put(final_key, &encoded_value);
         }
