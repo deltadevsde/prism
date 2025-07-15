@@ -92,8 +92,8 @@ impl Syncer {
     ) -> Result<()> {
         let mut current_height = start_height;
 
-        self.event_pub.send(PrismEvent::UpdateDAHeight {
-            height: (current_height),
+        self.event_pub.send(PrismEvent::HistoricalSyncCompleted {
+            height: (Some(current_height)),
         });
 
         while current_height <= end_height {
@@ -133,6 +133,9 @@ impl Syncer {
                         height,
                         true,
                     ).await?;
+                    self.event_pub.send(PrismEvent::UpdateDAHeight {
+                        height: (current_height),
+                    });
                     current_height += 1;
                     self.db.set_last_synced_height(&current_height)?;
                 },

@@ -15,17 +15,15 @@ const EVENT_CHANNEL_CAPACITY: usize = 1024;
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum PrismEvent {
-    /// Sent when ready to sync.
+    /// Sent when the node is ready to sync and listening to new events.
     Ready,
-    /// Sent when backwards sync starts at the given height.
+    /// Sent when backwards sync starts at the given DA height.
     HistoricalSyncStarted { height: u64 },
-    /// Sent when the backwards sync completes. Is None when the sync did not find any
+    /// Sent when the historical sync completes. Is None when the sync did not find any
     /// [`FinalizedEpochs`].
     HistoricalSyncCompleted { height: Option<u64> },
     /// Sent when the DA height is updated to the given height.
     UpdateDAHeight { height: u64 },
-    /// Sent when Epoch Verification starts at the given height.
-    EpochVerificationStarted { height: u64 },
     /// Sent when the Epoch Verification was successfully verified at given height.
     EpochVerified { height: u64 },
     /// Sent when the Epoch Verification failed. Gives the height it failed at and the error.
@@ -71,9 +69,6 @@ impl fmt::Display for PrismEvent {
             }
             PrismEvent::UpdateDAHeight { height } => {
                 write!(f, "Updated DA height to {}", height)
-            }
-            PrismEvent::EpochVerificationStarted { height } => {
-                write!(f, "Starting verification of epoch {}", height)
             }
             PrismEvent::EpochVerified { height } => {
                 write!(f, "Verified epoch {}", height)

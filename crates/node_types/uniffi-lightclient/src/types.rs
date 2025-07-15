@@ -19,11 +19,6 @@ pub enum UniffiLightClientEvent {
         /// The new DA layer height
         height: u64,
     },
-    /// Epoch verification has started
-    EpochVerificationStarted {
-        /// The epoch height being verified
-        height: u64,
-    },
     /// Epoch was successfully verified
     EpochVerified {
         /// The epoch height that was verified
@@ -77,9 +72,6 @@ impl From<PrismEvent> for UniffiLightClientEvent {
             }
             PrismEvent::UpdateDAHeight { height } => {
                 UniffiLightClientEvent::UpdateDAHeight { height }
-            }
-            PrismEvent::EpochVerificationStarted { height } => {
-                UniffiLightClientEvent::EpochVerificationStarted { height }
             }
             PrismEvent::EpochVerified { height } => {
                 UniffiLightClientEvent::EpochVerified { height }
