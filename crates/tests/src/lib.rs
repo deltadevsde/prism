@@ -3,13 +3,15 @@
 #[macro_use]
 extern crate log;
 
+use celestia_rpc::{Client, P2PClient};
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
+    DataAvailabilityLayer, LightDataAvailabilityLayer,
     celestia::{
         full_node::CelestiaConnection as FullNodeCelestiaConn,
         light_client::LightClientConnection as LightClientCelestiaConn,
         utils::{CelestiaConfig, NetworkConfig},
-    }, DataAvailabilityLayer, LightDataAvailabilityLayer
+    },
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_lightclient::LightClient;
@@ -25,6 +27,8 @@ use tokio_util::sync::CancellationToken;
 
 use tempfile::TempDir;
 
+const BRIDGE_0_ADDR: &str = "ws://localhost:26658";
+
 fn setup_db() -> Arc<Box<dyn Database>> {
     let temp_dir = TempDir::new().unwrap();
     let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
@@ -32,15 +36,27 @@ fn setup_db() -> Arc<Box<dyn Database>> {
     Arc::new(Box::new(db) as Box<dyn Database>)
 }
 
-async fn setup_da() -> (Arc<dyn LightDataAvailabilityLayer  + std::marker::Send + std::marker::Sync + 'static>, Arc<dyn DataAvailabilityLayer>) {
+async fn get_bootnode(addr: &str) -> String {
+    let client = Client::new(addr, None).await.unwrap();
+    let peer_info = client.p2p_info().await.unwrap();
+    peer_info.addrs.into_iter().find(|p| p.to_string().contains("dns")).unwrap().to_string()
+}
+
+async fn setup_da() -> (
+    Arc<dyn LightDataAvailabilityLayer + std::marker::Send + std::marker::Sync + 'static>,
+    Arc<dyn DataAvailabilityLayer>,
+) {
     let bridge_cfg = CelestiaConfig {
-        connection_string: "ws://localhost:26658".to_string(),
+        connection_string: BRIDGE_0_ADDR.to_string(),
         ..CelestiaConfig::default()
     };
 
+    let bootnode = get_bootnode(BRIDGE_0_ADDR).await;
+
     let lc_cfg = NetworkConfig {
         celestia_config: Some(CelestiaConfig {
-            connection_string: "ws://localhost:26658".to_string(),
+            connection_string: BRIDGE_0_ADDR.to_string(),
+            bootnodes: vec![bootnode],
             ..CelestiaConfig::default()
         }),
         ..NetworkConfig::default()
@@ -80,15 +96,21 @@ async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, CancellationToken) {
 
     let node_shutdown_token = CancellationToken::new();
 
-    let prover = Arc::new(Prover::new(
-        db.clone(),
-        fn_da.clone(),
-        &prover_cfg,
-        node_shutdown_token.clone()
-    ).unwrap());
+    let prover = Arc::new(
+        Prover::new(
+            db.clone(),
+            fn_da.clone(),
+            &prover_cfg,
+            node_shutdown_token.clone(),
+        )
+        .unwrap(),
+    );
 
-
-    let lightclient = Arc::new(LightClient::new(lc_da.clone(), pubkey, node_shutdown_token.clone()));
+    let lightclient = Arc::new(LightClient::new(
+        lc_da.clone(),
+        pubkey,
+        node_shutdown_token.clone(),
+    ));
 
     (prover, lightclient, node_shutdown_token)
 }
@@ -96,7 +118,6 @@ async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, CancellationToken) {
 #[tokio::test]
 async fn test_light_client_prover_talking() {
     pretty_env_logger::formatted_builder()
-
         .filter_level(log::LevelFilter::Debug)
         .filter_module("tracing", log::LevelFilter::Off)
         .filter_module("libp2p_gossipsub", log::LevelFilter::Off)
@@ -131,7 +152,7 @@ async fn test_light_client_prover_talking() {
     let tx_shutdown = CancellationToken::new();
     let prover_clone = Arc::clone(&prover);
     let ct = tx_shutdown.clone();
-    let tx_generator = spawn(async move {generate_transactions(prover_clone, ct).await});
+    let tx_generator = spawn(async move { generate_transactions(prover_clone, ct).await });
 
     // Grab the latest DA height after subscribing
     let prover_clone = Arc::clone(&prover);
@@ -149,14 +170,21 @@ async fn test_light_client_prover_talking() {
             // Shutdown transaction generator
             tx_shutdown.cancel();
             let res = tx_generator.await;
-            assert!(res.is_ok(), "Transaction generator exited with error {:?}", res);
+            assert!(
+                res.is_ok(),
+                "Transaction generator exited with error {:?}",
+                res
+            );
             break;
         }
     }
 
     // Ensure the light client has synced and set at least one FinalizedEpoch
     let lc_clone = Arc::clone(&lightclient);
-    assert!(lc_clone.get_sync_state().await.latest_finalized_epoch.is_some(), "Light client did not sync any epochs.");
+    assert!(
+        lc_clone.get_sync_state().await.latest_finalized_epoch.is_some(),
+        "Light client did not sync any epochs."
+    );
 
     // Ensure light client and prover end up with the same digest
     let lc_clone = Arc::clone(&lightclient);
@@ -164,20 +192,30 @@ async fn test_light_client_prover_talking() {
     let timeout = tokio::time::timeout(Duration::from_secs(5), async move {
         loop {
             let lc_digest = lc_clone.get_latest_commitment().await.unwrap();
-            let bridge_digest = prover_clone.get_db().get_latest_epoch().unwrap().current_commitment;
+            let bridge_digest =
+                prover_clone.get_db().get_latest_epoch().unwrap().current_commitment;
             if lc_digest == bridge_digest {
                 break;
             }
             tokio::time::sleep(Duration::from_millis(100)).await
         }
-    }).await;
+    })
+    .await;
 
-    assert!(timeout.is_ok(), "Commitments did not match after timeout: {:?}", timeout);
+    assert!(
+        timeout.is_ok(),
+        "Commitments did not match after timeout: {:?}",
+        timeout
+    );
 
     // Gracefully shut down nodes
     node_shutdown.cancel();
     let graceful_shutdown = tokio::try_join!(prover_handle, lc_handle);
-    assert!(graceful_shutdown.is_ok(), "Nodes were not gracefully shut down: {:?}", graceful_shutdown);
+    assert!(
+        graceful_shutdown.is_ok(),
+        "Nodes were not gracefully shut down: {:?}",
+        graceful_shutdown
+    );
 }
 
 async fn generate_transactions(prover: Arc<Prover>, ct: CancellationToken) {

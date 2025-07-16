@@ -238,6 +238,9 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             let existing_config = config.network.celestia_config.clone().unwrap_or_default();
 
             Some(CelestiaConfig {
+                // REVIEWERS!!!!: Not settable from command line for now, but this should not be
+                // merged
+                bootnodes: Vec::new(),
                 connection_string: args
                     .celestia
                     .celestia_client
