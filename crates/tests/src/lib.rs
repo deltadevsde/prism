@@ -40,7 +40,7 @@ async fn setup_da() -> (Arc<dyn LightDataAvailabilityLayer  + std::marker::Send 
 
     let lc_cfg = NetworkConfig {
         celestia_config: Some(CelestiaConfig {
-            connection_string: "ws://localhost:46658".to_string(),
+            connection_string: "ws://localhost:26658".to_string(),
             ..CelestiaConfig::default()
         }),
         ..NetworkConfig::default()
@@ -99,6 +99,7 @@ async fn test_light_client_prover_talking() {
 
         .filter_level(log::LevelFilter::Debug)
         .filter_module("tracing", log::LevelFilter::Off)
+        .filter_module("libp2p_gossipsub", log::LevelFilter::Off)
         .filter_module("sp1_stark", log::LevelFilter::Info)
         .filter_module("jmt", log::LevelFilter::Off)
         .filter_module("p3_dft", log::LevelFilter::Off)
@@ -153,6 +154,10 @@ async fn test_light_client_prover_talking() {
         }
     }
 
+    // Ensure the light client has synced and set at least one FinalizedEpoch
+    let lc_clone = Arc::clone(&lightclient);
+    assert!(lc_clone.get_sync_state().await.latest_finalized_epoch.is_some(), "Light client did not sync any epochs.");
+
     // Ensure light client and prover end up with the same digest
     let lc_clone = Arc::clone(&lightclient);
     let prover_clone = Arc::clone(&prover);
@@ -166,10 +171,6 @@ async fn test_light_client_prover_talking() {
             tokio::time::sleep(Duration::from_millis(100)).await
         }
     }).await;
-
-    // Ensure the light client has synced and set at least one FinalizedEpoch
-    let lc_clone = Arc::clone(&lightclient);
-    assert!(lc_clone.get_sync_state().await.latest_finalized_epoch.is_some(), "Light client did not sync any epochs.");
 
     assert!(timeout.is_ok(), "Commitments did not match after timeout: {:?}", timeout);
 
