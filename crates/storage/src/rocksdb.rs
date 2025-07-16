@@ -8,10 +8,7 @@ use jmt::{
 };
 use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
-use prism_serde::{
-    binary::{FromBinary, ToBinary},
-    hex::FromHex,
-};
+use prism_serde::binary::{FromBinary, ToBinary};
 use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
 
@@ -56,15 +53,6 @@ enum Key {
     Epoch,
 }
 
-fn create_key(prefix: Key, suffix: impl AsRef<[u8]>) -> Vec<u8> {
-    let id = prefix.as_byte();
-    let key = suffix.as_ref();
-    let mut fullkey = Vec::<u8>::with_capacity(key.len() + 1);
-    fullkey.push(id);
-    fullkey.extend_from_slice(key);
-    fullkey
-}
-
 fn create_final_key(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Vec<u8> {
     let mut key = prefix.clone();
     key.push(b':');
@@ -73,8 +61,13 @@ fn create_final_key(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Vec<u8> {
 }
 
 impl Key {
-    fn with<T: AsRef<[u8]>>(&self, suffix: T) -> Vec<u8> {
-        create_key(*self, suffix)
+    fn with<T: AsRef<[u8]>>(self, suffix: T) -> Vec<u8> {
+        let id = self.as_byte();
+        let key = suffix.as_ref();
+        let mut fullkey = Vec::<u8>::with_capacity(key.len() + 1);
+        fullkey.push(id);
+        fullkey.extend_from_slice(key);
+        fullkey
     }
 
     fn as_byte(&self) -> u8 {
@@ -236,6 +229,8 @@ impl TreeReader for RocksDBConnection {
         Ok(None)
     }
 
+    // This method only gets called on JMT restoration
+    // TODO: Add test cases in KeyDirectoryTree to test this functionality
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
         let mut iter = self.connection.iterator(rocksdb::IteratorMode::End);
 
@@ -243,7 +238,7 @@ impl TreeReader for RocksDBConnection {
             if key.starts_with(&[Key::Node.as_byte()]) {
                 let node: Node = Node::decode_from_bytes(&value)?;
                 if let Node::Leaf(leaf) = node {
-                    let node_key = NodeKey::decode_from_bytes(&Vec::<u8>::from_hex(&key[1..])?)?;
+                    let node_key = NodeKey::decode_from_bytes(&key[1..])?;
                     return Ok(Some((node_key, leaf)));
                 }
             }

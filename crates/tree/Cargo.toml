@@ -32,6 +32,9 @@ thiserror.workspace = true
 
 [dev-dependencies]
 paste = { workspace = true }
+prism-storage = {workspace = true}
+tempfile.workspace = true
+
 
 [features]
 default = []
