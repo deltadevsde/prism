@@ -64,7 +64,7 @@ async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, CancellationToken) {
     let prover_cfg = prism_prover::Config {
         syncer: prism_prover::SyncerConfig {
             verifying_key: pubkey.clone(),
-            start_height: 0,
+            start_height: 1,
             max_epochless_gap: 300,
             prover_enabled: true,
         },
