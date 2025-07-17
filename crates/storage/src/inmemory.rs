@@ -45,19 +45,7 @@ impl TreeReader for InMemoryDatabase {
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
-        let nodes = self.nodes.lock().unwrap();
-        nodes
-            .iter()
-            .filter_map(|(key, node)| {
-                if let Node::Leaf(leaf) = node {
-                    Some((key.clone(), leaf.clone()))
-                } else {
-                    None
-                }
-            })
-            .max_by_key(|(_, leaf)| leaf.key_hash())
-            .map(|(key, leaf)| Ok((key, leaf)))
-            .transpose()
+        unimplemented!("JMT restoration from snapshot is unimplemented.")
     }
 
     fn get_value_option(
