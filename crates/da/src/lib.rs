@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    fmt::{Debug, Display},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use celestia_types::Blob;
@@ -43,6 +46,17 @@ pub struct SuccinctProof {
     /// Can be used by `sp1_verifier::groth16::Groth16Verifier::verify` as the
     /// `public_values` field.
     pub public_values: Vec<u8>,
+}
+
+impl Display for SuccinctProof {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "(proof: {}, public_values: {})",
+            self.proof_bytes.to_hex(),
+            self.public_values.to_hex()
+        )
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
