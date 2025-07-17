@@ -232,19 +232,7 @@ impl TreeReader for RocksDBConnection {
     // This method only gets called on JMT restoration
     // TODO: Add test cases in KeyDirectoryTree to test this functionality
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
-        let mut iter = self.connection.iterator(rocksdb::IteratorMode::End);
-
-        while let Some(Ok((key, value))) = iter.next() {
-            if key.starts_with(&[Key::Node.as_byte()]) {
-                let node: Node = Node::decode_from_bytes(&value)?;
-                if let Node::Leaf(leaf) = node {
-                    let node_key = NodeKey::decode_from_bytes(&key[1..])?;
-                    return Ok(Some((node_key, leaf)));
-                }
-            }
-        }
-
-        Ok(None)
+        unimplemented!("JMT restoration from snapshot is unimplemented.")
     }
 }
 

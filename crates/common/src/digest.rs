@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use prism_serde::{
 use sha2::{Digest as _, Sha256};
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy, ToSchema)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Copy, ToSchema)]
 #[schema(
     value_type = String,
     format = "hex",
@@ -92,6 +92,12 @@ impl FromBase64 for Digest {
 }
 
 impl Display for Digest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_hex())
+    }
+}
+
+impl Debug for Digest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_hex())
     }
