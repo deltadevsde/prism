@@ -10,7 +10,7 @@ use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
 use prism_serde::{
     binary::{FromBinary, ToBinary},
-    hex::{FromHex, ToHex},
+    hex::ToHex,
 };
 use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
@@ -199,21 +199,7 @@ impl TreeReader for RocksDBConnection {
     }
 
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
-        let mut iter = self.connection.iterator(rocksdb::IteratorMode::End);
-
-        while let Some(Ok((key, value))) = iter.next() {
-            if key.starts_with(KEY_PREFIX_NODE.as_bytes()) {
-                let node: Node = Node::decode_from_bytes(&value)?;
-                if let Node::Leaf(leaf) = node {
-                    let node_key = NodeKey::decode_from_bytes(&Vec::<u8>::from_hex(
-                        &key[KEY_PREFIX_NODE.len()..],
-                    )?)?;
-                    return Ok(Some((node_key, leaf)));
-                }
-            }
-        }
-
-        Ok(None)
+        unimplemented!("JMT restoration from snapshot is unimplemented.")
     }
 }
 
