@@ -10,7 +10,7 @@ use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
 use prism_serde::{
     binary::{FromBinary, ToBinary},
-    hex::{FromHex, ToHex},
+    hex::ToHex,
 };
 use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
