@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
     pretty_env_logger::init();
 
     /// For testing purposes, we use an ephemeral storage backend that gets wiped on restart.
-    /// You can also use our Redis or RocksDB implementations for a persistent data store.
+    /// You can also use our RocksDB implementation for a persistent data store.
     let db = InMemoryDatabase::new();
 
     /// We use an in-memory data availability layer for testing purposes as well.
