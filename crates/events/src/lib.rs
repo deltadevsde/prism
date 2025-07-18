@@ -15,19 +15,33 @@ const EVENT_CHANNEL_CAPACITY: usize = 1024;
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum PrismEvent {
+    /// Sent when the node is ready to sync and listening to new events.
     Ready,
-    BackwardsSyncStarted { height: u64 },
-    BackwardsSyncCompleted { height: Option<u64> },
+    /// Sent when backwards sync starts at the given DA height.
+    HistoricalSyncStarted { height: u64 },
+    /// Sent when the historical sync completes. Is None when the sync did not find any
+    /// [`FinalizedEpoch`]s.
+    HistoricalSyncCompleted { height: Option<u64> },
+    /// Sent when the DA height is updated to the given height.
     UpdateDAHeight { height: u64 },
-    EpochVerificationStarted { height: u64 },
+    /// Sent when the Epoch Verification was successfully verified at given height.
     EpochVerified { height: u64 },
+    /// Sent when a [`FinalizedEpoch`] fails validation. Gives the height it failed at and the
+    /// error.
     EpochVerificationFailed { height: u64, error: String },
+    /// Sent when a DA height is queried and no [`FinalizedEpoch`] is found. Gives the
+    /// height it failed at.
     NoEpochFound { height: u64 },
+    /// Sent when the DA Height Channel closes unexpectedly.
     HeightChannelClosed,
+    /// Sent when the current Commitment is retrieved. Gives the commitment retrieved.
     GetCurrentCommitment { commitment: Digest },
+    /// Sent when Recursive Verification starts at the given height.
     RecursiveVerificationStarted { height: u64 },
+    /// Sent when Epoch Verification completes at a given height.
     RecursiveVerificationCompleted { height: u64 },
 
+    /// Forwarded events from Lumina.
     LuminaEvent { event: NodeEvent },
     // maybe place for Future P2P events like
     /* ConnectingToFullNode {
@@ -44,21 +58,18 @@ impl fmt::Display for PrismEvent {
                     "Node is ready to start sync and listening for incoming headers"
                 )
             }
-            PrismEvent::BackwardsSyncStarted { height } => {
-                write!(f, "Starting backwards sync at height {}", height)
+            PrismEvent::HistoricalSyncStarted { height } => {
+                write!(f, "Starting historical sync at height {}", height)
             }
-            PrismEvent::BackwardsSyncCompleted { height } => {
+            PrismEvent::HistoricalSyncCompleted { height } => {
                 write!(
                     f,
-                    "Backwards sync complete, found epoch: {}",
+                    "Historical sync complete, found epoch: {}",
                     height.is_some()
                 )
             }
             PrismEvent::UpdateDAHeight { height } => {
                 write!(f, "Updated DA height to {}", height)
-            }
-            PrismEvent::EpochVerificationStarted { height } => {
-                write!(f, "Starting verification of epoch {}", height)
             }
             PrismEvent::EpochVerified { height } => {
                 write!(f, "Verified epoch {}", height)

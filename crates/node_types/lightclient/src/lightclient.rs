@@ -238,6 +238,11 @@ impl LightClient {
                     state.current_height = da_height;
                 }
 
+                self.event_pub.send(PrismEvent::HistoricalSyncCompleted {
+                    height: Some(da_height),
+                });
+
+                // Stop searching if a single epoch is processed successfully
                 Ok(())
             }
             Err(e) => {
@@ -266,7 +271,7 @@ impl LightClient {
         };
 
         // Announce that sync has started
-        self.event_pub.send(PrismEvent::BackwardsSyncStarted {
+        self.event_pub.send(PrismEvent::HistoricalSyncStarted {
             height: network_height,
         });
         self.event_pub.send(PrismEvent::RecursiveVerificationStarted {
@@ -284,7 +289,7 @@ impl LightClient {
             let sync_state = self.sync_state.read().await;
             // [`sync_incoming_heights`] can find the first epoch before backwards sync finishes.
             if sync_state.latest_finalized_epoch.is_some() {
-                self.event_pub.send(PrismEvent::BackwardsSyncCompleted { height: None });
+                self.event_pub.send(PrismEvent::HistoricalSyncCompleted { height: None });
                 return Ok(());
             }
             drop(sync_state);
@@ -300,7 +305,7 @@ impl LightClient {
                                         // Found a valid epoch, stop looking backwards
                                         self
                                             .event_pub
-                                            .send(PrismEvent::BackwardsSyncCompleted { height: Some(da_height) });
+                                            .send(PrismEvent::HistoricalSyncCompleted { height: Some(da_height) });
                                         return Ok(());
                                     }
                                     Err(_) => {
@@ -316,7 +321,7 @@ impl LightClient {
                             // minimum height
                             self
                                 .event_pub
-                                .send(PrismEvent::BackwardsSyncCompleted { height: None });
+                                .send(PrismEvent::HistoricalSyncCompleted { height: None });
                             return Ok(());
                         }
                     };

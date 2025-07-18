@@ -6641,6 +6641,7 @@ dependencies = [
  "prism-common",
  "prism-da",
  "prism-errors",
+ "prism-events",
  "prism-keys",
  "prism-storage",
  "prism-telemetry-registry",

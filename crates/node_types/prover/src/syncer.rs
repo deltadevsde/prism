@@ -1,6 +1,7 @@
 use anyhow::{Context, Result, anyhow};
 use prism_common::transaction::Transaction;
 use prism_da::{DataAvailabilityLayer, VerifiableEpoch};
+use prism_events::{EventPublisher, PrismEvent};
 use prism_keys::VerifyingKey;
 use prism_storage::database::Database;
 use prism_telemetry_registry::metrics_registry::get_metrics;
@@ -20,6 +21,7 @@ pub struct Syncer {
     latest_epoch_da_height: Arc<RwLock<u64>>,
     start_height: u64,
     sequencer: Arc<Sequencer>,
+    event_pub: Arc<EventPublisher>,
     prover_engine: Arc<dyn ProverEngine>,
     is_prover_enabled: bool,
 }
@@ -33,6 +35,8 @@ impl Syncer {
         sequencer: Arc<Sequencer>,
         prover_engine: Arc<dyn ProverEngine>,
     ) -> Self {
+        let event_pub = Arc::new(da.event_channel().publisher());
+
         Self {
             da,
             db,
@@ -43,6 +47,7 @@ impl Syncer {
             start_height: config.start_height,
             sequencer,
             prover_engine,
+            event_pub,
             is_prover_enabled: config.prover_enabled,
         }
     }
@@ -87,6 +92,10 @@ impl Syncer {
     ) -> Result<()> {
         let mut current_height = start_height;
 
+        self.event_pub.send(PrismEvent::HistoricalSyncCompleted {
+            height: (Some(current_height)),
+        });
+
         while current_height <= end_height {
             tokio::select! {
                 result = self.process_da_height(
@@ -124,6 +133,9 @@ impl Syncer {
                         height,
                         true,
                     ).await?;
+                    self.event_pub.send(PrismEvent::UpdateDAHeight {
+                        height: (current_height),
+                    });
                     current_height += 1;
                     self.db.set_last_synced_height(&current_height)?;
                 },
@@ -168,6 +180,7 @@ impl Syncer {
                 self.process_epoch(epoch).await?;
             }
         } else {
+            self.event_pub.send(PrismEvent::NoEpochFound { height: (height) });
             debug!("No epoch found at height {}", height);
         }
 
