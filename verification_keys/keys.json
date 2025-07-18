@@ -1,13 +1,1 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-{"base_vk": "0x00367a2d1b4787e05884ba8d1ef6950c88345982c1fe4ce1a7863ae03b4a134f", "recursive_vk": "0x002dbd409e4f04acfe49dd099cbf4754f83ee6f1bd83e4305d2217318d644314"}
-=======
-<<<<<<< HEAD
-{"base_vk": "0x0057419480a88f5392354ca72cda440060507d726258793ab4cbd56455584722", "recursive_vk": "0x00eb84c81095d76d5e81c5f469980176bccedfb349bb1034e7cd1c8307d9af90"}
-=======
-{"base_vk": "0x0097a75b61cc1232713cfc2edd93297b480a69c75b87b7c2e1ba4e529401b8cb", "recursive_vk": "0x00bd249bc057434ed2c88c4436f31517f789137a9c6c02df5a2ade3fe243565f"}
->>>>>>> 435af9d (refactor: integration test suite)
->>>>>>> e54b1ba6 (refactor: integration test suite)
-=======
-{"base_vk": "0x0006cfe97d134d443616b7eec1ef35ecda294ee8723c15c2186261dfc65e12c0", "recursive_vk": "0x0034e2476c036ca6c23e8de5a456264ad618fb8ad31a39f4670746649e0fbff5"}
->>>>>>> e0dc5304 (test)
+{"base_vk": "0x00a08536933145a6c8911bc5f763b76bfd81e229d86ecdaa7b5225c424400d07", "recursive_vk": "0x001ab54f6f834e6b781a571415ab1ee36c34705cc928939ddf5a14872ec15380"}

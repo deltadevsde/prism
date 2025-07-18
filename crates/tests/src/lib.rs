@@ -39,6 +39,7 @@ fn setup_db() -> Arc<Box<dyn Database>> {
 async fn get_bootnode(addr: &str) -> String {
     let client = Client::new(addr, None).await.unwrap();
     let peer_info = client.p2p_info().await.unwrap();
+    info!("peer_info: {:?}", peer_info);
     peer_info.addrs.into_iter().find(|p| p.to_string().contains("dns")).unwrap().to_string()
 }
 
