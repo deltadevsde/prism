@@ -36,13 +36,13 @@ This prover instance is what we will create a service against, and where we will
 > NOTE: With our [architecture](./architecture.md), you can also submit transactions directly to the DA layer, and they will also be processed.
 
 ```rust
-mod service_registration;
+mod operations;
 
 use anyhow::{anyhow, Result};
 use keystore_rs::{KeyChain, KeyStore};
 use log::debug;
+use prism_client::SigningKey;
 use prism_da::{memory::InMemoryDataAvailabilityLayer, DataAvailabilityLayer};
-use prism_keys::SigningKey;
 use prism_storage::inmemory::InMemoryDatabase;
 use std::sync::Arc;
 use tokio::spawn;
@@ -53,34 +53,24 @@ pub static SERVICE_ID: &str = "test_service";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    /// Setup logging
     std::env::set_var(
             "RUST_LOG",
             "DEBUG,ctclient::internal=off,reqwest=off,hyper=off,tracing=off,sp1_stark=info,jmt=off,p3_dft=off,p3_fri=off,sp1_core_executor=info,sp1_recursion_program=info,p3_merkle_tree=off,sp1_recursion_compiler=off,sp1_core_machine=off",
         );
     pretty_env_logger::init();
 
-    /// For testing purposes, we use an ephemeral storage backend that gets wiped on restart.
-    /// You can also use our RocksDB implementation for a persistent data store.
     let db = InMemoryDatabase::new();
-
-    /// We use an in-memory data availability layer for testing purposes as well.
-    /// Here we set the blocktime to 5 seconds.
     let (da_layer, _, _) = InMemoryDataAvailabilityLayer::new(5);
 
-    /// Here we retrieve/create a keypair that will be used by our service.
-    /// This uses our keystore-rs crate, which uses the OS keyring by default.
     let keystore_sk = KeyChain
         .get_signing_key(SERVICE_ID)
         .map_err(|e| anyhow!("Error getting key from store: {}", e))?;
+
     let sk = SigningKey::Ed25519(Box::new(keystore_sk.clone()));
 
     let cfg = Config {
-        // Enable proof generation
         prover: true,
-        // Enable batching transactions
         batcher: true,
-        // Enable the webserver for state requests
         webserver: WebServerConfig {
             enabled: true,
             host: "127.0.0.1".to_string(),
@@ -88,11 +78,9 @@ async fn main() -> Result<()> {
         },
         signing_key: sk.clone(),
         verifying_key: sk.verifying_key(),
-        // Starts syncing from block height 1 on the DA layer
         start_height: 1,
     };
 
-    // Initialize the prover node
     let prover = Arc::new(
         Prover::new(
             Arc::new(Box::new(db)),
@@ -102,7 +90,6 @@ async fn main() -> Result<()> {
         .unwrap(),
     );
 
-    // Start the prover node and give it a handle
     let runner = prover.clone();
     let runner_handle = spawn(async move {
         debug!("starting prover");
@@ -119,7 +106,6 @@ async fn main() -> Result<()> {
 
     Ok(())
 }
-
 ```
 
 ## Step 3: Registering your service
@@ -128,10 +114,10 @@ Here is some example code that would handle registering a test service on prism.
 ```rust
 async fn register_service(prover: Arc<Prover>) -> Result<()> {
     // First, we make sure the service is not already registered.
-    if let Found(_, _) = prover.get_account(&SERVICE_ID.to_string()).await? {
+    if prover.get_account(SERVICE_ID).await?.account.is_some() {
         debug!("Service already registered.");
         return Ok(());
-    };
+    }
 
     // Next we use our keystore crate to get/create a new private key for the service.
     // By default, this is stored in the operating system's keychain.
@@ -146,24 +132,11 @@ async fn register_service(prover: Arc<Prover>) -> Result<()> {
     // creates a prism account that links the service's public key to the
     // service id -- only allowing this keypair to authorize account creations
     // from the service.
-    let register_op = Operation::RegisterService {
-        id: SERVICE_ID.to_string(),
-        creation_gate: ServiceChallenge::Signed(vk.clone()),
-        key: vk,
-    };
-
-    // Because the account is new (the service does not yet exist), we create an
-    // empty account to store the transaction.
-    let mut service_account = Account::default();
-
-    // Here we prepare the operation into a transaction by signing it with the service's private key.
-    let register_tx =
-        service_account.prepare_transaction(SERVICE_ID.to_string(), register_op, &sk)?;
-
     debug!("Submitting transaction to register test service");
     prover
-        .clone()
-        .validate_and_queue_update(register_tx)
+        .register_service(SERVICE_ID.to_string(), vk, &sk)
+        .await?
+        .wait()
         .await?;
 
     Ok(())
@@ -175,15 +148,22 @@ async fn register_service(prover: Arc<Prover>) -> Result<()> {
 
 Here we handle creating an account from a test service. You can learn more about accounts [here](./datastructures.md).
 
+In this snippet, we use the request builder syntax instead of the simple
+`prover.create_account(&user_id, vk, &sk)`, to demonstrate what to do when the
+service cannot pass the user's private key -- which should be the case for the
+vast majority of usecases.
+
+This means constructing an unsigned transaction, giving the bytes to the "user" to sign, and then injecting that signature back into the transaction and submitting it to the prover.
+
 > Note: In a real-world scenario, the keypair and user signing would be handled client-side. Also, the service would require the user to prove ownership of a resource before creating an account (see [labels](./labels.md)).
 
 ```rust
 async fn create_account(user_id: String, prover: Arc<Prover>) -> Result<Account> {
     // First, we make sure the account is not already registered.
-    if let Found(account, _) = prover.get_account(&user_id).await? {
+    if let Some(account) = prover.get_account(&user_id).await?.account {
         debug!("Account {} exists already", &user_id);
-        return Ok(*account);
-    };
+        return Ok(account);
+    }
 
     // We retrieve the test service's private key to authorize the account creation.
     let service_keystore = KeyChain
@@ -200,36 +180,36 @@ async fn create_account(user_id: String, prover: Arc<Prover>) -> Result<Account>
     let user_sk = SigningKey::Ed25519(Box::new(user_keystore));
     let user_vk: VerifyingKey = user_sk.verifying_key();
 
-    // Sign account creation credentials with test service's signing key.
-    // This is set as the "challenge" in the CreateAccount operation, which is
-    // what gets verified+proved by the prover before inclusion
-    let hash = Digest::hash_items(&[
-        user_id.as_bytes(),
-        SERVICE_ID.as_bytes(),
-        &user_vk.to_bytes(),
-    ]);
-    let signature = service_sk.sign(&hash.to_bytes());
+    // Here we use the alternative API: The request builder.
+    // We do this here to demonstrate the example where you can't pass a signing
+    // key from the user - which should be the case for most applications.
+    let unsigned_tx = prover
+        .build_request()
+        .create_account()
+        .with_id(user_id.clone())
+        .with_key(user_vk.clone())
+        .for_service_with_id(SERVICE_ID.to_string())
+        .meeting_signed_challenge(&service_sk)?
+        .transaction();
 
-    // Now that the service has authorized the account creation, we can
-    // construct, prepare, and submit the transaction to create the account.
-    let create_acc_op = Operation::CreateAccount {
-        id: user_id.clone(),
-        service_id: SERVICE_ID.to_string(),
-        challenge: ServiceChallengeInput::Signed(signature),
-        key: user_vk,
+    // The user must sign the transaction. In a real world application, these
+    // `bytes_to_sign` would be returned to the user for signing.
+    let bytes_to_sign = unsigned_tx.encode_to_bytes()?;
+    let signed_tx = user_sk.sign(bytes_to_sign);
+
+    let signature_bundle = SignatureBundle {
+        verifying_key: user_vk.clone(),
+        signature: signed_tx,
     };
+    let tx = unsigned_tx.externally_signed(signature_bundle);
 
     // Because the account is new, we create an empty account to store the transaction.
     let mut account = Account::default();
-    let create_acc_tx = account.prepare_transaction(user_id.clone(), create_acc_op, &user_sk)?;
+    account.process_transaction(&tx)?;
 
     debug!("Submitting transaction to create account {}", &user_id);
-    prover
-        .clone()
-        .validate_and_queue_update(create_acc_tx.clone())
-        .await?;
+    prover.clone().validate_and_queue_update(tx.clone()).await?;
 
-    account.process_transaction(&create_acc_tx)?;
     Ok(account)
 }
 ```
@@ -252,23 +232,16 @@ async fn add_key(
     signing_key: SigningKey,
     new_key: VerifyingKey,
 ) -> Result<Account> {
-    if let Found(account, _) = prover.get_account(&user_id).await? {
-        // We first create the operation object to be signed.
-        let add_key_op = Operation::AddKey { key: new_key };
-
-        // Then we prepare the transaction by signing the operation with the user's already existing private key.
-        let mut account = account.clone();
-        let add_key_tx = account.prepare_transaction(user_id.clone(), add_key_op, &signing_key)?;
-
+    if let Some(account) = prover.get_account(&user_id).await?.account {
         debug!("Submitting transaction to add key to account {}", &user_id);
-        prover
-            .clone()
-            .validate_and_queue_update(add_key_tx.clone())
+
+        let updated_account = prover
+            .add_key(&account, new_key, &signing_key)
+            .await?
+            .wait()
             .await?;
 
-        // Finally, we process the transaction locally to avoid fetching the account again.
-        account.process_transaction(&add_key_tx)?;
-        return Ok(*account);
+        return Ok(updated_account);
     };
 
     Err(anyhow!("Account {} not found", &user_id))
@@ -281,30 +254,18 @@ async fn add_data(
     data: Vec<u8>,
     data_signature: SignatureBundle,
 ) -> Result<Account> {
-    if let Found(account, _) = prover.get_account(&user_id).await? {
-        // We first create the operation object to be signed.
+    if let Some(account) = prover.get_account(&user_id).await?.account {
         // The source of this data can either be signed by one of the user's
         // existing keys, or from an external signer referenced in
         // data_signature.
-        let add_data_op = Operation::AddData {
-            data,
-            data_signature,
-        };
-
-        // Then we prepare the transaction by signing the operation with the user's existing private key.
-        let mut account = account.clone();
-        let add_data_tx =
-            account.prepare_transaction(user_id.clone(), add_data_op, &signing_key)?;
-
         debug!("Submitting transaction to add data to account {}", &user_id);
-        prover
-            .clone()
-            .validate_and_queue_update(add_data_tx.clone())
+        let updated_account = prover
+            .add_data(&account, data, data_signature, &signing_key)
+            .await?
+            .wait()
             .await?;
 
-        // Finally, we process the transaction locally to avoid fetching the account again.
-        account.process_transaction(&add_data_tx)?;
-        return Ok(*account);
+        return Ok(updated_account);
     };
 
     Err(anyhow!("Account {} not found", &user_id))
