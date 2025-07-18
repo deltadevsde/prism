@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 # prism
+prism-errors.workspace = true
 prism-keys.workspace = true
 
 # async

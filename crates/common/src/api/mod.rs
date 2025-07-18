@@ -4,6 +4,7 @@ pub mod noop;
 pub mod types;
 
 use async_trait::async_trait;
+use prism_errors::TransactionError;
 use prism_keys::{SigningKey, VerifyingKey};
 use std::{
     error::Error,
@@ -14,8 +15,7 @@ use std::{
 };
 
 use crate::{
-    account::Account, builder::RequestBuilder, errors::TransactionError,
-    operation::SignatureBundle, transaction::Transaction,
+    account::Account, builder::RequestBuilder, operation::SignatureBundle, transaction::Transaction,
 };
 use types::{AccountResponse, CommitmentResponse};
 

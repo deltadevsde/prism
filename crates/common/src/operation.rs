@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::raw_or_b64;
 
-use crate::errors::OperationError;
+use prism_errors::OperationError;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, ToSchema)]
 #[schema(

@@ -1,13 +1,11 @@
 use celestia_types::Blob;
+use prism_errors::TransactionError;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::binary::{FromBinary, ToBinary};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{
-    errors::TransactionError,
-    operation::{Operation, SignatureBundle},
-};
+use crate::operation::{Operation, SignatureBundle};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 /// Represents a partial prism transaction that still needs to be signed.

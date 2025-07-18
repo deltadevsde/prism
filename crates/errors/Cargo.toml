@@ -9,3 +9,6 @@ repository.workspace = true
 [dependencies]
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+
+# serde
+bincode.workspace = true

@@ -126,14 +126,70 @@ pub enum CommitmentError {
 
 #[derive(Error, Debug)]
 pub enum ProofError {
-    #[error("generating proof: {0}")]
-    GenerationError(String),
-    #[error("verifying proof: {0}")]
+    #[error("service proof is missing from batch for create account verification: {0}")]
+    MissingServiceProof(String),
+    #[error("service challenge is missing for create account verification: {0}")]
+    MissingServiceChallenge(String),
+    #[error("encoding error: {0}")]
+    EncodingError(String),
+    #[error("account update error: {0}")]
+    AccountError(String),
+    #[error("proof verification error: {0}")]
     VerificationError(String),
-    #[error("deserializing G1Affine point")]
-    G1AffineDeserializationError,
-    #[error("unpacking proof components: {0}")]
-    ProofUnpackError(String),
-    #[error("invalid proof format")]
-    InvalidFormatError,
+    #[error("existence error: {0}")]
+    ExistenceError(String),
+    #[error("nonexistence error: {0}")]
+    NonexistenceError(String),
+    #[error("Transaction error: {0}")]
+    TransactionError(String),
+}
+
+impl From<bincode::Error> for ProofError {
+    fn from(err: bincode::Error) -> Self {
+        ProofError::EncodingError(err.to_string())
+    }
+}
+
+#[derive(Error, Clone, Debug)]
+pub enum OperationError {
+    #[error("id cannot be empty when registering service")]
+    EmptyServiceId,
+    #[error("id cannot be empty when creating account")]
+    EmptyAccountId,
+    #[error("service_id cannot be empty when creating account")]
+    EmptyServiceIdForAccount,
+    #[error("data size {0} exceeds maximum allowed size")]
+    DataTooLarge(usize),
+}
+
+#[derive(Error, Clone, Debug)]
+pub enum TransactionError {
+    #[error("invalid operation: {0}")]
+    InvalidOp(String),
+    #[error("invalid nonce: {0}")]
+    InvalidNonce(u64),
+    #[error("missing account's public key")]
+    MissingKey,
+    #[error("encoding failed with: {0}")]
+    EncodingFailed(String),
+    #[error("signing failed")]
+    SigningFailed,
+    #[error("missing sender")]
+    MissingSender,
+}
+
+#[derive(Error, Clone, Debug)]
+pub enum AccountError {
+    #[error("nonce doesn't match: {0} != {1}")]
+    NonceError(u64, u64),
+    #[error("transaction id doesn't match operation id: {0} != {1}")]
+    AccountIdError(String, String),
+    #[error("transaction key doesn't match operation key")]
+    AccountKeyError(String, String),
+    #[error("transaction id doesn't match account id: {0} != {1}")]
+    TransactionIdError(String, String),
+    #[error("invalid key")]
+    InvalidKey,
+    #[error("transaction error: {0}")]
+    TransactionError(#[from] TransactionError),
 }

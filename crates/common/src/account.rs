@@ -1,4 +1,5 @@
 use anyhow::{Result, anyhow};
+use prism_errors::AccountError;
 use prism_keys::VerifyingKey;
 use prism_serde::raw_or_b64;
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,6 @@ use utoipa::ToSchema;
 use crate::{
     api::{PrismApi, noop::NoopPrismApi},
     builder::{ModifyAccountRequestBuilder, RequestBuilder},
-    errors::AccountError,
     operation::{Operation, ServiceChallenge},
     transaction::Transaction,
 };
