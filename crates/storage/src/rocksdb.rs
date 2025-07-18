@@ -8,17 +8,9 @@ use jmt::{
 };
 use prism_common::digest::Digest;
 use prism_errors::DatabaseError;
-use prism_serde::{
-    binary::{FromBinary, ToBinary},
-    hex::ToHex,
-};
+use prism_serde::binary::{FromBinary, ToBinary};
 use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
-
-const KEY_PREFIX_COMMITMENTS: &str = "commitments:epoch_";
-const KEY_PREFIX_NODE: &str = "node:";
-const KEY_PREFIX_VALUE_HISTORY: &str = "value_history:";
-const KEY_PREFIX_EPOCHS: &str = "epochs:height_";
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
@@ -53,10 +45,45 @@ impl RocksDBConnection {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum Key {
+    Commitment,
+    Node,
+    ValueHistory,
+    Epoch,
+}
+
+fn create_final_key(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Vec<u8> {
+    let mut key = prefix.clone();
+    key.push(b':');
+    key.extend_from_slice(suffix.as_ref());
+    key
+}
+
+impl Key {
+    fn with<T: AsRef<[u8]>>(self, suffix: T) -> Vec<u8> {
+        let id = self.as_byte();
+        let key = suffix.as_ref();
+        let mut fullkey = Vec::<u8>::with_capacity(key.len() + 1);
+        fullkey.push(id);
+        fullkey.extend_from_slice(key);
+        fullkey
+    }
+
+    fn as_byte(&self) -> u8 {
+        match self {
+            Key::Commitment => 0,
+            Key::Node => 1,
+            Key::ValueHistory => 2,
+            Key::Epoch => 3,
+        }
+    }
+}
+
 impl Database for RocksDBConnection {
     fn get_commitment(&self, epoch: &u64) -> anyhow::Result<Digest> {
-        let key = format!("{KEY_PREFIX_COMMITMENTS}{}", epoch);
-        let raw_bytes = self.connection.get(key.as_bytes())?.ok_or_else(|| {
+        let key = Key::Commitment.with(epoch.encode_to_bytes()?);
+        let raw_bytes = self.connection.get(key)?.ok_or_else(|| {
             DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
         })?;
 
@@ -68,7 +95,7 @@ impl Database for RocksDBConnection {
 
     fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> anyhow::Result<()> {
         Ok(self.connection.put::<&[u8], [u8; 32]>(
-            format!("{KEY_PREFIX_COMMITMENTS}{}", epoch).as_bytes(),
+            Key::Commitment.with(epoch.encode_to_bytes()?).as_ref(),
             commitment.0,
         )?)
     }
@@ -89,10 +116,10 @@ impl Database for RocksDBConnection {
     }
 
     fn get_epoch(&self, height: &u64) -> anyhow::Result<prism_da::FinalizedEpoch> {
-        let key = format!("{}{}", KEY_PREFIX_EPOCHS, height);
+        let key = Key::Epoch.with(height.encode_to_bytes()?);
         let epoch_data = self
             .connection
-            .get(key.as_bytes())?
+            .get(key)?
             .ok_or_else(|| DatabaseError::NotFoundError(format!("epoch at height {}", height)))?;
 
         prism_da::FinalizedEpoch::decode_from_bytes(&epoch_data).map_err(|e| {
@@ -134,7 +161,7 @@ impl Database for RocksDBConnection {
         // Use a write batch to atomically store the epoch and update the latest height
         let mut batch = rocksdb::WriteBatch::default();
         batch.put(
-            format!("{}{}", KEY_PREFIX_EPOCHS, epoch.height).as_bytes(),
+            Key::Epoch.with(epoch.height.encode_to_bytes()?),
             &epoch_data,
         );
         batch.put(b"app_state:latest_epoch_height", epoch.height.to_be_bytes());
@@ -166,9 +193,10 @@ impl Database for RocksDBConnection {
 
 impl TreeReader for RocksDBConnection {
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        let key = format!("{KEY_PREFIX_NODE}{}", node_key.encode_to_bytes()?.to_hex());
-        let value = self.connection.get(key.as_bytes())?;
+        let key = Key::Node.with(node_key.encode_to_bytes()?);
+        let value = self.connection.get(key)?;
 
+        // Check if node has valid data
         match value {
             Some(data) => Ok(Some(Node::decode_from_bytes(&data)?)),
             None => Ok(None),
@@ -180,24 +208,29 @@ impl TreeReader for RocksDBConnection {
         max_version: Version,
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>> {
-        let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
+        let value_key = Key::ValueHistory.with(key_hash.0);
         let max_version_bytes = max_version.to_be_bytes();
-        let max_key = format!("{}:{}", value_key, max_version_bytes.to_hex());
+        let max_key = create_final_key(value_key.clone(), max_version_bytes);
 
+        // Search db backwards starting at max_key
         let mut iter = self.connection.iterator(rocksdb::IteratorMode::From(
-            max_key.as_bytes(),
+            &max_key,
             rocksdb::Direction::Reverse,
         ));
 
+        // Search for value
         if let Some(Ok((key, value))) = iter.next() {
-            if key.starts_with(value_key.as_bytes()) {
-                return OwnedValue::decode_from_bytes(&value).map(Some).map_err(|e| e.into());
+            // Ensure the key is the same
+            if key.starts_with(&value_key) {
+                return Ok(Some(OwnedValue::decode_from_bytes(&value)?));
             }
         }
 
         Ok(None)
     }
 
+    // This method only gets called on JMT restoration
+    // TODO: Add test cases in KeyDirectoryTree to test this functionality
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>> {
         unimplemented!("JMT restoration from snapshot is unimplemented.")
     }
@@ -207,22 +240,25 @@ impl TreeWriter for RocksDBConnection {
     fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()> {
         let mut batch = rocksdb::WriteBatch::default();
 
+        // Put each node in the batch (for tree structure)
         for (node_key, node) in node_batch.nodes() {
-            let key = format!("{KEY_PREFIX_NODE}{}", node_key.encode_to_bytes()?.to_hex());
+            let key = Key::Node.with(node_key.encode_to_bytes()?);
             let value = node.encode_to_bytes()?;
-            batch.put(key.as_bytes(), &value);
+            batch.put(key, &value);
         }
 
+        // Put each value in the batch (for versioning)
         for ((version, key_hash), value) in node_batch.values() {
-            let value_key = format!("{KEY_PREFIX_VALUE_HISTORY}{}", key_hash.0.to_hex());
+            // Create base key
+            let value_key = Key::ValueHistory.with(key_hash.0);
             let encoded_value =
                 value.as_ref().map(|v| v.encode_to_bytes()).transpose()?.unwrap_or_default();
             let version_bytes = version.to_be_bytes();
 
-            batch.put(
-                format!("{}:{}", value_key, version_bytes.to_hex()).as_bytes(),
-                &encoded_value,
-            );
+            // Create final key
+            let final_key = create_final_key(value_key, version_bytes);
+
+            batch.put(final_key, &encoded_value);
         }
 
         self.connection.write(batch)?;

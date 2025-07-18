@@ -6768,8 +6768,10 @@ dependencies = [
  "prism-errors",
  "prism-keys",
  "prism-serde",
+ "prism-storage",
  "serde",
  "sha2 0.10.8",
+ "tempfile",
  "thiserror 2.0.12",
  "tracing",
 ]

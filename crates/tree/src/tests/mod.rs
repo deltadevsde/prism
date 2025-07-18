@@ -1,16 +1,54 @@
 use std::sync::Arc;
 
-use jmt::{KeyHash, mock::MockTreeStore};
+use jmt::{
+    KeyHash,
+    mock::MockTreeStore,
+    storage::{TreeReader, TreeWriter},
+};
 use prism_common::{operation::SignatureBundle, test_transaction_builder::TestTransactionBuilder};
 use prism_keys::{CryptoAlgorithm, SigningKey};
+use prism_storage::{
+    inmemory::InMemoryDatabase,
+    rocksdb::{RocksDBConfig, RocksDBConnection},
+};
+use tempfile::TempDir;
 
 use crate::{
     AccountResponse::*, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
     snarkable_tree::SnarkableTree,
 };
 
-fn test_insert_and_get(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+enum DBType {
+    RocksDB,
+    InMemory,
+    Mock,
+}
+
+trait TreeReadWriter: TreeReader + TreeWriter + Send + Sync {}
+
+impl TreeReadWriter for InMemoryDatabase {}
+impl TreeReadWriter for Box<InMemoryDatabase> {}
+impl TreeReadWriter for RocksDBConnection {}
+impl TreeReadWriter for Box<RocksDBConnection> {}
+impl TreeReadWriter for MockTreeStore {}
+impl TreeReadWriter for Box<MockTreeStore> {}
+
+fn setup_db(db: DBType) -> Arc<Box<dyn TreeReadWriter>> {
+    match db {
+        DBType::RocksDB => {
+            let temp_dir = TempDir::new().unwrap();
+            let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
+            let db = RocksDBConnection::new(&cfg).unwrap();
+            Arc::new(Box::new(db))
+        }
+        DBType::InMemory => Arc::new(Box::new(InMemoryDatabase::new())),
+        DBType::Mock => Arc::new(Box::new(MockTreeStore::default())),
+    }
+}
+
+fn test_insert_and_get(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -40,8 +78,9 @@ fn test_insert_and_get(algorithm: CryptoAlgorithm) {
     assert!(membership_proof.verify_existence(&account).is_ok());
 }
 
-fn test_insert_for_nonexistent_service_fails(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_insert_for_nonexistent_service_fails(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_signing_key =
@@ -60,8 +99,9 @@ fn test_insert_for_nonexistent_service_fails(algorithm: CryptoAlgorithm) {
     assert!(insertion_result.is_err());
 }
 
-fn test_insert_with_invalid_service_challenge_fails(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_insert_with_invalid_service_challenge_fails(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -92,8 +132,9 @@ fn test_insert_with_invalid_service_challenge_fails(algorithm: CryptoAlgorithm) 
     assert!(create_account_result.is_err());
 }
 
-fn test_insert_duplicate_key(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_insert_duplicate_key(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -117,8 +158,9 @@ fn test_insert_duplicate_key(algorithm: CryptoAlgorithm) {
     assert!(create_acc_with_same_id_result.is_err());
 }
 
-fn test_update_existing_key(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_update_existing_key(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -141,8 +183,9 @@ fn test_update_existing_key(algorithm: CryptoAlgorithm) {
     assert!(matches!(get_result, Found(acc, _) if *acc == *test_account));
 }
 
-fn test_update_non_existing_key(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_update_non_existing_key(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -159,8 +202,9 @@ fn test_update_non_existing_key(algorithm: CryptoAlgorithm) {
     assert!(result.is_err());
 }
 
-fn test_data_ops(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_data_ops(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -244,8 +288,9 @@ fn test_data_ops(algorithm: CryptoAlgorithm) {
     assert!(tree.process_transaction(invalid_data_tx).is_err());
 }
 
-fn test_multiple_inserts_and_updates(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_multiple_inserts_and_updates(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -283,8 +328,9 @@ fn test_multiple_inserts_and_updates(algorithm: CryptoAlgorithm) {
     assert!(matches!(get_result2, Found(acc, _) if *acc == *test_acc2));
 }
 
-fn test_interleaved_inserts_and_updates(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_interleaved_inserts_and_updates(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -320,8 +366,9 @@ fn test_interleaved_inserts_and_updates(algorithm: CryptoAlgorithm) {
     assert_eq!(update_proof.new_root, tree.get_commitment().unwrap());
 }
 
-fn test_root_hash_changes(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_root_hash_changes(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -337,8 +384,9 @@ fn test_root_hash_changes(algorithm: CryptoAlgorithm) {
     assert_ne!(root_before, root_after);
 }
 
-fn test_batch_writing(algorithm: CryptoAlgorithm) {
-    let mut tree = KeyDirectoryTree::new(Arc::new(MockTreeStore::default()));
+fn test_batch_writing(algorithm: CryptoAlgorithm, db: DBType) {
+    let store = setup_db(db);
+    let mut tree = KeyDirectoryTree::new(store);
     let mut tx_builder = TestTransactionBuilder::new();
 
     let service_tx = tx_builder.register_service_with_random_keys(algorithm, "service_1").commit();
@@ -381,18 +429,18 @@ macro_rules! generate_algorithm_tests {
     ($test_fn:ident) => {
         paste::paste! {
             #[test]
-            fn [<$test_fn _ed25519>]() {
-                $test_fn(CryptoAlgorithm::Ed25519);
+            fn [<$test_fn _ed25519_rocksdb>]() {
+                $test_fn(CryptoAlgorithm::Ed25519, DBType::RocksDB);
             }
 
             #[test]
-            fn [<$test_fn _secp256k1>]() {
-                $test_fn(CryptoAlgorithm::Secp256k1);
+            fn [<$test_fn _secp256k1_inmemory>]() {
+                $test_fn(CryptoAlgorithm::Secp256k1, DBType::InMemory);
             }
 
             #[test]
-            fn [<$test_fn _secp256r1>]() {
-                $test_fn(CryptoAlgorithm::Secp256r1);
+            fn [<$test_fn _secp256r1_mock>]() {
+                $test_fn(CryptoAlgorithm::Secp256r1, DBType::Mock);
             }
         }
     };
