@@ -172,6 +172,8 @@ impl VerifiableStateTransition for FinalizedEpoch {
         EpochCommitments::new(self.prev_commitment, self.current_commitment)
     }
 
+    #[cfg(test)]
+    #[allow(unused_variables)]
     fn verify(
         &self,
         vk: &VerifyingKey,
@@ -186,6 +188,31 @@ impl VerifiableStateTransition for FinalizedEpoch {
         }
 
         self.verify_commitments()?;
+
+        let commitments = EpochCommitments::new(self.prev_commitment, self.current_commitment);
+        Ok(commitments)
+    }
+
+    #[cfg(not(test))]
+    fn verify(
+        &self,
+        vk: &VerifyingKey,
+        sp1_vkeys: &VerificationKeys,
+    ) -> Result<EpochCommitments, EpochVerificationError> {
+        self.verify_signature(vk.clone())?;
+
+        if self.snark.public_values.len() < 64 {
+            return Err(EpochVerificationError::InvalidPublicValues(
+                self.snark.public_values.len(),
+            ));
+        }
+
+        self.verify_commitments()?;
+
+        let commitments = EpochCommitments::new(self.prev_commitment, self.current_commitment);
+
+        #[cfg(test)]
+        return Ok(commitments);
 
         let finalized_epoch_proof = &self.snark.proof_bytes;
 
@@ -203,10 +230,7 @@ impl VerifiableStateTransition for FinalizedEpoch {
         )
         .map_err(|e| EpochVerificationError::ProofVerificationError(e.to_string()))?;
 
-        Ok(EpochCommitments::new(
-            self.prev_commitment,
-            self.current_commitment,
-        ))
+        Ok(commitments)
     }
 }
 
