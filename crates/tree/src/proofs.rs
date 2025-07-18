@@ -10,9 +10,9 @@ use prism_common::{
     operation::{Operation, ServiceChallenge, ServiceChallengeInput},
     transaction::Transaction,
 };
+use prism_errors::ProofError;
 use prism_serde::binary::ToBinary;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 use crate::hasher::TreeHasher;
 
@@ -261,30 +261,4 @@ impl MerkleProof {
 pub struct HashedMerkleProof {
     pub leaf: Option<Digest>,
     pub siblings: Vec<Digest>,
-}
-
-#[derive(Error, Clone, Debug)]
-pub enum ProofError {
-    #[error("service proof is missing from batch for create account verification: {0}")]
-    MissingServiceProof(String),
-    #[error("service challenge is missing for create account verification: {0}")]
-    MissingServiceChallenge(String),
-    #[error("encoding error: {0}")]
-    EncodingError(String),
-    #[error("account update error: {0}")]
-    AccountError(String),
-    #[error("proof verification error: {0}")]
-    VerificationError(String),
-    #[error("existence error: {0}")]
-    ExistenceError(String),
-    #[error("nonexistence error: {0}")]
-    NonexistenceError(String),
-    #[error("Transaction error: {0}")]
-    TransactionError(String),
-}
-
-impl From<bincode::Error> for ProofError {
-    fn from(err: bincode::Error) -> Self {
-        ProofError::EncodingError(err.to_string())
-    }
 }

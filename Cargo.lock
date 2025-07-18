@@ -6562,6 +6562,7 @@ name = "prism-errors"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "thiserror 2.0.12",
 ]
 
@@ -8770,16 +8771,15 @@ dependencies = [
 
 [[package]]
 name = "sp1-verifier"
-version = "5.0.5"
+version = "5.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12369fb09785c94982bc24bf5097a466a15a6994421785f7f11650d060239a1b"
+checksum = "67ea3f0cad7b03ab302713ed46ffc39dcf549922eaa03959ead26281df8efbe1"
 dependencies = [
  "blake3",
  "cfg-if",
  "hex",
  "lazy_static",
  "sha2 0.10.8",
- "sp1-build",
  "substrate-bn-succinct",
  "thiserror 2.0.12",
 ]
