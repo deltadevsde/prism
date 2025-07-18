@@ -93,8 +93,8 @@ impl WebServer {
     }
 }
 
-/// Updates or inserts a transaction in the transparency dictionary, pending inclusion in the next epoch.
-///
+/// Updates or inserts a transaction in the transparency dictionary, pending inclusion in the next
+/// epoch.
 #[utoipa::path(
     post,
     path = "/transaction",
@@ -125,8 +125,8 @@ async fn post_transaction(
 
 /// The /get-account endpoint returns all added keys for a given user id.
 ///
-/// If the ID is not found in the database, the endpoint will return a 400 response with the message "Could not calculate values".
-///
+/// If the ID is not found in the database, the endpoint will return a 400 response with the message
+/// "Could not calculate values".
 #[utoipa::path(
     post,
     path = "/get-account",
@@ -156,7 +156,6 @@ async fn get_account(
 }
 
 /// Returns the commitment (tree root) of the IndexedMerkleTree initialized from the database.
-///
 #[utoipa::path(
     get,
     path = "/get-current-commitment",

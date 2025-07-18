@@ -1,8 +1,8 @@
 use js_sys::Math;
 use serde_wasm_bindgen::{from_value, to_value};
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{Mutex, mpsc};
 use wasm_bindgen::{closure::Closure, prelude::*};
-use web_sys::{console, MessageEvent};
+use web_sys::{MessageEvent, console};
 
 use crate::{
     commands::{LightClientCommand, WorkerResponse},
@@ -20,7 +20,8 @@ pub struct WorkerClient {
     port: MessagePortLike,
     response_channel: Mutex<mpsc::UnboundedReceiver<Result<WorkerResponse, JsError>>>,
     #[allow(dead_code)]
-    // This field is kept to maintain the Closure and prevent the message handler from being dropped.
+    // This field is kept to maintain the Closure and prevent the message handler from being
+    // dropped.
     onmessage: Closure<dyn Fn(MessageEvent)>,
 }
 
@@ -64,7 +65,8 @@ pub struct WorkerServer {
     port: MessagePortLike,
     command_rx: mpsc::UnboundedReceiver<LightClientCommand>,
     #[allow(dead_code)]
-    // This field is kept to maintain the Closure and prevent the message handler from being dropped.
+    // This field is kept to maintain the Closure and prevent the message handler from being
+    // dropped.
     onmessage: Closure<dyn Fn(MessageEvent)>,
 }
 

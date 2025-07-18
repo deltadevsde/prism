@@ -3,11 +3,12 @@ use std::{sync::Arc, time::Duration};
 use prism_common::digest::Digest;
 use prism_da::{
     MockLightDataAvailabilityLayer, MockVerifiableStateTransition, VerifiableStateTransition,
-    events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent},
 };
 use prism_errors::EpochVerificationError;
+use prism_events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent};
 use prism_keys::SigningKey;
 use tokio::spawn;
+use tokio_util::sync::CancellationToken;
 
 use crate::LightClient;
 
@@ -117,7 +118,11 @@ async fn setup(
     let mock_da = Arc::new(mock_da);
 
     let prover_key = SigningKey::new_ed25519();
-    let lc = Arc::new(LightClient::new(mock_da, prover_key.verifying_key()));
+    let lc = Arc::new(LightClient::new(
+        mock_da,
+        prover_key.verifying_key(),
+        CancellationToken::new(),
+    ));
 
     let runner = lc.clone();
     spawn(async move {
@@ -139,6 +144,10 @@ async fn test_realtime_sync() {
     .await;
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 3 });
+    wait_for_event(&mut sub, |event| {
+        matches!(event, PrismEvent::HistoricalSyncStarted { height: 3 })
+    })
+    .await;
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 4 });
     wait_for_sync(&mut sub, 4).await;
@@ -218,7 +227,7 @@ async fn no_backwards_sync_underflow() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 50 });
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             assert!(height.is_none());
             return true;
         }
@@ -235,7 +244,7 @@ async fn no_concurrent_backwards_sync() {
     publisher.send(PrismEvent::UpdateDAHeight { height: 1000 });
 
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncStarted { height } = event {
+        if let PrismEvent::HistoricalSyncStarted { height } = event {
             assert_eq!(height, 500);
             return true;
         }
@@ -244,7 +253,7 @@ async fn no_concurrent_backwards_sync() {
     .await;
 
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             assert!(height.is_none());
             return true;
         }
@@ -260,7 +269,7 @@ async fn test_backwards_sync_does_not_restart() {
     publisher.send(PrismEvent::UpdateDAHeight { height: 500 });
 
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             assert!(height.is_none());
             return true;
         }
@@ -269,7 +278,7 @@ async fn test_backwards_sync_does_not_restart() {
     .await;
     publisher.send(PrismEvent::UpdateDAHeight { height: 1000 });
     // TODO: Find better way
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_millis(200)).await;
     assert!(lc.get_sync_state().await.latest_finalized_epoch.is_none());
 }
 
@@ -283,16 +292,17 @@ async fn test_will_not_process_older_epoch() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
     // TODO: replace with event listener
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_millis(200)).await;
 
     let sync_state = lc.get_sync_state().await;
     assert_eq!(sync_state.current_height, 9);
 }
 
 #[tokio::test]
-async fn test_incoming_epoch_during_backwards_sync_v1() {
+async fn test_incoming_epoch_during_backwards_sync() {
     let (lc, mut sub, publisher) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
 
+    let mut sub2 = lc.da.event_channel().subscribe();
     let result = tokio::time::timeout(Duration::from_secs(5), async {
         // Start the event loop first, then send events after we're ready to receive
         let event_task = tokio::spawn(async move {
@@ -304,7 +314,7 @@ async fn test_incoming_epoch_during_backwards_sync_v1() {
                         assert_current_commitment!(lc, "d");
                         events_received.0 = true;
                     }
-                    PrismEvent::BackwardsSyncCompleted { height } => {
+                    PrismEvent::HistoricalSyncCompleted { height } => {
                         assert!(height.is_none());
                         events_received.1 = true;
                     }
@@ -323,6 +333,10 @@ async fn test_incoming_epoch_during_backwards_sync_v1() {
         tokio::time::sleep(Duration::from_millis(10)).await;
 
         publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
+        wait_for_event(&mut sub2, |event| {
+            matches!(event, PrismEvent::HistoricalSyncStarted { height: 5100 })
+        })
+        .await;
         publisher.send(PrismEvent::UpdateDAHeight { height: 5101 });
 
         let (recursive_completed, backwards_completed) = event_task.await.unwrap();
@@ -351,7 +365,7 @@ async fn test_incoming_epoch_after_backwards_sync() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             return matches!(height, Some(5000));
         }
         false
@@ -372,10 +386,42 @@ async fn test_backwards_sync_completes() {
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
     wait_for_event(&mut sub, |event| {
-        if let PrismEvent::BackwardsSyncCompleted { height } = event {
+        if let PrismEvent::HistoricalSyncCompleted { height } = event {
             return height.is_none();
         }
         false
     })
     .await;
+}
+
+#[tokio::test]
+async fn test_graceful_shutdown() {
+    init_logger();
+    let mut mock_da = mock_da![];
+
+    let chan = EventChannel::new();
+    let arced_chan = Arc::new(chan);
+    let mut sub = arced_chan.clone().subscribe();
+    mock_da.expect_event_channel().return_const(arced_chan.clone());
+
+    let mock_da = Arc::new(mock_da);
+
+    let prover_key = SigningKey::new_ed25519();
+    let ct = CancellationToken::new();
+    let lc = Arc::new(LightClient::new(
+        mock_da,
+        prover_key.verifying_key(),
+        ct.clone(),
+    ));
+
+    let handle = spawn(async move { lc.run().await });
+
+    // Wait for it to be ready syncing
+    wait_for_event(&mut sub, |event| matches!(event, PrismEvent::Ready)).await;
+
+    // Trigger cancellation
+    ct.cancel();
+
+    // Let the light node shut down
+    assert!(handle.await.unwrap().is_ok())
 }

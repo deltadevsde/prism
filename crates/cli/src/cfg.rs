@@ -8,10 +8,9 @@ use prism_keys::VerifyingKey;
 use prism_prover::{prover::DEFAULT_MAX_EPOCHLESS_GAP, webserver::WebServerConfig};
 use prism_serde::base64::FromBase64;
 use prism_storage::{
-    Database, RedisConnection,
+    Database,
     database::StorageBackend,
     inmemory::InMemoryDatabase,
-    redis::RedisConfig,
     rocksdb::{RocksDBConfig, RocksDBConnection},
 };
 use prism_telemetry::config::{TelemetryConfig, get_default_telemetry_config};
@@ -43,7 +42,8 @@ pub struct CommandArgs {
     network_name: Option<String>,
 
     #[arg(long)]
-    /// Prover's verifying key, used to verify epoch signatures. Expected to be a base64-encoded string.
+    /// Prover's verifying key, used to verify epoch signatures. Expected to be a base64-encoded
+    /// string.
     verifying_key: Option<String>,
 
     #[arg(long)]
@@ -154,7 +154,6 @@ pub enum DBValues {
     #[default]
     RocksDB,
     InMemory,
-    Redis,
 }
 
 #[derive(Args, Deserialize, Clone, Debug)]
@@ -166,10 +165,6 @@ pub struct DatabaseArgs {
     /// Path to the RocksDB database, used when `db_type` is `rocks-db`
     #[arg(long)]
     rocksdb_path: Option<String>,
-
-    /// Connection string to Redis, used when `db_type` is `redis`
-    #[arg(long, required_if_eq("db_type", "redis"))]
-    redis_url: Option<String>,
 }
 
 pub fn load_config(args: CommandArgs) -> Result<Config> {
@@ -286,9 +281,6 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             DBValues::RocksDB => StorageBackend::RocksDB(RocksDBConfig {
                 path: args.database.rocksdb_path.unwrap_or_else(|| format!("{}/data", prism_home)),
             }),
-            DBValues::Redis => StorageBackend::Redis(RedisConfig {
-                connection_string: args.database.redis_url.unwrap_or_default(),
-            }),
             DBValues::InMemory => StorageBackend::InMemory,
         },
         network: NetworkConfig {
@@ -320,12 +312,6 @@ pub fn initialize_db(cfg: &Config) -> Result<Arc<Box<dyn Database>>> {
         StorageBackend::InMemory => Ok(Arc::new(
             Box::new(InMemoryDatabase::new()) as Box<dyn Database>
         )),
-        StorageBackend::Redis(cfg) => {
-            let db = RedisConnection::new(cfg)
-                .map_err(|e| GeneralError::InitializationError(e.to_string()))
-                .context("Failed to initialize Redis")?;
-            Ok(Arc::new(Box::new(db) as Box<dyn Database>))
-        }
     }
 }
 

@@ -9,6 +9,9 @@ on:
 
 jobs:
   unit-test:
+    env:
+      SP1_PROVER: mock
+      SP1_SKIP_PROGRAM_BUILD: true
     runs-on: ubuntu-latest
 
     steps:
@@ -21,11 +24,13 @@ jobs:
       - uses: taiki-e/install-action@nextest
 
       - name: Run non-integration tests
-        run: SP1_PROVER=mock cargo nextest run --lib --release -- --skip test_light_client_prover_talking
+        run: cargo nextest run --lib --release -- --skip test_light_client_prover_talking
 
   integration-test:
     runs-on: ubuntu-latest
-
+    env:
+      SP1_PROVER: mock
+      SP1_SKIP_PROGRAM_BUILD: true
     steps:
       - uses: actions/checkout@v4
 
@@ -93,10 +98,13 @@ jobs:
           done
 
       - name: Run integration tests
-        run: SP1_PROVER=mock cargo nextest run -p prism-tests --lib --release
+        run: cargo nextest run -p prism-tests --lib --release
 
   unused-deps:
     runs-on: ubuntu-latest
+    env:
+      SP1_PROVER: mock
+      SP1_SKIP_PROGRAM_BUILD: true
     name: unused dependencies
     steps:
       - name: Checkout sources
@@ -116,6 +124,9 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    env:
+      SP1_PROVER: mock
+      SP1_SKIP_PROGRAM_BUILD: true
     name: coverage
     steps:
       - name: Checkout sources
@@ -131,18 +142,37 @@ jobs:
 
       - name: Collect unit-test coverage data
         run: |
-          SP1_PROVER=mock cargo llvm-cov --no-report nextest --lib --release -- --skip test_light_client_prover_talking
+          cargo llvm-cov --no-report nextest --lib --release -- --skip test_light_client_prover_talking
           cargo llvm-cov report --release --codecov --output-path codecov.info
 
       - name: Upload coverage data to codecov
         uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
-          use_oidc: true
           files: codecov.info
+
+  wasm-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly-2025-03-06
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: "latest"
+      - name: Run wasm-pack tests
+        working-directory: crates/node_types/wasm-lightclient
+        run: wasm-pack test --headless --chrome --release .
 
   clippy:
     runs-on: ubuntu-latest
+    env:
+      SP1_PROVER: mock
+      SP1_SKIP_PROGRAM_BUILD: true
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies

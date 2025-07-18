@@ -1,18 +1,18 @@
 //! Native library providing Rust to mobile language bindings for the Prism Lightclient.
 //!
-//! This crate uses Mozilla's UniFFI to generate Swift and Kotlin bindings for the Prism lightclient,
-//! allowing it to be used from iOS and Android applications.
+//! This crate uses Mozilla's UniFFI to generate Swift and Kotlin bindings for the Prism
+//! lightclient, allowing it to be used from iOS and Android applications.
 mod error;
 mod types;
 
 use error::{LightClientError, Result};
-use prism_da::{
-    celestia::{light_client::LightClientConnection, utils::Network},
-    events::EventSubscriber,
-};
+use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
+
+use prism_events::EventSubscriber;
 use prism_lightclient::LightClient as CoreLightClient;
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 use types::UniffiLightClientEvent;
 use uniffi::Object;
 
@@ -56,6 +56,7 @@ impl LightClient {
         let inner = Arc::new(CoreLightClient::new(
             Arc::new(da),
             network_config.verifying_key,
+            CancellationToken::new(),
         ));
 
         Ok(Self {

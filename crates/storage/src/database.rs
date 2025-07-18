@@ -3,14 +3,12 @@ use auto_impl::auto_impl;
 use jmt::storage::{TreeReader, TreeWriter};
 use prism_common::digest::Digest;
 use prism_da::FinalizedEpoch;
-use prism_errors::{DatabaseError, PrismError};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum StorageBackend {
     RocksDB(crate::rocksdb::RocksDBConfig),
     InMemory,
-    Redis(crate::redis::RedisConfig),
 }
 
 #[auto_impl(&, Box, Arc)]
@@ -28,8 +26,4 @@ pub trait Database: Send + Sync + TreeReader + TreeWriter {
     fn set_last_synced_height(&self, height: &u64) -> Result<()>;
 
     fn flush_database(&self) -> Result<()>;
-}
-
-pub fn convert_to_connection_error(e: redis::RedisError) -> PrismError {
-    PrismError::Database(DatabaseError::ConnectionError(e.to_string()))
 }

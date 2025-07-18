@@ -3,8 +3,8 @@ use std::{future::Future, time::Duration};
 use async_trait::async_trait;
 use prism_common::{
     api::{
-        types::{AccountRequest, AccountResponse, CommitmentResponse},
         PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError, PrismApiTimer,
+        types::{AccountRequest, AccountResponse, CommitmentResponse},
     },
     transaction::Transaction,
 };

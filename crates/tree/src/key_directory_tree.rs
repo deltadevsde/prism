@@ -1,8 +1,7 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use jmt::{
-    self,
+    self, JellyfishMerkleTree, KeyHash, RootHash,
     storage::{NodeBatch, TreeReader, TreeUpdateBatch, TreeWriter},
-    JellyfishMerkleTree, KeyHash, RootHash,
 };
 use prism_common::digest::Digest;
 use std::sync::Arc;
@@ -11,8 +10,8 @@ use crate::hasher::TreeHasher;
 
 pub const SPARSE_MERKLE_PLACEHOLDER_HASH: KeyHash = KeyHash(*b"SPARSE_MERKLE_PLACEHOLDER_HASH__");
 
-/// Wraps a [`JellyfishMerkleTree`] to provide a key-value store for [`Account`]s with batched insertions.
-/// This is prism's primary data structure for storing and retrieving [`Account`]s.
+/// Wraps a [`JellyfishMerkleTree`] to provide a key-value store for [`Account`]s with batched
+/// insertions. This is prism's primary data structure for storing and retrieving [`Account`]s.
 pub struct KeyDirectoryTree<S>
 where
     S: TreeReader + TreeWriter,

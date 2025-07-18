@@ -1,4 +1,4 @@
-use prism_da::events::PrismEvent;
+use prism_events::PrismEvent;
 
 /// Event types emitted by the LightClient.
 #[derive(uniffi::Enum)]
@@ -17,11 +17,6 @@ pub enum UniffiLightClientEvent {
     /// DA layer height has been updated
     UpdateDAHeight {
         /// The new DA layer height
-        height: u64,
-    },
-    /// Epoch verification has started
-    EpochVerificationStarted {
-        /// The epoch height being verified
         height: u64,
     },
     /// Epoch was successfully verified
@@ -69,17 +64,14 @@ impl From<PrismEvent> for UniffiLightClientEvent {
     fn from(event: PrismEvent) -> Self {
         match event {
             PrismEvent::Ready => UniffiLightClientEvent::Ready,
-            PrismEvent::BackwardsSyncStarted { height } => {
+            PrismEvent::HistoricalSyncStarted { height } => {
                 UniffiLightClientEvent::SyncStarted { height }
             }
-            PrismEvent::BackwardsSyncCompleted { height } => {
+            PrismEvent::HistoricalSyncCompleted { height } => {
                 UniffiLightClientEvent::SyncCompleted { height }
             }
             PrismEvent::UpdateDAHeight { height } => {
                 UniffiLightClientEvent::UpdateDAHeight { height }
-            }
-            PrismEvent::EpochVerificationStarted { height } => {
-                UniffiLightClientEvent::EpochVerificationStarted { height }
             }
             PrismEvent::EpochVerified { height } => {
                 UniffiLightClientEvent::EpochVerified { height }

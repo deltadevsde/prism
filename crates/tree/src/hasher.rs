@@ -1,5 +1,5 @@
 use jmt::SimpleHasher;
-use serde::{ser::SerializeTupleStruct, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeTupleStruct};
 
 #[derive(Debug, Clone, Default)]
 pub struct TreeHasher(sha2::Sha256);

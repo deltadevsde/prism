@@ -1,10 +1,14 @@
-use std::sync::Arc;
+use std::{
+    fmt::{Debug, Display},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use celestia_types::Blob;
 use mockall::automock;
 use prism_common::digest::Digest;
 use prism_errors::{CommitmentError, EpochVerificationError, SignatureError};
+use prism_events::EventChannel;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
     binary::{FromBinary, ToBinary},
@@ -14,30 +18,68 @@ use serde::{Deserialize, Serialize};
 
 use sp1_verifier::Groth16Verifier;
 
-use crate::events::EventChannel;
-
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
 
 pub mod celestia;
 pub mod consts;
-pub mod events;
 pub mod memory;
-pub mod utils;
-
-#[cfg(target_arch = "wasm32")]
-type Groth16Proof = Vec<u8>;
-
-#[cfg(not(target_arch = "wasm32"))]
-type Groth16Proof = SP1ProofWithPublicValues;
-
-#[cfg(target_arch = "wasm32")]
-type CompressedProof = Vec<u8>;
-
-#[cfg(not(target_arch = "wasm32"))]
-type CompressedProof = SP1ProofWithPublicValues;
 
 pub type VerifiableEpoch = Box<dyn VerifiableStateTransition>;
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+/// Represents an [`SP1ProofWithPublicValues`] that can be used in wasm32
+/// environments.
+///
+/// This is necessary because wasm32 cannot decode the [`proof_bytes`] back into
+/// an [`SP1ProofWithPublicValues`], but provers will still need something
+/// deserializable back into the original type (for STARK recursion)
+pub struct SuccinctProof {
+    /// Represents the bincode serialization of a [`SP1ProofWithPublicValues`].
+    ///
+    /// Can be used by `sp1_verifier::groth16::Groth16Verifier::verify` as the
+    /// `proof` field.
+    pub proof_bytes: Vec<u8>,
+
+    /// Represents the output of [`SP1ProofWithPublicValues::public_values()`]
+    ///
+    /// Can be used by `sp1_verifier::groth16::Groth16Verifier::verify` as the
+    /// `public_values` field.
+    pub public_values: Vec<u8>,
+}
+
+impl Display for SuccinctProof {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "(proof: {}, public_values: {})",
+            self.proof_bytes.to_hex(),
+            self.public_values.to_hex()
+        )
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl TryInto<SP1ProofWithPublicValues> for SuccinctProof {
+    type Error = Box<bincode::ErrorKind>;
+
+    fn try_into(self) -> Result<SP1ProofWithPublicValues, Self::Error> {
+        bincode::deserialize::<SP1ProofWithPublicValues>(&self.proof_bytes)
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl TryFrom<SP1ProofWithPublicValues> for SuccinctProof {
+    type Error = Box<bincode::ErrorKind>;
+
+    fn try_from(proof: SP1ProofWithPublicValues) -> Result<Self, Self::Error> {
+        let proof_bytes = bincode::serialize(&proof)?;
+        Ok(SuccinctProof {
+            proof_bytes,
+            public_values: proof.public_values.to_vec(),
+        })
+    }
+}
 
 /// Represents the commitments from epoch verification (previous and current)
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,7 +121,8 @@ pub trait VerifiableStateTransition: Send {
     fn try_convert(&self) -> Result<FinalizedEpoch, EpochVerificationError>;
 }
 
-// FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to the DA layer.
+// FinalizedEpoch is the data structure that represents the finalized epoch data, and is posted to
+// the DA layer.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FinalizedEpoch {
     /// The epoch height.
@@ -92,12 +135,10 @@ pub struct FinalizedEpoch {
     pub current_commitment: Digest,
 
     /// Groth16 proof of the state transition.
-    pub proof: Groth16Proof,
-    /// Auxiliary data for WASM arch to read the public values of the proof.
-    pub public_values: Vec<u8>,
+    pub snark: SuccinctProof,
 
-    /// Compressed proof of the state transition, stored for cheaper recursive proving.
-    pub compressed_proof: CompressedProof,
+    /// Compressed proof of the state transition, stored for the next recursion step.
+    pub stark: SuccinctProof,
 
     /// The signature of this struct by the prover, with the signature field set to `None`.
     pub signature: Option<String>,
@@ -138,19 +179,15 @@ impl VerifiableStateTransition for FinalizedEpoch {
     ) -> Result<EpochCommitments, EpochVerificationError> {
         self.verify_signature(vk.clone())?;
 
-        if self.public_values.len() < 64 {
+        if self.snark.public_values.len() < 64 {
             return Err(EpochVerificationError::InvalidPublicValues(
-                self.public_values.len(),
+                self.snark.public_values.len(),
             ));
         }
 
         self.verify_commitments()?;
 
-        #[cfg(target_arch = "wasm32")]
-        let finalized_epoch_proof = self.proof;
-
-        #[cfg(not(target_arch = "wasm32"))]
-        let finalized_epoch_proof = self.proof.bytes();
+        let finalized_epoch_proof = &self.snark.proof_bytes;
 
         let vkey = if self.height == 0 {
             &sp1_vkeys.base_vk
@@ -159,8 +196,8 @@ impl VerifiableStateTransition for FinalizedEpoch {
         };
 
         Groth16Verifier::verify(
-            &finalized_epoch_proof,
-            &self.public_values,
+            finalized_epoch_proof,
+            &self.snark.public_values,
             vkey,
             &sp1_verifier::GROTH16_VK_BYTES,
         )
@@ -184,11 +221,11 @@ impl FinalizedEpoch {
 
     fn extract_commitments(&self) -> Result<(Digest, Digest), EpochVerificationError> {
         let mut slice = [0u8; 32];
-        slice.copy_from_slice(&self.public_values[..32]);
+        slice.copy_from_slice(&self.snark.public_values[..32]);
         let proof_prev_commitment = Digest::from(slice);
 
         let mut slice = [0u8; 32];
-        slice.copy_from_slice(&self.public_values[32..64]);
+        slice.copy_from_slice(&self.snark.public_values[32..64]);
         let proof_current_commitment = Digest::from(slice);
 
         Ok((proof_prev_commitment, proof_current_commitment))
@@ -213,9 +250,8 @@ impl FinalizedEpoch {
             height: self.height,
             prev_commitment: self.prev_commitment,
             current_commitment: self.current_commitment,
-            proof: self.proof.clone(),
-            compressed_proof: self.compressed_proof.clone(),
-            public_values: self.public_values.clone(),
+            snark: self.snark.clone(),
+            stark: self.stark.clone(),
             signature: None,
             tip_da_height: self.tip_da_height,
         };

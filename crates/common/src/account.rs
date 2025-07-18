@@ -90,8 +90,9 @@ impl Account {
         RequestBuilder::new().to_modify_account(self)
     }
 
-    /// Creates a modification request builder for this account using the provided PrismApi implementation.
-    /// This allows building and submitting transactions that modify the current account state through a specific API.
+    /// Creates a modification request builder for this account using the provided PrismApi
+    /// implementation. This allows building and submitting transactions that modify the current
+    /// account state through a specific API.
     pub fn modify_via_api<'a, P>(&self, prism: &'a P) -> ModifyAccountRequestBuilder<'a, P>
     where
         P: PrismApi,
