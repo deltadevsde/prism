@@ -48,6 +48,8 @@ async fn get_bootnode(addr: &str) -> String {
             !(p.contains("127.0.0.1") | p.contains("::1"))
         })
         .unwrap()
+        .with_p2p(peer_info.id.into())
+        .unwrap()
         .to_string()
 }
 
