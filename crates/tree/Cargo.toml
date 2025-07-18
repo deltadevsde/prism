@@ -29,9 +29,16 @@ anyhow.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-paste.workspace = true
-prism-storage.workspace = true
+paste = { workspace = true }
+prism-storage = { workspace = true }
 tempfile.workspace = true
+criterion = { version = "0.5", features = ["html_reports"] }
+jmt = { workspace = true }
+
+[[bench]]
+name = "database_comparison"
+harness = false
 
 [features]
 default = []
+rocksdb = ["prism-storage/rocksdb"]
