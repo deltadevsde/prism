@@ -127,6 +127,7 @@ jobs:
     env:
       SP1_PROVER: mock
       SP1_SKIP_PROGRAM_BUILD: true
+      COVERAGE_TEST: true
     name: coverage
     steps:
       - name: Checkout sources
