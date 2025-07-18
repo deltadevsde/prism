@@ -12,6 +12,7 @@ path = "src/main.rs"
 
 [features]
 default = []
+rocksdb = ["prism-storage/rocksdb"]
 test_utils = []
 
 [dependencies]
