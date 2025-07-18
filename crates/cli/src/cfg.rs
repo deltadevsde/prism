@@ -7,12 +7,16 @@ use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_keys::VerifyingKey;
 use prism_prover::{prover::DEFAULT_MAX_EPOCHLESS_GAP, webserver::WebServerConfig};
 use prism_serde::base64::FromBase64;
+
+#[cfg(feature = "rocksdb")]
+use prism_storage::rocksdb::{RocksDBConfig, RocksDBConnection};
 use prism_storage::{
     Database,
     database::StorageBackend,
     inmemory::InMemoryDatabase,
-    rocksdb::{RocksDBConfig, RocksDBConnection},
+    sled::{SledConfig, SledConnection},
 };
+
 use prism_telemetry::config::{TelemetryConfig, get_default_telemetry_config};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, str::FromStr, sync::Arc, time::Duration};
@@ -135,7 +139,7 @@ impl Config {
             keystore_path: Some(format!("{}keystore.json", path)),
             network: Network::from_str(network_name).unwrap().config(),
             da_layer: DALayerOption::default(),
-            db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
+            db: StorageBackend::Sled(SledConfig::new(&format!("{}data", path))),
             telemetry: Some(get_default_telemetry_config()),
             max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
         }
@@ -152,19 +156,21 @@ pub enum DALayerOption {
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, ValueEnum)]
 pub enum DBValues {
     #[default]
+    Sled,
+    #[cfg(feature = "rocksdb")]
     RocksDB,
     InMemory,
 }
 
 #[derive(Args, Deserialize, Clone, Debug)]
 pub struct DatabaseArgs {
-    #[arg(long, value_enum, default_value_t = DBValues::RocksDB)]
-    /// Storage backend to use. Default: `rocks-db`
+    #[arg(long, value_enum, default_value_t = DBValues::Sled)]
+    /// Storage backend to use. Default: `sled`
     db_type: DBValues,
 
-    /// Path to the RocksDB database, used when `db_type` is `rocks-db`
+    /// Path to the database, used when `db_type` is `rocks-db` or `sled`
     #[arg(long)]
-    rocksdb_path: Option<String>,
+    db_path: Option<String>,
 }
 
 pub fn load_config(args: CommandArgs) -> Result<Config> {
@@ -178,7 +184,7 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
     )
     .context("Failed to ensure config file exists")?;
 
-    if let Some(rocksdb_path) = &args.database.rocksdb_path {
+    if let Some(rocksdb_path) = &args.database.db_path {
         fs::create_dir_all(rocksdb_path).context("Failed to create RocksDB directory")?;
     }
 
@@ -278,8 +284,13 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             port: args.webserver.port.unwrap_or(webserver_config.port),
         }),
         db: match args.database.db_type {
+            #[cfg(feature = "rocksdb")]
             DBValues::RocksDB => StorageBackend::RocksDB(RocksDBConfig {
                 path: args.database.rocksdb_path.unwrap_or_else(|| format!("{}/data", prism_home)),
+            }),
+            DBValues::Sled => StorageBackend::Sled(SledConfig {
+                path: args.database.db_path.unwrap_or_else(|| format!("{}/data", prism_home)),
+                ..SledConfig::default()
             }),
             DBValues::InMemory => StorageBackend::InMemory,
         },
@@ -302,6 +313,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
 
 pub fn initialize_db(cfg: &Config) -> Result<Arc<Box<dyn Database>>> {
     match &cfg.db {
+        #[cfg(feature = "rocksdb")]
         StorageBackend::RocksDB(cfg) => {
             let db = RocksDBConnection::new(cfg)
                 .map_err(|e| GeneralError::InitializationError(e.to_string()))
@@ -309,6 +321,14 @@ pub fn initialize_db(cfg: &Config) -> Result<Arc<Box<dyn Database>>> {
 
             Ok(Arc::new(Box::new(db) as Box<dyn Database>))
         }
+        StorageBackend::Sled(cfg) => {
+            let db = SledConnection::new(cfg)
+                .map_err(|e| GeneralError::InitializationError(e.to_string()))
+                .context("Failed to initialize Sled")?;
+
+            Ok(Arc::new(Box::new(db) as Box<dyn Database>))
+        }
+
         StorageBackend::InMemory => Ok(Arc::new(
             Box::new(InMemoryDatabase::new()) as Box<dyn Database>
         )),
