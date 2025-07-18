@@ -1,10 +1,10 @@
+use prism_errors::TransactionError;
 use prism_keys::{SigningKey, VerifyingKey};
 
 use crate::{
     account::Account,
     api::{PendingTransaction, PrismApi, PrismApiError, noop::NoopPrismApi},
     digest::Digest,
-    errors::TransactionError,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::{Transaction, UnsignedTransaction},
 };

@@ -2,7 +2,6 @@ pub mod account;
 pub mod api;
 pub mod builder;
 pub mod digest;
-pub mod errors;
 pub mod operation;
 pub mod transaction;
 

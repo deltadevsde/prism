@@ -7,7 +7,6 @@ pub use prism_common::{
     api::{PendingTransaction, PrismApi, PrismApiError, types::*},
     builder,
     digest::Digest,
-    errors::TransactionError,
     operation::{ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::{Transaction, UnsignedTransaction},
 };

@@ -6497,6 +6497,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "prism-common",
+ "prism-errors",
  "prism-keys",
  "prism-serde",
  "reqwest",
@@ -6513,6 +6514,7 @@ dependencies = [
  "async-trait",
  "celestia-types",
  "mockall",
+ "prism-errors",
  "prism-keys",
  "prism-serde",
  "rand 0.8.5",
