@@ -165,7 +165,7 @@ macro_rules! generate_storage_tests {
             fn [<$test_fn _rocksdb>]() {
                 let temp_dir = TempDir::new().unwrap();
                 let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
-                $test_fn(StorageBackend::RocksDB(&cfg));
+                $test_fn(StorageBackend::RocksDB(cfg));
             }
         }
     };
