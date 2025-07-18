@@ -40,7 +40,15 @@ async fn get_bootnode(addr: &str) -> String {
     let client = Client::new(addr, None).await.unwrap();
     let peer_info = client.p2p_info().await.unwrap();
     info!("peer_info: {:?}", peer_info);
-    peer_info.addrs.into_iter().find(|p| p.to_string().contains("dns")).unwrap().to_string()
+    peer_info
+        .addrs
+        .into_iter()
+        .find(|p| {
+            let p = p.to_string();
+            !(p.contains("127.0.0.1") | p.contains("::1"))
+        })
+        .unwrap()
+        .to_string()
 }
 
 async fn setup_da() -> (
