@@ -117,13 +117,10 @@ async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, CancellationToken) {
         .unwrap(),
     );
 
-    let lightclient = Arc::new(LightClient::new(
-        lc_da.clone(),
-        pubkey,
-        node_shutdown_token.clone(),
-    ));
+    let mut lightclient = LightClient::new(lc_da.clone(), pubkey, node_shutdown_token.clone());
+    lightclient.enable_mock_proof_verification();
 
-    (prover, lightclient, node_shutdown_token)
+    (prover, Arc::new(lightclient), node_shutdown_token)
 }
 
 #[tokio::test]
