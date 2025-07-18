@@ -1,5 +1,7 @@
 use tempfile::TempDir;
 
+#[cfg(feature = "rocksdb")]
+use crate::rocksdb::*;
 use crate::{Database, database::StorageBackend, inmemory::InMemoryDatabase, sled::*};
 use jmt::{
     KeyHash, OwnedValue, Version,
