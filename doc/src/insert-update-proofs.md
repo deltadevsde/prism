@@ -46,7 +46,7 @@ Insertion proofs consist of the inserted key, a non-membership proof of the node
 
 The non-inclusion proof has two variants for different cases:
 
-1. A leaf exists where the missing leaf *should* be, sharing a prefix with the key (recall that the path to the leaf is determined by the key bytes, and paths get compressed for effeciency)
+1. A leaf exists where the missing leaf *should* be, sharing a prefix with the key (recall that the path to the leaf is determined by the key bytes, and paths get compressed for efficiency)
 2. The node key leads to an empty subtree
 
 After finding the position the new node should be inserted into, it is inserted and a membership proof is created.
