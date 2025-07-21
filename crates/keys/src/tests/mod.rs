@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod key_tests {
+    use crate::errors::{CryptoError, VerificationError};
     use ed25519_consensus::SigningKey as Ed25519SigningKey;
     use prism_serde::base64::{FromBase64, ToBase64};
     use rand::rngs::OsRng;
@@ -365,7 +366,12 @@ mod key_tests {
 
         for algorithm in algorithms {
             let result = VerifyingKey::from_algorithm_and_bytes(algorithm, &invalid_bytes);
-            assert!(result.is_err());
+            assert!(matches!(
+                result,
+                Err(CryptoError::VerificationError(
+                    VerificationError::VerifyError(_, _)
+                ))
+            ));
         }
     }
 }
