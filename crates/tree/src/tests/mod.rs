@@ -9,17 +9,22 @@ use prism_common::{operation::SignatureBundle, test_transaction_builder::TestTra
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_storage::{
     inmemory::InMemoryDatabase,
-    rocksdb::{RocksDBConfig, RocksDBConnection},
+    sled::{SledConfig, SledConnection},
 };
-use tempfile::TempDir;
 
 use crate::{
     AccountResponse::*, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
     snarkable_tree::SnarkableTree,
 };
 
+#[cfg(feature = "rocksdb")]
+use prism_storage::rocksdb::{RocksDBConfig, RocksDBConnection};
+use tempfile::TempDir;
+
 enum DBType {
+    #[cfg(feature = "rocksdb")]
     RocksDB,
+    Sled,
     InMemory,
     Mock,
 }
@@ -28,17 +33,28 @@ trait TreeReadWriter: TreeReader + TreeWriter + Send + Sync {}
 
 impl TreeReadWriter for InMemoryDatabase {}
 impl TreeReadWriter for Box<InMemoryDatabase> {}
+impl TreeReadWriter for SledConnection {}
+impl TreeReadWriter for Box<SledConnection> {}
+#[cfg(feature = "rocksdb")]
 impl TreeReadWriter for RocksDBConnection {}
+#[cfg(feature = "rocksdb")]
 impl TreeReadWriter for Box<RocksDBConnection> {}
 impl TreeReadWriter for MockTreeStore {}
 impl TreeReadWriter for Box<MockTreeStore> {}
 
 fn setup_db(db: DBType) -> Arc<Box<dyn TreeReadWriter>> {
     match db {
+        #[cfg(feature = "rocksdb")]
         DBType::RocksDB => {
             let temp_dir = TempDir::new().unwrap();
             let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
             let db = RocksDBConnection::new(&cfg).unwrap();
+            Arc::new(Box::new(db))
+        }
+        DBType::Sled => {
+            let temp_dir = TempDir::new().unwrap();
+            let cfg = SledConfig::new(temp_dir.path().to_str().unwrap());
+            let db = SledConnection::new(&cfg).unwrap();
             Arc::new(Box::new(db))
         }
         DBType::InMemory => Arc::new(Box::new(InMemoryDatabase::new())),
@@ -428,6 +444,7 @@ fn test_batch_writing(algorithm: CryptoAlgorithm, db: DBType) {
 macro_rules! generate_algorithm_tests {
     ($test_fn:ident) => {
         paste::paste! {
+            #[cfg(feature = "rocksdb")]
             #[test]
             fn [<$test_fn _ed25519_rocksdb>]() {
                 $test_fn(CryptoAlgorithm::Ed25519, DBType::RocksDB);
@@ -436,6 +453,11 @@ macro_rules! generate_algorithm_tests {
             #[test]
             fn [<$test_fn _secp256k1_inmemory>]() {
                 $test_fn(CryptoAlgorithm::Secp256k1, DBType::InMemory);
+            }
+
+            #[test]
+            fn [<$test_fn _secp256r1_sled>]() {
+                $test_fn(CryptoAlgorithm::Secp256r1, DBType::Sled);
             }
 
             #[test]

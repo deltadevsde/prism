@@ -7,8 +7,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum StorageBackend {
+    #[cfg(feature = "rocksdb")]
     RocksDB(crate::rocksdb::RocksDBConfig),
     InMemory,
+    Sled(crate::sled::SledConfig),
 }
 
 #[auto_impl(&, Box, Arc)]
