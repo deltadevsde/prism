@@ -350,4 +350,29 @@ mod key_tests {
         let result = VerifyingKey::try_from(encoded);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_verifying_key_with_invalid_bytes() {
+        let invalid_bytes = [0u8; 1];
+
+        let result =
+            VerifyingKey::from_algorithm_and_bytes(CryptoAlgorithm::Ed25519, &invalid_bytes);
+        assert!(result.is_err());
+
+        let result =
+            VerifyingKey::from_algorithm_and_bytes(CryptoAlgorithm::Secp256k1, &invalid_bytes);
+        assert!(result.is_err());
+
+        let result =
+            VerifyingKey::from_algorithm_and_bytes(CryptoAlgorithm::Secp256r1, &invalid_bytes);
+        assert!(result.is_err());
+
+        let result =
+            VerifyingKey::from_algorithm_and_bytes(CryptoAlgorithm::Eip191, &invalid_bytes);
+        assert!(result.is_err());
+
+        let result =
+            VerifyingKey::from_algorithm_and_bytes(CryptoAlgorithm::CosmosAdr36, &invalid_bytes);
+        assert!(result.is_err());
+    }
 }
