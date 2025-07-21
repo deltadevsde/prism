@@ -3,6 +3,7 @@ use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
+use libp2p::Multiaddr;
 #[cfg(not(target_arch = "wasm32"))]
 use lumina_node::blockstore::InMemoryBlockstore;
 #[cfg(not(target_arch = "wasm32"))]
@@ -10,7 +11,7 @@ use lumina_node::store::{EitherStore, InMemoryStore};
 use lumina_node::{Node, NodeError, store::StoreError};
 use prism_errors::DataAvailabilityError;
 use prism_events::{EventChannel, EventPublisher};
-use std::{self, sync::Arc, time::Duration};
+use std::{self, str::FromStr, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, trace, warn};
 
@@ -91,15 +92,20 @@ impl LightClientConnection {
             .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?
             .clone();
 
-        let (node, event_subscriber) = NodeBuilder::new()
+        let mut node = NodeBuilder::new()
             .network(config.celestia_network.clone())
             .store(store)
             .blockstore(blockstore)
             .pruning_delay(celestia_config.pruning_delay)
-            .sampling_window(celestia_config.sampling_window)
-            .start_subscribed()
-            .await?;
+            .sampling_window(celestia_config.sampling_window);
 
+        if !celestia_config.bootnodes.is_empty() {
+            node = node.bootnodes(celestia_config.bootnodes.into_iter().map(|addr| {
+                Multiaddr::from_str(&addr).expect("Failed to parse given multiaddresses.")
+            }))
+        }
+
+        let (node, event_subscriber) = node.start_subscribed().await?;
         let lumina_sub = Arc::new(Mutex::new(event_subscriber));
 
         // Creates an EventChannel that starts forwarding lumina events to the subscriber
@@ -121,12 +127,6 @@ impl LightClientConnection {
         config: &NetworkConfig,
         node_config: Option<NodeConfig>,
     ) -> Result<Self> {
-        #[cfg(target_arch = "wasm32")]
-        let bootnodes = resolve_bootnodes(&bootnodes).await?;
-
-        #[cfg(target_arch = "wasm32")]
-        let (blockstore, store) = Self::setup_stores().await.unwrap();
-
         let celestia_config = config
             .celestia_config
             .as_ref()

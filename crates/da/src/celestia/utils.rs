@@ -16,6 +16,7 @@ pub const DEFAULT_FETCH_MAX_RETRIES: u64 = 5;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CelestiaConfig {
     pub connection_string: String,
+    pub bootnodes: Vec<String>,
     pub start_height: u64,
     pub snark_namespace_id: String,
     pub operation_namespace_id: String,
@@ -29,6 +30,7 @@ impl Default for CelestiaConfig {
     fn default() -> Self {
         CelestiaConfig {
             connection_string: "ws://localhost:26658".to_string(),
+            bootnodes: Vec::new(),
             start_height: 4851608,
             sampling_window: DEFAULT_SAMPLING_WINDOW,
             pruning_delay: DEFAULT_PRUNING_DELAY,

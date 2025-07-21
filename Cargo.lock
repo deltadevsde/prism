@@ -6746,6 +6746,7 @@ name = "prism-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "celestia-rpc",
  "log",
  "pretty_env_logger",
  "prism-common",
