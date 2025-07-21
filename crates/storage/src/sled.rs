@@ -258,7 +258,7 @@ impl TreeWriter for SledConnection {
                 for (node_key, node) in node_batch.nodes() {
                     let key = node_key.encode_to_bytes().unwrap();
                     let value = node.encode_to_bytes().unwrap();
-                    tx_node.insert(key, value.as_slice()).unwrap();
+                    tx_node.insert(key, value).unwrap();
                 }
 
                 for ((version, key_hash), value) in node_batch.values() {
@@ -274,7 +274,7 @@ impl TreeWriter for SledConnection {
                     let mut fkey = Vec::with_capacity(32 + version_bytes.len());
                     fkey.extend_from_slice(&value_key);
                     fkey.extend_from_slice(&version_bytes);
-                    tx_values.insert(fkey, encoded_value.as_slice()).unwrap();
+                    tx_values.insert(fkey, encoded_value).unwrap();
                 }
 
                 Ok::<(), sled::transaction::ConflictableTransactionError<anyhow::Error>>(())
