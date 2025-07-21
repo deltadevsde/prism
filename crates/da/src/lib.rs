@@ -187,8 +187,6 @@ impl VerifiableStateTransition for FinalizedEpoch {
 
         self.verify_commitments()?;
 
-        let commitments = EpochCommitments::new(self.prev_commitment, self.current_commitment);
-
         let finalized_epoch_proof = &self.snark.proof_bytes;
 
         let vkey = if self.height == 0 {
@@ -205,7 +203,10 @@ impl VerifiableStateTransition for FinalizedEpoch {
         )
         .map_err(|e| EpochVerificationError::ProofVerificationError(e.to_string()))?;
 
-        Ok(commitments)
+        Ok(EpochCommitments::new(
+            self.prev_commitment,
+            self.current_commitment,
+        ))
     }
 }
 

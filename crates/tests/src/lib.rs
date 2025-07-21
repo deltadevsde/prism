@@ -22,7 +22,10 @@ use prism_storage::{
 };
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::sync::Arc;
-use tokio::{spawn, time::Duration};
+use tokio::{
+    spawn,
+    time::{Duration, sleep},
+};
 use tokio_util::sync::CancellationToken;
 
 use tempfile::TempDir;
@@ -164,7 +167,7 @@ async fn test_light_client_prover_talking() {
 
     // Coverage Short-Circuit
     if std::env::var("COVERAGE_TEST").is_ok() {
-        tokio::time::sleep(Duration::from_secs(3 * 60)).await;
+        sleep(Duration::from_secs(3 * 60)).await;
         return;
     }
 
@@ -211,7 +214,7 @@ async fn test_light_client_prover_talking() {
             if lc_digest == bridge_digest {
                 break;
             }
-            tokio::time::sleep(Duration::from_millis(100)).await
+            sleep(Duration::from_millis(100)).await
         }
     })
     .await;
@@ -312,7 +315,7 @@ async fn generate_transactions(prover: Arc<Prover>, ct: CancellationToken) {
             }
         }
 
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_secs(5)).await;
     }
 }
 
