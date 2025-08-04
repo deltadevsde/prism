@@ -1,24 +1,26 @@
 mod cfg;
+mod cli_args;
 mod node_types;
 
-use cfg::{
-    Cli, Commands, initialize_da_layer, initialize_db, initialize_light_da_layer, load_config,
-};
+use cfg::load_config;
 use clap::Parser;
-use keystore_rs::{FileStore, KeyChain, KeyStore};
-use prism_keys::{CryptoAlgorithm, SigningKey};
-use prism_serde::base64::ToBase64;
+use node_types::NodeType;
+use prism_cli::{cfg::ProverConfig, error::CliError};
+use prism_da::{create_full_node_da_layer, create_light_client_da_layer};
+use prism_lightclient::{LightClient, create_light_client};
+use prism_prover::factory::{create_prover_as_full_node, create_prover_as_prover};
+
+use prism_storage::create_storage;
 use prism_telemetry::telemetry::shutdown_telemetry;
 use prism_telemetry_registry::{init::init, metrics_registry::get_metrics};
-
-use std::io::{Error, ErrorKind};
-
-use node_types::NodeType;
-use prism_lightclient::LightClient;
-use prism_prover::Prover;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info};
+use tracing::info;
+
+use crate::{
+    cfg::{FullNodeConfig, LightClientConfig},
+    cli_args::{Cli, CliCommands},
+};
 
 pub const SIGNING_KEY_ID: &str = "prism";
 
@@ -30,32 +32,35 @@ pub const SIGNING_KEY_ID: &str = "prism";
 /// management and data availability layers, and starts the selected node type (`LightClient`,
 /// `Prover`, or `FullNode`). Handles errors during setup and ensures telemetry is properly shut
 /// down after execution.
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), CliError> {
     let cli = Cli::parse();
     let args = match cli.clone().command {
-        Commands::LightClient(args) | Commands::Prover(args) | Commands::FullNode(args) => args,
+        CliCommands::LightClient(args)
+        | CliCommands::Prover(args)
+        | CliCommands::FullNode(args) => args,
     };
 
-    let config = load_config(args.clone()).map_err(|e| Error::other(e.to_string()))?;
+    // TODO: use command specific converters and check whether this can be moved down
+    let config = load_config(args.clone())
+        .map_err(|e| CliError::ConfigFailed(format!("Error loading config: {}", e)))?;
 
     // Extract and clone all fields that will be moved
     let telemetry_config = match config.telemetry.clone() {
         Some(cfg) => cfg,
         None => {
-            return Err(Error::new(
-                ErrorKind::InvalidInput,
-                "Missing telemetry configuration",
+            return Err(CliError::ConfigFailed(
+                "Could not load telemetry config".to_string(),
             ));
         }
     };
-    let keystore_type = config.keystore_type.clone();
-    let keystore_path = config.keystore_path.clone();
-    let webserver_config = config.webserver.clone();
+    let _keystore_type = config.keystore_type.clone();
+    let _keystore_path = config.keystore_path.clone();
+    let _webserver_config = config.webserver.clone();
 
     let node_type = match cli.command {
-        Commands::LightClient(_) => "lightclient".to_string(),
-        Commands::Prover(_) => "prover".to_string(),
-        Commands::FullNode(_) => "fullnode".to_string(),
+        CliCommands::LightClient(_) => "lightclient".to_string(),
+        CliCommands::Prover(_) => "prover".to_string(),
+        CliCommands::FullNode(_) => "fullnode".to_string(),
     };
 
     let attributes: Vec<(String, String)> = vec![
@@ -85,102 +90,54 @@ async fn main() -> std::io::Result<()> {
     }
 
     let node: Arc<dyn NodeType> = match cli.command {
-        Commands::LightClient(_) => {
-            let verifying_key = config.network.verifying_key.clone();
+        CliCommands::LightClient(_light_client_args) => {
+            // TODO: light_client_args -> light_client_config / config
+            // TODO: Replace using the default below
+            let config = LightClientConfig::default().custom_config();
+            let verifying_key = config.verifying_key.clone();
 
-            let da = initialize_light_da_layer(&config).await.map_err(|e| {
-                error!("error initializing light da layer: {}", e);
-                Error::other(e.to_string())
+            let da = create_light_client_da_layer(&config.da).await?;
+
+            let light_client = create_light_client(da, verifying_key, cancellation_token.clone())
+                .map_err(|e| {
+                CliError::ConfigFailed(format!("Failed to create light client: {}", e))
             })?;
+            Arc::new(light_client)
+        }
+        CliCommands::Prover(_) => {
+            // TODO: light_client_args -> light_client_config / config
+            // TODO: Replace using the default below
+            let config = ProverConfig::default().custom_config();
 
-            Arc::new(LightClient::new(
-                da,
-                verifying_key,
+            let db = create_storage(&config.db).await?;
+            let da = create_full_node_da_layer(&config.da).await?;
+            let prover = create_prover_as_prover(
+                &config.prover,
+                db.clone(),
+                da.clone(),
                 cancellation_token.clone(),
-            ))
-        }
-        Commands::Prover(_) => {
-            let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
-
-            let da = initialize_da_layer(&config).await.map_err(|e| Error::other(e.to_string()))?;
-            info!(
-                "keystore type: {:?}",
-                keystore_type.clone().unwrap_or_default()
-            );
-
-            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
-
-            let signing_key = get_signing_key(keystore_type.clone(), keystore_path.clone())?;
-            let verifying_key = signing_key.verifying_key();
-
-            info!(
-                "prover's verifying key: {}",
-                verifying_key.to_bytes().to_base64()
-            );
-
-            // When SP1_PROVER is set to mock, disable recursive proofs
-            let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
-            let prover_cfg = prism_prover::Config {
-                syncer: prism_prover::SyncerConfig {
-                    verifying_key,
-                    start_height,
-                    max_epochless_gap: config.max_epochless_gap,
-                    prover_enabled: true,
-                },
-                sequencer: prism_prover::SequencerConfig {
-                    signing_key,
-                    batcher_enabled: true,
-                },
-                prover_engine: prism_prover::ProverEngineConfig { recursive_proofs },
-                webserver: webserver_config.clone().unwrap_or_default(),
-            };
-
-            Arc::new(
-                Prover::new(db, da, &prover_cfg, cancellation_token.clone()).map_err(|e| {
-                    error!("error initializing prover: {}", e);
-                    Error::other(e.to_string())
-                })?,
             )
+            .map_err(|e| CliError::ConfigFailed(format!("Failed to create prover: {}", e)))?;
+
+            Arc::new(prover)
         }
-        Commands::FullNode(_) => {
-            let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
+        CliCommands::FullNode(_) => {
+            // TODO: light_client_args -> light_client_config / config
+            // TODO: Replace using the default below
+            let config = FullNodeConfig::default().custom_config();
 
-            let da = initialize_da_layer(&config).await.map_err(|e| Error::other(e.to_string()))?;
-
-            info!(
-                "keystore type: {:?}",
-                keystore_type.clone().unwrap_or_default()
-            );
-
-            info!("SP1_PROVER: {:?}", std::env::var("SP1_PROVER"));
-
-            let signing_key = get_signing_key(keystore_type, keystore_path)?;
-
-            let verifying_key = config.network.verifying_key.clone();
-
-            // When SP1_PROVER is set to mock, disable recursive proofs
-            let recursive_proofs = std::env::var("SP1_PROVER").map_or(true, |val| val != "mock");
-            let prover_cfg = prism_prover::Config {
-                syncer: prism_prover::SyncerConfig {
-                    verifying_key,
-                    start_height,
-                    max_epochless_gap: config.max_epochless_gap,
-                    prover_enabled: false, // FullNode doesn't generate proofs
-                },
-                sequencer: prism_prover::SequencerConfig {
-                    signing_key,
-                    batcher_enabled: true,
-                },
-                prover_engine: prism_prover::ProverEngineConfig { recursive_proofs },
-                webserver: webserver_config.unwrap_or_default(),
-            };
-
-            Arc::new(
-                Prover::new(db, da, &prover_cfg, cancellation_token.clone()).map_err(|e| {
-                    error!("error initializing prover: {}", e);
-                    Error::other(e.to_string())
-                })?,
+            // let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
+            let db = create_storage(&config.db).await?;
+            let da = create_full_node_da_layer(&config.da).await?;
+            let full_node = create_prover_as_full_node(
+                &config.full_node,
+                db.clone(),
+                da.clone(),
+                cancellation_token.clone(),
             )
+            .map_err(|e| CliError::ConfigFailed(format!("Failed to create full node: {}", e)))?;
+
+            Arc::new(full_node)
         }
     };
 
@@ -206,37 +163,14 @@ async fn main() -> std::io::Result<()> {
         cancellation_for_signal.cancel();
     });
 
-    let result = node.start().await.map_err(|e| Error::other(e.to_string()));
+    let result = node.start().await;
 
     shutdown_telemetry(telemetry_config, meter_provider, log_provider);
 
-    result
-}
-
-fn get_signing_key(
-    keystore_type: Option<String>,
-    keystore_path: Option<String>,
-) -> std::io::Result<SigningKey> {
-    let keystore: Box<dyn KeyStore> = match keystore_type.unwrap_or_default().as_str() {
-        "file" => {
-            let file_store = FileStore::new(keystore_path.unwrap_or_default())
-                .map_err(|e| Error::other(e.to_string()))?;
-            Box::new(file_store)
-        }
-        "keychain" => Box::new(KeyChain),
-        _ => {
-            return Err(Error::new(ErrorKind::InvalidInput, "invalid keystore type"));
-        }
-    };
-
-    let raw_signing_key = keystore
-        .get_or_create_signing_key(SIGNING_KEY_ID)
-        .map_err(|e| Error::other(format!("Failed to get or create signing key: {}", e)))?;
-
-    // Hardcoded ED25519 as keystore_rs only supports ED25519
-    let signing_key =
-        SigningKey::from_algorithm_and_bytes(CryptoAlgorithm::Ed25519, raw_signing_key.as_bytes())
-            .map_err(|e| Error::other(format!("Failed to parse signing key: {}", e)))?;
-
-    Ok(signing_key)
+    result.map_err(|e| {
+        // Log the error with full debug information
+        tracing::error!("Node encountered an error: {:?}", e);
+        // Return the error
+        CliError::NodeError(format!("{:?}", e))
+    })
 }

@@ -1,127 +1,42 @@
-use anyhow::{Context, Result, anyhow};
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use anyhow::{Context, Result};
 use config::{ConfigBuilder, File, builder::DefaultState};
 use dirs::home_dir;
 use dotenvy::dotenv;
-use prism_errors::{DataAvailabilityError, GeneralError};
-use prism_keys::VerifyingKey;
-use prism_prover::{prover::DEFAULT_MAX_EPOCHLESS_GAP, webserver::WebServerConfig};
-use prism_serde::base64::FromBase64;
-use prism_storage::{
-    Database,
-    database::StorageBackend,
-    inmemory::InMemoryDatabase,
-    rocksdb::{RocksDBConfig, RocksDBConnection},
-};
-use prism_telemetry::config::{TelemetryConfig, get_default_telemetry_config};
-use serde::{Deserialize, Serialize};
-use std::{fs, path::Path, str::FromStr, sync::Arc, time::Duration};
-use tracing::{error, info};
-
+use lumina_node::{self, network::Network as CelestiaNetwork};
 use prism_da::{
-    DataAvailabilityLayer, LightDataAvailabilityLayer,
+    FullNodeDAConfig, LightClientDAConfig,
     celestia::{
-        full_node::CelestiaConnection,
-        light_client::LightClientConnection,
+        DEFAULT_FETCH_MAX_RETRIES, DEFAULT_FETCH_TIMEOUT, DEFAULT_PRUNING_DELAY,
+        DEFAULT_SAMPLING_WINDOW,
+        full_node::CelestiaFullNodeDAConfig,
+        light_client::CelestiaLightClientDAConfig,
         utils::{CelestiaConfig, Network, NetworkConfig},
     },
-    consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
-    memory::InMemoryDataAvailabilityLayer,
 };
+use prism_errors::GeneralError;
+use prism_keys::VerifyingKey;
+use prism_prover::{
+    factory::{FullNodeProverConfig, ProverProverConfig, WebServerConfig},
+    prover::DEFAULT_MAX_EPOCHLESS_GAP,
+};
+use prism_serde::base64::FromBase64;
+use prism_storage::{DatabaseConfig, rocksdb::RocksDBConfig};
+use prism_telemetry::config::{TelemetryConfig, get_default_telemetry_config};
+use serde::{Deserialize, Serialize};
+use std::{fs, path::Path, str::FromStr};
+use tracing::info;
 
-#[derive(Clone, Debug, Subcommand, Deserialize)]
-pub enum Commands {
-    LightClient(CommandArgs),
-    FullNode(CommandArgs),
-    Prover(CommandArgs),
-}
+use crate::cli_args::{CliCommandArgs, CliDaLayerType, CliDatabaseType};
 
-#[derive(Args, Deserialize, Clone, Debug)]
-pub struct CommandArgs {
-    #[arg(short = 'n', long, default_value = "local")]
-    network_name: Option<String>,
-
-    #[arg(long)]
-    /// Prover's verifying key, used to verify epoch signatures. Expected to be a base64-encoded
-    /// string.
-    verifying_key: Option<String>,
-
-    #[arg(long)]
-    home_path: Option<String>,
-
-    #[command(flatten)]
-    database: DatabaseArgs,
-
-    /// The type of keystore to use.
-    ///
-    /// Can be one of: `keychain`, `file`.
-    #[arg(long, default_value = "keychain")]
-    keystore_type: Option<String>,
-
-    /// The path to the keystore.
-    ///
-    /// This is only used if the keystore type is `file`.
-    #[arg(long, default_value = "~/.prism/keystore.json")]
-    keystore_path: Option<String>,
-
-    #[command(flatten)]
-    celestia: CelestiaArgs,
-
-    #[command(flatten)]
-    webserver: WebserverArgs,
-}
-
-#[derive(Parser, Clone, Debug, Deserialize)]
-#[command(author, version, about, long_about = None)]
-pub struct Cli {
-    #[command(subcommand)]
-    pub command: Commands,
-}
-
-#[derive(Args, Deserialize, Clone, Debug)]
-#[group(required = false, multiple = true)]
-struct CelestiaArgs {
-    /// Celestia Client websocket URL
-    #[arg(short = 'c', long)]
-    celestia_client: Option<String>,
-
-    /// Celestia Snark Namespace ID
-    #[arg(long)]
-    snark_namespace_id: Option<String>,
-
-    /// Celestia Transaction Namespace ID
-    #[arg(long)]
-    operation_namespace_id: Option<String>,
-
-    /// Height to start searching the DA layer for SNARKs on
-    #[arg(short = 's', long)]
-    celestia_start_height: Option<u64>,
-}
-
-#[derive(Args, Deserialize, Clone, Debug)]
-#[group(required = false, multiple = true)]
-struct WebserverArgs {
-    #[arg(long)]
-    webserver_active: Option<bool>,
-
-    /// IP address for the webserver to listen on
-    #[arg(long, requires = "webserver_active", default_value = "127.0.0.1")]
-    host: Option<String>,
-
-    /// Port number for the webserver to listen on
-    #[arg(short, long, requires = "webserver_active")]
-    port: Option<u16>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub webserver: Option<WebServerConfig>,
     pub network: NetworkConfig,
     pub keystore_type: Option<String>,
     pub keystore_path: Option<String>,
-    pub da_layer: DALayerOption,
-    pub db: StorageBackend,
+    pub da_layer: CliDaLayerType,
+    pub db: DatabaseConfig,
     pub telemetry: Option<TelemetryConfig>,
     /// Maximum number of DA heights the prover will wait before posting a gapfiller proof
     pub max_epochless_gap: u64,
@@ -130,44 +45,153 @@ pub struct Config {
 impl Config {
     fn initialize(path: &str, network_name: &str) -> Self {
         Config {
-            webserver: Some(WebServerConfig::default()),
+            webserver: Some(WebServerConfig {
+                enabled: true,
+                host: "127.0.0.1".to_string(),
+                port: 41997,
+            }),
             keystore_type: Some("keychain".to_string()),
             keystore_path: Some(format!("{}keystore.json", path)),
             network: Network::from_str(network_name).unwrap().config(),
-            da_layer: DALayerOption::default(),
-            db: StorageBackend::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
+            da_layer: CliDaLayerType::default(),
+            db: DatabaseConfig::RocksDB(RocksDBConfig::new(&format!("{}data", path))),
             telemetry: Some(get_default_telemetry_config()),
             max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
         }
     }
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub enum DALayerOption {
-    #[default]
-    Celestia,
-    InMemory,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PrismPreset {
+    Specter,
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, ValueEnum)]
-pub enum DBValues {
-    #[default]
-    RocksDB,
-    InMemory,
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum LightClientConfig {
+    Preset(PrismPreset),
+    Custom(LightClientCustomConfig),
 }
 
-#[derive(Args, Deserialize, Clone, Debug)]
-pub struct DatabaseArgs {
-    #[arg(long, value_enum, default_value_t = DBValues::RocksDB)]
-    /// Storage backend to use. Default: `rocks-db`
-    db_type: DBValues,
+#[derive(Debug, Clone, Deserialize)]
+pub struct LightClientCustomConfig {
+    pub da: LightClientDAConfig,
 
-    /// Path to the RocksDB database, used when `db_type` is `rocks-db`
-    #[arg(long)]
-    rocksdb_path: Option<String>,
+    #[serde(flatten)]
+    pub light_client: prism_lightclient::LightClientConfig,
 }
 
-pub fn load_config(args: CommandArgs) -> Result<Config> {
+impl LightClientConfig {
+    pub fn custom_config(&self) -> LightClientCustomConfig {
+        match self {
+            LightClientConfig::Preset(PrismPreset::Specter) => LightClientCustomConfig {
+                da: LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+                    celestia_network: CelestiaNetwork::Mocha,
+                    snark_namespace_id: "000000000000000000000000000000000000707269736d5350457331"
+                        .to_string(),
+                    sampling_window: DEFAULT_SAMPLING_WINDOW,
+                    pruning_delay: DEFAULT_PRUNING_DELAY,
+                    fetch_timeout: DEFAULT_FETCH_TIMEOUT,
+                    fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES,
+                }),
+                light_client: prism_lightclient::LightClientConfig {
+                    verifying_key_str: "L2ilppK59Kq3aAMB/wpxdVGaI53DHPMdY6fcRodyFaA=".to_string(),
+                },
+            },
+            LightClientConfig::Custom(config) => config.clone(),
+        }
+    }
+}
+
+impl Default for LightClientConfig {
+    fn default() -> Self {
+        LightClientConfig::Preset(PrismPreset::Specter)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum FullNodeConfig {
+    Preset(PrismPreset),
+    Custom(FullNodeCustomConfig),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct FullNodeCustomConfig {
+    pub db: DatabaseConfig,
+    pub da: FullNodeDAConfig,
+
+    #[serde(flatten)]
+    pub full_node: FullNodeProverConfig,
+}
+
+impl FullNodeConfig {
+    pub fn custom_config(&self) -> FullNodeCustomConfig {
+        match self {
+            FullNodeConfig::Preset(PrismPreset::Specter) => FullNodeCustomConfig {
+                da: FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
+                    url: "ws://localhost:26658".to_string(),
+                    snark_namespace_id: "00000000000000de1008".to_string(),
+                    operation_namespace_id: "00000000000000de1009".to_string(),
+                    fetch_timeout: DEFAULT_FETCH_TIMEOUT,
+                    fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES,
+                }),
+                db: DatabaseConfig::RocksDB(RocksDBConfig::new("./data")),
+                full_node: FullNodeProverConfig::default(),
+            },
+            FullNodeConfig::Custom(config) => config.clone(),
+        }
+    }
+}
+
+impl Default for FullNodeConfig {
+    fn default() -> Self {
+        FullNodeConfig::Preset(PrismPreset::Specter)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum ProverConfig {
+    Preset(PrismPreset),
+    Custom(ProverCustomConfig),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProverCustomConfig {
+    pub db: DatabaseConfig,
+    pub da: FullNodeDAConfig,
+
+    #[serde(flatten)]
+    pub prover: ProverProverConfig,
+}
+
+impl ProverConfig {
+    pub fn custom_config(&self) -> ProverCustomConfig {
+        match self {
+            ProverConfig::Preset(PrismPreset::Specter) => ProverCustomConfig {
+                da: FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
+                    url: "ws://localhost:26658".to_string(),
+                    snark_namespace_id: "00000000000000de1008".to_string(),
+                    operation_namespace_id: "00000000000000de1009".to_string(),
+                    fetch_timeout: DEFAULT_FETCH_TIMEOUT,
+                    fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES,
+                }),
+                db: DatabaseConfig::RocksDB(RocksDBConfig::new("./data")),
+                prover: ProverProverConfig::default(),
+            },
+            ProverConfig::Custom(config) => config.clone(),
+        }
+    }
+}
+
+impl Default for ProverConfig {
+    fn default() -> Self {
+        ProverConfig::Preset(PrismPreset::Specter)
+    }
+}
+
+pub fn load_config(args: CliCommandArgs) -> Result<Config> {
     dotenv().ok();
 
     let home_path = get_prism_home(&args).context("Failed to determine prism home path")?;
@@ -199,7 +223,7 @@ pub fn load_config(args: CommandArgs) -> Result<Config> {
     Ok(final_config)
 }
 
-fn get_prism_home(args: &CommandArgs) -> Result<String> {
+fn get_prism_home(args: &CliCommandArgs) -> Result<String> {
     let network_name = args.network_name.clone().unwrap_or_else(|| "custom".to_string());
     args.home_path
         .clone()
@@ -227,14 +251,18 @@ fn ensure_config_file_exists(home_path: &str, network_name: &str) -> Result<()> 
     Ok(())
 }
 
-fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
-    let webserver_config = &config.webserver.unwrap_or_default();
+fn apply_command_line_args(config: Config, args: CliCommandArgs) -> Config {
+    let webserver_config = &config.webserver.unwrap_or(WebServerConfig {
+        enabled: true,
+        host: "127.0.0.1".to_string(),
+        port: 41997,
+    });
     let network_config = &config.network.network.config();
     let prism_home = get_prism_home(&args.clone()).unwrap();
 
     let default_celestia_config = CelestiaConfig::default();
     let celestia_config = match config.da_layer {
-        DALayerOption::Celestia => {
+        CliDaLayerType::Celestia => {
             let existing_config = config.network.celestia_config.clone().unwrap_or_default();
 
             Some(CelestiaConfig {
@@ -268,7 +296,7 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
                 fetch_max_retries: existing_config.fetch_max_retries,
             })
         }
-        DALayerOption::InMemory => None,
+        CliDaLayerType::InMemory => None,
     };
 
     Config {
@@ -278,10 +306,10 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
             port: args.webserver.port.unwrap_or(webserver_config.port),
         }),
         db: match args.database.db_type {
-            DBValues::RocksDB => StorageBackend::RocksDB(RocksDBConfig {
+            CliDatabaseType::RocksDB => DatabaseConfig::RocksDB(RocksDBConfig {
                 path: args.database.rocksdb_path.unwrap_or_else(|| format!("{}/data", prism_home)),
             }),
-            DBValues::InMemory => StorageBackend::InMemory,
+            CliDatabaseType::InMemory => DatabaseConfig::InMemory,
         },
         network: NetworkConfig {
             network: Network::from_str(&args.network_name.unwrap_or_default()).unwrap(),
@@ -297,100 +325,5 @@ fn apply_command_line_args(config: Config, args: CommandArgs) -> Config {
         da_layer: config.da_layer,
         telemetry: config.telemetry,
         max_epochless_gap: config.max_epochless_gap,
-    }
-}
-
-pub fn initialize_db(cfg: &Config) -> Result<Arc<Box<dyn Database>>> {
-    match &cfg.db {
-        StorageBackend::RocksDB(cfg) => {
-            let db = RocksDBConnection::new(cfg)
-                .map_err(|e| GeneralError::InitializationError(e.to_string()))
-                .context("Failed to initialize RocksDB")?;
-
-            Ok(Arc::new(Box::new(db) as Box<dyn Database>))
-        }
-        StorageBackend::InMemory => Ok(Arc::new(
-            Box::new(InMemoryDatabase::new()) as Box<dyn Database>
-        )),
-    }
-}
-
-pub async fn initialize_da_layer(
-    config: &Config,
-) -> Result<Arc<dyn DataAvailabilityLayer + 'static>> {
-    match config.da_layer {
-        DALayerOption::Celestia => {
-            let celestia_conf = config
-                .network
-                .celestia_config
-                .clone()
-                .context("Celestia configuration not found")?;
-
-            for attempt in 1..=DA_RETRY_COUNT {
-                match CelestiaConnection::new(&celestia_conf, None).await {
-                    Ok(da) => return Ok(Arc::new(da) as Arc<dyn DataAvailabilityLayer + 'static>),
-                    Err(e) => {
-                        if attempt == DA_RETRY_COUNT {
-                            return Err(DataAvailabilityError::NetworkError(format!(
-                                "failed to connect to celestia node after {} attempts: {}",
-                                DA_RETRY_COUNT, e
-                            ))
-                            .into());
-                        }
-                        error!(
-                            "Attempt {} to connect to celestia node failed: {}. Retrying in {} seconds...",
-                            attempt,
-                            e,
-                            DA_RETRY_INTERVAL.as_secs()
-                        );
-                        tokio::time::sleep(DA_RETRY_INTERVAL).await;
-                    }
-                }
-            }
-            unreachable!() // This line should never be reached due to the return in the last iteration
-        }
-        DALayerOption::InMemory => {
-            let (da_layer, _height_rx, _block_rx) =
-                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
-            Ok(Arc::new(da_layer) as Arc<dyn DataAvailabilityLayer + 'static>)
-        }
-    }
-}
-
-pub async fn initialize_light_da_layer(
-    config: &Config,
-) -> Result<Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>> {
-    match config.da_layer {
-        DALayerOption::Celestia => {
-            info!("Initializing light client connection...");
-            info!("Network config: {:?}", config.network);
-            let connection = match LightClientConnection::new(&config.network).await {
-                Ok(conn) => conn,
-                Err(e) => {
-                    error!("Failed to initialize light client connection: {:?}", e);
-                    error!("Network config: {:?}", config.network);
-                    if let Some(celestia_config) = &config.network.celestia_config {
-                        error!(
-                            "Celestia connection string: {}",
-                            celestia_config.connection_string
-                        );
-                        error!("Start height: {}", celestia_config.start_height);
-                    }
-                    return Err(anyhow!(
-                        "Failed to initialize light client connection: {}",
-                        e
-                    ));
-                }
-            };
-            Ok(Arc::new(connection)
-                as Arc<
-                    dyn LightDataAvailabilityLayer + Send + Sync + 'static,
-                >)
-        }
-        DALayerOption::InMemory => {
-            let (da_layer, _height_rx, _block_rx) =
-                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
-            Ok(Arc::new(da_layer))
-        }
     }
 }
