@@ -21,7 +21,7 @@ use crate::{
     prover_engine::{engine::ProverEngine, sp1_prover::SP1ProverEngine},
     sequencer::Sequencer,
     syncer::Syncer,
-    webserver::{WebServer, WebServerConfig},
+    webserver::{WebServer, WebServerOptions},
 };
 use prism_da::DataAvailabilityLayer;
 
@@ -29,7 +29,7 @@ use prism_da::DataAvailabilityLayer;
 pub const DEFAULT_MAX_EPOCHLESS_GAP: u64 = 300;
 
 #[derive(Clone)]
-pub struct SyncerConfig {
+pub struct SyncerOptions {
     /// Key used to verify incoming [`FinalizedEpochs`].
     pub verifying_key: VerifyingKey,
     /// DA layer height the prover should start syncing transactions from.
@@ -42,53 +42,54 @@ pub struct SyncerConfig {
 }
 
 #[derive(Clone)]
-pub struct SequencerConfig {
-    /// Key used to sign new [`FinalizedEpochs`].
-    pub signing_key: SigningKey,
+pub struct SequencerOptions {
+    /// Key used to sign new [`FinalizedEpochs`]. This is only required when the syncer is set up
+    /// to prove epochs.
+    pub signing_key: Option<SigningKey>,
     /// Enables accepting incoming transactions from the webserver and posting batches to the DA
     /// layer.
     pub batcher_enabled: bool,
 }
 
 #[derive(Clone)]
-pub struct ProverEngineConfig {
+pub struct ProverEngineOptions {
     /// Whether recursive proofs should be enabled
     pub recursive_proofs: bool,
 }
 
 #[derive(Clone)]
-pub struct Config {
-    pub syncer: SyncerConfig,
-    pub sequencer: SequencerConfig,
-    pub prover_engine: ProverEngineConfig,
-    pub webserver: WebServerConfig,
+pub struct ProverOptions {
+    pub syncer: SyncerOptions,
+    pub sequencer: SequencerOptions,
+    pub prover_engine: ProverEngineOptions,
+    pub webserver: WebServerOptions,
 }
 
-impl Default for Config {
+impl Default for ProverOptions {
     fn default() -> Self {
         let signing_key = SigningKey::new_ed25519();
 
-        Config {
-            syncer: SyncerConfig {
+        ProverOptions {
+            syncer: SyncerOptions {
                 verifying_key: signing_key.verifying_key(),
                 start_height: 1,
                 max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
                 prover_enabled: true,
             },
-            sequencer: SequencerConfig {
-                signing_key,
+            sequencer: SequencerOptions {
+                signing_key: Some(signing_key),
                 batcher_enabled: true,
             },
-            prover_engine: ProverEngineConfig {
+            prover_engine: ProverEngineOptions {
                 recursive_proofs: false,
             },
-            webserver: WebServerConfig::default(),
+            webserver: WebServerOptions::default(),
         }
     }
 }
 
 #[allow(dead_code)]
-impl Config {
+impl ProverOptions {
     /// Creates a new Config instance with the specified key algorithm.
     ///
     /// # Arguments
@@ -100,16 +101,16 @@ impl Config {
         let signing_key =
             SigningKey::new_with_algorithm(algorithm).context("Failed to create signing key")?;
 
-        let mut config = Config::default();
+        let mut config = ProverOptions::default();
         config.syncer.verifying_key = signing_key.verifying_key();
-        config.sequencer.signing_key = signing_key;
+        config.sequencer.signing_key = Some(signing_key);
         Ok(config)
     }
 }
 
 #[allow(dead_code)]
 pub struct Prover {
-    pub cfg: Config,
+    pub options: ProverOptions,
     prover_engine: Arc<dyn ProverEngine>,
     sequencer: Arc<Sequencer>,
     syncer: Arc<Syncer>,
@@ -122,18 +123,18 @@ impl Prover {
     pub fn new(
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
-        cfg: &Config,
+        opts: &ProverOptions,
         cancellation_token: CancellationToken,
     ) -> Result<Prover> {
-        let prover_engine = Arc::new(SP1ProverEngine::new(&cfg.prover_engine)?);
-        Prover::new_with_engine(db, da, prover_engine, cfg, cancellation_token)
+        let prover_engine = Arc::new(SP1ProverEngine::new(&opts.prover_engine)?);
+        Prover::new_with_engine(db, da, prover_engine, opts, cancellation_token)
     }
 
     pub fn new_with_engine(
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
         prover_engine: Arc<dyn ProverEngine>,
-        cfg: &Config,
+        opts: &ProverOptions,
         cancellation_token: CancellationToken,
     ) -> Result<Prover> {
         let latest_epoch_da_height = Arc::new(RwLock::new(0));
@@ -141,21 +142,21 @@ impl Prover {
         let sequencer = Arc::new(Sequencer::new(
             db.clone(),
             da.clone(),
-            &cfg.sequencer,
+            &opts.sequencer,
             latest_epoch_da_height.clone(),
         )?);
 
         let syncer = Arc::new(Syncer::new(
             da,
             db,
-            &cfg.syncer,
+            &opts.syncer,
             latest_epoch_da_height.clone(),
             sequencer.clone(),
             prover_engine.clone(),
         ));
 
         Ok(Prover {
-            cfg: cfg.clone(),
+            options: opts.clone(),
             prover_engine,
             sequencer,
             syncer,
@@ -224,8 +225,8 @@ impl Prover {
         futures.spawn(async move { sequencer.start(cancel_token).await });
 
         // Start WebServer if enabled
-        if self.cfg.webserver.enabled {
-            let ws = WebServer::new(self.cfg.webserver.clone(), self.clone());
+        if self.options.webserver.enabled {
+            let ws = WebServer::new(self.options.webserver.clone(), self.clone());
             let cancel_token = self.cancellation_token.clone();
             futures.spawn(async move { ws.start(cancel_token).await });
         }

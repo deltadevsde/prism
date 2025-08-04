@@ -76,7 +76,7 @@ impl ProverEngine for SP1ProverEngine {
 }
 
 impl SP1ProverEngine {
-    pub fn new(config: &crate::prover::ProverEngineConfig) -> Result<Self> {
+    pub fn new(config: &crate::prover::ProverEngineOptions) -> Result<Self> {
         let base_prover_client = ProverClient::from_env();
         let recursive_prover_client = ProverClient::from_env();
 

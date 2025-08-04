@@ -30,7 +30,7 @@ impl Syncer {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
         db: Arc<Box<dyn Database>>,
-        config: &crate::prover::SyncerConfig,
+        config: &crate::prover::SyncerOptions,
         latest_epoch_da_height: Arc<RwLock<u64>>,
         sequencer: Arc<Sequencer>,
         prover_engine: Arc<dyn ProverEngine>,

@@ -21,15 +21,15 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct WebServerConfig {
+pub struct WebServerOptions {
     pub enabled: bool,
     pub host: String,
     pub port: u16,
 }
 
-impl Default for WebServerConfig {
+impl Default for WebServerOptions {
     fn default() -> Self {
-        WebServerConfig {
+        WebServerOptions {
             enabled: true,
             host: "127.0.0.1".to_string(),
             port: 41997,
@@ -38,7 +38,7 @@ impl Default for WebServerConfig {
 }
 
 pub struct WebServer {
-    pub cfg: WebServerConfig,
+    pub cfg: WebServerOptions,
     pub session: Arc<Prover>,
 }
 
@@ -46,7 +46,7 @@ pub struct WebServer {
 struct ApiDoc;
 
 impl WebServer {
-    pub fn new(cfg: WebServerConfig, session: Arc<Prover>) -> Self {
+    pub fn new(cfg: WebServerOptions, session: Arc<Prover>) -> Self {
         Self { cfg, session }
     }
 
