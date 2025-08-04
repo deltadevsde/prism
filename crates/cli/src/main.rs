@@ -2,115 +2,76 @@ mod cfg;
 mod cli_args;
 mod node_types;
 
-use cfg::load_config;
 use clap::Parser;
 use node_types::NodeType;
-use prism_cli::{cfg::ProverConfig, error::CliError};
+use prism_cli::error::CliError;
 use prism_da::{create_full_node_da_layer, create_light_client_da_layer};
-use prism_lightclient::{LightClient, create_light_client};
+use prism_lightclient::create_light_client;
 use prism_prover::factory::{create_prover_as_full_node, create_prover_as_prover};
-
 use prism_storage::create_storage;
-use prism_telemetry::telemetry::shutdown_telemetry;
-use prism_telemetry_registry::{init::init, metrics_registry::get_metrics};
+use prism_telemetry_registry::create_telemetry;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
 use crate::{
-    cfg::{FullNodeConfig, LightClientConfig},
+    cfg::{FullNodeCmdConfig, LightClientCmdConfig, LoadableConfig, ProverCmdConfig},
     cli_args::{Cli, CliCommands},
 };
 
-pub const SIGNING_KEY_ID: &str = "prism";
-
 /// The main function that initializes and runs a prism client.
 #[tokio::main()]
+async fn main() {
+    if let Err(e) = run_cli().await {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+}
+
 /// Initializes and runs the appropriate prism node type based on CLI arguments.
 ///
 /// Parses command-line arguments, loads configuration, sets up telemetry, initializes key
 /// management and data availability layers, and starts the selected node type (`LightClient`,
 /// `Prover`, or `FullNode`). Handles errors during setup and ensures telemetry is properly shut
 /// down after execution.
-async fn main() -> Result<(), CliError> {
+async fn run_cli() -> Result<(), CliError> {
     let cli = Cli::parse();
-    let args = match cli.clone().command {
-        CliCommands::LightClient(args)
-        | CliCommands::Prover(args)
-        | CliCommands::FullNode(args) => args,
-    };
 
-    // TODO: use command specific converters and check whether this can be moved down
-    let config = load_config(args.clone())
-        .map_err(|e| CliError::ConfigFailed(format!("Error loading config: {}", e)))?;
-
-    // Extract and clone all fields that will be moved
-    let telemetry_config = match config.telemetry.clone() {
-        Some(cfg) => cfg,
-        None => {
-            return Err(CliError::ConfigFailed(
-                "Could not load telemetry config".to_string(),
-            ));
-        }
-    };
-    let _keystore_type = config.keystore_type.clone();
-    let _keystore_path = config.keystore_path.clone();
-    let _webserver_config = config.webserver.clone();
-
-    let node_type = match cli.command {
-        CliCommands::LightClient(_) => "lightclient".to_string(),
-        CliCommands::Prover(_) => "prover".to_string(),
-        CliCommands::FullNode(_) => "fullnode".to_string(),
-    };
-
-    let attributes: Vec<(String, String)> = vec![
-        ("network".to_string(), config.network.network.to_string()),
-        ("node_type".to_string(), node_type.clone()),
-    ];
-    let (meter_provider, log_provider) = init(telemetry_config.clone(), attributes)?;
-
-    let celestia_config = config.network.celestia_config.clone().unwrap_or_default();
-    let start_height = celestia_config.start_height;
+    // Setup cancellation token for graceful shutdown
     let cancellation_token = CancellationToken::new();
+    let cancellation_for_signal = cancellation_token.clone();
 
-    // Use the metrics registry to record metrics
-    if let Some(metrics) = get_metrics() {
-        metrics.record_node_info(vec![
-            ("version".to_string(), env!("CARGO_PKG_VERSION").to_string()),
-            (
-                "operation_namespace_id".to_string(),
-                celestia_config.operation_namespace_id.to_string(),
-            ),
-            (
-                "snark_namespace_id".to_string(),
-                celestia_config.snark_namespace_id.to_string(),
-            ),
-            ("start_height".to_string(), start_height.to_string()),
-        ]);
-    }
-
-    let node: Arc<dyn NodeType> = match cli.command {
-        CliCommands::LightClient(_light_client_args) => {
-            // TODO: light_client_args -> light_client_config / config
-            // TODO: Replace using the default below
-            let config = LightClientConfig::default().custom_config();
-            let verifying_key = config.verifying_key.clone();
+    let (node, telemetry) = match cli.command {
+        CliCommands::LightClient(ref light_client_args) => {
+            let config = LightClientCmdConfig::load(light_client_args).map_err(|e| {
+                CliError::ConfigFailed(format!("Error loading light client config: {}", e))
+            })?;
 
             let da = create_light_client_da_layer(&config.da).await?;
+            let telemetry = create_telemetry(
+                &config.telemetry,
+                vec![("node_type".to_string(), "lightclient".to_string())],
+            )?;
 
-            let light_client = create_light_client(da, verifying_key, cancellation_token.clone())
-                .map_err(|e| {
-                CliError::ConfigFailed(format!("Failed to create light client: {}", e))
-            })?;
-            Arc::new(light_client)
+            let light_client =
+                create_light_client(da, &config.light_client, cancellation_token.clone()).map_err(
+                    |e| CliError::ConfigFailed(format!("Failed to create light client: {}", e)),
+                )?;
+            // Arc::new(light_client)
+            (Arc::new(light_client) as Arc<dyn NodeType>, telemetry)
         }
-        CliCommands::Prover(_) => {
-            // TODO: light_client_args -> light_client_config / config
-            // TODO: Replace using the default below
-            let config = ProverConfig::default().custom_config();
+        CliCommands::Prover(ref prover_args) => {
+            let config = ProverCmdConfig::load(prover_args).map_err(|e| {
+                CliError::ConfigFailed(format!("Error loading prover config: {}", e))
+            })?;
 
             let db = create_storage(&config.db).await?;
             let da = create_full_node_da_layer(&config.da).await?;
+            let telemetry = create_telemetry(
+                &config.telemetry,
+                vec![("node_type".to_string(), "prover".to_string())],
+            )?;
+
             let prover = create_prover_as_prover(
                 &config.prover,
                 db.clone(),
@@ -119,16 +80,20 @@ async fn main() -> Result<(), CliError> {
             )
             .map_err(|e| CliError::ConfigFailed(format!("Failed to create prover: {}", e)))?;
 
-            Arc::new(prover)
+            (Arc::new(prover) as Arc<dyn NodeType>, telemetry)
         }
-        CliCommands::FullNode(_) => {
-            // TODO: light_client_args -> light_client_config / config
-            // TODO: Replace using the default below
-            let config = FullNodeConfig::default().custom_config();
+        CliCommands::FullNode(ref full_node_args) => {
+            let config = FullNodeCmdConfig::load(full_node_args).map_err(|e| {
+                CliError::ConfigFailed(format!("Error loading full node config: {}", e))
+            })?;
 
-            // let db = initialize_db(&config).map_err(|e| Error::other(e.to_string()))?;
             let db = create_storage(&config.db).await?;
             let da = create_full_node_da_layer(&config.da).await?;
+            let telemetry = create_telemetry(
+                &config.telemetry,
+                vec![("node_type".to_string(), "fullnode".to_string())],
+            )?;
+
             let full_node = create_prover_as_full_node(
                 &config.full_node,
                 db.clone(),
@@ -137,12 +102,12 @@ async fn main() -> Result<(), CliError> {
             )
             .map_err(|e| CliError::ConfigFailed(format!("Failed to create full node: {}", e)))?;
 
-            Arc::new(full_node)
+            // Arc::new(full_node)
+            (Arc::new(full_node) as Arc<dyn NodeType>, telemetry)
         }
     };
 
     // Setup signal handling for graceful shutdown
-    let cancellation_for_signal = cancellation_token.clone();
     tokio::spawn(async move {
         use tokio::signal::unix::{SignalKind, signal};
 
@@ -165,7 +130,7 @@ async fn main() -> Result<(), CliError> {
 
     let result = node.start().await;
 
-    shutdown_telemetry(telemetry_config, meter_provider, log_provider);
+    telemetry.shutdown();
 
     result.map_err(|e| {
         // Log the error with full debug information
