@@ -19,6 +19,7 @@ test_utils = []
 lumina-node = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 clap = { workspace = true }
