@@ -5,8 +5,22 @@ use opentelemetry_sdk::{logs::SdkLoggerProvider, metrics::SdkMeterProvider};
 use prism_telemetry::{
     config::TelemetryConfig,
     logs::setup_log_subscriber,
-    telemetry::{build_resource, init_telemetry, set_global_attributes},
+    telemetry::{build_resource, init_telemetry, set_global_attributes, shutdown_telemetry},
 };
+
+/// Represents an instance of the telemetry system, holding configuration and providers.
+pub struct TelemetryInstance {
+    config: TelemetryConfig,
+    meter_provider: Option<SdkMeterProvider>,
+    log_provider: Option<SdkLoggerProvider>,
+}
+
+impl TelemetryInstance {
+    /// Shuts down the telemetry system.
+    pub fn shutdown(self) {
+        shutdown_telemetry(self.config, self.meter_provider, self.log_provider);
+    }
+}
 
 /// Initializes the telemetry system with metrics and logging providers.
 ///
@@ -30,10 +44,10 @@ use prism_telemetry::{
 /// let result = init(config, attrs);
 /// assert!(result.is_ok());
 /// ```
-pub fn init(
-    telemetry_config: TelemetryConfig,
+pub fn create_telemetry(
+    telemetry_config: &TelemetryConfig,
     attributes: Vec<(String, String)>,
-) -> Result<(Option<SdkMeterProvider>, Option<SdkLoggerProvider>), TelemetryError> {
+) -> Result<TelemetryInstance, TelemetryError> {
     // Initialize the telemetry system
 
     let mut attributes = attributes.clone();
@@ -44,7 +58,7 @@ pub fn init(
     let resource = build_resource("prism".to_string(), attributes);
 
     let (meter_provider, log_provider) =
-        init_telemetry(&telemetry_config, resource).map_err(|e| {
+        init_telemetry(telemetry_config, resource).map_err(|e| {
             TelemetryError::InitializationError(format!("Failed to initialize telemetry: {}", e))
         })?;
 
@@ -60,5 +74,9 @@ pub fn init(
         tracing::warn!("No meter provider available, metrics will not be recorded");
     }
 
-    Ok((meter_provider, log_provider))
+    Ok(TelemetryInstance {
+        config: telemetry_config.clone(),
+        meter_provider,
+        log_provider,
+    })
 }
