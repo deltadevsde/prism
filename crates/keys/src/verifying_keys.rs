@@ -17,7 +17,7 @@ use pkcs8::{
     Document, LineEnding, SubjectPublicKeyInfoRef,
     der::{Decode, pem::PemLabel},
 };
-use serde::{Deserialize, Deserializer, Serialize, de::Error};
+use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::{
     self,
@@ -285,7 +285,7 @@ impl VerifyingKey {
 
         // If not a file path or file parsing failed, try as base64 DER
         let bytes = Vec::<u8>::from_base64(input)
-            .map_err(|e| ParseError::GeneralError(format!("Invalid base64: {}", e)))?;
+            .map_err(|e| ParseError::GeneralError(format!("{} for {}", e, input)))?;
         Self::from_spki_der(&bytes)
     }
 }
@@ -378,9 +378,9 @@ impl PartialSchema for VerifyingKey {
 // // Custom Deserialization of VerifyingKeys
 
 // /// Deserialize a VerifyingKey from a path-like string input
-// /// This function can be used with #[serde(deserialize_with = "deserialize_verifying_key_from_path")]
-// pub fn from_spki_pem_path<'de, D>(deserializer: D) -> std::result::Result<VerifyingKey, D::Error>
-// where
+// /// This function can be used with #[serde(deserialize_with =
+// "deserialize_verifying_key_from_path")] pub fn from_spki_pem_path<'de, D>(deserializer: D) ->
+// std::result::Result<VerifyingKey, D::Error> where
 //     D: Deserializer<'de>,
 // {
 //     let path_str = String::deserialize(deserializer)?;

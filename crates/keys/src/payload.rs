@@ -1,9 +1,8 @@
 use prism_serde::raw_or_b64;
-use serde::{Deserialize, Deserializer, Serialize, de::Error};
-use std::path::Path;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{CryptoAlgorithm, VerifyingKey};
+use crate::CryptoAlgorithm;
 
 #[derive(Serialize, Deserialize, ToSchema)]
 /// Data structure containing a cryptographic payload with algorithm and bytes

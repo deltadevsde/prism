@@ -116,7 +116,8 @@ impl SigningKey {
     pub fn to_pkcs8_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
         self.to_pkcs8_der_doc()?
             .write_pem_file(filename, PrivateKeyInfo::PEM_LABEL, LineEnding::LF)
-            .map_err(|_| ParseError::PemCreationError.into())
+            .map_err(|e| ParseError::PemCreationError(e.to_string()))?;
+        Ok(())
     }
 
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
