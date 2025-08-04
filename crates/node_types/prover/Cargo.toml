@@ -33,6 +33,7 @@ prism-da = { workspace = true }
 sp1-sdk = { workspace = true }
 prism-telemetry-registry = { workspace = true }
 mockall = { workspace = true }
+dirs = { workspace = true }
 
 [dev-dependencies]
 paste = { workspace = true }
