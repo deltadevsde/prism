@@ -12,6 +12,7 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum DatabaseConfig {
     #[default]
     InMemory,
