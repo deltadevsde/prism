@@ -106,7 +106,7 @@ dotenvy = "0.15.7"
 # zk
 rand = "0.8.5"
 sp1-zkvm = { version = "5.0.8" }
-sp1-sdk = { version = "5.0.8" }
+sp1-sdk = { version = "5.1.1" }
 sp1-verifier = { version = "5.0.8", default-features = false }
 sp1-build = { version = "5.0.8" }
 
