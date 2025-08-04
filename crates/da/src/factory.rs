@@ -14,27 +14,13 @@ use prism_errors::DataAvailabilityError;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum LightClientDAConfig {
     Celestia(CelestiaLightClientDAConfig),
     #[default]
     InMemory,
 }
-
-// impl Default for LightClientDAConfig {
-//     fn default() -> Self {
-//         LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
-//             celestia_network: CelestiaNetwork::Mocha,
-//             snark_namespace_id: "000000000000000000000000000000000000707269736d5350457331"
-//                 .to_string(),
-//             sampling_window: DEFAULT_SAMPLING_WINDOW,
-//             pruning_delay: DEFAULT_PRUNING_DELAY,
-//             fetch_timeout: DEFAULT_FETCH_TIMEOUT,
-//             fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES,
-//         })
-//     }
-// }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]

@@ -17,7 +17,7 @@ use std::{
 use tokio::{sync::broadcast, time::Duration};
 use tracing::{error, trace};
 
-use crate::DataAvailabilityLayer;
+use crate::{DataAvailabilityLayer, celestia::CelestiaNetwork};
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
 use celestia_types::AppVersion;
 use prism_common::transaction::Transaction;
@@ -30,7 +30,7 @@ use super::utils::create_namespace;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CelestiaFullNodeDAConfig {
     pub url: String,
-    // pub celestia_network: CelestiaNetwork,
+    pub celestia_network: CelestiaNetwork,
     pub snark_namespace_id: String,
     pub operation_namespace_id: String,
     pub fetch_timeout: Duration,
@@ -41,6 +41,7 @@ impl Default for CelestiaFullNodeDAConfig {
     fn default() -> Self {
         Self {
             url: "ws://localhost:26658".to_string(),
+            celestia_network: CelestiaNetwork::default(),
             snark_namespace_id: "00000000000000de1008".to_string(),
             operation_namespace_id: "00000000000000de1009".to_string(),
             fetch_timeout: Duration::from_secs(120),

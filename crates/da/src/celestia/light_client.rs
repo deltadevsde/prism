@@ -2,7 +2,10 @@
 use crate::celestia::utils::NetworkConfig;
 use crate::{
     FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
-    celestia::{DEFAULT_PRUNING_DELAY, DEFAULT_SAMPLING_WINDOW, utils::create_namespace},
+    celestia::{
+        DEFAULT_FETCH_MAX_RETRIES, DEFAULT_FETCH_TIMEOUT, DEFAULT_PRUNING_DELAY,
+        DEFAULT_SAMPLING_WINDOW, utils::create_namespace,
+    },
 };
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
@@ -59,8 +62,8 @@ impl Default for CelestiaLightClientDAConfig {
             snark_namespace_id: "00000000000000de1008".to_string(),
             sampling_window: DEFAULT_SAMPLING_WINDOW, // Default to 5 minutes
             pruning_delay: DEFAULT_PRUNING_DELAY,     // Default to 7 days
-            fetch_timeout: Duration::from_secs(60),   // Default to 1 minute
-            fetch_max_retries: 5,                     // Default to 5 retries
+            fetch_timeout: DEFAULT_FETCH_TIMEOUT,     // Default to 1 minute
+            fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES, // Default to 5 retries
         }
     }
 }
