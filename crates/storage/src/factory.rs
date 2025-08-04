@@ -6,9 +6,8 @@ use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::{
-    Database, RedisConnection,
+    Database,
     inmemory::InMemoryDatabase,
-    redis::RedisConfig,
     rocksdb::{RocksDBConfig, RocksDBConnection},
 };
 
@@ -17,7 +16,6 @@ pub enum DatabaseConfig {
     #[default]
     InMemory,
     RocksDB(RocksDBConfig),
-    Redis(RedisConfig),
 }
 
 pub async fn create_storage(
@@ -28,10 +26,6 @@ pub async fn create_storage(
         DatabaseConfig::InMemory => Ok(Arc::new(Box::new(InMemoryDatabase::new()))),
         DatabaseConfig::RocksDB(config) => {
             let db = RocksDBConnection::new(config)?;
-            Ok(Arc::new(Box::new(db)))
-        }
-        DatabaseConfig::Redis(config) => {
-            let db = RedisConnection::new(config)?;
             Ok(Arc::new(Box::new(db)))
         }
     }

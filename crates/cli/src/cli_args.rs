@@ -95,7 +95,6 @@ pub enum CliDaLayerType {
 pub enum CliDatabaseType {
     #[default]
     InMemory,
-    Redis,
     RocksDB,
 }
 
@@ -108,8 +107,4 @@ pub struct CliDatabaseArgs {
     /// Path to the RocksDB database, used when `db_type` is `rocks-db`
     #[arg(long)]
     pub rocksdb_path: Option<String>,
-
-    /// Connection string to Redis, used when `db_type` is `redis`
-    #[arg(long, required_if_eq("db_type", "redis"))]
-    pub redis_url: Option<String>,
 }
