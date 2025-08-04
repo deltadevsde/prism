@@ -6485,6 +6485,7 @@ dependencies = [
  "prism-telemetry",
  "prism-telemetry-registry",
  "serde",
+ "serde_json",
  "thiserror 2.0.12",
  "tokio",
  "tokio-util",
@@ -6611,6 +6612,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "dirs 6.0.0",
  "log",
  "lumina-node",
  "pretty_env_logger",
@@ -6619,6 +6621,7 @@ dependencies = [
  "prism-errors",
  "prism-events",
  "prism-keys",
+ "prism-serde",
  "prism-telemetry-registry",
  "serde",
  "serde_json",
@@ -6637,6 +6640,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.8.4",
+ "dirs 6.0.0",
  "jmt",
  "log",
  "mockall",
@@ -6714,8 +6718,6 @@ dependencies = [
 [[package]]
 name = "prism-telemetry"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "192fd8571bd6cbd41f6045b614b994ded5ecdd31e5ffeb038375aa54579bbea1"
 dependencies = [
  "base64 0.22.1",
  "lazy_static",
