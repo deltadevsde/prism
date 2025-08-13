@@ -37,5 +37,6 @@ prism-lightclient = { path = "../lightclient", default-features = false }
 prism-da = { workspace = true }
 prism-common = { workspace = true }
 prism-events = { workspace = true }
+prism-presets = { workspace = true }
 serde = { workspace = true }
 serde-wasm-bindgen = { workspace = true }

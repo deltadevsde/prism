@@ -1,7 +1,8 @@
 use js_sys::Function;
-use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
+use prism_da::create_light_client_da_layer;
 use prism_events::{EventSubscriber, PrismEvent};
-use prism_lightclient::LightClient;
+use prism_lightclient::{LightClient, create_light_client};
+use prism_presets::{ApplyPreset, LightClientPreset};
 use std::{str::FromStr, sync::Arc};
 use tokio_util::sync::CancellationToken;
 use wasm_bindgen_futures::spawn_local;
@@ -9,6 +10,7 @@ use web_sys::{BroadcastChannel, MessagePort, console};
 
 use crate::{
     commands::{LightClientCommand, WorkerResponse},
+    config::WasmLightClientConfig,
     worker_communication::{WorkerServer, random_id},
 };
 use wasm_bindgen::{JsCast, prelude::*};
@@ -47,7 +49,7 @@ impl From<MessagePort> for MessagePortLike {
 #[wasm_bindgen]
 impl LightClientWorker {
     #[wasm_bindgen(constructor)]
-    pub async fn new(port_value: JsValue, network: &str) -> Result<LightClientWorker, JsError> {
+    pub async fn new(port_value: JsValue, preset_str: &str) -> Result<LightClientWorker, JsError> {
         let port: MessagePortLike = port_value.unchecked_into::<MessagePortLike>();
 
         let server = WorkerServer::new(port)?;
@@ -57,30 +59,30 @@ impl LightClientWorker {
             .map_err(|e| JsError::new(&format!("Failed to create broadcast channel: {:?}", e)))?;
 
         // Initialize network and DA layer
-        let network = Network::from_str(network)
-            .map_err(|e| JsError::new(&format!("Invalid network: {}", e)))?;
-        let network_config = network.config();
+        let preset =
+            LightClientPreset::from_str(preset_str).map_err(|e| JsError::new(&e.to_string()))?;
 
-        let da = Arc::new(
-            LightClientConnection::new(&network_config)
-                .await
-                .map_err(|e| JsError::new(&format!("Failed to connect to light client: {}", e)))?,
-        );
+        let config = WasmLightClientConfig::default_with_preset(&preset)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+
+        let da = create_light_client_da_layer(&config.da)
+            .await
+            .map_err(|e| JsError::new(&format!("Failed to connect to light client: {}", e)))?;
 
         // forward the internal light client events to the main thread
         spawn_local(forward_events(
-            da.event_channel.subscribe(),
+            da.event_channel().subscribe(),
             js_channel.clone(),
         ));
 
-        let verifying_key = network_config.verifying_key;
-
         let ct = CancellationToken::new();
-        let light_client = Arc::new(LightClient::new(da, verifying_key, ct));
+
+        let light_client = create_light_client(da, &config.light_client, ct.clone())
+            .map_err(|e| JsError::new(&format!("Failed to create light client: {}", e)))?;
 
         Ok(Self {
             server,
-            light_client,
+            light_client: Arc::new(light_client),
             events_channel_name: events_channel_name.to_string(),
         })
     }
