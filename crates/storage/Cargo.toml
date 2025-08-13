@@ -18,6 +18,7 @@ jmt = { workspace = true }
 prism-errors = { workspace = true }
 prism-da = { workspace = true }
 prism-common = { workspace = true }
+prism-presets = { workspace = true }
 prism-serde = { workspace = true }
 auto_impl = { workspace = true }
 rocksdb = { workspace = true }

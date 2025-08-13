@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use prism_errors::DatabaseError;
+use prism_presets::{ApplyPreset, FullNodePreset, PresetError, ProverPreset};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -17,6 +18,30 @@ pub enum DatabaseConfig {
     #[default]
     InMemory,
     RocksDB(RocksDBConfig),
+}
+
+impl ApplyPreset<FullNodePreset> for DatabaseConfig {
+    fn apply_preset(&mut self, preset: &FullNodePreset) -> Result<(), PresetError> {
+        match preset {
+            FullNodePreset::Development => {
+                *self = DatabaseConfig::InMemory;
+                Ok(())
+            }
+            _ => Ok(()),
+        }
+    }
+}
+
+impl ApplyPreset<ProverPreset> for DatabaseConfig {
+    fn apply_preset(&mut self, preset: &ProverPreset) -> Result<(), PresetError> {
+        match preset {
+            ProverPreset::Development => {
+                *self = DatabaseConfig::InMemory;
+                Ok(())
+            }
+            _ => Ok(()),
+        }
+    }
 }
 
 pub async fn create_storage(
