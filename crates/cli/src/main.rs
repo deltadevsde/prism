@@ -1,5 +1,6 @@
-mod cfg;
+mod apply_args;
 mod cli_args;
+mod config;
 mod node_types;
 
 use clap::Parser;
@@ -15,14 +16,17 @@ use tokio_util::sync::CancellationToken;
 use tracing::info;
 
 use crate::{
-    cfg::{FullNodeCmdConfig, LightClientCmdConfig, LoadableConfig, ProverCmdConfig},
+    apply_args::CliOverridableConfig,
     cli_args::{Cli, CliCommands},
+    config::{CliFullNodeConfig, CliLightClientConfig, CliProverConfig},
 };
 
 /// The main function that initializes and runs a prism client.
 #[tokio::main()]
 async fn main() {
     if let Err(e) = run_cli().await {
+        // TODO Using eprintln directly can probably be avoided when telemetry crate allows to set
+        // tracing subscriber earlier
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
@@ -43,7 +47,7 @@ async fn run_cli() -> Result<(), CliError> {
 
     let (node, telemetry) = match cli.command {
         CliCommands::LightClient(ref light_client_args) => {
-            let config = LightClientCmdConfig::load(light_client_args).map_err(|e| {
+            let config = CliLightClientConfig::load(light_client_args).map_err(|e| {
                 CliError::ConfigFailed(format!("Error loading light client config: {}", e))
             })?;
 
@@ -61,7 +65,7 @@ async fn run_cli() -> Result<(), CliError> {
             (Arc::new(light_client) as Arc<dyn NodeType>, telemetry)
         }
         CliCommands::Prover(ref prover_args) => {
-            let config = ProverCmdConfig::load(prover_args).map_err(|e| {
+            let config = CliProverConfig::load(prover_args).map_err(|e| {
                 CliError::ConfigFailed(format!("Error loading prover config: {}", e))
             })?;
 
@@ -83,7 +87,7 @@ async fn run_cli() -> Result<(), CliError> {
             (Arc::new(prover) as Arc<dyn NodeType>, telemetry)
         }
         CliCommands::FullNode(ref full_node_args) => {
-            let config = FullNodeCmdConfig::load(full_node_args).map_err(|e| {
+            let config = CliFullNodeConfig::load(full_node_args).map_err(|e| {
                 CliError::ConfigFailed(format!("Error loading full node config: {}", e))
             })?;
 
