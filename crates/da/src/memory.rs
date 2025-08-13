@@ -1,5 +1,7 @@
-#![cfg(not(target_arch = "wasm32"))]
-use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
+// #![cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
+use crate::DataAvailabilityLayer;
+use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::transaction::Transaction;
@@ -121,7 +123,8 @@ impl InMemoryDataAvailabilityLayer {
     }
 }
 
-#[async_trait]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         let blocks = self.blocks.read().await;
@@ -141,6 +144,7 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn start(&self) -> Result<()> {

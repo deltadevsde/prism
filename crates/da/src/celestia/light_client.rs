@@ -1,10 +1,8 @@
-#[cfg(feature = "uniffi")]
-use crate::celestia::utils::NetworkConfig;
 use crate::{
     FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
     celestia::{
         DEFAULT_FETCH_MAX_RETRIES, DEFAULT_FETCH_TIMEOUT, DEFAULT_PRUNING_DELAY,
-        DEFAULT_SAMPLING_WINDOW, utils::create_namespace,
+        DEFAULT_SAMPLING_WINDOW, DEVNET_SPECTER_SNARK_NAMESPACE_ID, utils::create_namespace,
     },
 };
 use anyhow::{Result, anyhow};
@@ -17,8 +15,10 @@ use lumina_node::store::{EitherStore, InMemoryStore};
 use lumina_node::{Node, NodeError, network::Network as CelestiaNetwork, store::StoreError};
 use prism_errors::DataAvailabilityError;
 use prism_events::{EventChannel, EventPublisher};
+use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
 use serde::{Deserialize, Serialize};
-use std::{self, sync::Arc, time::Duration};
+use serde_with::{DurationSeconds, serde_as};
+use std::{self, env::current_dir, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, trace, warn};
 
@@ -28,10 +28,7 @@ use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
 use lumina_node::NodeBuilder;
 
 #[cfg(not(target_arch = "wasm32"))]
-use {blockstore::EitherBlockstore, redb::Database, tokio::task::spawn_blocking};
-
-#[cfg(feature = "uniffi")]
-use lumina_node_uniffi::types::NodeConfig as CelestiaNodeConfig;
+use {blockstore::EitherBlockstore, redb::Database as RedbDatabase, tokio::task::spawn_blocking};
 
 #[cfg(not(target_arch = "wasm32"))]
 use lumina_node::{blockstore::RedbBlockstore, store::RedbStore};
@@ -45,14 +42,27 @@ pub type LuminaNode = Node<
     EitherStore<InMemoryStore, RedbStore>,
 >;
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CelestiaLightClientDAConfig {
     pub celestia_network: CelestiaNetwork,
     pub snark_namespace_id: String,
+    #[serde_as(as = "DurationSeconds<u64>")]
     pub sampling_window: Duration,
+    #[serde_as(as = "DurationSeconds<u64>")]
     pub pruning_delay: Duration,
+    #[serde_as(as = "DurationSeconds<u64>")]
     pub fetch_timeout: Duration,
     pub fetch_max_retries: u64,
+    pub store: CelestiaLightClientDAStoreConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum CelestiaLightClientDAStoreConfig {
+    InMemory,
+    Disk { path: String },
+    Browser,
 }
 
 impl Default for CelestiaLightClientDAConfig {
@@ -64,7 +74,30 @@ impl Default for CelestiaLightClientDAConfig {
             pruning_delay: DEFAULT_PRUNING_DELAY,     // Default to 7 days
             fetch_timeout: DEFAULT_FETCH_TIMEOUT,     // Default to 1 minute
             fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES, // Default to 5 retries
+
+            #[cfg(target_arch = "wasm32")]
+            store: CelestiaLightClientDAStoreConfig::Browser,
+            #[cfg(not(target_arch = "wasm32"))]
+            store: CelestiaLightClientDAStoreConfig::Disk {
+                path: dirs::home_dir()
+                    .unwrap_or_else(|| current_dir().unwrap_or_default())
+                    .join(".prism/data/light_client/")
+                    .to_string_lossy()
+                    .into_owned(),
+            },
         }
+    }
+}
+
+impl ApplyPreset<LightClientPreset> for CelestiaLightClientDAConfig {
+    fn apply_preset(&mut self, preset: &LightClientPreset) -> Result<(), PresetError> {
+        match preset {
+            LightClientPreset::Specter => {
+                self.celestia_network = CelestiaNetwork::Mocha;
+                self.snark_namespace_id = DEVNET_SPECTER_SNARK_NAMESPACE_ID.to_string();
+            }
+        }
+        Ok(())
     }
 }
 
@@ -78,47 +111,82 @@ pub struct LightClientConnection {
 
 impl LightClientConnection {
     #[cfg(not(target_arch = "wasm32"))]
-    async fn setup_stores() -> Result<
+    async fn setup_stores(
+        config: &CelestiaLightClientDAStoreConfig,
+    ) -> Result<
         (
             EitherBlockstore<InMemoryBlockstore, RedbBlockstore>,
             EitherStore<InMemoryStore, RedbStore>,
         ),
         DataAvailabilityError,
     > {
-        let db = spawn_blocking(|| Database::create("lumina.redb"))
-            .await
-            .expect("Failed to join")
-            .expect("Failed to open the database");
-        let db = Arc::new(db);
+        use std::path::Path;
 
-        let store = RedbStore::new(db.clone()).await.expect("Failed to create a store");
-        let blockstore = RedbBlockstore::new(db);
+        match config {
+            CelestiaLightClientDAStoreConfig::InMemory => {
+                let blockstore = InMemoryBlockstore::new();
+                let store = InMemoryStore::new();
 
-        let either_blockstore = EitherBlockstore::Right(blockstore);
-        let either_store = EitherStore::Right(store);
+                Ok((EitherBlockstore::Left(blockstore), EitherStore::Left(store)))
+            }
+            CelestiaLightClientDAStoreConfig::Disk { path } => {
+                let base_path = Path::new(&path).to_owned();
+                let store_path = base_path.join("lumina.redb");
 
-        Ok((either_blockstore, either_store))
+                let db = spawn_blocking(move || RedbDatabase::create(&store_path))
+                    .await
+                    .expect("Failed to join")
+                    .expect("Failed to open the database");
+                let db = Arc::new(db);
+
+                let store = RedbStore::new(db.clone()).await.expect("Failed to create a store");
+                let blockstore = RedbBlockstore::new(db);
+
+                Ok((
+                    EitherBlockstore::Right(blockstore),
+                    EitherStore::Right(store),
+                ))
+            }
+            CelestiaLightClientDAStoreConfig::Browser => {
+                Err(DataAvailabilityError::InitializationError(
+                    "browser store type can only be used with wasm".to_string(),
+                ))
+            }
+        }
     }
 
     #[cfg(target_arch = "wasm32")]
-    async fn setup_stores() -> Result<(IndexedDbBlockstore, IndexedDbStore), DataAvailabilityError>
-    {
-        let store = IndexedDbStore::new("prism-store")
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to create IndexedDbStore: {}", e))?;
+    async fn setup_stores(
+        config: &CelestiaLightClientDAStoreConfig,
+    ) -> Result<(IndexedDbBlockstore, IndexedDbStore), DataAvailabilityError> {
+        if !matches!(config, CelestiaLightClientDAStoreConfig::Browser) {
+            return Err(DataAvailabilityError::InitializationError(
+                "wasm DA can only use browser store type".to_string(),
+            ));
+        }
 
-        let blockstore = IndexedDbBlockstore::new("prism-blockstore")
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to create IndexedDbBlockstore: {}", e))?;
+        let store = IndexedDbStore::new("prism-store").await.map_err(|e| {
+            DataAvailabilityError::InitializationError(format!(
+                "Failed to create IndexedDbStore: {}",
+                e
+            ))
+        })?;
+
+        let blockstore = IndexedDbBlockstore::new("prism-blockstore").await.map_err(|e| {
+            DataAvailabilityError::InitializationError(format!(
+                "Failed to create IndexedDbBlockstore: {}",
+                e
+            ))
+        })?;
 
         Ok((blockstore, store))
     }
 
     pub async fn new(config: &CelestiaLightClientDAConfig) -> Result<Self, DataAvailabilityError> {
-        #[cfg(target_arch = "wasm32")]
-        let (blockstore, store) = Self::setup_stores().await.unwrap();
-        #[cfg(not(target_arch = "wasm32"))]
-        let (blockstore, store) = Self::setup_stores().await?;
+        // #[cfg(target_arch = "wasm32")]
+        // let (blockstore, store) = Self::setup_stores(&config.store).await?;
+        // #[cfg(not(target_arch = "wasm32"))]
+        let (blockstore, store) = Self::setup_stores(&config.store).await?;
 
         let (node, event_subscriber) = NodeBuilder::new()
             .network(config.celestia_network.clone())
@@ -135,52 +203,12 @@ impl LightClientConnection {
         // Creates an EventChannel that starts forwarding lumina events to the subscriber
         let prism_chan = EventChannel::from(lumina_sub.clone());
 
-        let snark_namespace = create_namespace(&config.snark_namespace_id)?;
-
         Ok(LightClientConnection {
             node: Arc::new(RwLock::new(node)),
             event_channel: Arc::new(prism_chan),
-            snark_namespace,
+            snark_namespace: create_namespace(&config.snark_namespace_id)?,
             fetch_timeout: config.fetch_timeout,
             fetch_max_retries: config.fetch_max_retries,
-        })
-    }
-
-    #[cfg(feature = "uniffi")]
-    pub async fn new_with_config(
-        config: &NetworkConfig,
-        node_config: Option<CelestiaNodeConfig>,
-    ) -> Result<Self> {
-        #[cfg(target_arch = "wasm32")]
-        let bootnodes = resolve_bootnodes(&bootnodes).await?;
-
-        #[cfg(target_arch = "wasm32")]
-        let (blockstore, store) = Self::setup_stores().await.unwrap();
-
-        let celestia_config = config
-            .celestia_config
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Celestia config is required but not provided"))?;
-
-        let node_builder = node_config
-            .ok_or_else(|| anyhow::anyhow!("Node config is required for uniffi but not provided"))?
-            .into_node_builder()
-            .await?;
-        let (node, event_subscriber) = node_builder.start_subscribed().await?;
-
-        let lumina_sub = Arc::new(Mutex::new(event_subscriber));
-
-        // Creates an EventChannel that starts forwarding lumina events to the subscriber
-        let prism_chan = EventChannel::from(lumina_sub.clone());
-
-        let snark_namespace = create_namespace(&celestia_config.snark_namespace_id)?;
-
-        Ok(LightClientConnection {
-            node: Arc::new(RwLock::new(node)),
-            event_channel: Arc::new(prism_chan),
-            snark_namespace,
-            fetch_timeout: celestia_config.fetch_timeout,
-            fetch_max_retries: celestia_config.fetch_max_retries,
         })
     }
 

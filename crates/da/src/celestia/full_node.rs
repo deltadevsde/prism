@@ -1,11 +1,18 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
+use crate::{
+    FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
+    celestia::{
+        DEFAULT_FETCH_MAX_RETRIES, DEFAULT_FETCH_TIMEOUT, DEVNET_SPECTER_OP_NAMESPACE_ID,
+        DEVNET_SPECTER_SNARK_NAMESPACE_ID,
+    },
+};
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
 use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_events::{EventChannel, PrismEvent};
+use prism_presets::PresetError;
 use serde::{Deserialize, Serialize};
 use std::{
     self,
@@ -44,9 +51,26 @@ impl Default for CelestiaFullNodeDAConfig {
             celestia_network: CelestiaNetwork::default(),
             snark_namespace_id: "00000000000000de1008".to_string(),
             operation_namespace_id: "00000000000000de1009".to_string(),
-            fetch_timeout: Duration::from_secs(120),
-            fetch_max_retries: 5,
+            fetch_timeout: DEFAULT_FETCH_TIMEOUT,
+            fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES,
         }
+    }
+}
+
+impl CelestiaFullNodeDAConfig {
+    pub(crate) fn new_for_specter() -> std::result::Result<Self, PresetError> {
+        let mut config = Self::default();
+        config.apply_specter_preset()?;
+        Ok(config)
+    }
+
+    pub(crate) fn apply_specter_preset(&mut self) -> std::result::Result<(), PresetError> {
+        // TODO: Use specific URL for specter
+        self.url = "ws://localhost:26658".to_string();
+        self.celestia_network = CelestiaNetwork::Mocha;
+        self.snark_namespace_id = DEVNET_SPECTER_SNARK_NAMESPACE_ID.to_string();
+        self.operation_namespace_id = DEVNET_SPECTER_OP_NAMESPACE_ID.to_string();
+        Ok(())
     }
 }
 

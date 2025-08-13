@@ -20,6 +20,7 @@ thiserror = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_with = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 web-time = { workspace = true, features = ["serde"] }
@@ -33,9 +34,11 @@ prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-common = { workspace = true }
 prism-events = { workspace = true }
+prism-presets = { workspace = true }
 libp2p = { workspace = true, features = ["serde"] }
 mockall = { workspace = true }
 bincode = { workspace = true }
+dirs = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 celestia-rpc = { workspace = true }
