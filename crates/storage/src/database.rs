@@ -5,15 +5,7 @@ use prism_common::digest::Digest;
 use prism_da::FinalizedEpoch;
 use serde::{Deserialize, Serialize};
 
-use crate::{rocksdb::RocksDBConfig};
-
-// TODO: Replace with DatabaseConfig
-#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub enum StorageBackend {
-    #[default]
-    InMemory,
-    RocksDB(RocksDBConfig),
-}
+use crate::rocksdb::RocksDBConfig;
 
 #[auto_impl(&, Box, Arc)]
 pub trait Database: Send + Sync + TreeReader + TreeWriter {
