@@ -32,6 +32,7 @@ default-members = [
   "crates/keys",
   "crates/tree",
   "crates/telemetry",
+  "crates/presets",
   "crates/zk/sp1-builder",
 ]
 
@@ -55,6 +56,7 @@ members = [
   "crates/keys",
   "crates/tree",
   "crates/telemetry",
+  "crates/presets",
 ]
 resolver = "2"
 
@@ -63,6 +65,7 @@ resolver = "2"
 serde = { version = "1.0.151", features = ["derive"] }
 serde_json = "1.0.79"
 serde_bytes = "0.11.15"
+serde_with = "3.14.0"
 base64 = "0.22.0"
 bech32 = "0.11.0"
 bincode = "1.3.3"
@@ -157,6 +160,7 @@ prism-tree = { path = "crates/tree" }
 prism-events = { path = "crates/events" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 prism-telemetry-registry = { path = "crates/telemetry" }
+prism-presets = { path = "crates/presets" }
 
 # testing
 mockall = "0.13.1"
@@ -173,7 +177,7 @@ web-sys = "0.3"
 web-time = "1.1.0"
 
 # telemetry
-prism-telemetry = "0.2.0"
+prism-telemetry = { path = "../prism-telemetry" }
 opentelemetry = "0.29.0"
 opentelemetry_sdk = "0.29.0"
 tracing = { version = "0.1.41", features = ["std"] }
