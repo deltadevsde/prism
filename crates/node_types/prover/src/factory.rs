@@ -1,6 +1,9 @@
 use anyhow::{Result, anyhow};
 use prism_da::DataAvailabilityLayer;
 use prism_keys::{SigningKey, VerifyingKey};
+use prism_presets::{
+    ApplyPreset, FullNodePreset, PRESET_SPECTER_PUBLIC_KEY_BASE64, PresetError, ProverPreset,
+};
 use prism_storage::Database;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -34,15 +37,15 @@ impl Default for WebServerConfig {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
-pub struct FullNodeProverConfig {
+pub struct FullNodeConfig {
     #[serde(rename = "verifying_key")]
     pub verifying_key_str: String,
     pub webserver: WebServerConfig,
 }
 
-impl Default for FullNodeProverConfig {
+impl Default for FullNodeConfig {
     fn default() -> Self {
-        FullNodeProverConfig {
+        FullNodeConfig {
             verifying_key_str: dirs::home_dir()
                 .unwrap_or_else(|| env::current_dir().unwrap_or_default())
                 .join(".prism/prover_key.spki")
@@ -53,18 +56,27 @@ impl Default for FullNodeProverConfig {
     }
 }
 
+impl ApplyPreset<FullNodePreset> for FullNodeConfig {
+    fn apply_preset(&mut self, preset: &FullNodePreset) -> Result<(), PresetError> {
+        if let FullNodePreset::Specter = preset {
+            self.verifying_key_str = PRESET_SPECTER_PUBLIC_KEY_BASE64.to_string();
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
-pub struct ProverProverConfig {
+pub struct ProverConfig {
     pub signing_key_path: String,
     pub max_epochless_gap: u64,
     pub recursive_proofs: bool,
     pub webserver: WebServerConfig,
 }
 
-impl Default for ProverProverConfig {
+impl Default for ProverConfig {
     fn default() -> Self {
-        ProverProverConfig {
+        ProverConfig {
             signing_key_path: dirs::home_dir()
                 .unwrap_or_else(|| env::current_dir().unwrap_or_default())
                 .join(".prism/prover_key.pk8")
@@ -77,13 +89,22 @@ impl Default for ProverProverConfig {
     }
 }
 
+impl ApplyPreset<ProverPreset> for ProverConfig {
+    fn apply_preset(&mut self, preset: &ProverPreset) -> Result<(), PresetError> {
+        if let ProverPreset::Development = preset {
+            self.recursive_proofs = false;
+        }
+        Ok(())
+    }
+}
+
 pub fn create_prover_as_full_node(
-    config: &FullNodeProverConfig,
+    config: &FullNodeConfig,
     db: Arc<Box<dyn Database>>,
     da: Arc<dyn DataAvailabilityLayer>,
     cancellation_token: CancellationToken,
 ) -> Result<Prover> {
-    let verifying_key = VerifyingKey::from_spki_pem_path_or_base64_der(&config.verifying_key_str)?;
+    let verifying_key = VerifyingKey::from_spki_pem_path_or_base64(&config.verifying_key_str)?;
 
     let prover_opts = ProverOptions {
         syncer: SyncerOptions {
@@ -110,7 +131,7 @@ pub fn create_prover_as_full_node(
 }
 
 pub fn create_prover_as_prover(
-    config: &ProverProverConfig,
+    config: &ProverConfig,
     db: Arc<Box<dyn Database>>,
     da: Arc<dyn DataAvailabilityLayer>,
     cancellation_token: CancellationToken,
