@@ -352,7 +352,7 @@ mod key_tests {
     }
 
     #[test]
-    fn test_verifying_key_from_spki_pem_path_or_base64_der() {
+    fn test_verifying_key_from_spki_pem_path_or_base64() {
         let temp_dir = env::temp_dir();
 
         // Test with Ed25519 PEM file path
@@ -362,7 +362,7 @@ mod key_tests {
         verifying_key_ed25519.to_spki_pem_file(&pem_path).unwrap();
         let path_str = pem_path.to_str().unwrap();
 
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(path_str);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(path_str);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), verifying_key_ed25519);
 
@@ -375,7 +375,7 @@ mod key_tests {
         verifying_key_secp256k1.to_spki_pem_file(&pem_path).unwrap();
         let path_str = pem_path.to_str().unwrap();
 
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(path_str);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(path_str);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), verifying_key_secp256k1);
 
@@ -388,7 +388,7 @@ mod key_tests {
         verifying_key_secp256r1.to_spki_pem_file(&pem_path).unwrap();
         let path_str = pem_path.to_str().unwrap();
 
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(path_str);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(path_str);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), verifying_key_secp256r1);
 
@@ -399,7 +399,7 @@ mod key_tests {
         let der_bytes = verifying_key_ed25519_der.to_spki_der().unwrap();
         let base64_der = der_bytes.to_base64();
 
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(&base64_der);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(&base64_der);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), verifying_key_ed25519_der);
 
@@ -408,7 +408,7 @@ mod key_tests {
         let der_bytes = verifying_key_secp256k1_der.to_spki_der().unwrap();
         let base64_der = der_bytes.to_base64();
 
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(&base64_der);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(&base64_der);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), verifying_key_secp256k1_der);
 
@@ -417,28 +417,28 @@ mod key_tests {
         let der_bytes = verifying_key_secp256r1_der.to_spki_der().unwrap();
         let base64_der = der_bytes.to_base64();
 
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(&base64_der);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(&base64_der);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), verifying_key_secp256r1_der);
 
         // Test with invalid base64
         let invalid_base64 = "invalid_base64!@#$";
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(invalid_base64);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(invalid_base64);
         assert!(result.is_err());
 
         // Test with non-existent file path
         let non_existent_path = "/path/that/does/not/exist.pem";
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(non_existent_path);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(non_existent_path);
         assert!(result.is_err());
 
         // Test with empty string
         let empty_string = "";
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(empty_string);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(empty_string);
         assert!(result.is_err());
 
         // Test with malformed DER data (valid base64 but invalid DER)
         let malformed_der = "SGVsbG8gV29ybGQ="; // "Hello World" in base64
-        let result = VerifyingKey::from_spki_pem_path_or_base64_der(malformed_der);
+        let result = VerifyingKey::from_spki_pem_path_or_base64(malformed_der);
         assert!(result.is_err());
     }
 

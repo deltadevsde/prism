@@ -266,6 +266,12 @@ impl VerifyingKey {
         Self::from_spki(spki)
     }
 
+    pub fn from_spki_base64(base64: &str) -> Result<Self> {
+        let bytes = Vec::<u8>::from_base64(base64)
+            .map_err(|e| ParseError::GeneralError(format!("{} for {}", e, base64)))?;
+        Self::from_spki_der(&bytes)
+    }
+
     pub fn from_spki_pem_file(filename: impl AsRef<Path>) -> Result<Self> {
         let (label, doc) = Document::read_pem_file(filename)
             .map_err(|e| VerificationError::GeneralError(e.to_string()))?;
@@ -274,7 +280,7 @@ impl VerifyingKey {
         Self::from_spki_der(doc.as_bytes())
     }
 
-    pub fn from_spki_pem_path_or_base64_der(input: &str) -> Result<Self> {
+    pub fn from_spki_pem_path_or_base64(input: &str) -> Result<Self> {
         // Try as a file path first
         let path = Path::new(input);
         if path.exists() {
@@ -284,9 +290,7 @@ impl VerifyingKey {
         }
 
         // If not a file path or file parsing failed, try as base64 DER
-        let bytes = Vec::<u8>::from_base64(input)
-            .map_err(|e| ParseError::GeneralError(format!("{} for {}", e, input)))?;
-        Self::from_spki_der(&bytes)
+        Self::from_spki_base64(input)
     }
 }
 
