@@ -73,10 +73,6 @@ pub struct CliDaLayerArgs {
     pub celestia_fetch_max_retries: Option<u64>,
 
     #[arg(long)]
-    /// Sampling window in seconds for light client
-    pub celestia_sampling_window: Option<u64>,
-
-    #[arg(long)]
-    /// Pruning delay in seconds for light client data
-    pub celestia_pruning_delay: Option<u64>,
+    /// Pruning window in seconds for light client data
+    pub celestia_pruning_window: Option<u64>,
 }

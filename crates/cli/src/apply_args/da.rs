@@ -58,12 +58,8 @@ fn apply_celestia_light_client_da_args(
         config.fetch_max_retries = retries;
     }
 
-    if let Some(sampling_window) = args.celestia_sampling_window {
-        config.sampling_window = Duration::from_secs(sampling_window);
-    }
-
-    if let Some(pruning_delay) = args.celestia_pruning_delay {
-        config.pruning_delay = Duration::from_secs(pruning_delay);
+    if let Some(pruning_window) = args.celestia_pruning_window {
+        config.pruning_window = Duration::from_secs(pruning_window);
     }
 
     // Update light client store if provided
@@ -170,8 +166,7 @@ mod tests {
             snark_namespace_id: "old_namespace".to_string(),
             fetch_timeout: Duration::from_secs(30),
             fetch_max_retries: 3,
-            sampling_window: Duration::from_secs(60),
-            pruning_delay: Duration::from_secs(3600),
+            pruning_window: Duration::from_secs(3600),
             store: CelestiaLightClientDAStoreConfig::InMemory,
         });
 
@@ -181,8 +176,7 @@ mod tests {
             celestia_network: Some(CliCelestiaNetwork::Mocha),
             celestia_fetch_timeout: Some(60),
             celestia_fetch_max_retries: Some(5),
-            celestia_sampling_window: Some(120),
-            celestia_pruning_delay: Some(7200),
+            celestia_pruning_window: Some(7200),
             celestia_store_type: Some(CliCelestiaLightClientStoreType::Disk),
             celestia_disk_store_path: Some("/test/path".to_string()),
             ..Default::default()
@@ -195,8 +189,7 @@ mod tests {
             assert_eq!(config.celestia_network, CelestiaNetwork::Mocha);
             assert_eq!(config.fetch_timeout, Duration::from_secs(60));
             assert_eq!(config.fetch_max_retries, 5);
-            assert_eq!(config.sampling_window, Duration::from_secs(120));
-            assert_eq!(config.pruning_delay, Duration::from_secs(7200));
+            assert_eq!(config.pruning_window, Duration::from_secs(7200));
             if let CelestiaLightClientDAStoreConfig::Disk { path } = &config.store {
                 assert_eq!(path, "/test/path");
             } else {
@@ -216,8 +209,7 @@ mod tests {
             snark_namespace_id: "old_namespace".to_string(),
             fetch_timeout: Duration::from_secs(30),
             fetch_max_retries: 3,
-            sampling_window: Duration::from_secs(60),
-            pruning_delay: Duration::from_secs(3600),
+            pruning_window: Duration::from_secs(3600),
             store: CelestiaLightClientDAStoreConfig::InMemory,
         });
 
@@ -240,8 +232,7 @@ mod tests {
             // Original values should remain unchanged
             assert_eq!(config.celestia_network, CelestiaNetwork::Arabica);
             assert_eq!(config.fetch_max_retries, 3);
-            assert_eq!(config.sampling_window, Duration::from_secs(60));
-            assert_eq!(config.pruning_delay, Duration::from_secs(3600));
+            assert_eq!(config.pruning_window, Duration::from_secs(3600));
             assert!(matches!(
                 config.store,
                 CelestiaLightClientDAStoreConfig::InMemory
@@ -328,8 +319,7 @@ mod tests {
             snark_namespace_id: "original_namespace".to_string(),
             fetch_timeout: Duration::from_secs(30),
             fetch_max_retries: 3,
-            sampling_window: Duration::from_secs(60),
-            pruning_delay: Duration::from_secs(3600),
+            pruning_window: Duration::from_secs(3600),
             store: CelestiaLightClientDAStoreConfig::InMemory,
         });
 
@@ -380,8 +370,7 @@ mod tests {
             snark_namespace_id: "namespace".to_string(),
             fetch_timeout: Duration::from_secs(30),
             fetch_max_retries: 3,
-            sampling_window: Duration::from_secs(60),
-            pruning_delay: Duration::from_secs(3600),
+            pruning_window: Duration::from_secs(3600),
             store: CelestiaLightClientDAStoreConfig::InMemory,
         });
 

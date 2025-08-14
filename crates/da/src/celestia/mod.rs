@@ -6,7 +6,7 @@ use std::time::Duration;
 
 pub use lumina_node::{
     network::Network as CelestiaNetwork,
-    node::{DEFAULT_PRUNING_DELAY, DEFAULT_SAMPLING_WINDOW},
+    node::{DEFAULT_PRUNING_WINDOW, SAMPLING_WINDOW},
 };
 
 pub const DEFAULT_FETCH_TIMEOUT: Duration = Duration::from_secs(120);

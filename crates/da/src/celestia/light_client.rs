@@ -1,8 +1,8 @@
 use crate::{
     FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
     celestia::{
-        DEFAULT_FETCH_MAX_RETRIES, DEFAULT_FETCH_TIMEOUT, DEFAULT_PRUNING_DELAY,
-        DEFAULT_SAMPLING_WINDOW, DEVNET_SPECTER_SNARK_NAMESPACE_ID, utils::create_namespace,
+        DEFAULT_FETCH_MAX_RETRIES, DEFAULT_FETCH_TIMEOUT, DEFAULT_PRUNING_WINDOW,
+        DEVNET_SPECTER_SNARK_NAMESPACE_ID, utils::create_namespace,
     },
 };
 use anyhow::{Result, anyhow};
@@ -48,9 +48,7 @@ pub struct CelestiaLightClientDAConfig {
     pub celestia_network: CelestiaNetwork,
     pub snark_namespace_id: String,
     #[serde_as(as = "DurationSeconds<u64>")]
-    pub sampling_window: Duration,
-    #[serde_as(as = "DurationSeconds<u64>")]
-    pub pruning_delay: Duration,
+    pub pruning_window: Duration,
     #[serde_as(as = "DurationSeconds<u64>")]
     pub fetch_timeout: Duration,
     pub fetch_max_retries: u64,
@@ -70,9 +68,8 @@ impl Default for CelestiaLightClientDAConfig {
         Self {
             celestia_network: CelestiaNetwork::Arabica, // Default to Arabica network
             snark_namespace_id: "00000000000000de1008".to_string(),
-            sampling_window: DEFAULT_SAMPLING_WINDOW, // Default to 5 minutes
-            pruning_delay: DEFAULT_PRUNING_DELAY,     // Default to 7 days
-            fetch_timeout: DEFAULT_FETCH_TIMEOUT,     // Default to 1 minute
+            pruning_window: DEFAULT_PRUNING_WINDOW, // Default to 7 days
+            fetch_timeout: DEFAULT_FETCH_TIMEOUT,   // Default to 1 minute
             fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES, // Default to 5 retries
 
             #[cfg(target_arch = "wasm32")]
@@ -192,8 +189,7 @@ impl LightClientConnection {
             .network(config.celestia_network.clone())
             .store(store)
             .blockstore(blockstore)
-            .pruning_delay(config.pruning_delay)
-            .sampling_window(config.sampling_window)
+            .pruning_window(config.pruning_window)
             .start_subscribed()
             .await
             .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
@@ -230,21 +226,10 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             height
         );
         let node = self.node.read().await;
-        let header = match node.get_header_by_height(height).await {
-            Ok(h) => h,
-            Err(NodeError::Store(StoreError::NotFound)) => {
-                debug!(
-                    "header for height {} not found locally, fetching from network",
-                    height
-                );
-                node.request_header_by_height(height).await?
-            }
-            Err(e) => return Err(anyhow!("Failed to fetch header: {}", e)),
-        };
 
         for attempt in 0..self.fetch_max_retries {
             match node
-                .request_all_blobs(&header, self.snark_namespace, Some(self.fetch_timeout))
+                .request_all_blobs(self.snark_namespace, height, Some(self.fetch_timeout))
                 .await
             {
                 Ok(blobs) => {
