@@ -1,9 +1,11 @@
-use anyhow::{Context, Result, bail};
+use anyhow::Result;
 use config::{Config, Environment, File};
-use dirs::home_dir;
 use prism_presets::{ApplyPreset, Preset};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, fs, path::Path};
+use std::fmt::Debug;
+use tracing::warn;
+
+use crate::file_utils::{ensure_file_directory_exists, expand_tilde};
 
 /// Trait for CLI argument types that provide configuration sources
 pub trait CliArgs {
@@ -42,53 +44,22 @@ pub trait CliOverridableConfig<P: Preset>:
 fn load_config<P: Preset, T: CliOverridableConfig<P>>(config_path: &str) -> Result<T> {
     let expanded_path = expand_tilde(config_path);
 
-    if let Err(e) = ensure_config_directory_exists(&expanded_path) {
-        println!("Could not ensure config directory exists {}", e);
-        return Ok(T::default());
+    if let Err(e) = ensure_file_directory_exists(&expanded_path) {
+        warn!("Could not ensure config {expanded_path} exists: {e}");
     }
 
-    let config_source = match Config::builder()
-        .add_source(File::with_name(&expanded_path))
-        .add_source(Environment::with_prefix("PRISM").separator("__"))
+    let config = match Config::builder()
+        .add_source(File::with_name(&expanded_path).required(false))
+        .add_source(Environment::with_prefix("PRISM").separator("__").try_parsing(true))
         .build()
+        .and_then(|config_source| config_source.try_deserialize())
     {
-        Ok(config_source) => config_source,
-        Err(e) => {
-            println!("Failed to build config: {}. Using defaults.", e);
-            return Ok(T::default());
-        }
-    };
-
-    let config = match config_source.try_deserialize() {
         Ok(config) => config,
         Err(e) => {
-            println!("Failed to deserialize config: {}. Using defaults.", e);
+            println!("Failed to load config: {}. Using defaults.", e);
             return Ok(T::default());
         }
     };
 
     Ok(config)
-}
-
-fn ensure_config_directory_exists(config_path: impl AsRef<Path>) -> Result<()> {
-    // If the path already exists, we're good
-    if config_path.as_ref().exists() {
-        return Ok(());
-    }
-
-    // Create parent directories if they don't exist
-    if let Some(parent) = config_path.as_ref().parent() {
-        return fs::create_dir_all(parent).context("Failed to create config directory");
-    }
-
-    bail!("Unable to create config directory");
-}
-
-fn expand_tilde(path: &str) -> String {
-    if path.starts_with("~/") {
-        if let Some(home) = home_dir() {
-            return path.replacen("~", &home.to_string_lossy(), 1);
-        }
-    }
-    path.to_string()
 }
