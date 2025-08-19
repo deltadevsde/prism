@@ -4,14 +4,25 @@ use prism_presets::{
     ApplyPreset, LightClientPreset, PRESET_SPECTER_PUBLIC_KEY_BASE64, PresetError,
 };
 use serde::{Deserialize, Serialize};
-use std::{env::current_dir, result::Result, sync::Arc};
+use std::{env::current_dir, path::PathBuf, result::Result, sync::Arc};
 use tokio_util::sync::CancellationToken;
 
 use crate::LightClient;
 
+/// Configuration for Prism light clients.
+///
+/// Contains parameters for verifying SNARK proofs from the prover network.
+/// The verifying key must match the signing key used by a trusted prover.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct LightClientConfig {
+    /// Path to the verifying key file or base64-encoded verifying key.
+    ///
+    /// Can be either:
+    /// - A filesystem path to a SPKI PEM file (e.g., "~/.prism/prover_key.spki")
+    /// - A base64-encoded verifying key string
+    ///
+    /// Must correspond to the signing key used by a trusted prover.
     #[serde(rename = "verifying_key")]
     pub verifying_key_str: String,
 }
@@ -20,7 +31,8 @@ impl Default for LightClientConfig {
     fn default() -> Self {
         LightClientConfig {
             verifying_key_str: dirs::home_dir()
-                .unwrap_or_else(|| current_dir().unwrap_or_default())
+                .or_else(|| current_dir().ok())
+                .unwrap_or_else(|| PathBuf::from("."))
                 .join(".prism/prover_key.spki")
                 .to_string_lossy()
                 .into_owned(),
@@ -39,6 +51,12 @@ impl ApplyPreset<LightClientPreset> for LightClientConfig {
     }
 }
 
+/// Creates a new light client instance with the given configuration.
+///
+/// The light client verifies SNARK proofs and maintains minimal state for
+/// efficient interaction with the Prism network.
+///
+/// See the crate-level documentation for usage examples and integration patterns.
 pub fn create_light_client(
     #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
     #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,

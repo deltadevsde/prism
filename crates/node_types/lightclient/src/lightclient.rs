@@ -63,6 +63,17 @@ macro_rules! await_event {
     };
 }
 
+/// A Prism light client for efficient network participation with minimal resource requirements.
+///
+/// ## Lifecycle
+///
+/// 1. **Initialization**: Created via factory methods with DA layer and verifying key
+/// 2. **Backward Sync**: Searches for the most recent valid epoch on startup
+/// 3. **Forward Sync**: Processes new epochs as they arrive from the DA layer
+/// 4. **Event Processing**: Publishes verification results and sync status updates
+///
+/// Light clients are designed to be long-running and will continue processing
+/// new epochs until cancelled via the provided cancellation token.
 pub struct LightClient {
     #[cfg(not(target_arch = "wasm32"))]
     pub da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
