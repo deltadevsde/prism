@@ -8,42 +8,69 @@ use prism_telemetry::{
     telemetry::{build_resource, init_telemetry, set_global_attributes, shutdown_telemetry},
 };
 
-/// Represents an instance of the telemetry system, holding configuration and providers.
+/// An active telemetry system instance for a Prism node.
+///
+/// This struct manages the lifecycle of OpenTelemetry providers and handles
+/// metrics collection, distributed tracing, and structured logging. It should
+/// be created once during node initialization and properly shut down before
+/// node termination to ensure data is flushed to configured exporters.
 pub struct TelemetryInstance {
+    /// Configuration used to initialize this telemetry instance.
+    /// Retained for proper cleanup and debugging.
     config: TelemetryConfig,
+
+    /// OpenTelemetry metrics provider for collecting and exporting metrics.
+    /// None if metrics collection is disabled or failed to initialize.
     meter_provider: Option<SdkMeterProvider>,
+
+    /// OpenTelemetry logging provider for structured log export.
+    /// None if log export is disabled or failed to initialize.
     log_provider: Option<SdkLoggerProvider>,
 }
 
 impl TelemetryInstance {
-    /// Shuts down the telemetry system.
+    /// Gracefully shuts down the telemetry system.
+    ///
+    /// This method ensures all telemetry data is properly flushed and exported
+    /// before terminating the providers. It should be called before the node
+    /// exits to prevent data loss and resource leaks.
+    ///
+    /// # Shutdown Process
+    ///
+    /// 1. Flush pending metrics to configured exporters
+    /// 2. Drain log buffers and export remaining log records
+    /// 3. Close network connections to telemetry backends
+    /// 4. Terminate background threads and free resources
+    /// 5. Unregister global providers from OpenTelemetry registry
+    ///
+    /// # Blocking Behavior
+    ///
+    /// This method may block briefly while flushing data to exporters.
+    /// The duration depends on the configured flush timeout and network latency
+    /// to telemetry backends.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// // Shutdown telemetry during graceful node termination
+    /// let telemetry = create_telemetry(&config, attributes)?;
+    ///
+    /// // ... node operation ...
+    ///
+    /// // Ensure clean shutdown
+    /// telemetry.shutdown();
+    /// ```
     pub fn shutdown(self) {
         shutdown_telemetry(self.config, self.meter_provider, self.log_provider);
     }
 }
 
-/// Initializes the telemetry system with metrics and logging providers.
+/// Creates a telemetry system instance with the given configuration and attributes.
 ///
-/// Merges the provided attributes with global labels from the telemetry configuration, sets them as
-/// global attributes, and builds a resource descriptor. Initializes telemetry using the
-/// configuration and resource, sets up the global meter provider and metrics registry if available,
-/// and configures the log subscriber if a logger provider is present.
+/// This function initializes OpenTelemetry providers for metrics and logging based on
+/// the provided configuration, and returns a [`TelemetryInstance`] that manages their lifecycle.
 ///
-/// # Parameters
-/// - `attributes`: Initial global attribute key-value pairs to be merged with configuration labels.
-///
-/// # Returns
-/// A tuple containing optional meter and logger providers on success, or an I/O error if
-/// initialization fails.
-///
-/// # Examples
-///
-/// ```
-/// let config = TelemetryConfig::default();
-/// let attrs = vec![("env".to_string(), "production".to_string())];
-/// let result = init(config, attrs);
-/// assert!(result.is_ok());
-/// ```
+/// See the crate-level documentation for usage examples and integration patterns.
 pub fn create_telemetry(
     telemetry_config: &TelemetryConfig,
     attributes: Vec<(String, String)>,
