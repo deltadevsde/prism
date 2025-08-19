@@ -281,15 +281,13 @@ impl VerifyingKey {
     }
 
     pub fn from_spki_pem_path_or_base64(input: &str) -> Result<Self> {
-        // Try as a file path first
+        // Treat as a file path if it points to a regular file. In that case, return the
+        // file parsing result directly to preserve the original error context.
         let path = Path::new(input);
-        if path.exists() {
-            if let Ok(vk) = Self::from_spki_pem_file(path) {
-                return Ok(vk);
-            }
+        if path.is_file() {
+            return Self::from_spki_pem_file(path);
         }
-
-        // If not a file path or file parsing failed, try as base64 DER
+        // Otherwise, try as base64-encoded SPKI DER.
         Self::from_spki_base64(input)
     }
 }

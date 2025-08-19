@@ -188,6 +188,11 @@ impl SigningKey {
         if path.exists() {
             Self::from_pkcs8_pem_file(path)
         } else {
+            // Ensure parent directory exists
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| ParseError::PemCreationError(e.to_string()))?;
+            }
             let signing_key = SigningKey::new_ed25519();
             signing_key.to_pkcs8_pem_file(path)?;
             Ok(signing_key)
