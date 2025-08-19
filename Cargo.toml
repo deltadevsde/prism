@@ -18,45 +18,45 @@ readme = "README.md"
 default-members = [
   "crates/cli",
   "crates/client",
-  "crates/tests",
-  "crates/node_types/prover",
-  "crates/node_types/lightclient",
-  "crates/node_types/wasm-lightclient",
-  "crates/node_types/uniffi-lightclient",
   "crates/common",
+  "crates/da",
   "crates/errors",
   "crates/events",
-  "crates/storage",
-  "crates/da",
-  "crates/serde",
   "crates/keys",
-  "crates/tree",
-  "crates/telemetry",
+  "crates/node_types/lightclient",
+  "crates/node_types/prover",
+  "crates/node_types/uniffi-lightclient",
+  "crates/node_types/wasm-lightclient",
   "crates/presets",
+  "crates/serde",
+  "crates/storage",
+  "crates/telemetry",
+  "crates/tests",
+  "crates/tree",
   "crates/zk/sp1-builder",
 ]
 
 members = [
   "crates/cli",
   "crates/client",
-  "crates/tests",
-  "crates/node_types/prover",
-  "crates/node_types/lightclient",
-  "crates/node_types/wasm-lightclient",
-  "crates/node_types/uniffi-lightclient",
   "crates/common",
+  "crates/da",
   "crates/errors",
   "crates/events",
-  "crates/zk/sp1",
-  "crates/zk/sp1-script",
-  "crates/zk/sp1-builder",
-  "crates/storage",
-  "crates/da",
-  "crates/serde",
   "crates/keys",
-  "crates/tree",
-  "crates/telemetry",
+  "crates/node_types/lightclient",
+  "crates/node_types/prover",
+  "crates/node_types/uniffi-lightclient",
+  "crates/node_types/wasm-lightclient",
   "crates/presets",
+  "crates/serde",
+  "crates/storage",
+  "crates/telemetry",
+  "crates/tests",
+  "crates/tree",
+  "crates/zk/sp1",
+  "crates/zk/sp1-builder",
+  "crates/zk/sp1-script",
 ]
 resolver = "2"
 
@@ -138,7 +138,6 @@ jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit"
   "mocks",
 ] }
 sha2 = "0.10.8"
-tempfile = "3.14.0"
 auto_impl = "1.2.0"
 paste = "1.0.15"
 
@@ -164,6 +163,8 @@ prism-presets = { path = "crates/presets" }
 
 # testing
 mockall = "0.13.1"
+serial_test = "3.2.0"
+tempfile = "3.14"
 
 # wasm
 log = "0.4"

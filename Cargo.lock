@@ -7526,6 +7526,7 @@ dependencies = [
  "prism-telemetry",
  "prism-telemetry-registry",
  "serde",
+ "serial_test",
  "tempfile",
  "thiserror 2.0.12",
  "tokio",
@@ -7646,6 +7647,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.8",
+ "tempfile",
  "thiserror 2.0.12",
  "utoipa",
 ]
