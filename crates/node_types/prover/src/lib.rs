@@ -39,7 +39,7 @@
 //! ### Running a Prover
 //!
 //! ```rust,no_run
-//! use prism_prover::{ProverConfig, create_prover_as_prover};
+//! use prism_prover::factory::{ProverConfig, create_prover_as_prover};
 //! use prism_storage::{DatabaseConfig, create_storage};
 //! use prism_da::{FullNodeDAConfig, create_full_node_da_layer};
 //! use tokio_util::sync::CancellationToken;
@@ -127,7 +127,7 @@
 //! }
 //! ```
 
-pub mod factory;
+mod factory;
 pub mod prover;
 pub mod prover_engine;
 pub mod sequencer;
@@ -135,6 +135,7 @@ pub mod syncer;
 mod tx_buffer;
 pub mod webserver;
 
+pub use factory::*;
 pub use prover::{Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions};
 
 #[macro_use]

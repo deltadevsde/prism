@@ -1,7 +1,7 @@
 use prism_da::{FullNodeDAConfig, LightClientDAConfig};
 use prism_lightclient::LightClientConfig;
 use prism_presets::{ApplyPreset, FullNodePreset, LightClientPreset, PresetError, ProverPreset};
-use prism_prover::factory::{FullNodeConfig, ProverConfig};
+use prism_prover::{FullNodeConfig, ProverConfig};
 use prism_storage::DatabaseConfig;
 use prism_telemetry::config::TelemetryConfig;
 use serde::{Deserialize, Serialize};

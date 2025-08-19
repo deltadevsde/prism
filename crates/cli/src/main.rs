@@ -9,7 +9,7 @@ use node_types::NodeType;
 use prism_cli::error::CliError;
 use prism_da::{create_full_node_da_layer, create_light_client_da_layer};
 use prism_lightclient::create_light_client;
-use prism_prover::factory::{create_prover_as_full_node, create_prover_as_prover};
+use prism_prover::{create_prover_as_full_node, create_prover_as_prover};
 use prism_storage::create_storage;
 use prism_telemetry_registry::create_telemetry;
 use std::sync::Arc;
