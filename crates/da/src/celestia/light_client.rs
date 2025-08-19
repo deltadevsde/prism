@@ -1,3 +1,29 @@
+use anyhow::{Result, anyhow};
+use async_trait::async_trait;
+use celestia_types::nmt::Namespace;
+use lumina_node::{Node, NodeBuilder};
+#[cfg(target_arch = "wasm32")]
+use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
+use prism_errors::DataAvailabilityError;
+use prism_events::{EventChannel, EventPublisher};
+use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
+use serde::{Deserialize, Serialize};
+use serde_with::{DurationSeconds, serde_as};
+use std::{self, env::current_dir, path::PathBuf, sync::Arc, time::Duration};
+use tokio::sync::{Mutex, RwLock};
+use tracing::{trace, warn};
+#[cfg(not(target_arch = "wasm32"))]
+use {
+    blockstore::EitherBlockstore,
+    lumina_node::{
+        blockstore::{InMemoryBlockstore, RedbBlockstore},
+        store::{EitherStore, InMemoryStore, RedbStore},
+    },
+    redb::Database as RedbDatabase,
+    tokio::task::spawn_blocking,
+};
+
+use super::CelestiaNetwork;
 use crate::{
     FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch,
     celestia::{
@@ -5,33 +31,6 @@ use crate::{
         DEVNET_SPECTER_SNARK_NAMESPACE_ID, utils::create_namespace,
     },
 };
-use anyhow::{Result, anyhow};
-use async_trait::async_trait;
-use celestia_types::nmt::Namespace;
-#[cfg(not(target_arch = "wasm32"))]
-use lumina_node::blockstore::InMemoryBlockstore;
-#[cfg(not(target_arch = "wasm32"))]
-use lumina_node::store::{EitherStore, InMemoryStore};
-use lumina_node::{Node, NodeError, network::Network as CelestiaNetwork, store::StoreError};
-use prism_errors::DataAvailabilityError;
-use prism_events::{EventChannel, EventPublisher};
-use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
-use serde::{Deserialize, Serialize};
-use serde_with::{DurationSeconds, serde_as};
-use std::{self, env::current_dir, sync::Arc, time::Duration};
-use tokio::sync::{Mutex, RwLock};
-use tracing::{debug, trace, warn};
-
-#[cfg(target_arch = "wasm32")]
-use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
-
-use lumina_node::NodeBuilder;
-
-#[cfg(not(target_arch = "wasm32"))]
-use {blockstore::EitherBlockstore, redb::Database as RedbDatabase, tokio::task::spawn_blocking};
-
-#[cfg(not(target_arch = "wasm32"))]
-use lumina_node::{blockstore::RedbBlockstore, store::RedbStore};
 
 #[cfg(target_arch = "wasm32")]
 pub type LuminaNode = Node<IndexedDbBlockstore, IndexedDbStore>;
@@ -42,24 +41,166 @@ pub type LuminaNode = Node<
     EitherStore<InMemoryStore, RedbStore>,
 >;
 
+/// Configuration for Celestia light client data availability layer.
+///
+/// Light clients provide a resource-efficient way to interact with Celestia
+/// without downloading full blocks or maintaining complete chain state. They
+/// use data availability sampling and fraud proofs to verify data integrity
+/// while minimizing bandwidth and storage requirements.
+///
+/// ```
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CelestiaLightClientDAConfig {
+    /// The Celestia network to connect to.
+    ///
+    /// Must match the network used by other Prism nodes:
+    /// - `Arabica`: Development testnet with latest features
+    /// - `Mocha`: Stable testnet for production testing
+    /// - `Mainnet`: Production network
+    ///
+    /// Different networks have different block times and fee structures.
     pub celestia_network: CelestiaNetwork,
+
+    /// Hex-encoded namespace ID for SNARK proofs (8 bytes).
+    ///
+    /// Light clients will only download and verify data from this namespace,
+    /// significantly reducing bandwidth usage. Must be exactly 16 hex characters
+    /// and match the namespace used by Prism provers.
+    ///
+    /// Example: "00000000000000de1008"
     pub snark_namespace_id: String,
+
+    /// How long to retain downloaded data before pruning.
+    ///
+    /// Light clients automatically prune old data to manage storage usage.
+    /// This window determines how far back data is kept accessible for queries.
+    /// Longer windows provide better availability but use more storage.
+    ///
+    /// Recommended values:
+    /// - Mobile/Browser: 1-3 days
+    /// - Desktop: 7-14 days
+    /// - Development: 1 day
     #[serde_as(as = "DurationSeconds<u64>")]
     pub pruning_window: Duration,
+
+    /// Timeout for data availability sampling requests.
+    ///
+    /// Light clients perform sampling to verify data availability without
+    /// downloading full blocks. This timeout should account for:
+    /// - Network latency to Celestia light nodes
+    /// - Time to generate and verify availability proofs
+    /// - Potential network congestion
+    ///
+    /// Recommended: 10-120 seconds depending on network conditions.
     #[serde_as(as = "DurationSeconds<u64>")]
     pub fetch_timeout: Duration,
+
+    /// Maximum retry attempts for failed sampling operations.
+    ///
+    /// When data availability sampling fails, the client will retry up to
+    /// this many times before marking data as unavailable. Higher values
+    /// improve reliability but may increase latency during network issues.
+    ///
+    /// Recommended: 3-5 retries for production, 1-2 for development.
     pub fetch_max_retries: u64,
+
+    /// Storage configuration for downloaded data and metadata.
+    ///
+    /// Determines where and how the light client stores:
+    /// - Downloaded namespace data
+    /// - Block headers and availability commitments
+    /// - Sampling state and fraud proof caches
     pub store: CelestiaLightClientDAStoreConfig,
 }
 
+/// Storage backend configuration for Celestia light client data.
+///
+/// Light clients need to store downloaded data, block headers, and sampling state
+/// to operate efficiently. Different storage backends offer trade-offs between
+/// performance, persistence, and platform compatibility.
+///
+/// # Storage Requirements
+///
+/// Light clients store:
+/// - Downloaded namespace data within the pruning window
+/// - Block headers for data availability verification
+/// - Sampling proofs and fraud proof caches
+/// - Network sync state and peer information
+///
+/// # Backend Selection Guide
+///
+/// - **InMemory**: Fastest access, no persistence, limited by RAM
+/// - **Disk**: Persistent storage, survives restarts, requires filesystem access
+/// - **Browser**: Web-compatible storage using IndexedDB (WASM only)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum CelestiaLightClientDAStoreConfig {
+    /// In-memory storage for development and testing.
+    ///
+    /// All data is stored in RAM and lost when the client shuts down.
+    /// Provides fastest access times but limited by available memory.
+    /// Suitable for:
+    /// - Development and testing environments
+    /// - Ephemeral deployments where persistence isn't needed
+    /// - Performance benchmarking and profiling
+    ///
+    /// **Limitations:**
+    /// - No data persistence across restarts
+    /// - Memory usage grows with pruning window size
+    /// - Not suitable for long-running production clients
     InMemory,
-    Disk { path: String },
+
+    /// Persistent disk storage for production deployments.
+    ///
+    /// Data is stored on the filesystem and survives client restarts.
+    /// Provides good performance and supports large datasets that exceed
+    /// available RAM.
+    ///
+    /// **Requirements:**
+    /// - Write access to the specified directory path
+    /// - Sufficient disk space for the pruning window
+    /// - Regular filesystem maintenance and monitoring
+    Disk {
+        /// Filesystem path for storing light client data.
+        ///
+        /// This directory will contain:
+        /// - Namespace data files organized by block height
+        /// - Block header database and indexes
+        /// - Sampling state and verification caches
+        /// - Client metadata and configuration snapshots
+        ///
+        /// The path should be:
+        /// - Writable by the client process
+        /// - On storage with adequate space and performance
+        /// - Backed up regularly to prevent data loss
+        ///
+        /// Example: "/var/lib/prism/celestia-light" or "./data/celestia"
+        path: String,
+    },
+
+    /// Browser-compatible storage for web applications.
+    ///
+    /// Uses browser storage APIs like IndexedDB and localStorage to persist
+    /// data within the browser environment. Automatically handles storage
+    /// quotas and provides fallback mechanisms for different browsers.
+    ///
+    /// **Browser Compatibility:**
+    /// - Modern browsers with IndexedDB support (Chrome, Firefox, Safari, Edge)
+    /// - Automatic fallback to localStorage for limited data
+    /// - Respects browser storage quotas and eviction policies
+    ///
+    /// **Limitations:**
+    /// - Subject to browser storage limits (typically 50MB-1GB)
+    /// - May be cleared by browser cleanup or user action
+    /// - Performance varies by browser implementation
+    /// - Not suitable for applications requiring guaranteed persistence
+    ///
+    /// **Use Cases:**
+    /// - Web applications and browser extensions
+    /// - Progressive Web Apps (PWAs)
+    /// - WebAssembly-based light clients
+    /// - Development tools and dashboards
     Browser,
 }
 
@@ -77,7 +218,8 @@ impl Default for CelestiaLightClientDAConfig {
             #[cfg(not(target_arch = "wasm32"))]
             store: CelestiaLightClientDAStoreConfig::Disk {
                 path: dirs::home_dir()
-                    .unwrap_or_else(|| current_dir().unwrap_or_default())
+                    .or_else(|| current_dir().ok())
+                    .unwrap_or_else(|| PathBuf::from("."))
                     .join(".prism/data/light_client/")
                     .to_string_lossy()
                     .into_owned(),
@@ -123,22 +265,45 @@ impl LightClientConnection {
             CelestiaLightClientDAStoreConfig::InMemory => {
                 let blockstore = InMemoryBlockstore::new();
                 let store = InMemoryStore::new();
-
                 Ok((EitherBlockstore::Left(blockstore), EitherStore::Left(store)))
             }
             CelestiaLightClientDAStoreConfig::Disk { path } => {
                 let base_path = Path::new(&path).to_owned();
-                let store_path = base_path.join("lumina.redb");
 
+                // Ensure directory exists
+                if let Some(parent) = base_path.parent() {
+                    std::fs::create_dir_all(parent).map_err(|e| {
+                        DataAvailabilityError::InitializationError(format!(
+                            "Failed to create directory {}: {}",
+                            parent.display(),
+                            e
+                        ))
+                    })?;
+                }
+
+                let store_path = base_path.join("lumina.redb");
                 let db = spawn_blocking(move || RedbDatabase::create(&store_path))
                     .await
-                    .expect("Failed to join")
-                    .expect("Failed to open the database");
+                    .map_err(|e| {
+                        DataAvailabilityError::InitializationError(format!(
+                            "Failed to join blocking task: {}",
+                            e
+                        ))
+                    })?
+                    .map_err(|e| {
+                        DataAvailabilityError::InitializationError(format!(
+                            "Failed to open database at {}: {}",
+                            path, e
+                        ))
+                    })?;
                 let db = Arc::new(db);
-
-                let store = RedbStore::new(db.clone()).await.expect("Failed to create a store");
+                let store = RedbStore::new(db.clone()).await.map_err(|e| {
+                    DataAvailabilityError::InitializationError(format!(
+                        "Failed to create store: {}",
+                        e
+                    ))
+                })?;
                 let blockstore = RedbBlockstore::new(db);
-
                 Ok((
                     EitherBlockstore::Right(blockstore),
                     EitherStore::Right(store),

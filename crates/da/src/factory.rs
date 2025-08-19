@@ -21,10 +21,21 @@ use prism_presets::{ApplyPreset, FullNodePreset, LightClientPreset, PresetError}
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
+/// Configuration for the Data Availability layer used by light clients.
+///
+/// Determines which DA backend to use and its connection parameters.
+/// Light client DA is used to read finalized epochs and proofs.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum LightClientDAConfig {
+    /// Celestia DA configuration with light client support.
+    /// Provides efficient data retrieval through light client protocols
+    /// with configurable pruning and retry policies.
     Celestia(CelestiaLightClientDAConfig),
+
+    /// In-memory DA layer for testing and development.
+    /// Data is stored locally and not persisted across restarts.
+    /// Should not be used in production environments.
     #[default]
     InMemory,
 }
@@ -74,6 +85,12 @@ type LightClientDALayerResult =
 #[cfg(target_arch = "wasm32")]
 type LightClientDALayerResult = Result<Arc<dyn LightDataAvailabilityLayer>, DataAvailabilityError>;
 
+/// Creates a light client data availability layer from the given configuration.
+///
+/// This function initializes the appropriate DA backend based on the configuration
+/// and returns a trait object that implements [`LightDataAvailabilityLayer`].
+///
+/// See the crate-level documentation for usage examples and integration patterns.
 pub async fn create_light_client_da_layer(
     config: &LightClientDAConfig,
 ) -> LightClientDALayerResult {
@@ -93,10 +110,21 @@ pub async fn create_light_client_da_layer(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+/// Configuration for the Data Availability layer used by full nodes.
+///
+/// This configuration determines which DA backend to use and its connection parameters.
+/// Full node DA is used to read and write finalized epochs and transactions.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum FullNodeDAConfig {
+    /// Celestia DA configuration with full node capabilities.
+    /// Provides complete DA functionality including transaction publishing,
+    /// block retrieval, and serving light clients.
     Celestia(CelestiaFullNodeDAConfig),
+
+    /// In-memory DA layer for testing and development.
+    /// Simulates DA operations locally without network connectivity.
+    /// Should not be used in production environments.
     #[default]
     InMemory,
 }
@@ -148,6 +176,12 @@ impl ApplyPreset<ProverPreset> for FullNodeDAConfig {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+/// Creates a full node data availability layer from the given configuration.
+///
+/// This function initializes the appropriate DA backend with retry logic for network
+/// connections and returns a trait object that implements [`DataAvailabilityLayer`].
+///
+/// See the crate-level documentation for usage examples and integration patterns.
 pub async fn create_full_node_da_layer(
     config: &FullNodeDAConfig,
 ) -> Result<Arc<dyn DataAvailabilityLayer>, DataAvailabilityError> {
