@@ -46,7 +46,7 @@ pub struct CliDaLayerArgs {
     #[arg(long)]
     pub celestia_operation_namespace_id: Option<String>,
 
-    /// Celestia Snark Namespace ID
+    /// WebSocket URL for connecting to Celestia node
     #[arg(long)]
     pub celestia_url: Option<String>,
 

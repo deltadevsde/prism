@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serial_test::serial;
 use std::{env, fs};
 use tempfile::TempDir;
 
@@ -27,6 +28,7 @@ fn clear_env_vars() {
 }
 
 #[test]
+#[serial]
 fn test_light_client_config_cli_args_precedence() -> Result<()> {
     clear_env_vars();
 
@@ -59,6 +61,7 @@ verifying_key_str = "config_file_key"
 }
 
 #[test]
+#[serial]
 fn test_light_client_config_env_over_file() -> Result<()> {
     clear_env_vars();
 
@@ -88,6 +91,7 @@ verifying_key = "config_file_key"
 }
 
 #[test]
+#[serial]
 fn test_config_loading_with_missing_file() -> Result<()> {
     clear_env_vars();
 
@@ -107,6 +111,7 @@ fn test_config_loading_with_missing_file() -> Result<()> {
 }
 
 #[test]
+#[serial]
 fn test_light_client_preset_application() -> Result<()> {
     clear_env_vars();
 
@@ -128,19 +133,20 @@ fn test_light_client_preset_application() -> Result<()> {
 }
 
 #[test]
+#[serial]
 fn test_full_node_config_cli_args_precedence() -> Result<()> {
     clear_env_vars();
 
     let config_content = r#"
-[full_node]
-verifying_key_str = "config_key"
+verifying_key = "config_key"
 
-[full_node.webserver]
+[webserver]
 enabled = false
 host = "0.0.0.0"
 port = 8080
 
-[db.rocksdb]
+[db]
+type = "rocksdb"
 path = "/config/path"
 "#;
 
@@ -148,9 +154,9 @@ path = "/config/path"
 
     // Set environment variables
     unsafe {
-        env::set_var("PRISM__FULL_NODE__VERIFYING_KEY_STR", "env_key");
-        env::set_var("PRISM__FULL_NODE__WEBSERVER__PORT", "9090");
-        env::set_var("PRISM__DB__ROCKSDB__PATH", "/env/path");
+        env::set_var("PRISM__VERIFYING_KEY", "env_key");
+        env::set_var("PRISM__WEBSERVER__PORT", "9090");
+        env::set_var("PRISM__DB__PATH", "/env/path");
     };
 
     let cli_args = FullNodeCliArgs {
@@ -190,14 +196,14 @@ path = "/config/path"
 }
 
 #[test]
+#[serial]
 fn test_full_node_env_over_file() -> Result<()> {
     clear_env_vars();
 
     let config_content = r#"
-[full_node]
 verifying_key_str = "config_key"
 
-[full_node.webserver]
+[webserver]
 port = 8080
 "#;
 
@@ -206,8 +212,8 @@ port = 8080
     // Set environment variables
 
     unsafe {
-        env::set_var("PRISM__FULL_NODE__VERIFYING_KEY_STR", "env_key");
-        env::set_var("PRISM__FULL_NODE__WEBSERVER__PORT", "9090");
+        env::set_var("PRISM__VERIFYING_KEY", "env_key");
+        env::set_var("PRISM__WEBSERVER__PORT", "9090");
     };
 
     let cli_args = FullNodeCliArgs {
@@ -231,28 +237,29 @@ port = 8080
 }
 
 #[test]
+#[serial]
 fn test_prover_config_cli_args_precedence() -> Result<()> {
     clear_env_vars();
 
     let config_content = r#"
-[prover]
 signing_key_path = "/config/key.pem"
 max_epochless_gap = 5
 recursive_proofs = false
 
-[prover.webserver]
+[webserver]
 enabled = false
 port = 8080
 
-[db.rocksdb]
+[db]
+type = "rocksdb"
 path = "/config/db"
 "#;
 
     let (_temp_dir, config_path) = setup_temp_config_file(config_content)?;
 
     unsafe {
-        env::set_var("PRISM__PROVER__MAX_EPOCHLESS_GAP", "10");
-        env::set_var("PRISM__PROVER__WEBSERVER__PORT", "9090");
+        env::set_var("PRISM__MAX_EPOCHLESS_GAP", "10");
+        env::set_var("PRISM__WEBSERVER__PORT", "9090");
     };
 
     let cli_args = ProverCliArgs {
@@ -294,11 +301,11 @@ path = "/config/db"
 }
 
 #[test]
+#[serial]
 fn test_prover_env_over_file() -> Result<()> {
     clear_env_vars();
 
     let config_content = r#"
-[prover]
 signing_key_path = "/config/key.pem"
 max_epochless_gap = 5
 recursive_proofs = false
@@ -307,8 +314,8 @@ recursive_proofs = false
     let (_temp_dir, config_path) = setup_temp_config_file(config_content)?;
 
     unsafe {
-        env::set_var("PRISM__PROVER__MAX_EPOCHLESS_GAP", "20");
-        env::set_var("PRISM__PROVER__RECURSIVE_PROOFS", "true");
+        env::set_var("PRISM__MAX_EPOCHLESS_GAP", "20");
+        env::set_var("PRISM__RECURSIVE_PROOFS", "true");
     };
 
     let cli_args = ProverCliArgs {
@@ -335,6 +342,7 @@ recursive_proofs = false
 }
 
 #[test]
+#[serial]
 fn test_full_node_preset_application() -> Result<()> {
     clear_env_vars();
 
@@ -358,6 +366,7 @@ fn test_full_node_preset_application() -> Result<()> {
 }
 
 #[test]
+#[serial]
 fn test_prover_preset_application() -> Result<()> {
     clear_env_vars();
 
@@ -383,6 +392,7 @@ fn test_prover_preset_application() -> Result<()> {
 }
 
 #[test]
+#[serial]
 fn test_conflicting_presets_error() {
     clear_env_vars();
 
@@ -403,16 +413,16 @@ fn test_conflicting_presets_error() {
 }
 
 #[test]
+#[serial]
 fn test_partial_cli_override() -> Result<()> {
     clear_env_vars();
 
     let config_content = r#"
-[prover]
 signing_key_path = "/config/key.pem"
 max_epochless_gap = 5
 recursive_proofs = false
 
-[prover.webserver]
+[webserver]
 enabled = true
 host = "0.0.0.0"
 port = 8080
@@ -451,6 +461,7 @@ port = 8080
 }
 
 #[test]
+#[serial]
 fn test_invalid_config_fallback() -> Result<()> {
     clear_env_vars();
 

@@ -1,5 +1,5 @@
 use prism_errors::{DataAvailabilityError, DatabaseError};
-use prism_telemetry_registry::error::TelemetryError;
+use prism_telemetry_registry::TelemetryError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
