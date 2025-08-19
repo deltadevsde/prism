@@ -195,12 +195,6 @@ pub enum CelestiaLightClientDAStoreConfig {
     /// - May be cleared by browser cleanup or user action
     /// - Performance varies by browser implementation
     /// - Not suitable for applications requiring guaranteed persistence
-    ///
-    /// **Use Cases:**
-    /// - Web applications and browser extensions
-    /// - Progressive Web Apps (PWAs)
-    /// - WebAssembly-based light clients
-    /// - Development tools and dashboards
     Browser,
 }
 
@@ -259,8 +253,6 @@ impl LightClientConnection {
         ),
         DataAvailabilityError,
     > {
-        use std::path::Path;
-
         match config {
             CelestiaLightClientDAStoreConfig::InMemory => {
                 let blockstore = InMemoryBlockstore::new();
@@ -268,14 +260,16 @@ impl LightClientConnection {
                 Ok((EitherBlockstore::Left(blockstore), EitherStore::Left(store)))
             }
             CelestiaLightClientDAStoreConfig::Disk { path } => {
+                use std::{fs::create_dir_all, path::Path};
+
                 let base_path = Path::new(&path).to_owned();
 
                 // Ensure directory exists
-                if let Some(parent) = base_path.parent() {
-                    std::fs::create_dir_all(parent).map_err(|e| {
+                if !base_path.exists() {
+                    create_dir_all(&base_path).map_err(|e| {
                         DataAvailabilityError::InitializationError(format!(
                             "Failed to create directory {}: {}",
-                            parent.display(),
+                            base_path.display(),
                             e
                         ))
                     })?;
@@ -345,9 +339,6 @@ impl LightClientConnection {
     }
 
     pub async fn new(config: &CelestiaLightClientDAConfig) -> Result<Self, DataAvailabilityError> {
-        // #[cfg(target_arch = "wasm32")]
-        // let (blockstore, store) = Self::setup_stores(&config.store).await?;
-        // #[cfg(not(target_arch = "wasm32"))]
         let (blockstore, store) = Self::setup_stores(&config.store).await?;
 
         let (node, event_subscriber) = NodeBuilder::new()

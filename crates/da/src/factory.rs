@@ -13,7 +13,7 @@ use crate::{
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
 };
-use anyhow::Result;
+
 use prism_errors::DataAvailabilityError;
 #[cfg(not(target_arch = "wasm32"))]
 use prism_presets::ProverPreset;
@@ -49,6 +49,14 @@ impl LightClientDAConfig {
         };
 
         match path {
+            #[cfg(target_arch = "wasm32")]
+            Some(_) => {
+                return Err(PresetError::InvalidConfiguration(
+                    "Disk storage is not supported on wasm32; use the Browser store instead"
+                        .to_string(),
+                ));
+            }
+            #[cfg(not(target_arch = "wasm32"))]
             Some(path) => {
                 celestia_config.store = CelestiaLightClientDAStoreConfig::Disk { path };
             }
@@ -112,7 +120,7 @@ pub async fn create_light_client_da_layer(
 #[cfg(not(target_arch = "wasm32"))]
 /// Configuration for the Data Availability layer used by full nodes.
 ///
-/// This configuration determines which DA backend to use and its connection parameters.
+/// Determines which DA backend to use and its connection parameters.
 /// Full node DA is used to read and write finalized epochs and transactions.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
