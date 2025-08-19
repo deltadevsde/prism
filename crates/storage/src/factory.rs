@@ -12,11 +12,20 @@ use crate::{
     rocksdb::{RocksDBConfig, RocksDBConnection},
 };
 
+/// Configuration for the storage layer used by Prism nodes.
+///
+/// Determines which database implementation to use and its configuration.
+/// Different backends provide trade-offs between performance, durability, and resource usage.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum DatabaseConfig {
+    /// In-memory storage backend for development and testing.
+    /// Stores all data in RAM without persistence across restarts.
     #[default]
     InMemory,
+
+    /// RocksDB storage backend for production deployments.
+    /// Provides persistent, crash-resistant storage with LSM-tree architecture.
     RocksDB(RocksDBConfig),
 }
 
@@ -44,6 +53,12 @@ impl ApplyPreset<ProverPreset> for DatabaseConfig {
     }
 }
 
+/// Creates a database instance from the given configuration.
+///
+/// This function initializes the appropriate storage backend and returns
+/// a trait object that implements the [`Database`] interface.
+///
+/// See the crate-level documentation for usage examples and integration patterns.
 pub async fn create_storage(
     config: &DatabaseConfig,
 ) -> Result<Arc<Box<dyn Database>>, DatabaseError> {

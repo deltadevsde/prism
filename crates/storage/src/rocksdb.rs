@@ -14,8 +14,46 @@ use serde::{Deserialize, Serialize};
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
+/// Configuration for RocksDB storage backend.
+///
+/// RocksDB is a high-performance embedded database optimized for fast storage
+/// on SSDs and spinning disks. It uses a Log-Structured Merge (LSM) tree
+/// architecture that provides excellent write performance and space efficiency.
+///
+/// # Path Configuration
+///
+/// The database path should be:
+/// - On a filesystem with sufficient space for the key directory tree
+/// - Accessible with read/write permissions for the node process
+/// - On fast storage (SSD recommended) for optimal performance
+/// - Backed up regularly to prevent data loss
+///
+/// # Storage Requirements
+///
+/// Disk space requirements depend on:
+/// - Number of keys in the directory tree
+/// - Transaction volume and retention policies
+/// - Compaction settings and compression ratios
+/// - Snapshot and backup retention
+///
+/// # Examples
+///
+/// ```rust
+/// use prism_storage::rocksdb::RocksDBConfig;
+///
+/// let prod_config = RocksDBConfig {
+///     path: "/var/lib/prism/rocksdb".to_string(),
+/// };
+/// ```
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct RocksDBConfig {
+    /// Filesystem path where RocksDB will store its data files.
+    ///
+    /// # Platform Notes
+    ///
+    /// - **Linux/macOS**: Standard filesystem paths like "/var/lib/prism/db"
+    /// - **Windows**: Use forward slashes or escaped backslashes like "C:/PrismData/db"
+    /// - **Docker**: Mount volumes to ensure persistence across container restarts
     pub path: String,
 }
 
@@ -36,8 +74,12 @@ pub struct RocksDBConnection {
 impl RocksDBConnection {
     pub fn new(cfg: &RocksDBConfig) -> Result<RocksDBConnection, DatabaseError> {
         let path = &cfg.path;
-        let db = DB::open_default(path)
-            .map_err(|e| DatabaseError::InitializationError(e.into_string()))?;
+        let db = DB::open_default(path).map_err(|e| {
+            DatabaseError::InitializationError(format!(
+                "failed to open RocksDB at '{}': {}",
+                path, e
+            ))
+        })?;
 
         Ok(Self {
             connection: Arc::new(db),
