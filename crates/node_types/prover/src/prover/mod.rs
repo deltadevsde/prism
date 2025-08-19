@@ -108,6 +108,28 @@ impl ProverOptions {
     }
 }
 
+/// A Prism prover node that maintains complete network state and generates SNARK proofs.
+///
+/// ## Architecture
+///
+/// The prover consists of several key components:
+/// - **Syncer**: Synchronizes with the DA layer and processes incoming epochs
+/// - **Sequencer**: Batches transactions and coordinates proof generation
+/// - **Prover Engine**: Generates SNARK proofs using zkVM technology
+/// - **Web Server**: Provides REST API endpoints for client interactions
+///
+/// ## Operation Modes
+///
+/// Provers can operate in two modes:
+/// 1. **Prover**: Generates proofs and publishes epochs (requires signing key)
+/// 2. **Full Node**: Validates state without proof generation (verification only)
+///
+/// ## Lifecycle
+///
+/// 1. **Initialization**: Set up database, DA connection, and components
+/// 2. **Synchronization**: Catch up with the latest network state
+/// 3. **Operation**: Process transactions, generate proofs, serve clients
+/// 4. **Shutdown**: Graceful cleanup via cancellation token
 #[allow(dead_code)]
 pub struct Prover {
     pub options: ProverOptions,

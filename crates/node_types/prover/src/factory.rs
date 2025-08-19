@@ -7,8 +7,8 @@ use prism_presets::{
 use prism_storage::Database;
 use serde::{Deserialize, Serialize};
 use std::{
-    env::{self},
-    path::Path,
+    env,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 use tokio_util::sync::CancellationToken;
@@ -18,10 +18,22 @@ use crate::{
     prover::DEFAULT_MAX_EPOCHLESS_GAP,
 };
 
+/// Configuration for the embedded web server in Prism nodes.
+///
+/// Controls whether the HTTP server is enabled and where it binds for client connections.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct WebServerConfig {
+    /// Whether to enable the web server.
+    /// When disabled, no HTTP endpoints will be available.
     pub enabled: bool,
+
+    /// Host address to bind the web server to.
+    /// Use "127.0.0.1" for localhost only or "0.0.0.0" for all interfaces.
     pub host: String,
+
+    /// Port number for the web server.
+    /// Should be unique per node instance.
     pub port: u16,
 }
 
@@ -35,11 +47,19 @@ impl Default for WebServerConfig {
     }
 }
 
+/// Configuration for Prism full nodes.
+///
+/// Full nodes validate state but do not generate proofs themselves.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct FullNodeConfig {
+    /// Path to a verifying key file or DER+base64-encoded verifying key.
+    /// Used to verify SNARK proofs from provers.
+    /// Default: ~/.prism/prover_key.spki
     #[serde(rename = "verifying_key")]
     pub verifying_key_str: String,
+
+    /// Web server configuration for REST API endpoints.
     pub webserver: WebServerConfig,
 }
 
@@ -47,7 +67,8 @@ impl Default for FullNodeConfig {
     fn default() -> Self {
         FullNodeConfig {
             verifying_key_str: dirs::home_dir()
-                .unwrap_or_else(|| env::current_dir().unwrap_or_default())
+                .or_else(|| env::current_dir().ok())
+                .unwrap_or_else(|| PathBuf::from("."))
                 .join(".prism/prover_key.spki")
                 .to_string_lossy()
                 .into_owned(),
@@ -65,12 +86,29 @@ impl ApplyPreset<FullNodePreset> for FullNodeConfig {
     }
 }
 
+/// Configuration for Prism prover nodes.
+///
+/// Contains parameters for proof generation, signing keys, and batch processing.
+/// Prover nodes generate SNARK proofs and publish them to the DA layer.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ProverConfig {
+    /// Path to the signing key file for generating proofs.
+    /// If the file doesn't exist, a new key pair will be generated automatically.
+    /// The private key must be kept secure as it signs SNARK proofs.
+    /// Default: ~/.prism/prover_key.pk8
     pub signing_key_path: String,
+
+    /// Maximum number of epochs without generating a proof before forcing one.
+    /// Lower values provide faster finality but increase computational overhead.
     pub max_epochless_gap: u64,
+
+    /// Whether to generate recursive SNARK proofs.
+    /// Recursive proofs have constant verification time but require more computation.
+    /// May be overridden by the SP1_PROVER environment variable.
     pub recursive_proofs: bool,
+
+    /// Web server configuration for REST API endpoints.
     pub webserver: WebServerConfig,
 }
 
@@ -78,7 +116,8 @@ impl Default for ProverConfig {
     fn default() -> Self {
         ProverConfig {
             signing_key_path: dirs::home_dir()
-                .unwrap_or_else(|| env::current_dir().unwrap_or_default())
+                .or_else(|| env::current_dir().ok())
+                .unwrap_or_else(|| PathBuf::from("."))
                 .join(".prism/prover_key.pk8")
                 .to_string_lossy()
                 .into_owned(),
@@ -98,6 +137,12 @@ impl ApplyPreset<ProverPreset> for ProverConfig {
     }
 }
 
+/// Creates a prover instance configured as a full node.
+///
+/// This creates a non-proving prover that validates state and serves queries
+/// but does not generate SNARK proofs. Suitable for API servers and monitoring.
+///
+/// See the crate-level documentation for usage examples and integration patterns.
 pub fn create_prover_as_full_node(
     config: &FullNodeConfig,
     db: Arc<Box<dyn Database>>,
@@ -130,6 +175,12 @@ pub fn create_prover_as_full_node(
     Prover::new(db, da, &prover_opts, cancellation_token)
 }
 
+/// Creates a prover instance configured for proof generation.
+///
+/// This creates a prover that generates SNARK proofs, batches transactions,
+/// and publishes epochs to the DA layer. Requires significant computational resources.
+///
+/// See the crate-level documentation for usage examples and integration patterns.
 pub fn create_prover_as_prover(
     config: &ProverConfig,
     db: Arc<Box<dyn Database>>,
