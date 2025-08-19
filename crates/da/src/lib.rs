@@ -1,3 +1,90 @@
+//! # Prism Data Availability Layer
+//!
+//! This crate provides abstracted access to data availability layers for the Prism network.
+//! It supports multiple backends and provides both light client and full node capabilities.
+//!
+//! ## Overview
+//!
+//! The DA layer is responsible for:
+//! - Storing and retrieving finalized epochs (SNARK proofs)
+//! - Publishing and reading transaction batches
+//! - Providing data availability guarantees for network participants
+//! - Supporting light client protocols for efficient data access
+//!
+//! ## Architecture
+//!
+//! The crate provides two main trait abstractions:
+//! - [`LightDataAvailabilityLayer`]: Read-only access to finalized epochs/proofs
+//! - [`DataAvailabilityLayer`]: Full read-write access to finalized epochs/proofs and transactions
+//!
+//! ## Supported Backends
+//!
+//! ### Celestia
+//! - Production-ready modular data availability network
+//! - Supports both light client and full node protocols
+//! - Configurable through [`CelestiaLightClientDAConfig`] and [`CelestiaFullNodeDAConfig`]
+//!
+//! ### InMemory
+//! - Local storage for testing and development
+//! - No persistence across restarts
+//! - Suitable for CI/CD and local development
+//!
+//! ## Example
+//!
+//! ### Light Client Example
+//!
+//! ```rust
+//! use prism_da::{LightClientDAConfig, create_light_client_da_layer};
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     // In-memory for development
+//!     let config = LightClientDAConfig::InMemory;
+//!     let da = create_light_client_da_layer(&config).await?;
+//!
+//!     let epochs = da.get_finalized_epochs(100).await?;
+//!     for epoch in epochs {
+//!         println!("Epoch height: {}", epoch.height());
+//!     }
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ### Full Node Example
+//!
+//! ```rust,no_run
+//! use prism_da::{FullNodeDAConfig, create_full_node_da_layer};
+//! use prism_common::transaction::Transaction;
+//! use std::time::Duration;
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let config = FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
+//!         url: "ws://localhost:26658".to_string(),
+//!         celestia_network: CelestiaNetwork::Arabica,
+//!         snark_namespace_id: "00000000000000de1008".to_string(),
+//!         operation_namespace_id: "00000000000000de1009".to_string(),
+//!         fetch_timeout: Duration::from_secs(90),
+//!         fetch_max_retries: 3,
+//!     });
+//!     let da = create_full_node_da_layer(&config).await?;
+//!     da.start().await?;
+//!
+//!     let transactions = vec![/* your transactions */];
+//!     let height = da.submit_transactions(transactions).await?;
+//!     println!("Submitted at height: {}", height);
+//!
+//!     let mut height_rx = da.subscribe_to_heights();
+//!     while let Ok(new_height) = height_rx.recv().await {
+//!         let txs = da.get_transactions(new_height).await?;
+//!         println!("Height {}: {} transactions", new_height, txs.len());
+//!     }
+//!
+//!     Ok(())
+//! }
+//! ```
+
 pub mod celestia;
 pub mod consts;
 mod factory;
