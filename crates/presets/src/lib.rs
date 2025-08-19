@@ -56,7 +56,7 @@ impl FromStr for ProverPreset {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "development" => Ok(ProverPreset::Development),
+            "development" | "dev" => Ok(ProverPreset::Development),
             "specter" => Ok(ProverPreset::Specter),
             _ => Err(PresetError::UnknownPreset(format!(
                 "Unknown ProverPreset: {}",
