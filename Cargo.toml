@@ -178,7 +178,7 @@ web-sys = "0.3"
 web-time = "1.1.0"
 
 # telemetry
-prism-telemetry = { path = "../prism-telemetry" }
+prism-telemetry = "0.3.0"
 opentelemetry = "0.29.0"
 opentelemetry_sdk = "0.29.0"
 tracing = { version = "0.1.41", features = ["std"] }
