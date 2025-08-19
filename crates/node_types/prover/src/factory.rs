@@ -12,6 +12,7 @@ use std::{
     sync::Arc,
 };
 use tokio_util::sync::CancellationToken;
+use tracing::info;
 
 use crate::{
     Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions,
@@ -156,6 +157,13 @@ pub fn create_prover_as_prover(
 ) -> Result<Prover> {
     let signing_key = SigningKey::from_pkcs8_pem_file(&config.signing_key_path)
         .or_else(|_| create_ed25519_key_pair_pem_files(&config.signing_key_path))
+        .or_else(|_| {
+            info!(
+                "Signing key not found at '{}', generating new Ed25519 key pair",
+                &config.signing_key_path
+            );
+            create_ed25519_key_pair_pem_files(&config.signing_key_path)
+        })
         .map_err(|e| anyhow!("Failed to load signing key: {}", e))?;
 
     let recursive_proofs =
@@ -173,11 +181,7 @@ pub fn create_prover_as_prover(
             batcher_enabled: true,
         },
         prover_engine: ProverEngineOptions { recursive_proofs },
-        webserver: WebServerOptions {
-            enabled: config.webserver.enabled,
-            host: config.webserver.host.clone(),
-            port: config.webserver.port,
-        },
+        webserver: config.webserver.clone(),
     };
 
     Prover::new(db, da, &prover_opts, cancellation_token)
