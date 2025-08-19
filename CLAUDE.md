@@ -4,7 +4,12 @@ This guide provides comprehensive instructions for AI agents working on the Pris
 
 ## Project Overview
 
-Prism is a high-performance key transparency solution written in Rust, creating SNARKs using the SP1 zkVM over a key directory tree. The codebase is organized into well-defined crates with clear boundaries and responsibilities.
+Prism is a high-performance key transparency solution written in Rust, creating SNARKs using a zkVM over a key directory tree. The codebase is organized into well-defined crates with clear boundaries and responsibilities.
+
+## Github
+- Repository name: prism
+- Repository owner: deltadevsde
+- Repository is https://github.com/deltadevsde/prism
 
 ## Architecture Overview
 
@@ -49,6 +54,17 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 - Naming: follow Rust conventions (snake_case for functions/variables, CamelCase for types)
 - Documentation: Add comments for public APIs and complex logic
 - File organization: Group related functionality in modules
+
+### Commits
+- Always combine related changes in focused, granular commits
+- Each commit should focus on a single logical change
+- Break changes into multiple smaller commits that each represent a complete, working step
+- Aim for commits that modify ~50 lines or less when possible (does not apply for non-code files)
+- Use conventional commits
+- Allowed types are feat, refactor, fix, build, ci, chore, docs, test, release
+- Use canonical crate names as scopes for conventional commits (e.g. lightclient, prover, keys, da, etc..)
+- Do not mention AI in the description
+- If updated, always make a separate commit "chore: update zkVM ELF and keys" for keys.json and elf files as last commit
 
 ### Performance Considerations
 
