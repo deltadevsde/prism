@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly-2025-03-06
+          toolchain: nightly-2025-08-18
 
       - uses: taiki-e/install-action@nextest
 
@@ -36,7 +36,7 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly-2025-03-06
+          toolchain: nightly-2025-08-18
 
       - uses: taiki-e/install-action@nextest
 
@@ -112,7 +112,7 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly-2025-03-06
+          toolchain: nightly-2025-08-18
 
       - name: Install cargo-udeps
         uses: taiki-e/cache-cargo-install-action@v2.1.2
@@ -120,7 +120,7 @@ jobs:
           tool: cargo-udeps
 
       - name: Check for unused dependencies
-        run: cargo +nightly-2025-03-06 udeps --all-features --all-targets
+        run: cargo +nightly-2025-08-18 udeps --all-features --all-targets
 
   coverage:
     runs-on: ubuntu-latest
@@ -134,7 +134,7 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly-2025-03-06
+          toolchain: nightly-2025-08-18
           components: llvm-tools-preview
 
       - uses: taiki-e/install-action@cargo-llvm-cov
@@ -157,7 +157,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly-2025-03-06
+          toolchain: nightly-2025-08-18
       - name: Add wasm target
         run: rustup target add wasm32-unknown-unknown
       - name: Install wasm-pack
@@ -181,7 +181,7 @@ jobs:
           sudo apt-get install -y fontconfig libfontconfig1-dev
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly-2025-03-06
+          toolchain: nightly-2025-08-18
           components: clippy
       - name: Run clippy
         run: cargo clippy --locked --all --all-targets -- -D warnings
