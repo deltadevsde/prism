@@ -6,5 +6,7 @@ pub mod config;
 pub mod error;
 pub mod node_types;
 
+mod file_utils;
+
 #[cfg(test)]
 mod tests;
