@@ -72,7 +72,7 @@ pub struct RocksDBConnection {
 }
 
 impl RocksDBConnection {
-    pub fn new(cfg: &RocksDBConfig) -> Result<RocksDBConnection, DatabaseError> {
+    pub fn new(cfg: &RocksDBConfig) -> std::result::Result<RocksDBConnection, DatabaseError> {
         let path = &cfg.path;
         let db = DB::open_default(path).map_err(|e| {
             DatabaseError::InitializationError(format!(
@@ -124,7 +124,7 @@ impl Key {
 }
 
 impl Database for RocksDBConnection {
-    fn get_commitment(&self, epoch: &u64) -> anyhow::Result<Digest> {
+    fn get_commitment(&self, epoch: &u64) -> Result<Digest> {
         let key = Key::Commitment.with(epoch.encode_to_bytes()?);
         let raw_bytes = self.connection.get(key)?.ok_or_else(|| {
             DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
@@ -136,14 +136,14 @@ impl Database for RocksDBConnection {
         Ok(Digest(value))
     }
 
-    fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> anyhow::Result<()> {
+    fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()> {
         Ok(self.connection.put::<&[u8], [u8; 32]>(
             Key::Commitment.with(epoch.encode_to_bytes()?).as_ref(),
             commitment.0,
         )?)
     }
 
-    fn get_last_synced_height(&self) -> anyhow::Result<u64> {
+    fn get_last_synced_height(&self) -> Result<u64> {
         let res = self
             .connection
             .get(b"app_state:sync_height")?
@@ -154,11 +154,11 @@ impl Database for RocksDBConnection {
         })?))
     }
 
-    fn set_last_synced_height(&self, height: &u64) -> anyhow::Result<()> {
+    fn set_last_synced_height(&self, height: &u64) -> Result<()> {
         Ok(self.connection.put(b"app_state:sync_height", height.to_be_bytes())?)
     }
 
-    fn get_epoch(&self, height: &u64) -> anyhow::Result<prism_da::FinalizedEpoch> {
+    fn get_epoch(&self, height: &u64) -> Result<prism_da::FinalizedEpoch> {
         let key = Key::Epoch.with(height.encode_to_bytes()?);
         let epoch_data = self
             .connection
@@ -173,7 +173,7 @@ impl Database for RocksDBConnection {
         })
     }
 
-    fn add_epoch(&self, epoch: &prism_da::FinalizedEpoch) -> anyhow::Result<()> {
+    fn add_epoch(&self, epoch: &prism_da::FinalizedEpoch) -> Result<()> {
         // Get the latest height to check for sequential ordering
         let latest_height = self.get_latest_epoch_height().ok();
 
@@ -213,7 +213,7 @@ impl Database for RocksDBConnection {
         Ok(())
     }
 
-    fn get_latest_epoch_height(&self) -> anyhow::Result<u64> {
+    fn get_latest_epoch_height(&self) -> Result<u64> {
         let res = self
             .connection
             .get(b"app_state:latest_epoch_height")?
@@ -224,7 +224,7 @@ impl Database for RocksDBConnection {
         })?))
     }
 
-    fn get_latest_epoch(&self) -> anyhow::Result<prism_da::FinalizedEpoch> {
+    fn get_latest_epoch(&self) -> Result<prism_da::FinalizedEpoch> {
         let height = self.get_latest_epoch_height()?;
         self.get_epoch(&height)
     }
