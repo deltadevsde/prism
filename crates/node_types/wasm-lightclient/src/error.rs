@@ -1,5 +1,6 @@
-use anyhow::{Error as AnyhowError, Result};
+use anyhow::Error as AnyhowError;
 use prism_errors::{DataAvailabilityError, GeneralError};
+use std::result::Result;
 use thiserror::Error;
 
 use crate::config::WasmLightClientConfigError;
