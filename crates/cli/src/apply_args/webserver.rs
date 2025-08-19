@@ -1,5 +1,5 @@
 use anyhow::Result;
-use prism_prover::factory::WebServerConfig;
+use prism_prover::webserver::WebServerConfig;
 
 use crate::cli_args::CliWebserverArgs;
 
@@ -22,13 +22,13 @@ pub fn apply_webserver_args(config: &mut WebServerConfig, args: &CliWebserverArg
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use prism_prover::webserver::WebServerConfig;
 
     use crate::cli_args::CliWebserverArgs;
 
     #[test]
     fn test_webserver_args_application() -> Result<()> {
         use crate::apply_args::webserver::apply_webserver_args;
-        use prism_prover::factory::WebServerConfig;
 
         let mut config = WebServerConfig {
             enabled: false,

@@ -136,7 +136,6 @@ mod tx_buffer;
 pub mod webserver;
 
 pub use prover::{Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions};
-pub use webserver::WebServerOptions;
 
 #[macro_use]
 extern crate tracing;

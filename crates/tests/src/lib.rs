@@ -84,7 +84,7 @@ async fn test_light_client_prover_talking() -> Result<()> {
         prover_engine: prism_prover::ProverEngineOptions {
             recursive_proofs: false,
         },
-        webserver: prism_prover::WebServerOptions::default(),
+        webserver: prism_prover::webserver::WebServerConfig::default(),
     };
 
     let prover = Arc::new(Prover::new(

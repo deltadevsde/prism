@@ -21,7 +21,7 @@ use crate::{
     prover_engine::{engine::ProverEngine, sp1_prover::SP1ProverEngine},
     sequencer::Sequencer,
     syncer::Syncer,
-    webserver::{WebServer, WebServerOptions},
+    webserver::{WebServer, WebServerConfig},
 };
 use prism_da::DataAvailabilityLayer;
 
@@ -62,7 +62,7 @@ pub struct ProverOptions {
     pub syncer: SyncerOptions,
     pub sequencer: SequencerOptions,
     pub prover_engine: ProverEngineOptions,
-    pub webserver: WebServerOptions,
+    pub webserver: WebServerConfig,
 }
 
 impl Default for ProverOptions {
@@ -83,7 +83,7 @@ impl Default for ProverOptions {
             prover_engine: ProverEngineOptions {
                 recursive_proofs: false,
             },
-            webserver: WebServerOptions::default(),
+            webserver: WebServerConfig::default(),
         }
     }
 }

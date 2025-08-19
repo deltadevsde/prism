@@ -14,38 +14,9 @@ use std::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions, WebServerOptions,
-    prover::DEFAULT_MAX_EPOCHLESS_GAP,
+    Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions,
+    prover::DEFAULT_MAX_EPOCHLESS_GAP, webserver::WebServerConfig,
 };
-
-/// Configuration for the embedded web server in Prism nodes.
-///
-/// Controls whether the HTTP server is enabled and where it binds for client connections.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(default)]
-pub struct WebServerConfig {
-    /// Whether to enable the web server.
-    /// When disabled, no HTTP endpoints will be available.
-    pub enabled: bool,
-
-    /// Host address to bind the web server to.
-    /// Use "127.0.0.1" for localhost only or "0.0.0.0" for all interfaces.
-    pub host: String,
-
-    /// Port number for the web server.
-    /// Should be unique per node instance.
-    pub port: u16,
-}
-
-impl Default for WebServerConfig {
-    fn default() -> Self {
-        WebServerConfig {
-            enabled: true,
-            host: "127.0.0.1".to_string(),
-            port: 41997,
-        }
-    }
-}
 
 /// Configuration for Prism full nodes.
 ///
@@ -165,11 +136,7 @@ pub fn create_prover_as_full_node(
         prover_engine: ProverEngineOptions {
             recursive_proofs: true,
         },
-        webserver: WebServerOptions {
-            enabled: config.webserver.enabled,
-            host: config.webserver.host.clone(),
-            port: config.webserver.port,
-        },
+        webserver: config.webserver.clone(),
     };
 
     Prover::new(db, da, &prover_opts, cancellation_token)

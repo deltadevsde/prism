@@ -20,16 +20,28 @@ use utoipa::{
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct WebServerOptions {
+/// Configuration for the embedded web server in Prism nodes.
+///
+/// Controls whether the HTTP server is enabled and where it binds for client connections.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
+pub struct WebServerConfig {
+    /// Whether to enable the web server.
+    /// When disabled, no HTTP endpoints will be available.
     pub enabled: bool,
+
+    /// Host address to bind the web server to.
+    /// Use "127.0.0.1" for localhost only or "0.0.0.0" for all interfaces.
     pub host: String,
+
+    /// Port number for the web server.
+    /// Should be unique per node instance.
     pub port: u16,
 }
 
-impl Default for WebServerOptions {
+impl Default for WebServerConfig {
     fn default() -> Self {
-        WebServerOptions {
+        WebServerConfig {
             enabled: true,
             host: "127.0.0.1".to_string(),
             port: 41997,
@@ -38,7 +50,7 @@ impl Default for WebServerOptions {
 }
 
 pub struct WebServer {
-    pub cfg: WebServerOptions,
+    pub cfg: WebServerConfig,
     pub session: Arc<Prover>,
 }
 
@@ -46,7 +58,7 @@ pub struct WebServer {
 struct ApiDoc;
 
 impl WebServer {
-    pub fn new(cfg: WebServerOptions, session: Arc<Prover>) -> Self {
+    pub fn new(cfg: WebServerConfig, session: Arc<Prover>) -> Self {
         Self { cfg, session }
     }
 
