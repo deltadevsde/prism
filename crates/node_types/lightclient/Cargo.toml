@@ -26,7 +26,6 @@ prism-serde = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 web-time = { workspace = true, features = ["serde"] }
-lumina-node = { workspace = true }
 prism-telemetry-registry = { workspace = true, optional = true }
 tokio-util = { workspace = true }
 dirs = { workspace = true }

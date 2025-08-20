@@ -7600,7 +7600,6 @@ dependencies = [
  "async-trait",
  "dirs 6.0.0",
  "log",
- "lumina-node",
  "pretty_env_logger",
  "prism-common",
  "prism-da",

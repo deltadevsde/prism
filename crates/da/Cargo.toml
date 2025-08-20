@@ -37,9 +37,9 @@ prism-presets = { workspace = true }
 libp2p = { workspace = true, features = ["serde"] }
 mockall = { workspace = true }
 bincode = { workspace = true }
-dirs = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+dirs = { workspace = true }
 celestia-rpc = { workspace = true }
 sp1-sdk = { workspace = true }
 tokio = { workspace = true }
