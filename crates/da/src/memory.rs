@@ -1,4 +1,4 @@
-// #![cfg(not(target_arch = "wasm32"))]
+#![cfg_attr(target_arch = "wasm32", allow(unused))]
 #[cfg(not(target_arch = "wasm32"))]
 use crate::DataAvailabilityLayer;
 use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};

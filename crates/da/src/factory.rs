@@ -4,7 +4,9 @@ use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
 use prism_presets::{FullNodePreset, ProverPreset};
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
-use tracing::{error, info};
+#[cfg(not(target_arch = "wasm32"))]
+use tracing::error;
+use tracing::info;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::{
