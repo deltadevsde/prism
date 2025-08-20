@@ -5,6 +5,7 @@ mod file_utils;
 mod node_types;
 
 use clap::Parser;
+use dotenvy::dotenv;
 use node_types::NodeType;
 use prism_cli::error::CliError;
 use prism_da::{create_full_node_da_layer, create_light_client_da_layer};
@@ -45,6 +46,9 @@ async fn run_cli() -> Result<(), CliError> {
     // Setup cancellation token for graceful shutdown
     let cancellation_token = CancellationToken::new();
     let cancellation_for_signal = cancellation_token.clone();
+
+    // Load potential .env file into environment, before loading config
+    dotenv().ok();
 
     let (node, telemetry) = match cli.command {
         CliCommands::LightClient(ref light_client_args) => {
