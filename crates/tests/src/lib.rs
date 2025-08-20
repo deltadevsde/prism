@@ -8,15 +8,16 @@ use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
     FullNodeDAConfig, LightClientDAConfig,
     celestia::{
+        CelestiaFullNodeDAConfig, CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig,
         CelestiaNetwork, DEFAULT_PRUNING_WINDOW_IN_MEMORY,
-        full_node::CelestiaFullNodeDAConfig,
-        light_client::{CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig},
     },
     create_full_node_da_layer, create_light_client_da_layer,
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_lightclient::LightClient;
-use prism_prover::Prover;
+use prism_prover::{
+    Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions, WebServerConfig,
+};
 use prism_storage::{
     Database,
     rocksdb::{RocksDBConfig, RocksDBConnection},
@@ -75,21 +76,21 @@ async fn test_light_client_prover_talking() -> Result<()> {
         .map_err(|e| anyhow::anyhow!("Failed to generate signing key: {}", e))?;
     let pubkey = signing_key.verifying_key();
 
-    let prover_cfg = prism_prover::ProverOptions {
-        syncer: prism_prover::SyncerOptions {
+    let prover_cfg = ProverOptions {
+        syncer: SyncerOptions {
             verifying_key: pubkey.clone(),
             start_height: 0,
             max_epochless_gap: 300,
             prover_enabled: true,
         },
-        sequencer: prism_prover::SequencerOptions {
+        sequencer: SequencerOptions {
             signing_key: Some(signing_key),
             batcher_enabled: true,
         },
-        prover_engine: prism_prover::ProverEngineOptions {
+        prover_engine: ProverEngineOptions {
             recursive_proofs: false,
         },
-        webserver: prism_prover::webserver::WebServerConfig::default(),
+        webserver: WebServerConfig::default(),
     };
 
     let prover = Arc::new(Prover::new(

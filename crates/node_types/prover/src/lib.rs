@@ -39,7 +39,7 @@
 //! ### Running a Prover
 //!
 //! ```rust,no_run
-//! use prism_prover::factory::{ProverConfig, create_prover_as_prover};
+//! use prism_prover::{ProverConfig, WebServerConfig, create_prover_as_prover};
 //! use prism_storage::{DatabaseConfig, create_storage};
 //! use prism_da::{FullNodeDAConfig, create_full_node_da_layer};
 //! use tokio_util::sync::CancellationToken;
@@ -102,6 +102,7 @@
 //! use prism_storage::{DatabaseConfig, create_storage};
 //! use prism_da::{FullNodeDAConfig, create_full_node_da_layer};
 //! use tokio_util::sync::CancellationToken;
+//! use std::sync::Arc;
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
@@ -112,7 +113,7 @@
 //!     let cancellation_token = CancellationToken::new();
 //!
 //!     let full_node = create_prover_as_full_node(&config, db, da, cancellation_token)?;
-//!     let full_node = std::sync::Arc::new(full_node);
+//!     let full_node = Arc::new(full_node);
 //!
 //!     // Full node validates state but doesn't generate proofs
 //!     let handle = tokio::spawn({
@@ -128,15 +129,16 @@
 //! ```
 
 mod factory;
-pub mod prover;
-pub mod prover_engine;
-pub mod sequencer;
-pub mod syncer;
+mod prover;
+mod prover_engine;
+mod sequencer;
+mod syncer;
 mod tx_buffer;
-pub mod webserver;
+mod webserver;
 
 pub use factory::*;
 pub use prover::{Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions};
+pub use webserver::{WebServer, WebServerConfig};
 
 #[macro_use]
 extern crate tracing;

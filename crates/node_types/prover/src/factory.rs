@@ -15,8 +15,12 @@ use tokio_util::sync::CancellationToken;
 use tracing::info;
 
 use crate::{
-    Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions,
-    prover::DEFAULT_MAX_EPOCHLESS_GAP, webserver::WebServerConfig,
+    Prover,
+    prover::{
+        DEFAULT_MAX_EPOCHLESS_GAP, ProverEngineOptions, ProverOptions, SequencerOptions,
+        SyncerOptions,
+    },
+    webserver::WebServerConfig,
 };
 
 /// Configuration for Prism full nodes.
