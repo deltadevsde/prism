@@ -392,10 +392,10 @@ async fn execute_simulations(args: Args) {
     let mut results = Vec::new(); // Store results for all configurations
 
     for config in &configurations {
-        if let Some(ref tag) = args.tag {
-            if !config.tags.contains(tag) {
-                continue;
-            }
+        if let Some(ref tag) = args.tag
+            && !config.tags.contains(tag)
+        {
+            continue;
         }
 
         println!("Testing configuration: {:?}", config);

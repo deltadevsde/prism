@@ -225,10 +225,9 @@ where
                 account: Some(account),
                 proof: _,
             } = self.prism.get_account(&self.transaction.id).await?
+                && account.nonce() > self.transaction.nonce
             {
-                if account.nonce() > self.transaction.nonce {
-                    return Ok(account);
-                }
+                return Ok(account);
             };
             Self::Timer::sleep(interval).await;
         }
