@@ -11,14 +11,12 @@ use tracing::info;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::{
     DataAvailabilityLayer,
-    celestia::{CelestiaConnection, CelestiaFullNodeDAConfig},
+    celestia::{CelestiaConnection, CelestiaFullNodeDAConfig, CelestiaLightClientDAStoreConfig},
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
 };
 use crate::{
     LightDataAvailabilityLayer,
-    celestia::{
-        CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig, LightClientConnection,
-    },
+    celestia::{CelestiaLightClientDAConfig, LightClientConnection},
     memory::InMemoryDataAvailabilityLayer,
 };
 
@@ -42,6 +40,7 @@ pub enum LightClientDAConfig {
 }
 
 impl LightClientDAConfig {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn use_storage_path(&mut self, path: Option<String>) -> Result<(), PresetError> {
         let LightClientDAConfig::Celestia(celestia_config) = self else {
             return Err(PresetError::InvalidConfiguration(
@@ -50,14 +49,6 @@ impl LightClientDAConfig {
         };
 
         match path {
-            #[cfg(target_arch = "wasm32")]
-            Some(_) => {
-                return Err(PresetError::InvalidConfiguration(
-                    "Disk storage is not supported on wasm32; use the Browser store instead"
-                        .to_string(),
-                ));
-            }
-            #[cfg(not(target_arch = "wasm32"))]
             Some(path) => {
                 celestia_config.store = CelestiaLightClientDAStoreConfig::Disk { path };
             }
