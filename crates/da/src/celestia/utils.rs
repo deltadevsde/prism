@@ -1,17 +1,16 @@
 use std::{fmt, str::FromStr, time::Duration};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use celestia_types::nmt::Namespace;
-use lumina_node::{
-    network::Network as CelestiaNetwork,
-    node::{DEFAULT_PRUNING_DELAY, DEFAULT_SAMPLING_WINDOW},
-};
+use prism_errors::DataAvailabilityError;
 use prism_keys::{SigningKey, VerifyingKey};
 use prism_serde::{self, base64::FromBase64, hex::FromHex};
 use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_FETCH_TIMEOUT: Duration = Duration::from_secs(120);
-pub const DEFAULT_FETCH_MAX_RETRIES: u64 = 5;
+use crate::celestia::{
+    CelestiaNetwork, DEFAULT_FETCH_MAX_RETRIES, DEFAULT_FETCH_TIMEOUT, DEFAULT_PRUNING_DELAY,
+    DEFAULT_SAMPLING_WINDOW,
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CelestiaConfig {
@@ -114,14 +113,18 @@ impl Network {
     }
 }
 
-pub fn create_namespace(namespace_hex: &str) -> Result<Namespace> {
-    let decoded_hex = Vec::<u8>::from_hex(namespace_hex).context(format!(
-        "Failed to decode namespace hex '{}'",
-        namespace_hex
-    ))?;
+pub fn create_namespace(namespace_hex: &str) -> Result<Namespace, DataAvailabilityError> {
+    let decoded_hex = Vec::<u8>::from_hex(namespace_hex).map_err(|e| {
+        DataAvailabilityError::InitializationError(format!(
+            "Failed to decode namespace hex '{}': {}",
+            namespace_hex, e
+        ))
+    })?;
 
-    Namespace::new_v0(&decoded_hex).context(format!(
-        "Failed to create namespace from '{}'",
-        namespace_hex
-    ))
+    Namespace::new_v0(&decoded_hex).map_err(|e| {
+        DataAvailabilityError::InitializationError(format!(
+            "Failed to create namespace from '{}': {}",
+            namespace_hex, e
+        ))
+    })
 }

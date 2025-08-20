@@ -1,10 +1,11 @@
-use std::{
-    fmt::{Debug, Display},
-    sync::Arc,
-};
+pub mod celestia;
+pub mod consts;
+mod factory;
+pub mod memory;
 
 use async_trait::async_trait;
 use celestia_types::Blob;
+pub use factory::*;
 use mockall::automock;
 use prism_common::digest::Digest;
 use prism_errors::{CommitmentError, EpochVerificationError, SignatureError};
@@ -15,15 +16,10 @@ use prism_serde::{
     hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
-
 use sp1_verifier::Groth16Verifier;
-
+use std::{fmt::Display, sync::Arc};
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
-
-pub mod celestia;
-pub mod consts;
-pub mod memory;
 
 pub type VerifiableEpoch = Box<dyn VerifiableStateTransition>;
 
