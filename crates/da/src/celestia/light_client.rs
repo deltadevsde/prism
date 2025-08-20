@@ -9,7 +9,7 @@ use prism_events::{EventChannel, EventPublisher};
 use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
 use serde::{Deserialize, Serialize};
 use serde_with::{DurationSeconds, serde_as};
-use std::{self, env::current_dir, path::PathBuf, sync::Arc, time::Duration};
+use std::{self, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{trace, warn};
 #[cfg(not(target_arch = "wasm32"))]
@@ -20,6 +20,7 @@ use {
         store::{EitherStore, InMemoryStore, RedbStore},
     },
     redb::Database as RedbDatabase,
+    std::{env, path::PathBuf},
     tokio::task::spawn_blocking,
 };
 
@@ -62,7 +63,7 @@ pub struct CelestiaLightClientDAConfig {
     /// Different networks have different block times and fee structures.
     pub celestia_network: CelestiaNetwork,
 
-    /// Hex-encoded namespace ID for SNARK proofs (8 bytes).
+    /// Hex-encoded namespace ID for SNARK proofs.
     ///
     /// Light clients will only download and verify data from this namespace,
     /// significantly reducing bandwidth usage. Must be exactly 16 hex characters
@@ -201,18 +202,18 @@ pub enum CelestiaLightClientDAStoreConfig {
 impl Default for CelestiaLightClientDAConfig {
     fn default() -> Self {
         Self {
-            celestia_network: CelestiaNetwork::Arabica, // Default to Arabica network
+            celestia_network: CelestiaNetwork::Arabica,
             snark_namespace_id: "00000000000000de1008".to_string(),
-            pruning_window: DEFAULT_PRUNING_WINDOW, // Default to 7 days
-            fetch_timeout: DEFAULT_FETCH_TIMEOUT,   // Default to 1 minute
-            fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES, // Default to 5 retries
+            pruning_window: DEFAULT_PRUNING_WINDOW,
+            fetch_timeout: DEFAULT_FETCH_TIMEOUT,
+            fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES,
 
             #[cfg(target_arch = "wasm32")]
             store: CelestiaLightClientDAStoreConfig::Browser,
             #[cfg(not(target_arch = "wasm32"))]
             store: CelestiaLightClientDAStoreConfig::Disk {
                 path: dirs::home_dir()
-                    .or_else(|| current_dir().ok())
+                    .or_else(|| env::current_dir().ok())
                     .unwrap_or_else(|| PathBuf::from("."))
                     .join(".prism/data/light_client/")
                     .to_string_lossy()
@@ -235,11 +236,11 @@ impl ApplyPreset<LightClientPreset> for CelestiaLightClientDAConfig {
 }
 
 pub struct LightClientConnection {
-    pub node: Arc<RwLock<LuminaNode>>,
-    pub event_channel: Arc<EventChannel>,
-    pub snark_namespace: Namespace,
-    pub fetch_timeout: Duration,
-    pub fetch_max_retries: u64,
+    node: Arc<RwLock<LuminaNode>>,
+    event_channel: Arc<EventChannel>,
+    snark_namespace: Namespace,
+    fetch_timeout: Duration,
+    fetch_max_retries: u64,
 }
 
 impl LightClientConnection {
