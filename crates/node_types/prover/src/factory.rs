@@ -173,7 +173,7 @@ pub fn create_prover_as_prover(
             verifying_key: signing_key.verifying_key(),
             start_height: 1,
             max_epochless_gap: config.max_epochless_gap,
-            prover_enabled: false,
+            prover_enabled: true,
         },
         sequencer: SequencerOptions {
             signing_key: Some(signing_key),
