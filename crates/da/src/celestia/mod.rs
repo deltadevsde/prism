@@ -1,9 +1,13 @@
-pub mod full_node;
-pub mod light_client;
-pub mod utils;
+mod full_node;
+mod light_client;
+mod utils;
 
 use std::time::Duration;
 
+pub use full_node::{CelestiaConnection, CelestiaFullNodeDAConfig};
+pub use light_client::{
+    CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig, LightClientConnection,
+};
 pub use lumina_node::{
     network::Network as CelestiaNetwork,
     node::{DEFAULT_PRUNING_WINDOW, DEFAULT_PRUNING_WINDOW_IN_MEMORY, SAMPLING_WINDOW},

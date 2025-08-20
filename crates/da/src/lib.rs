@@ -54,8 +54,11 @@
 //! ### Full Node Example
 //!
 //! ```rust,no_run
-//! use prism_da::{FullNodeDAConfig, create_full_node_da_layer};
 //! use prism_common::transaction::Transaction;
+//! use prism_da::{
+//!     FullNodeDAConfig, create_full_node_da_layer,
+//!     celestia::{CelestiaFullNodeDAConfig, CelestiaNetwork}
+//! };
 //! use std::time::Duration;
 //!
 //! #[tokio::main]
