@@ -172,12 +172,4 @@ impl SP1ProverEngine {
 
         Ok((snark.try_into()?, stark.try_into()?))
     }
-
-    pub fn get_verifying_key(&self, epoch_height: u64) -> &SP1VerifyingKey {
-        if epoch_height == 0 || !self.recursive_proofs_enabled {
-            &self.base_verifying_key
-        } else {
-            &self.recursive_verifying_key
-        }
-    }
 }
