@@ -86,7 +86,7 @@ impl Account {
 
     /// Creates a modification request builder for this account using the default NoopPrismApi.
     /// This is useful for local testing and validation without a real API connection.
-    pub fn modify(&self) -> ModifyAccountRequestBuilder<NoopPrismApi> {
+    pub fn modify(&self) -> ModifyAccountRequestBuilder<'_, NoopPrismApi> {
         RequestBuilder::new().to_modify_account(self)
     }
 

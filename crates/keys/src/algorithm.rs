@@ -76,15 +76,13 @@ impl<'a> TryFrom<AlgorithmIdentifierRef<'a>> for CryptoAlgorithm {
             } else if parameter_oid == SECP256R1_OID {
                 Ok(CryptoAlgorithm::Secp256r1)
             } else {
-                return Err(SignatureError::AlgorithmError(
-                    "Unsupported elliptic curve OID".to_string(),
+                Err(
+                    SignatureError::AlgorithmError("Unsupported elliptic curve OID".to_string())
+                        .into(),
                 )
-                .into());
             }
         } else {
-            return Err(
-                SignatureError::AlgorithmError("Unsupported algorithm OID".to_string()).into(),
-            );
+            Err(SignatureError::AlgorithmError("Unsupported algorithm OID".to_string()).into())
         }
     }
 }
