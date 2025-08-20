@@ -308,8 +308,8 @@ impl FromBase64 for VerifyingKey {
     type Error = CryptoError;
 
     fn from_base64<T: AsRef<[u8]>>(base64: T) -> Result<Self> {
-        let bytes = Vec::<u8>::from_base64(base64)
-            .map_err(|e| (ParseError::GeneralError(e.to_string())))?;
+        let bytes =
+            Vec::<u8>::from_base64(base64).map_err(|e| ParseError::GeneralError(e.to_string()))?;
 
         match bytes.len() {
             32 => {
