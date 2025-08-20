@@ -5,8 +5,8 @@ use anyhow::{Result, bail};
 use prism_da::{
     FullNodeDAConfig, LightClientDAConfig,
     celestia::{
-        CelestiaNetwork, full_node::CelestiaFullNodeDAConfig,
-        light_client::CelestiaLightClientDAStoreConfig,
+        CelestiaFullNodeDAConfig, CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig,
+        CelestiaNetwork,
     },
 };
 use std::time::Duration;
@@ -32,7 +32,7 @@ pub fn apply_light_client_da_args(
 }
 
 fn apply_celestia_light_client_da_args(
-    config: &mut prism_da::celestia::light_client::CelestiaLightClientDAConfig,
+    config: &mut CelestiaLightClientDAConfig,
     args: &CliDaLayerArgs,
 ) -> Result<()> {
     // Update Celestia network if provided
@@ -152,9 +152,8 @@ mod tests {
     use prism_da::{
         FullNodeDAConfig, LightClientDAConfig,
         celestia::{
-            CelestiaNetwork,
-            full_node::CelestiaFullNodeDAConfig,
-            light_client::{CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig},
+            CelestiaFullNodeDAConfig, CelestiaLightClientDAConfig,
+            CelestiaLightClientDAStoreConfig, CelestiaNetwork,
         },
     };
 

@@ -8,10 +8,10 @@ pub struct CliWebserverArgs {
     pub webserver_active: Option<bool>,
 
     /// IP address for the webserver to listen on
-    #[arg(long, required_if_eq("webserver_active", "true"))]
+    #[arg(long)]
     pub host: Option<String>,
 
     /// Port number for the webserver to listen on
-    #[arg(short, long, required_if_eq("webserver_active", "true"))]
+    #[arg(short, long)]
     pub port: Option<u16>,
 }
