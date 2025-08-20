@@ -1,9 +1,11 @@
+#[cfg(not(target_arch = "wasm32"))]
 mod full_node;
 mod light_client;
 mod utils;
 
 use std::time::Duration;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub use full_node::{CelestiaConnection, CelestiaFullNodeDAConfig};
 pub use light_client::{
     CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig, LightClientConnection,

@@ -1984,48 +1984,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "celestia-grpc"
-version = "0.5.0"
-source = "git+https://github.com/deltadevsde/lumina.git#ed80d4cb16bc5bf6552d6e31b7abb6f9c1ab0d67"
-dependencies = [
- "bytes",
- "celestia-grpc-macros",
- "celestia-proto",
- "celestia-types",
- "futures",
- "getrandom 0.2.16",
- "gloo-timers 0.3.0",
- "hex",
- "http-body 1.0.1",
- "ics23 0.12.0",
- "js-sys",
- "k256",
- "lumina-utils",
- "prost 0.13.5",
- "send_wrapper 0.6.0",
- "serde",
- "signature",
- "tendermint",
- "tendermint-proto",
- "thiserror 1.0.69",
- "tokio",
- "tonic",
- "tonic-web-wasm-client",
- "wasm-bindgen",
- "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "celestia-grpc-macros"
-version = "0.3.0"
-source = "git+https://github.com/deltadevsde/lumina.git#ed80d4cb16bc5bf6552d6e31b7abb6f9c1ab0d67"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
-]
-
-[[package]]
 name = "celestia-proto"
 version = "0.8.0"
 source = "git+https://github.com/deltadevsde/lumina.git#ed80d4cb16bc5bf6552d6e31b7abb6f9c1ab0d67"
@@ -2038,8 +1996,6 @@ dependencies = [
  "serde",
  "subtle-encoding",
  "tendermint-proto",
- "tonic",
- "tonic-build",
  "wasm-bindgen",
 ]
 
@@ -2307,16 +2263,6 @@ dependencies = [
  "once_cell",
  "unicode-width 0.2.1",
  "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -3782,27 +3728,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
-name = "gloo-net"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c06f627b1a58ca3d42b45d6104bf1e1a03799df472df00988b6ba21accc10580"
-dependencies = [
- "futures-channel",
- "futures-core",
- "futures-sink",
- "gloo-utils",
- "http 1.3.1",
- "js-sys",
- "pin-project",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
 name = "gloo-timers"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3824,19 +3749,6 @@ dependencies = [
  "futures-core",
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "gloo-utils"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b5555354113b18c547c1d3a98fbf7fb32a9ff4f6fa112ce823a21641a0ba3aa"
-dependencies = [
- "js-sys",
- "serde",
- "serde_json",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -4349,20 +4261,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ics23"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73b17f1a5bd7d12ad30a21445cfa5f52fd7651cb3243ba866f9916b1ec112f12"
-dependencies = [
- "anyhow",
- "bytes",
- "hex",
- "informalsystems-pbjson",
- "prost 0.13.5",
- "serde",
-]
-
-[[package]]
 name = "icu_collections"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4747,7 +4645,7 @@ dependencies = [
  "digest 0.10.7",
  "hashbrown 0.13.2",
  "hex",
- "ics23 0.11.3",
+ "ics23",
  "itertools 0.10.5",
  "mirai-annotations",
  "num-derive",
@@ -4828,7 +4726,6 @@ dependencies = [
  "jsonrpsee-http-client",
  "jsonrpsee-proc-macros",
  "jsonrpsee-types",
- "jsonrpsee-wasm-client",
  "jsonrpsee-ws-client",
  "tracing",
 ]
@@ -4840,9 +4737,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2a320a3f1464e4094f780c4d48413acd786ce5627aaaecfac9e9c7431d13ae1"
 dependencies = [
  "base64 0.22.1",
- "futures-channel",
  "futures-util",
- "gloo-net",
  "http 1.3.1",
  "jsonrpsee-core",
  "pin-project",
@@ -4881,7 +4776,6 @@ dependencies = [
  "tokio-stream",
  "tower 0.5.2",
  "tracing",
- "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -4930,18 +4824,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.12",
-]
-
-[[package]]
-name = "jsonrpsee-wasm-client"
-version = "0.25.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b67695cbcf4653f39f8f8738925547e0e23fd9fe315bccf951097b9f6a38781"
-dependencies = [
- "jsonrpsee-client-transport",
- "jsonrpsee-core",
- "jsonrpsee-types",
- "tower 0.5.2",
 ]
 
 [[package]]
@@ -5213,7 +5095,6 @@ dependencies = [
  "quick-protobuf",
  "rand 0.8.5",
  "rw-stream-sink",
- "serde",
  "smallvec",
  "thiserror 1.0.69",
  "tracing",
@@ -5262,7 +5143,6 @@ dependencies = [
  "quick-protobuf-codec",
  "rand 0.8.5",
  "regex",
- "serde",
  "sha2 0.10.8",
  "smallvec",
  "tracing",
@@ -5305,7 +5185,6 @@ dependencies = [
  "multihash",
  "quick-protobuf",
  "rand 0.8.5",
- "serde",
  "sha2 0.10.8",
  "thiserror 2.0.12",
  "tracing",
@@ -5332,7 +5211,6 @@ dependencies = [
  "quick-protobuf",
  "quick-protobuf-codec",
  "rand 0.8.5",
- "serde",
  "sha2 0.10.8",
  "smallvec",
  "thiserror 1.0.69",
@@ -5835,42 +5713,6 @@ dependencies = [
  "tokio-util",
  "tracing",
  "void",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "lumina-node-wasm"
-version = "0.10.0"
-source = "git+https://github.com/deltadevsde/lumina.git#ed80d4cb16bc5bf6552d6e31b7abb6f9c1ab0d67"
-dependencies = [
- "anyhow",
- "blockstore",
- "celestia-grpc",
- "celestia-types",
- "console_error_panic_hook",
- "enum-as-inner",
- "futures",
- "gloo-timers 0.3.0",
- "instant",
- "js-sys",
- "libp2p",
- "lumina-node",
- "lumina-utils",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "serde_repr",
- "tendermint",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "tracing-web",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -7449,20 +7291,15 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "celestia-types",
  "clap",
  "config",
  "dirs 6.0.0",
  "dotenvy",
- "lumina-node",
- "opentelemetry",
  "prism-da",
  "prism-errors",
- "prism-keys",
  "prism-lightclient",
  "prism-presets",
  "prism-prover",
- "prism-serde",
  "prism-storage",
  "prism-telemetry",
  "prism-telemetry-registry",
@@ -7482,7 +7319,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "prism-common",
- "prism-errors",
  "prism-keys",
  "prism-serde",
  "reqwest",
@@ -7502,10 +7338,8 @@ dependencies = [
  "prism-errors",
  "prism-keys",
  "prism-serde",
- "rand 0.8.5",
  "serde",
  "sha2 0.10.8",
- "thiserror 2.0.12",
  "utoipa",
 ]
 
@@ -7520,10 +7354,7 @@ dependencies = [
  "celestia-rpc",
  "celestia-types",
  "dirs 6.0.0",
- "ed25519-consensus",
- "libp2p",
  "lumina-node",
- "lumina-node-wasm",
  "mockall",
  "prism-common",
  "prism-errors",
@@ -7533,17 +7364,11 @@ dependencies = [
  "prism-serde",
  "redb",
  "serde",
- "serde-wasm-bindgen",
- "serde_json",
  "serde_with",
  "sp1-sdk",
  "sp1-verifier",
- "thiserror 2.0.12",
  "tokio",
  "tracing",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-time",
 ]
 
 [[package]]
@@ -7562,8 +7387,6 @@ dependencies = [
  "lumina-node",
  "prism-common",
  "serde",
- "serde_json",
- "thiserror 2.0.12",
  "tokio",
  "tracing",
  "wasm-bindgen-futures",
@@ -7597,7 +7420,6 @@ name = "prism-lightclient"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "dirs 6.0.0",
  "log",
  "pretty_env_logger",
@@ -7607,7 +7429,6 @@ dependencies = [
  "prism-events",
  "prism-keys",
  "prism-presets",
- "prism-serde",
  "prism-telemetry-registry",
  "serde",
  "serde_json",
@@ -7615,8 +7436,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
- "wasm-bindgen-futures",
- "web-time",
 ]
 
 [[package]]
@@ -7642,7 +7461,6 @@ dependencies = [
  "pretty_env_logger",
  "prism-common",
  "prism-da",
- "prism-errors",
  "prism-events",
  "prism-keys",
  "prism-presets",
@@ -7677,10 +7495,8 @@ dependencies = [
 name = "prism-sp1"
 version = "0.1.0"
 dependencies = [
- "prism-common",
  "prism-tree",
  "sha2 0.10.8",
- "sp1-verifier",
  "sp1-zkvm",
 ]
 
@@ -7767,7 +7583,6 @@ name = "prism-tree"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bincode",
  "jmt",
  "paste",
  "prism-common",
@@ -7778,7 +7593,6 @@ dependencies = [
  "serde",
  "sha2 0.10.8",
  "tempfile",
- "thiserror 2.0.12",
  "tracing",
 ]
 
@@ -7786,19 +7600,10 @@ dependencies = [
 name = "prism-uniffi-lightclient"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "bincode",
- "celestia-rpc",
- "hex",
- "libp2p",
- "lumina-node",
  "prism-da",
- "prism-errors",
  "prism-events",
- "prism-keys",
  "prism-lightclient",
  "prism-presets",
- "sp1-verifier",
  "thiserror 2.0.12",
  "tokio",
  "tokio-util",
@@ -7810,12 +7615,8 @@ name = "prism-wasm-lightclient"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bincode",
- "celestia-rpc",
  "futures",
- "hex",
  "js-sys",
- "libp2p",
  "prism-common",
  "prism-da",
  "prism-errors",
@@ -7824,7 +7625,6 @@ dependencies = [
  "prism-presets",
  "serde",
  "serde-wasm-bindgen",
- "sp1-verifier",
  "thiserror 2.0.12",
  "tokio",
  "tokio-util",
@@ -9908,14 +9708,10 @@ dependencies = [
  "plotters",
  "prism-common",
  "prism-keys",
- "prism-serde",
  "prism-tree",
  "rand 0.8.5",
- "serde",
- "serde_json",
  "sha2 0.10.8",
  "sp1-sdk",
- "sp1-zkvm",
  "tokio",
 ]
 
@@ -10561,7 +10357,6 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
- "tokio-util",
 ]
 
 [[package]]
@@ -10670,45 +10465,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "tonic-build"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9557ce109ea773b399c9b9e5dca39294110b74f1f342cb347a80d1fce8c26a11"
-dependencies = [
- "prettyplease",
- "proc-macro2",
- "prost-build",
- "prost-types",
- "quote",
- "syn 2.0.104",
-]
-
-[[package]]
-name = "tonic-web-wasm-client"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8957be1a1c7aa12d4c9d67882060dd57aed816bbc553fa60949312e839f4a8ea"
-dependencies = [
- "base64 0.22.1",
- "byteorder",
- "bytes",
- "futures-util",
- "http 1.3.1",
- "http-body 1.0.1",
- "http-body-util",
- "httparse",
- "js-sys",
- "pin-project",
- "thiserror 1.0.69",
- "tonic",
- "tower-service",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-streams",
- "web-sys",
 ]
 
 [[package]]
@@ -10859,23 +10615,9 @@ dependencies = [
  "sharded-slab",
  "smallvec",
  "thread_local",
- "time",
  "tracing",
  "tracing-core",
  "tracing-log",
-]
-
-[[package]]
-name = "tracing-web"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9e6a141feebd51f8d91ebfd785af50fca223c570b86852166caa3b141defe7c"
-dependencies = [
- "js-sys",
- "tracing-core",
- "tracing-subscriber",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]

@@ -15,18 +15,14 @@ default = []
 
 [dependencies]
 blockstore = { workspace = true }
-thiserror = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
 serde_with = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
-web-time = { workspace = true, features = ["serde"] }
 redb = { workspace = true }
 lumina-node = { workspace = true }
 prism-serde = { workspace = true }
-ed25519-consensus = { workspace = true }
 sp1-verifier = { workspace = true }
 celestia-types = { workspace = true }
 prism-errors = { workspace = true }
@@ -34,7 +30,6 @@ prism-keys = { workspace = true }
 prism-common = { workspace = true }
 prism-events = { workspace = true }
 prism-presets = { workspace = true }
-libp2p = { workspace = true, features = ["serde"] }
 mockall = { workspace = true }
 bincode = { workspace = true }
 
@@ -46,9 +41,7 @@ tokio = { workspace = true }
 blockstore = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-tokio = { workspace = true, default-features = false, features = ["sync"] }
-celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
-wasm-bindgen-futures = { workspace = true }
-wasm-bindgen = { workspace = true }
-lumina-node-wasm = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
+tokio = { workspace = true, default-features = false, features = [
+  "sync",
+  "time",
+] }
