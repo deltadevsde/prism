@@ -146,16 +146,18 @@ impl LightClientWorker {
             js_channel.clone(),
         ));
 
-        let network = Network::from_str("specter")
-            .map_err(|e| JsError::new(&format!("Invalid network: {}", e)))?;
-        let verifying_key = network.config().verifying_key;
+        let preset = LightClientPreset::Specter;
+
+        let config = WasmLightClientConfig::default_with_preset(&preset)
+            .map_err(|e| JsError::new(&e.to_string()))?;
 
         let ct = CancellationToken::new();
-        let light_client = Arc::new(LightClient::new(da, verifying_key, ct));
+        let light_client = create_light_client(da, &config.light_client, ct)
+            .map_err(|e| JsError::new(&format!("Failed to create light client: {}", e)))?;
 
         Ok(Self {
             server,
-            light_client,
+            light_client: Arc::new(light_client),
             events_channel_name: events_channel_name.to_string(),
         })
     }
