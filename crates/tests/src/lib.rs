@@ -7,7 +7,11 @@ use anyhow::Result;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
     FullNodeDAConfig, LightClientDAConfig,
-    celestia::{full_node::CelestiaFullNodeDAConfig, light_client::CelestiaLightClientDAConfig},
+    celestia::{
+        CelestiaNetwork, DEFAULT_PRUNING_WINDOW_IN_MEMORY,
+        full_node::CelestiaFullNodeDAConfig,
+        light_client::{CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig},
+    },
     create_full_node_da_layer, create_light_client_da_layer,
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
@@ -48,16 +52,17 @@ async fn test_light_client_prover_talking() -> Result<()> {
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
 
-    // let bridge_cfg = CelestiaConfig {
-    //     connection_string: "ws://localhost:26658".to_string(),
-    //     ..CelestiaConfig::default()
-    // };
     let bridge_cfg = FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
         url: "ws://localhost:26658".to_string(),
         ..CelestiaFullNodeDAConfig::default()
     });
 
-    let lc_cfg = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig::default());
+    let lc_cfg = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+        celestia_network: CelestiaNetwork::Custom("private".parse().unwrap()),
+        pruning_window: DEFAULT_PRUNING_WINDOW_IN_MEMORY,
+        store: CelestiaLightClientDAStoreConfig::InMemory,
+        ..CelestiaLightClientDAConfig::default()
+    });
 
     let mut rng = StdRng::from_entropy();
     let prover_algorithm = CryptoAlgorithm::Ed25519;
