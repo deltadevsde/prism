@@ -23,7 +23,6 @@ tokio-util = { workspace = true }
 clap = { workspace = true }
 config = { workspace = true }
 dotenvy = { workspace = true }
-keystore-rs = { workspace = true }
 toml = { workspace = true }
 dirs = { workspace = true }
 anyhow = { workspace = true }

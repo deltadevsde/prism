@@ -24,11 +24,10 @@ celestia-rpc = { workspace = true, features = ["wasm-bindgen"] }
 prism-errors = { workspace = true }
 prism-lightclient = { path = "../lightclient", default-features = false }
 prism-keys = { workspace = true }
-prism-da = { path = "../../da", features = ["uniffi"] }
+prism-da = { workspace = true }
 prism-events = { workspace = true }
 prism-presets = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true }
 uniffi = { workspace = true }
 lumina-node = { workspace = true }
-lumina-node-uniffi = { workspace = true }

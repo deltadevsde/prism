@@ -1988,7 +1988,6 @@ name = "celestia-grpc"
 version = "0.5.0"
 source = "git+https://github.com/deltadevsde/lumina.git#ed80d4cb16bc5bf6552d6e31b7abb6f9c1ab0d67"
 dependencies = [
- "async-trait",
  "bytes",
  "celestia-grpc-macros",
  "celestia-proto",
@@ -2005,7 +2004,6 @@ dependencies = [
  "prost 0.13.5",
  "send_wrapper 0.6.0",
  "serde",
- "serde_json",
  "signature",
  "tendermint",
  "tendermint-proto",
@@ -2013,7 +2011,6 @@ dependencies = [
  "tokio",
  "tonic",
  "tonic-web-wasm-client",
- "uniffi",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
@@ -2043,7 +2040,6 @@ dependencies = [
  "tendermint-proto",
  "tonic",
  "tonic-build",
- "uniffi",
  "wasm-bindgen",
 ]
 
@@ -2096,7 +2092,6 @@ dependencies = [
  "tendermint-proto",
  "thiserror 1.0.69",
  "time",
- "uniffi",
  "wasm-bindgen",
 ]
 
@@ -5013,36 +5008,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "keyring"
-version = "3.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1961983669d57bdfe6c0f3ef8e4c229b5ef751afcc7d87e4271d2f71f6ccfa8b"
-dependencies = [
- "log",
-]
-
-[[package]]
-name = "keystore-rs"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2896e336f64269ac8b40be9f9316c2704388584636d901488c531e897f31347"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "base64 0.22.1",
- "dirs 6.0.0",
- "dotenvy",
- "ed25519-consensus",
- "hex",
- "keyring",
- "mockall",
- "rand 0.8.5",
- "security-framework 3.2.0",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5869,33 +5834,10 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
- "uniffi",
  "void",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
-]
-
-[[package]]
-name = "lumina-node-uniffi"
-version = "0.3.0"
-source = "git+https://github.com/deltadevsde/lumina.git#ed80d4cb16bc5bf6552d6e31b7abb6f9c1ab0d67"
-dependencies = [
- "async-trait",
- "blockstore",
- "celestia-grpc",
- "celestia-proto",
- "celestia-types",
- "k256",
- "libp2p",
- "lumina-node",
- "redb",
- "serde_json",
- "tendermint",
- "thiserror 1.0.69",
- "tokio",
- "tonic",
- "uniffi",
 ]
 
 [[package]]
@@ -7512,7 +7454,6 @@ dependencies = [
  "config",
  "dirs 6.0.0",
  "dotenvy",
- "keystore-rs",
  "lumina-node",
  "opentelemetry",
  "prism-da",
@@ -7582,7 +7523,6 @@ dependencies = [
  "ed25519-consensus",
  "libp2p",
  "lumina-node",
- "lumina-node-uniffi",
  "lumina-node-wasm",
  "mockall",
  "prism-common",
@@ -7684,9 +7624,7 @@ dependencies = [
 name = "prism-presets"
 version = "0.1.0"
 dependencies = [
- "prism-serde",
  "serde",
- "serde_json",
  "thiserror 2.0.12",
 ]
 
@@ -7855,7 +7793,6 @@ dependencies = [
  "hex",
  "libp2p",
  "lumina-node",
- "lumina-node-uniffi",
  "prism-da",
  "prism-errors",
  "prism-events",
@@ -9969,7 +9906,6 @@ dependencies = [
  "futures",
  "hex",
  "jmt",
- "keystore-rs",
  "plotters",
  "prism-common",
  "prism-keys",

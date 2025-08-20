@@ -17,7 +17,6 @@ clap = { workspace = true }
 hex = { workspace = true }
 jmt = { workspace = true }
 rand = { workspace = true }
-keystore-rs = { workspace = true }
 prism-tree = { workspace = true }
 prism-common = { workspace = true }
 prism-serde = { workspace = true }
