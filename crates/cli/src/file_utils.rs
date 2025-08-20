@@ -20,10 +20,10 @@ pub fn ensure_file_directory_exists(config_path: impl AsRef<Path>) -> Result<()>
 }
 
 pub fn expand_tilde(path: &str) -> String {
-    if path.starts_with("~/") {
-        if let Some(home) = home_dir() {
-            return path.replacen("~", &home.to_string_lossy(), 1);
-        }
+    if path.starts_with("~/")
+        && let Some(home) = home_dir()
+    {
+        return path.replacen("~", &home.to_string_lossy(), 1);
     }
     path.to_string()
 }
