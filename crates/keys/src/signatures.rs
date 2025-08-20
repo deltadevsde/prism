@@ -67,7 +67,7 @@ impl Signature {
         }
     }
 
-    fn algorithm_identifier(&self) -> AlgorithmIdentifierRef {
+    fn algorithm_identifier(&self) -> AlgorithmIdentifierRef<'_> {
         match self {
             Signature::Ed25519(_) => AlgorithmIdentifierRef {
                 oid: ED25519_OID,

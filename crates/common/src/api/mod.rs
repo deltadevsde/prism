@@ -78,7 +78,7 @@ where
         transaction: Transaction,
     ) -> Result<impl PendingTransaction<Timer = Self::Timer>, PrismApiError>;
 
-    fn build_request(&self) -> RequestBuilder<Self> {
+    fn build_request(&self) -> RequestBuilder<'_, Self> {
         RequestBuilder::new_with_prism(self)
     }
 
