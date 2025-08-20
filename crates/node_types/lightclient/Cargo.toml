@@ -25,10 +25,10 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 prism-telemetry-registry = { workspace = true, optional = true }
 tokio-util = { workspace = true }
-dirs = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { workspace = true }
+dirs = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { workspace = true, features = ["sync"] }

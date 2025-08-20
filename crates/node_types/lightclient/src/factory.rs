@@ -4,7 +4,9 @@ use prism_presets::{
     ApplyPreset, LightClientPreset, PRESET_SPECTER_PUBLIC_KEY_BASE64, PresetError,
 };
 use serde::{Deserialize, Serialize};
-use std::{env::current_dir, path::PathBuf, result::Result, sync::Arc};
+#[cfg(not(target_arch = "wasm32"))]
+use std::env;
+use std::{path::PathBuf, result::Result, sync::Arc};
 use tokio_util::sync::CancellationToken;
 
 use crate::LightClient;
@@ -29,13 +31,17 @@ pub struct LightClientConfig {
 
 impl Default for LightClientConfig {
     fn default() -> Self {
+        #[cfg(not(target_arch = "wasm32"))]
+        let verifying_key_path = dirs::home_dir()
+            .or_else(|| env::current_dir().ok())
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".prism/prover_key.spki");
+
+        #[cfg(target_arch = "wasm32")]
+        let verifying_key_path = PathBuf::from(".prism/prover_key.spki");
+
         LightClientConfig {
-            verifying_key_str: dirs::home_dir()
-                .or_else(|| current_dir().ok())
-                .unwrap_or_else(|| PathBuf::from("."))
-                .join(".prism/prover_key.spki")
-                .to_string_lossy()
-                .into_owned(),
+            verifying_key_str: verifying_key_path.to_string_lossy().into_owned(),
         }
     }
 }
