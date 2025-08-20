@@ -1,25 +1,24 @@
+use prism_errors::DataAvailabilityError;
+use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
+#[cfg(not(target_arch = "wasm32"))]
+use prism_presets::{FullNodePreset, ProverPreset};
+use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
+use tracing::{error, info};
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::{
     DataAvailabilityLayer,
-    celestia::full_node::{CelestiaConnection, CelestiaFullNodeDAConfig},
+    celestia::{CelestiaConnection, CelestiaFullNodeDAConfig},
+    consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
 };
 use crate::{
     LightDataAvailabilityLayer,
-    celestia::light_client::{
+    celestia::{
         CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig, LightClientConnection,
     },
-    consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
     memory::InMemoryDataAvailabilityLayer,
 };
-
-use prism_errors::DataAvailabilityError;
-#[cfg(not(target_arch = "wasm32"))]
-use prism_presets::ProverPreset;
-use prism_presets::{ApplyPreset, FullNodePreset, LightClientPreset, PresetError};
-use serde::{Deserialize, Serialize};
-use tracing::{error, info};
 
 /// Configuration for the Data Availability layer used by light clients.
 ///
