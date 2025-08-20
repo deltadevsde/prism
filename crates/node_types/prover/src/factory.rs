@@ -156,7 +156,6 @@ pub fn create_prover_as_prover(
     cancellation_token: CancellationToken,
 ) -> Result<Prover> {
     let signing_key = SigningKey::from_pkcs8_pem_file(&config.signing_key_path)
-        .or_else(|_| create_ed25519_key_pair_pem_files(&config.signing_key_path))
         .or_else(|_| {
             info!(
                 "Signing key not found at '{}', generating new Ed25519 key pair",
