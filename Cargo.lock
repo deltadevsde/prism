@@ -7468,6 +7468,7 @@ dependencies = [
  "prism-tree",
  "serde",
  "sp1-sdk",
+ "tempfile",
  "tokio",
  "tokio-util",
  "tower-http",
@@ -7515,6 +7516,7 @@ dependencies = [
  "anyhow",
  "auto_impl",
  "jmt",
+ "mockall",
  "prism-common",
  "prism-da",
  "prism-errors",
@@ -7523,6 +7525,7 @@ dependencies = [
  "rocksdb",
  "serde",
  "tempfile",
+ "tokio",
  "tracing",
 ]
 
