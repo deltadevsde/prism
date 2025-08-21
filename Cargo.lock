@@ -7304,7 +7304,6 @@ dependencies = [
  "prism-telemetry",
  "prism-telemetry-registry",
  "serde",
- "serial_test",
  "tempfile",
  "thiserror 2.0.12",
  "tokio",
