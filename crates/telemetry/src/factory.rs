@@ -1,6 +1,6 @@
 use crate::{error::TelemetryError, metrics_registry::init_metrics_registry};
 
-use opentelemetry::global::{self};
+use opentelemetry::global;
 use opentelemetry_sdk::{logs::SdkLoggerProvider, metrics::SdkMeterProvider};
 use prism_telemetry::{
     config::TelemetryConfig,
@@ -48,9 +48,10 @@ pub fn create_telemetry(
     attributes: Vec<(String, String)>,
 ) -> Result<TelemetryInstance, TelemetryError> {
     // Initialize the telemetry system
-
-    let mut attributes = attributes.clone();
-    attributes.extend(telemetry_config.global_labels.labels.clone());
+    let attributes = attributes
+        .into_iter()
+        .chain(telemetry_config.global_labels.labels.clone())
+        .collect::<Vec<_>>();
 
     set_global_attributes(attributes.clone());
 
@@ -78,4 +79,69 @@ pub fn create_telemetry(
         meter_provider,
         log_provider,
     })
+}
+
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prism_telemetry::config::TelemetryConfig;
+
+    #[test]
+    fn test_telemetry_instance_creation() {
+        // Use default config which should be valid
+        let config = TelemetryConfig::default();
+        let attributes = vec![("test_key".to_string(), "test_value".to_string())];
+
+        let result = create_telemetry(&config, attributes);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_telemetry_instance_with_empty_attributes() {
+        let config = TelemetryConfig::default();
+        let attributes = vec![];
+
+        let result = create_telemetry(&config, attributes);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_telemetry_instance_shutdown() {
+        let config = TelemetryConfig::default();
+        let attributes = vec![];
+
+        let instance = create_telemetry(&config, attributes).unwrap();
+        // Should not panic on shutdown
+        instance.shutdown();
+    }
+
+    #[test]
+    fn test_create_telemetry_with_multiple_attributes() {
+        let config = TelemetryConfig::default();
+        let attributes = vec![
+            ("service".to_string(), "prism".to_string()),
+            ("version".to_string(), "1.0".to_string()),
+            ("environment".to_string(), "test".to_string()),
+        ];
+
+        let result = create_telemetry(&config, attributes);
+        assert!(result.is_ok());
+
+        let instance = result.unwrap();
+        instance.shutdown(); // Should not panic
+    }
+
+    #[test]
+    fn test_telemetry_instance_providers_lifecycle() {
+        let config = TelemetryConfig::default();
+        let attributes = vec![];
+
+        let result = create_telemetry(&config, attributes);
+        assert!(result.is_ok());
+
+        let instance = result.unwrap();
+        // In test environment, providers behavior should be consistent
+        instance.shutdown(); // Should not panic
+    }
 }
