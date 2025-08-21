@@ -41,14 +41,14 @@ async fn main() {
 /// `Prover`, or `FullNode`). Handles errors during setup and ensures telemetry is properly shut
 /// down after execution.
 async fn run_cli() -> Result<(), CliError> {
+    // Load potential .env file into environment, before parsing cli/config
+    dotenv().ok();
+
     let cli = Cli::parse();
 
     // Setup cancellation token for graceful shutdown
     let cancellation_token = CancellationToken::new();
     let cancellation_for_signal = cancellation_token.clone();
-
-    // Load potential .env file into environment, before loading config
-    dotenv().ok();
 
     let (node, telemetry) = match cli.command {
         CliCommands::LightClient(ref light_client_args) => {
