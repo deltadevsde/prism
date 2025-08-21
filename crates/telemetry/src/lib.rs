@@ -1,3 +1,4 @@
+#![feature(coverage_attribute)]
 //! # Prism Telemetry
 //!
 //! This crate provides telemetry infrastructure for Prism nodes, including metrics collection,
