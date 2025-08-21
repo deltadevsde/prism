@@ -15,7 +15,6 @@ pub trait CliArgs {
 }
 
 /// Trait for configuration types that can be loaded from files and CLI arguments
-#[allow(dead_code)] // clippy not able ti
 pub trait CliOverridableConfig<P: Preset>:
     Sized + Serialize + for<'de> Deserialize<'de> + Debug + Default + ApplyPreset<P>
 {

@@ -66,7 +66,6 @@ async fn run_cli() -> Result<(), CliError> {
                 create_light_client(da, &config.light_client, cancellation_token.clone()).map_err(
                     |e| CliError::ConfigFailed(format!("Failed to create light client: {}", e)),
                 )?;
-            // Arc::new(light_client)
             (Arc::new(light_client) as Arc<dyn NodeType>, telemetry)
         }
         CliCommands::Prover(ref prover_args) => {
@@ -111,7 +110,6 @@ async fn run_cli() -> Result<(), CliError> {
             )
             .map_err(|e| CliError::ConfigFailed(format!("Failed to create full node: {}", e)))?;
 
-            // Arc::new(full_node)
             (Arc::new(full_node) as Arc<dyn NodeType>, telemetry)
         }
     };

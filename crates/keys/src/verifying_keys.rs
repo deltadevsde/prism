@@ -376,22 +376,3 @@ impl PartialSchema for VerifyingKey {
         CryptoPayload::schema()
     }
 }
-
-// // Custom Deserialization of VerifyingKeys
-
-// /// Deserialize a VerifyingKey from a path-like string input
-// /// This function can be used with #[serde(deserialize_with =
-// "deserialize_verifying_key_from_path")] pub fn from_spki_pem_path<'de, D>(deserializer: D) ->
-// std::result::Result<VerifyingKey, D::Error> where
-//     D: Deserializer<'de>,
-// {
-//     let path_str = String::deserialize(deserializer)?;
-//     let path = Path::new(&path_str);
-
-//     VerifyingKey::from_spki_pem_file(path).map_err(|e| {
-//         D::Error::custom(format!(
-//             "Failed to load VerifyingKey from path '{}': {}",
-//             path_str, e
-//         ))
-//     })
-// }
