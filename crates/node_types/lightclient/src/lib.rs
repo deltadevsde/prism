@@ -1,3 +1,4 @@
+#![feature(coverage_attribute)]
 //! # Prism Light Client
 //!
 //! A lightweight client implementation for the Prism key transparency network that provides

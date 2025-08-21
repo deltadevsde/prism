@@ -36,3 +36,6 @@ tokio = { workspace = true, features = ["sync"] }
 [dev-dependencies]
 pretty_env_logger = { workspace = true }
 log = { workspace = true }
+
+[lints]
+workspace = true

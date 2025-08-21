@@ -39,7 +39,7 @@ macro_rules! select_with_cancellation {
     };
 }
 
-/// Macro for generating a tokio::select! arm for event subscription
+/// Macro for generating a `tokio::select!` arm for event subscription
 macro_rules! await_event {
     ($cancellation_token:expr, $event_sub:expr, |$event_var:ident| $handler:block) => {
         tokio::select! {
@@ -109,7 +109,7 @@ impl LightClient {
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
         prover_pubkey: VerifyingKey,
         cancellation_token: CancellationToken,
-    ) -> LightClient {
+    ) -> Self {
         let sp1_vkeys = load_sp1_verifying_keys().expect("Failed to load SP1 verifying keys");
 
         let event_chan = da.event_channel();
