@@ -13,6 +13,8 @@ use tokio::{
 };
 use tracing::debug;
 
+const IN_MEMORY_DEFAULT_BLOCK_TIME: Duration = Duration::from_secs(15);
+
 #[derive(Clone, Debug)]
 pub struct Block {
     pub height: u64,
@@ -34,6 +36,12 @@ pub struct InMemoryDataAvailabilityLayer {
     // For testing: Because mock proofs are generated very quickly, it is
     // helpful to delay the posting of the epoch to test some latency scenarios.
     epoch_posting_delay: Option<Duration>,
+}
+
+impl Default for InMemoryDataAvailabilityLayer {
+    fn default() -> Self {
+        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME).0
+    }
 }
 
 impl InMemoryDataAvailabilityLayer {

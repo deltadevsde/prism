@@ -42,7 +42,7 @@ pub enum LightClientDAConfig {
 impl LightClientDAConfig {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn use_storage_path(&mut self, path: Option<String>) -> Result<(), PresetError> {
-        let LightClientDAConfig::Celestia(celestia_config) = self else {
+        let Self::Celestia(celestia_config) = self else {
             return Err(PresetError::InvalidConfiguration(
                 "No storage path outside of celestia".to_string(),
             ));
@@ -66,12 +66,11 @@ impl ApplyPreset<LightClientPreset> for LightClientDAConfig {
             LightClientPreset::Specter => {
                 // When applying specter preset, we need to use celestia
                 // If it is not set, apply preset on default celestia config
-                if let LightClientDAConfig::Celestia(celestia_config) = self {
+                if let Self::Celestia(celestia_config) = self {
                     celestia_config.apply_preset(preset)
                 } else {
-                    *self = LightClientDAConfig::Celestia(
-                        CelestiaLightClientDAConfig::default_with_preset(preset)?,
-                    );
+                    *self =
+                        Self::Celestia(CelestiaLightClientDAConfig::default_with_preset(preset)?);
                     Ok(())
                 }
             }
@@ -109,11 +108,11 @@ pub async fn create_light_client_da_layer(
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 /// Configuration for the Data Availability layer used by full nodes.
 ///
 /// Determines which DA backend to use and its connection parameters.
 /// Full node DA is used to read and write finalized epochs and transactions.
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum FullNodeDAConfig {
@@ -136,16 +135,15 @@ impl ApplyPreset<FullNodePreset> for FullNodeDAConfig {
             FullNodePreset::Specter => {
                 // When applying specter preset, we need to use celestia
                 // If it is not set, apply preset on default celestia config
-                if let FullNodeDAConfig::Celestia(celestia_config) = self {
+                if let Self::Celestia(celestia_config) = self {
                     celestia_config.apply_specter_preset()
                 } else {
-                    *self =
-                        FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig::new_for_specter()?);
+                    *self = Self::Celestia(CelestiaFullNodeDAConfig::new_for_specter()?);
                     Ok(())
                 }
             }
             FullNodePreset::Development => {
-                *self = FullNodeDAConfig::InMemory;
+                *self = Self::InMemory;
                 Ok(())
             }
         }
@@ -159,29 +157,28 @@ impl ApplyPreset<ProverPreset> for FullNodeDAConfig {
             ProverPreset::Specter => {
                 // When applying specter preset, we need to use celestia
                 // If it is not set, apply preset on default celestia config
-                if let FullNodeDAConfig::Celestia(celestia_config) = self {
+                if let Self::Celestia(celestia_config) = self {
                     celestia_config.apply_specter_preset()
                 } else {
-                    *self =
-                        FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig::new_for_specter()?);
+                    *self = Self::Celestia(CelestiaFullNodeDAConfig::new_for_specter()?);
                     Ok(())
                 }
             }
             ProverPreset::Development => {
-                *self = FullNodeDAConfig::InMemory;
+                *self = Self::InMemory;
                 Ok(())
             }
         }
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 /// Creates a full node data availability layer from the given configuration.
 ///
 /// This function initializes the appropriate DA backend with retry logic for network
 /// connections and returns a trait object that implements [`DataAvailabilityLayer`].
 ///
 /// See the crate-level documentation for usage examples and integration patterns.
+#[cfg(not(target_arch = "wasm32"))]
 pub async fn create_full_node_da_layer(
     config: &FullNodeDAConfig,
 ) -> Result<Arc<dyn DataAvailabilityLayer>, DataAvailabilityError> {
@@ -216,5 +213,134 @@ pub async fn create_full_node_da_layer(
                 InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
             Ok(Arc::new(da_layer))
         }
+    }
+}
+
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prism_presets::{FullNodePreset, LightClientPreset, ProverPreset};
+
+    #[test]
+    fn test_light_client_da_config_default() {
+        let config = LightClientDAConfig::default();
+        assert!(matches!(config, LightClientDAConfig::InMemory));
+    }
+
+    #[test]
+    fn test_light_client_da_config_apply_specter_preset() {
+        let mut config = LightClientDAConfig::InMemory;
+        let result = config.apply_preset(&LightClientPreset::Specter);
+
+        assert!(result.is_ok());
+        assert!(matches!(config, LightClientDAConfig::Celestia(_)));
+    }
+
+    #[test]
+    fn test_light_client_da_config_apply_specter_preset_on_existing_celestia() {
+        let mut config = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig::default());
+        let result = config.apply_preset(&LightClientPreset::Specter);
+
+        assert!(result.is_ok());
+        assert!(matches!(config, LightClientDAConfig::Celestia(_)));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_light_client_da_config_use_storage_path_with_celestia() {
+        let mut config = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig::default());
+        let result = config.use_storage_path(Some("/test/path".to_string()));
+
+        assert!(result.is_ok());
+        if let LightClientDAConfig::Celestia(celestia_config) = config {
+            assert!(matches!(
+                celestia_config.store,
+                CelestiaLightClientDAStoreConfig::Disk { .. }
+            ));
+        } else {
+            panic!("Expected Celestia config");
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_light_client_da_config_use_storage_path_with_inmemory_fails() {
+        let mut config = LightClientDAConfig::InMemory;
+        let result = config.use_storage_path(Some("/test/path".to_string()));
+
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            PresetError::InvalidConfiguration(_)
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_create_light_client_da_layer_inmemory() {
+        let config = LightClientDAConfig::InMemory;
+        let result = create_light_client_da_layer(&config).await;
+
+        assert!(result.is_ok());
+        // We can't easily test the exact type due to trait objects, but we can verify it was
+        // created
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_full_node_da_config_default() {
+        let config = FullNodeDAConfig::default();
+        assert!(matches!(config, FullNodeDAConfig::InMemory));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_full_node_da_config_apply_specter_preset() {
+        let mut config = FullNodeDAConfig::InMemory;
+        let result = config.apply_preset(&FullNodePreset::Specter);
+
+        assert!(result.is_ok());
+        assert!(matches!(config, FullNodeDAConfig::Celestia(_)));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_full_node_da_config_apply_development_preset() {
+        let mut config = FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig::default());
+        let result = config.apply_preset(&FullNodePreset::Development);
+
+        assert!(result.is_ok());
+        assert!(matches!(config, FullNodeDAConfig::InMemory));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_full_node_da_config_apply_prover_specter_preset() {
+        let mut config = FullNodeDAConfig::InMemory;
+        let result = config.apply_preset(&ProverPreset::Specter);
+
+        assert!(result.is_ok());
+        assert!(matches!(config, FullNodeDAConfig::Celestia(_)));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_full_node_da_config_apply_prover_development_preset() {
+        let mut config = FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig::default());
+        let result = config.apply_preset(&ProverPreset::Development);
+
+        assert!(result.is_ok());
+        assert!(matches!(config, FullNodeDAConfig::InMemory));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[tokio::test]
+    async fn test_create_full_node_da_layer_inmemory() {
+        let config = FullNodeDAConfig::InMemory;
+        let result = create_full_node_da_layer(&config).await;
+
+        assert!(result.is_ok());
+        // We can't easily test the exact type due to trait objects, but we can verify it was
+        // created
     }
 }
