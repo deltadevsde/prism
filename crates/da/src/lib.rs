@@ -1,3 +1,4 @@
+#![feature(coverage_attribute)]
 //! # Prism Data Availability Layer
 //!
 //! This crate provides abstracted access to data availability layers for the Prism network.
@@ -160,7 +161,7 @@ impl TryFrom<SP1ProofWithPublicValues> for SuccinctProof {
 
     fn try_from(proof: SP1ProofWithPublicValues) -> Result<Self, Self::Error> {
         let proof_bytes = bincode::serialize(&proof)?;
-        Ok(SuccinctProof {
+        Ok(Self {
             proof_bytes,
             public_values: proof.public_values.to_vec(),
         })
@@ -175,7 +176,7 @@ pub struct EpochCommitments {
 }
 
 impl EpochCommitments {
-    pub fn new(previous: Digest, current: Digest) -> Self {
+    pub const fn new(previous: Digest, current: Digest) -> Self {
         Self { previous, current }
     }
 }
@@ -230,8 +231,8 @@ pub struct FinalizedEpoch {
     pub signature: Option<String>,
 
     /// The tip of the DA layer at the time of the epoch; All transactions in
-    /// this epoch are from the DA blocks [previous_epoch.tip_da_height,
-    /// current_epoch.tip_da_height).
+    /// this epoch are from the DA blocks [`previous_epoch.tip_da_height`,
+    /// `current_epoch.tip_da_height`).
     pub tip_da_height: u64,
 }
 
@@ -332,7 +333,7 @@ impl FinalizedEpoch {
     }
 
     pub fn verify_signature(&self, vk: VerifyingKey) -> Result<(), EpochVerificationError> {
-        let epoch_without_signature = FinalizedEpoch {
+        let epoch_without_signature = Self {
             height: self.height,
             prev_commitment: self.prev_commitment,
             current_commitment: self.current_commitment,
@@ -365,7 +366,7 @@ impl TryFrom<&Blob> for FinalizedEpoch {
     type Error = EpochVerificationError;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
+        Self::decode_from_bytes(&value.data).map_err(|_| {
             EpochVerificationError::DecodingError(format!("Failed to decode blob: {value:?}"))
         })
     }

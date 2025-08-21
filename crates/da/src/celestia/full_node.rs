@@ -37,15 +37,14 @@ use super::utils::create_namespace;
 /// Configuration for Celestia full node data availability layer.
 ///
 /// This configuration enables Prism full nodes to connect to the Celestia modular
-/// data availability network as a full node participant.
+/// data availability network using a full node participant.
 ///
 /// # Celestia Integration
 ///
 /// Prism uses Celestia to:
 /// - Store batched transaction data with guaranteed availability
 /// - Publish SNARK proofs for cryptographic verification
-/// - Enable light client data retrieval through merkle proofs
-/// - Provide censorship-resistant transaction ordering
+/// - Enable trust-minimized light client data retrieval
 ///
 /// # Namespace Isolation
 ///
@@ -90,7 +89,7 @@ pub struct CelestiaFullNodeDAConfig {
     /// Hex-encoded namespace ID for operations/transactions.
     ///
     /// All transaction batches and operation data will be published under
-    /// this namespace. Requirements are the same as snark_namespace_id
+    /// this namespace. Requirements are the same as `snark_namespace_id`
     /// but must be different to maintain logical separation.
     pub operation_namespace_id: String,
 
@@ -137,7 +136,6 @@ impl CelestiaFullNodeDAConfig {
     }
 
     pub fn apply_specter_preset(&mut self) -> std::result::Result<(), PresetError> {
-        // TODO: Use specific URL for specter
         self.url = "ws://localhost:26658".to_string();
         self.celestia_network = CelestiaNetwork::Mocha;
         self.snark_namespace_id = DEVNET_SPECTER_SNARK_NAMESPACE_ID.to_string();
@@ -179,7 +177,7 @@ impl CelestiaConnection {
         let (height_update_tx, _) = broadcast::channel(100);
         let event_channel = Arc::new(EventChannel::new());
 
-        Ok(CelestiaConnection {
+        Ok(Self {
             client,
             snark_namespace,
             operation_namespace,

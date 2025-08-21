@@ -354,9 +354,9 @@ impl LightClientConnection {
         let lumina_sub = Arc::new(Mutex::new(event_subscriber));
 
         // Creates an EventChannel that starts forwarding lumina events to the subscriber
-        let prism_chan = EventChannel::from(lumina_sub.clone());
+        let prism_chan = EventChannel::from(lumina_sub);
 
-        Ok(LightClientConnection {
+        Ok(Self {
             node: Arc::new(RwLock::new(node)),
             event_channel: Arc::new(prism_chan),
             snark_namespace: create_namespace(&config.snark_namespace_id)?,
