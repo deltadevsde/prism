@@ -15,4 +15,4 @@ The project has these rough requirements:
 
 ## Resources
 - [Reclaim Protocol](https://www.reclaimprotocol.org)
-- [Prism Account Sources](./labels.md)
+- [Prism Account Sources](../labels.md)
