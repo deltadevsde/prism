@@ -16,6 +16,6 @@ pub enum CliError {
 
 impl From<TelemetryError> for CliError {
     fn from(err: TelemetryError) -> Self {
-        CliError::ConfigFailed(format!("Telemetry error: {}", err))
+        Self::ConfigFailed(format!("Telemetry error: {}", err))
     }
 }

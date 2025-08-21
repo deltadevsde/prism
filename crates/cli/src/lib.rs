@@ -1,3 +1,4 @@
+#![feature(coverage_attribute)]
 #![cfg(not(target_arch = "wasm32"))]
 
 pub mod apply_args;
