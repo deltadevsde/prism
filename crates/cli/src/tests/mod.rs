@@ -342,7 +342,7 @@ fn test_full_node_preset_application() -> Result<()> {
     let cli_args = FullNodeCliArgs {
         dev: true,
         specter: false,
-        config_path: config_path.clone(),
+        config_path,
         verifying_key: None,
         da: Default::default(),
         db: Default::default(),

@@ -24,9 +24,9 @@ pub enum CliCelestiaNetwork {
 impl From<CliCelestiaNetwork> for CelestiaNetwork {
     fn from(network: CliCelestiaNetwork) -> Self {
         match network {
-            CliCelestiaNetwork::Arabica => CelestiaNetwork::Arabica,
-            CliCelestiaNetwork::Mocha => CelestiaNetwork::Mocha,
-            CliCelestiaNetwork::Mainnet => CelestiaNetwork::Mainnet,
+            CliCelestiaNetwork::Arabica => Self::Arabica,
+            CliCelestiaNetwork::Mocha => Self::Mocha,
+            CliCelestiaNetwork::Mainnet => Self::Mainnet,
         }
     }
 }
@@ -57,7 +57,7 @@ pub struct CliDaLayerArgs {
 
     #[arg(long, required_if_eq("celestia_store_type", "disk"))]
     /// Path to the directory, in which the light client stores block data.
-    /// [default: ~/.prism/data/light_client]
+    /// [default: `~/.prism/data/light_client`]
     pub celestia_disk_store_path: Option<String>,
 
     #[arg(long)]

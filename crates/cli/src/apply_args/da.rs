@@ -18,17 +18,18 @@ pub fn apply_light_client_da_args(
     match (config, &args.da_type) {
         (_, None) => {
             // No cli arg specified, do not modify config
+            Ok(())
         }
         (LightClientDAConfig::Celestia(celestia_config), Some(CliDaLayerType::Celestia)) => {
-            apply_celestia_light_client_da_args(celestia_config, args)?;
+            apply_celestia_light_client_da_args(celestia_config, args)
         }
         (LightClientDAConfig::InMemory, Some(CliDaLayerType::InMemory)) => {
             // No changes needed for InMemory DA type
+            Ok(())
         }
         // If the DA type in the config doesn't match the CLI DA type, return an error
         _ => bail!("DA type mismatch"),
     }
-    Ok(())
 }
 
 fn apply_celestia_light_client_da_args(
@@ -84,17 +85,18 @@ pub fn apply_full_node_da_args(config: &mut FullNodeDAConfig, args: &CliDaLayerA
     match (config, &args.da_type) {
         (_, None) => {
             // No cli arg specified, do not modify config
+            Ok(())
         }
         (FullNodeDAConfig::Celestia(celestia_config), Some(CliDaLayerType::Celestia)) => {
-            apply_celestia_full_node_da_args(celestia_config, args)?;
+            apply_celestia_full_node_da_args(celestia_config, args)
         }
         (FullNodeDAConfig::InMemory, Some(CliDaLayerType::InMemory)) => {
             // No changes needed for InMemory DA type
+            Ok(())
         }
         // If the DA type in the config doesn't match the CLI DA type, return an error
         _ => bail!("DA type mismatch"),
     }
-    Ok(())
 }
 
 fn apply_celestia_full_node_da_args(
@@ -137,6 +139,7 @@ fn apply_celestia_full_node_da_args(
     Ok(())
 }
 
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[cfg(test)]
 mod tests {
     use anyhow::Result;

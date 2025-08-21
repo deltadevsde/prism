@@ -19,6 +19,7 @@ pub fn apply_webserver_args(config: &mut WebServerConfig, args: &CliWebserverArg
     Ok(())
 }
 
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[cfg(test)]
 mod tests {
     use anyhow::Result;

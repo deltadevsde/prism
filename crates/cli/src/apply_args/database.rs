@@ -7,16 +7,17 @@ pub fn apply_database_args(config: &mut DatabaseConfig, args: &CliDatabaseArgs) 
     match (config, &args.db_type) {
         (_, None) => {
             // No cli arg specified, do not modify config
+            Ok(())
         }
         (DatabaseConfig::RocksDB(rocksdb_config), Some(CliDatabaseType::RocksDB)) => {
-            apply_rocksdb_args(rocksdb_config, args)?;
+            apply_rocksdb_args(rocksdb_config, args)
         }
         (DatabaseConfig::InMemory, Some(CliDatabaseType::InMemory)) => {
             // No changes needed for InMemory DB type
+            Ok(())
         }
         _ => anyhow::bail!("DB type mismatch"),
     }
-    Ok(())
 }
 
 fn apply_rocksdb_args(config: &mut RocksDBConfig, args: &CliDatabaseArgs) -> Result<()> {
@@ -26,6 +27,7 @@ fn apply_rocksdb_args(config: &mut RocksDBConfig, args: &CliDatabaseArgs) -> Res
     Ok(())
 }
 
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
