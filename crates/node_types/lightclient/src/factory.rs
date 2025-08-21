@@ -21,7 +21,7 @@ pub struct LightClientConfig {
     /// Path to the verifying key file or base64-encoded verifying key.
     ///
     /// Can be either:
-    /// - A filesystem path to a SPKI PEM file (e.g., "~/.prism/prover_key.spki")
+    /// - A filesystem path to a SPKI PEM file (e.g., `~/.prism/prover_key.spki`)
     /// - A base64-encoded verifying key string
     ///
     /// Must correspond to the signing key used by a trusted prover.
@@ -40,7 +40,7 @@ impl Default for LightClientConfig {
         #[cfg(target_arch = "wasm32")]
         let verifying_key_path = PathBuf::from(".prism/prover_key.spki");
 
-        LightClientConfig {
+        Self {
             verifying_key_str: verifying_key_path.to_string_lossy().into_owned(),
         }
     }
@@ -71,4 +71,64 @@ pub fn create_light_client(
 ) -> anyhow::Result<LightClient> {
     let verifying_key = VerifyingKey::from_spki_pem_path_or_base64(&config.verifying_key_str)?;
     Ok(LightClient::new(da, verifying_key, cancellation_token))
+}
+
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prism_da::memory::InMemoryDataAvailabilityLayer;
+    use prism_presets::{LightClientPreset, PRESET_SPECTER_PUBLIC_KEY_BASE64};
+    use std::sync::Arc;
+    use tokio_util::sync::CancellationToken;
+
+    #[test]
+    fn test_light_client_config_default() {
+        let config = LightClientConfig::default();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            // On non-wasm, should default to home directory path
+            assert!(config.verifying_key_str.contains(".prism/prover_key.spki"));
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            // On wasm, should default to relative path
+            assert_eq!(config.verifying_key_str, ".prism/prover_key.spki");
+        }
+    }
+
+    #[test]
+    fn test_light_client_config_apply_specter_preset() {
+        let mut config = LightClientConfig::default();
+        let result = config.apply_preset(&LightClientPreset::Specter);
+
+        assert!(result.is_ok());
+        assert_eq!(config.verifying_key_str, PRESET_SPECTER_PUBLIC_KEY_BASE64);
+    }
+
+    #[test]
+    fn test_create_light_client_with_base64_key() {
+        let da = Arc::new(InMemoryDataAvailabilityLayer::default());
+        let config = LightClientConfig {
+            verifying_key_str: PRESET_SPECTER_PUBLIC_KEY_BASE64.to_string(),
+        };
+        let cancellation_token = CancellationToken::new();
+
+        let result = create_light_client(da, &config, cancellation_token);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_create_light_client_with_invalid_key() {
+        let da = Arc::new(InMemoryDataAvailabilityLayer::default());
+        let config = LightClientConfig {
+            verifying_key_str: "invalid_key".to_string(),
+        };
+        let cancellation_token = CancellationToken::new();
+
+        let result = create_light_client(da, &config, cancellation_token);
+        assert!(result.is_err());
+    }
 }
