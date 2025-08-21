@@ -1,3 +1,4 @@
+#![feature(coverage_attribute)]
 //! # Prism Storage Layer
 //!
 //! This crate provides database abstraction and implementations for persistent storage
@@ -83,7 +84,7 @@
 //! }
 //! ```
 
-pub mod database;
+mod database;
 mod factory;
 pub mod inmemory;
 pub mod rocksdb;

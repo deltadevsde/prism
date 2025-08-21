@@ -1,6 +1,3 @@
-use std::sync::Arc;
-
-use crate::Database;
 use anyhow::{Result, anyhow};
 use jmt::{
     KeyHash, OwnedValue, Version,
@@ -11,6 +8,9 @@ use prism_errors::DatabaseError;
 use prism_serde::binary::{FromBinary, ToBinary};
 use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+
+use crate::Database;
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
@@ -52,7 +52,7 @@ pub struct RocksDBConfig {
     /// # Platform Notes
     ///
     /// - **Linux/macOS**: Standard filesystem paths like "/var/lib/prism/db"
-    /// - **Windows**: Use forward slashes or escaped backslashes like "C:/PrismData/db"
+    /// - **Windows**: Use forward slashes or escaped backslashes like `<C:/PrismData/db>`
     /// - **Docker**: Mount volumes to ensure persistence across container restarts
     pub path: String,
 }
@@ -72,7 +72,7 @@ pub struct RocksDBConnection {
 }
 
 impl RocksDBConnection {
-    pub fn new(cfg: &RocksDBConfig) -> std::result::Result<RocksDBConnection, DatabaseError> {
+    pub fn new(cfg: &RocksDBConfig) -> std::result::Result<Self, DatabaseError> {
         let path = &cfg.path;
         let db = DB::open_default(path).map_err(|e| {
             DatabaseError::InitializationError(format!(
@@ -83,7 +83,7 @@ impl RocksDBConnection {
 
         Ok(Self {
             connection: Arc::new(db),
-            path: path.to_string(),
+            path: path.clone(),
         })
     }
 }
@@ -97,7 +97,7 @@ enum Key {
 }
 
 fn create_final_key(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Vec<u8> {
-    let mut key = prefix.clone();
+    let mut key = prefix;
     key.push(b':');
     key.extend_from_slice(suffix.as_ref());
     key
@@ -113,12 +113,12 @@ impl Key {
         fullkey
     }
 
-    fn as_byte(&self) -> u8 {
+    const fn as_byte(&self) -> u8 {
         match self {
-            Key::Commitment => 0,
-            Key::Node => 1,
-            Key::ValueHistory => 2,
-            Key::Epoch => 3,
+            Self::Commitment => 0,
+            Self::Node => 1,
+            Self::ValueHistory => 2,
+            Self::Epoch => 3,
         }
     }
 }

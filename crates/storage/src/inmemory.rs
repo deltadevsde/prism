@@ -8,7 +8,10 @@ use prism_da::FinalizedEpoch;
 use prism_errors::DatabaseError;
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use crate::database::Database;
@@ -18,24 +21,24 @@ pub struct InMemoryDatabase {
     values: Arc<Mutex<HashMap<(Version, KeyHash), OwnedValue>>>,
     commitments: Arc<Mutex<HashMap<u64, Digest>>>,
     current_epochs: Arc<Mutex<Vec<FinalizedEpoch>>>,
-    sync_height: Arc<Mutex<u64>>,
+    sync_height: Arc<AtomicU64>,
 }
 
 impl InMemoryDatabase {
     pub fn new() -> Self {
-        InMemoryDatabase {
+        Self {
             nodes: Arc::new(Mutex::new(HashMap::new())),
             values: Arc::new(Mutex::new(HashMap::new())),
             commitments: Arc::new(Mutex::new(HashMap::new())),
             current_epochs: Arc::new(Mutex::new(Vec::new())),
-            sync_height: Arc::new(Mutex::new(1)),
+            sync_height: Arc::new(AtomicU64::new(1)),
         }
     }
 }
 
 impl Default for InMemoryDatabase {
     fn default() -> Self {
-        InMemoryDatabase::new()
+        Self::new()
     }
 }
 
@@ -81,7 +84,7 @@ impl TreeWriter for InMemoryDatabase {
 
 impl Database for InMemoryDatabase {
     fn get_commitment(&self, epoch: &u64) -> Result<Digest> {
-        self.commitments.lock().unwrap().get(epoch).cloned().ok_or_else(|| {
+        self.commitments.lock().unwrap().get(epoch).copied().ok_or_else(|| {
             DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch)).into()
         })
     }
@@ -127,11 +130,11 @@ impl Database for InMemoryDatabase {
     }
 
     fn get_last_synced_height(&self) -> Result<u64> {
-        Ok(*self.sync_height.lock().unwrap())
+        Ok(self.sync_height.load(Ordering::Relaxed))
     }
 
     fn set_last_synced_height(&self, epoch: &u64) -> Result<()> {
-        *self.sync_height.lock().unwrap() = *epoch;
+        self.sync_height.store(*epoch, Ordering::Relaxed);
         Ok(())
     }
 
