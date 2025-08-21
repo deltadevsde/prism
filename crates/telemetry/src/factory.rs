@@ -29,37 +29,9 @@ pub struct TelemetryInstance {
 }
 
 impl TelemetryInstance {
-    /// Gracefully shuts down the telemetry system.
-    ///
-    /// This method ensures all telemetry data is properly flushed and exported
-    /// before terminating the providers. It should be called before the node
-    /// exits to prevent data loss and resource leaks.
-    ///
-    /// # Shutdown Process
-    ///
-    /// 1. Flush pending metrics to configured exporters
-    /// 2. Drain log buffers and export remaining log records
-    /// 3. Close network connections to telemetry backends
-    /// 4. Terminate background threads and free resources
-    /// 5. Unregister global providers from OpenTelemetry registry
-    ///
-    /// # Blocking Behavior
-    ///
-    /// This method may block briefly while flushing data to exporters.
-    /// The duration depends on the configured flush timeout and network latency
-    /// to telemetry backends.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// // Shutdown telemetry during graceful node termination
-    /// let telemetry = create_telemetry(&config, attributes)?;
-    ///
-    /// // ... node operation ...
-    ///
-    /// // Ensure clean shutdown
-    /// telemetry.shutdown();
-    /// ```
+    /// Gracefully shuts down the telemetry system, flushing all pending data
+    /// and cleaning up resources. Should be called before node termination.
+    /// This method blocks briefly to ensure data is exported successfully.
     pub fn shutdown(self) {
         shutdown_telemetry(self.config, self.meter_provider, self.log_provider);
     }
