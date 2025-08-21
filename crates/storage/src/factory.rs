@@ -33,7 +33,7 @@ impl ApplyPreset<FullNodePreset> for DatabaseConfig {
     fn apply_preset(&mut self, preset: &FullNodePreset) -> Result<(), PresetError> {
         match preset {
             FullNodePreset::Development => {
-                *self = DatabaseConfig::InMemory;
+                *self = Self::InMemory;
                 Ok(())
             }
             _ => Ok(()),
@@ -45,7 +45,7 @@ impl ApplyPreset<ProverPreset> for DatabaseConfig {
     fn apply_preset(&mut self, preset: &ProverPreset) -> Result<(), PresetError> {
         match preset {
             ProverPreset::Development => {
-                *self = DatabaseConfig::InMemory;
+                *self = Self::InMemory;
                 Ok(())
             }
             _ => Ok(()),
@@ -69,5 +69,77 @@ pub async fn create_storage(
             let db = RocksDBConnection::new(config)?;
             Ok(Arc::new(Box::new(db)))
         }
+    }
+}
+
+#[cfg_attr(coverage_nightly, coverage(off))]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prism_presets::{FullNodePreset, ProverPreset};
+
+    #[test]
+    fn test_database_config_default() {
+        let config = DatabaseConfig::default();
+        assert!(matches!(config, DatabaseConfig::InMemory));
+    }
+
+    #[test]
+    fn test_database_config_apply_full_node_development_preset() {
+        let mut config = DatabaseConfig::RocksDB(RocksDBConfig::new("/test/data"));
+        let result = config.apply_preset(&FullNodePreset::Development);
+
+        assert!(result.is_ok());
+        assert!(matches!(config, DatabaseConfig::InMemory));
+    }
+
+    #[test]
+    fn test_database_config_apply_full_node_specter_preset() {
+        let mut config = DatabaseConfig::InMemory;
+        let result = config.apply_preset(&FullNodePreset::Specter);
+
+        assert!(result.is_ok());
+        // Specter preset doesn't change the database config, so it should remain InMemory
+        assert!(matches!(config, DatabaseConfig::InMemory));
+    }
+
+    #[test]
+    fn test_database_config_apply_prover_development_preset() {
+        let mut config = DatabaseConfig::RocksDB(RocksDBConfig::new("/test/data"));
+        let result = config.apply_preset(&ProverPreset::Development);
+
+        assert!(result.is_ok());
+        assert!(matches!(config, DatabaseConfig::InMemory));
+    }
+
+    #[test]
+    fn test_database_config_apply_prover_specter_preset() {
+        let mut config = DatabaseConfig::InMemory;
+        let result = config.apply_preset(&ProverPreset::Specter);
+
+        assert!(result.is_ok());
+        // Specter preset doesn't change the database config, so it should remain InMemory
+        assert!(matches!(config, DatabaseConfig::InMemory));
+    }
+
+    #[tokio::test]
+    async fn test_create_storage_inmemory() {
+        let config = DatabaseConfig::InMemory;
+        let result = create_storage(&config).await;
+
+        assert!(result.is_ok());
+        // Verify that the factory creates storage successfully
+    }
+
+    #[tokio::test]
+    async fn test_create_storage_rocksdb() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let config = DatabaseConfig::RocksDB(RocksDBConfig::new(temp_dir.path().to_str().unwrap()));
+        let result = create_storage(&config).await;
+
+        assert!(result.is_ok());
+        // Verify that the factory creates storage successfully
     }
 }
