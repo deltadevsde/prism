@@ -6,8 +6,8 @@ pub struct TxBuffer {
 }
 
 impl TxBuffer {
-    pub fn new() -> Self {
-        TxBuffer {
+    pub const fn new() -> Self {
+        Self {
             transactions: BTreeMap::new(),
         }
     }

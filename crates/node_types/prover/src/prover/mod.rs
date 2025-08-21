@@ -10,8 +10,8 @@ use prism_common::{
     transaction::Transaction,
 };
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
-use prism_storage::database::Database;
-use prism_tree::AccountResponse::*;
+use prism_storage::Database;
+use prism_tree::AccountResponse::{Found, NotFound};
 use std::sync::Arc;
 use timer::ProverTokioTimer;
 use tokio::{sync::RwLock, task::JoinSet};
@@ -69,7 +69,7 @@ impl Default for ProverOptions {
     fn default() -> Self {
         let signing_key = SigningKey::new_ed25519();
 
-        ProverOptions {
+        Self {
             syncer: SyncerOptions {
                 verifying_key: signing_key.verifying_key(),
                 start_height: 1,
@@ -101,7 +101,7 @@ impl ProverOptions {
         let signing_key =
             SigningKey::new_with_algorithm(algorithm).context("Failed to create signing key")?;
 
-        let mut config = ProverOptions::default();
+        let mut config = Self::default();
         config.syncer.verifying_key = signing_key.verifying_key();
         config.sequencer.signing_key = Some(signing_key);
         Ok(config)
@@ -147,9 +147,9 @@ impl Prover {
         da: Arc<dyn DataAvailabilityLayer>,
         opts: &ProverOptions,
         cancellation_token: CancellationToken,
-    ) -> Result<Prover> {
+    ) -> Result<Self> {
         let prover_engine = Arc::new(SP1ProverEngine::new(&opts.prover_engine)?);
-        Prover::new_with_engine(db, da, prover_engine, opts, cancellation_token)
+        Self::new_with_engine(db, da, prover_engine, opts, cancellation_token)
     }
 
     pub fn new_with_engine(
@@ -158,7 +158,7 @@ impl Prover {
         prover_engine: Arc<dyn ProverEngine>,
         opts: &ProverOptions,
         cancellation_token: CancellationToken,
-    ) -> Result<Prover> {
+    ) -> Result<Self> {
         let latest_epoch_da_height = Arc::new(RwLock::new(0));
 
         let sequencer = Arc::new(Sequencer::new(
@@ -177,7 +177,7 @@ impl Prover {
             prover_engine.clone(),
         ));
 
-        Ok(Prover {
+        Ok(Self {
             options: opts.clone(),
             prover_engine,
             sequencer,

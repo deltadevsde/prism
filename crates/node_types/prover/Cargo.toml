@@ -39,3 +39,7 @@ dirs = { workspace = true }
 paste = { workspace = true }
 pretty_env_logger = { workspace = true }
 log = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

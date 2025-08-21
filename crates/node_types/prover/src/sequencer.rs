@@ -5,10 +5,10 @@ use prism_common::{
 };
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_keys::SigningKey;
-use prism_storage::database::Database;
+use prism_storage::Database;
 use prism_tree::{
-    AccountResponse::*, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
-    snarkable_tree::SnarkableTree,
+    AccountResponse::Found, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree,
+    proofs::Proof, snarkable_tree::SnarkableTree,
 };
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -44,7 +44,7 @@ impl Sequencer {
 
         let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(db.clone(), saved_epoch)));
 
-        Ok(Sequencer {
+        Ok(Self {
             db,
             da,
             tree,

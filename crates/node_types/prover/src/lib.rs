@@ -1,3 +1,4 @@
+#![feature(coverage_attribute)]
 //! # Prism Prover Node
 //!
 //! A full-featured Prism node implementation that can operate as either a proof-generating

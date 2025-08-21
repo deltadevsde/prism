@@ -23,7 +23,7 @@ use utoipa_swagger_ui::SwaggerUi;
 /// Configuration for the embedded web server in Prism nodes.
 ///
 /// Controls whether the HTTP server is enabled and where it binds for client connections.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct WebServerConfig {
     /// Whether to enable the web server.
@@ -41,7 +41,7 @@ pub struct WebServerConfig {
 
 impl Default for WebServerConfig {
     fn default() -> Self {
-        WebServerConfig {
+        Self {
             enabled: true,
             host: "127.0.0.1".to_string(),
             port: 41997,
@@ -58,7 +58,7 @@ pub struct WebServer {
 struct ApiDoc;
 
 impl WebServer {
-    pub fn new(cfg: WebServerConfig, session: Arc<Prover>) -> Self {
+    pub const fn new(cfg: WebServerConfig, session: Arc<Prover>) -> Self {
         Self { cfg, session }
     }
 
@@ -167,7 +167,7 @@ async fn get_account(
     (StatusCode::OK, Json(account_response)).into_response()
 }
 
-/// Returns the commitment (tree root) of the IndexedMerkleTree initialized from the database.
+/// Returns the commitment (tree root) of the `IndexedMerkleTree` initialized from the database.
 #[utoipa::path(
     get,
     path = "/get-current-commitment",

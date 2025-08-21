@@ -27,7 +27,7 @@ pub trait ProverEngine: Send + Sync {
 
     #[cfg(test)]
     /// This method is only used for testing purposes, as
-    /// VerifiableEpoch::verify cannot verify mock proofs unless they themselves
+    /// `VerifiableEpoch::verify` cannot verify mock proofs unless they themselves
     /// are mocked.
     async fn verify_proof(&self, proof: VerifiableEpoch) -> Result<()>;
 }
