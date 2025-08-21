@@ -55,6 +55,9 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 - Documentation: Add comments for public APIs and complex logic
 - File organization: Group related functionality in modules
 
+### Testing
+- Do not write tests for derived traits (Clone, Debug, PartialEq, etc), unless there's a custom implementation for them
+
 ### Commits
 - Always combine related changes in focused, granular commits
 - Each commit should focus on a single logical change
