@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod key_tests {
+    use crate::errors::{CryptoError, VerificationError};
     use ed25519_consensus::SigningKey as Ed25519SigningKey;
     use prism_serde::base64::{FromBase64, ToBase64};
     use rand::rngs::OsRng;
@@ -346,6 +347,28 @@ mod key_tests {
         assert!(result.is_err());
     }
 
+    #[test]
+    fn test_verifying_key_with_invalid_bytes() {
+        let invalid_bytes = [0u8; 1];
+
+        let algorithms = [
+            CryptoAlgorithm::Ed25519,
+            CryptoAlgorithm::Secp256k1,
+            CryptoAlgorithm::Secp256r1,
+            CryptoAlgorithm::Eip191,
+            CryptoAlgorithm::CosmosAdr36,
+        ];
+
+        for algorithm in algorithms {
+            let result = VerifyingKey::from_algorithm_and_bytes(algorithm, &invalid_bytes);
+            assert!(matches!(
+                result,
+                Err(CryptoError::VerificationError(
+                    VerificationError::VerifyError(_, _)
+                ))
+            ));
+        }
+      
     #[test]
     fn test_verifying_key_from_spki_pem_path_or_base64() {
         let temp_dir = tempdir().unwrap();
