@@ -361,9 +361,21 @@ impl LightClientConnection {
             .pruning_window(config.pruning_window);
 
         if !config.bootnodes.is_empty() {
-            node = node.bootnodes(config.bootnodes.clone().into_iter().map(|addr| {
-                Multiaddr::from_str(&addr).expect("Failed to parse given multiaddresses.")
-            }))
+            let multiaddrs: Vec<Multiaddr> = config
+                .bootnodes
+                .clone()
+                .into_iter()
+                .filter_map(|addr| Multiaddr::from_str(&addr).ok())
+                .collect();
+
+            if multiaddrs.len() != config.bootnodes.len() {
+                warn!(
+                    "Some bootnodes failed to parse to libp2p multiaddrs. Valid addresses contain: {:#?}",
+                    multiaddrs
+                );
+            }
+
+            node = node.bootnodes(multiaddrs);
         }
 
         let (node, event_subscriber) = node

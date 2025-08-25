@@ -41,7 +41,7 @@ jobs:
       - uses: taiki-e/install-action@nextest
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Expose github actions runtime
         uses: crazy-max/ghaction-github-runtime@v1
@@ -142,7 +142,7 @@ jobs:
       - uses: taiki-e/install-action@nextest
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Expose github actions runtime
         uses: crazy-max/ghaction-github-runtime@v1
