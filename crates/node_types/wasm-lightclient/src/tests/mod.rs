@@ -211,7 +211,7 @@ mod tests {
         // should separate these cases.
         assert!(events.len() > 0);
         assert!(events.iter().any(|e| e == "Updated DA height to 100"));
-        assert!(events.iter().any(|e| e == "Starting backwards sync at height 100"));
+        assert!(events.iter().any(|e| e == "Starting historical sync at height 100"));
         assert!(events.iter().any(|e| e == "Starting recursive verification at height 100"));
         assert!(
             events.iter().any(|e| e
@@ -317,7 +317,7 @@ mod tests {
         let events = received_events.lock().unwrap();
 
         // Should complete without finding any epochs
-        assert!(events.iter().any(|e| e.contains("Backwards sync complete")));
+        assert!(events.iter().any(|e| e.contains("Historical sync complete")));
         assert!(events.iter().any(|e| e.contains("found epoch: false")));
     }
 }
