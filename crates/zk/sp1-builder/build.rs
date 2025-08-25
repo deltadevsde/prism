@@ -2,16 +2,12 @@ use sp1_build::{BuildArgs, build_program_with_args, vkeys};
 use std::{fs, path::PathBuf};
 
 fn main() {
-    let is_clippy_driver = std::env::var("RUSTC_WORKSPACE_WRAPPER")
-        .map(|val| val.contains("clippy-driver"))
-        .unwrap_or(false);
-
     let skip_program_build = std::env::var("SP1_SKIP_PROGRAM_BUILD")
         .map(|v| v.eq_ignore_ascii_case("true"))
         .unwrap_or(false);
 
-    // Skips the sp1 build if the SP1_SKIP_PROGRAM_BUILD=true, or clippy is being used.
-    if skip_program_build || is_clippy_driver {
+    // Skips the sp1 build if the SP1_SKIP_PROGRAM_BUILD=true
+    if skip_program_build {
         println!("cargo::warning=Skipping SP1 build.");
         return;
     }
