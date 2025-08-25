@@ -3,7 +3,7 @@ use async_trait::async_trait;
 #[cfg(test)]
 use prism_da::VerifiableEpoch;
 use prism_da::{SuccinctProof, VerificationKeys};
-use prism_storage::database::Database;
+use prism_storage::Database;
 use prism_tree::proofs::Batch;
 use sp1_sdk::{
     EnvProver, HashableKey as _, ProverClient, SP1Proof, SP1ProofWithPublicValues, SP1ProvingKey,
@@ -76,14 +76,14 @@ impl ProverEngine for SP1ProverEngine {
 }
 
 impl SP1ProverEngine {
-    pub fn new(config: &crate::prover::ProverEngineConfig) -> Result<Self> {
+    pub fn new(config: &crate::prover::ProverEngineOptions) -> Result<Self> {
         let base_prover_client = ProverClient::from_env();
         let recursive_prover_client = ProverClient::from_env();
 
         let (base_pk, base_vk) = base_prover_client.setup(BASE_PRISM_ELF);
         let (recursive_pk, recursive_vk) = recursive_prover_client.setup(RECURSIVE_PRISM_ELF);
 
-        Ok(SP1ProverEngine {
+        Ok(Self {
             base_proving_key: base_pk,
             base_verifying_key: base_vk,
             recursive_proving_key: recursive_pk,
@@ -149,7 +149,7 @@ impl SP1ProverEngine {
             _ => return Err(anyhow!("Invalid proof type: expected compressed proof")),
         };
         stdin.write_proof(*compressed_proof, vk_to_use.clone().vk);
-        stdin.write_vec(prev_epoch.snark.public_values.to_vec());
+        stdin.write_vec(prev_epoch.snark.public_values.clone());
         stdin.write(&vk_to_use.hash_u32());
         stdin.write(batch);
 
@@ -171,13 +171,5 @@ impl SP1ProverEngine {
         );
 
         Ok((snark.try_into()?, stark.try_into()?))
-    }
-
-    pub fn get_verifying_key(&self, epoch_height: u64) -> &SP1VerifyingKey {
-        if epoch_height == 0 || !self.recursive_proofs_enabled {
-            &self.base_verifying_key
-        } else {
-            &self.recursive_verifying_key
-        }
     }
 }

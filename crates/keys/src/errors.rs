@@ -40,8 +40,8 @@ pub enum ParseError {
     #[error("Creating PKCS8 DER failed")]
     DerCreationError,
 
-    #[error("Creating PKCS8 PEM failed")]
-    PemCreationError,
+    #[error("Creating PKCS8 PEM failed: {0}")]
+    PemCreationError(String),
 
     #[error("Parsing key algorithm from PKCS#8 DER failed")]
     DerParseError,

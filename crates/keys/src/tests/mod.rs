@@ -4,7 +4,8 @@ mod key_tests {
     use ed25519_consensus::SigningKey as Ed25519SigningKey;
     use prism_serde::base64::{FromBase64, ToBase64};
     use rand::rngs::OsRng;
-    use std::{env, fs::remove_file};
+
+    use tempfile::tempdir;
 
     use crate::{CryptoAlgorithm, Signature, SigningKey, VerifyingKey};
 
@@ -73,37 +74,34 @@ mod key_tests {
 
     #[test]
     fn test_reparsed_verifying_keys_from_spki_pem_files_are_equal_to_original() {
-        let temp_dir = env::temp_dir();
+        let temp_dir = tempdir().unwrap();
 
         // Ed25519
         let verifying_key_ed25519 = SigningKey::new_ed25519().verifying_key();
-        let spki_path = temp_dir.join("ed25519.pem");
+        let spki_path = temp_dir.path().join("ed25519.pem");
 
         verifying_key_ed25519.to_spki_pem_file(&spki_path).unwrap();
         let re_parsed_verifying_key = VerifyingKey::from_spki_pem_file(&spki_path).unwrap();
 
         assert_eq!(re_parsed_verifying_key, verifying_key_ed25519);
-        remove_file(&spki_path).unwrap();
 
         // Secp256k1
         let verifying_key_secp256k1 = SigningKey::new_secp256k1().verifying_key();
-        let spki_path = temp_dir.join("secp256k1.pem");
+        let spki_path = temp_dir.path().join("secp256k1.pem");
 
         verifying_key_secp256k1.to_spki_pem_file(&spki_path).unwrap();
         let re_parsed_verifying_key = VerifyingKey::from_spki_pem_file(&spki_path).unwrap();
 
         assert_eq!(re_parsed_verifying_key, verifying_key_secp256k1);
-        remove_file(&spki_path).unwrap();
 
         // Secp256r1
         let verifying_key_secp256r1 = SigningKey::new_secp256r1().verifying_key();
-        let spki_path = temp_dir.join("secp256r1.pem");
+        let spki_path = temp_dir.path().join("secp256r1.pem");
 
         verifying_key_secp256r1.to_spki_pem_file(&spki_path).unwrap();
         let re_parsed_verifying_key = VerifyingKey::from_spki_pem_file(&spki_path).unwrap();
 
         assert_eq!(re_parsed_verifying_key, verifying_key_secp256r1);
-        remove_file(&spki_path).unwrap();
 
         // EIP-191 and Cosmos ADR-36 are using SECP256K1 keys and are omitted here
     }
@@ -153,37 +151,34 @@ mod key_tests {
 
     #[test]
     fn test_reparsed_signing_keys_from_pkcs8_files() {
-        let temp_dir = env::temp_dir();
+        let temp_dir = tempdir().unwrap();
 
         // Ed25519
         let signing_key_ed25519 = SigningKey::new_ed25519();
-        let pkcs8_path = temp_dir.join("ed25519.p8");
+        let pkcs8_path = temp_dir.path().join("ed25519.p8");
 
         signing_key_ed25519.to_pkcs8_pem_file(&pkcs8_path).unwrap();
         let re_parsed_signing_key = SigningKey::from_pkcs8_pem_file(&pkcs8_path).unwrap();
 
         assert_eq!(re_parsed_signing_key, signing_key_ed25519);
-        remove_file(&pkcs8_path).unwrap();
 
         // Secp256k1
         let signing_key_secp256k1 = SigningKey::new_secp256k1();
-        let pkcs8_path = temp_dir.join("secp256k1.p8");
+        let pkcs8_path = temp_dir.path().join("secp256k1.p8");
 
         signing_key_secp256k1.to_pkcs8_pem_file(&pkcs8_path).unwrap();
         let re_parsed_signing_key = SigningKey::from_pkcs8_pem_file(&pkcs8_path).unwrap();
 
         assert_eq!(re_parsed_signing_key, signing_key_secp256k1);
-        remove_file(&pkcs8_path).unwrap();
 
         // Secp256r1
         let signing_key_secp256r1 = SigningKey::new_secp256r1();
-        let pkcs8_path = temp_dir.join("secp256r1.p8");
+        let pkcs8_path = temp_dir.path().join("secp256r1.p8");
 
         signing_key_secp256r1.to_pkcs8_pem_file(&pkcs8_path).unwrap();
         let re_parsed_signing_key = SigningKey::from_pkcs8_pem_file(&pkcs8_path).unwrap();
 
         assert_eq!(re_parsed_signing_key, signing_key_secp256r1);
-        remove_file(&pkcs8_path).unwrap();
 
         // EIP-191 and Cosmos ADR-36 are using SECP256K1 signing keys and are omitted here
     }
@@ -373,5 +368,128 @@ mod key_tests {
                 ))
             ));
         }
+      
+    #[test]
+    fn test_verifying_key_from_spki_pem_path_or_base64() {
+        let temp_dir = tempdir().unwrap();
+
+        // Test with Ed25519 PEM file path
+        let verifying_key_ed25519 = SigningKey::new_ed25519().verifying_key();
+        let pem_path = temp_dir.path().join("test_ed25519.pem");
+
+        verifying_key_ed25519.to_spki_pem_file(&pem_path).unwrap();
+        let path_str = pem_path.to_str().unwrap();
+
+        let result = VerifyingKey::from_spki_pem_path_or_base64(path_str);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), verifying_key_ed25519);
+
+        // Test with Secp256k1 PEM file path
+        let verifying_key_secp256k1 = SigningKey::new_secp256k1().verifying_key();
+        let pem_path = temp_dir.path().join("test_secp256k1.pem");
+
+        verifying_key_secp256k1.to_spki_pem_file(&pem_path).unwrap();
+        let path_str = pem_path.to_str().unwrap();
+
+        let result = VerifyingKey::from_spki_pem_path_or_base64(path_str);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), verifying_key_secp256k1);
+
+        // Test with Secp256r1 PEM file path
+        let verifying_key_secp256r1 = SigningKey::new_secp256r1().verifying_key();
+        let pem_path = temp_dir.path().join("test_secp256r1.pem");
+
+        verifying_key_secp256r1.to_spki_pem_file(&pem_path).unwrap();
+        let path_str = pem_path.to_str().unwrap();
+
+        let result = VerifyingKey::from_spki_pem_path_or_base64(path_str);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), verifying_key_secp256r1);
+
+        // Test with Ed25519 base64 DER string
+        let verifying_key_ed25519_der = SigningKey::new_ed25519().verifying_key();
+        let der_bytes = verifying_key_ed25519_der.to_spki_der().unwrap();
+        let base64_der = der_bytes.to_base64();
+
+        let result = VerifyingKey::from_spki_pem_path_or_base64(&base64_der);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), verifying_key_ed25519_der);
+
+        // Test with Secp256k1 base64 DER string
+        let verifying_key_secp256k1_der = SigningKey::new_secp256k1().verifying_key();
+        let der_bytes = verifying_key_secp256k1_der.to_spki_der().unwrap();
+        let base64_der = der_bytes.to_base64();
+
+        let result = VerifyingKey::from_spki_pem_path_or_base64(&base64_der);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), verifying_key_secp256k1_der);
+
+        // Test with Secp256r1 base64 DER string
+        let verifying_key_secp256r1_der = SigningKey::new_secp256r1().verifying_key();
+        let der_bytes = verifying_key_secp256r1_der.to_spki_der().unwrap();
+        let base64_der = der_bytes.to_base64();
+
+        let result = VerifyingKey::from_spki_pem_path_or_base64(&base64_der);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), verifying_key_secp256r1_der);
+
+        // Test with invalid base64
+        let invalid_base64 = "invalid_base64!@#$";
+        let result = VerifyingKey::from_spki_pem_path_or_base64(invalid_base64);
+        assert!(result.is_err());
+
+        // Test with non-existent file path
+        let non_existent_path = "/path/that/does/not/exist.pem";
+        let result = VerifyingKey::from_spki_pem_path_or_base64(non_existent_path);
+        assert!(result.is_err());
+
+        // Test with empty string
+        let empty_string = "";
+        let result = VerifyingKey::from_spki_pem_path_or_base64(empty_string);
+        assert!(result.is_err());
+
+        // Test with malformed DER data (valid base64 but invalid DER)
+        let malformed_der = "SGVsbG8gV29ybGQ="; // "Hello World" in base64
+        let result = VerifyingKey::from_spki_pem_path_or_base64(malformed_der);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_signing_key_from_pkcs8_pem_path_or_create_ed25519() {
+        let temp_dir = tempdir().unwrap();
+
+        // Test creating a new key when file doesn't exist
+        let new_key_path = temp_dir.path().join("new_ed25519_key.pem");
+
+        let result = SigningKey::from_pkcs8_pem_path_or_create_ed25519(&new_key_path);
+        assert!(result.is_ok());
+
+        let created_key = result.unwrap();
+        assert_eq!(created_key.algorithm(), CryptoAlgorithm::Ed25519);
+
+        // Verify the file was created
+        assert!(new_key_path.exists());
+
+        // Test loading existing key from file
+        let loaded_key = SigningKey::from_pkcs8_pem_path_or_create_ed25519(&new_key_path);
+        assert!(loaded_key.is_ok());
+
+        let loaded_key = loaded_key.unwrap();
+        assert_eq!(loaded_key.algorithm(), CryptoAlgorithm::Ed25519);
+
+        // Verify the loaded key is the same as the created key
+        assert_eq!(created_key, loaded_key);
+
+        // Test with an existing key file created separately
+        let existing_key = SigningKey::new_ed25519();
+        let existing_key_path = temp_dir.path().join("existing_ed25519_key.pem");
+
+        existing_key.to_pkcs8_pem_file(&existing_key_path).unwrap();
+
+        let result = SigningKey::from_pkcs8_pem_path_or_create_ed25519(&existing_key_path);
+        assert!(result.is_ok());
+
+        let loaded_existing_key = result.unwrap();
+        assert_eq!(loaded_existing_key, existing_key);
     }
 }

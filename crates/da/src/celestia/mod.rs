@@ -1,5 +1,25 @@
-pub mod full_node;
-pub mod light_client;
-pub mod utils;
+#[cfg(not(target_arch = "wasm32"))]
+mod full_node;
+mod light_client;
+mod utils;
 
-pub use utils::CelestiaConfig;
+use std::time::Duration;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use full_node::{CelestiaConnection, CelestiaFullNodeDAConfig};
+pub use light_client::{
+    CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig, LightClientConnection,
+};
+pub use lumina_node::{
+    network::Network as CelestiaNetwork,
+    node::{DEFAULT_PRUNING_WINDOW, DEFAULT_PRUNING_WINDOW_IN_MEMORY, SAMPLING_WINDOW},
+};
+
+pub const DEFAULT_FETCH_TIMEOUT: Duration = Duration::from_secs(120);
+pub const DEFAULT_FETCH_MAX_RETRIES: u64 = 5;
+
+// Preset specific constants
+pub const DEVNET_SPECTER_SNARK_NAMESPACE_ID: &str =
+    "000000000000000000000000000000000000707269736d5350457331";
+pub const DEVNET_SPECTER_OP_NAMESPACE_ID: &str =
+    "000000000000000000000000000000000000707269736d5350456f31";

@@ -105,7 +105,7 @@ impl TestTransactionBuilder {
         &mut self,
         algorithm: CryptoAlgorithm,
         id: &str,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let random_service_challenge_key =
             SigningKey::new_with_algorithm(algorithm).expect("Failed to create challenge key");
         let random_service_signing_key =
@@ -118,7 +118,7 @@ impl TestTransactionBuilder {
         id: &str,
         challenge_key: SigningKey,
         signing_key: SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let vk: VerifyingKey = signing_key.clone().into();
         let op = Operation::RegisterService {
             id: id.to_string(),
@@ -146,7 +146,7 @@ impl TestTransactionBuilder {
         algorithm: CryptoAlgorithm,
         id: &str,
         service_id: &str,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let account_signing_key = SigningKey::new_with_algorithm(algorithm)
             .expect("Failed to create account signing key");
         self.create_account_signed(id, service_id, account_signing_key)
@@ -157,7 +157,7 @@ impl TestTransactionBuilder {
         id: &str,
         service_id: &str,
         signing_key: SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let Some(service_signing_key) = self.service_keys.get(service_id).cloned() else {
             panic!("No existing service found for {}", service_id)
         };
@@ -171,7 +171,7 @@ impl TestTransactionBuilder {
         id: &str,
         service_id: &str,
         service_signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let account_signing_key = SigningKey::new_with_algorithm(algorithm)
             .expect("Failed to create account signing key");
         self.create_account(id, service_id, service_signing_key, account_signing_key)
@@ -183,7 +183,7 @@ impl TestTransactionBuilder {
         service_id: &str,
         service_signing_key: &SigningKey,
         signing_key: SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         // Simulate some external service signing account creation credentials
         let vk = signing_key.verifying_key();
         let hash = Digest::hash_items(&[id.as_bytes(), service_id.as_bytes(), &vk.to_bytes()]);
@@ -215,7 +215,7 @@ impl TestTransactionBuilder {
         &mut self,
         algorithm: CryptoAlgorithm,
         id: &str,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -229,7 +229,7 @@ impl TestTransactionBuilder {
         algorithm: CryptoAlgorithm,
         id: &str,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let random_key =
             SigningKey::new_with_algorithm(algorithm).expect("Failed to create random key").into();
         self.add_key(id, random_key, signing_key)
@@ -239,7 +239,7 @@ impl TestTransactionBuilder {
         &mut self,
         id: &str,
         key: VerifyingKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -253,7 +253,7 @@ impl TestTransactionBuilder {
         id: &str,
         key: VerifyingKey,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::AddKey { key: key.clone() };
 
@@ -276,7 +276,7 @@ impl TestTransactionBuilder {
         &mut self,
         id: &str,
         key: VerifyingKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -290,7 +290,7 @@ impl TestTransactionBuilder {
         id: &str,
         key: VerifyingKey,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::RevokeKey { key: key.clone() };
 
@@ -315,7 +315,7 @@ impl TestTransactionBuilder {
         id: &str,
         value: Vec<u8>,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let value_signing_key =
             SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.add_signed_data(id, value, &value_signing_key, signing_key)
@@ -326,7 +326,7 @@ impl TestTransactionBuilder {
         algorithm: CryptoAlgorithm,
         id: &str,
         value: Vec<u8>,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let value_signing_key =
             SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.add_signed_data_verified_with_root(id, value, &value_signing_key)
@@ -338,7 +338,7 @@ impl TestTransactionBuilder {
         value: Vec<u8>,
         value_signing_key: &SigningKey,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
             signature: value_signing_key.sign(&value).unwrap(),
@@ -351,7 +351,7 @@ impl TestTransactionBuilder {
         id: &str,
         value: Vec<u8>,
         value_signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
             signature: value_signing_key.sign(&value).unwrap(),
@@ -365,7 +365,7 @@ impl TestTransactionBuilder {
         value: Vec<u8>,
         value_signature: SignatureBundle,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         self.add_data(id, value, value_signature, signing_key)
     }
 
@@ -374,7 +374,7 @@ impl TestTransactionBuilder {
         id: &str,
         value: Vec<u8>,
         value_signature: SignatureBundle,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         self.add_data_verified_with_root(id, value, value_signature)
     }
 
@@ -383,7 +383,7 @@ impl TestTransactionBuilder {
         id: &str,
         value: Vec<u8>,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let bundle = SignatureBundle {
             verifying_key: signing_key.verifying_key(),
             signature: signing_key.sign(&value).unwrap(),
@@ -395,7 +395,7 @@ impl TestTransactionBuilder {
         &mut self,
         id: &str,
         value: Vec<u8>,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -414,7 +414,7 @@ impl TestTransactionBuilder {
         id: &str,
         value: Vec<u8>,
         value_signature: SignatureBundle,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -429,7 +429,7 @@ impl TestTransactionBuilder {
         data: Vec<u8>,
         data_signature: SignatureBundle,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::AddData {
             data,
@@ -457,7 +457,7 @@ impl TestTransactionBuilder {
         id: &str,
         value: Vec<u8>,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let value_signing_key =
             SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.set_signed_data(id, value, &value_signing_key, signing_key)
@@ -468,7 +468,7 @@ impl TestTransactionBuilder {
         algorithm: CryptoAlgorithm,
         id: &str,
         value: Vec<u8>,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let value_signing_key =
             SigningKey::new_with_algorithm(algorithm).expect("Failed to create value signing key");
         self.set_signed_data_verified_with_root(id, value, &value_signing_key)
@@ -478,7 +478,7 @@ impl TestTransactionBuilder {
         &mut self,
         id: &str,
         value: Vec<u8>,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -498,7 +498,7 @@ impl TestTransactionBuilder {
         value: Vec<u8>,
         value_signing_key: &SigningKey,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
             signature: value_signing_key.sign(&value).unwrap(),
@@ -511,7 +511,7 @@ impl TestTransactionBuilder {
         id: &str,
         value: Vec<u8>,
         value_signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let value_signature_bundle = SignatureBundle {
             verifying_key: value_signing_key.verifying_key(),
             signature: value_signing_key.sign(&value).unwrap(),
@@ -524,7 +524,7 @@ impl TestTransactionBuilder {
         id: &str,
         value: Vec<u8>,
         value_signature: SignatureBundle,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let Some(account_signing_keys) = self.account_keys.get(id).cloned() else {
             panic!("No existing account key for {}", id)
         };
@@ -539,7 +539,7 @@ impl TestTransactionBuilder {
         data: Vec<u8>,
         data_signature: SignatureBundle,
         signing_key: &SigningKey,
-    ) -> UncommittedTransaction {
+    ) -> UncommittedTransaction<'_> {
         let account = self.accounts.get(id).cloned().unwrap_or_default();
         let op = Operation::SetData {
             data,

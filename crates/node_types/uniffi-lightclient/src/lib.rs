@@ -2,19 +2,23 @@
 //!
 //! This crate uses Mozilla's UniFFI to generate Swift and Kotlin bindings for the Prism
 //! lightclient, allowing it to be used from iOS and Android applications.
+mod config;
 mod error;
 mod types;
 
 use error::{LightClientError, Result};
-use prism_da::celestia::{light_client::LightClientConnection, utils::Network};
+use prism_da::create_light_client_da_layer;
 
 use prism_events::EventSubscriber;
-use prism_lightclient::LightClient as CoreLightClient;
+use prism_lightclient::{LightClient as CoreLightClient, create_light_client};
+use prism_presets::{ApplyPreset, LightClientPreset};
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use types::UniffiLightClientEvent;
 use uniffi::Object;
+
+use crate::config::UniffiLightClientConfig;
 
 uniffi::setup_scaffolding!();
 
@@ -29,38 +33,38 @@ pub struct LightClient {
 impl LightClient {
     /// Creates a new Lightclient for the specified network.
     #[uniffi::constructor]
-    pub async fn new(network_name: String, base_path: String) -> Result<Self> {
-        let network = Network::from_str(&network_name)
-            .map_err(|e| LightClientError::network_error(format!("Invalid network: {}", e)))?;
-        let network_config = network.config();
-
-        let node_config = lumina_node_uniffi::types::NodeConfig {
-            base_path: Some(base_path),
-            network: network_config.celestia_network.clone(),
-            bootnodes: None,
-            pruning_delay_secs: None,
-            batch_size: None,
-            ed25519_secret_key_bytes: None,
-            syncing_window_secs: None,
-        };
-
-        // Initialize connection
-        let da = LightClientConnection::new_with_config(&network_config, Some(node_config))
-            .await
-            .map_err(|e| {
-            LightClientError::network_error(format!("Failed to connect to light client: {}", e))
+    pub async fn new(network_name: String, base_path: Option<String>) -> Result<Self> {
+        let preset = LightClientPreset::from_str(&network_name).map_err(|e| {
+            LightClientError::initialization_error(format!("Parsing preset failed: {}", e))
         })?;
 
-        let event_sub = da.event_channel.subscribe();
+        let mut config = UniffiLightClientConfig::default_with_preset(&preset).map_err(|e| {
+            LightClientError::initialization_error(format!("Loading config failed: {}", e))
+        })?;
 
-        let inner = Arc::new(CoreLightClient::new(
-            Arc::new(da),
-            network_config.verifying_key,
-            CancellationToken::new(),
-        ));
+        config.da.use_storage_path(base_path).map_err(|e| {
+            LightClientError::initialization_error(format!("Adjusting path failed: {}", e))
+        })?;
+
+        let da = create_light_client_da_layer(&config.da).await.map_err(|e| {
+            LightClientError::initialization_error(format!(
+                "Failed to create light client DA: {}",
+                e
+            ))
+        })?;
+
+        let event_sub = da.event_channel().subscribe();
+
+        let light_client = create_light_client(da, &config.light_client, CancellationToken::new())
+            .map_err(|e| {
+                LightClientError::initialization_error(format!(
+                    "Failed to create light client: {}",
+                    e
+                ))
+            })?;
 
         Ok(Self {
-            inner,
+            inner: Arc::new(light_client),
             event_subscriber: Mutex::new(event_sub),
         })
     }

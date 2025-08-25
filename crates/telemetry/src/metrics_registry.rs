@@ -50,7 +50,7 @@ impl PrismMetrics {
             .with_description("Celestia current epoch")
             .build();
 
-        PrismMetrics {
+        Self {
             meter,
             node_info,
             celestia_synced_height,

@@ -3,7 +3,7 @@ use prism_common::transaction::Transaction;
 use prism_da::{DataAvailabilityLayer, VerifiableEpoch};
 use prism_events::{EventPublisher, PrismEvent};
 use prism_keys::VerifyingKey;
-use prism_storage::database::Database;
+use prism_storage::Database;
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use std::sync::Arc;
 use tokio::sync::{RwLock, broadcast};
@@ -30,7 +30,7 @@ impl Syncer {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
         db: Arc<Box<dyn Database>>,
-        config: &crate::prover::SyncerConfig,
+        config: &crate::prover::SyncerOptions,
         latest_epoch_da_height: Arc<RwLock<u64>>,
         sequencer: Arc<Sequencer>,
         prover_engine: Arc<dyn ProverEngine>,
@@ -170,7 +170,10 @@ impl Syncer {
             next_epoch_height
         );
 
-        if !epoch_result.is_empty() {
+        if epoch_result.is_empty() {
+            self.event_pub.send(PrismEvent::NoEpochFound { height: (height) });
+            debug!("No epoch found at height {}", height);
+        } else {
             for epoch in epoch_result {
                 debug!(
                     "Found finalized epoch {} at height {}",
@@ -179,9 +182,6 @@ impl Syncer {
                 );
                 self.process_epoch(epoch).await?;
             }
-        } else {
-            self.event_pub.send(PrismEvent::NoEpochFound { height: (height) });
-            debug!("No epoch found at height {}", height);
         }
 
         let mut tx_buffer = self.tx_buffer.write().await;

@@ -1,3 +1,10 @@
+[test-groups]
+serially = { max-threads = 1 }
+
 [[profile.default.overrides]]
 filter = 'test(/^prover::tests::/)'
 slow-timeout = { period = "60s", terminate-after = 30 }
+
+[[profile.default.overrides]]
+filter = 'package(prism-cli) and test(/^tests/)'
+test-group = 'serially'

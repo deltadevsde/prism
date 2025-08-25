@@ -59,7 +59,7 @@ impl Default for Digest {
 
 // serializer and deserializer for rocksdb
 // converts from bytearrays into digests
-// padds it with zero if it is too small
+// pads it with zero if it is too small
 impl<const N: usize> From<[u8; N]> for Digest {
     fn from(value: [u8; N]) -> Self {
         assert!(N <= 32, "Input array must not exceed 32 bytes");

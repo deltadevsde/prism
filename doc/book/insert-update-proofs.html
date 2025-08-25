@@ -208,7 +208,7 @@ To prove the update, it is sufficient if we consider the previous state root (th
 <p>Insertion proofs consist of the inserted key, a non-membership proof of the node in the current tree, a membership proof of the new node in the JMT, and the updated merkle root.</p>
 <p>The non-inclusion proof has two variants for different cases:</p>
 <ol>
-<li>A leaf exists where the missing leaf <em>should</em> be, sharing a prefix with the key (recall that the path to the leaf is determined by the key bytes, and paths get compressed for effeciency)</li>
+<li>A leaf exists where the missing leaf <em>should</em> be, sharing a prefix with the key (recall that the path to the leaf is determined by the key bytes, and paths get compressed for efficiency)</li>
 <li>The node key leads to an empty subtree</li>
 </ol>
 <p>After finding the position the new node should be inserted into, it is inserted and a membership proof is created.</p>

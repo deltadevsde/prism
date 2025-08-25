@@ -6,16 +6,18 @@ extern crate log;
 use anyhow::Result;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
-    DataAvailabilityLayer,
+    FullNodeDAConfig, LightClientDAConfig,
     celestia::{
-        full_node::CelestiaConnection as FullNodeCelestiaConn,
-        light_client::LightClientConnection as LightClientCelestiaConn,
-        utils::{CelestiaConfig, NetworkConfig},
+        CelestiaFullNodeDAConfig, CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig,
+        CelestiaNetwork, DEFAULT_PRUNING_WINDOW_IN_MEMORY,
     },
+    create_full_node_da_layer, create_light_client_da_layer,
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_lightclient::LightClient;
-use prism_prover::Prover;
+use prism_prover::{
+    Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions, WebServerConfig,
+};
 use prism_storage::{
     Database,
     rocksdb::{RocksDBConfig, RocksDBConnection},
@@ -51,45 +53,44 @@ async fn test_light_client_prover_talking() -> Result<()> {
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
 
-    let bridge_cfg = CelestiaConfig {
-        connection_string: "ws://localhost:26658".to_string(),
-        ..CelestiaConfig::default()
-    };
+    let bridge_cfg = FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
+        url: "ws://localhost:26658".to_string(),
+        ..CelestiaFullNodeDAConfig::default()
+    });
 
-    let lc_cfg = NetworkConfig {
-        celestia_config: Some(CelestiaConfig {
-            connection_string: "ws://localhost:46658".to_string(),
-            ..CelestiaConfig::default()
-        }),
-        ..NetworkConfig::default()
-    };
+    let lc_cfg = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+        celestia_network: CelestiaNetwork::Custom("private".parse().unwrap()),
+        pruning_window: DEFAULT_PRUNING_WINDOW_IN_MEMORY,
+        store: CelestiaLightClientDAStoreConfig::InMemory,
+        ..CelestiaLightClientDAConfig::default()
+    });
 
     let mut rng = StdRng::from_entropy();
     let prover_algorithm = CryptoAlgorithm::Ed25519;
     let service_algorithm = random_algorithm(&mut rng);
 
-    let bridge_da_layer = Arc::new(FullNodeCelestiaConn::new(&bridge_cfg, None).await.unwrap());
-    let lc_da_layer = Arc::new(LightClientCelestiaConn::new(&lc_cfg).await.unwrap());
+    let bridge_da_layer = create_full_node_da_layer(&bridge_cfg).await.unwrap();
+    let lc_da_layer = create_light_client_da_layer(&lc_cfg).await.unwrap();
     let db = setup_db();
     let signing_key = SigningKey::new_with_algorithm(prover_algorithm)
         .map_err(|e| anyhow::anyhow!("Failed to generate signing key: {}", e))?;
     let pubkey = signing_key.verifying_key();
 
-    let prover_cfg = prism_prover::Config {
-        syncer: prism_prover::SyncerConfig {
+    let prover_cfg = ProverOptions {
+        syncer: SyncerOptions {
             verifying_key: pubkey.clone(),
             start_height: 0,
             max_epochless_gap: 300,
             prover_enabled: true,
         },
-        sequencer: prism_prover::SequencerConfig {
-            signing_key,
+        sequencer: SequencerOptions {
+            signing_key: Some(signing_key),
             batcher_enabled: true,
         },
-        prover_engine: prism_prover::ProverEngineConfig {
+        prover_engine: ProverEngineOptions {
             recursive_proofs: false,
         },
-        webserver: prism_prover::WebServerConfig::default(),
+        webserver: WebServerConfig::default(),
     };
 
     let prover = Arc::new(Prover::new(

@@ -5,10 +5,10 @@ use prism_common::{
 };
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_keys::SigningKey;
-use prism_storage::database::Database;
+use prism_storage::Database;
 use prism_tree::{
-    AccountResponse::*, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree, proofs::Proof,
-    snarkable_tree::SnarkableTree,
+    AccountResponse::Found, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree,
+    proofs::Proof, snarkable_tree::SnarkableTree,
 };
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -22,7 +22,7 @@ pub struct Sequencer {
     da: Arc<dyn DataAvailabilityLayer>,
     tree: Arc<RwLock<KeyDirectoryTree<Box<dyn Database>>>>,
     pending_transactions: Arc<RwLock<Vec<Transaction>>>,
-    signing_key: SigningKey,
+    signing_key: Option<SigningKey>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
     batcher_enabled: bool,
 }
@@ -31,7 +31,7 @@ impl Sequencer {
     pub fn new(
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
-        config: &crate::prover::SequencerConfig,
+        config: &crate::prover::SequencerOptions,
         latest_epoch_da_height: Arc<RwLock<u64>>,
     ) -> Result<Self> {
         let saved_epoch = match db.get_latest_epoch_height() {
@@ -44,7 +44,7 @@ impl Sequencer {
 
         let tree = Arc::new(RwLock::new(KeyDirectoryTree::load(db.clone(), saved_epoch)));
 
-        Ok(Sequencer {
+        Ok(Self {
             db,
             da,
             tree,
@@ -133,7 +133,11 @@ impl Sequencer {
             tip_da_height,
         };
 
-        epoch_json.insert_signature(&self.signing_key)?;
+        let Some(signing_key) = &self.signing_key else {
+            bail!("No signing key configured for sequencer, epoch can not be signed.");
+        };
+
+        epoch_json.insert_signature(signing_key)?;
 
         debug!("Submitting finalized epoch height {} to DA", epoch_height);
         let da_height = self.da.submit_finalized_epoch(epoch_json.clone()).await?;

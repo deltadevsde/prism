@@ -78,7 +78,7 @@ where
         transaction: Transaction,
     ) -> Result<impl PendingTransaction<Timer = Self::Timer>, PrismApiError>;
 
-    fn build_request(&self) -> RequestBuilder<Self> {
+    fn build_request(&self) -> RequestBuilder<'_, Self> {
         RequestBuilder::new_with_prism(self)
     }
 
@@ -225,10 +225,9 @@ where
                 account: Some(account),
                 proof: _,
             } = self.prism.get_account(&self.transaction.id).await?
+                && account.nonce() > self.transaction.nonce
             {
-                if account.nonce() > self.transaction.nonce {
-                    return Ok(account);
-                }
+                return Ok(account);
             };
             Self::Timer::sleep(interval).await;
         }

@@ -14,9 +14,7 @@ path = "src/main.rs"
 default = []
 test_utils = []
 
-
 [dependencies]
-lumina-node = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
@@ -24,7 +22,6 @@ tokio-util = { workspace = true }
 clap = { workspace = true }
 config = { workspace = true }
 dotenvy = { workspace = true }
-keystore-rs = { workspace = true }
 toml = { workspace = true }
 dirs = { workspace = true }
 anyhow = { workspace = true }
@@ -33,10 +30,14 @@ prism-errors = { workspace = true }
 prism-prover = { workspace = true }
 prism-lightclient = { workspace = true }
 prism-da = { workspace = true }
-prism-keys = { workspace = true }
-prism-serde = { workspace = true }
-celestia-types = { workspace = true }
 prism-telemetry-registry = { workspace = true }
 prism-telemetry = { workspace = true }
-opentelemetry = { workspace = true }
+prism-presets = { workspace = true }
 tracing = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

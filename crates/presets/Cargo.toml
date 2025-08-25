@@ -1,0 +1,18 @@
+[package]
+name = "prism-presets"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+# serde
+serde.workspace = true
+
+# misc
+thiserror.workspace = true
+
+[features]
+default = []
+test_utils = []

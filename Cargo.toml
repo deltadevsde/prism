@@ -18,43 +18,45 @@ readme = "README.md"
 default-members = [
   "crates/cli",
   "crates/client",
-  "crates/tests",
-  "crates/node_types/prover",
-  "crates/node_types/lightclient",
-  "crates/node_types/wasm-lightclient",
-  "crates/node_types/uniffi-lightclient",
   "crates/common",
+  "crates/da",
   "crates/errors",
   "crates/events",
-  "crates/storage",
-  "crates/da",
-  "crates/serde",
   "crates/keys",
-  "crates/tree",
+  "crates/node_types/lightclient",
+  "crates/node_types/prover",
+  "crates/node_types/uniffi-lightclient",
+  "crates/node_types/wasm-lightclient",
+  "crates/presets",
+  "crates/serde",
+  "crates/storage",
   "crates/telemetry",
+  "crates/tests",
+  "crates/tree",
   "crates/zk/sp1-builder",
 ]
 
 members = [
   "crates/cli",
   "crates/client",
-  "crates/tests",
-  "crates/node_types/prover",
-  "crates/node_types/lightclient",
-  "crates/node_types/wasm-lightclient",
-  "crates/node_types/uniffi-lightclient",
   "crates/common",
+  "crates/da",
   "crates/errors",
   "crates/events",
-  "crates/zk/sp1",
-  "crates/zk/sp1-script",
-  "crates/zk/sp1-builder",
-  "crates/storage",
-  "crates/da",
-  "crates/serde",
   "crates/keys",
-  "crates/tree",
+  "crates/node_types/lightclient",
+  "crates/node_types/prover",
+  "crates/node_types/uniffi-lightclient",
+  "crates/node_types/wasm-lightclient",
+  "crates/presets",
+  "crates/serde",
+  "crates/storage",
   "crates/telemetry",
+  "crates/tests",
+  "crates/tree",
+  "crates/zk/sp1",
+  "crates/zk/sp1-builder",
+  "crates/zk/sp1-script",
 ]
 resolver = "2"
 
@@ -63,6 +65,7 @@ resolver = "2"
 serde = { version = "1.0.151", features = ["derive"] }
 serde_json = "1.0.79"
 serde_bytes = "0.11.15"
+serde_with = "3.14.0"
 base64 = "0.22.0"
 bech32 = "0.11.0"
 bincode = "1.3.3"
@@ -95,7 +98,6 @@ thiserror = "2.0.12"
 anyhow = "1.0.44"
 
 # cli
-keystore-rs = "0.3.1"
 pretty_env_logger = "0.5.0"
 clap = { version = "4.5.41", features = ["derive"] }
 config = "0.14.0"
@@ -105,10 +107,10 @@ dotenvy = "0.15.7"
 
 # zk
 rand = "0.8.5"
-sp1-zkvm = { version = "5.0.8" }
-sp1-sdk = { version = "5.0.8" }
-sp1-verifier = { version = "5.0.8", default-features = false }
-sp1-build = { version = "5.0.8" }
+sp1-zkvm = { version = "5.2.1" }
+sp1-sdk = { version = "5.2.1" }
+sp1-verifier = { version = "5.2.1", default-features = false }
+sp1-build = { version = "5.2.1" }
 
 # curves
 ed25519 = { version = "2.2.3", features = ["pem"] }
@@ -123,9 +125,9 @@ alloy-primitives = { version = "1.2.1", default-features = false, features = [
 ripemd = "0.1.3"
 
 # celestia
-celestia-rpc = "=0.11.1"
-celestia-types = "=0.11.2"
-lumina-node = "=0.12.0"
+celestia-rpc = { git = "https://github.com/deltadevsde/lumina.git" }
+celestia-types = { git = "https://github.com/deltadevsde/lumina.git" }
+lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
 
 # p2p
 libp2p = "0.54.1"
@@ -135,7 +137,6 @@ jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit"
   "mocks",
 ] }
 sha2 = "0.10.8"
-tempfile = "3.14.0"
 auto_impl = "1.2.0"
 paste = "1.0.15"
 
@@ -157,9 +158,11 @@ prism-tree = { path = "crates/tree" }
 prism-events = { path = "crates/events" }
 prism-lightclient = { path = "crates/node_types/lightclient" }
 prism-telemetry-registry = { path = "crates/telemetry" }
+prism-presets = { path = "crates/presets" }
 
 # testing
 mockall = "0.13.1"
+tempfile = "3.14"
 
 # wasm
 log = "0.4"
@@ -173,7 +176,7 @@ web-sys = "0.3"
 web-time = "1.1.0"
 
 # telemetry
-prism-telemetry = "0.2.0"
+prism-telemetry = "0.3.0"
 opentelemetry = "0.29.0"
 opentelemetry_sdk = "0.29.0"
 tracing = { version = "0.1.41", features = ["std"] }
@@ -182,7 +185,6 @@ lazy_static = "1.4.0"
 
 # uniffi
 uniffi = { version = "0.29.1", features = ["bindgen", "tokio", "cli"] }
-lumina-node-uniffi = { git = "https://github.com/deltadevsde/lumina.git" }
 blockstore = "0.7.1"
 
 [patch.crates-io]
@@ -190,8 +192,6 @@ p256 = { git = "https://github.com/sp1-patches/elliptic-curves", tag = "patch-p2
 sha2-v0-10-8 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.8-sp1-4.0.0" }
 curve25519-dalek-ng = { git = "https://github.com/sp1-patches/curve25519-dalek-ng", tag = "patch-4.1.1-sp1-5.0.0" }
 k256 = { git = "https://github.com/sp1-patches/elliptic-curves", tag = "patch-k256-13.4-sp1-5.0.0" }
-celestia-types = { git = "https://github.com/deltadevsde/lumina.git" }
-lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
 
 [workspace.features]
 default = []
@@ -269,6 +269,11 @@ use_self = "warn"
 useless_let_if_seq = "warn"
 while_float = "warn"
 zero_sized_map_values = "warn"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(coverage,coverage_nightly)',
+] }
 
 # Speed up compilation time for dev builds by reducing emitted debug info.
 # NOTE: Debuggers may provide less useful information with this setting.

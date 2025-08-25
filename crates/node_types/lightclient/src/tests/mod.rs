@@ -80,8 +80,8 @@ macro_rules! mock_da {
 
 async fn wait_for_sync(sub: &mut EventSubscriber, target_height: u64) {
     wait_for_event(sub, |event| match event {
-        PrismEvent::EpochVerified { height } => height >= target_height,
-        PrismEvent::EpochVerificationFailed { height, .. } => height >= target_height,
+        PrismEvent::EpochVerified { height }
+        | PrismEvent::EpochVerificationFailed { height, .. } => height >= target_height,
         _ => false,
     })
     .await;
