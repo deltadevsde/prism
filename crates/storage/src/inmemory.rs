@@ -16,6 +16,8 @@ use std::{
 
 use crate::database::Database;
 
+const UNINITIALIZED_SYNC_HEIGHT: u64 = u64::MAX;
+
 pub struct InMemoryDatabase {
     nodes: Arc<Mutex<HashMap<NodeKey, Node>>>,
     values: Arc<Mutex<HashMap<(Version, KeyHash), OwnedValue>>>,
@@ -31,7 +33,7 @@ impl InMemoryDatabase {
             values: Arc::new(Mutex::new(HashMap::new())),
             commitments: Arc::new(Mutex::new(HashMap::new())),
             current_epochs: Arc::new(Mutex::new(Vec::new())),
-            sync_height: Arc::new(AtomicU64::new(1)),
+            sync_height: Arc::new(AtomicU64::new(UNINITIALIZED_SYNC_HEIGHT)),
         }
     }
 }
@@ -130,11 +132,18 @@ impl Database for InMemoryDatabase {
     }
 
     fn get_last_synced_height(&self) -> Result<u64> {
-        Ok(self.sync_height.load(Ordering::Relaxed))
+        // Acquire ordering so that readers see all prior writes up to the first store(Release).
+        let h = self.sync_height.load(Ordering::Acquire);
+        // Return NotFound until someone has explicitly initialized the height.
+        if h == UNINITIALIZED_SYNC_HEIGHT {
+            return Err(DatabaseError::NotFoundError("sync height".to_string()).into());
+        }
+        Ok(h)
     }
 
     fn set_last_synced_height(&self, epoch: &u64) -> Result<()> {
-        self.sync_height.store(*epoch, Ordering::Relaxed);
+        // Release ordering pairs with Acquire above to ensure visibility.
+        self.sync_height.store(*epoch, Ordering::Release);
         Ok(())
     }
 
@@ -143,6 +152,7 @@ impl Database for InMemoryDatabase {
         self.values.lock().unwrap().clear();
         self.commitments.lock().unwrap().clear();
         self.current_epochs.lock().unwrap().clear();
+        self.sync_height.store(UNINITIALIZED_SYNC_HEIGHT, Ordering::Release);
         Ok(())
     }
 }
