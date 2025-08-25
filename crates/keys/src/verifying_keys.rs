@@ -266,12 +266,29 @@ impl VerifyingKey {
         Self::from_spki(spki)
     }
 
+    pub fn from_spki_base64(base64: &str) -> Result<Self> {
+        let bytes = Vec::<u8>::from_base64(base64)
+            .map_err(|e| ParseError::GeneralError(format!("{} for {}", e, base64)))?;
+        Self::from_spki_der(&bytes)
+    }
+
     pub fn from_spki_pem_file(filename: impl AsRef<Path>) -> Result<Self> {
         let (label, doc) = Document::read_pem_file(filename)
             .map_err(|e| VerificationError::GeneralError(e.to_string()))?;
         SubjectPublicKeyInfoRef::validate_pem_label(&label)
             .map_err(|_| VerificationError::GeneralError("Incorrect PEM label".to_string()))?;
         Self::from_spki_der(doc.as_bytes())
+    }
+
+    pub fn from_spki_pem_path_or_base64(input: &str) -> Result<Self> {
+        // Treat as a file path if it points to a regular file. In that case, return the
+        // file parsing result directly to preserve the original error context.
+        let path = Path::new(input);
+        if path.is_file() {
+            return Self::from_spki_pem_file(path);
+        }
+        // Otherwise, try as base64-encoded SPKI DER.
+        Self::from_spki_base64(input)
     }
 }
 

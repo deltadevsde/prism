@@ -15,12 +15,21 @@ serde = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
+mockall = { workspace = true }
 prism-errors = { workspace = true }
 prism-da = { workspace = true }
 prism-common = { workspace = true }
+prism-presets = { workspace = true }
 prism-serde = { workspace = true }
 auto_impl = { workspace = true }
 rocksdb = { workspace = true }
 
 [dev-dependencies]
 tempfile.workspace = true
+tokio = { workspace = true, default-features = false, features = [
+  "macros",
+  "rt",
+] }
+
+[lints]
+workspace = true

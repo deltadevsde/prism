@@ -14,7 +14,7 @@ pub const SPARSE_MERKLE_PLACEHOLDER_HASH: KeyHash = KeyHash(*b"SPARSE_MERKLE_PLA
 /// insertions. This is prism's primary data structure for storing and retrieving [`Account`]s.
 pub struct KeyDirectoryTree<S>
 where
-    S: TreeReader + TreeWriter,
+    S: TreeReader + TreeWriter + ?Sized,
 {
     pub(crate) jmt: JellyfishMerkleTree<Arc<S>, TreeHasher>,
     pub(crate) epoch: u64,
@@ -24,7 +24,7 @@ where
 
 impl<S> KeyDirectoryTree<S>
 where
-    S: TreeReader + TreeWriter,
+    S: TreeReader + TreeWriter + ?Sized,
 {
     pub fn new(store: Arc<S>) -> Self {
         let tree = Self {

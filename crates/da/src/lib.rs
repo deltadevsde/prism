@@ -1,10 +1,102 @@
-use std::{
-    fmt::{Debug, Display},
-    sync::Arc,
-};
+#![feature(coverage_attribute)]
+//! # Prism Data Availability Layer
+//!
+//! This crate provides abstracted access to data availability layers for the Prism network.
+//! It supports multiple backends and provides both light client and full node capabilities.
+//!
+//! ## Overview
+//!
+//! The DA layer is responsible for:
+//! - Storing and retrieving finalized epochs (SNARK proofs)
+//! - Publishing and reading transaction batches
+//! - Providing data availability guarantees for network participants
+//! - Supporting light client protocols for efficient data access
+//!
+//! ## Architecture
+//!
+//! The crate provides two main trait abstractions:
+//! - [`LightDataAvailabilityLayer`]: Read-only access to finalized epochs/proofs
+//! - [`DataAvailabilityLayer`]: Full read-write access to finalized epochs/proofs and transactions
+//!
+//! ## Supported Backends
+//!
+//! ### Celestia
+//! - Production-ready modular data availability network
+//! - Supports both light client and full node protocols
+//! - Configurable through [`CelestiaLightClientDAConfig`] and [`CelestiaFullNodeDAConfig`]
+//!
+//! ### InMemory
+//! - Local storage for testing and development
+//! - No persistence across restarts
+//! - Suitable for CI/CD and local development
+//!
+//! ## Example
+//!
+//! ### Light Client Example
+//!
+//! ```rust
+//! use prism_da::{LightClientDAConfig, create_light_client_da_layer};
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     // In-memory for development
+//!     let config = LightClientDAConfig::InMemory;
+//!     let da = create_light_client_da_layer(&config).await?;
+//!
+//!     let epochs = da.get_finalized_epochs(100).await?;
+//!     for epoch in epochs {
+//!         println!("Epoch height: {}", epoch.height());
+//!     }
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ### Full Node Example
+//!
+//! ```rust,no_run
+//! use prism_common::transaction::Transaction;
+//! use prism_da::{
+//!     FullNodeDAConfig, create_full_node_da_layer,
+//!     celestia::{CelestiaFullNodeDAConfig, CelestiaNetwork}
+//! };
+//! use std::time::Duration;
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let config = FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
+//!         url: "ws://localhost:26658".to_string(),
+//!         celestia_network: CelestiaNetwork::Arabica,
+//!         snark_namespace_id: "00000000000000de1008".to_string(),
+//!         operation_namespace_id: "00000000000000de1009".to_string(),
+//!         fetch_timeout: Duration::from_secs(90),
+//!         fetch_max_retries: 3,
+//!     });
+//!     let da = create_full_node_da_layer(&config).await?;
+//!     da.start().await?;
+//!
+//!     let transactions = vec![/* your transactions */];
+//!     let height = da.submit_transactions(transactions).await?;
+//!     println!("Submitted at height: {}", height);
+//!
+//!     let mut height_rx = da.subscribe_to_heights();
+//!     while let Ok(new_height) = height_rx.recv().await {
+//!         let txs = da.get_transactions(new_height).await?;
+//!         println!("Height {}: {} transactions", new_height, txs.len());
+//!     }
+//!
+//!     Ok(())
+//! }
+//! ```
+
+pub mod celestia;
+pub mod consts;
+mod factory;
+pub mod memory;
 
 use async_trait::async_trait;
 use celestia_types::Blob;
+pub use factory::*;
 use mockall::automock;
 use prism_common::digest::Digest;
 use prism_errors::{CommitmentError, EpochVerificationError, SignatureError};
@@ -15,15 +107,10 @@ use prism_serde::{
     hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
-
 use sp1_verifier::Groth16Verifier;
-
+use std::{fmt::Display, sync::Arc};
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
-
-pub mod celestia;
-pub mod consts;
-pub mod memory;
 
 pub type VerifiableEpoch = Box<dyn VerifiableStateTransition>;
 
@@ -74,7 +161,7 @@ impl TryFrom<SP1ProofWithPublicValues> for SuccinctProof {
 
     fn try_from(proof: SP1ProofWithPublicValues) -> Result<Self, Self::Error> {
         let proof_bytes = bincode::serialize(&proof)?;
-        Ok(SuccinctProof {
+        Ok(Self {
             proof_bytes,
             public_values: proof.public_values.to_vec(),
         })
@@ -89,7 +176,7 @@ pub struct EpochCommitments {
 }
 
 impl EpochCommitments {
-    pub fn new(previous: Digest, current: Digest) -> Self {
+    pub const fn new(previous: Digest, current: Digest) -> Self {
         Self { previous, current }
     }
 }
@@ -144,8 +231,8 @@ pub struct FinalizedEpoch {
     pub signature: Option<String>,
 
     /// The tip of the DA layer at the time of the epoch; All transactions in
-    /// this epoch are from the DA blocks [previous_epoch.tip_da_height,
-    /// current_epoch.tip_da_height).
+    /// this epoch are from the DA blocks [`previous_epoch.tip_da_height`,
+    /// `current_epoch.tip_da_height`).
     pub tip_da_height: u64,
 }
 
@@ -246,7 +333,7 @@ impl FinalizedEpoch {
     }
 
     pub fn verify_signature(&self, vk: VerifyingKey) -> Result<(), EpochVerificationError> {
-        let epoch_without_signature = FinalizedEpoch {
+        let epoch_without_signature = Self {
             height: self.height,
             prev_commitment: self.prev_commitment,
             current_commitment: self.current_commitment,
@@ -279,7 +366,7 @@ impl TryFrom<&Blob> for FinalizedEpoch {
     type Error = EpochVerificationError;
 
     fn try_from(value: &Blob) -> Result<Self, Self::Error> {
-        FinalizedEpoch::decode_from_bytes(&value.data).map_err(|_| {
+        Self::decode_from_bytes(&value.data).map_err(|_| {
             EpochVerificationError::DecodingError(format!("Failed to decode blob: {value:?}"))
         })
     }

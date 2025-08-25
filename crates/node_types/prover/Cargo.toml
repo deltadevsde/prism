@@ -26,15 +26,20 @@ jmt = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage = { workspace = true }
 prism-tree = { workspace = true }
-prism-errors = { workspace = true }
 prism-events = { workspace = true }
 prism-keys = { workspace = true }
 prism-da = { workspace = true }
+prism-presets = { workspace = true }
 sp1-sdk = { workspace = true }
 prism-telemetry-registry = { workspace = true }
 mockall = { workspace = true }
+dirs = { workspace = true }
 
 [dev-dependencies]
 paste = { workspace = true }
 pretty_env_logger = { workspace = true }
 log = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

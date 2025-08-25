@@ -1,6 +1,3 @@
-use std::sync::Arc;
-
-use crate::Database;
 use anyhow::{Result, anyhow};
 use jmt::{
     KeyHash, OwnedValue, Version,
@@ -11,11 +8,52 @@ use prism_errors::DatabaseError;
 use prism_serde::binary::{FromBinary, ToBinary};
 use rocksdb::{DB, DBWithThreadMode, MultiThreaded, Options};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+
+use crate::Database;
 
 type RocksDB = DBWithThreadMode<MultiThreaded>;
 
+/// Configuration for RocksDB storage backend.
+///
+/// RocksDB is a high-performance embedded database optimized for fast storage
+/// on SSDs and spinning disks. It uses a Log-Structured Merge (LSM) tree
+/// architecture that provides excellent write performance and space efficiency.
+///
+/// # Path Configuration
+///
+/// The database path should be:
+/// - On a filesystem with sufficient space for the key directory tree
+/// - Accessible with read/write permissions for the node process
+/// - On fast storage (SSD recommended) for optimal performance
+/// - Backed up regularly to prevent data loss
+///
+/// # Storage Requirements
+///
+/// Disk space requirements depend on:
+/// - Number of keys in the directory tree
+/// - Transaction volume and retention policies
+/// - Compaction settings and compression ratios
+/// - Snapshot and backup retention
+///
+/// # Examples
+///
+/// ```rust
+/// use prism_storage::rocksdb::RocksDBConfig;
+///
+/// let prod_config = RocksDBConfig {
+///     path: "/var/lib/prism/rocksdb".to_string(),
+/// };
+/// ```
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct RocksDBConfig {
+    /// Filesystem path where RocksDB will store its data files.
+    ///
+    /// # Platform Notes
+    ///
+    /// - **Linux/macOS**: Standard filesystem paths like "/var/lib/prism/db"
+    /// - **Windows**: Use forward slashes or escaped backslashes like `<C:/PrismData/db>`
+    /// - **Docker**: Mount volumes to ensure persistence across container restarts
     pub path: String,
 }
 
@@ -34,13 +72,18 @@ pub struct RocksDBConnection {
 }
 
 impl RocksDBConnection {
-    pub fn new(cfg: &RocksDBConfig) -> Result<RocksDBConnection> {
+    pub fn new(cfg: &RocksDBConfig) -> std::result::Result<Self, DatabaseError> {
         let path = &cfg.path;
-        let db = DB::open_default(path)?;
+        let db = DB::open_default(path).map_err(|e| {
+            DatabaseError::InitializationError(format!(
+                "failed to open RocksDB at '{}': {}",
+                path, e
+            ))
+        })?;
 
         Ok(Self {
             connection: Arc::new(db),
-            path: path.to_string(),
+            path: path.clone(),
         })
     }
 }
@@ -54,7 +97,7 @@ enum Key {
 }
 
 fn create_final_key(prefix: Vec<u8>, suffix: impl AsRef<[u8]>) -> Vec<u8> {
-    let mut key = prefix.clone();
+    let mut key = prefix;
     key.push(b':');
     key.extend_from_slice(suffix.as_ref());
     key
@@ -70,18 +113,18 @@ impl Key {
         fullkey
     }
 
-    fn as_byte(&self) -> u8 {
+    const fn as_byte(&self) -> u8 {
         match self {
-            Key::Commitment => 0,
-            Key::Node => 1,
-            Key::ValueHistory => 2,
-            Key::Epoch => 3,
+            Self::Commitment => 0,
+            Self::Node => 1,
+            Self::ValueHistory => 2,
+            Self::Epoch => 3,
         }
     }
 }
 
 impl Database for RocksDBConnection {
-    fn get_commitment(&self, epoch: &u64) -> anyhow::Result<Digest> {
+    fn get_commitment(&self, epoch: &u64) -> Result<Digest> {
         let key = Key::Commitment.with(epoch.encode_to_bytes()?);
         let raw_bytes = self.connection.get(key)?.ok_or_else(|| {
             DatabaseError::NotFoundError(format!("commitment from epoch_{}", epoch))
@@ -93,14 +136,14 @@ impl Database for RocksDBConnection {
         Ok(Digest(value))
     }
 
-    fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> anyhow::Result<()> {
+    fn set_commitment(&self, epoch: &u64, commitment: &Digest) -> Result<()> {
         Ok(self.connection.put::<&[u8], [u8; 32]>(
             Key::Commitment.with(epoch.encode_to_bytes()?).as_ref(),
             commitment.0,
         )?)
     }
 
-    fn get_last_synced_height(&self) -> anyhow::Result<u64> {
+    fn get_last_synced_height(&self) -> Result<u64> {
         let res = self
             .connection
             .get(b"app_state:sync_height")?
@@ -111,11 +154,11 @@ impl Database for RocksDBConnection {
         })?))
     }
 
-    fn set_last_synced_height(&self, height: &u64) -> anyhow::Result<()> {
+    fn set_last_synced_height(&self, height: &u64) -> Result<()> {
         Ok(self.connection.put(b"app_state:sync_height", height.to_be_bytes())?)
     }
 
-    fn get_epoch(&self, height: &u64) -> anyhow::Result<prism_da::FinalizedEpoch> {
+    fn get_epoch(&self, height: &u64) -> Result<prism_da::FinalizedEpoch> {
         let key = Key::Epoch.with(height.encode_to_bytes()?);
         let epoch_data = self
             .connection
@@ -130,7 +173,7 @@ impl Database for RocksDBConnection {
         })
     }
 
-    fn add_epoch(&self, epoch: &prism_da::FinalizedEpoch) -> anyhow::Result<()> {
+    fn add_epoch(&self, epoch: &prism_da::FinalizedEpoch) -> Result<()> {
         // Get the latest height to check for sequential ordering
         let latest_height = self.get_latest_epoch_height().ok();
 
@@ -170,7 +213,7 @@ impl Database for RocksDBConnection {
         Ok(())
     }
 
-    fn get_latest_epoch_height(&self) -> anyhow::Result<u64> {
+    fn get_latest_epoch_height(&self) -> Result<u64> {
         let res = self
             .connection
             .get(b"app_state:latest_epoch_height")?
@@ -181,7 +224,7 @@ impl Database for RocksDBConnection {
         })?))
     }
 
-    fn get_latest_epoch(&self) -> anyhow::Result<prism_da::FinalizedEpoch> {
+    fn get_latest_epoch(&self) -> Result<prism_da::FinalizedEpoch> {
         let height = self.get_latest_epoch_height()?;
         self.get_epoch(&height)
     }

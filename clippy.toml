@@ -1,0 +1,7 @@
+doc-valid-idents = [
+  "RocksDB",
+  "InMemory",
+  "WebSocket",
+  "OpenTelemetry",
+  "IndexedDB",
+]

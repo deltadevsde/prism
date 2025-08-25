@@ -1,5 +1,7 @@
-#![cfg(not(target_arch = "wasm32"))]
-use crate::{DataAvailabilityLayer, FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
+#![cfg_attr(target_arch = "wasm32", allow(unused))]
+#[cfg(not(target_arch = "wasm32"))]
+use crate::DataAvailabilityLayer;
+use crate::{FinalizedEpoch, LightDataAvailabilityLayer, VerifiableEpoch};
 use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::transaction::Transaction;
@@ -10,6 +12,8 @@ use tokio::{
     time::{Duration, interval},
 };
 use tracing::debug;
+
+const IN_MEMORY_DEFAULT_BLOCK_TIME: Duration = Duration::from_secs(15);
 
 #[derive(Clone, Debug)]
 pub struct Block {
@@ -32,6 +36,12 @@ pub struct InMemoryDataAvailabilityLayer {
     // For testing: Because mock proofs are generated very quickly, it is
     // helpful to delay the posting of the epoch to test some latency scenarios.
     epoch_posting_delay: Option<Duration>,
+}
+
+impl Default for InMemoryDataAvailabilityLayer {
+    fn default() -> Self {
+        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME).0
+    }
 }
 
 impl InMemoryDataAvailabilityLayer {
@@ -121,7 +131,8 @@ impl InMemoryDataAvailabilityLayer {
     }
 }
 
-#[async_trait]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         let blocks = self.blocks.read().await;
@@ -141,6 +152,7 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn start(&self) -> Result<()> {

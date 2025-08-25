@@ -116,7 +116,8 @@ impl SigningKey {
     pub fn to_pkcs8_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
         self.to_pkcs8_der_doc()?
             .write_pem_file(filename, PrivateKeyInfo::PEM_LABEL, LineEnding::LF)
-            .map_err(|_| ParseError::PemCreationError.into())
+            .map_err(|e| ParseError::PemCreationError(e.to_string()))?;
+        Ok(())
     }
 
     pub fn from_algorithm_and_bytes(algorithm: CryptoAlgorithm, bytes: &[u8]) -> Result<Self> {
@@ -179,6 +180,23 @@ impl SigningKey {
         PrivateKeyInfo::validate_pem_label(&label).map_err(|_| ParseError::PemLabelError)?;
 
         Self::from_pkcs8_der_doc(&document)
+    }
+
+    pub fn from_pkcs8_pem_path_or_create_ed25519(file_path: impl AsRef<Path>) -> Result<Self> {
+        let path = file_path.as_ref();
+
+        if path.exists() {
+            Self::from_pkcs8_pem_file(path)
+        } else {
+            // Ensure parent directory exists
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| ParseError::PemCreationError(e.to_string()))?;
+            }
+            let signing_key = SigningKey::new_ed25519();
+            signing_key.to_pkcs8_pem_file(path)?;
+            Ok(signing_key)
+        }
     }
 
     pub fn algorithm(&self) -> CryptoAlgorithm {

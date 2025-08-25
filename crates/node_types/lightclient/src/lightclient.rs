@@ -39,7 +39,7 @@ macro_rules! select_with_cancellation {
     };
 }
 
-/// Macro for generating a tokio::select! arm for event subscription
+/// Macro for generating a `tokio::select!` arm for event subscription
 macro_rules! await_event {
     ($cancellation_token:expr, $event_sub:expr, |$event_var:ident| $handler:block) => {
         tokio::select! {
@@ -63,6 +63,17 @@ macro_rules! await_event {
     };
 }
 
+/// A Prism light client for efficient network participation with minimal resource requirements.
+///
+/// ## Lifecycle
+///
+/// 1. **Initialization**: Created via factory methods with DA layer and verifying key
+/// 2. **Backward Sync**: Searches for the most recent valid epoch on startup
+/// 3. **Forward Sync**: Processes new epochs as they arrive from the DA layer
+/// 4. **Event Processing**: Publishes verification results and sync status updates
+///
+/// Light clients are designed to be long-running and will continue processing
+/// new epochs until cancelled via the provided cancellation token.
 pub struct LightClient {
     #[cfg(not(target_arch = "wasm32"))]
     pub da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
@@ -98,7 +109,7 @@ impl LightClient {
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
         prover_pubkey: VerifyingKey,
         cancellation_token: CancellationToken,
-    ) -> LightClient {
+    ) -> Self {
         let sp1_vkeys = load_sp1_verifying_keys().expect("Failed to load SP1 verifying keys");
 
         let event_chan = da.event_channel();

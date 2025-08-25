@@ -37,6 +37,9 @@ rand = { version = "0.8.5", features = ["std"] }
 rand = { version = "0.8.5", features = ["std", "getrandom"] }
 getrandom = { version = "0.2", features = ["js"] }
 
+[dev-dependencies]
+tempfile.workspace = true
+
 [features]
 default = []
 test_utils = []

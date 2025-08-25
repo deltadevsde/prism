@@ -20,16 +20,28 @@ use utoipa::{
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+/// Configuration for the embedded web server in Prism nodes.
+///
+/// Controls whether the HTTP server is enabled and where it binds for client connections.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct WebServerConfig {
+    /// Whether to enable the web server.
+    /// When disabled, no HTTP endpoints will be available.
     pub enabled: bool,
+
+    /// Host address to bind the web server to.
+    /// Use "127.0.0.1" for localhost only or "0.0.0.0" for all interfaces.
     pub host: String,
+
+    /// Port number for the web server.
+    /// Should be unique per node instance.
     pub port: u16,
 }
 
 impl Default for WebServerConfig {
     fn default() -> Self {
-        WebServerConfig {
+        Self {
             enabled: true,
             host: "127.0.0.1".to_string(),
             port: 41997,
@@ -46,7 +58,7 @@ pub struct WebServer {
 struct ApiDoc;
 
 impl WebServer {
-    pub fn new(cfg: WebServerConfig, session: Arc<Prover>) -> Self {
+    pub const fn new(cfg: WebServerConfig, session: Arc<Prover>) -> Self {
         Self { cfg, session }
     }
 
@@ -155,7 +167,7 @@ async fn get_account(
     (StatusCode::OK, Json(account_response)).into_response()
 }
 
-/// Returns the commitment (tree root) of the IndexedMerkleTree initialized from the database.
+/// Returns the commitment (tree root) of the `IndexedMerkleTree` initialized from the database.
 #[utoipa::path(
     get,
     path = "/get-current-commitment",
