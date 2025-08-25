@@ -77,10 +77,6 @@ async fn setup_da() -> (
         ..CelestiaLightClientDAConfig::default()
     });
 
-    let mut rng = StdRng::from_entropy();
-    let prover_algorithm = CryptoAlgorithm::Ed25519;
-    let service_algorithm = random_algorithm(&mut rng);
-
     let bridge_da_layer = create_full_node_da_layer(&bridge_cfg).await.unwrap();
     let lc_da_layer = create_light_client_da_layer(&lc_cfg).await.unwrap();
 
