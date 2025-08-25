@@ -310,7 +310,7 @@ async fn sync_loop(self: Arc<Self>) -> Result<(), tokio::task::JoinError> {
 ## Alternatives Considered
 
 1. Using a different data availability layer with longer-term storage.
-2. Exploring other SNARK systems like Halo2 (eventhough we do think Nova provides better efficiency for our specific use case of repeated proof aggregation).
+2. Exploring other SNARK systems like Halo2 (even though we do think Nova provides better efficiency for our specific use case of repeated proof aggregation).
 
 ## Open Questions
 
