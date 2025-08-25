@@ -132,8 +132,18 @@ impl LightClient {
         }
     }
 
+    /// Enables mock proof verification for testing purposes only.
+    ///
+    /// # Safety
+    /// This method disables cryptographic proof verification, which is a critical
+    /// security mechanism. It should ONLY be used in test environments and NEVER
+    /// in production code.
+    ///
+    /// # Usage
+    /// This is intended for integration tests where proof generation/verification
+    /// may be too slow or unavailable.
     pub fn enable_mock_proof_verification(&mut self) {
-        error!("PROOF VERIFICATION IS DISABLED");
+        error!("PROOF VERIFICATION IS DISABLED - FOR TESTING ONLY");
         self.mock_proof_verification = true;
     }
 

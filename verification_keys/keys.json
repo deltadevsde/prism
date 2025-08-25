@@ -1,13 +1,1 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
 {"base_vk": "0x00592e5c5cc210dc4e5430b9243a1dc025fe0b1d4dc51b21212cfa83cfa1bc53", "recursive_vk": "0x0010808cf81835b8bcb93e4d8920a76c57ecc4a3a3513adacbbea3faf744950c"}
-=======
-<<<<<<< HEAD
-{"base_vk": "0x0006cfe97d134d443616b7eec1ef35ecda294ee8723c15c2186261dfc65e12c0", "recursive_vk": "0x0034e2476c036ca6c23e8de5a456264ad618fb8ad31a39f4670746649e0fbff5"}
-=======
-{"base_vk": "0x00a08536933145a6c8911bc5f763b76bfd81e229d86ecdaa7b5225c424400d07", "recursive_vk": "0x001ab54f6f834e6b781a571415ab1ee36c34705cc928939ddf5a14872ec15380"}
->>>>>>> 1571faca (test)
->>>>>>> 37a4c658 (refactor: integration test suite)
-=======
-{"base_vk": "0x00e42f2ca723e417e208dfd19511bad655851b70ab8c4e11adf0323b00b0d38e", "recursive_vk": "0x001813dd3402e2a3497b498d328e70676053acd11d31ef3f28a3f18bc87034de"}
->>>>>>> c2e6bded (all)
