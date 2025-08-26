@@ -368,7 +368,8 @@ mod key_tests {
                 ))
             ));
         }
-      
+    }
+
     #[test]
     fn test_verifying_key_from_spki_pem_path_or_base64() {
         let temp_dir = tempdir().unwrap();
