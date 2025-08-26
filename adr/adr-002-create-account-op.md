@@ -6,7 +6,7 @@ Once a new user is added to the IMT, we know that all updates to a hashchain are
 
 ## Status Quo
 
-The de facto solution to this problem is by centralizing the account creation - a service exists that signs off on an account creation event after a user verifies to the central entity that they own some resource, i.e. a phone number via a OTP.
+The de facto solution to this problem is by centralizing the account creation - a service exists that signs off on an account creation event after a user verifies to the central entity that they own some resource, i.e. a phone number via an OTP.
 
 This creates cause for concern:
 
