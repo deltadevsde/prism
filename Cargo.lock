@@ -7353,6 +7353,7 @@ dependencies = [
  "celestia-rpc",
  "celestia-types",
  "dirs 6.0.0",
+ "libp2p",
  "lumina-node",
  "mockall",
  "prism-common",
@@ -7566,6 +7567,7 @@ name = "prism-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "celestia-rpc",
  "log",
  "pretty_env_logger",
  "prism-common",

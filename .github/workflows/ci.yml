@@ -41,7 +41,7 @@ jobs:
       - uses: taiki-e/install-action@nextest
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Expose github actions runtime
         uses: crazy-max/ghaction-github-runtime@v1
@@ -127,6 +127,7 @@ jobs:
     env:
       SP1_PROVER: mock
       SP1_SKIP_PROGRAM_BUILD: true
+      COVERAGE_TEST: true
     name: coverage
     steps:
       - name: Checkout sources
@@ -140,9 +141,66 @@ jobs:
       - uses: taiki-e/install-action@cargo-llvm-cov
       - uses: taiki-e/install-action@nextest
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Expose github actions runtime
+        uses: crazy-max/ghaction-github-runtime@v1
+
+      - name: Build the docker-compose stack
+        run: |
+          cat > ci/cache.json <<EOF
+          {
+            "target": {
+              "validator": {
+                "cache-from": ["type=gha,scope=validator"],
+                "cache-to": ["type=gha,mode=max,scope=validator"],
+                "output": ["type=docker"]
+              },
+              "bridge-0": {
+                "cache-from": ["type=gha,scope=bridge-0"],
+                "cache-to": ["type=gha,mode=max,scope=bridge-0"],
+                "output": ["type=docker"]
+              },
+              "bridge-1": {
+                "cache-from": ["type=gha,scope=bridge-1"],
+                "cache-to": ["type=gha,mode=max,scope=bridge-1"],
+                "output": ["type=docker"]
+              },
+              "light-0": {
+                "cache-from": ["type=gha,scope=light-0"],
+                "cache-to": ["type=gha,mode=max,scope=light-0"],
+                "output": ["type=docker"]
+              }
+            }
+          }
+          EOF
+          cd ci && docker buildx bake --file docker-compose.yml --file cache.json --load
+
+      - name: Run the docker-compose stack
+        run: docker compose -f ci/docker-compose.yml up --no-build -d
+
+      - name: Wait for bridge node 0 to start
+        run: |
+          while ! docker compose -f ci/docker-compose.yml logs bridge-0 | grep -q 'Configuration finished. Running a bridge node'; do
+            sleep 1
+          done
+
+      - name: Wait for bridge node 1 to start
+        run: |
+          while ! docker compose -f ci/docker-compose.yml logs bridge-1 | grep -q 'Configuration finished. Running a bridge node'; do
+            sleep 1
+          done
+
+      - name: Wait for light node 0 to start
+        run: |
+          while ! docker compose -f ci/docker-compose.yml logs light-0 | grep -q 'Configuration finished. Running a light node'; do
+            sleep 1
+          done
+
       - name: Collect unit-test coverage data
         run: |
-          cargo llvm-cov --no-report nextest --lib --release -- --skip test_light_client_prover_talking
+          cargo llvm-cov --no-report nextest --lib --release
           cargo llvm-cov report --release --codecov --output-path codecov.info
 
       - name: Upload coverage data to codecov
