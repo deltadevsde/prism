@@ -90,7 +90,7 @@ pub struct NoteOperationArgs {
 
 ```
 
-This differs from the existing implementation significantly, whose only account source is a SignedBySequencer. Futher adjustments were made to AddKey and RevokeKey to enable hashchain verification using a SignatureBundle as originally intended.
+This differs from the existing implementation significantly, whose only account source is a SignedBySequencer. Further adjustments were made to AddKey and RevokeKey to enable hashchain verification using a SignatureBundle as originally intended.
 
 ## Effects
 
