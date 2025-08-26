@@ -85,7 +85,7 @@ url = { version = "2.5" }
 
 # database
 rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
-redb = "2.6.0"
+redb = "2.6.3"
 
 # async
 async-trait = "0.1.86"
