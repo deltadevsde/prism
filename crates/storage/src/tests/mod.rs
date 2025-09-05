@@ -1,14 +1,23 @@
+use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 
 #[cfg(feature = "rocksdb")]
 use crate::rocksdb::*;
-use crate::{Database, database::StorageBackend, inmemory::InMemoryDatabase, sled::*};
+use crate::{Database, inmemory::InMemoryDatabase, sled::*};
 use jmt::{
     KeyHash, OwnedValue, Version,
     storage::{NodeBatch, TreeReader, TreeWriter},
 };
 use prism_common::digest::Digest;
 use prism_da::SuccinctProof;
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum StorageBackend {
+    #[cfg(feature = "rocksdb")]
+    RocksDB(crate::rocksdb::RocksDBConfig),
+    InMemory,
+    Sled(crate::sled::SledConfig),
+}
 
 fn setup_db(backend: StorageBackend) -> Box<dyn Database> {
     match backend {

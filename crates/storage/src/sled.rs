@@ -28,6 +28,7 @@ pub struct SledConfig {
     pub flush_every_ms: Option<u64>,
 }
 
+#[allow(dead_code)]
 impl SledConfig {
     pub fn new(path: &str) -> Self {
         Self {
@@ -57,7 +58,7 @@ pub struct SledConnection {
 }
 
 impl SledConnection {
-    pub fn new(cfg: &SledConfig) -> Result<SledConnection> {
+    pub fn new(cfg: &SledConfig) -> Result<Self> {
         let mut config = sled::Config::new().path(&cfg.path);
 
         if let Some(capacity) = cfg.cache_capacity {
