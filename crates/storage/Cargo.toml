@@ -10,8 +10,13 @@ license.workspace = true
 keywords.workspace = true
 readme.workspace = true
 
+[features]
+default = []
+rocksdb = ["dep:rocksdb"]
+
 [dependencies]
 serde = { workspace = true }
+sled = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 jmt = { workspace = true }
@@ -22,9 +27,12 @@ prism-common = { workspace = true }
 prism-presets = { workspace = true }
 prism-serde = { workspace = true }
 auto_impl = { workspace = true }
-rocksdb = { workspace = true }
+rocksdb = { version = "0.21.0", features = [
+  "multi-threaded-cf",
+], optional = true }
 
 [dev-dependencies]
+paste = { workspace = true }
 tempfile.workspace = true
 tokio = { workspace = true, default-features = false, features = [
   "macros",

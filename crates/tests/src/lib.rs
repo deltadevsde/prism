@@ -20,7 +20,7 @@ use prism_prover::{
 };
 use prism_storage::{
     Database,
-    rocksdb::{RocksDBConfig, RocksDBConnection},
+    sled::{SledConfig, SledConnection},
 };
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::sync::Arc;
@@ -36,8 +36,8 @@ const BRIDGE_0_ADDR: &str = "ws://localhost:26658";
 
 fn setup_db() -> Arc<Box<dyn Database>> {
     let temp_dir = TempDir::new().unwrap();
-    let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
-    let db = RocksDBConnection::new(&cfg).unwrap();
+    let cfg = SledConfig::new(temp_dir.path().to_str().unwrap());
+    let db = SledConnection::new(&cfg).unwrap();
     Arc::new(Box::new(db) as Box<dyn Database>)
 }
 

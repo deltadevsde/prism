@@ -1,5 +1,8 @@
 use anyhow::Result;
-use prism_storage::{DatabaseConfig, rocksdb::RocksDBConfig};
+use prism_storage::DatabaseConfig;
+
+#[cfg(feature = "rocksdb")]
+use prism_storage::rocksdb::RocksDBConfig;
 
 use crate::cli_args::{CliDatabaseArgs, CliDatabaseType};
 
@@ -9,6 +12,7 @@ pub fn apply_database_args(config: &mut DatabaseConfig, args: &CliDatabaseArgs) 
             // No cli arg specified, do not modify config
             Ok(())
         }
+        #[cfg(feature = "rocksdb")]
         (DatabaseConfig::RocksDB(rocksdb_config), Some(CliDatabaseType::RocksDB)) => {
             apply_rocksdb_args(rocksdb_config, args)
         }
@@ -20,6 +24,7 @@ pub fn apply_database_args(config: &mut DatabaseConfig, args: &CliDatabaseArgs) 
     }
 }
 
+#[cfg(feature = "rocksdb")]
 fn apply_rocksdb_args(config: &mut RocksDBConfig, args: &CliDatabaseArgs) -> Result<()> {
     if let Some(path) = &args.rocksdb_path {
         config.path = path.clone();
@@ -28,6 +33,7 @@ fn apply_rocksdb_args(config: &mut RocksDBConfig, args: &CliDatabaseArgs) -> Res
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
+#[cfg(feature = "rocksdb")]
 #[cfg(test)]
 mod tests {
     use anyhow::Result;

@@ -8,9 +8,9 @@ authors = [
 ]
 edition = "2024"
 description = "prism is the first trust-minimized key-transparency solution, allowing for automatic verification of service providers via light clients. Powered by Celestia."
-homepage = "https://prism.deltadevs.xyz"
+homepage = "https://prism.rs"
 repository = "https://github.com/deltadevsde/prism"
-license = "MIT"
+license = "AGPL-3.0"
 keywords = ["crypto", "key-transparency"]
 readme = "README.md"
 
@@ -84,8 +84,8 @@ reqwest = { version = "0.12", features = ["json"] }
 url = { version = "2.5" }
 
 # database
-rocksdb = { version = "0.21.0", features = ["multi-threaded-cf"] }
 redb = "2.6.0"
+sled = "0.34.7"
 
 # async
 async-trait = "0.1.86"
@@ -282,3 +282,8 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 # https://davidlattimore.github.io/posts/2024/02/04/speeding-up-the-rust-edit-build-run-cycle.html
 debug = "line-tables-only"
 split-debuginfo = "unpacked"
+
+[profile.bench]
+opt-level = 3
+debug = false
+lto = true

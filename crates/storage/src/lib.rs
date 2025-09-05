@@ -87,6 +87,9 @@
 mod database;
 mod factory;
 pub mod inmemory;
+pub mod sled;
+
+#[cfg(feature = "rocksdb")]
 pub mod rocksdb;
 
 #[cfg(test)]
