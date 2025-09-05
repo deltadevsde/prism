@@ -164,6 +164,7 @@ mod tests {
     fn test_light_client_da_args_application() -> Result<()> {
         // Test light client DA args
         let mut light_client_config = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+            bootnodes: vec![],
             celestia_network: CelestiaNetwork::Arabica,
             snark_namespace_id: "old_namespace".to_string(),
             fetch_timeout: Duration::from_secs(30),
@@ -207,6 +208,7 @@ mod tests {
     #[test]
     fn test_light_client_da_args_partial_override() -> Result<()> {
         let mut light_client_config = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+            bootnodes: vec![],
             celestia_network: CelestiaNetwork::Arabica,
             snark_namespace_id: "old_namespace".to_string(),
             fetch_timeout: Duration::from_secs(30),
@@ -317,6 +319,7 @@ mod tests {
     fn test_no_da_type_specified() -> Result<()> {
         // When no DA type is specified in CLI args, config should remain unchanged
         let original_config = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+            bootnodes: vec![],
             celestia_network: CelestiaNetwork::Arabica,
             snark_namespace_id: "original_namespace".to_string(),
             fetch_timeout: Duration::from_secs(30),
@@ -368,6 +371,7 @@ mod tests {
     #[test]
     fn test_celestia_store_type_disk_without_path_error() {
         let mut config = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+            bootnodes: vec![],
             celestia_network: CelestiaNetwork::Arabica,
             snark_namespace_id: "namespace".to_string(),
             fetch_timeout: Duration::from_secs(30),

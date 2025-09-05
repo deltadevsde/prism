@@ -1,17 +1,19 @@
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
+use libp2p::Multiaddr;
 use lumina_node::{Node, NodeBuilder};
-#[cfg(target_arch = "wasm32")]
-use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
 use prism_errors::DataAvailabilityError;
 use prism_events::{EventChannel, EventPublisher};
+use std::{self, str::FromStr, sync::Arc, time::Duration};
+use tokio::sync::{Mutex, RwLock};
+use tracing::{trace, warn};
+
+#[cfg(target_arch = "wasm32")]
+use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
 use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
 use serde::{Deserialize, Serialize};
 use serde_with::{DurationSeconds, serde_as};
-use std::{self, sync::Arc, time::Duration};
-use tokio::sync::{Mutex, RwLock};
-use tracing::{trace, warn};
 #[cfg(not(target_arch = "wasm32"))]
 use {
     blockstore::EitherBlockstore,
@@ -62,6 +64,15 @@ pub struct CelestiaLightClientDAConfig {
     ///
     /// Different networks have different block times and fee structures.
     pub celestia_network: CelestiaNetwork,
+
+    /// List of bootnodes to connect to.
+    ///
+    /// Bootnodes are used to bootstrap the connection to the network.
+    /// They are not required for normal operation but can help with initial
+    /// connection in case the network is not fully connected or a custom network are used.
+    ///
+    /// Are the String representations of libp2p multiaddresses on the Celestia network.
+    pub bootnodes: Vec<String>,
 
     /// Hex-encoded namespace ID for SNARK proofs.
     ///
@@ -204,6 +215,7 @@ impl Default for CelestiaLightClientDAConfig {
         Self {
             celestia_network: CelestiaNetwork::Arabica,
             snark_namespace_id: "00000000000000de1008".to_string(),
+            bootnodes: Vec::new(),
             pruning_window: DEFAULT_PRUNING_WINDOW,
             fetch_timeout: DEFAULT_FETCH_TIMEOUT,
             fetch_max_retries: DEFAULT_FETCH_MAX_RETRIES,
@@ -342,11 +354,31 @@ impl LightClientConnection {
     pub async fn new(config: &CelestiaLightClientDAConfig) -> Result<Self, DataAvailabilityError> {
         let (blockstore, store) = Self::setup_stores(&config.store).await?;
 
-        let (node, event_subscriber) = NodeBuilder::new()
+        let mut node = NodeBuilder::new()
             .network(config.celestia_network.clone())
             .store(store)
             .blockstore(blockstore)
-            .pruning_window(config.pruning_window)
+            .pruning_window(config.pruning_window);
+
+        if !config.bootnodes.is_empty() {
+            let multiaddrs: Vec<Multiaddr> = config
+                .bootnodes
+                .clone()
+                .into_iter()
+                .filter_map(|addr| Multiaddr::from_str(&addr).ok())
+                .collect();
+
+            if multiaddrs.len() != config.bootnodes.len() {
+                warn!(
+                    "Some bootnodes failed to parse to libp2p multiaddrs. Valid addresses contain: {:#?}",
+                    multiaddrs
+                );
+            }
+
+            node = node.bootnodes(multiaddrs);
+        }
+
+        let (node, event_subscriber) = node
             .start_subscribed()
             .await
             .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;

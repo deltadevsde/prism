@@ -92,6 +92,8 @@ pub struct LightClient {
 
     // The latest commitment.
     latest_commitment: Arc<RwLock<Option<Digest>>>,
+
+    mock_proof_verification: bool,
 }
 
 #[derive(Default, Clone)]
@@ -126,7 +128,23 @@ impl LightClient {
             latest_commitment: Arc::new(RwLock::new(None)),
             sync_state,
             cancellation_token,
+            mock_proof_verification: false,
         }
+    }
+
+    /// Enables mock proof verification for testing purposes only.
+    ///
+    /// # Safety
+    /// This method disables cryptographic proof verification, which is a critical
+    /// security mechanism. It should ONLY be used in test environments and NEVER
+    /// in production code.
+    ///
+    /// # Usage
+    /// This is intended for integration tests where proof generation/verification
+    /// may be too slow or unavailable.
+    pub fn enable_mock_proof_verification(&mut self) {
+        error!("PROOF VERIFICATION IS DISABLED - FOR TESTING ONLY");
+        self.mock_proof_verification = true;
     }
 
     pub async fn get_sync_state(&self) -> SyncState {
@@ -396,7 +414,10 @@ impl LightClient {
                     height: epoch.height(),
                     error: e.to_string(),
                 });
-                return Err(anyhow::anyhow!(e));
+                if !self.mock_proof_verification {
+                    return Err(anyhow::anyhow!(e));
+                }
+                epoch.commitments()
             }
         };
         let curr_commitment = commitments.current;
