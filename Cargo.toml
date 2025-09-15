@@ -162,7 +162,7 @@ prism-presets = { path = "crates/presets" }
 
 # testing
 mockall = "0.13.1"
-tempfile = "3.14"
+tempfile = "3.22"
 
 # wasm
 log = "0.4"
