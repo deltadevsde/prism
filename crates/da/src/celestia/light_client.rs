@@ -11,7 +11,7 @@ use tracing::{trace, warn};
 
 #[cfg(target_arch = "wasm32")]
 use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
-use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
+use prism_presets::PresetError;
 use serde::{Deserialize, Serialize};
 use serde_with::{DurationSeconds, serde_as};
 #[cfg(not(target_arch = "wasm32"))]
@@ -235,14 +235,16 @@ impl Default for CelestiaLightClientDAConfig {
     }
 }
 
-impl ApplyPreset<LightClientPreset> for CelestiaLightClientDAConfig {
-    fn apply_preset(&mut self, preset: &LightClientPreset) -> Result<(), PresetError> {
-        match preset {
-            LightClientPreset::Specter => {
-                self.celestia_network = CelestiaNetwork::Mocha;
-                self.snark_namespace_id = DEVNET_SPECTER_SNARK_NAMESPACE_ID.to_string();
-            }
-        }
+impl CelestiaLightClientDAConfig {
+    pub fn new_for_specter() -> std::result::Result<Self, PresetError> {
+        let mut config = Self::default();
+        config.apply_specter_preset()?;
+        Ok(config)
+    }
+
+    pub fn apply_specter_preset(&mut self) -> std::result::Result<(), PresetError> {
+        self.celestia_network = CelestiaNetwork::Mocha;
+        self.snark_namespace_id = DEVNET_SPECTER_SNARK_NAMESPACE_ID.to_string();
         Ok(())
     }
 }
