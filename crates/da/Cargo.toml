@@ -9,17 +9,23 @@ repository.workspace = true
 license.workspace = true
 keywords.workspace = true
 readme.workspace = true
-
 [features]
 default = []
+aws = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-sdk-sts", "dep:futures"]
 
 [dependencies]
+aws-config = { workspace = true, optional = true }
+aws-sdk-s3 = { workspace = true, optional = true }
+aws-sdk-sts = { workspace = true, optional = true }
 blockstore = { workspace = true }
+futures = { workspace = true, optional = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 serde_with = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
+thiserror = { workspace = true }
 redb = { workspace = true }
 lumina-node = { workspace = true }
 prism-serde = { workspace = true }
@@ -46,6 +52,7 @@ tokio = { workspace = true, default-features = false, features = [
   "sync",
   "time",
 ] }
+wasm-bindgen-futures = { workspace = true }
 
 [lints]
 workspace = true
