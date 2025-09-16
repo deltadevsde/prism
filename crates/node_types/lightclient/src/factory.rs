@@ -27,6 +27,11 @@ pub struct LightClientConfig {
     /// Must correspond to the signing key used by a trusted prover.
     #[serde(rename = "verifying_key")]
     pub verifying_key_str: String,
+
+    /// Enabling this option bypasses proof verification and should only be used
+    /// in development or testing environments. In production, this must be set
+    /// to `false` to ensure the integrity and security of the light client.
+    pub allow_mock_proofs: bool,
 }
 
 impl Default for LightClientConfig {
@@ -42,13 +47,18 @@ impl Default for LightClientConfig {
 
         Self {
             verifying_key_str: verifying_key_path.to_string_lossy().into_owned(),
+            allow_mock_proofs: false,
         }
     }
 }
 
 impl ApplyPreset<LightClientPreset> for LightClientConfig {
     fn apply_preset(&mut self, preset: &LightClientPreset) -> Result<(), PresetError> {
-        match &preset {
+        match preset {
+            LightClientPreset::Development => {
+                self.allow_mock_proofs = true;
+                Ok(())
+            }
             LightClientPreset::Specter => {
                 self.verifying_key_str = PRESET_SPECTER_PUBLIC_KEY_BASE64.to_string();
                 Ok(())
@@ -70,7 +80,12 @@ pub fn create_light_client(
     cancellation_token: CancellationToken,
 ) -> anyhow::Result<LightClient> {
     let verifying_key = VerifyingKey::from_spki_pem_path_or_base64(&config.verifying_key_str)?;
-    Ok(LightClient::new(da, verifying_key, cancellation_token))
+    let mut light_client = LightClient::new(da, verifying_key, cancellation_token);
+
+    if config.allow_mock_proofs {
+        light_client.enable_mock_proof_verification();
+    }
+    Ok(light_client)
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
@@ -113,6 +128,7 @@ mod tests {
         let da = Arc::new(InMemoryDataAvailabilityLayer::default());
         let config = LightClientConfig {
             verifying_key_str: PRESET_SPECTER_PUBLIC_KEY_BASE64.to_string(),
+            ..Default::default()
         };
         let cancellation_token = CancellationToken::new();
 
@@ -125,6 +141,7 @@ mod tests {
         let da = Arc::new(InMemoryDataAvailabilityLayer::default());
         let config = LightClientConfig {
             verifying_key_str: "invalid_key".to_string(),
+            ..Default::default()
         };
         let cancellation_token = CancellationToken::new();
 

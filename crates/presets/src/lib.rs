@@ -7,6 +7,7 @@ pub const PRESET_SPECTER_PUBLIC_KEY_BASE64: &str =
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LightClientPreset {
+    Development,
     Specter,
 }
 
@@ -15,6 +16,7 @@ impl FromStr for LightClientPreset {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "development" | "dev" => Ok(LightClientPreset::Development),
             "specter" => Ok(LightClientPreset::Specter),
             _ => Err(PresetError::UnknownPreset(format!(
                 "Unknown LightClientPreset: {}",
