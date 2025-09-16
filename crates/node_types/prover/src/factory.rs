@@ -77,7 +77,7 @@ pub struct ProverConfig {
     /// Path to the signing key file for generating proofs.
     /// If the file doesn't exist, a new key pair will be generated automatically.
     /// The private key must be kept secure as it signs SNARK proofs.
-    /// Default: `~/.prism/prover_key.pk8`
+    /// Default: `~/.prism/prover_key.p8`
     pub signing_key_path: String,
 
     /// Height of the first block with prism information.

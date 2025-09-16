@@ -58,7 +58,8 @@
 //!
 //!     // Configure the prover
 //!     let prover_config = ProverConfig {
-//!         signing_key_path: "/secure/keys/prover.pk8".to_string(),
+//!         signing_key_path: "/secure/keys/prover.p8".to_string(),
+//!         start_height: 1,
 //!         max_epochless_gap: 1000,        // Less frequent proofs
 //!         recursive_proofs: true,         // Production mode
 //!         webserver: WebServerConfig {
