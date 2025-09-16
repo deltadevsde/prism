@@ -38,6 +38,10 @@ impl CliOverridableConfig<FullNodePreset> for CliFullNodeConfig {
             self.full_node.verifying_key_str = verifying_key_str.clone();
         }
 
+        if let Some(start_height) = args.start_height {
+            self.full_node.start_height = start_height;
+        }
+
         Ok(())
     }
 }
@@ -56,6 +60,10 @@ impl CliOverridableConfig<ProverPreset> for CliProverConfig {
 
         if let Some(max_epochless_gap) = args.max_epochless_gap {
             self.prover.max_epochless_gap = max_epochless_gap;
+        }
+
+        if let Some(start_height) = args.start_height {
+            self.prover.start_height = start_height;
         }
 
         if let Some(recursive_proofs) = args.recursive_proofs {
