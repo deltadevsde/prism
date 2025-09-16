@@ -1,7 +1,5 @@
-use std::fmt::Display;
-
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 pub trait ToBinary {
     type Error: Display;
