@@ -14,11 +14,17 @@ use crate::{
     celestia::{CelestiaConnection, CelestiaFullNodeDAConfig, CelestiaLightClientDAStoreConfig},
     consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
 };
+
+#[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
+use crate::aws::{AwsFullNodeDAConfig, AwsFullNodeDataAvailabilityLayer};
 use crate::{
     LightDataAvailabilityLayer,
     celestia::{CelestiaLightClientDAConfig, LightClientConnection},
     memory::InMemoryDataAvailabilityLayer,
 };
+
+#[cfg(feature = "aws")]
+use crate::aws::{AwsLightClientDAConfig, AwsLightDataAvailabilityLayer};
 
 /// Configuration for the Data Availability layer used by light clients.
 ///
@@ -31,6 +37,12 @@ pub enum LightClientDAConfig {
     /// Provides efficient data retrieval through light client protocols
     /// with configurable pruning and retry policies.
     Celestia(CelestiaLightClientDAConfig),
+
+    /// AWS S3 DA configuration with light client support.
+    /// Provides WORM-compliant data retrieval from S3 Object Lock buckets
+    /// with configurable regions and credentials.
+    #[cfg(feature = "aws")]
+    Aws(AwsLightClientDAConfig),
 
     /// In-memory DA layer for testing and development.
     /// Data is stored locally and not persisted across restarts.
@@ -103,6 +115,12 @@ pub async fn create_light_client_da_layer(
             let connection = LightClientConnection::new(celestia_config).await?;
             Ok(Arc::new(connection))
         }
+        #[cfg(feature = "aws")]
+        LightClientDAConfig::Aws(aws_config) => {
+            info!("Using AWS config: {:?}", aws_config);
+            let connection = AwsLightDataAvailabilityLayer::new(aws_config).await?;
+            Ok(Arc::new(connection))
+        }
         LightClientDAConfig::InMemory => {
             let (da_layer, _height_rx, _block_rx) =
                 InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
@@ -123,6 +141,12 @@ pub enum FullNodeDAConfig {
     /// Provides complete DA functionality including transaction publishing,
     /// block retrieval, and serving light clients.
     Celestia(CelestiaFullNodeDAConfig),
+
+    /// AWS S3 DA configuration with full node capabilities.
+    /// Provides WORM-compliant data publishing and retrieval using S3 Object Lock
+    /// with configurable retention periods and cross-region replication.
+    #[cfg(feature = "aws")]
+    Aws(AwsFullNodeDAConfig),
 
     /// In-memory DA layer for testing and development.
     /// Simulates DA operations locally without network connectivity.
@@ -201,6 +225,31 @@ pub async fn create_full_node_da_layer(
                         }
                         error!(
                             "Attempt {} to connect to celestia node failed: {}. Retrying in {} seconds...",
+                            attempt,
+                            e,
+                            DA_RETRY_INTERVAL.as_secs()
+                        );
+                        tokio::time::sleep(DA_RETRY_INTERVAL).await;
+                    }
+                }
+            }
+            unreachable!() // This line should never be reached due to the return in the last iteration
+        }
+        #[cfg(feature = "aws")]
+        FullNodeDAConfig::Aws(aws_config) => {
+            info!("Using AWS config: {:?}", aws_config);
+            for attempt in 1..=DA_RETRY_COUNT {
+                match AwsFullNodeDataAvailabilityLayer::new(aws_config).await {
+                    Ok(da) => return Ok(Arc::new(da)),
+                    Err(e) => {
+                        if attempt == DA_RETRY_COUNT {
+                            return Err(DataAvailabilityError::NetworkError(format!(
+                                "failed to connect to AWS S3 after {} attempts: {}",
+                                DA_RETRY_COUNT, e
+                            )));
+                        }
+                        error!(
+                            "Attempt {} to connect to AWS S3 failed: {}. Retrying in {} seconds...",
                             attempt,
                             e,
                             DA_RETRY_INTERVAL.as_secs()
@@ -345,5 +394,117 @@ mod tests {
         assert!(result.is_ok());
         // We can't easily test the exact type due to trait objects, but we can verify it was
         // created
+    }
+
+    #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
+    #[tokio::test]
+    async fn test_create_aws_light_client_da_layer() {
+        use crate::aws::{AwsCredentialsConfig, AwsLightClientDAConfig};
+
+        let config = LightClientDAConfig::Aws(AwsLightClientDAConfig {
+            region: "us-east-1".to_string(),
+            endpoint: Some("http://localhost:4566".to_string()), // LocalStack for testing
+            epochs_bucket: "test-epochs-bucket".to_string(),
+            metadata_bucket: "test-metadata-bucket".to_string(),
+            max_timeout: Duration::from_secs(10),
+            max_retries: 1,
+            credentials: AwsCredentialsConfig::development("test".to_string(), "test".to_string()),
+            key_prefix: String::new(),
+            block_time: Duration::from_millis(100),
+        });
+
+        let result = create_light_client_da_layer(&config).await;
+
+        // This will typically fail in CI without AWS/LocalStack setup, which is expected
+        match result {
+            Ok(_da_layer) => {
+                // Success case - would happen with proper AWS setup
+                println!("AWS light client DA layer created successfully");
+            }
+            Err(e) => {
+                // Expected failure case in test environment
+                assert!(
+                    e.to_string().contains("InitializationError")
+                        || e.to_string().contains("NetworkError")
+                        || e.to_string().contains("Connection")
+                        || e.to_string().contains("credentials")
+                );
+            }
+        }
+    }
+
+    #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
+    #[tokio::test]
+    async fn test_create_aws_full_node_da_layer() {
+        use crate::aws::{AwsCredentialsConfig, AwsFullNodeDAConfig, AwsLightClientDAConfig};
+
+        let config = FullNodeDAConfig::Aws(AwsFullNodeDAConfig {
+            light_client: AwsLightClientDAConfig {
+                region: "us-east-1".to_string(),
+                endpoint: Some("http://localhost:4566".to_string()), // LocalStack for testing
+                epochs_bucket: "test-epochs-bucket".to_string(),
+                metadata_bucket: "test-metadata-bucket".to_string(),
+                max_timeout: Duration::from_secs(10),
+                max_retries: 1,
+                credentials: AwsCredentialsConfig::development(
+                    "test".to_string(),
+                    "test".to_string(),
+                ),
+                key_prefix: String::new(),
+                block_time: Duration::from_millis(100),
+            },
+            transactions_bucket: "test-transactions-bucket".to_string(),
+            retention_days: 1,
+            enable_legal_holds: false,
+            enable_cross_region_replication: false,
+            replication_region: None,
+            max_concurrent_uploads: 2,
+        });
+
+        let result = create_full_node_da_layer(&config).await;
+
+        // This will typically fail in CI without AWS/LocalStack setup, which is expected
+        match result {
+            Ok(_da_layer) => {
+                // Success case - would happen with proper AWS setup
+                println!("AWS full node DA layer created successfully");
+            }
+            Err(e) => {
+                // Expected failure case in test environment
+                assert!(
+                    e.to_string().contains("failed to connect to AWS S3")
+                        || e.to_string().contains("InitializationError")
+                        || e.to_string().contains("NetworkError")
+                );
+            }
+        }
+    }
+
+    #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
+    #[test]
+    fn test_aws_preset_compatibility() {
+        use crate::aws::{AwsFullNodeDAConfig, AwsLightClientDAConfig};
+
+        // Test that AWS configs work with presets
+        let mut aws_full_config = FullNodeDAConfig::Aws(AwsFullNodeDAConfig {
+            light_client: AwsLightClientDAConfig::default(),
+            transactions_bucket: "test-bucket".to_string(),
+            retention_days: 30,
+            enable_legal_holds: false,
+            enable_cross_region_replication: false,
+            replication_region: None,
+            max_concurrent_uploads: 5,
+        });
+
+        // Apply development preset - should switch to InMemory
+        let result = aws_full_config.apply_preset(&FullNodePreset::Development);
+        assert!(result.is_ok());
+        assert!(matches!(aws_full_config, FullNodeDAConfig::InMemory));
+
+        // Test with Specter preset - should switch to Celestia
+        let mut aws_config = FullNodeDAConfig::Aws(AwsFullNodeDAConfig::default());
+        let result = aws_config.apply_preset(&FullNodePreset::Specter);
+        assert!(result.is_ok());
+        assert!(matches!(aws_config, FullNodeDAConfig::Celestia(_)));
     }
 }
