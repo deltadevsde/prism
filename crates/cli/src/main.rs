@@ -56,11 +56,12 @@ async fn run_cli() -> Result<(), CliError> {
                 CliError::ConfigFailed(format!("Error loading light client config: {}", e))
             })?;
 
-            let da = create_light_client_da_layer(&config.da).await?;
             let telemetry = create_telemetry(
                 &config.telemetry,
                 vec![("node_type".to_string(), "lightclient".to_string())],
             )?;
+
+            let da = create_light_client_da_layer(&config.da).await?;
 
             let light_client =
                 create_light_client(da, &config.light_client, cancellation_token.clone()).map_err(
@@ -73,12 +74,13 @@ async fn run_cli() -> Result<(), CliError> {
                 CliError::ConfigFailed(format!("Error loading prover config: {}", e))
             })?;
 
-            let db = create_storage(&config.db).await?;
-            let da = create_full_node_da_layer(&config.da).await?;
             let telemetry = create_telemetry(
                 &config.telemetry,
                 vec![("node_type".to_string(), "prover".to_string())],
             )?;
+
+            let db = create_storage(&config.db).await?;
+            let da = create_full_node_da_layer(&config.da).await?;
 
             let prover = create_prover_as_prover(
                 &config.prover,
