@@ -21,7 +21,11 @@ pub enum CliCommands {
 
 #[derive(Args, Deserialize, Clone, Debug)]
 pub struct LightClientCliArgs {
-    #[arg(long)]
+    #[arg(long, conflicts_with = "specter")]
+    /// Start light client in development mode
+    pub dev: bool,
+
+    #[arg(long, conflicts_with = "dev")]
     /// Start light client with connection to specter testnet
     pub specter: bool,
 
@@ -46,7 +50,13 @@ impl CliArgs for LightClientCliArgs {
     }
 
     fn preset(&self) -> Option<LightClientPreset> {
-        self.specter.then_some(LightClientPreset::Specter)
+        if self.dev {
+            Some(LightClientPreset::Development)
+        } else if self.specter {
+            Some(LightClientPreset::Specter)
+        } else {
+            None
+        }
     }
 }
 
