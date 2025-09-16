@@ -129,6 +129,12 @@ celestia-rpc = { git = "https://github.com/deltadevsde/lumina.git" }
 celestia-types = { git = "https://github.com/deltadevsde/lumina.git" }
 lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
 
+# aws
+aws-config = { version = "1.6.2" }
+aws-sdk-s3 = { version = "1.83.0" }
+aws-sdk-sts = { version = "1.82.0" }
+aws-smithy-types = { version = "1.2.16" }
+
 # p2p
 libp2p = "0.54.1"
 
@@ -139,6 +145,7 @@ jmt = { git = "https://github.com/deltadevsde/jmt", branch = "rehashing-circuit"
 sha2 = "0.10.8"
 auto_impl = "1.2.0"
 paste = "1.0.15"
+backon = "1.5.2"
 
 # plotting
 plotters = "0.3.7"
