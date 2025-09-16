@@ -43,6 +43,7 @@ verifying_key_str = "config_file_key"
 
     // CLI args should override both file and env
     let cli_args = LightClientCliArgs {
+        dev: false,
         specter: false,
         config_path,
         verifying_key: Some("cli_key".to_string()),
@@ -72,6 +73,7 @@ verifying_key = "config_file_key"
     unsafe { env::set_var("PRISM__VERIFYING_KEY", "env_key") };
 
     let cli_args = LightClientCliArgs {
+        dev: false,
         specter: false,
         config_path,
         verifying_key: None, // No CLI override
@@ -93,6 +95,7 @@ fn test_config_loading_with_missing_file() -> Result<()> {
 
     // Use non-existent config path
     let cli_args = LightClientCliArgs {
+        dev: false,
         specter: false,
         config_path: "/non/existent/path.toml".to_string(),
         verifying_key: Some("cli_key".to_string()),
@@ -114,6 +117,7 @@ fn test_light_client_preset_application() -> Result<()> {
 
     // Test specter preset for light client
     let cli_args = LightClientCliArgs {
+        dev: false,
         specter: true,
         config_path,
         verifying_key: None,
@@ -133,6 +137,7 @@ fn test_full_node_config_cli_args_precedence() -> Result<()> {
 
     let config_content = r#"
 verifying_key = "config_key"
+start_height = 25000
 
 [webserver]
 enabled = false
@@ -149,6 +154,7 @@ path = "/config/path"
     // Set environment variables
     unsafe {
         env::set_var("PRISM__VERIFYING_KEY", "env_key");
+        env::set_var("PRISM__START_HEIGHT", "20000");
         env::set_var("PRISM__WEBSERVER__PORT", "9090");
         env::set_var("PRISM__DB__PATH", "/env/path");
     };
@@ -158,6 +164,7 @@ path = "/config/path"
         specter: false,
         config_path,
         verifying_key: Some("cli_key".to_string()),
+        start_height: Some(90),
         da: CliDaLayerArgs::default(),
         db: CliDatabaseArgs {
             db_type: Some(CliDatabaseType::RocksDB),
@@ -174,6 +181,7 @@ path = "/config/path"
 
     // CLI args should take precedence
     assert_eq!(config.full_node.verifying_key_str, "cli_key");
+    assert_eq!(config.full_node.start_height, 90);
     assert!(config.full_node.webserver.enabled);
     assert_eq!(config.full_node.webserver.host, "127.0.0.1");
     assert_eq!(config.full_node.webserver.port, 3000);
@@ -195,6 +203,7 @@ fn test_full_node_env_over_file() -> Result<()> {
 
     let config_content = r#"
 verifying_key_str = "config_key"
+start_height = 10000
 
 [webserver]
 port = 8080
@@ -206,6 +215,7 @@ port = 8080
 
     unsafe {
         env::set_var("PRISM__VERIFYING_KEY", "env_key");
+        env::set_var("PRISM__START_HEIGHT", "20000");
         env::set_var("PRISM__WEBSERVER__PORT", "9090");
     };
 
@@ -214,6 +224,7 @@ port = 8080
         specter: false,
         config_path,
         verifying_key: None, // No CLI override
+        start_height: None,
         da: Default::default(),
         db: Default::default(),
         web: Default::default(),
@@ -223,6 +234,7 @@ port = 8080
 
     // Environment should override file
     assert_eq!(config.full_node.verifying_key_str, "env_key");
+    assert_eq!(config.full_node.start_height, 20000);
     assert_eq!(config.full_node.webserver.port, 9090);
 
     clear_env_vars();
@@ -260,6 +272,7 @@ path = "/config/db"
         config_path,
         signing_key: Some("/cli/key.pem".to_string()),
         max_epochless_gap: Some(15),
+        start_height: Some(90),
         recursive_proofs: Some(true),
         da: Default::default(),
         db: CliDatabaseArgs {
@@ -278,6 +291,7 @@ path = "/config/db"
     // CLI args should take precedence
     assert_eq!(config.prover.signing_key_path, "/cli/key.pem");
     assert_eq!(config.prover.max_epochless_gap, 15);
+    assert_eq!(config.prover.start_height, 90);
     assert!(config.prover.recursive_proofs);
     assert!(config.prover.webserver.enabled);
     assert_eq!(config.prover.webserver.port, 4000);
@@ -299,6 +313,7 @@ fn test_prover_env_over_file() -> Result<()> {
     let config_content = r#"
 signing_key_path = "/config/key.pem"
 max_epochless_gap = 5
+start_height = 5
 recursive_proofs = false
 "#;
 
@@ -306,6 +321,7 @@ recursive_proofs = false
 
     unsafe {
         env::set_var("PRISM__MAX_EPOCHLESS_GAP", "20");
+        env::set_var("PRISM__START_HEIGHT", "22");
         env::set_var("PRISM__RECURSIVE_PROOFS", "true");
     };
 
@@ -315,6 +331,7 @@ recursive_proofs = false
         config_path,
         signing_key: None, // No CLI override
         max_epochless_gap: None,
+        start_height: None,
         recursive_proofs: None,
         da: Default::default(),
         db: Default::default(),
@@ -326,6 +343,7 @@ recursive_proofs = false
     // Environment should override file
     assert_eq!(config.prover.signing_key_path, "/config/key.pem"); // From file
     assert_eq!(config.prover.max_epochless_gap, 20); // From env
+    assert_eq!(config.prover.start_height, 22); // From env
     assert!(config.prover.recursive_proofs); // From env
 
     clear_env_vars();
@@ -344,6 +362,7 @@ fn test_full_node_preset_application() -> Result<()> {
         specter: false,
         config_path,
         verifying_key: None,
+        start_height: None,
         da: Default::default(),
         db: Default::default(),
         web: Default::default(),
@@ -368,6 +387,7 @@ fn test_prover_preset_application() -> Result<()> {
         config_path,
         signing_key: None,
         max_epochless_gap: None,
+        start_height: None,
         recursive_proofs: None,
         da: Default::default(),
         db: Default::default(),
@@ -390,6 +410,7 @@ fn test_conflicting_presets_error() {
         specter: true, // This should be prevented by clap conflicts_with
         config_path: "/tmp/config.toml".to_string(),
         verifying_key: None,
+        start_height: None,
         da: Default::default(),
         db: Default::default(),
         web: Default::default(),
@@ -407,6 +428,7 @@ fn test_partial_cli_override() -> Result<()> {
     let config_content = r#"
 signing_key_path = "/config/key.pem"
 max_epochless_gap = 5
+start_height = 10000
 recursive_proofs = false
 
 [webserver]
@@ -424,6 +446,7 @@ port = 8080
         config_path,
         signing_key: None,           // Use config value
         max_epochless_gap: Some(10), // Override config
+        start_height: Some(20000),   // Override config
         recursive_proofs: None,      // Use config value
         da: Default::default(),
         db: Default::default(),
@@ -439,6 +462,7 @@ port = 8080
     // Mixed values from config and CLI
     assert_eq!(config.prover.signing_key_path, "/config/key.pem"); // From config
     assert_eq!(config.prover.max_epochless_gap, 10); // From CLI
+    assert_eq!(config.prover.start_height, 20000); // From CLI
     assert!(!config.prover.recursive_proofs); // From config
     assert!(config.prover.webserver.enabled); // From config
     assert_eq!(config.prover.webserver.host, "127.0.0.1"); // From CLI
@@ -465,6 +489,7 @@ invalid toml syntax
         config_path,
         signing_key: Some("/cli/key.pem".to_string()),
         max_epochless_gap: Some(5),
+        start_height: Some(25000),
         recursive_proofs: Some(true),
         da: Default::default(),
         db: Default::default(),
@@ -477,6 +502,7 @@ invalid toml syntax
     // CLI args should still be applied to default config
     assert_eq!(config.prover.signing_key_path, "/cli/key.pem");
     assert_eq!(config.prover.max_epochless_gap, 5);
+    assert_eq!(config.prover.start_height, 25000);
     assert!(config.prover.recursive_proofs);
 
     Ok(())

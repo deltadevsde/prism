@@ -175,7 +175,7 @@ impl Prover {
             latest_epoch_da_height.clone(),
             sequencer.clone(),
             prover_engine.clone(),
-        ));
+        )?);
 
         Ok(Self {
             options: opts.clone(),

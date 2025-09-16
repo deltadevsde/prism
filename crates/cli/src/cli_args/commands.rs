@@ -21,7 +21,11 @@ pub enum CliCommands {
 
 #[derive(Args, Deserialize, Clone, Debug)]
 pub struct LightClientCliArgs {
-    #[arg(long)]
+    #[arg(long, conflicts_with = "specter")]
+    /// Start light client in development mode
+    pub dev: bool,
+
+    #[arg(long, conflicts_with = "dev")]
     /// Start light client with connection to specter testnet
     pub specter: bool,
 
@@ -46,7 +50,13 @@ impl CliArgs for LightClientCliArgs {
     }
 
     fn preset(&self) -> Option<LightClientPreset> {
-        self.specter.then_some(LightClientPreset::Specter)
+        if self.dev {
+            Some(LightClientPreset::Development)
+        } else if self.specter {
+            Some(LightClientPreset::Specter)
+        } else {
+            None
+        }
     }
 }
 
@@ -67,6 +77,11 @@ pub struct FullNodeCliArgs {
     /// Prover's verifying key, used to verify epoch signatures. Expected to be a path to a file or
     /// base64-encoded SPKI DER content directly.
     pub verifying_key: Option<String>,
+
+    #[arg(long)]
+    /// The height of the first prism block to consider
+    /// Default: 1
+    pub start_height: Option<u64>,
 
     #[command(flatten)]
     pub da: CliDaLayerArgs,
@@ -117,6 +132,11 @@ pub struct ProverCliArgs {
     #[arg(long)]
     /// Maximum number of epochs allowed without proofs before triggering action
     pub max_epochless_gap: Option<u64>,
+
+    #[arg(long)]
+    /// The height of the first prism block to consider
+    /// Default: 1
+    pub start_height: Option<u64>,
 
     #[arg(long)]
     /// Enable recursive proofs for more efficient verification

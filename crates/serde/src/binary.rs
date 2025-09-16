@@ -1,8 +1,8 @@
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 pub trait ToBinary {
-    type Error;
+    type Error: Display;
 
     fn encode_to_bytes(&self) -> Result<Vec<u8>, Self::Error>;
 }
@@ -19,7 +19,7 @@ where
 }
 
 pub trait FromBinary: Sized {
-    type Error;
+    type Error: Display;
 
     fn decode_from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, Self::Error>;
 }

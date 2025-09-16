@@ -63,14 +63,17 @@ impl LightClientDAConfig {
 impl ApplyPreset<LightClientPreset> for LightClientDAConfig {
     fn apply_preset(&mut self, preset: &LightClientPreset) -> Result<(), PresetError> {
         match preset {
+            LightClientPreset::Development => {
+                // Nothing to change for DA in development preset
+                Ok(())
+            }
             LightClientPreset::Specter => {
                 // When applying specter preset, we need to use celestia
                 // If it is not set, apply preset on default celestia config
                 if let Self::Celestia(celestia_config) = self {
-                    celestia_config.apply_preset(preset)
+                    celestia_config.apply_specter_preset()
                 } else {
-                    *self =
-                        Self::Celestia(CelestiaLightClientDAConfig::default_with_preset(preset)?);
+                    *self = Self::Celestia(CelestiaLightClientDAConfig::new_for_specter()?);
                     Ok(())
                 }
             }

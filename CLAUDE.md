@@ -52,11 +52,16 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 - Include tests for new functionality
 - Error handling: Use Result types with descriptive error messages
 - Naming: follow Rust conventions (snake_case for functions/variables, CamelCase for types)
-- Documentation: Add comments for public APIs and complex logic
 - File organization: Group related functionality in modules
 
+### Documentation
+- Add comments mostly for public APIs that are exposed on crate level
+- Only add comments for private APIs when they are complex or have non-obvious behavior
+- Keep public method docstrings short and focused (e.g. very short summary, very short explanation of parameters & return value)
+- If necessary, use longer examples only in module files (mod.rs or lib.rs)
+
 ### Testing
-- Do not write tests for derived traits (Clone, Debug, PartialEq, etc), unless there's a custom implementation for them
+- Do not write tests for derived traits (Clone, Debug, PartialEq, Serialize, Deserialize, etc), unless there's a custom implementation for them
 
 ### Commits
 - Always combine related changes in focused, granular commits

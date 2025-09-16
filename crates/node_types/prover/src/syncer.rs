@@ -34,10 +34,14 @@ impl Syncer {
         latest_epoch_da_height: Arc<RwLock<u64>>,
         sequencer: Arc<Sequencer>,
         prover_engine: Arc<dyn ProverEngine>,
-    ) -> Self {
+    ) -> Result<Self> {
+        if config.start_height == 0 {
+            return Err(anyhow!("Start height must be >= 1"));
+        }
+
         let event_pub = Arc::new(da.event_channel().publisher());
 
-        Self {
+        Ok(Self {
             da,
             db,
             tx_buffer: Arc::new(RwLock::new(TxBuffer::new())),
@@ -49,7 +53,7 @@ impl Syncer {
             prover_engine,
             event_pub,
             is_prover_enabled: config.prover_enabled,
-        }
+        })
     }
 
     pub fn get_da(&self) -> Arc<dyn DataAvailabilityLayer> {

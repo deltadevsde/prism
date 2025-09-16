@@ -35,6 +35,10 @@ pub struct FullNodeConfig {
     #[serde(rename = "verifying_key")]
     pub verifying_key_str: String,
 
+    /// Height of the first block with prism information.
+    /// Default: 1
+    pub start_height: u64,
+
     /// Web server configuration for REST API endpoints.
     pub webserver: WebServerConfig,
 }
@@ -48,6 +52,7 @@ impl Default for FullNodeConfig {
                 .join(".prism/prover_key.spki")
                 .to_string_lossy()
                 .into_owned(),
+            start_height: 1,
             webserver: WebServerConfig::default(),
         }
     }
@@ -72,8 +77,12 @@ pub struct ProverConfig {
     /// Path to the signing key file for generating proofs.
     /// If the file doesn't exist, a new key pair will be generated automatically.
     /// The private key must be kept secure as it signs SNARK proofs.
-    /// Default: `~/.prism/prover_key.pk8`
+    /// Default: `~/.prism/prover_key.p8`
     pub signing_key_path: String,
+
+    /// Height of the first block with prism information.
+    /// Default: 1
+    pub start_height: u64,
 
     /// Maximum number of epochs without generating a proof before forcing one.
     /// Lower values provide faster finality but increase computational overhead.
@@ -94,11 +103,12 @@ impl Default for ProverConfig {
             signing_key_path: dirs::home_dir()
                 .or_else(|| env::current_dir().ok())
                 .unwrap_or_else(|| PathBuf::from("."))
-                .join(".prism/prover_key.pk8")
+                .join(".prism/prover_key.p8")
                 .to_string_lossy()
                 .into_owned(),
             max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
             recursive_proofs: true,
+            start_height: 1,
             webserver: WebServerConfig::default(),
         }
     }
@@ -130,7 +140,7 @@ pub fn create_prover_as_full_node(
     let prover_opts = ProverOptions {
         syncer: SyncerOptions {
             verifying_key,
-            start_height: 1,
+            start_height: config.start_height,
             max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
             prover_enabled: false,
         },
@@ -175,7 +185,7 @@ pub fn create_prover_as_prover(
     let prover_opts = ProverOptions {
         syncer: SyncerOptions {
             verifying_key: signing_key.verifying_key(),
-            start_height: 1,
+            start_height: config.start_height,
             max_epochless_gap: config.max_epochless_gap,
             prover_enabled: true,
         },
@@ -248,7 +258,7 @@ mod tests {
     fn test_prover_config_default() {
         let config = ProverConfig::default();
 
-        assert!(config.signing_key_path.contains(".prism/prover_key.pk8"));
+        assert!(config.signing_key_path.contains(".prism/prover_key.p8"));
         assert_eq!(config.max_epochless_gap, DEFAULT_MAX_EPOCHLESS_GAP);
         assert!(config.recursive_proofs);
         assert_eq!(config.webserver, WebServerConfig::default());
@@ -277,7 +287,7 @@ mod tests {
     fn test_create_prover_as_full_node() {
         let config = FullNodeConfig {
             verifying_key_str: PRESET_SPECTER_PUBLIC_KEY_BASE64.to_string(),
-            webserver: WebServerConfig::default(),
+            ..FullNodeConfig::default()
         };
 
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
@@ -293,7 +303,7 @@ mod tests {
     fn test_create_prover_as_full_node_with_invalid_key() {
         let config = FullNodeConfig {
             verifying_key_str: "invalid_key".to_string(),
-            webserver: WebServerConfig::default(),
+            ..FullNodeConfig::default()
         };
 
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
@@ -308,7 +318,7 @@ mod tests {
     #[test]
     fn test_create_prover_as_prover_with_existing_key() {
         let temp_dir = TempDir::new().unwrap();
-        let signing_key_path = temp_dir.path().join("test_key.pk8");
+        let signing_key_path = temp_dir.path().join("test_key.p8");
 
         // Create a key pair first
         let signing_key = SigningKey::new_ed25519();
@@ -316,9 +326,7 @@ mod tests {
 
         let config = ProverConfig {
             signing_key_path: signing_key_path.to_string_lossy().to_string(),
-            max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
-            recursive_proofs: true,
-            webserver: WebServerConfig::default(),
+            ..ProverConfig::default()
         };
 
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
@@ -333,13 +341,11 @@ mod tests {
     #[test]
     fn test_create_prover_as_prover_generates_new_key() {
         let temp_dir = TempDir::new().unwrap();
-        let signing_key_path = temp_dir.path().join("new_key.pk8");
+        let signing_key_path = temp_dir.path().join("new_key.p8");
 
         let config = ProverConfig {
             signing_key_path: signing_key_path.to_string_lossy().to_string(),
-            max_epochless_gap: DEFAULT_MAX_EPOCHLESS_GAP,
-            recursive_proofs: true,
-            webserver: WebServerConfig::default(),
+            ..ProverConfig::default()
         };
 
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
@@ -359,11 +365,13 @@ mod tests {
     fn test_full_node_config_clone() {
         let config = FullNodeConfig {
             verifying_key_str: "test_key".to_string(),
+            start_height: 10,
             webserver: WebServerConfig::default(),
         };
 
         let cloned = config.clone();
         assert_eq!(config.verifying_key_str, cloned.verifying_key_str);
+        assert_eq!(config.start_height, cloned.start_height);
     }
 
     #[test]
@@ -372,6 +380,7 @@ mod tests {
             signing_key_path: "test_path".to_string(),
             max_epochless_gap: 100,
             recursive_proofs: false,
+            start_height: 10,
             webserver: WebServerConfig::default(),
         };
 
@@ -379,31 +388,6 @@ mod tests {
         assert_eq!(config.signing_key_path, cloned.signing_key_path);
         assert_eq!(config.max_epochless_gap, cloned.max_epochless_gap);
         assert_eq!(config.recursive_proofs, cloned.recursive_proofs);
-    }
-
-    #[test]
-    fn test_full_node_config_debug() {
-        let config = FullNodeConfig {
-            verifying_key_str: "test_key".to_string(),
-            webserver: WebServerConfig::default(),
-        };
-
-        let debug_str = format!("{:?}", config);
-        assert!(debug_str.contains("test_key"));
-    }
-
-    #[test]
-    fn test_prover_config_debug() {
-        let config = ProverConfig {
-            signing_key_path: "test_path".to_string(),
-            max_epochless_gap: 100,
-            recursive_proofs: false,
-            webserver: WebServerConfig::default(),
-        };
-
-        let debug_str = format!("{:?}", config);
-        assert!(debug_str.contains("test_path"));
-        assert!(debug_str.contains("100"));
-        assert!(debug_str.contains("false"));
+        assert_eq!(config.start_height, cloned.start_height);
     }
 }
