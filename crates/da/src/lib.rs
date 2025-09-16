@@ -25,6 +25,12 @@
 //! - Supports both light client and full node protocols
 //! - Configurable through [`CelestiaLightClientDAConfig`] and [`CelestiaFullNodeDAConfig`]
 //!
+//! ### AWS S3 (Feature: `aws`)
+//! - WORM-compliant data availability using S3 Object Lock
+//! - Supports both light client (read-only) and full node protocols
+//! - Cross-region replication for disaster recovery
+//! - Configurable through [`aws::AwsLightClientDAConfig`] and [`aws::AwsFullNodeDAConfig`]
+//!
 //! ### InMemory
 //! - Local storage for testing and development
 //! - No persistence across restarts
@@ -89,6 +95,8 @@
 //! }
 //! ```
 
+#[cfg(feature = "aws")]
+pub mod aws;
 pub mod celestia;
 pub mod consts;
 mod factory;
@@ -196,7 +204,7 @@ impl From<EpochCommitments> for (Digest, Digest) {
 /// `VerifiableStateTransition` is a trait wrapper around `FinalizedEpoch` that allows for mocking.
 /// The only concrete implementation of this trait is by `FinalizedEpoch`.
 #[automock]
-pub trait VerifiableStateTransition: Send {
+pub trait VerifiableStateTransition: Send + Sync {
     fn verify(
         &self,
         vk: &VerifyingKey,
@@ -376,17 +384,15 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
+    async fn start(&self) -> anyhow::Result<()>;
     async fn get_finalized_epochs(&self, height: u64) -> anyhow::Result<Vec<VerifiableEpoch>>;
-
     fn event_channel(&self) -> Arc<EventChannel>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 pub trait DataAvailabilityLayer: LightDataAvailabilityLayer + Send + Sync {
-    async fn start(&self) -> anyhow::Result<()>;
     async fn get_latest_height(&self) -> anyhow::Result<u64>;
-    async fn initialize_sync_target(&self) -> anyhow::Result<u64>;
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> anyhow::Result<u64>;
     async fn get_transactions(&self, height: u64) -> anyhow::Result<Vec<Transaction>>;
     async fn submit_transactions(&self, transactions: Vec<Transaction>) -> anyhow::Result<u64>;

@@ -12,6 +12,8 @@ use tokio::{
     time::{Duration, interval},
 };
 use tracing::debug;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_futures;
 
 const IN_MEMORY_DEFAULT_BLOCK_TIME: Duration = Duration::from_secs(15);
 
@@ -134,6 +136,24 @@ impl InMemoryDataAvailabilityLayer {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn start(&self) -> Result<()> {
+        let this = Arc::new(self.clone());
+        tokio::spawn(async move {
+            this.produce_blocks().await;
+        });
+        Ok(())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    async fn start(&self) -> Result<()> {
+        let this = Arc::new(self.clone());
+        wasm_bindgen_futures::spawn_local(async move {
+            this.produce_blocks().await;
+        });
+        Ok(())
+    }
+
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         let blocks = self.blocks.read().await;
         match blocks.get(height.saturating_sub(1) as usize) {
@@ -155,24 +175,12 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
-    async fn start(&self) -> Result<()> {
-        let this = Arc::new(self.clone());
-        tokio::spawn(async move {
-            this.produce_blocks().await;
-        });
-        Ok(())
-    }
-
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
         self.height_update_tx.subscribe()
     }
 
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(*self.latest_height.read().await)
-    }
-
-    async fn initialize_sync_target(&self) -> Result<u64> {
-        self.get_latest_height().await
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {

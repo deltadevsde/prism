@@ -239,35 +239,6 @@ impl CelestiaConnection {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for CelestiaConnection {
-    async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
-        trace!("searching for epoch on da layer at height {}", height);
-        let valid_epochs: Vec<VerifiableEpoch> = self
-            .try_fetch_blobs(height, self.snark_namespace)
-            .await?
-            .into_iter()
-            .filter_map(|blob| {
-                match FinalizedEpoch::try_from(&blob) {
-                    Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
-                    Err(e) => {
-                        warn!(
-                            "Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}",
-                            height, e, &blob
-                        );
-                        None
-                    }
-                }
-            })
-            .collect();
-        Ok(valid_epochs)
-    }
-
-    fn event_channel(&self) -> Arc<EventChannel> {
-        self.event_channel.clone()
-    }
-}
-
-#[async_trait]
-impl DataAvailabilityLayer for CelestiaConnection {
     async fn start(&self) -> Result<()> {
         let mut header_sub = HeaderClient::header_subscribe(&self.client)
             .await
@@ -298,22 +269,41 @@ impl DataAvailabilityLayer for CelestiaConnection {
         Ok(())
     }
 
+    async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
+        trace!("searching for epoch on da layer at height {}", height);
+        let valid_epochs: Vec<VerifiableEpoch> = self
+            .try_fetch_blobs(height, self.snark_namespace)
+            .await?
+            .into_iter()
+            .filter_map(|blob| {
+                match FinalizedEpoch::try_from(&blob) {
+                    Ok(epoch) => Some(Box::new(epoch) as VerifiableEpoch),
+                    Err(e) => {
+                        warn!(
+                            "Ignoring blob: marshalling blob from height {} to epoch json failed with error {}: {:?}",
+                            height, e, &blob
+                        );
+                        None
+                    }
+                }
+            })
+            .collect();
+        Ok(valid_epochs)
+    }
+
+    fn event_channel(&self) -> Arc<EventChannel> {
+        self.event_channel.clone()
+    }
+}
+
+#[async_trait]
+impl DataAvailabilityLayer for CelestiaConnection {
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
         self.height_update_tx.subscribe()
     }
 
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(self.sync_target.load(Ordering::Relaxed))
-    }
-
-    async fn initialize_sync_target(&self) -> Result<u64> {
-        let height = HeaderClient::header_network_head(&self.client)
-            .await
-            .context("Failed to get network head from DA layer")
-            .map(|extended_header| extended_header.header.height.value())?;
-
-        self.sync_target.store(height, Ordering::Relaxed);
-        Ok(height)
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
