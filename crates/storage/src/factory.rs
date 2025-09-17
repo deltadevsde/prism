@@ -6,11 +6,10 @@ use prism_presets::{ApplyPreset, FullNodePreset, PresetError, ProverPreset};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use crate::{
-    Database,
-    inmemory::InMemoryDatabase,
-    rocksdb::{RocksDBConfig, RocksDBConnection},
-};
+use crate::{Database, inmemory::InMemoryDatabase};
+
+#[cfg(feature = "rocksdb")]
+use crate::rocksdb::{RocksDBConfig, RocksDBConnection};
 
 /// Configuration for the storage layer used by Prism nodes.
 ///
@@ -26,6 +25,7 @@ pub enum DatabaseConfig {
 
     /// RocksDB storage backend for production deployments.
     /// Provides persistent, crash-resistant storage with LSM-tree architecture.
+    #[cfg(feature = "rocksdb")]
     RocksDB(RocksDBConfig),
 }
 
@@ -65,6 +65,7 @@ pub async fn create_storage(
     info!("Initializing storage layer...");
     match config {
         DatabaseConfig::InMemory => Ok(Arc::new(Box::new(InMemoryDatabase::new()))),
+        #[cfg(feature = "rocksdb")]
         DatabaseConfig::RocksDB(config) => {
             let db = RocksDBConnection::new(config)?;
             Ok(Arc::new(Box::new(db)))
@@ -85,6 +86,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "rocksdb")]
     fn test_database_config_apply_full_node_development_preset() {
         let mut config = DatabaseConfig::RocksDB(RocksDBConfig::new("/test/data"));
         let result = config.apply_preset(&FullNodePreset::Development);
@@ -104,6 +106,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "rocksdb")]
     fn test_database_config_apply_prover_development_preset() {
         let mut config = DatabaseConfig::RocksDB(RocksDBConfig::new("/test/data"));
         let result = config.apply_preset(&ProverPreset::Development);
@@ -132,6 +135,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "rocksdb")]
     async fn test_create_storage_rocksdb() {
         use tempfile::TempDir;
 
