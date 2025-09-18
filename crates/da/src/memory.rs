@@ -6,7 +6,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::transaction::Transaction;
 use prism_events::{EventChannel, PrismEvent};
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 use tokio::{
     sync::{RwLock, broadcast},
     time::{Duration, interval},
@@ -38,6 +41,9 @@ pub struct InMemoryDataAvailabilityLayer {
     // For testing: Because mock proofs are generated very quickly, it is
     // helpful to delay the posting of the epoch to test some latency scenarios.
     epoch_posting_delay: Option<Duration>,
+
+    /// Flag to track if the service has been started
+    started: Arc<AtomicBool>,
 }
 
 impl Default for InMemoryDataAvailabilityLayer {
@@ -64,6 +70,7 @@ impl InMemoryDataAvailabilityLayer {
                 block_time,
                 event_channel,
                 epoch_posting_delay: None,
+                started: Arc::new(AtomicBool::new(false)),
             },
             height_rx,
             block_rx,
@@ -88,6 +95,7 @@ impl InMemoryDataAvailabilityLayer {
                 block_time,
                 event_channel,
                 epoch_posting_delay: Some(epoch_delay),
+                started: Arc::new(AtomicBool::new(false)),
             },
             height_rx,
             block_rx,
@@ -138,6 +146,12 @@ impl InMemoryDataAvailabilityLayer {
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     #[cfg(not(target_arch = "wasm32"))]
     async fn start(&self) -> Result<()> {
+        // Try to set started flag atomically
+        if self.started.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_err()
+        {
+            return Ok(());
+        }
+
         let this = Arc::new(self.clone());
         tokio::spawn(async move {
             this.produce_blocks().await;
@@ -147,6 +161,12 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
 
     #[cfg(target_arch = "wasm32")]
     async fn start(&self) -> Result<()> {
+        // Try to set started flag atomically
+        if self.started.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_err()
+        {
+            return Ok(());
+        }
+
         let this = Arc::new(self.clone());
         wasm_bindgen_futures::spawn_local(async move {
             this.produce_blocks().await;

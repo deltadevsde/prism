@@ -2,7 +2,13 @@ use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use prism_errors::DataAvailabilityError;
 use prism_events::{EventChannel, EventPublisher, PrismEvent};
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 use tracing::{debug, info, warn};
 
 use crate::{LightDataAvailabilityLayer, VerifiableEpoch, aws::client::AwsDataAvailabilityClient};
@@ -23,6 +29,9 @@ pub struct AwsLightDataAvailabilityLayer {
     event_channel: Arc<EventChannel>,
 
     block_time: Duration,
+
+    /// Flag to track if the service has been started
+    started: Arc<AtomicBool>,
 }
 
 impl AwsLightDataAvailabilityLayer {
@@ -34,6 +43,7 @@ impl AwsLightDataAvailabilityLayer {
             client,
             event_channel: Arc::new(EventChannel::new()),
             block_time: config.block_time,
+            started: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -88,7 +98,17 @@ impl AwsLightDataAvailabilityLayer {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for AwsLightDataAvailabilityLayer {
     async fn start(&self) -> Result<()> {
+        // Try to set started flag atomically
+        if self.started.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_err()
+        {
+            info!("AWS light data availability layer already started");
+            return Ok(());
+        }
+
+        info!("Starting AWS light data availability layer");
+
         self.start_height_monitoring().await?;
+
         Ok(())
     }
 

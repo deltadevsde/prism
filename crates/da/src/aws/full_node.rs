@@ -7,7 +7,7 @@ use prism_errors::DataAvailabilityError;
 use prism_events::{EventChannel, PrismEvent};
 use std::sync::{
     Arc,
-    atomic::{AtomicU64, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
 };
 use tokio::{
     sync::{RwLock, broadcast},
@@ -65,8 +65,8 @@ pub struct AwsFullNodeDataAvailabilityLayer {
     /// Event channel for publishing data availability events
     event_channel: Arc<EventChannel>,
 
-    /// Background task handle for height monitoring
-    _height_monitor_handle: Option<JoinHandle<()>>,
+    /// Flag to track if the service has been started
+    started: Arc<AtomicBool>,
 }
 
 impl AwsFullNodeDataAvailabilityLayer {
@@ -88,7 +88,7 @@ impl AwsFullNodeDataAvailabilityLayer {
             block_time: config.light_client.block_time,
             height_update_tx,
             event_channel,
-            _height_monitor_handle: None,
+            started: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -98,6 +98,7 @@ impl AwsFullNodeDataAvailabilityLayer {
         let height_update_tx = self.height_update_tx.clone();
         let event_publisher = self.event_channel.publisher();
         let block_time = self.block_time;
+        let transaction_offset = self.transaction_offset.clone();
 
         let _handle = tokio::spawn(async move {
             loop {
@@ -108,6 +109,9 @@ impl AwsFullNodeDataAvailabilityLayer {
                 let completed_height = *height_guard;
                 *height_guard += 1;
                 drop(height_guard);
+
+                // Reset transaction offset for new height
+                transaction_offset.store(0, Ordering::Relaxed);
 
                 // Broadcast height update
                 let _ = height_update_tx.send(completed_height);
@@ -138,6 +142,13 @@ impl AwsFullNodeDataAvailabilityLayer {
 #[async_trait]
 impl LightDataAvailabilityLayer for AwsFullNodeDataAvailabilityLayer {
     async fn start(&self) -> Result<()> {
+        // Try to set started flag atomically
+        if self.started.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_err()
+        {
+            info!("AWS full node data availability layer already started");
+            return Ok(());
+        }
+
         info!("Starting AWS full node data availability layer");
 
         let current_height = *self.current_height.read().await;
@@ -193,7 +204,10 @@ impl DataAvailabilityLayer for AwsFullNodeDataAvailabilityLayer {
         let height = *height_guard;
         let transaction_offset = self.transaction_offset.load(Ordering::Relaxed);
 
+        let count = transactions.len() as u64;
         self.client.submit_transactions(transactions, transaction_offset, height).await?;
+        // Advance offset on success
+        self.transaction_offset.fetch_add(count, Ordering::Relaxed);
 
         info!("Transactions submitted at height {}", height);
 
