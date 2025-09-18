@@ -48,6 +48,7 @@
 //!     // In-memory for development
 //!     let config = LightClientDAConfig::InMemory;
 //!     let da = create_light_client_da_layer(&config).await?;
+//!     da.start().await?;
 //!
 //!     let epochs = da.get_finalized_epochs(100).await?;
 //!     for epoch in epochs {

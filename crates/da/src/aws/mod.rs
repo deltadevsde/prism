@@ -26,20 +26,19 @@
 //! ```text
 //! bucket/
 //! ├── epochs/
-//! │   ├── 1/epoch.bin          (height 1 epoch data)
-//! │   ├── 2/epoch.bin          (height 2 epoch data)
+//! │   ├── 000000000001/epoch_0.bin    (epoch 0 at height 1)
+//! │   ├── 000000000002/epoch_1.bin    (epoch 1 at height 1)
 //! │   └── ...
 //! ├── transactions/
-//! │   ├── 1/
+//! │   ├── 000000000001/
 //! │   │   ├── tx_0.bin         (transaction 0 at height 1)
 //! │   │   ├── tx_1.bin         (transaction 1 at height 1)
 //! │   │   └── ...
-//! │   └── 2/
+//! │   └── 000000000002/
 //! │       ├── tx_0.bin         (transaction 0 at height 2)
 //! │       └── ...
 //! └── metadata/
-//!     ├── epochs/1/info.json   (metadata for epoch 1)
-//!     └── transactions/1/info.json
+//!     ├── info.json            (metadata for both things)
 //! ```
 //!
 //! # Security Considerations
@@ -98,7 +97,6 @@
 //! # Usage Examples
 //!
 //! ## Light Client
-//!
 //! ```rust,no_run
 //! use prism_da::aws::{AwsLightDataAvailabilityLayer, AwsLightClientDAConfig};
 //! use prism_da::LightDataAvailabilityLayer;
@@ -116,7 +114,6 @@
 //! ```
 //!
 //! ## Full Node
-//!
 //! ```rust,no_run
 //! use prism_da::aws::{AwsFullNodeDataAvailabilityLayer, AwsFullNodeDAConfig};
 //! use prism_da::{DataAvailabilityLayer, LightDataAvailabilityLayer};
