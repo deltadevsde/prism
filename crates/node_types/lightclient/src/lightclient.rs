@@ -153,6 +153,8 @@ impl LightClient {
 
     #[cfg(target_arch = "wasm32")]
     pub async fn run(self: Arc<Self>) -> Result<()> {
+        self.da.start().await?;
+
         let (_, _) =
             std::future::join!(self.clone().sync_incoming_heights(), self.sync_backwards()).await;
 
@@ -161,6 +163,8 @@ impl LightClient {
 
     #[cfg(not(target_arch = "wasm32"))]
     pub async fn run(self: Arc<Self>) -> Result<()> {
+        self.da.start().await?;
+
         let mut futures = JoinSet::new();
 
         let lc = Arc::clone(&self);

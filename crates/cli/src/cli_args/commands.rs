@@ -38,6 +38,11 @@ pub struct LightClientCliArgs {
     /// base64-encoded SPKI DER content directly.
     pub verifying_key: Option<String>,
 
+    #[arg(long)]
+    /// Whether to allow the verification of mock proofs
+    /// Default: false
+    pub allow_mock_proofs: Option<bool>,
+
     #[command(flatten)]
     pub da: CliDaLayerArgs,
 }
