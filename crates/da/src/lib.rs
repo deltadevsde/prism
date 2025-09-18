@@ -95,7 +95,7 @@
 //! }
 //! ```
 
-#[cfg(feature = "aws")]
+#[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
 pub mod aws;
 pub mod celestia;
 pub mod consts;
