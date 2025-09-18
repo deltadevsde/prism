@@ -218,6 +218,7 @@ impl DataAvailabilityLayer for AwsFullNodeDataAvailabilityLayer {
         // Take read lock to get consistent height and prevent increments during submission
         let height_guard = self.current_height.read().await;
         let height = *height_guard;
+        drop(height_guard);
         let transaction_offset = self.transaction_offset.load(Ordering::Relaxed);
 
         let count = transactions.len() as u64;
