@@ -704,7 +704,7 @@ impl AwsDataAvailabilityClient {
     fn epoch_key(&self, height: u64, epoch_index: u64) -> String {
         let padded_height = format!("{:012}", height);
         format!(
-            "{}epochs/{}/epoch{}.bin",
+            "{}epochs/{}/epoch_{}.bin",
             self.key_prefix, padded_height, epoch_index
         )
     }

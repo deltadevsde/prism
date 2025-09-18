@@ -23,7 +23,7 @@ use crate::{
     memory::InMemoryDataAvailabilityLayer,
 };
 
-#[cfg(feature = "aws")]
+#[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
 use crate::aws::{AwsLightClientDAConfig, AwsLightDataAvailabilityLayer};
 
 /// Configuration for the Data Availability layer used by light clients.
@@ -41,7 +41,7 @@ pub enum LightClientDAConfig {
     /// AWS S3 DA configuration with light client support.
     /// Provides WORM-compliant data retrieval from S3 Object Lock buckets
     /// with configurable regions and credentials.
-    #[cfg(feature = "aws")]
+    #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
     Aws(AwsLightClientDAConfig),
 
     /// In-memory DA layer for testing and development.
@@ -115,9 +115,8 @@ pub async fn create_light_client_da_layer(
             let connection = LightClientConnection::new(celestia_config).await?;
             Ok(Arc::new(connection))
         }
-        #[cfg(feature = "aws")]
+        #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
         LightClientDAConfig::Aws(aws_config) => {
-            info!("Using AWS config: {:?}", aws_config);
             let connection = AwsLightDataAvailabilityLayer::new(aws_config).await?;
             Ok(Arc::new(connection))
         }
@@ -235,9 +234,8 @@ pub async fn create_full_node_da_layer(
             }
             unreachable!() // This line should never be reached due to the return in the last iteration
         }
-        #[cfg(feature = "aws")]
+        #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
         FullNodeDAConfig::Aws(aws_config) => {
-            info!("Using AWS config: {:?}", aws_config);
             for attempt in 1..=DA_RETRY_COUNT {
                 match AwsFullNodeDataAvailabilityLayer::new(aws_config).await {
                     Ok(da) => return Ok(Arc::new(da)),
