@@ -71,6 +71,7 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 - Use conventional commits
 - Allowed types are feat, refactor, fix, build, ci, chore, docs, test, release
 - Use canonical crate names as scopes for conventional commits (e.g. lightclient, prover, keys, da, etc..)
+- Use build for commits that update dependencies
 - Do not mention AI in the description
 - If updated, always make a separate commit "chore: update zkVM ELF and keys" for keys.json and elf files as last commit
 
