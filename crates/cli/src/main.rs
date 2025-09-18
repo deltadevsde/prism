@@ -61,7 +61,7 @@ async fn run_cli() -> Result<(), CliError> {
                 vec![("node_type".to_string(), "lightclient".to_string())],
             )?;
 
-            let da = create_light_client_da_layer(&config.da).await?;
+            let da = create_light_client_da_layer(&config.da, cancellation_token.clone()).await?;
 
             let light_client =
                 create_light_client(da, &config.light_client, cancellation_token.clone()).map_err(
@@ -80,7 +80,7 @@ async fn run_cli() -> Result<(), CliError> {
             )?;
 
             let db = create_storage(&config.db).await?;
-            let da = create_full_node_da_layer(&config.da).await?;
+            let da = create_full_node_da_layer(&config.da, cancellation_token.clone()).await?;
 
             let prover = create_prover_as_prover(
                 &config.prover,
@@ -98,7 +98,7 @@ async fn run_cli() -> Result<(), CliError> {
             })?;
 
             let db = create_storage(&config.db).await?;
-            let da = create_full_node_da_layer(&config.da).await?;
+            let da = create_full_node_da_layer(&config.da, cancellation_token.clone()).await?;
             let telemetry = create_telemetry(
                 &config.telemetry,
                 vec![("node_type".to_string(), "fullnode".to_string())],

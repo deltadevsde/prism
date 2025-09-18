@@ -22,6 +22,7 @@ use crate::{
     celestia::{CelestiaLightClientDAConfig, LightClientConnection},
     memory::InMemoryDataAvailabilityLayer,
 };
+use tokio_util::sync::CancellationToken;
 
 #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
 use crate::aws::{AwsLightClientDAConfig, AwsLightDataAvailabilityLayer};
@@ -107,6 +108,7 @@ type LightClientDALayerResult = Result<Arc<dyn LightDataAvailabilityLayer>, Data
 /// See the crate-level documentation for usage examples and integration patterns.
 pub async fn create_light_client_da_layer(
     config: &LightClientDAConfig,
+    cancellation_token: CancellationToken,
 ) -> LightClientDALayerResult {
     info!("Initializing light client connection...");
     match config {
@@ -117,12 +119,13 @@ pub async fn create_light_client_da_layer(
         }
         #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
         LightClientDAConfig::Aws(aws_config) => {
-            let connection = AwsLightDataAvailabilityLayer::new(aws_config).await?;
+            let connection =
+                AwsLightDataAvailabilityLayer::new(aws_config, cancellation_token).await?;
             Ok(Arc::new(connection))
         }
         LightClientDAConfig::InMemory => {
             let (da_layer, _height_rx, _block_rx) =
-                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
+                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10), cancellation_token);
             Ok(Arc::new(da_layer))
         }
     }
@@ -207,13 +210,15 @@ impl ApplyPreset<ProverPreset> for FullNodeDAConfig {
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn create_full_node_da_layer(
     config: &FullNodeDAConfig,
+    cancellation_token: CancellationToken,
 ) -> Result<Arc<dyn DataAvailabilityLayer>, DataAvailabilityError> {
     info!("Initializing full node connection...");
     match config {
         FullNodeDAConfig::Celestia(celestia_conf) => {
             info!("Using celestia config: {:?}", celestia_conf);
             for attempt in 1..=DA_RETRY_COUNT {
-                match CelestiaConnection::new(celestia_conf, None).await {
+                match CelestiaConnection::new(celestia_conf, None, cancellation_token.clone()).await
+                {
                     Ok(da) => return Ok(Arc::new(da)),
                     Err(e) => {
                         if attempt == DA_RETRY_COUNT {
@@ -237,7 +242,9 @@ pub async fn create_full_node_da_layer(
         #[cfg(all(feature = "aws", not(target_arch = "wasm32")))]
         FullNodeDAConfig::Aws(aws_config) => {
             for attempt in 1..=DA_RETRY_COUNT {
-                match AwsFullNodeDataAvailabilityLayer::new(aws_config).await {
+                match AwsFullNodeDataAvailabilityLayer::new(aws_config, cancellation_token.clone())
+                    .await
+                {
                     Ok(da) => return Ok(Arc::new(da)),
                     Err(e) => {
                         if attempt == DA_RETRY_COUNT {
@@ -260,7 +267,7 @@ pub async fn create_full_node_da_layer(
         }
         FullNodeDAConfig::InMemory => {
             let (da_layer, _height_rx, _block_rx) =
-                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
+                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10), cancellation_token);
             Ok(Arc::new(da_layer))
         }
     }
@@ -329,7 +336,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_light_client_da_layer_inmemory() {
         let config = LightClientDAConfig::InMemory;
-        let result = create_light_client_da_layer(&config).await;
+        let result = create_light_client_da_layer(&config, CancellationToken::new()).await;
 
         assert!(result.is_ok());
         // We can't easily test the exact type due to trait objects, but we can verify it was
@@ -387,7 +394,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_full_node_da_layer_inmemory() {
         let config = FullNodeDAConfig::InMemory;
-        let result = create_full_node_da_layer(&config).await;
+        let result = create_full_node_da_layer(&config, CancellationToken::new()).await;
 
         assert!(result.is_ok());
         // We can't easily test the exact type due to trait objects, but we can verify it was
@@ -411,7 +418,7 @@ mod tests {
             block_time: Duration::from_millis(100),
         });
 
-        let result = create_light_client_da_layer(&config).await;
+        let result = create_light_client_da_layer(&config, CancellationToken::new()).await;
 
         // This will typically fail in CI without AWS/LocalStack setup, which is expected
         match result {
@@ -459,7 +466,7 @@ mod tests {
             max_concurrent_uploads: 2,
         });
 
-        let result = create_full_node_da_layer(&config).await;
+        let result = create_full_node_da_layer(&config, CancellationToken::new()).await;
 
         // This will typically fail in CI without AWS/LocalStack setup, which is expected
         match result {

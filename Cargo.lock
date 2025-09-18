@@ -7551,6 +7551,7 @@ dependencies = [
  "sp1-verifier",
  "thiserror 2.0.12",
  "tokio",
+ "tokio-util",
  "tracing",
  "wasm-bindgen-futures",
 ]
@@ -7572,6 +7573,7 @@ dependencies = [
  "prism-common",
  "serde",
  "tokio",
+ "tokio-util",
  "tracing",
  "wasm-bindgen-futures",
  "web-time",

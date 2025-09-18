@@ -77,8 +77,11 @@ async fn setup_da() -> (
         ..CelestiaLightClientDAConfig::default()
     });
 
-    let bridge_da_layer = create_full_node_da_layer(&bridge_cfg).await.unwrap();
-    let lc_da_layer = create_light_client_da_layer(&lc_cfg).await.unwrap();
+    let cancellation_token = CancellationToken::new();
+
+    let bridge_da_layer =
+        create_full_node_da_layer(&bridge_cfg, cancellation_token.clone()).await.unwrap();
+    let lc_da_layer = create_light_client_da_layer(&lc_cfg, cancellation_token).await.unwrap();
 
     (lc_da_layer, bridge_da_layer)
 }

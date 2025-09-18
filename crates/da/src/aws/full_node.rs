@@ -14,6 +14,7 @@ use tokio::{
     task::JoinHandle,
     time::Duration,
 };
+use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -67,10 +68,16 @@ pub struct AwsFullNodeDataAvailabilityLayer {
 
     /// Flag to track if the service has been started
     started: Arc<AtomicBool>,
+
+    /// Cancellation token for graceful shutdown
+    cancellation_token: CancellationToken,
 }
 
 impl AwsFullNodeDataAvailabilityLayer {
-    pub async fn new(config: &AwsFullNodeDAConfig) -> Result<Self, DataAvailabilityError> {
+    pub async fn new(
+        config: &AwsFullNodeDAConfig,
+        cancellation_token: CancellationToken,
+    ) -> Result<Self, DataAvailabilityError> {
         let client = AwsDataAvailabilityClient::new_from_full_da_config(config.clone()).await?;
 
         let (height_update_tx, _) = broadcast::channel(100);
@@ -89,6 +96,7 @@ impl AwsFullNodeDataAvailabilityLayer {
             height_update_tx,
             event_channel,
             started: Arc::new(AtomicBool::new(false)),
+            cancellation_token,
         })
     }
 
@@ -99,10 +107,16 @@ impl AwsFullNodeDataAvailabilityLayer {
         let event_publisher = self.event_channel.publisher();
         let block_time = self.block_time;
         let transaction_offset = self.transaction_offset.clone();
+        let cancellation_token = self.cancellation_token.clone();
 
         let _handle = tokio::spawn(async move {
             loop {
-                tokio::time::sleep(block_time).await;
+                tokio::select! {
+                    _ = cancellation_token.cancelled() => {
+                        info!("AWS full node block production cancelled");
+                        break;
+                    }
+                    _ = tokio::time::sleep(block_time) => {
 
                 // Take write lock to atomically increment height and prevent submissions
                 let mut height_guard = current_height.write().await;
@@ -130,7 +144,9 @@ impl AwsFullNodeDataAvailabilityLayer {
                     warn!("Failed to submit metadata: {}", e);
                 }
 
-                info!("Completed block {}", completed_height);
+                        info!("Completed block {}", completed_height);
+                    }
+                }
             }
         });
 

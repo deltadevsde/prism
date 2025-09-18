@@ -14,6 +14,7 @@ use tokio::{
     sync::{RwLock, broadcast},
     time::{Duration, interval},
 };
+use tokio_util::sync::CancellationToken;
 use tracing::debug;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures;
@@ -44,17 +45,21 @@ pub struct InMemoryDataAvailabilityLayer {
 
     /// Flag to track if the service has been started
     started: Arc<AtomicBool>,
+
+    /// Cancellation token for graceful shutdown
+    cancellation_token: CancellationToken,
 }
 
 impl Default for InMemoryDataAvailabilityLayer {
     fn default() -> Self {
-        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME).0
+        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME, CancellationToken::new()).0
     }
 }
 
 impl InMemoryDataAvailabilityLayer {
     pub fn new(
         block_time: Duration,
+        cancellation_token: CancellationToken,
     ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
@@ -71,6 +76,7 @@ impl InMemoryDataAvailabilityLayer {
                 event_channel,
                 epoch_posting_delay: None,
                 started: Arc::new(AtomicBool::new(false)),
+                cancellation_token,
             },
             height_rx,
             block_rx,
@@ -80,6 +86,7 @@ impl InMemoryDataAvailabilityLayer {
     pub fn new_with_epoch_delay(
         block_time: Duration,
         epoch_delay: Duration,
+        cancellation_token: CancellationToken,
     ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
@@ -96,6 +103,7 @@ impl InMemoryDataAvailabilityLayer {
                 event_channel,
                 epoch_posting_delay: Some(epoch_delay),
                 started: Arc::new(AtomicBool::new(false)),
+                cancellation_token,
             },
             height_rx,
             block_rx,
@@ -106,33 +114,40 @@ impl InMemoryDataAvailabilityLayer {
         let mut interval = interval(self.block_time);
         let event_publisher = self.event_channel.publisher();
         loop {
-            interval.tick().await;
-            let mut blocks = self.blocks.write().await;
-            let mut pending_transactions = self.pending_transactions.write().await;
-            let mut pending_epochs = self.pending_epochs.write().await;
-            let mut latest_height = self.latest_height.write().await;
+            tokio::select! {
+                _ = self.cancellation_token.cancelled() => {
+                    debug!("Memory DA block production cancelled");
+                    break;
+                }
+                _ = interval.tick() => {
+                let mut blocks = self.blocks.write().await;
+                let mut pending_transactions = self.pending_transactions.write().await;
+                let mut pending_epochs = self.pending_epochs.write().await;
+                let mut latest_height = self.latest_height.write().await;
 
-            *latest_height += 1;
-            let new_block = Block {
-                height: *latest_height,
-                transactions: std::mem::take(&mut *pending_transactions),
-                epochs: std::mem::take(&mut *pending_epochs),
-            };
-            debug!(
-                "new block produced at height {} with {} transactions",
-                new_block.height,
-                new_block.transactions.len(),
-            );
-            blocks.push(new_block.clone());
+                *latest_height += 1;
+                let new_block = Block {
+                    height: *latest_height,
+                    transactions: std::mem::take(&mut *pending_transactions),
+                    epochs: std::mem::take(&mut *pending_epochs),
+                };
+                debug!(
+                    "new block produced at height {} with {} transactions",
+                    new_block.height,
+                    new_block.transactions.len(),
+                );
+                blocks.push(new_block.clone());
 
-            // Notify subscribers of the new height and block
-            let _ = self.height_update_tx.send(*latest_height);
-            let _ = self.block_update_tx.send(new_block);
+                // Notify subscribers of the new height and block
+                let _ = self.height_update_tx.send(*latest_height);
+                let _ = self.block_update_tx.send(new_block);
 
-            // Publish UpdateDAHeight event
-            event_publisher.send(PrismEvent::UpdateDAHeight {
-                height: *latest_height,
-            });
+                // Publish UpdateDAHeight event
+                event_publisher.send(PrismEvent::UpdateDAHeight {
+                    height: *latest_height,
+                });
+                }
+            }
         }
     }
 

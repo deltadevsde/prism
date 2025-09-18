@@ -46,16 +46,19 @@ impl LightClient {
             LightClientError::initialization_error(format!("Adjusting path failed: {}", e))
         })?;
 
-        let da = create_light_client_da_layer(&config.da).await.map_err(|e| {
-            LightClientError::initialization_error(format!(
-                "Failed to create light client DA: {}",
-                e
-            ))
-        })?;
+        let cancellation_token = CancellationToken::new();
+        let da = create_light_client_da_layer(&config.da, cancellation_token.clone())
+            .await
+            .map_err(|e| {
+                LightClientError::initialization_error(format!(
+                    "Failed to create light client DA: {}",
+                    e
+                ))
+            })?;
 
         let event_sub = da.event_channel().subscribe();
 
-        let light_client = create_light_client(da, &config.light_client, CancellationToken::new())
+        let light_client = create_light_client(da, &config.light_client, cancellation_token)
             .map_err(|e| {
                 LightClientError::initialization_error(format!(
                     "Failed to create light client: {}",

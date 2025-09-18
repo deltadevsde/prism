@@ -22,7 +22,8 @@ use std::{
     },
 };
 use tokio::{sync::broadcast, time::Duration};
-use tracing::{error, trace};
+use tokio_util::sync::CancellationToken;
+use tracing::{error, info, trace};
 
 use crate::{DataAvailabilityLayer, celestia::CelestiaNetwork};
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
@@ -154,10 +155,15 @@ pub struct CelestiaConnection {
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
     event_channel: Arc<EventChannel>,
+    cancellation_token: CancellationToken,
 }
 
 impl CelestiaConnection {
-    pub async fn new(config: &CelestiaFullNodeDAConfig, auth_token: Option<&str>) -> Result<Self> {
+    pub async fn new(
+        config: &CelestiaFullNodeDAConfig,
+        auth_token: Option<&str>,
+        cancellation_token: CancellationToken,
+    ) -> Result<Self> {
         let client = Client::new(&config.url, auth_token)
             .await
             .context("Failed to initialize websocket connection")
@@ -186,6 +192,7 @@ impl CelestiaConnection {
             event_channel,
             fetch_timeout: config.fetch_timeout,
             fetch_max_retries: config.fetch_max_retries,
+            cancellation_token,
         })
     }
 
@@ -247,21 +254,34 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
         let sync_target = self.sync_target.clone();
         let height_update_tx = self.height_update_tx.clone();
         let event_publisher = self.event_channel.publisher();
+        let cancellation_token = self.cancellation_token.clone();
 
         spawn(async move {
-            while let Some(extended_header_result) = header_sub.next().await {
-                match extended_header_result {
-                    Ok(extended_header) => {
-                        let height = extended_header.header.height.value();
-                        sync_target.store(height, Ordering::Relaxed);
-                        // todo: correct error handling
-                        let _ = height_update_tx.send(height);
-                        trace!("updated sync target for height {}", height);
-
-                        event_publisher.send(PrismEvent::UpdateDAHeight { height });
+            loop {
+                tokio::select! {
+                    _ = cancellation_token.cancelled() => {
+                        info!("Celestia header subscription cancelled");
+                        break;
                     }
-                    Err(e) => {
-                        error!("Error retrieving header from DA layer: {}", e);
+                    extended_header_result = header_sub.next() => {
+                        match extended_header_result {
+                            Some(Ok(extended_header)) => {
+                                let height = extended_header.header.height.value();
+                                sync_target.store(height, Ordering::Relaxed);
+                                // todo: correct error handling
+                                let _ = height_update_tx.send(height);
+                                trace!("updated sync target for height {}", height);
+
+                                event_publisher.send(PrismEvent::UpdateDAHeight { height });
+                            }
+                            Some(Err(e)) => {
+                                error!("Error retrieving header from DA layer: {}", e);
+                            }
+                            None => {
+                                info!("Header subscription stream ended");
+                                break;
+                            }
+                        }
                     }
                 }
             }

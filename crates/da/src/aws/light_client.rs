@@ -9,6 +9,7 @@ use std::{
     },
     time::Duration,
 };
+use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
 
 use crate::{LightDataAvailabilityLayer, VerifiableEpoch, aws::client::AwsDataAvailabilityClient};
@@ -32,11 +33,17 @@ pub struct AwsLightDataAvailabilityLayer {
 
     /// Flag to track if the service has been started
     started: Arc<AtomicBool>,
+
+    /// Cancellation token for graceful shutdown
+    cancellation_token: CancellationToken,
 }
 
 impl AwsLightDataAvailabilityLayer {
     /// Creates a new AWS light data availability layer.
-    pub async fn new(config: &AwsLightClientDAConfig) -> Result<Self, DataAvailabilityError> {
+    pub async fn new(
+        config: &AwsLightClientDAConfig,
+        cancellation_token: CancellationToken,
+    ) -> Result<Self, DataAvailabilityError> {
         let client = AwsDataAvailabilityClient::new_from_light_da_config(config.clone()).await?;
 
         Ok(Self {
@@ -44,6 +51,7 @@ impl AwsLightDataAvailabilityLayer {
             event_channel: Arc::new(EventChannel::new()),
             block_time: config.block_time,
             started: Arc::new(AtomicBool::new(false)),
+            cancellation_token,
         })
     }
 
@@ -61,31 +69,38 @@ impl AwsLightDataAvailabilityLayer {
         let client = Arc::new(self.client.clone());
         let event_publisher = self.event_channel.publisher();
         let poll_interval = self.block_time;
+        let cancellation_token = self.cancellation_token.clone();
 
         let _handle = tokio::spawn(async move {
             let mut last_height = 0u64;
 
             loop {
-                match client.fetch_height().await {
-                    Ok(Some(max_height)) => {
-                        if max_height > last_height {
-                            last_height = max_height;
+                tokio::select! {
+                    _ = cancellation_token.cancelled() => {
+                        info!("AWS height monitoring task cancelled");
+                        break;
+                    }
+                    _ = tokio::time::sleep(poll_interval) => {
+                        match client.fetch_height().await {
+                            Ok(Some(max_height)) => {
+                                if max_height > last_height {
+                                    last_height = max_height;
 
-                            // Publish event
-                            event_publisher.send(PrismEvent::UpdateDAHeight { height: max_height });
+                                    // Publish event
+                                    event_publisher.send(PrismEvent::UpdateDAHeight { height: max_height });
 
-                            info!("Height updated to {}", max_height);
+                                    info!("Height updated to {}", max_height);
+                                }
+                            }
+                            Ok(None) => {
+                                debug!("No height metadata available yet");
+                            }
+                            Err(e) => {
+                                warn!("Failed to check for height updates: {}", e);
+                            }
                         }
                     }
-                    Ok(None) => {
-                        debug!("No height metadata available yet");
-                    }
-                    Err(e) => {
-                        warn!("Failed to check for height updates: {}", e);
-                    }
                 }
-
-                tokio::time::sleep(poll_interval).await;
             }
         });
 
