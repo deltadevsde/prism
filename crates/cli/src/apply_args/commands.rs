@@ -22,6 +22,10 @@ impl CliOverridableConfig<LightClientPreset> for CliLightClientConfig {
             self.light_client.verifying_key_str = verifying_key_str.clone();
         }
 
+        if let Some(allow_mock_proofs) = args.allow_mock_proofs {
+            self.light_client.allow_mock_proofs = allow_mock_proofs;
+        }
+
         Ok(())
     }
 }

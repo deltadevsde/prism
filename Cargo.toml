@@ -129,6 +129,11 @@ celestia-rpc = { git = "https://github.com/deltadevsde/lumina.git" }
 celestia-types = { git = "https://github.com/deltadevsde/lumina.git" }
 lumina-node = { git = "https://github.com/deltadevsde/lumina.git" }
 
+# aws
+aws-config = { version = "1.6.2" }
+aws-sdk-s3 = { version = "1.83.0" }
+aws-sdk-sts = { version = "1.82.0" }
+
 # p2p
 libp2p = "0.54.1"
 

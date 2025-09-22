@@ -47,6 +47,7 @@ verifying_key_str = "config_file_key"
         specter: false,
         config_path,
         verifying_key: Some("cli_key".to_string()),
+        allow_mock_proofs: Some(true),
         da: Default::default(),
     };
 
@@ -54,6 +55,7 @@ verifying_key_str = "config_file_key"
 
     // CLI args should take precedence
     assert_eq!(config.light_client.verifying_key_str, "cli_key");
+    assert!(config.light_client.allow_mock_proofs);
 
     clear_env_vars();
     Ok(())
@@ -71,12 +73,14 @@ verifying_key = "config_file_key"
 
     // Set environment variable
     unsafe { env::set_var("PRISM__VERIFYING_KEY", "env_key") };
+    unsafe { env::set_var("PRISM__ALLOW_MOCK_PROOFS", "true") };
 
     let cli_args = LightClientCliArgs {
         dev: false,
         specter: false,
         config_path,
         verifying_key: None, // No CLI override
+        allow_mock_proofs: None,
         da: Default::default(),
     };
 
@@ -84,6 +88,7 @@ verifying_key = "config_file_key"
 
     // Environment should override file
     assert_eq!(config.light_client.verifying_key_str, "env_key");
+    assert!(config.light_client.allow_mock_proofs);
 
     clear_env_vars();
     Ok(())
@@ -99,12 +104,14 @@ fn test_config_loading_with_missing_file() -> Result<()> {
         specter: false,
         config_path: "/non/existent/path.toml".to_string(),
         verifying_key: Some("cli_key".to_string()),
+        allow_mock_proofs: None,
         da: Default::default(),
     };
 
     // Should not fail and use defaults with CLI overrides
     let config = CliLightClientConfig::load(&cli_args)?;
     assert_eq!(config.light_client.verifying_key_str, "cli_key");
+    assert!(!config.light_client.allow_mock_proofs);
 
     Ok(())
 }
@@ -121,6 +128,7 @@ fn test_light_client_preset_application() -> Result<()> {
         specter: true,
         config_path,
         verifying_key: None,
+        allow_mock_proofs: None,
         da: Default::default(),
     };
 

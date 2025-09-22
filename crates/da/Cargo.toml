@@ -9,9 +9,9 @@ repository.workspace = true
 license.workspace = true
 keywords.workspace = true
 readme.workspace = true
-
 [features]
 default = []
+aws = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-sdk-sts", "dep:futures"]
 
 [dependencies]
 blockstore = { workspace = true }
@@ -20,6 +20,7 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
+thiserror = { workspace = true }
 redb = { workspace = true }
 lumina-node = { workspace = true }
 prism-serde = { workspace = true }
@@ -39,13 +40,20 @@ dirs = { workspace = true }
 celestia-rpc = { workspace = true }
 sp1-sdk = { workspace = true }
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 blockstore = { workspace = true }
+aws-config = { workspace = true, optional = true }
+aws-sdk-s3 = { workspace = true, optional = true }
+aws-sdk-sts = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { workspace = true, default-features = false, features = [
   "sync",
   "time",
 ] }
+tokio-util = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
 
 [lints]
 workspace = true

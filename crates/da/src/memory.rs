@@ -6,12 +6,18 @@ use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::transaction::Transaction;
 use prism_events::{EventChannel, PrismEvent};
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 use tokio::{
     sync::{RwLock, broadcast},
     time::{Duration, interval},
 };
+use tokio_util::sync::CancellationToken;
 use tracing::debug;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_futures;
 
 const IN_MEMORY_DEFAULT_BLOCK_TIME: Duration = Duration::from_secs(15);
 
@@ -36,17 +42,24 @@ pub struct InMemoryDataAvailabilityLayer {
     // For testing: Because mock proofs are generated very quickly, it is
     // helpful to delay the posting of the epoch to test some latency scenarios.
     epoch_posting_delay: Option<Duration>,
+
+    /// Flag to track if the service has been started
+    started: Arc<AtomicBool>,
+
+    /// Cancellation token for graceful shutdown
+    cancellation_token: CancellationToken,
 }
 
 impl Default for InMemoryDataAvailabilityLayer {
     fn default() -> Self {
-        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME).0
+        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME, CancellationToken::new()).0
     }
 }
 
 impl InMemoryDataAvailabilityLayer {
     pub fn new(
         block_time: Duration,
+        cancellation_token: CancellationToken,
     ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
@@ -62,6 +75,8 @@ impl InMemoryDataAvailabilityLayer {
                 block_time,
                 event_channel,
                 epoch_posting_delay: None,
+                started: Arc::new(AtomicBool::new(false)),
+                cancellation_token,
             },
             height_rx,
             block_rx,
@@ -71,6 +86,7 @@ impl InMemoryDataAvailabilityLayer {
     pub fn new_with_epoch_delay(
         block_time: Duration,
         epoch_delay: Duration,
+        cancellation_token: CancellationToken,
     ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
@@ -86,6 +102,8 @@ impl InMemoryDataAvailabilityLayer {
                 block_time,
                 event_channel,
                 epoch_posting_delay: Some(epoch_delay),
+                started: Arc::new(AtomicBool::new(false)),
+                cancellation_token,
             },
             height_rx,
             block_rx,
@@ -96,33 +114,40 @@ impl InMemoryDataAvailabilityLayer {
         let mut interval = interval(self.block_time);
         let event_publisher = self.event_channel.publisher();
         loop {
-            interval.tick().await;
-            let mut blocks = self.blocks.write().await;
-            let mut pending_transactions = self.pending_transactions.write().await;
-            let mut pending_epochs = self.pending_epochs.write().await;
-            let mut latest_height = self.latest_height.write().await;
+            tokio::select! {
+                _ = self.cancellation_token.cancelled() => {
+                    debug!("Memory DA block production cancelled");
+                    break;
+                }
+                _ = interval.tick() => {
+                let mut blocks = self.blocks.write().await;
+                let mut pending_transactions = self.pending_transactions.write().await;
+                let mut pending_epochs = self.pending_epochs.write().await;
+                let mut latest_height = self.latest_height.write().await;
 
-            *latest_height += 1;
-            let new_block = Block {
-                height: *latest_height,
-                transactions: std::mem::take(&mut *pending_transactions),
-                epochs: std::mem::take(&mut *pending_epochs),
-            };
-            debug!(
-                "new block produced at height {} with {} transactions",
-                new_block.height,
-                new_block.transactions.len(),
-            );
-            blocks.push(new_block.clone());
+                *latest_height += 1;
+                let new_block = Block {
+                    height: *latest_height,
+                    transactions: std::mem::take(&mut *pending_transactions),
+                    epochs: std::mem::take(&mut *pending_epochs),
+                };
+                debug!(
+                    "new block produced at height {} with {} transactions",
+                    new_block.height,
+                    new_block.transactions.len(),
+                );
+                blocks.push(new_block.clone());
 
-            // Notify subscribers of the new height and block
-            let _ = self.height_update_tx.send(*latest_height);
-            let _ = self.block_update_tx.send(new_block);
+                // Notify subscribers of the new height and block
+                let _ = self.height_update_tx.send(*latest_height);
+                let _ = self.block_update_tx.send(new_block);
 
-            // Publish UpdateDAHeight event
-            event_publisher.send(PrismEvent::UpdateDAHeight {
-                height: *latest_height,
-            });
+                // Publish UpdateDAHeight event
+                event_publisher.send(PrismEvent::UpdateDAHeight {
+                    height: *latest_height,
+                });
+                }
+            }
         }
     }
 
@@ -134,6 +159,36 @@ impl InMemoryDataAvailabilityLayer {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn start(&self) -> Result<()> {
+        // Try to set started flag atomically
+        if self.started.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_err()
+        {
+            return Ok(());
+        }
+
+        let this = Arc::new(self.clone());
+        tokio::spawn(async move {
+            this.produce_blocks().await;
+        });
+        Ok(())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    async fn start(&self) -> Result<()> {
+        // Try to set started flag atomically
+        if self.started.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_err()
+        {
+            return Ok(());
+        }
+
+        let this = Arc::new(self.clone());
+        wasm_bindgen_futures::spawn_local(async move {
+            this.produce_blocks().await;
+        });
+        Ok(())
+    }
+
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         let blocks = self.blocks.read().await;
         match blocks.get(height.saturating_sub(1) as usize) {
@@ -155,24 +210,12 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
-    async fn start(&self) -> Result<()> {
-        let this = Arc::new(self.clone());
-        tokio::spawn(async move {
-            this.produce_blocks().await;
-        });
-        Ok(())
-    }
-
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
         self.height_update_tx.subscribe()
     }
 
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(*self.latest_height.read().await)
-    }
-
-    async fn initialize_sync_target(&self) -> Result<u64> {
-        self.get_latest_height().await
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
