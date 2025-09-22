@@ -7545,7 +7545,6 @@ dependencies = [
  "prism-serde",
  "redb",
  "serde",
- "serde_json",
  "serde_with",
  "sp1-sdk",
  "sp1-verifier",
