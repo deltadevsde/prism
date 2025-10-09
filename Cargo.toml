@@ -19,6 +19,7 @@ default-members = [
   "crates/cli",
   "crates/client",
   "crates/common",
+  "crates/crosstarget",
   "crates/da",
   "crates/errors",
   "crates/events",
@@ -40,6 +41,7 @@ members = [
   "crates/cli",
   "crates/client",
   "crates/common",
+  "crates/crosstarget",
   "crates/da",
   "crates/errors",
   "crates/events",
@@ -90,6 +92,8 @@ redb = "2.6.0"
 # async
 async-trait = "0.1.86"
 futures = "0.3.31"
+pin-project = "1.1.10"
+send_wrapper = { version = "0.6.0", features = ["futures"] }
 tokio = { version = "1.16.1", default-features = false }
 tokio-util = "0.7"
 
@@ -145,6 +149,7 @@ plotters = "0.3.7"
 
 # prism
 prism-common = { path = "crates/common" }
+prism-cross-target = { path = "crates/crosstarget" }
 prism-storage = { path = "crates/storage" }
 prism-da = { path = "crates/da" }
 prism-errors = { path = "crates/errors" }
@@ -174,6 +179,7 @@ serde-wasm-bindgen = "0.6.5"
 js-sys = "0.3"
 web-sys = "0.3"
 web-time = "1.1.0"
+gloo-timers = { version = "0.3.0", features = ["futures"] }
 
 # telemetry
 prism-telemetry = "0.3.0"
