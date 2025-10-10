@@ -4,6 +4,7 @@ use bls12_381::{Bls12, G1Affine, G2Affine, Scalar};
 use prism_errors::{GeneralError, PrismError};
 use std::fmt;
 
+mod error;
 pub mod hashchain;
 pub mod less_than;
 pub mod merkle_batch;
