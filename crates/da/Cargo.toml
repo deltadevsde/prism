@@ -20,6 +20,7 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
+thiserror = { workspace = true }
 redb = { workspace = true }
 lumina-node = { workspace = true }
 prism-serde = { workspace = true }
@@ -27,11 +28,13 @@ sp1-verifier = { workspace = true }
 celestia-types = { workspace = true }
 prism-keys = { workspace = true }
 prism-common = { workspace = true }
+prism-cross-target = { workspace = true, features = ["tasks"] }
 prism-events = { workspace = true }
 prism-presets = { workspace = true }
 mockall = { workspace = true }
 bincode = { workspace = true }
 libp2p = { workspace = true }
+tokio-util = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dirs = { workspace = true }

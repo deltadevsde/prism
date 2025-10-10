@@ -42,6 +42,7 @@
 //!     // In-memory for development
 //!     let config = LightClientDAConfig::InMemory;
 //!     let da = create_light_client_da_layer(&config).await?;
+//!     da.start().await?;
 //!
 //!     let epochs = da.get_finalized_epochs(100).await?;
 //!     for epoch in epochs {
@@ -204,7 +205,7 @@ impl From<EpochCommitments> for (Digest, Digest) {
 /// `VerifiableStateTransition` is a trait wrapper around `FinalizedEpoch` that allows for mocking.
 /// The only concrete implementation of this trait is by `FinalizedEpoch`.
 #[automock]
-pub trait VerifiableStateTransition: Send {
+pub trait VerifiableStateTransition: Send + Sync {
     fn verify(
         &self,
         vk: &VerifyingKey,
@@ -384,17 +385,17 @@ impl TryFrom<&Blob> for FinalizedEpoch {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub trait LightDataAvailabilityLayer {
-    async fn get_finalized_epochs(&self, height: u64) -> anyhow::Result<Vec<VerifiableEpoch>>;
+    async fn start(&self) -> Result<(), DataAvailabilityError>;
+    async fn stop(&self) -> Result<(), DataAvailabilityError>;
 
+    async fn get_finalized_epochs(&self, height: u64) -> anyhow::Result<Vec<VerifiableEpoch>>;
     fn event_channel(&self) -> Arc<EventChannel>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 pub trait DataAvailabilityLayer: LightDataAvailabilityLayer + Send + Sync {
-    async fn start(&self) -> anyhow::Result<()>;
     async fn get_latest_height(&self) -> anyhow::Result<u64>;
-    async fn initialize_sync_target(&self) -> anyhow::Result<u64>;
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> anyhow::Result<u64>;
     async fn get_transactions(&self, height: u64) -> anyhow::Result<Vec<Transaction>>;
     async fn submit_transactions(&self, transactions: Vec<Transaction>) -> anyhow::Result<u64>;
