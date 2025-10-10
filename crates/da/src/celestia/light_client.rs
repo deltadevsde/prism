@@ -34,6 +34,7 @@ use crate::{
     },
     error::DataAvailabilityError,
 };
+use prism_cross_target::tasks::JoinHandle;
 
 #[cfg(target_arch = "wasm32")]
 pub type LuminaNode = Node<IndexedDbBlockstore, IndexedDbStore>;
@@ -250,11 +251,13 @@ impl CelestiaLightClientDAConfig {
 }
 
 pub struct LightClientConnection {
-    node: Arc<RwLock<LuminaNode>>,
+    node: Arc<RwLock<Option<LuminaNode>>>,
     event_channel: Arc<EventChannel>,
     snark_namespace: Namespace,
     fetch_timeout: Duration,
     fetch_max_retries: u64,
+    config: CelestiaLightClientDAConfig,
+    forwarding_task: Arc<Mutex<Option<JoinHandle>>>,
 }
 
 impl LightClientConnection {
@@ -354,23 +357,52 @@ impl LightClientConnection {
     }
 
     pub async fn new(config: &CelestiaLightClientDAConfig) -> Result<Self, DataAvailabilityError> {
-        let (blockstore, store) = Self::setup_stores(&config.store).await?;
+        Ok(Self {
+            node: Arc::new(RwLock::new(None)),
+            event_channel: Arc::new(EventChannel::new()),
+            snark_namespace: create_namespace(&config.snark_namespace_id)?,
+            fetch_timeout: config.fetch_timeout,
+            fetch_max_retries: config.fetch_max_retries,
+            config: config.clone(),
+            forwarding_task: Arc::new(Mutex::new(None)),
+        })
+    }
+
+    pub fn event_publisher(&self) -> EventPublisher {
+        self.event_channel.publisher()
+    }
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+impl LightDataAvailabilityLayer for LightClientConnection {
+    async fn start(&self) -> Result<(), DataAvailabilityError> {
+        // Check if already started
+        {
+            let node_guard = self.node.read().await;
+            if node_guard.is_some() {
+                return Ok(()); // Already started
+            }
+        }
+
+        let (blockstore, store) = Self::setup_stores(&self.config.store).await?;
 
         let mut node = NodeBuilder::new()
-            .network(config.celestia_network.clone())
+            .network(self.config.celestia_network.clone())
             .store(store)
             .blockstore(blockstore)
-            .pruning_window(config.pruning_window);
+            .pruning_window(self.config.pruning_window);
 
-        if !config.bootnodes.is_empty() {
-            let multiaddrs: Vec<Multiaddr> = config
+        if !self.config.bootnodes.is_empty() {
+            let multiaddrs: Vec<Multiaddr> = self
+                .config
                 .bootnodes
                 .clone()
                 .into_iter()
                 .filter_map(|addr| Multiaddr::from_str(&addr).ok())
                 .collect();
 
-            if multiaddrs.len() != config.bootnodes.len() {
+            if multiaddrs.len() != self.config.bootnodes.len() {
                 warn!(
                     "Some bootnodes failed to parse to libp2p multiaddrs. Valid addresses contain: {:#?}",
                     multiaddrs
@@ -387,28 +419,43 @@ impl LightClientConnection {
 
         let lumina_sub = Arc::new(Mutex::new(event_subscriber));
 
-        // Creates an EventChannel that starts forwarding lumina events to the subscriber
-        let prism_chan = EventChannel::from(lumina_sub);
+        // Start forwarding lumina events to our existing event channel
+        let handle = self.event_channel.start_forwarding(lumina_sub);
 
-        Ok(Self {
-            node: Arc::new(RwLock::new(node)),
-            event_channel: Arc::new(prism_chan),
-            snark_namespace: create_namespace(&config.snark_namespace_id)?,
-            fetch_timeout: config.fetch_timeout,
-            fetch_max_retries: config.fetch_max_retries,
-        })
+        // Store the join handle
+        {
+            let mut task_guard = self.forwarding_task.lock().await;
+            *task_guard = Some(handle);
+        }
+
+        // Store the node
+        {
+            let mut node_guard = self.node.write().await;
+            *node_guard = Some(node);
+        }
+
+        Ok(())
     }
 
-    pub fn event_publisher(&self) -> EventPublisher {
-        self.event_channel.publisher()
-    }
-}
+    async fn stop(&self) -> Result<(), DataAvailabilityError> {
+        {
+            let mut node_guard = self.node.write().await;
+            if let Some(node) = node_guard.take() {
+                // Joining is handled internally within lumina node
+                // This will also stop the forwarding task, because we are closing the sender
+                node.stop().await;
+            }
+        }
 
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-impl LightDataAvailabilityLayer for LightClientConnection {
-    fn event_channel(&self) -> Arc<EventChannel> {
-        self.event_channel.clone()
+        {
+            let mut task_guard = self.forwarding_task.lock().await;
+            if let Some(handle) = task_guard.take() {
+                // Join directly, because we are optimistic that the forwarding task has been stopped
+                handle.join().await;
+            }
+
+            Ok(())
+        }
     }
 
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
@@ -416,7 +463,11 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             "searching for epoch on da layer at height {} under namespace",
             height
         );
-        let node = self.node.read().await;
+        let node_guard = self.node.read().await;
+        let node = match node_guard.as_ref() {
+            Some(n) => n,
+            None => return Err(anyhow!("Light client not started. Call start() first.")),
+        };
 
         for attempt in 0..self.fetch_max_retries {
             match node
@@ -451,5 +502,9 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             height,
             "Max retry count exceeded".to_string()
         )));
+    }
+
+    fn event_channel(&self) -> Arc<EventChannel> {
+        self.event_channel.clone()
     }
 }
