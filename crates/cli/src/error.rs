@@ -1,4 +1,5 @@
-use prism_errors::{DataAvailabilityError, DatabaseError};
+use prism_da::error::DataAvailabilityError;
+use prism_errors::DatabaseError;
 use prism_telemetry_registry::TelemetryError;
 use thiserror::Error;
 

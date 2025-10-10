@@ -91,15 +91,18 @@
 
 pub mod celestia;
 pub mod consts;
+pub mod error;
 mod factory;
 pub mod memory;
 
+use crate::error::{
+    CommitmentError, DataAvailabilityError, EpochVerificationError, SignatureError,
+};
 use async_trait::async_trait;
 use celestia_types::Blob;
 pub use factory::*;
 use mockall::automock;
 use prism_common::digest::Digest;
-use prism_errors::{CommitmentError, EpochVerificationError, SignatureError};
 use prism_events::EventChannel;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{

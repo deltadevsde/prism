@@ -25,7 +25,6 @@ lumina-node = { workspace = true }
 prism-serde = { workspace = true }
 sp1-verifier = { workspace = true }
 celestia-types = { workspace = true }
-prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-common = { workspace = true }
 prism-events = { workspace = true }

@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
 use lumina_node::{Node, NodeBuilder};
-use prism_errors::DataAvailabilityError;
 use prism_events::{EventChannel, EventPublisher};
 use std::{self, str::FromStr, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
@@ -33,6 +32,7 @@ use crate::{
         DEFAULT_FETCH_MAX_RETRIES, DEFAULT_FETCH_TIMEOUT, DEFAULT_PRUNING_WINDOW,
         DEVNET_SPECTER_SNARK_NAMESPACE_ID, utils::create_namespace,
     },
+    error::DataAvailabilityError,
 };
 
 #[cfg(target_arch = "wasm32")]

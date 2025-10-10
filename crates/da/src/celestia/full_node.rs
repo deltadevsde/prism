@@ -10,7 +10,6 @@ use crate::{
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
-use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_events::{EventChannel, PrismEvent};
 use prism_presets::PresetError;
 use serde::{Deserialize, Serialize};
@@ -24,7 +23,7 @@ use std::{
 use tokio::{sync::broadcast, time::Duration};
 use tracing::{error, trace};
 
-use crate::{DataAvailabilityLayer, celestia::CelestiaNetwork};
+use crate::{DataAvailabilityLayer, celestia::CelestiaNetwork, error::DataAvailabilityError};
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
 use celestia_types::AppVersion;
 use prism_common::transaction::Transaction;
@@ -318,10 +317,10 @@ impl DataAvailabilityLayer for CelestiaConnection {
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
         let data = epoch.encode_to_bytes().map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
+            DataAvailabilityError::SubmissionError(format!(
                 "serializing epoch {}: {}",
                 epoch.height, e
-            )))
+            ))
         })?;
 
         debug!(
@@ -333,7 +332,10 @@ impl DataAvailabilityLayer for CelestiaConnection {
         debug!("epoch: {:?}", epoch);
 
         let blob = Blob::new(self.snark_namespace, data, AppVersion::V3).map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
+            DataAvailabilityError::SubmissionError(format!(
+                "failed to create blob for epoch {}: {}",
+                epoch.height, e
+            ))
         })?;
 
         self.client
@@ -371,25 +373,19 @@ impl DataAvailabilityLayer for CelestiaConnection {
         let blobs: Result<Vec<Blob>, _> = transactions
             .iter()
             .map(|transaction| {
-                let data = transaction
-                    .encode_to_bytes()
-                    .context(format!("Failed to serialize transaction {:?}", transaction))
-                    .map_err(|e| {
-                        DataAvailabilityError::GeneralError(GeneralError::ParsingError(
-                            e.to_string(),
-                        ))
-                    })?;
-
-                Blob::new(self.operation_namespace, data, AppVersion::V3)
-                    .context(format!(
-                        "Failed to create blob for transaction {:?}",
-                        transaction
+                let data = transaction.encode_to_bytes().map_err(|e| {
+                    DataAvailabilityError::SubmissionError(format!(
+                        "Failed to serialize transaction {}: {}",
+                        transaction.id, e
                     ))
-                    .map_err(|e| {
-                        DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(
-                            e.to_string(),
-                        ))
-                    })
+                })?;
+
+                Blob::new(self.operation_namespace, data, AppVersion::V3).map_err(|e| {
+                    DataAvailabilityError::SubmissionError(format!(
+                        "Failed to create blob for transaction {}: {}",
+                        transaction.id, e
+                    ))
+                })
             })
             .collect();
 
