@@ -12,14 +12,14 @@ use prism_da::{create_full_node_da_layer, create_light_client_da_layer};
 use prism_lightclient::create_light_client;
 use prism_prover::{create_prover_as_full_node, create_prover_as_prover};
 use prism_storage::create_storage;
-use prism_telemetry_registry::create_telemetry;
+use prism_telemetry_registry::{TelemetryInstance, create_telemetry};
 use std::sync::Arc;
-use tokio_util::sync::CancellationToken;
+use tokio::signal;
 use tracing::info;
 
 use crate::{
     apply_args::CliOverridableConfig,
-    cli_args::{Cli, CliCommands},
+    cli_args::{Cli, CliCommands, FullNodeCliArgs, LightClientCliArgs, ProverCliArgs},
     config::{CliFullNodeConfig, CliLightClientConfig, CliProverConfig},
 };
 
@@ -46,105 +46,114 @@ async fn run_cli() -> Result<(), CliError> {
 
     let cli = Cli::parse();
 
-    // Setup cancellation token for graceful shutdown
-    let cancellation_token = CancellationToken::new();
-    let cancellation_for_signal = cancellation_token.clone();
-
     let (node, telemetry) = match cli.command {
         CliCommands::LightClient(ref light_client_args) => {
-            let config = CliLightClientConfig::load(light_client_args).map_err(|e| {
-                CliError::ConfigFailed(format!("Error loading light client config: {}", e))
-            })?;
-
-            let telemetry = create_telemetry(
-                &config.telemetry,
-                vec![("node_type".to_string(), "lightclient".to_string())],
-            )?;
-
-            let da = create_light_client_da_layer(&config.da).await?;
-
-            let light_client =
-                create_light_client(da, &config.light_client, cancellation_token.clone()).map_err(
-                    |e| CliError::ConfigFailed(format!("Failed to create light client: {}", e)),
-                )?;
-            (Arc::new(light_client) as Arc<dyn NodeType>, telemetry)
+            create_light_node(light_client_args).await?
         }
-        CliCommands::Prover(ref prover_args) => {
-            let config = CliProverConfig::load(prover_args).map_err(|e| {
-                CliError::ConfigFailed(format!("Error loading prover config: {}", e))
-            })?;
-
-            let telemetry = create_telemetry(
-                &config.telemetry,
-                vec![("node_type".to_string(), "prover".to_string())],
-            )?;
-
-            let db = create_storage(&config.db).await?;
-            let da = create_full_node_da_layer(&config.da).await?;
-
-            let prover = create_prover_as_prover(
-                &config.prover,
-                db.clone(),
-                da.clone(),
-                cancellation_token.clone(),
-            )
-            .map_err(|e| CliError::ConfigFailed(format!("Failed to create prover: {}", e)))?;
-
-            (Arc::new(prover) as Arc<dyn NodeType>, telemetry)
-        }
-        CliCommands::FullNode(ref full_node_args) => {
-            let config = CliFullNodeConfig::load(full_node_args).map_err(|e| {
-                CliError::ConfigFailed(format!("Error loading full node config: {}", e))
-            })?;
-
-            let db = create_storage(&config.db).await?;
-            let da = create_full_node_da_layer(&config.da).await?;
-            let telemetry = create_telemetry(
-                &config.telemetry,
-                vec![("node_type".to_string(), "fullnode".to_string())],
-            )?;
-
-            let full_node = create_prover_as_full_node(
-                &config.full_node,
-                db.clone(),
-                da.clone(),
-                cancellation_token.clone(),
-            )
-            .map_err(|e| CliError::ConfigFailed(format!("Failed to create full node: {}", e)))?;
-
-            (Arc::new(full_node) as Arc<dyn NodeType>, telemetry)
-        }
+        CliCommands::Prover(ref prover_args) => create_prover_node(prover_args).await?,
+        CliCommands::FullNode(ref full_node_args) => create_full_node(full_node_args).await?,
     };
 
-    // Setup signal handling for graceful shutdown
-    tokio::spawn(async move {
-        use tokio::signal::unix::{SignalKind, signal};
-
-        let mut sigint =
-            signal(SignalKind::interrupt()).expect("Failed to register SIGINT handler");
-        let mut sigterm =
-            signal(SignalKind::terminate()).expect("Failed to register SIGTERM handler");
-
-        tokio::select! {
-            _ = sigint.recv() => {
-                info!("Received SIGINT, initiating graceful shutdown");
-            },
-            _ = sigterm.recv() => {
-                info!("Received SIGTERM, initiating graceful shutdown");
-            }
-        }
-
-        cancellation_for_signal.cancel();
-    });
-
-    let result = node.start().await;
-
-    telemetry.shutdown();
-
-    result.map_err(|e| {
+    node.start().await.map_err(|e| {
         // Log the error with full debug information
         tracing::error!("Node encountered an error: {:?}", e);
         // Return the error
         CliError::NodeError(format!("{:?}", e))
-    })
+    })?;
+
+    // Wait for shutdown signal
+    shutdown_signal().await;
+
+    node.stop().await.map_err(|e| {
+        // Log the error with full debug information
+        tracing::error!("Node encountered an error: {:?}", e);
+        // Return the error
+        CliError::NodeError(format!("{:?}", e))
+    })?;
+    telemetry.shutdown();
+
+    Ok(())
+}
+
+async fn create_light_node(
+    light_client_args: &LightClientCliArgs,
+) -> Result<(Arc<dyn NodeType>, TelemetryInstance), CliError> {
+    let config = CliLightClientConfig::load(light_client_args)
+        .map_err(|e| CliError::ConfigFailed(format!("Error loading light client config: {}", e)))?;
+
+    let telemetry = create_telemetry(
+        &config.telemetry,
+        vec![("node_type".to_string(), "lightclient".to_string())],
+    )?;
+
+    let da = create_light_client_da_layer(&config.da).await?;
+
+    let light_client = create_light_client(da, &config.light_client)
+        .map_err(|e| CliError::ConfigFailed(format!("Failed to create light client: {}", e)))?;
+    Ok((Arc::new(light_client) as Arc<dyn NodeType>, telemetry))
+}
+
+async fn create_prover_node(
+    prover_args: &ProverCliArgs,
+) -> Result<(Arc<dyn NodeType>, TelemetryInstance), CliError> {
+    let config = CliProverConfig::load(prover_args)
+        .map_err(|e| CliError::ConfigFailed(format!("Error loading prover config: {}", e)))?;
+
+    let telemetry = create_telemetry(
+        &config.telemetry,
+        vec![("node_type".to_string(), "prover".to_string())],
+    )?;
+
+    let db = create_storage(&config.db).await?;
+    let da = create_full_node_da_layer(&config.da).await?;
+
+    let prover = create_prover_as_prover(&config.prover, db.clone(), da.clone())
+        .map_err(|e| CliError::ConfigFailed(format!("Failed to create prover: {}", e)))?;
+
+    Ok((Arc::new(prover) as Arc<dyn NodeType>, telemetry))
+}
+
+async fn create_full_node(
+    full_node_args: &FullNodeCliArgs,
+) -> Result<(Arc<dyn NodeType>, TelemetryInstance), CliError> {
+    let config = CliFullNodeConfig::load(full_node_args)
+        .map_err(|e| CliError::ConfigFailed(format!("Error loading full node config: {}", e)))?;
+
+    let db = create_storage(&config.db).await?;
+    let da = create_full_node_da_layer(&config.da).await?;
+    let telemetry = create_telemetry(
+        &config.telemetry,
+        vec![("node_type".to_string(), "fullnode".to_string())],
+    )?;
+
+    let full_node = create_prover_as_full_node(&config.full_node, db.clone(), da.clone())
+        .map_err(|e| CliError::ConfigFailed(format!("Failed to create full node: {}", e)))?;
+
+    Ok((Arc::new(full_node) as Arc<dyn NodeType>, telemetry))
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Process interrupted, initiating graceful shutdown");
+        },
+        _ = terminate => {
+            info!("Process terminated, initiating graceful shutdown")
+        },
+    }
 }
