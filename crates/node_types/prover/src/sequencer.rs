@@ -36,6 +36,7 @@ pub struct Sequencer {
     signing_key: Option<SigningKey>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
     batcher_enabled: bool,
+    cancellation_token: CancellationToken,
 }
 
 impl Sequencer {
@@ -44,6 +45,7 @@ impl Sequencer {
         da: Arc<dyn DataAvailabilityLayer>,
         config: &crate::prover::SequencerOptions,
         latest_epoch_da_height: Arc<RwLock<u64>>,
+        cancellation_token: CancellationToken,
     ) -> Result<Self> {
         let saved_epoch = match db.get_latest_epoch_height() {
             Ok(height) => height + 1,
@@ -63,22 +65,23 @@ impl Sequencer {
             signing_key: config.signing_key.clone(),
             latest_epoch_da_height,
             batcher_enabled: config.batcher_enabled,
+            cancellation_token,
         })
     }
 
-    pub async fn start(&self, cancellation_token: CancellationToken) -> Result<()> {
+    pub async fn start(&self) -> Result<()> {
         if self.batcher_enabled {
-            self.run_batch_poster(cancellation_token).await
+            self.run_batch_poster().await
         } else {
             // Sequencer without batcher doesn't need a running loop
             // Just wait for cancellation
-            cancellation_token.cancelled().await;
+            self.cancellation_token.cancelled().await;
             info!("Sequencer: Gracefully stopped (batcher disabled)");
             Ok(())
         }
     }
 
-    async fn run_batch_poster(&self, cancellation_token: CancellationToken) -> Result<()> {
+    async fn run_batch_poster(&self) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
 
         loop {
@@ -113,7 +116,7 @@ impl Sequencer {
                         );
                     }
                 },
-                _ = cancellation_token.cancelled() => {
+                _ = self.cancellation_token.cancelled() => {
                     info!("Sequencer: Gracefully stopping batch poster");
                     return Ok(());
                 }

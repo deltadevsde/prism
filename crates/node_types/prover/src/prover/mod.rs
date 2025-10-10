@@ -9,9 +9,10 @@ use prism_common::{
 };
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::Database;
-use std::sync::Arc;
-use tokio::{sync::RwLock, task::JoinSet};
+use std::sync::{Arc, Mutex};
+use tokio::{sync::RwLock, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
+use tracing::{debug, error, info, warn};
 
 use crate::{
     api::ProverTokioTimer,
@@ -135,6 +136,7 @@ pub struct Prover {
     syncer: Arc<Syncer>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
     cancellation_token: CancellationToken,
+    task_handles: Arc<Mutex<Vec<JoinHandle<()>>>>,
 }
 
 #[allow(dead_code)]
@@ -143,10 +145,9 @@ impl Prover {
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
         opts: &ProverOptions,
-        cancellation_token: CancellationToken,
     ) -> Result<Self> {
         let prover_engine = Arc::new(SP1ProverEngine::new(&opts.prover_engine)?);
-        Self::new_with_engine(db, da, prover_engine, opts, cancellation_token)
+        Self::new_with_engine(db, da, prover_engine, opts)
     }
 
     pub fn new_with_engine(
@@ -154,15 +155,16 @@ impl Prover {
         da: Arc<dyn DataAvailabilityLayer>,
         prover_engine: Arc<dyn ProverEngine>,
         opts: &ProverOptions,
-        cancellation_token: CancellationToken,
     ) -> Result<Self> {
         let latest_epoch_da_height = Arc::new(RwLock::new(0));
+        let cancellation_token = CancellationToken::new();
 
         let sequencer = Arc::new(Sequencer::new(
             db.clone(),
             da.clone(),
             &opts.sequencer,
             latest_epoch_da_height.clone(),
+            cancellation_token.child_token(),
         )?);
 
         let syncer = Arc::new(Syncer::new(
@@ -172,6 +174,7 @@ impl Prover {
             latest_epoch_da_height.clone(),
             sequencer.clone(),
             prover_engine.clone(),
+            cancellation_token.child_token(),
         )?);
 
         Ok(Self {
@@ -181,6 +184,7 @@ impl Prover {
             syncer,
             latest_epoch_da_height,
             cancellation_token,
+            task_handles: Arc::new(Mutex::new(Vec::new())),
         })
     }
 
@@ -230,69 +234,90 @@ impl Prover {
         self.syncer.get_da()
     }
 
-    pub async fn run(self: Arc<Self>) -> Result<()> {
-        let mut futures = JoinSet::new();
+    pub async fn start(&self) -> Result<()> {
+        {
+            let task_handles =
+                self.task_handles.lock().map_err(|e| anyhow!("Lock poisoned: {}", e))?;
+
+            if !task_handles.is_empty() {
+                info!("Prover already started");
+                return Ok(());
+            }
+        }
+
+        info!("Starting Prover");
+        let mut handles = Vec::new();
 
         // Start Syncer (includes DA startup and main sync loop)
         let syncer = self.syncer.clone();
-        let cancel_token = self.cancellation_token.clone();
-        futures.spawn(async move { syncer.start(cancel_token).await });
+        let syncer_handle = tokio::spawn(async move {
+            if let Err(e) = syncer.start().await {
+                error!("Syncer error: {:?}", e);
+            }
+        });
+        handles.push(syncer_handle);
 
         // Start Sequencer (batch poster if enabled)
         let sequencer = self.sequencer.clone();
-        let cancel_token = self.cancellation_token.clone();
-        futures.spawn(async move { sequencer.start(cancel_token).await });
+        let sequencer_handle = tokio::spawn(async move {
+            if let Err(e) = sequencer.start().await {
+                error!("Sequencer error: {:?}", e);
+            }
+        });
+        handles.push(sequencer_handle);
 
         // Start WebServer if enabled
         if self.options.webserver.enabled {
-            let ws = WebServer::new(self.options.webserver.clone(), self.clone());
-            let cancel_token = self.cancellation_token.clone();
-            futures.spawn(async move { ws.start(cancel_token).await });
+            let ws = WebServer::new(
+                self.options.webserver.clone(),
+                self.sequencer.clone(),
+                self.cancellation_token.child_token(),
+            );
+            let webserver_handle = tokio::spawn(async move {
+                if let Err(e) = ws.start().await {
+                    error!("WebServer error: {:?}", e);
+                }
+            });
+            handles.push(webserver_handle);
         }
 
-        // Wait for any service to exit
-        let exit_result = if let Some(result) = futures.join_next().await {
-            match result {
-                Ok(service_result) => match service_result {
-                    Ok(_) => {
-                        info!("Service exited gracefully, shutting down other components");
-                        self.cancellation_token.cancel();
-                        Ok(())
-                    }
-                    Err(service_error) => {
-                        error!(
-                            "Service exited with error: {:?}, shutting down other components",
-                            service_error
-                        );
-                        self.cancellation_token.cancel();
-                        Err(service_error)
-                    }
-                },
-                Err(join_error) => {
-                    error!(
-                        "Task join error: {:?}, shutting down other components",
-                        join_error
-                    );
-                    self.cancellation_token.cancel();
-                    Err(anyhow!("Task join error: {}", join_error))
-                }
-            }
-        } else {
-            error!("No futures in join set, shutting down");
-            Ok(())
+        {
+            let mut task_handles =
+                self.task_handles.lock().map_err(|e| anyhow!("Lock poisoned: {}", e))?;
+            *task_handles = handles;
+        }
+
+        info!("Prover started successfully");
+        Ok(())
+    }
+
+    pub async fn stop(&self) -> Result<()> {
+        info!("Stopping Prover");
+        self.cancellation_token.cancel();
+        self.join().await?;
+        info!("Prover stopped successfully");
+        Ok(())
+    }
+
+    async fn join(&self) -> Result<()> {
+        let handles = {
+            let mut task_handles =
+                self.task_handles.lock().map_err(|e| anyhow!("Lock poisoned: {}", e))?;
+            std::mem::take(&mut *task_handles)
         };
 
-        // Wait for all other components to finish gracefully
-        while let Some(result) = futures.join_next().await {
-            match result {
-                Ok(Ok(_)) => debug!("Component shut down gracefully"),
-                Ok(Err(e)) => warn!("Component shut down with error: {:?}", e),
+        if handles.is_empty() {
+            return Ok(());
+        }
+
+        for handle in handles {
+            match handle.await {
+                Ok(_) => debug!("Component shut down gracefully"),
                 Err(e) => warn!("Component join error during shutdown: {:?}", e),
             }
         }
 
-        info!("Prover shutdown complete");
-        exit_result
+        Ok(())
     }
 }
 

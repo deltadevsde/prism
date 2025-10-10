@@ -2,14 +2,11 @@ use crate::prover_engine::engine::MockProverEngine;
 
 use super::*;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
+use prism_da::{SuccinctProof, VerifiableEpoch, memory::InMemoryDataAvailabilityLayer};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
+use prism_storage::inmemory::InMemoryDatabase;
 use prism_tree::proofs::{Batch, Proof};
 use std::{self, sync::Arc, time::Duration};
-use tokio::spawn;
-use tokio_util::sync::CancellationToken;
-
-use prism_da::{SuccinctProof, VerifiableEpoch, memory::InMemoryDataAvailabilityLayer};
-use prism_storage::inmemory::InMemoryDatabase;
 
 fn init_logger() {
     pretty_env_logger::formatted_builder()
@@ -37,16 +34,7 @@ async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
     opts.syncer.max_epochless_gap = 5;
     opts.webserver.port = 0;
     let engine = create_mock_engine().await;
-    Arc::new(
-        Prover::new_with_engine(
-            db.clone(),
-            da_layer,
-            engine.clone(),
-            &opts,
-            CancellationToken::new(),
-        )
-        .unwrap(),
-    )
+    Arc::new(Prover::new_with_engine(db.clone(), da_layer, engine.clone(), &opts).unwrap())
 }
 
 async fn create_mock_engine() -> Arc<dyn ProverEngine> {
@@ -94,11 +82,7 @@ fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
 async fn test_posts_epoch_after_max_gap() {
     init_logger();
     let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
-
-    let prover_handle = prover.clone();
-    spawn(async move {
-        prover_handle.run().await.unwrap();
-    });
+    prover.start().await.expect("Prover can be started");
 
     let mut rx = prover.get_da().subscribe_to_heights();
 
@@ -166,6 +150,8 @@ async fn test_posts_epoch_after_max_gap() {
         current_commitment, commitment_after_epoch.commitment,
         "Gap proof should contain the correct commitment"
     );
+
+    prover.stop().await.expect("Prover can be stopped");
 }
 
 async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
@@ -300,22 +286,9 @@ async fn test_restart_sync_from_scratch() {
     let engine = create_mock_engine().await;
     let mut opts = ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     opts.webserver.port = 0;
-    let cancellation_token = CancellationToken::new();
-    let prover = Arc::new(
-        Prover::new_with_engine(
-            db1.clone(),
-            da_layer.clone(),
-            engine.clone(),
-            &opts,
-            cancellation_token.clone(),
-        )
-        .unwrap(),
-    );
-
-    let runner = prover.clone();
-    spawn(async move {
-        runner.run().await.unwrap();
-    });
+    let prover =
+        Prover::new_with_engine(db1.clone(), da_layer.clone(), engine.clone(), &opts).unwrap();
+    prover.start().await.expect("Prover can be started");
 
     let transactions = create_mock_transactions("test_service".to_string());
 
@@ -330,22 +303,13 @@ async fn test_restart_sync_from_scratch() {
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
     let latest_commitment = prover.get_commitment().await.unwrap();
-    cancellation_token.cancel();
+    prover.stop().await.expect("Prover can be stopped");
 
-    let prover2 = Arc::new(
-        Prover::new_with_engine(
-            db2.clone(),
-            da_layer.clone(),
-            engine.clone(),
-            &opts,
-            CancellationToken::new(),
-        )
-        .unwrap(),
-    );
-    let runner = prover2.clone();
+    let prover2 =
+        Prover::new_with_engine(db2.clone(), da_layer.clone(), engine.clone(), &opts).unwrap();
     drop(db1);
     drop(prover);
-    spawn(async move { runner.run().await.unwrap() });
+    prover2.start().await.expect("Prover2 can be started");
 
     let res = tokio::time::timeout(Duration::from_secs(120), async move {
         loop {
@@ -379,16 +343,13 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
         ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     prover_opts.syncer.prover_enabled = true;
     prover_opts.webserver.port = 0;
-    let prover = Arc::new(
-        Prover::new_with_engine(
-            prover_db.clone(),
-            da_layer.clone(),
-            prover_engine.clone(),
-            &prover_opts,
-            CancellationToken::new(),
-        )
-        .unwrap(),
-    );
+    let prover = Prover::new_with_engine(
+        prover_db.clone(),
+        da_layer.clone(),
+        prover_engine.clone(),
+        &prover_opts,
+    )
+    .unwrap();
 
     // Setup fullnode (with prover disabled) - use same verifying key as prover
     let fullnode_db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
@@ -398,27 +359,17 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     fullnode_opts.syncer.prover_enabled = false;
     fullnode_opts.syncer.verifying_key = prover_opts.syncer.verifying_key.clone();
     fullnode_opts.webserver.port = 0;
-    let fullnode = Arc::new(
-        Prover::new_with_engine(
-            fullnode_db.clone(),
-            da_layer.clone(),
-            fullnode_engine.clone(),
-            &fullnode_opts,
-            CancellationToken::new(),
-        )
-        .unwrap(),
-    );
+    let fullnode = Prover::new_with_engine(
+        fullnode_db.clone(),
+        da_layer.clone(),
+        fullnode_engine.clone(),
+        &fullnode_opts,
+    )
+    .unwrap();
 
     // Start both nodes
-    let prover_handle = prover.clone();
-    spawn(async move {
-        prover_handle.run().await.unwrap();
-    });
-
-    let fullnode_handle = fullnode.clone();
-    spawn(async move {
-        fullnode_handle.run().await.unwrap();
-    });
+    prover.start().await.expect("Prover can be started");
+    fullnode.start().await.expect("Fullnode can be started");
 
     // Wait for both nodes to boot up
     tokio::time::sleep(Duration::from_millis(1000)).await;
@@ -512,21 +463,9 @@ async fn test_load_persisted_state() {
     let engine = create_mock_engine().await;
     let mut opts = ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     opts.webserver.port = 0;
-    let prover = Arc::new(
-        Prover::new_with_engine(
-            db.clone(),
-            da_layer.clone(),
-            engine.clone(),
-            &opts,
-            CancellationToken::new(),
-        )
-        .unwrap(),
-    );
-
-    let runner = prover.clone();
-    spawn(async move {
-        runner.run().await.unwrap();
-    });
+    let prover =
+        Prover::new_with_engine(db.clone(), da_layer.clone(), engine.clone(), &opts).unwrap();
+    prover.start().await.expect("Prover can be started");
 
     let transactions = create_mock_transactions("test_service".to_string());
 
@@ -541,18 +480,10 @@ async fn test_load_persisted_state() {
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
 
-    let prover2 = Arc::new(
-        Prover::new_with_engine(
-            db.clone(),
-            da_layer.clone(),
-            engine.clone(),
-            &opts,
-            CancellationToken::new(),
-        )
-        .unwrap(),
-    );
-    let runner = prover2.clone();
-    spawn(async move { runner.run().await.unwrap() });
+    let prover2 =
+        Prover::new_with_engine(db.clone(), da_layer.clone(), engine.clone(), &opts).unwrap();
+    prover2.start().await.expect("Prover2 can be started");
+
     let epoch = prover2.get_db().get_latest_epoch_height().unwrap();
     assert_eq!(epoch, 3);
     assert_eq!(
