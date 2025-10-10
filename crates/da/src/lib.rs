@@ -90,6 +90,7 @@
 //! ```
 
 pub mod celestia;
+mod config;
 pub mod consts;
 pub mod error;
 mod factory;
@@ -100,6 +101,9 @@ use crate::error::{
 };
 use async_trait::async_trait;
 use celestia_types::Blob;
+#[cfg(not(target_arch = "wasm32"))]
+pub use config::FullNodeDAConfig;
+pub use config::LightClientDAConfig;
 pub use factory::*;
 use mockall::automock;
 use prism_common::digest::Digest;
@@ -112,6 +116,7 @@ use prism_serde::{
 use serde::{Deserialize, Serialize};
 use sp1_verifier::Groth16Verifier;
 use std::{fmt::Display, sync::Arc};
+
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
 
