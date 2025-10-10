@@ -2,20 +2,19 @@ use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use prism_common::{
     api::{
-        PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError,
-        types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
+        PendingTransaction, PrismApi, PrismApiError,
+        types::{AccountResponse, CommitmentResponse},
     },
     transaction::Transaction,
 };
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::Database;
-use prism_tree::AccountResponse::{Found, NotFound};
 use std::sync::Arc;
-use timer::ProverTokioTimer;
 use tokio::{sync::RwLock, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
+    api::ProverTokioTimer,
     prover_engine::{engine::ProverEngine, sp1_prover::SP1ProverEngine},
     sequencer::Sequencer,
     syncer::Syncer,
@@ -302,42 +301,18 @@ impl PrismApi for Prover {
     type Timer = ProverTokioTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, PrismApiError> {
-        let acc_response = match self.sequencer.get_account(id).await? {
-            Found(account, inclusion_proof) => {
-                let hashed_inclusion_proof = inclusion_proof.hashed();
-                AccountResponse {
-                    account: Some(*account),
-                    proof: HashedMerkleProof {
-                        leaf: hashed_inclusion_proof.leaf,
-                        siblings: hashed_inclusion_proof.siblings,
-                    },
-                }
-            }
-            NotFound(non_inclusion_proof) => {
-                let hashed_non_inclusion = non_inclusion_proof.hashed();
-                AccountResponse {
-                    account: None,
-                    proof: HashedMerkleProof {
-                        leaf: hashed_non_inclusion.leaf,
-                        siblings: hashed_non_inclusion.siblings,
-                    },
-                }
-            }
-        };
-        Ok(acc_response)
+        PrismApi::get_account(self.sequencer.as_ref(), id).await
     }
 
     async fn get_commitment(&self) -> Result<CommitmentResponse, PrismApiError> {
-        let commitment = self.sequencer.get_commitment().await?;
-        Ok(CommitmentResponse { commitment })
+        PrismApi::get_commitment(self.sequencer.as_ref()).await
     }
 
     async fn post_transaction(
         &self,
         transaction: Transaction,
     ) -> Result<impl PendingTransaction<Timer = Self::Timer>, PrismApiError> {
-        self.sequencer.validate_and_queue_update(transaction.clone()).await?;
-        Ok(PendingTransactionImpl::new(self, transaction))
+        PrismApi::post_transaction(self.sequencer.as_ref(), transaction).await
     }
 }
 
