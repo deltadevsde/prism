@@ -1,13 +1,12 @@
 use lumina_node::events::{EventSubscriber as LuminaEventSub, NodeEvent};
 use prism_common::digest::Digest;
+use prism_cross_target::tasks::{JoinHandle, spawn};
 use serde::Serialize;
 use std::{fmt, sync::Arc};
 use tokio::sync::{Mutex, broadcast};
 #[cfg(not(target_arch = "wasm32"))]
 use tracing::trace;
 use web_time::SystemTime;
-
-pub mod utils;
 
 const EVENT_CHANNEL_CAPACITY: usize = 1024;
 
@@ -136,9 +135,9 @@ impl EventChannel {
         }
     }
 
-    pub fn start_forwarding(&self, sub: Arc<Mutex<LuminaEventSub>>) {
+    pub fn start_forwarding(&self, sub: Arc<Mutex<LuminaEventSub>>) -> JoinHandle {
         let publisher = self.publisher();
-        utils::spawn_task(async move {
+        spawn(async move {
             loop {
                 let event = {
                     let mut subscriber = sub.lock().await;
@@ -161,7 +160,7 @@ impl EventChannel {
                     Err(_) => break,
                 }
             }
-        });
+        })
     }
 }
 
