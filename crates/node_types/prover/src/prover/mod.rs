@@ -1,5 +1,3 @@
-mod timer;
-
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use prism_common::{
