@@ -20,6 +20,7 @@ prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-events = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }
+prism-cross-target = { workspace = true, features = ["tasks"] }
 prism-presets = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
