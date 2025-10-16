@@ -70,7 +70,6 @@ pub struct Syncer {
     event_chan: Arc<EventChannel>,
     event_pub: Arc<EventPublisher>,
     sync_state: Arc<RwLock<SyncState>>,
-    cancellation_token: CancellationToken,
     latest_commitment: Arc<RwLock<Option<Digest>>>,
     mock_proof_verification: bool,
 }
@@ -81,7 +80,6 @@ impl Syncer {
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
         prover_pubkey: VerifyingKey,
         sp1_vkeys: VerificationKeys,
-        cancellation_token: CancellationToken,
         mock_proof_verification: bool,
     ) -> Self {
         let event_chan = da.event_channel();
@@ -96,7 +94,6 @@ impl Syncer {
             event_chan,
             event_pub,
             sync_state,
-            cancellation_token,
             latest_commitment,
             mock_proof_verification,
         }
@@ -110,12 +107,12 @@ impl Syncer {
         *self.latest_commitment.read().await
     }
 
-    pub async fn sync_incoming_heights(&self) -> Result<()> {
+    pub async fn sync_incoming_heights(&self, cancellation_token: CancellationToken) -> Result<()> {
         let mut event_sub = self.event_chan.subscribe();
         self.event_pub.send(PrismEvent::Ready);
 
         loop {
-            await_event!(self.cancellation_token, event_sub, |event| {
+            await_event!(cancellation_token, event_sub, |event| {
                 trace!("Event: {:?}", event);
                 if let PrismEvent::UpdateDAHeight { height } = event {
                     info!("new height from headersub {}", height);
@@ -181,7 +178,7 @@ impl Syncer {
                 }
             }
             Err(e) => {
-                error!("failed to fetch data at height {}", e)
+                error!("failed to fetch data at height {}: {}", height, e)
             }
         }
     }
@@ -221,12 +218,12 @@ impl Syncer {
         }
     }
 
-    pub async fn sync_backwards(&self) -> Result<()> {
+    pub async fn sync_backwards(&self, cancellation_token: CancellationToken) -> Result<()> {
         info!("starting backwards sync");
 
         let mut event_sub = self.event_chan.subscribe();
         let network_height = loop {
-            await_event!(self.cancellation_token, event_sub, |event| {
+            await_event!(cancellation_token, event_sub, |event| {
                 if let PrismEvent::UpdateDAHeight { height } = event {
                     let mut sync_state = self.sync_state.write().await;
                     sync_state.current_height = height;
@@ -258,7 +255,7 @@ impl Syncer {
                 return Ok(());
             }
             drop(sync_state);
-            select_with_cancellation!(self.cancellation_token, {
+            select_with_cancellation!(cancellation_token, {
                 // Look backwards for the first height with epochs
                 maybe_epoch = self.find_most_recent_epoch(current_height, min_height) => {
                     match maybe_epoch {

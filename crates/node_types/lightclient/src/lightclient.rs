@@ -1,13 +1,9 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
-use prism_cross_target::tasks::{JoinHandle, spawn};
+use prism_cross_target::tasks::TaskManager;
 use prism_da::{LightDataAvailabilityLayer, VerificationKeys};
 use prism_keys::VerifyingKey;
-use std::{
-    self,
-    sync::{Arc, Mutex},
-};
-use tokio_util::sync::CancellationToken;
+use std::{self, sync::Arc};
 use tracing::{error, info};
 
 use crate::syncer::{SyncState, Syncer};
@@ -41,11 +37,9 @@ pub struct LightClient {
     pub da: Arc<dyn LightDataAvailabilityLayer>,
 
     syncer: Arc<Syncer>,
-    cancellation_token: CancellationToken,
 
-    /// Task handles for sync operations
-    sync_incoming_heights_handle: Arc<Mutex<Option<JoinHandle>>>,
-    sync_backwards_handle: Arc<Mutex<Option<JoinHandle>>>,
+    /// Task manager for background tasks
+    task_manager: TaskManager,
 }
 
 #[allow(dead_code)]
@@ -68,7 +62,6 @@ impl LightClient {
         mock_proof_verification: bool,
     ) -> Self {
         let sp1_vkeys = load_sp1_verifying_keys().expect("Failed to load SP1 verifying keys");
-        let cancellation_token = CancellationToken::new();
 
         if mock_proof_verification {
             error!("PROOF VERIFICATION IS DISABLED - FOR TESTING ONLY");
@@ -78,16 +71,13 @@ impl LightClient {
             Arc::clone(&da),
             prover_pubkey,
             sp1_vkeys,
-            cancellation_token.child_token(),
             mock_proof_verification,
         );
 
         Self {
             da,
             syncer: Arc::new(syncer),
-            cancellation_token,
-            sync_incoming_heights_handle: Arc::new(Mutex::new(None)),
-            sync_backwards_handle: Arc::new(Mutex::new(None)),
+            task_manager: TaskManager::new(),
         }
     }
 
@@ -97,20 +87,9 @@ impl LightClient {
 
     pub async fn start(&self) -> Result<()> {
         // Check if already started
-        {
-            let sync_incoming_guard = self
-                .sync_incoming_heights_handle
-                .lock()
-                .map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
-            let sync_backwards_guard = self
-                .sync_backwards_handle
-                .lock()
-                .map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
-
-            if sync_incoming_guard.is_some() || sync_backwards_guard.is_some() {
-                info!("Light client already started");
-                return Ok(());
-            }
+        if self.task_manager.is_running() {
+            info!("Light client already started");
+            return Ok(());
         }
 
         info!("Starting light client");
@@ -119,68 +98,36 @@ impl LightClient {
 
         // Start sync_incoming_heights task
         let syncer_clone = Arc::clone(&self.syncer);
-        let sync_heights_handle = spawn(async move {
-            if let Err(e) = syncer_clone.sync_incoming_heights().await {
-                error!("Syncing heights failed: {}", e);
-            }
-        });
+        self.task_manager
+            .spawn(|token| async move {
+                if let Err(e) = syncer_clone.sync_incoming_heights(token.clone().into()).await {
+                    error!("Syncing heights failed: {}", e);
+                    token.trigger();
+                }
+            })
+            .map_err(|e| anyhow::anyhow!("Failed to spawn sync heights task: {}", e))?;
 
         // Start sync_backwards task
         let syncer_clone = Arc::clone(&self.syncer);
-        let sync_backwards_handle = spawn(async move {
-            if let Err(e) = syncer_clone.sync_backwards().await {
-                error!("Backwards sync failed: {}", e);
-            }
-        });
-
-        // Store handles
-        {
-            let mut sync_incoming_guard = self
-                .sync_incoming_heights_handle
-                .lock()
-                .map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
-            *sync_incoming_guard = Some(sync_heights_handle);
-        }
-
-        {
-            let mut sync_backwards_guard = self
-                .sync_backwards_handle
-                .lock()
-                .map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
-            *sync_backwards_guard = Some(sync_backwards_handle);
-        }
-
-        Ok(())
-    }
-    async fn join_syncer_tasks(&self) -> Result<()> {
-        let sync_incoming_handle = self
-            .sync_incoming_heights_handle
-            .lock()
-            .map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?
-            .take();
-
-        let sync_backwards_handle = self
-            .sync_backwards_handle
-            .lock()
-            .map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?
-            .take();
-
-        if let Some(handle) = sync_incoming_handle {
-            let _ = handle.join().await;
-        }
-
-        if let Some(handle) = sync_backwards_handle {
-            let _ = handle.join().await;
-        }
+        self.task_manager
+            .spawn(|token| async move {
+                if let Err(e) = syncer_clone.sync_backwards(token.clone().into()).await {
+                    error!("Backwards sync failed: {}", e);
+                    token.trigger();
+                }
+            })
+            .map_err(|e| anyhow::anyhow!("Failed to spawn sync backwards task: {}", e))?;
 
         Ok(())
     }
 
     pub async fn stop(&self) -> Result<()> {
-        self.cancellation_token.cancel();
         self.da.stop().await?;
 
-        self.join_syncer_tasks().await?;
+        self.task_manager
+            .stop()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to stop task manager: {}", e))?;
 
         Ok(())
     }
