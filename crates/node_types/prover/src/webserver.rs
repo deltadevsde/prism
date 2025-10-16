@@ -51,26 +51,17 @@ impl Default for WebServerConfig {
 pub struct WebServer<P: PrismApi + 'static> {
     pub cfg: WebServerConfig,
     pub prism: Arc<P>,
-    cancellation_token: CancellationToken,
 }
 
 #[derive(OpenApi)]
 struct ApiDoc;
 
 impl<P: PrismApi + 'static> WebServer<P> {
-    pub const fn new(
-        cfg: WebServerConfig,
-        prism: Arc<P>,
-        cancellation_token: CancellationToken,
-    ) -> Self {
-        Self {
-            cfg,
-            prism,
-            cancellation_token,
-        }
+    pub const fn new(cfg: WebServerConfig, prism: Arc<P>) -> Self {
+        Self { cfg, prism }
     }
 
-    pub async fn start(&self) -> Result<()> {
+    pub async fn run(&self, cancellation_token: CancellationToken) -> Result<()> {
         if !self.cfg.enabled {
             bail!("Webserver is disabled")
         }
@@ -101,10 +92,10 @@ impl<P: PrismApi + 'static> WebServer<P> {
             socket_addr.port()
         );
 
-        let cancellation_token = self.cancellation_token.clone();
+        let graceful_shutdown_token = cancellation_token.clone();
         server
             .with_graceful_shutdown(async move {
-                cancellation_token.cancelled().await;
+                graceful_shutdown_token.cancelled().await;
                 info!("Webserver shutting down gracefully");
             })
             .await?;

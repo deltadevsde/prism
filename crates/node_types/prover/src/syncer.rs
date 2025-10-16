@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use prism_common::transaction::Transaction;
 use prism_da::{DataAvailabilityLayer, VerifiableEpoch};
 use prism_events::{EventPublisher, PrismEvent};
@@ -23,7 +23,6 @@ pub struct Syncer {
     sequencer: Arc<Sequencer>,
     event_pub: Arc<EventPublisher>,
     prover_engine: Arc<dyn ProverEngine>,
-    cancellation_token: CancellationToken,
     is_prover_enabled: bool,
 }
 
@@ -35,7 +34,6 @@ impl Syncer {
         latest_epoch_da_height: Arc<RwLock<u64>>,
         sequencer: Arc<Sequencer>,
         prover_engine: Arc<dyn ProverEngine>,
-        cancellation_token: CancellationToken,
     ) -> Result<Self> {
         if config.start_height == 0 {
             return Err(anyhow!("Start height must be >= 1"));
@@ -55,7 +53,6 @@ impl Syncer {
             prover_engine,
             event_pub,
             is_prover_enabled: config.prover_enabled,
-            cancellation_token,
         })
     }
 
@@ -63,12 +60,9 @@ impl Syncer {
         self.da.clone()
     }
 
-    pub async fn start(&self) -> Result<()> {
+    pub async fn run(&self, cancellation_token: CancellationToken) -> Result<()> {
         self.da.start().await?;
-        self.run_main_loop().await
-    }
 
-    async fn run_main_loop(&self) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
         let historical_sync_height = height_rx.recv().await?;
 
@@ -81,7 +75,13 @@ impl Syncer {
             }
         };
 
-        self.sync_loop(sync_start_height, historical_sync_height, height_rx).await
+        self.sync_loop(
+            sync_start_height,
+            historical_sync_height,
+            height_rx,
+            cancellation_token,
+        )
+        .await
     }
 
     async fn sync_loop(
@@ -89,6 +89,7 @@ impl Syncer {
         start_height: u64,
         end_height: u64,
         mut incoming_heights: broadcast::Receiver<u64>,
+        cancellation_token: CancellationToken,
     ) -> Result<()> {
         let mut current_height = start_height;
 
@@ -106,7 +107,7 @@ impl Syncer {
                     self.db.set_last_synced_height(&current_height)?;
                     current_height += 1;
                 },
-                _ = self.cancellation_token.cancelled() => {
+                _ = cancellation_token.cancelled() => {
                     info!("Syncer: Gracefully stopping during historical sync at height {}", current_height);
                     return Ok(());
                 }
@@ -139,7 +140,7 @@ impl Syncer {
                     current_height += 1;
                     self.db.set_last_synced_height(&current_height)?;
                 },
-                _ = self.cancellation_token.cancelled() => {
+                _ = cancellation_token.cancelled() => {
                     info!("Syncer: Gracefully stopping during real-time sync at height {}", current_height);
                     return Ok(());
                 }

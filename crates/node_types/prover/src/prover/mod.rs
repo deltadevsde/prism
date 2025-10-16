@@ -7,12 +7,12 @@ use prism_common::{
     },
     transaction::Transaction,
 };
+use prism_cross_target::tasks::TaskManager;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::Database;
-use std::sync::{Arc, Mutex};
-use tokio::{sync::RwLock, task::JoinHandle};
-use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, info, warn};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tracing::{error, info};
 
 use crate::{
     api::ProverTokioTimer,
@@ -135,8 +135,7 @@ pub struct Prover {
     sequencer: Arc<Sequencer>,
     syncer: Arc<Syncer>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
-    cancellation_token: CancellationToken,
-    task_handles: Arc<Mutex<Vec<JoinHandle<()>>>>,
+    task_manager: TaskManager,
 }
 
 #[allow(dead_code)]
@@ -157,14 +156,12 @@ impl Prover {
         opts: &ProverOptions,
     ) -> Result<Self> {
         let latest_epoch_da_height = Arc::new(RwLock::new(0));
-        let cancellation_token = CancellationToken::new();
 
         let sequencer = Arc::new(Sequencer::new(
             db.clone(),
             da.clone(),
             &opts.sequencer,
             latest_epoch_da_height.clone(),
-            cancellation_token.child_token(),
         )?);
 
         let syncer = Arc::new(Syncer::new(
@@ -174,7 +171,6 @@ impl Prover {
             latest_epoch_da_height.clone(),
             sequencer.clone(),
             prover_engine.clone(),
-            cancellation_token.child_token(),
         )?);
 
         Ok(Self {
@@ -183,8 +179,7 @@ impl Prover {
             sequencer,
             syncer,
             latest_epoch_da_height,
-            cancellation_token,
-            task_handles: Arc::new(Mutex::new(Vec::new())),
+            task_manager: TaskManager::new(),
         })
     }
 
@@ -235,56 +230,46 @@ impl Prover {
     }
 
     pub async fn start(&self) -> Result<()> {
-        {
-            let task_handles =
-                self.task_handles.lock().map_err(|e| anyhow!("Lock poisoned: {}", e))?;
-
-            if !task_handles.is_empty() {
-                info!("Prover already started");
-                return Ok(());
-            }
+        if self.task_manager.is_running() {
+            info!("Prover already started");
+            return Ok(());
         }
 
         info!("Starting Prover");
-        let mut handles = Vec::new();
 
         // Start Syncer (includes DA startup and main sync loop)
         let syncer = self.syncer.clone();
-        let syncer_handle = tokio::spawn(async move {
-            if let Err(e) = syncer.start().await {
-                error!("Syncer error: {:?}", e);
-            }
-        });
-        handles.push(syncer_handle);
+        self.task_manager
+            .spawn(|token| async move {
+                if let Err(e) = syncer.run(token.clone().into()).await {
+                    error!("Syncer error: {:?}", e);
+                }
+                token.trigger();
+            })
+            .map_err(|e| anyhow!("Failed to spawn syncer task: {}", e))?;
 
         // Start Sequencer (batch poster if enabled)
         let sequencer = self.sequencer.clone();
-        let sequencer_handle = tokio::spawn(async move {
-            if let Err(e) = sequencer.start().await {
-                error!("Sequencer error: {:?}", e);
-            }
-        });
-        handles.push(sequencer_handle);
+        self.task_manager
+            .spawn(|token| async move {
+                if let Err(e) = sequencer.run(token.clone().into()).await {
+                    error!("Sequencer error: {:?}", e);
+                }
+                token.trigger();
+            })
+            .map_err(|e| anyhow!("Failed to spawn sequencer task: {}", e))?;
 
         // Start WebServer if enabled
         if self.options.webserver.enabled {
-            let ws = WebServer::new(
-                self.options.webserver.clone(),
-                self.sequencer.clone(),
-                self.cancellation_token.child_token(),
-            );
-            let webserver_handle = tokio::spawn(async move {
-                if let Err(e) = ws.start().await {
-                    error!("WebServer error: {:?}", e);
-                }
-            });
-            handles.push(webserver_handle);
-        }
-
-        {
-            let mut task_handles =
-                self.task_handles.lock().map_err(|e| anyhow!("Lock poisoned: {}", e))?;
-            *task_handles = handles;
+            let ws = WebServer::new(self.options.webserver.clone(), self.sequencer.clone());
+            self.task_manager
+                .spawn(|token| async move {
+                    if let Err(e) = ws.run(token.clone().into()).await {
+                        error!("WebServer error: {:?}", e);
+                        token.trigger();
+                    }
+                })
+                .map_err(|e| anyhow!("Failed to spawn webserver task: {}", e))?;
         }
 
         info!("Prover started successfully");
@@ -293,30 +278,11 @@ impl Prover {
 
     pub async fn stop(&self) -> Result<()> {
         info!("Stopping Prover");
-        self.cancellation_token.cancel();
-        self.join().await?;
+        self.task_manager
+            .stop()
+            .await
+            .map_err(|e| anyhow!("Failed to stop task manager: {}", e))?;
         info!("Prover stopped successfully");
-        Ok(())
-    }
-
-    async fn join(&self) -> Result<()> {
-        let handles = {
-            let mut task_handles =
-                self.task_handles.lock().map_err(|e| anyhow!("Lock poisoned: {}", e))?;
-            std::mem::take(&mut *task_handles)
-        };
-
-        if handles.is_empty() {
-            return Ok(());
-        }
-
-        for handle in handles {
-            match handle.await {
-                Ok(_) => debug!("Component shut down gracefully"),
-                Err(e) => warn!("Component join error during shutdown: {:?}", e),
-            }
-        }
-
         Ok(())
     }
 }
