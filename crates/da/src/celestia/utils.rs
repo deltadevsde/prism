@@ -1,4 +1,3 @@
-use anyhow::Result;
 use celestia_types::nmt::Namespace;
 use prism_serde::hex::FromHex;
 
