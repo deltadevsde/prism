@@ -16,20 +16,20 @@ use serde::{Deserialize, Serialize};
 use std::{
     self,
     sync::{
-        Arc, Mutex,
+        Arc,
         atomic::{AtomicU64, Ordering},
     },
 };
-use tokio::{sync::broadcast, task::JoinHandle, time::Duration};
-use tokio_util::sync::CancellationToken;
+use tokio::{sync::broadcast, time::Duration};
+
 use tracing::{error, info, trace};
 
 use crate::{DataAvailabilityLayer, celestia::CelestiaNetwork, error::DataAvailabilityError};
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
 use celestia_types::AppVersion;
 use prism_common::transaction::Transaction;
+use prism_cross_target::tasks::TaskManager;
 use prism_serde::binary::ToBinary;
-use tokio::task::spawn;
 use tracing::{debug, warn};
 
 use super::utils::create_namespace;
@@ -154,8 +154,7 @@ pub struct CelestiaConnection {
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
     event_channel: Arc<EventChannel>,
-    cancellation_token: CancellationToken,
-    header_sub_task: Arc<Mutex<Option<JoinHandle<()>>>>,
+    task_manager: TaskManager,
 }
 
 impl CelestiaConnection {
@@ -188,8 +187,7 @@ impl CelestiaConnection {
             event_channel,
             fetch_timeout: config.fetch_timeout,
             fetch_max_retries: config.fetch_max_retries,
-            cancellation_token: CancellationToken::new(),
-            header_sub_task: Arc::new(Mutex::new(None)),
+            task_manager: TaskManager::new(),
         })
     }
 
@@ -254,65 +252,48 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
         let sync_target = self.sync_target.clone();
         let height_update_tx = self.height_update_tx.clone();
         let event_publisher = self.event_channel.publisher();
-        let cancellation_token = self.cancellation_token.clone();
 
-        let handle = spawn(async move {
-            loop {
-                tokio::select! {
-                    _ = cancellation_token.cancelled() => {
-                        info!("Celestia header subscription cancelled");
-                        break;
-                    }
-                    extended_header_result = header_sub.next() => {
-                        match extended_header_result {
-                            Some(Ok(extended_header)) => {
-                                let height = extended_header.header.height.value();
-                                sync_target.store(height, Ordering::Relaxed);
-                                // todo: correct error handling
-                                let _ = height_update_tx.send(height);
-                                trace!("updated sync target for height {}", height);
+        self.task_manager
+            .spawn(move |cancellation_token| async move {
+                loop {
+                    tokio::select! {
+                        _ = cancellation_token.triggered() => {
+                            info!("Celestia header subscription cancelled");
+                            break;
+                        }
+                        extended_header_result = header_sub.next() => {
+                            match extended_header_result {
+                                Some(Ok(extended_header)) => {
+                                    let height = extended_header.header.height.value();
+                                    sync_target.store(height, Ordering::Relaxed);
+                                    // todo: correct error handling
+                                    let _ = height_update_tx.send(height);
+                                    trace!("updated sync target for height {}", height);
 
-                                event_publisher.send(PrismEvent::UpdateDAHeight { height });
-                            }
-                            Some(Err(e)) => {
-                                error!("Error retrieving header from DA layer: {}", e);
-                            }
-                            None => {
-                                info!("Header subscription stream ended");
-                                break;
+                                    event_publisher.send(PrismEvent::UpdateDAHeight { height });
+                                }
+                                Some(Err(e)) => {
+                                    error!("Error retrieving header from DA layer: {}", e);
+                                }
+                                None => {
+                                    info!("Header subscription stream ended");
+                                    break;
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
-
-        if let Ok(mut task) = self.header_sub_task.lock() {
-            *task = Some(handle);
-        }
+            })
+            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
 
         Ok(())
     }
 
     async fn stop(&self) -> Result<(), DataAvailabilityError> {
-        self.cancellation_token.cancel();
-
-        let handle = {
-            if let Ok(mut task_guard) = self.header_sub_task.lock() {
-                task_guard.take()
-            } else {
-                None
-            }
-        };
-
-        if let Some(handle) = handle {
-            return handle.await.map_err(|e| {
-                DataAvailabilityError::ShutdownError(format!(
-                    "Failed to stop header subscription: {}",
-                    e
-                ))
-            })
-        }
+        self.task_manager
+            .stop()
+            .await
+            .map_err(|e| DataAvailabilityError::ShutdownError(e.to_string()))?;
 
         Ok(())
     }

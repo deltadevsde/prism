@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use celestia_types::nmt::Namespace;
 use libp2p::Multiaddr;
 use lumina_node::{Node, NodeBuilder};
-use prism_events::{EventChannel, EventPublisher};
+use prism_events::{EventChannel, EventPublisher, PrismEvent};
 use std::{self, str::FromStr, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{trace, warn};
@@ -34,7 +34,7 @@ use crate::{
     },
     error::DataAvailabilityError,
 };
-use prism_cross_target::tasks::JoinHandle;
+use prism_cross_target::{tasks::TaskManager, token::Token};
 
 #[cfg(target_arch = "wasm32")]
 pub type LuminaNode = Node<IndexedDbBlockstore, IndexedDbStore>;
@@ -257,7 +257,7 @@ pub struct LightClientConnection {
     fetch_timeout: Duration,
     fetch_max_retries: u64,
     config: CelestiaLightClientDAConfig,
-    forwarding_task: Arc<Mutex<Option<JoinHandle>>>,
+    task_manager: TaskManager,
 }
 
 impl LightClientConnection {
@@ -364,7 +364,7 @@ impl LightClientConnection {
             fetch_timeout: config.fetch_timeout,
             fetch_max_retries: config.fetch_max_retries,
             config: config.clone(),
-            forwarding_task: Arc::new(Mutex::new(None)),
+            task_manager: TaskManager::new(),
         })
     }
 
@@ -420,13 +420,10 @@ impl LightDataAvailabilityLayer for LightClientConnection {
         let lumina_sub = Arc::new(Mutex::new(event_subscriber));
 
         // Start forwarding lumina events to our existing event channel
-        let handle = self.event_channel.start_forwarding(lumina_sub);
-
-        // Store the join handle
-        {
-            let mut task_guard = self.forwarding_task.lock().await;
-            *task_guard = Some(handle);
-        }
+        let event_channel = self.event_channel.clone();
+        self.task_manager
+            .spawn(move |token| forward_lumina_events(event_channel.publisher(), lumina_sub, token))
+            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
 
         // Store the node
         {
@@ -447,15 +444,13 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             }
         }
 
-        {
-            let mut task_guard = self.forwarding_task.lock().await;
-            if let Some(handle) = task_guard.take() {
-                // Join directly, because we are optimistic that the forwarding task has been stopped
-                handle.join().await;
-            }
+        // Stop all managed tasks
+        self.task_manager
+            .stop()
+            .await
+            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
 
-            Ok(())
-        }
+        Ok(())
     }
 
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
@@ -506,5 +501,42 @@ impl LightDataAvailabilityLayer for LightClientConnection {
 
     fn event_channel(&self) -> Arc<EventChannel> {
         self.event_channel.clone()
+    }
+}
+
+/// Starts forwarding events from a Lumina event subscriber to the event channel.
+/// Returns a future that runs until the cancellation token is triggered.
+async fn forward_lumina_events(
+    publisher: EventPublisher,
+    lumina_sub: Arc<Mutex<lumina_node::events::EventSubscriber>>,
+    token: Token,
+) {
+    loop {
+        tokio::select! {
+            _ = token.triggered() => {
+                break;
+            }
+            event_result = async {
+                let mut subscriber = lumina_sub.lock().await;
+                subscriber.recv().await
+            } => {
+                match event_result {
+                    Ok(event) => {
+                        if let lumina_node::events::NodeEvent::AddedHeaderFromHeaderSub { height } =
+                            event.event
+                        {
+                            publisher.send(PrismEvent::UpdateDAHeight { height });
+                        } else {
+                            #[cfg(target_arch = "wasm32")]
+                            publisher.send(PrismEvent::LuminaEvent { event: event.event });
+
+                            #[cfg(not(target_arch = "wasm32"))]
+                            trace!("lumina event: {:?}", event);
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+        }
     }
 }

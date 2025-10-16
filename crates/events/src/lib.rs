@@ -1,11 +1,8 @@
-use lumina_node::events::{EventSubscriber as LuminaEventSub, NodeEvent};
+use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
-use prism_cross_target::tasks::{JoinHandle, spawn};
 use serde::Serialize;
-use std::{fmt, sync::Arc};
-use tokio::sync::{Mutex, broadcast};
-#[cfg(not(target_arch = "wasm32"))]
-use tracing::trace;
+use std::fmt;
+use tokio::sync::broadcast;
 use web_time::SystemTime;
 
 const EVENT_CHANNEL_CAPACITY: usize = 1024;
@@ -133,42 +130,6 @@ impl EventChannel {
         EventSubscriber {
             rx: self.tx.subscribe(),
         }
-    }
-
-    pub fn start_forwarding(&self, sub: Arc<Mutex<LuminaEventSub>>) -> JoinHandle {
-        let publisher = self.publisher();
-        spawn(async move {
-            loop {
-                let event = {
-                    let mut subscriber = sub.lock().await;
-                    subscriber.recv().await
-                };
-                match event {
-                    Ok(event) => {
-                        if let lumina_node::events::NodeEvent::AddedHeaderFromHeaderSub { height } =
-                            event.event
-                        {
-                            publisher.send(PrismEvent::UpdateDAHeight { height });
-                        } else {
-                            #[cfg(target_arch = "wasm32")]
-                            publisher.send(PrismEvent::LuminaEvent { event: event.event });
-
-                            #[cfg(not(target_arch = "wasm32"))]
-                            trace!("lumina event: {:?}", event);
-                        }
-                    }
-                    Err(_) => break,
-                }
-            }
-        })
-    }
-}
-
-impl From<Arc<Mutex<LuminaEventSub>>> for EventChannel {
-    fn from(sub: Arc<Mutex<LuminaEventSub>>) -> Self {
-        let chan = Self::new();
-        chan.start_forwarding(sub);
-        chan
     }
 }
 
