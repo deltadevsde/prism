@@ -12,11 +12,12 @@ readme.workspace = true
 
 [features]
 default = []
-tasks = ["token", "dep:tokio-util", "dep:tokio", "tokio/rt", "dep:wasm-bindgen-futures", "dep:send_wrapper"]
+tasks = ["token", "dep:tokio-util", "dep:tokio", "tokio/rt", "dep:wasm-bindgen-futures", "dep:send_wrapper", "dep:thiserror"]
 token = ["dep:tokio-util", "time"]
 time = ["dep:gloo-timers", "dep:tokio", "tokio/time", "dep:send_wrapper", "dep:futures", "dep:pin-project", "dep:web-time"]
 
 [dependencies]
+thiserror = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 tokio-util = { workspace = true, optional = true }
 
