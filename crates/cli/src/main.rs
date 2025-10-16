@@ -64,15 +64,15 @@ async fn run_cli() -> Result<(), CliError> {
     // Wait for shutdown signal
     shutdown_signal().await;
 
-    node.stop().await.map_err(|e| {
+    let stop_result = node.stop().await.map_err(|e| {
         // Log the error with full debug information
         tracing::error!("Node encountered an error: {:?}", e);
         // Return the error
         CliError::NodeError(format!("{:?}", e))
-    })?;
+    });
     telemetry.shutdown();
 
-    Ok(())
+    stop_result
 }
 
 async fn create_light_node(
