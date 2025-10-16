@@ -46,6 +46,12 @@ impl Debug for Token {
     }
 }
 
+impl From<Token> for CancellationToken {
+    fn from(token: Token) -> Self {
+        token.token
+    }
+}
+
 /// A wrapper for a [`Token`], which triggers it when it's dropped
 pub struct TokenTriggerDropGuard {
     token: Option<CancellationToken>,
@@ -84,7 +90,7 @@ mod tests {
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     #[async_test]
-    async fn smoke() {
+    async fn token_manually_triggered() {
         let token = Token::new();
         assert!(!token.is_triggered());
 
