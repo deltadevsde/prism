@@ -331,6 +331,7 @@ async fn test_restart_sync_from_scratch() {
     .await;
 
     assert!(res.is_ok());
+    prover2.stop().await.expect("Prover2 can be stopped");
 }
 
 #[tokio::test]
@@ -459,6 +460,10 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
         prover_epoch, fullnode_epoch,
         "Both nodes should be at the same epoch height"
     );
+
+    // Ensure background tasks are terminated.
+    prover.stop().await.expect("Prover can be stopped");
+    fullnode.stop().await.expect("Fullnode can be stopped");
 }
 
 #[tokio::test]
@@ -497,6 +502,10 @@ async fn test_load_persisted_state() {
         prover.get_commitment().await.unwrap(),
         prover2.get_commitment().await.unwrap()
     );
+
+    // Ensure background tasks are terminated.
+    prover.stop().await.expect("Prover can be stopped");
+    prover2.stop().await.expect("Prover2 can be stopped");
 }
 
 macro_rules! generate_algorithm_tests {
