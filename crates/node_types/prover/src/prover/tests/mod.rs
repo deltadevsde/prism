@@ -305,17 +305,24 @@ async fn test_restart_sync_from_scratch() {
     let latest_commitment = prover.get_commitment().await.unwrap();
     prover.stop().await.expect("Prover can be stopped");
 
-    let prover2 =
-        Prover::new_with_engine(db2.clone(), da_layer.clone(), engine.clone(), &opts).unwrap();
+    let prover2 = Arc::new(
+        Prover::new_with_engine(db2.clone(), da_layer.clone(), engine.clone(), &opts).unwrap(),
+    );
     drop(db1);
     drop(prover);
     prover2.start().await.expect("Prover2 can be started");
 
+    let prover2_clone = prover2.clone();
     let res = tokio::time::timeout(Duration::from_secs(120), async move {
+        // Poll until prover2 syncs to epoch 3, checking every 200ms
         loop {
-            let epoch = prover2.get_db().get_latest_epoch_height();
+            let epoch = prover2_clone.get_db().get_latest_epoch_height();
             if epoch.is_ok() && epoch.unwrap() == 3 {
-                assert_eq!(latest_commitment, prover2.get_commitment().await.unwrap());
+                // Verify that commitments match after sync
+                assert_eq!(
+                    latest_commitment,
+                    prover2_clone.get_commitment().await.unwrap()
+                );
                 break;
             }
             tokio::time::sleep(Duration::from_millis(200)).await;
