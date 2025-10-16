@@ -7349,6 +7349,7 @@ dependencies = [
  "gloo-timers 0.3.0",
  "pin-project",
  "send_wrapper 0.6.0",
+ "thiserror 2.0.12",
  "tokio",
  "tokio-util",
  "wasm-bindgen-futures",
@@ -7383,7 +7384,6 @@ dependencies = [
  "sp1-verifier",
  "thiserror 2.0.12",
  "tokio",
- "tokio-util",
  "tracing",
 ]
 
@@ -7476,6 +7476,7 @@ dependencies = [
  "paste",
  "pretty_env_logger",
  "prism-common",
+ "prism-cross-target",
  "prism-da",
  "prism-events",
  "prism-keys",

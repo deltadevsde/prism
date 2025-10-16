@@ -7,14 +7,13 @@ use crate::{
 use anyhow::Result;
 use async_trait::async_trait;
 use prism_common::transaction::Transaction;
-use prism_cross_target::tasks::{JoinHandle, spawn};
+use prism_cross_target::tasks::TaskManager;
 use prism_events::{EventChannel, PrismEvent};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::{
     sync::{RwLock, broadcast},
     time::{Duration, interval},
 };
-use tokio_util::sync::CancellationToken;
 use tracing::debug;
 
 const IN_MEMORY_DEFAULT_BLOCK_TIME: Duration = Duration::from_secs(15);
@@ -26,7 +25,6 @@ pub struct Block {
     pub epochs: Vec<FinalizedEpoch>,
 }
 
-#[derive(Clone)]
 pub struct InMemoryDataAvailabilityLayer {
     blocks: Arc<RwLock<Vec<Block>>>,
     pending_transactions: Arc<RwLock<Vec<Transaction>>>,
@@ -41,11 +39,8 @@ pub struct InMemoryDataAvailabilityLayer {
     // helpful to delay the posting of the epoch to test some latency scenarios.
     epoch_posting_delay: Option<Duration>,
 
-    /// Handle to the block production task
-    produce_blocks_handle: Arc<Mutex<Option<JoinHandle>>>,
-
-    /// Cancellation token for graceful shutdown
-    cancellation_token: CancellationToken,
+    /// Task manager for background tasks
+    task_manager: TaskManager,
 }
 
 impl Default for InMemoryDataAvailabilityLayer {
@@ -72,8 +67,7 @@ impl InMemoryDataAvailabilityLayer {
                 block_time,
                 event_channel,
                 epoch_posting_delay: None,
-                produce_blocks_handle: Arc::new(Mutex::new(None)),
-                cancellation_token: CancellationToken::new(),
+                task_manager: TaskManager::new(),
             },
             height_rx,
             block_rx,
@@ -98,15 +92,14 @@ impl InMemoryDataAvailabilityLayer {
                 block_time,
                 event_channel,
                 epoch_posting_delay: Some(epoch_delay),
-                produce_blocks_handle: Arc::new(Mutex::new(None)),
-                cancellation_token: CancellationToken::new(),
+                task_manager: TaskManager::new(),
             },
             height_rx,
             block_rx,
         )
     }
 
-    fn produce_blocks(&self) -> JoinHandle {
+    fn produce_blocks(&self) -> Result<(), DataAvailabilityError> {
         let blocks = self.blocks.clone();
         let pending_transactions = self.pending_transactions.clone();
         let pending_epochs = self.pending_epochs.clone();
@@ -115,65 +108,57 @@ impl InMemoryDataAvailabilityLayer {
         let block_update_tx = self.block_update_tx.clone();
         let event_publisher = self.event_channel.publisher();
         let block_time = self.block_time;
-        let cancellation_token = self.cancellation_token.clone();
 
-        spawn(async move {
-            let mut interval = interval(block_time);
-            loop {
-                tokio::select! {
-                    _ = cancellation_token.cancelled() => {
-                        debug!("Memory DA block production cancelled");
-                        break;
-                    }
-                    _ = interval.tick() => {
-                        let mut blocks = blocks.write().await;
-                        let mut pending_transactions = pending_transactions.write().await;
-                        let mut pending_epochs = pending_epochs.write().await;
-                        let mut latest_height = latest_height.write().await;
+        self.task_manager
+            .spawn(|token| async move {
+                let mut interval = interval(block_time);
+                loop {
+                    tokio::select! {
+                        _ = token.triggered() => {
+                            debug!("Memory DA block production cancelled");
+                            break;
+                        }
+                        _ = interval.tick() => {
+                            let mut blocks = blocks.write().await;
+                            let mut pending_transactions = pending_transactions.write().await;
+                            let mut pending_epochs = pending_epochs.write().await;
+                            let mut latest_height = latest_height.write().await;
 
-                        *latest_height += 1;
-                        let new_block = Block {
-                            height: *latest_height,
-                            transactions: std::mem::take(&mut *pending_transactions),
-                            epochs: std::mem::take(&mut *pending_epochs),
-                        };
-                        debug!(
-                            "new block produced at height {} with {} transactions",
-                            new_block.height,
-                            new_block.transactions.len(),
-                        );
-                        blocks.push(new_block.clone());
+                            *latest_height += 1;
+                            let new_block = Block {
+                                height: *latest_height,
+                                transactions: std::mem::take(&mut *pending_transactions),
+                                epochs: std::mem::take(&mut *pending_epochs),
+                            };
+                            debug!(
+                                "new block produced at height {} with {} transactions",
+                                new_block.height,
+                                new_block.transactions.len(),
+                            );
+                            blocks.push(new_block.clone());
 
-                        // Notify subscribers of the new height and block
-                        let _ = height_update_tx.send(*latest_height);
-                        let _ = block_update_tx.send(new_block);
+                            // Notify subscribers of the new height and block
+                            let _ = height_update_tx.send(*latest_height);
+                            let _ = block_update_tx.send(new_block);
 
-                        // Publish UpdateDAHeight event
-                        event_publisher.send(PrismEvent::UpdateDAHeight {
-                            height: *latest_height,
-                        });
+                            // Publish UpdateDAHeight event
+                            event_publisher.send(PrismEvent::UpdateDAHeight {
+                                height: *latest_height,
+                            });
+                        }
                     }
                 }
-            }
-        })
+            })
+            .map_err(|e| {
+                DataAvailabilityError::InitializationError(format!(
+                    "failed to spawn block producer: {}",
+                    e
+                ))
+            })
     }
 
     pub fn subscribe_blocks(&self) -> broadcast::Receiver<Block> {
         self.block_update_tx.subscribe()
-    }
-
-    async fn join(&self) -> Result<(), DataAvailabilityError> {
-        let Some(handle) = self
-            .produce_blocks_handle
-            .lock()
-            .map_err(|e| DataAvailabilityError::ShutdownError(format!("Lock poisoned: {}", e)))?
-            .take()
-        else {
-            return Ok(());
-        };
-
-        handle.join().await;
-        Ok(())
     }
 }
 
@@ -181,23 +166,19 @@ impl InMemoryDataAvailabilityLayer {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn start(&self) -> Result<(), DataAvailabilityError> {
-        let mut handle_lock = self.produce_blocks_handle.lock().map_err(|e| {
-            DataAvailabilityError::InitializationError(format!("Lock poisoned: {}", e))
-        })?;
-
         // Check if already started
-        if handle_lock.is_some() {
+        if self.task_manager.is_running() {
             return Ok(());
         }
 
-        let handle = self.produce_blocks();
-        *handle_lock = Some(handle);
-        Ok(())
+        self.produce_blocks()
     }
 
     async fn stop(&self) -> Result<(), DataAvailabilityError> {
-        self.cancellation_token.cancel();
-        self.join().await
+        self.task_manager
+            .stop()
+            .await
+            .map_err(|e| DataAvailabilityError::ShutdownError(e.to_string()))
     }
 
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
