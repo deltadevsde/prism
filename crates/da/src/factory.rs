@@ -1,3 +1,5 @@
+#[cfg(not(target_arch = "wasm32"))]
+use prism_events::EventChannel;
 use std::{sync::Arc, time::Duration};
 use tracing::info;
 
@@ -22,6 +24,7 @@ type LightClientDALayerResult = Result<Arc<dyn LightDataAvailabilityLayer>, Data
 /// See the crate-level documentation for usage examples and integration patterns.
 pub async fn create_light_client_da_layer(
     config: &LightClientDAConfig,
+    event_channel: EventChannel,
 ) -> LightClientDALayerResult {
     info!("Initializing light client connection...");
     match config {
@@ -32,7 +35,7 @@ pub async fn create_light_client_da_layer(
         }
         LightClientDAConfig::InMemory => {
             let (da_layer, _height_rx, _block_rx) =
-                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
+                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10), event_channel);
             Ok(Arc::new(da_layer))
         }
     }
@@ -47,6 +50,7 @@ pub async fn create_light_client_da_layer(
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn create_full_node_da_layer(
     config: &FullNodeDAConfig,
+    event_channel: EventChannel,
 ) -> Result<Arc<dyn DataAvailabilityLayer>, DataAvailabilityError> {
     info!("Initializing full node connection...");
     match config {
@@ -61,7 +65,7 @@ pub async fn create_full_node_da_layer(
         }
         FullNodeDAConfig::InMemory => {
             let (da_layer, _height_rx, _block_rx) =
-                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10));
+                InMemoryDataAvailabilityLayer::new(Duration::from_secs(10), event_channel);
             Ok(Arc::new(da_layer))
         }
     }
@@ -135,7 +139,8 @@ mod tests {
     #[tokio::test]
     async fn test_create_light_client_da_layer_inmemory() {
         let config = LightClientDAConfig::InMemory;
-        let result = create_light_client_da_layer(&config).await;
+        let event_channel = EventChannel::new();
+        let result = create_light_client_da_layer(&config, event_channel).await;
 
         assert!(result.is_ok());
         // We can't easily test the exact type due to trait objects, but we can verify it was
@@ -193,7 +198,8 @@ mod tests {
     #[tokio::test]
     async fn test_create_full_node_da_layer_inmemory() {
         let config = FullNodeDAConfig::InMemory;
-        let result = create_full_node_da_layer(&config).await;
+        let event_channel = EventChannel::new();
+        let result = create_full_node_da_layer(&config, event_channel).await;
 
         assert!(result.is_ok());
         // We can't easily test the exact type due to trait objects, but we can verify it was
