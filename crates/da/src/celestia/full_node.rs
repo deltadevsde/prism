@@ -326,18 +326,10 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
             .collect();
         Ok(valid_epochs)
     }
-
-    fn event_channel(&self) -> Arc<EventChannel> {
-        self.event_channel.clone()
-    }
 }
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
-    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
-        self.height_update_tx.subscribe()
-    }
-
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(self.sync_target.load(Ordering::Relaxed))
     }

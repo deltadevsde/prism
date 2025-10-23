@@ -493,10 +493,6 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             "Max retry count exceeded".to_string()
         )));
     }
-
-    fn event_channel(&self) -> Arc<EventChannel> {
-        self.event_channel.clone()
-    }
 }
 
 /// Starts forwarding events from a Lumina event subscriber to the event channel.
