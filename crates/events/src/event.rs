@@ -1,7 +1,7 @@
 use core::fmt;
 use lumina_node::events::NodeEvent;
-use prism_common::digest::Digest;
 use serde::Serialize;
+use std::time::SystemTime;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type")]
@@ -14,6 +14,8 @@ pub enum PrismEvent {
     /// Sent when the historical sync completes. Is None when the sync did not find any
     /// [`FinalizedEpoch`]s.
     HistoricalSyncCompleted { height: Option<u64> },
+    /// Sent when syncing with the DA layer fails.
+    SyncFailed { error: String },
     /// Sent when the DA height is updated to the given height.
     UpdateDAHeight { height: u64 },
     /// Sent when the connection to the DA layer is lost.
@@ -28,8 +30,6 @@ pub enum PrismEvent {
     NoEpochFound { height: u64 },
     /// Sent when the DA Height Channel closes unexpectedly.
     HeightChannelClosed,
-    /// Sent when the current Commitment is retrieved. Gives the commitment retrieved.
-    GetCurrentCommitment { commitment: Digest },
     /// Sent when Recursive Verification starts at the given height.
     RecursiveVerificationStarted { height: u64 },
     /// Sent when Epoch Verification completes at a given height.
@@ -37,61 +37,93 @@ pub enum PrismEvent {
 
     /// Forwarded events from Lumina.
     LuminaEvent { event: NodeEvent },
+    /// Sent when an unspecific error occurs during operation.
+    OperationError { error: String },
     // maybe place for Future P2P events like
     /* ConnectingToFullNode {
         address: String,
     }, */
 }
 
+impl PrismEvent {
+    pub fn is_error(&self) -> bool {
+        match self {
+            Self::EpochVerificationFailed { .. }
+            | Self::HeightChannelClosed
+            | Self::DAConnectionLost { .. }
+            | Self::SyncFailed { .. }
+            | Self::OperationError { .. } => true,
+            Self::LuminaEvent { event } => event.is_error(),
+            _ => false,
+        }
+    }
+}
+
 impl fmt::Display for PrismEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PrismEvent::Ready => {
+            Self::Ready => {
                 write!(
                     f,
                     "Node is ready to start sync and listening for incoming headers"
                 )
             }
-            PrismEvent::HistoricalSyncStarted { height } => {
+            Self::HistoricalSyncStarted { height } => {
                 write!(f, "Starting historical sync at height {}", height)
             }
-            PrismEvent::HistoricalSyncCompleted { height } => {
+            Self::HistoricalSyncCompleted { height } => {
                 write!(
                     f,
                     "Historical sync complete, found epoch: {}",
                     height.is_some()
                 )
             }
-            PrismEvent::UpdateDAHeight { height } => {
+            Self::SyncFailed { error } => {
+                write!(f, "Sync with the DA layer failed: {}", error)
+            }
+            Self::UpdateDAHeight { height } => {
                 write!(f, "Updated DA height to {}", height)
             }
-            PrismEvent::DAConnectionLost { error } => {
+            Self::DAConnectionLost { error } => {
                 write!(f, "DA connection lost: {}", error)
             }
-            PrismEvent::EpochVerified { height } => {
+            Self::EpochVerified { height } => {
                 write!(f, "Verified epoch {}", height)
             }
-            PrismEvent::EpochVerificationFailed { height, error } => {
+            Self::EpochVerificationFailed { height, error } => {
                 write!(f, "Failed to verify epoch {}: {}", height, error)
             }
-            PrismEvent::NoEpochFound { height } => {
+            Self::NoEpochFound { height } => {
                 write!(f, "No epoch found for height {}", height)
             }
-            PrismEvent::HeightChannelClosed => {
+            Self::HeightChannelClosed => {
                 write!(f, "Height channel closed unexpectedly")
             }
-            PrismEvent::GetCurrentCommitment { commitment } => {
-                write!(f, "Current commitment: {}", commitment)
-            }
-            PrismEvent::RecursiveVerificationStarted { height } => {
+            Self::RecursiveVerificationStarted { height } => {
                 write!(f, "Starting recursive verification at height {}", height)
             }
-            PrismEvent::RecursiveVerificationCompleted { height } => {
+            Self::RecursiveVerificationCompleted { height } => {
                 write!(f, "Completed recursive verification at height {}", height)
             }
-            PrismEvent::LuminaEvent { event } => {
+            Self::LuminaEvent { event } => {
                 write!(f, "Lumina event: {}", event)
             }
+            Self::OperationError { error } => {
+                write!(f, "Operation error: {}", error)
+            }
         }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventInfo {
+    pub event: PrismEvent,
+    pub time: SystemTime,
+    pub formatted_log: String,
+}
+
+impl EventInfo {
+    pub fn is_error(&self) -> bool {
+        self.event.is_error()
     }
 }

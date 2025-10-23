@@ -1,18 +1,9 @@
 use std::time::SystemTime;
-
-use serde::Serialize;
 use tokio::sync::broadcast;
 
-use crate::PrismEvent;
+use crate::{EventInfo, PrismEvent};
 
 const EVENT_CHANNEL_CAPACITY: usize = 1024;
-
-#[derive(Debug, Clone, Serialize)]
-pub struct EventInfo {
-    pub event: PrismEvent,
-    pub time: SystemTime,
-    pub formatted_log: String,
-}
 
 // The event channel that components use to broadcast events
 #[derive(Debug, Clone)]
