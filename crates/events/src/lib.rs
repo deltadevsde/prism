@@ -1,5 +1,5 @@
 mod channel;
 mod event;
 
-pub use channel::{EventChannel, EventInfo, EventPublisher, EventSubscriber};
-pub use event::PrismEvent;
+pub use channel::{EventChannel, EventPublisher, EventSubscriber};
+pub use event::{EventInfo, PrismEvent};
