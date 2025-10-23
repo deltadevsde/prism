@@ -9,7 +9,7 @@ mod types;
 use error::{LightClientError, Result};
 use prism_da::create_light_client_da_layer;
 
-use prism_events::EventSubscriber;
+use prism_events::{EventChannel, EventSubscriber};
 use prism_lightclient::{LightClient as CoreLightClient, create_light_client};
 use prism_presets::{ApplyPreset, LightClientPreset};
 use std::{str::FromStr, sync::Arc};
@@ -45,18 +45,25 @@ impl LightClient {
             LightClientError::initialization_error(format!("Adjusting path failed: {}", e))
         })?;
 
-        let da = create_light_client_da_layer(&config.da).await.map_err(|e| {
-            LightClientError::initialization_error(format!(
-                "Failed to create light client DA: {}",
-                e
-            ))
-        })?;
+        let event_channel = EventChannel::new();
 
-        let event_sub = da.event_channel().subscribe();
+        let da =
+            create_light_client_da_layer(&config.da, event_channel.clone()).await.map_err(|e| {
+                LightClientError::initialization_error(format!(
+                    "Failed to create light client DA: {}",
+                    e
+                ))
+            })?;
 
-        let light_client = create_light_client(da, &config.light_client).map_err(|e| {
-            LightClientError::initialization_error(format!("Failed to create light client: {}", e))
-        })?;
+        let event_sub = event_channel.subscribe();
+
+        let light_client =
+            create_light_client(da, event_channel, &config.light_client).map_err(|e| {
+                LightClientError::initialization_error(format!(
+                    "Failed to create light client: {}",
+                    e
+                ))
+            })?;
 
         Ok(Self {
             inner: Arc::new(light_client),
