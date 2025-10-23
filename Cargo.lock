@@ -7297,6 +7297,7 @@ dependencies = [
  "dotenvy",
  "prism-da",
  "prism-errors",
+ "prism-events",
  "prism-lightclient",
  "prism-presets",
  "prism-prover",
@@ -7402,7 +7403,7 @@ name = "prism-events"
 version = "0.1.0"
 dependencies = [
  "lumina-node",
- "prism-common",
+ "prism-cross-target",
  "serde",
  "tokio",
  "web-time",
@@ -7589,6 +7590,7 @@ dependencies = [
  "pretty_env_logger",
  "prism-common",
  "prism-da",
+ "prism-events",
  "prism-keys",
  "prism-lightclient",
  "prism-prover",
