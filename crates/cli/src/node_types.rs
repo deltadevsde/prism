@@ -4,7 +4,7 @@ use prism_lightclient::LightClient;
 use prism_prover::Prover;
 
 #[async_trait]
-pub trait NodeType {
+pub trait NodeType: Send + Sync {
     async fn start(&self) -> Result<()>;
     async fn stop(&self) -> Result<()>;
 }
