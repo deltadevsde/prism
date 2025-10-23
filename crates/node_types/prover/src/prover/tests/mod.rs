@@ -2,7 +2,10 @@ use crate::prover_engine::engine::MockProverEngine;
 
 use super::*;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
-use prism_da::{SuccinctProof, VerifiableEpoch, memory::InMemoryDataAvailabilityLayer};
+use prism_da::{
+    DataAvailabilityLayer, SuccinctProof, VerifiableEpoch, memory::InMemoryDataAvailabilityLayer,
+};
+use prism_events::PrismEvent;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::inmemory::InMemoryDatabase;
 use prism_tree::proofs::{Batch, Proof};
@@ -26,15 +29,29 @@ fn init_logger() {
 }
 
 // Helper function to create a test prover instance
-async fn create_test_prover(algorithm: CryptoAlgorithm) -> Arc<Prover> {
-    let (da_layer, _rx, _brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50));
-    let da_layer = Arc::new(da_layer);
+async fn create_test_prover(
+    algorithm: CryptoAlgorithm,
+) -> (Arc<Prover>, Arc<dyn DataAvailabilityLayer>, EventChannel) {
+    let events = EventChannel::new();
+    let (da_layer, _rx, _brx) =
+        InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
+    let da_layer: Arc<dyn DataAvailabilityLayer> = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let mut opts = ProverOptions::default_with_key_algorithm(algorithm).unwrap();
     opts.syncer.max_epochless_gap = 5;
     opts.webserver.port = 0;
     let engine = create_mock_engine().await;
-    Arc::new(Prover::new_with_engine(db.clone(), da_layer, engine.clone(), &opts).unwrap())
+    let prover = Arc::new(
+        Prover::new_with_engine(
+            db.clone(),
+            da_layer.clone(),
+            events.clone(),
+            engine.clone(),
+            &opts,
+        )
+        .unwrap(),
+    );
+    (prover, da_layer, events)
 }
 
 async fn create_mock_engine() -> Arc<dyn ProverEngine> {
@@ -81,21 +98,23 @@ fn create_mock_transactions(service_id: String) -> Vec<Transaction> {
 #[tokio::test]
 async fn test_posts_epoch_after_max_gap() {
     init_logger();
-    let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
+    let (prover, da, events) = create_test_prover(CryptoAlgorithm::Ed25519).await;
     prover.start().await.expect("Prover can be started");
 
-    let mut rx = prover.get_da().subscribe_to_heights();
+    let mut event_sub = events.subscribe();
 
     // Wait for initial blocks to be produced
     loop {
-        let height = rx.recv().await.unwrap();
-        if height >= 10 {
+        let event_info = event_sub.recv().await.unwrap();
+        if let PrismEvent::UpdateDAHeight { height } = event_info.event
+            && height >= 10
+        {
             break;
         }
     }
 
     // Ensure no gap proof has been created
-    assert!(prover.get_da().get_finalized_epochs(0).await.unwrap().is_empty());
+    assert!(da.get_finalized_epochs(0).await.unwrap().is_empty());
 
     // Create and submit transactions
     let test_transactions = create_mock_transactions("test_service".to_string());
@@ -111,18 +130,22 @@ async fn test_posts_epoch_after_max_gap() {
 
     // Give some time for the initial epoch proof to be posted
     loop {
-        let height = rx.recv().await.unwrap();
-        if height >= initial_epoch_height {
+        let event_info = event_sub.recv().await.unwrap();
+        if let PrismEvent::UpdateDAHeight { height } = event_info.event
+            && height >= initial_epoch_height
+        {
             break;
         }
     }
-    let epochs = prover.get_da().get_finalized_epochs(initial_epoch_height).await.unwrap();
+    let epochs = da.get_finalized_epochs(initial_epoch_height).await.unwrap();
     let initial_epoch = epochs.first().unwrap();
 
     // Wait for gap length
     loop {
-        let height = rx.recv().await.unwrap();
-        if height >= initial_epoch_height + 6 {
+        let event_info = event_sub.recv().await.unwrap();
+        if let PrismEvent::UpdateDAHeight { height } = event_info.event
+            && height >= initial_epoch_height + 6
+        {
             break;
         }
     }
@@ -131,13 +154,15 @@ async fn test_posts_epoch_after_max_gap() {
 
     // Give some time for the gap proof to be posted
     loop {
-        let height = rx.recv().await.unwrap();
-        if height >= current_epoch_height {
+        let event_info = event_sub.recv().await.unwrap();
+        if let PrismEvent::UpdateDAHeight { height } = event_info.event
+            && height >= current_epoch_height
+        {
             break;
         }
     }
     // Verify gap proof contents
-    let epochs = prover.get_da().get_finalized_epochs(current_epoch_height).await.unwrap();
+    let epochs = da.get_finalized_epochs(current_epoch_height).await.unwrap();
     let gap_proof = epochs.first().unwrap();
     let commitments = gap_proof.commitments();
     let current_commitment = commitments.current;
@@ -156,7 +181,7 @@ async fn test_posts_epoch_after_max_gap() {
 
 async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
     init_logger();
-    let prover = create_test_prover(algorithm).await;
+    let (prover, _da, _events) = create_test_prover(algorithm).await;
 
     let mut transaction_builder = TestTransactionBuilder::new();
     let transaction =
@@ -174,7 +199,7 @@ async fn test_validate_and_queue_update(algorithm: CryptoAlgorithm) {
 #[tokio::test]
 async fn test_process_transactions() {
     init_logger();
-    let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
+    let (prover, _da, _events) = create_test_prover(CryptoAlgorithm::Ed25519).await;
 
     let mut transaction_builder = TestTransactionBuilder::new();
     let register_service_transaction = transaction_builder
@@ -219,7 +244,7 @@ async fn test_process_transactions() {
 #[tokio::test]
 async fn test_execute_block_with_invalid_tx() {
     init_logger();
-    let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
+    let (prover, _da, _events) = create_test_prover(CryptoAlgorithm::Ed25519).await;
 
     let mut tx_builder = TestTransactionBuilder::new();
 
@@ -255,7 +280,7 @@ async fn test_execute_block_with_invalid_tx() {
 #[tokio::test]
 async fn test_execute_block() {
     init_logger();
-    let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
+    let (prover, _da, _events) = create_test_prover(CryptoAlgorithm::Ed25519).await;
 
     let transactions = create_mock_transactions("test_service".to_string());
 
@@ -266,7 +291,7 @@ async fn test_execute_block() {
 #[tokio::test]
 async fn test_finalize_new_epoch() {
     init_logger();
-    let prover = create_test_prover(CryptoAlgorithm::Ed25519).await;
+    let (prover, _da, _events) = create_test_prover(CryptoAlgorithm::Ed25519).await;
     let transactions = create_mock_transactions("test_service".to_string());
 
     let prev_commitment = prover.get_commitment().await.unwrap();
@@ -279,15 +304,23 @@ async fn test_finalize_new_epoch() {
 #[tokio::test]
 async fn test_restart_sync_from_scratch() {
     init_logger();
-    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50));
+    let events = EventChannel::new();
+    let (da_layer, _rx, mut brx) =
+        InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let engine = create_mock_engine().await;
     let mut opts = ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     opts.webserver.port = 0;
-    let prover =
-        Prover::new_with_engine(db1.clone(), da_layer.clone(), engine.clone(), &opts).unwrap();
+    let prover = Prover::new_with_engine(
+        db1.clone(),
+        da_layer.clone(),
+        events.clone(),
+        engine.clone(),
+        &opts,
+    )
+    .unwrap();
     prover.start().await.expect("Prover can be started");
 
     let transactions = create_mock_transactions("test_service".to_string());
@@ -306,7 +339,8 @@ async fn test_restart_sync_from_scratch() {
     prover.stop().await.expect("Prover can be stopped");
 
     let prover2 = Arc::new(
-        Prover::new_with_engine(db2.clone(), da_layer.clone(), engine.clone(), &opts).unwrap(),
+        Prover::new_with_engine(db2.clone(), da_layer.clone(), events, engine.clone(), &opts)
+            .unwrap(),
     );
     drop(db1);
     drop(prover);
@@ -338,9 +372,11 @@ async fn test_restart_sync_from_scratch() {
 async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     init_logger();
     // Setup shared DA layer
+    let events = EventChannel::new();
     let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new_with_epoch_delay(
         Duration::from_millis(50),
         Duration::from_millis(250),
+        events.clone(),
     );
     let da_layer = Arc::new(da_layer);
 
@@ -354,6 +390,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     let prover = Prover::new_with_engine(
         prover_db.clone(),
         da_layer.clone(),
+        events.clone(),
         prover_engine.clone(),
         &prover_opts,
     )
@@ -370,6 +407,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     let fullnode = Prover::new_with_engine(
         fullnode_db.clone(),
         da_layer.clone(),
+        events,
         fullnode_engine.clone(),
         &fullnode_opts,
     )
@@ -469,14 +507,22 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
 #[tokio::test]
 async fn test_load_persisted_state() {
     init_logger();
-    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50));
+    let events = EventChannel::new();
+    let (da_layer, _rx, mut brx) =
+        InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let engine = create_mock_engine().await;
     let mut opts = ProverOptions::default_with_key_algorithm(CryptoAlgorithm::Ed25519).unwrap();
     opts.webserver.port = 0;
-    let prover =
-        Prover::new_with_engine(db.clone(), da_layer.clone(), engine.clone(), &opts).unwrap();
+    let prover = Prover::new_with_engine(
+        db.clone(),
+        da_layer.clone(),
+        events.clone(),
+        engine.clone(),
+        &opts,
+    )
+    .unwrap();
     prover.start().await.expect("Prover can be started");
 
     let transactions = create_mock_transactions("test_service".to_string());
@@ -492,8 +538,14 @@ async fn test_load_persisted_state() {
 
     assert_eq!(prover.get_db().get_latest_epoch_height().unwrap(), 3);
 
-    let prover2 =
-        Prover::new_with_engine(db.clone(), da_layer.clone(), engine.clone(), &opts).unwrap();
+    let prover2 = Prover::new_with_engine(
+        db.clone(),
+        da_layer.clone(),
+        events.clone(),
+        engine.clone(),
+        &opts,
+    )
+    .unwrap();
     prover2.start().await.expect("Prover2 can be started");
 
     let epoch = prover2.get_db().get_latest_epoch_height().unwrap();
