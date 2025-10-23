@@ -1,4 +1,5 @@
 use prism_da::LightDataAvailabilityLayer;
+use prism_events::EventChannel;
 use prism_keys::VerifyingKey;
 use prism_presets::{
     ApplyPreset, LightClientPreset, PRESET_SPECTER_PUBLIC_KEY_BASE64, PresetError,
@@ -75,10 +76,11 @@ impl ApplyPreset<LightClientPreset> for LightClientConfig {
 pub fn create_light_client(
     #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
     #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
+    event_channel: EventChannel,
     config: &LightClientConfig,
 ) -> anyhow::Result<LightClient> {
     let verifying_key = VerifyingKey::from_spki_pem_path_or_base64(&config.verifying_key_str)?;
-    let light_client = LightClient::new(da, verifying_key, config.allow_mock_proofs);
+    let light_client = LightClient::new(da, event_channel, verifying_key, config.allow_mock_proofs);
     Ok(light_client)
 }
 
@@ -119,24 +121,26 @@ mod tests {
     #[test]
     fn test_create_light_client_with_base64_key() {
         let da = Arc::new(InMemoryDataAvailabilityLayer::default());
+        let event_channel = EventChannel::new();
         let config = LightClientConfig {
             verifying_key_str: PRESET_SPECTER_PUBLIC_KEY_BASE64.to_string(),
             ..Default::default()
         };
 
-        let result = create_light_client(da, &config);
+        let result = create_light_client(da, event_channel, &config);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_create_light_client_with_invalid_key() {
         let da = Arc::new(InMemoryDataAvailabilityLayer::default());
+        let event_channel = EventChannel::new();
         let config = LightClientConfig {
             verifying_key_str: "invalid_key".to_string(),
             ..Default::default()
         };
 
-        let result = create_light_client(da, &config);
+        let result = create_light_client(da, event_channel, &config);
         assert!(result.is_err());
     }
 }
