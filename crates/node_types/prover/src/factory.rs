@@ -1,5 +1,6 @@
 use anyhow::{Result, anyhow};
 use prism_da::DataAvailabilityLayer;
+use prism_events::EventChannel;
 use prism_keys::{SigningKey, VerifyingKey};
 use prism_presets::{
     ApplyPreset, FullNodePreset, PRESET_SPECTER_PUBLIC_KEY_BASE64, PresetError, ProverPreset,
@@ -132,6 +133,7 @@ pub fn create_prover_as_full_node(
     config: &FullNodeConfig,
     db: Arc<Box<dyn Database>>,
     da: Arc<dyn DataAvailabilityLayer>,
+    event_channel: EventChannel,
 ) -> Result<Prover> {
     let verifying_key = VerifyingKey::from_spki_pem_path_or_base64(&config.verifying_key_str)?;
 
@@ -152,7 +154,7 @@ pub fn create_prover_as_full_node(
         webserver: config.webserver.clone(),
     };
 
-    Prover::new(db, da, &prover_opts)
+    Prover::new(db, da, event_channel, &prover_opts)
 }
 
 /// Creates a prover instance configured for proof generation.
@@ -165,6 +167,7 @@ pub fn create_prover_as_prover(
     config: &ProverConfig,
     db: Arc<Box<dyn Database>>,
     da: Arc<dyn DataAvailabilityLayer>,
+    event_channel: EventChannel,
 ) -> Result<Prover> {
     let signing_key = SigningKey::from_pkcs8_pem_file(&config.signing_key_path)
         .or_else(|_| {
@@ -194,7 +197,7 @@ pub fn create_prover_as_prover(
         webserver: config.webserver.clone(),
     };
 
-    Prover::new(db, da, &prover_opts)
+    Prover::new(db, da, event_channel, &prover_opts)
 }
 
 fn create_ed25519_key_pair_pem_files(signing_key_path: impl AsRef<Path>) -> Result<SigningKey> {
@@ -211,6 +214,7 @@ fn create_ed25519_key_pair_pem_files(signing_key_path: impl AsRef<Path>) -> Resu
 #[cfg(test)]
 mod tests {
     use prism_da::{DataAvailabilityLayer, memory::InMemoryDataAvailabilityLayer};
+    use prism_events::EventChannel;
     use prism_keys::SigningKey;
     use prism_presets::{
         ApplyPreset, FullNodePreset, PRESET_SPECTER_PUBLIC_KEY_BASE64, ProverPreset,
@@ -289,8 +293,9 @@ mod tests {
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
         let da =
             Arc::new(InMemoryDataAvailabilityLayer::default()) as Arc<dyn DataAvailabilityLayer>;
+        let event_channel = EventChannel::new();
 
-        let result = create_prover_as_full_node(&config, db, da);
+        let result = create_prover_as_full_node(&config, db, da, event_channel);
         assert!(result.is_ok());
     }
 
@@ -304,8 +309,9 @@ mod tests {
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
         let da =
             Arc::new(InMemoryDataAvailabilityLayer::default()) as Arc<dyn DataAvailabilityLayer>;
+        let event_channel = EventChannel::new();
 
-        let result = create_prover_as_full_node(&config, db, da);
+        let result = create_prover_as_full_node(&config, db, da, event_channel);
         assert!(result.is_err());
     }
 
@@ -326,8 +332,9 @@ mod tests {
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
         let da =
             Arc::new(InMemoryDataAvailabilityLayer::default()) as Arc<dyn DataAvailabilityLayer>;
+        let event_channel = EventChannel::new();
 
-        let result = create_prover_as_prover(&config, db, da);
+        let result = create_prover_as_prover(&config, db, da, event_channel);
         assert!(result.is_ok());
     }
 
@@ -344,8 +351,9 @@ mod tests {
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
         let da =
             Arc::new(InMemoryDataAvailabilityLayer::default()) as Arc<dyn DataAvailabilityLayer>;
+        let event_channel = EventChannel::new();
 
-        let result = create_prover_as_prover(&config, db, da);
+        let result = create_prover_as_prover(&config, db, da, event_channel);
         assert!(result.is_ok());
 
         // Verify key files were created
