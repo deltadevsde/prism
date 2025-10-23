@@ -1,17 +1,16 @@
 use anyhow::{Context, Result, anyhow};
 use prism_common::transaction::Transaction;
 use prism_da::{DataAvailabilityLayer, VerifiableEpoch};
-use prism_events::{EventPublisher, PrismEvent};
+use prism_events::{EventChannel, EventSubscriber, PrismEvent};
 use prism_keys::VerifyingKey;
 use prism_storage::Database;
 use prism_telemetry_registry::metrics_registry::get_metrics;
 use std::sync::Arc;
-use tokio::sync::{RwLock, broadcast};
+use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 
 use crate::{prover_engine::engine::ProverEngine, sequencer::Sequencer, tx_buffer::TxBuffer};
 
-#[derive(Clone)]
 pub struct Syncer {
     da: Arc<dyn DataAvailabilityLayer>,
     db: Arc<Box<dyn Database>>,
@@ -21,7 +20,7 @@ pub struct Syncer {
     latest_epoch_da_height: Arc<RwLock<u64>>,
     start_height: u64,
     sequencer: Arc<Sequencer>,
-    event_pub: Arc<EventPublisher>,
+    event_channel: EventChannel,
     prover_engine: Arc<dyn ProverEngine>,
     is_prover_enabled: bool,
 }
@@ -30,6 +29,7 @@ impl Syncer {
     pub fn new(
         da: Arc<dyn DataAvailabilityLayer>,
         db: Arc<Box<dyn Database>>,
+        event_channel: EventChannel,
         config: &crate::prover::SyncerOptions,
         latest_epoch_da_height: Arc<RwLock<u64>>,
         sequencer: Arc<Sequencer>,
@@ -38,8 +38,6 @@ impl Syncer {
         if config.start_height == 0 {
             return Err(anyhow!("Start height must be >= 1"));
         }
-
-        let event_pub = Arc::new(da.event_channel().publisher());
 
         Ok(Self {
             da,
@@ -51,22 +49,26 @@ impl Syncer {
             start_height: config.start_height,
             sequencer,
             prover_engine,
-            event_pub,
+            event_channel,
             is_prover_enabled: config.prover_enabled,
         })
     }
 
-    pub fn get_da(&self) -> Arc<dyn DataAvailabilityLayer> {
-        self.da.clone()
-    }
-
     pub async fn run(&self, cancellation_token: CancellationToken) -> Result<()> {
-        let mut height_rx = self.da.subscribe_to_heights();
-        let historical_sync_height = tokio::select! {
-            result = height_rx.recv() => result?,
-            _ = cancellation_token.cancelled() => {
-                info!("Syncer: Gracefully stopping before historical sync");
-                return Ok(());
+        let mut event_sub = self.event_channel.subscribe();
+        // Wait for the first UpdateDAHeight event
+        let historical_sync_height = loop {
+            tokio::select! {
+                event_result = event_sub.recv() => {
+                    let event_info = event_result?;
+                    if let PrismEvent::UpdateDAHeight { height } = event_info.event {
+                        break height;
+                    }
+                },
+                _ = cancellation_token.cancelled() => {
+                    info!("Syncer: Gracefully stopping before initial sync");
+                    return Ok(());
+                }
             }
         };
 
@@ -82,7 +84,7 @@ impl Syncer {
         self.sync_loop(
             sync_start_height,
             historical_sync_height,
-            height_rx,
+            event_sub,
             cancellation_token,
         )
         .await
@@ -92,12 +94,13 @@ impl Syncer {
         &self,
         start_height: u64,
         end_height: u64,
-        mut incoming_heights: broadcast::Receiver<u64>,
+        mut event_sub: EventSubscriber,
         cancellation_token: CancellationToken,
     ) -> Result<()> {
         let mut current_height = start_height;
+        let event_pub = self.event_channel.publisher();
 
-        self.event_pub.send(PrismEvent::HistoricalSyncCompleted {
+        event_pub.send(PrismEvent::HistoricalSyncCompleted {
             height: (Some(current_height)),
         });
 
@@ -125,24 +128,23 @@ impl Syncer {
 
         loop {
             tokio::select! {
-                height_result = incoming_heights.recv() => {
-                    let height = height_result?;
-                    if height != current_height {
-                        return Err(anyhow!(
-                            "heights are not sequential: expected {}, got {}",
-                            current_height,
-                            height
-                        ));
+                event_result = event_sub.recv() => {
+                    let event_info = event_result?;
+                    if let PrismEvent::UpdateDAHeight { height } = event_info.event {
+                        if height != current_height {
+                            return Err(anyhow!(
+                                "heights are not sequential: expected {}, got {}",
+                                current_height,
+                                height
+                            ));
+                        }
+                        self.process_da_height(
+                            height,
+                            true,
+                        ).await?;
+                        current_height += 1;
+                        self.db.set_last_synced_height(&current_height)?;
                     }
-                    self.process_da_height(
-                        height,
-                        true,
-                    ).await?;
-                    self.event_pub.send(PrismEvent::UpdateDAHeight {
-                        height: (current_height),
-                    });
-                    current_height += 1;
-                    self.db.set_last_synced_height(&current_height)?;
                 },
                 _ = cancellation_token.cancelled() => {
                     info!("Syncer: Gracefully stopping during real-time sync at height {}", current_height);
@@ -153,6 +155,8 @@ impl Syncer {
     }
 
     async fn process_da_height(&self, height: u64, is_real_time: bool) -> Result<()> {
+        let event_pub = self.event_channel.publisher();
+
         let next_epoch_height = match self.db.get_latest_epoch_height() {
             Ok(height) => height + 1,
             Err(_) => 0,
@@ -176,7 +180,7 @@ impl Syncer {
         );
 
         if epoch_result.is_empty() {
-            self.event_pub.send(PrismEvent::NoEpochFound { height: (height) });
+            event_pub.send(PrismEvent::NoEpochFound { height: (height) });
             debug!("No epoch found at height {}", height);
         } else {
             for epoch in epoch_result {
