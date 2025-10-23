@@ -13,6 +13,7 @@ use prism_da::{
     },
     create_full_node_da_layer, create_light_client_da_layer,
 };
+use prism_events::EventChannel;
 use prism_keys::{CryptoAlgorithm, SigningKey};
 use prism_lightclient::LightClient;
 use prism_prover::{
@@ -58,7 +59,9 @@ async fn get_bootnode(addr: &str) -> String {
         .to_string()
 }
 
-async fn setup_da() -> (
+async fn setup_da(
+    events: EventChannel,
+) -> (
     Arc<dyn LightDataAvailabilityLayer + std::marker::Send + std::marker::Sync + 'static>,
     Arc<dyn DataAvailabilityLayer>,
 ) {
@@ -77,15 +80,25 @@ async fn setup_da() -> (
         ..CelestiaLightClientDAConfig::default()
     });
 
-    let bridge_da_layer = create_full_node_da_layer(&bridge_cfg).await.unwrap();
-    let lc_da_layer = create_light_client_da_layer(&lc_cfg).await.unwrap();
+    let bridge_da_layer = create_full_node_da_layer(&bridge_cfg, events.clone()).await.unwrap();
+    let lc_da_layer = create_light_client_da_layer(&lc_cfg, events).await.unwrap();
 
     (lc_da_layer, bridge_da_layer)
 }
 
-async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>) {
+async fn setup_nodes() -> (
+    (Arc<Prover>, Arc<dyn DataAvailabilityLayer>),
+    (
+        Arc<LightClient>,
+        Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>,
+    ),
+    EventChannel,
+) {
+    // TODO: 1 event channel per node?
+    let events = EventChannel::new();
+
     let db = setup_db();
-    let (lc_da, fn_da) = setup_da().await;
+    let (lc_da, fn_da) = setup_da(events.clone()).await;
 
     let prover_algorithm = CryptoAlgorithm::Ed25519;
 
@@ -109,11 +122,12 @@ async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>) {
         webserver: WebServerConfig::default(),
     };
 
-    let prover = Arc::new(Prover::new(db.clone(), fn_da.clone(), &prover_cfg).unwrap());
+    let prover =
+        Arc::new(Prover::new(db.clone(), fn_da.clone(), events.clone(), &prover_cfg).unwrap());
 
-    let lightclient = LightClient::new(lc_da.clone(), pubkey, true);
+    let lightclient = LightClient::new(lc_da.clone(), events.clone(), pubkey, true);
 
-    (prover, Arc::new(lightclient))
+    ((prover, fn_da), (Arc::new(lightclient), lc_da), events)
 }
 
 #[tokio::test]
@@ -133,7 +147,7 @@ async fn test_light_client_prover_talking() {
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
-    let (prover, lightclient) = setup_nodes().await;
+    let ((prover, _prover_da), (lightclient, _lc_da), events) = setup_nodes().await;
 
     // Start nodes
     prover.start().await.expect("Starting prover should work");
@@ -152,27 +166,34 @@ async fn test_light_client_prover_talking() {
     }
 
     // Grab the latest DA height after subscribing
-    let prover_clone = Arc::clone(&prover);
-    let mut rx = prover_clone.get_da().subscribe_to_heights();
-    let initial_height = rx.recv().await.unwrap();
+    let mut event_sub = events.subscribe();
+    let initial_height = loop {
+        let event_info = event_sub.recv().await.unwrap();
+        if let prism_events::PrismEvent::UpdateDAHeight { height } = event_info.event {
+            break height;
+        }
+    };
     debug!("Initial height: {}", initial_height);
 
     // Listen for 50 heights
     let target_height = initial_height + 50;
-    while let Ok(height) = rx.recv().await {
-        debug!("Received height {}", height);
+    loop {
+        let event_info = event_sub.recv().await.unwrap();
+        if let prism_events::PrismEvent::UpdateDAHeight { height } = event_info.event {
+            debug!("Received height {}", height);
 
-        if height >= target_height {
-            info!("Reached target height {}.", target_height);
-            // Shutdown transaction generator
-            tx_shutdown.cancel();
-            let res = tx_generator.await;
-            assert!(
-                res.is_ok(),
-                "Transaction generator exited with error {:?}",
-                res
-            );
-            break;
+            if height >= target_height {
+                info!("Reached target height {}.", target_height);
+                // Shutdown transaction generator
+                tx_shutdown.cancel();
+                let res = tx_generator.await;
+                assert!(
+                    res.is_ok(),
+                    "Transaction generator exited with error {:?}",
+                    res
+                );
+                break;
+            }
         }
     }
 
