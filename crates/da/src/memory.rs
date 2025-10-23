@@ -33,7 +33,7 @@ pub struct InMemoryDataAvailabilityLayer {
     height_update_tx: broadcast::Sender<u64>,
     block_update_tx: broadcast::Sender<Block>,
     block_time: Duration,
-    event_channel: Arc<EventChannel>,
+    event_channel: EventChannel,
 
     // For testing: Because mock proofs are generated very quickly, it is
     // helpful to delay the posting of the epoch to test some latency scenarios.
@@ -45,17 +45,17 @@ pub struct InMemoryDataAvailabilityLayer {
 
 impl Default for InMemoryDataAvailabilityLayer {
     fn default() -> Self {
-        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME).0
+        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME, EventChannel::new()).0
     }
 }
 
 impl InMemoryDataAvailabilityLayer {
     pub fn new(
         block_time: Duration,
+        event_channel: EventChannel,
     ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
-        let event_channel = Arc::new(EventChannel::new());
         (
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
@@ -77,10 +77,10 @@ impl InMemoryDataAvailabilityLayer {
     pub fn new_with_epoch_delay(
         block_time: Duration,
         epoch_delay: Duration,
+        event_channel: EventChannel,
     ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
         let (height_tx, height_rx) = broadcast::channel(100);
         let (block_tx, block_rx) = broadcast::channel(100);
-        let event_channel = Arc::new(EventChannel::new());
         (
             Self {
                 blocks: Arc::new(RwLock::new(Vec::new())),
@@ -193,19 +193,11 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
             None => Ok(vec![]),
         }
     }
-
-    fn event_channel(&self) -> Arc<EventChannel> {
-        self.event_channel.clone()
-    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
-    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
-        self.height_update_tx.subscribe()
-    }
-
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(*self.latest_height.read().await)
     }
