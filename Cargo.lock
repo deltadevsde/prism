@@ -7406,6 +7406,7 @@ dependencies = [
  "prism-cross-target",
  "serde",
  "tokio",
+ "tracing",
  "web-time",
 ]
 
