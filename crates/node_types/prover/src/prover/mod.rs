@@ -8,11 +8,12 @@ use prism_common::{
     transaction::Transaction,
 };
 use prism_cross_target::tasks::TaskManager;
+use prism_events::{EventChannel, PrismEvent};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::Database;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info};
+use tracing::info;
 
 use crate::{
     api::ProverTokioTimer,
@@ -131,11 +132,14 @@ impl ProverOptions {
 #[allow(dead_code)]
 pub struct Prover {
     pub options: ProverOptions,
+    event_channel: EventChannel,
     prover_engine: Arc<dyn ProverEngine>,
     da: Arc<dyn DataAvailabilityLayer>,
+
     sequencer: Arc<Sequencer>,
     syncer: Arc<Syncer>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
+
     task_manager: TaskManager,
 }
 
@@ -144,15 +148,17 @@ impl Prover {
     pub fn new(
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
+        event_channel: EventChannel,
         opts: &ProverOptions,
     ) -> Result<Self> {
         let prover_engine = Arc::new(SP1ProverEngine::new(&opts.prover_engine)?);
-        Self::new_with_engine(db, da, prover_engine, opts)
+        Self::new_with_engine(db, da, event_channel, prover_engine, opts)
     }
 
     pub fn new_with_engine(
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
+        event_channel: EventChannel,
         prover_engine: Arc<dyn ProverEngine>,
         opts: &ProverOptions,
     ) -> Result<Self> {
@@ -163,11 +169,13 @@ impl Prover {
             da.clone(),
             &opts.sequencer,
             latest_epoch_da_height.clone(),
+            event_channel.clone(),
         )?);
 
         let syncer = Arc::new(Syncer::new(
             da.clone(),
-            db,
+            db.clone(),
+            event_channel.clone(),
             &opts.syncer,
             latest_epoch_da_height.clone(),
             sequencer.clone(),
@@ -176,6 +184,7 @@ impl Prover {
 
         Ok(Self {
             options: opts.clone(),
+            event_channel,
             prover_engine,
             da,
             sequencer,
@@ -227,10 +236,6 @@ impl Prover {
         self.sequencer.process_transaction(transaction).await
     }
 
-    pub fn get_da(&self) -> Arc<dyn DataAvailabilityLayer> {
-        self.syncer.get_da()
-    }
-
     pub async fn start(&self) -> Result<()> {
         if self.task_manager.is_running() {
             info!("Prover already started");
@@ -243,34 +248,43 @@ impl Prover {
 
         // Start Syncer (includes DA startup and main sync loop)
         let syncer = self.syncer.clone();
+        let event_pub = self.event_channel.publisher();
         self.task_manager
             .spawn(|token| async move {
                 if let Err(e) = syncer.run(token.clone().into()).await {
-                    error!("Syncer error: {:?}", e);
+                    let event = PrismEvent::OperationError {
+                        error: e.to_string(),
+                    };
+                    event_pub.send(event);
                 }
-                token.trigger();
             })
             .map_err(|e| anyhow!("Failed to spawn syncer task: {}", e))?;
 
         // Start Sequencer (batch poster if enabled)
         let sequencer = self.sequencer.clone();
+        let event_pub = self.event_channel.publisher();
         self.task_manager
             .spawn(|token| async move {
                 if let Err(e) = sequencer.run(token.clone().into()).await {
-                    error!("Sequencer error: {:?}", e);
+                    let event = PrismEvent::OperationError {
+                        error: e.to_string(),
+                    };
+                    event_pub.send(event);
                 }
-                token.trigger();
             })
             .map_err(|e| anyhow!("Failed to spawn sequencer task: {}", e))?;
 
         // Start WebServer if enabled
+        let event_pub = self.event_channel.publisher();
         if self.options.webserver.enabled {
             let ws = WebServer::new(self.options.webserver.clone(), self.sequencer.clone());
             self.task_manager
                 .spawn(|token| async move {
                     if let Err(e) = ws.run(token.clone().into()).await {
-                        error!("WebServer error: {:?}", e);
-                        token.trigger();
+                        let event = PrismEvent::OperationError {
+                            error: e.to_string(),
+                        };
+                        event_pub.send(event);
                     }
                 })
                 .map_err(|e| anyhow!("Failed to spawn webserver task: {}", e))?;
