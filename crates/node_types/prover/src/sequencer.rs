@@ -12,6 +12,7 @@ use prism_common::{
     transaction::Transaction,
 };
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
+use prism_events::{EventChannel, PrismEvent};
 use prism_keys::SigningKey;
 use prism_storage::Database;
 use prism_tree::{
@@ -28,7 +29,6 @@ use tracing::{debug, error, info, trace, warn};
 
 use crate::{api::ProverTokioTimer, prover_engine::engine::ProverEngine};
 
-#[derive(Clone)]
 pub struct Sequencer {
     db: Arc<Box<dyn Database>>,
     da: Arc<dyn DataAvailabilityLayer>,
@@ -37,6 +37,7 @@ pub struct Sequencer {
     signing_key: Option<SigningKey>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
     batcher_enabled: bool,
+    event_channel: EventChannel,
 }
 
 impl Sequencer {
@@ -45,6 +46,7 @@ impl Sequencer {
         da: Arc<dyn DataAvailabilityLayer>,
         config: &crate::prover::SequencerOptions,
         latest_epoch_da_height: Arc<RwLock<u64>>,
+        event_channel: EventChannel,
     ) -> Result<Self> {
         let saved_epoch = match db.get_latest_epoch_height() {
             Ok(height) => height + 1,
@@ -64,6 +66,7 @@ impl Sequencer {
             signing_key: config.signing_key.clone(),
             latest_epoch_da_height,
             batcher_enabled: config.batcher_enabled,
+            event_channel,
         })
     }
 
@@ -80,38 +83,39 @@ impl Sequencer {
     }
 
     async fn run_batch_poster(&self, cancellation_token: CancellationToken) -> Result<()> {
-        let mut height_rx = self.da.subscribe_to_heights();
-
+        let mut event_sub = self.event_channel.subscribe();
         loop {
             tokio::select! {
-                height_result = height_rx.recv() => {
-                    let height = height_result?;
-                    trace!("received height {}", height);
+                event_result = event_sub.recv() => {
+                    let event_info = event_result?;
+                    if let PrismEvent::UpdateDAHeight { height } = event_info.event {
+                        trace!("received height {}", height);
 
-                    let pending_transactions = {
-                        let mut ops = self.pending_transactions.write().await;
-                        std::mem::take(&mut *ops)
-                    };
+                        let pending_transactions = {
+                            let mut ops = self.pending_transactions.write().await;
+                            std::mem::take(&mut *ops)
+                        };
 
-                    let tx_count = pending_transactions.len();
+                        let tx_count = pending_transactions.len();
 
-                    if tx_count > 0 {
-                        match self.da.submit_transactions(pending_transactions).await {
-                            Ok(submitted_height) => {
-                                info!(
-                                    "post_batch_loop: submitted {} transactions at height {}",
-                                    tx_count, submitted_height
-                                );
+                        if tx_count > 0 {
+                            match self.da.submit_transactions(pending_transactions).await {
+                                Ok(submitted_height) => {
+                                    info!(
+                                        "post_batch_loop: submitted {} transactions at height {}",
+                                        tx_count, submitted_height
+                                    );
+                                }
+                                Err(e) => {
+                                    error!("post_batch_loop: Failed to submit transactions: {}", e);
+                                }
                             }
-                            Err(e) => {
-                                error!("post_batch_loop: Failed to submit transactions: {}", e);
-                            }
+                        } else {
+                            debug!(
+                                "post_batch_loop: No pending transactions to submit at height {}",
+                                height
+                            );
                         }
-                    } else {
-                        debug!(
-                            "post_batch_loop: No pending transactions to submit at height {}",
-                            height
-                        );
                     }
                 },
                 _ = cancellation_token.cancelled() => {
