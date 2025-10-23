@@ -80,10 +80,12 @@
 //!     let height = da.submit_transactions(transactions).await?;
 //!     println!("Submitted at height: {}", height);
 //!
-//!     let mut height_rx = da.subscribe_to_heights();
-//!     while let Ok(new_height) = height_rx.recv().await {
-//!         let txs = da.get_transactions(new_height).await?;
-//!         println!("Height {}: {} transactions", new_height, txs.len());
+//!     let mut event_sub = event_channel.subscribe();
+//!     while let Ok(event_info) = event_sub.recv().await {
+//!         if let PrismEvent::UpdateDAHeight { height: new_height } = event_info.event {
+//!             let txs = da.get_transactions(new_height).await?;
+//!             println!("Height {}: {} transactions", new_height, txs.len());
+//!         }
 //!     }
 //!
 //!     Ok(())
@@ -108,7 +110,6 @@ pub use config::LightClientDAConfig;
 pub use factory::*;
 use mockall::automock;
 use prism_common::digest::Digest;
-use prism_events::EventChannel;
 use prism_keys::{Signature, SigningKey, VerifyingKey};
 use prism_serde::{
     binary::{FromBinary, ToBinary},
@@ -116,7 +117,7 @@ use prism_serde::{
 };
 use serde::{Deserialize, Serialize};
 use sp1_verifier::Groth16Verifier;
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
 
 #[cfg(not(target_arch = "wasm32"))]
 use {prism_common::transaction::Transaction, sp1_sdk::SP1ProofWithPublicValues};
@@ -389,7 +390,6 @@ pub trait LightDataAvailabilityLayer {
     async fn stop(&self) -> Result<(), DataAvailabilityError>;
 
     async fn get_finalized_epochs(&self, height: u64) -> anyhow::Result<Vec<VerifiableEpoch>>;
-    fn event_channel(&self) -> Arc<EventChannel>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -399,5 +399,4 @@ pub trait DataAvailabilityLayer: LightDataAvailabilityLayer + Send + Sync {
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> anyhow::Result<u64>;
     async fn get_transactions(&self, height: u64) -> anyhow::Result<Vec<Transaction>>;
     async fn submit_transactions(&self, transactions: Vec<Transaction>) -> anyhow::Result<u64>;
-    fn subscribe_to_heights(&self) -> tokio::sync::broadcast::Receiver<u64>;
 }
