@@ -5,7 +5,7 @@ use prism_da::{
     MockLightDataAvailabilityLayer, MockVerifiableStateTransition, VerifiableStateTransition,
     error::EpochVerificationError,
 };
-use prism_events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent};
+use prism_events::{EventChannel, EventSubscriber, PrismEvent};
 use prism_keys::SigningKey;
 
 use crate::LightClient;
@@ -105,36 +105,33 @@ where
     }
 }
 
-async fn setup(
-    mut mock_da: MockLightDataAvailabilityLayer,
-) -> (LightClient, EventSubscriber, EventPublisher) {
+async fn setup(mock_da: MockLightDataAvailabilityLayer) -> (LightClient, EventChannel) {
     init_logger();
 
     let chan = EventChannel::new();
-    let publisher = chan.publisher();
-    let arced_chan = Arc::new(chan);
-    mock_da.expect_event_channel().return_const(arced_chan.clone());
 
     let mock_da = Arc::new(mock_da);
 
     let prover_key = SigningKey::new_ed25519();
-    let lc = LightClient::new(mock_da, prover_key.verifying_key(), false);
+    let lc = LightClient::new(mock_da, chan.clone(), prover_key.verifying_key(), false);
     lc.start().await.unwrap();
 
-    let mut sub = arced_chan.clone().subscribe();
+    let mut sub = chan.subscribe();
     wait_for_event(&mut sub, |event| matches!(event, PrismEvent::Ready)).await;
-    (lc, sub, publisher)
+    (lc, chan)
 }
 
 #[tokio::test]
 async fn test_realtime_sync() {
-    let (lc, mut sub, publisher) = setup(mock_da![
+    let (lc, chan) = setup(mock_da![
         (4, ("g", "a")),
         (5, ("a", "b")),
         (7, ("b", "c"), ("c", "d")),
         (8, ("d", "e")),
     ])
     .await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 3 });
     wait_for_event(&mut sub, |event| {
@@ -164,7 +161,9 @@ async fn test_realtime_sync() {
 
 #[tokio::test]
 async fn test_backwards_sync() {
-    let (lc, mut sub, publisher) = setup(mock_da![(8, ("a", "b"))]).await;
+    let (lc, chan) = setup(mock_da![(8, ("a", "b"))]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 20 });
     while let Ok(event_info) = sub.recv().await {
@@ -178,7 +177,9 @@ async fn test_backwards_sync() {
 
 #[tokio::test]
 async fn test_backwards_sync_ignores_error() {
-    let (lc, mut sub, publisher) = setup(mock_da![(8, ("a", "b")), (10, "Error")]).await;
+    let (lc, chan) = setup(mock_da![(8, ("a", "b")), (10, "Error")]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 20 });
     while let Ok(event_info) = sub.recv().await {
@@ -192,8 +193,9 @@ async fn test_backwards_sync_ignores_error() {
 
 #[tokio::test]
 async fn test_incoming_sync_ignores_error() {
-    let (lc, mut sub, publisher) =
-        setup(mock_da![(8, ("a", "b")), (10, "Error"), (12, ("c", "d"))]).await;
+    let (lc, chan) = setup(mock_da![(8, ("a", "b")), (10, "Error"), (12, ("c", "d"))]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
     wait_for_sync(&mut sub, 8).await;
@@ -207,7 +209,9 @@ async fn test_incoming_sync_ignores_error() {
 
 #[tokio::test]
 async fn test_sandwiched_epoch() {
-    let (lc, mut sub, publisher) = setup(mock_da![(8, "Error1", ("a", "b"), "Error2")]).await;
+    let (lc, chan) = setup(mock_da![(8, "Error1", ("a", "b"), "Error2")]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 8 });
     wait_for_sync(&mut sub, 8).await;
@@ -216,7 +220,9 @@ async fn test_sandwiched_epoch() {
 
 #[tokio::test]
 async fn no_backwards_sync_underflow() {
-    let (_, mut sub, publisher) = setup(mock_da![]).await;
+    let (_, chan) = setup(mock_da![]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 50 });
     wait_for_event(&mut sub, |event| {
@@ -231,7 +237,9 @@ async fn no_backwards_sync_underflow() {
 
 #[tokio::test]
 async fn no_concurrent_backwards_sync() {
-    let (_, mut sub, publisher) = setup(mock_da![(999, ("a", "b"))]).await;
+    let (_, chan) = setup(mock_da![(999, ("a", "b"))]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 500 });
     publisher.send(PrismEvent::UpdateDAHeight { height: 1000 });
@@ -257,7 +265,9 @@ async fn no_concurrent_backwards_sync() {
 
 #[tokio::test]
 async fn test_backwards_sync_does_not_restart() {
-    let (lc, mut sub, publisher) = setup(mock_da![(999, ("a", "b"))]).await;
+    let (lc, chan) = setup(mock_da![(999, ("a", "b"))]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 500 });
 
@@ -277,7 +287,9 @@ async fn test_backwards_sync_does_not_restart() {
 
 #[tokio::test]
 async fn test_will_not_process_older_epoch() {
-    let (lc, mut sub, publisher) = setup(mock_da![(8, ("a", "b")), (9, ("c", "d"))]).await;
+    let (lc, chan) = setup(mock_da![(8, ("a", "b")), (9, ("c", "d"))]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 10 });
     wait_for_sync(&mut sub, 9).await;
@@ -293,15 +305,16 @@ async fn test_will_not_process_older_epoch() {
 
 #[tokio::test]
 async fn test_incoming_epoch_during_backwards_sync() {
-    let (lc, mut sub, publisher) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
+    let (lc, chan) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
+    let publisher = chan.publisher();
 
-    let mut sub2 = lc.da.event_channel().subscribe();
     let result = tokio::time::timeout(Duration::from_secs(5), async {
         // Start the event loop first, then send events after we're ready to receive
+        let mut task_sub = chan.subscribe();
         let event_task = tokio::spawn(async move {
             let mut events_received = (false, false); // (recursive, backwards)
 
-            while let Ok(event_info) = sub.recv().await {
+            while let Ok(event_info) = task_sub.recv().await {
                 match event_info.event {
                     PrismEvent::RecursiveVerificationCompleted { height: _ } => {
                         assert_current_commitment!(lc, "d");
@@ -326,7 +339,7 @@ async fn test_incoming_epoch_during_backwards_sync() {
         tokio::time::sleep(Duration::from_millis(10)).await;
 
         publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
-        wait_for_event(&mut sub2, |event| {
+        wait_for_event(&mut chan.subscribe(), |event| {
             matches!(event, PrismEvent::HistoricalSyncStarted { height: 5100 })
         })
         .await;
@@ -354,7 +367,9 @@ async fn test_incoming_epoch_during_backwards_sync() {
 
 #[tokio::test]
 async fn test_incoming_epoch_after_backwards_sync() {
-    let (lc, mut sub, publisher) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
+    let (lc, chan) = setup(mock_da![(5000, ("a", "b")), (5101, ("c", "d"))]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
     wait_for_event(&mut sub, |event| {
@@ -375,7 +390,9 @@ async fn test_incoming_epoch_after_backwards_sync() {
 
 #[tokio::test]
 async fn test_backwards_sync_completes() {
-    let (_, mut sub, publisher) = setup(mock_da![]).await;
+    let (_, chan) = setup(mock_da![]).await;
+    let mut sub = chan.subscribe();
+    let publisher = chan.publisher();
 
     publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
     wait_for_event(&mut sub, |event| {
@@ -390,19 +407,15 @@ async fn test_backwards_sync_completes() {
 #[tokio::test]
 async fn test_graceful_shutdown() {
     init_logger();
-    let mut mock_da = mock_da![];
+    let mock_da = Arc::new(mock_da![]);
 
     let chan = EventChannel::new();
-    let arced_chan = Arc::new(chan);
-    let mut sub = arced_chan.clone().subscribe();
-    mock_da.expect_event_channel().return_const(arced_chan.clone());
+    let mut sub = chan.subscribe();
 
     println!("Starting shutdown test");
 
-    let mock_da = Arc::new(mock_da);
-
     let prover_key = SigningKey::new_ed25519();
-    let lc = LightClient::new(mock_da, prover_key.verifying_key(), false);
+    let lc = LightClient::new(mock_da, chan, prover_key.verifying_key(), false);
     assert!(lc.start().await.is_ok());
 
     println!("Wait for event");
