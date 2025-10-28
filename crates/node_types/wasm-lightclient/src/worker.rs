@@ -87,9 +87,10 @@ impl LightClientWorker {
     pub async fn run(&mut self) -> Result<(), JsError> {
         console::log_1(&"🌟 Starting Light Client Worker".into());
 
-        if let Err(e) = self.light_client.start().await {
-            console::error_1(&format!("Light client error: {}", e).into());
-        }
+        self.light_client
+            .start()
+            .await
+            .map_err(|e| JsError::new(&format!("Starting light client failed: {}", e)))?;
 
         console::log_1(&"🌟 Light Client Worker started".into());
 
