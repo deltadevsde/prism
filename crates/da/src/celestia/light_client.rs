@@ -443,7 +443,7 @@ impl LightDataAvailabilityLayer for LightClientConnection {
         self.task_manager
             .stop()
             .await
-            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
+            .map_err(|e| DataAvailabilityError::ShutdownError(e.to_string()))?;
 
         Ok(())
     }
