@@ -96,10 +96,35 @@ impl TaskManager {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn spawn<F, Fut>(&self, task_fn: F) -> Result<(), TaskManagerError>
     where
         F: FnOnce(Token) -> Fut,
         Fut: Future<Output = ()> + Send + 'static,
+    {
+        let mut inner = self.inner.lock()?;
+
+        let token = match inner.state {
+            State::Idle => {
+                let t = Token::new();
+                inner.token = Some(t.clone());
+                inner.state = State::Running;
+                t
+            }
+            State::Running => inner.token.as_ref().unwrap().clone(),
+            State::Stopping => return Err(TaskManagerError::Stopping),
+        };
+
+        let handle = spawn(task_fn(token));
+        inner.handles.push(handle);
+        Ok(())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn spawn<F, Fut>(&self, task_fn: F) -> Result<(), TaskManagerError>
+    where
+        F: FnOnce(Token) -> Fut,
+        Fut: Future<Output = ()> + 'static,
     {
         let mut inner = self.inner.lock()?;
 
