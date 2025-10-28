@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use prism_common::transaction::Transaction;
 use prism_da::{DataAvailabilityLayer, VerifiableEpoch};
 use prism_events::{EventPublisher, PrismEvent};
