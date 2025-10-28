@@ -265,9 +265,6 @@ impl Syncer {
                                 match self.verify_epoch(da_height, epoch).await {
                                     Ok(_) => {
                                         // Found a valid epoch, stop looking backwards
-                                        self
-                                            .event_pub
-                                            .send(PrismEvent::HistoricalSyncCompleted { height: Some(da_height) });
                                         return Ok(());
                                     }
                                     Err(_) => {
