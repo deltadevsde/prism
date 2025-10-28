@@ -132,6 +132,7 @@ impl ProverOptions {
 pub struct Prover {
     pub options: ProverOptions,
     prover_engine: Arc<dyn ProverEngine>,
+    da: Arc<dyn DataAvailabilityLayer>,
     sequencer: Arc<Sequencer>,
     syncer: Arc<Syncer>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
@@ -165,7 +166,7 @@ impl Prover {
         )?);
 
         let syncer = Arc::new(Syncer::new(
-            da,
+            da.clone(),
             db,
             &opts.syncer,
             latest_epoch_da_height.clone(),
@@ -176,6 +177,7 @@ impl Prover {
         Ok(Self {
             options: opts.clone(),
             prover_engine,
+            da,
             sequencer,
             syncer,
             latest_epoch_da_height,
@@ -237,6 +239,8 @@ impl Prover {
 
         info!("Starting Prover");
 
+        self.da.start().await.map_err(|e| anyhow!("Failed to start prover DA: {}", e))?;
+
         // Start Syncer (includes DA startup and main sync loop)
         let syncer = self.syncer.clone();
         self.task_manager
@@ -278,10 +282,14 @@ impl Prover {
 
     pub async fn stop(&self) -> Result<()> {
         info!("Stopping Prover");
+
         self.task_manager
             .stop()
             .await
-            .map_err(|e| anyhow!("Failed to stop task manager: {}", e))?;
+            .map_err(|e| anyhow!("Failed to stop prover tasks: {}", e))?;
+
+        self.da.stop().await.map_err(|e| anyhow!("Failed to stop prover DA: {}", e))?;
+
         info!("Prover stopped successfully");
         Ok(())
     }

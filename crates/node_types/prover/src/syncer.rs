@@ -61,8 +61,6 @@ impl Syncer {
     }
 
     pub async fn run(&self, cancellation_token: CancellationToken) -> Result<()> {
-        self.da.start().await?;
-
         let mut height_rx = self.da.subscribe_to_heights();
         let historical_sync_height = height_rx.recv().await?;
 
