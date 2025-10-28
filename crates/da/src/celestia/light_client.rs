@@ -377,12 +377,10 @@ impl LightClientConnection {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl LightDataAvailabilityLayer for LightClientConnection {
     async fn start(&self) -> Result<(), DataAvailabilityError> {
-        // Check if already started
-        {
-            let node_guard = self.node.read().await;
-            if node_guard.is_some() {
-                return Ok(()); // Already started
-            }
+        // Check if already started and claim the slot atomically
+        let mut node_guard = self.node.write().await;
+        if node_guard.is_some() {
+            return Ok(()); // Already started
         }
 
         let (blockstore, store) = Self::setup_stores(&self.config.store).await?;
@@ -426,10 +424,7 @@ impl LightDataAvailabilityLayer for LightClientConnection {
             .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
 
         // Store the node
-        {
-            let mut node_guard = self.node.write().await;
-            *node_guard = Some(node);
-        }
+        *node_guard = Some(node);
 
         Ok(())
     }
