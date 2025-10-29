@@ -62,7 +62,13 @@ impl Syncer {
 
     pub async fn run(&self, cancellation_token: CancellationToken) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
-        let historical_sync_height = height_rx.recv().await?;
+        let historical_sync_height = tokio::select! {
+            result = height_rx.recv() => result?,
+            _ = cancellation_token.cancelled() => {
+                info!("Syncer: Gracefully stopping before historical sync");
+                return Ok(());
+            }
+        };
 
         let sync_start_height = match self.db.get_last_synced_height() {
             Ok(height) => height,
