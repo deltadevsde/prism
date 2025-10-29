@@ -7403,10 +7403,8 @@ version = "0.1.0"
 dependencies = [
  "lumina-node",
  "prism-common",
- "prism-cross-target",
  "serde",
  "tokio",
- "tracing",
  "web-time",
 ]
 
@@ -7641,7 +7639,6 @@ dependencies = [
  "js-sys",
  "prism-common",
  "prism-da",
- "prism-errors",
  "prism-events",
  "prism-lightclient",
  "prism-presets",
@@ -7649,7 +7646,6 @@ dependencies = [
  "serde-wasm-bindgen",
  "thiserror 2.0.12",
  "tokio",
- "tokio-util",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",

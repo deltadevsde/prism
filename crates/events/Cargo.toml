@@ -9,8 +9,6 @@ repository.workspace = true
 [dependencies]
 serde = { workspace = true }
 tokio = { workspace = true }
-tracing = { workspace = true }
 web-time = { workspace = true, features = ["serde"] }
 prism-common = { workspace = true }
-prism-cross-target = { workspace = true }
 lumina-node = { workspace = true }
