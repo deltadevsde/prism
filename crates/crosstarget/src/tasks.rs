@@ -4,7 +4,7 @@ use std::{
 };
 use thiserror::Error;
 
-use crate::token::Token;
+use crate::{token::Token, tracing::warn};
 
 /// Naive `JoinHandle` as the least common denominator for all targets.
 pub struct JoinHandle(Token);
@@ -149,7 +149,10 @@ impl TaskManager {
             let mut inner = self.inner.lock()?;
 
             match inner.state {
-                State::Idle => return Err(TaskManagerError::NotRunning),
+                State::Idle => {
+                    warn("stop called, but tasks were already stopped");
+                    return Ok(());
+                }
                 State::Running => {
                     inner.state = State::Stopping;
                     (std::mem::take(&mut inner.handles), inner.token.take())
