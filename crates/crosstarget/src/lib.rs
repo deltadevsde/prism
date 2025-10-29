@@ -4,6 +4,8 @@ pub mod tasks;
 pub mod time;
 #[cfg(feature = "token")]
 pub mod token;
+#[cfg(feature = "tracing")]
+pub mod tracing;
 
 #[cfg(test)]
 pub mod testing;

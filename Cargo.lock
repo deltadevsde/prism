@@ -7352,8 +7352,10 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "tokio-util",
+ "tracing",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
+ "web-sys",
  "web-time",
 ]
 
