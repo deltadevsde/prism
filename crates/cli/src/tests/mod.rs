@@ -187,7 +187,7 @@ path = "/config/path"
     assert_eq!(config.full_node.webserver.port, 3000);
 
     // Check database config
-    if let prism_storage::DatabaseConfig::RocksDB(rocksdb_config) = &config.db {
+    if let prism_storage::DatabaseConfig::RocksDB(rocksdb_config) = &config.full_node.db {
         assert_eq!(rocksdb_config.path, "/cli/path");
     } else {
         panic!("Expected RocksDB config");
@@ -296,7 +296,7 @@ path = "/config/db"
     assert!(config.prover.webserver.enabled);
     assert_eq!(config.prover.webserver.port, 4000);
 
-    if let prism_storage::DatabaseConfig::RocksDB(rocksdb_config) = &config.db {
+    if let prism_storage::DatabaseConfig::RocksDB(rocksdb_config) = &config.prover.db {
         assert_eq!(rocksdb_config.path, "/cli/db");
     } else {
         panic!("Expected RocksDB config");

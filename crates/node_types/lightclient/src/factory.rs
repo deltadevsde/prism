@@ -1,4 +1,4 @@
-use prism_da::LightDataAvailabilityLayer;
+use prism_da::{LightClientDAConfig, create_light_client_da_layer};
 use prism_events::EventChannel;
 use prism_keys::VerifyingKey;
 use prism_presets::{
@@ -7,7 +7,7 @@ use prism_presets::{
 use serde::{Deserialize, Serialize};
 #[cfg(not(target_arch = "wasm32"))]
 use std::env;
-use std::{path::PathBuf, result::Result, sync::Arc};
+use std::{path::PathBuf, result::Result};
 
 use crate::LightClient;
 
@@ -18,6 +18,9 @@ use crate::LightClient;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct LightClientConfig {
+    /// Data Availability configuration for the light client.
+    pub da: LightClientDAConfig,
+
     /// Path to the verifying key file or base64-encoded verifying key.
     ///
     /// Can be either:
@@ -46,6 +49,7 @@ impl Default for LightClientConfig {
         let verifying_key_path = PathBuf::from(".prism/prover_key.spki");
 
         Self {
+            da: LightClientDAConfig::default(),
             verifying_key_str: verifying_key_path.to_string_lossy().into_owned(),
             allow_mock_proofs: false,
         }
@@ -54,6 +58,7 @@ impl Default for LightClientConfig {
 
 impl ApplyPreset<LightClientPreset> for LightClientConfig {
     fn apply_preset(&mut self, preset: &LightClientPreset) -> Result<(), PresetError> {
+        self.da.apply_preset(preset)?;
         match preset {
             LightClientPreset::Development => {
                 self.allow_mock_proofs = true;
@@ -73,13 +78,11 @@ impl ApplyPreset<LightClientPreset> for LightClientConfig {
 /// efficient interaction with the Prism network.
 ///
 /// See the crate-level documentation for usage examples and integration patterns.
-pub fn create_light_client(
-    #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
-    #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
-    event_channel: EventChannel,
-    config: &LightClientConfig,
-) -> anyhow::Result<LightClient> {
+pub async fn create_light_client(config: &LightClientConfig) -> anyhow::Result<LightClient> {
     let verifying_key = VerifyingKey::from_spki_pem_path_or_base64(&config.verifying_key_str)?;
+    let event_channel = EventChannel::new();
+    let da = create_light_client_da_layer(&config.da, event_channel.clone()).await?;
+
     let light_client = LightClient::new(da, event_channel, verifying_key, config.allow_mock_proofs);
     Ok(light_client)
 }
@@ -88,9 +91,7 @@ pub fn create_light_client(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use prism_da::memory::InMemoryDataAvailabilityLayer;
     use prism_presets::{LightClientPreset, PRESET_SPECTER_PUBLIC_KEY_BASE64};
-    use std::sync::Arc;
 
     #[test]
     fn test_light_client_config_default() {
@@ -118,29 +119,25 @@ mod tests {
         assert_eq!(config.verifying_key_str, PRESET_SPECTER_PUBLIC_KEY_BASE64);
     }
 
-    #[test]
-    fn test_create_light_client_with_base64_key() {
-        let da = Arc::new(InMemoryDataAvailabilityLayer::default());
-        let event_channel = EventChannel::new();
+    #[tokio::test]
+    async fn test_create_light_client_with_base64_key() {
         let config = LightClientConfig {
             verifying_key_str: PRESET_SPECTER_PUBLIC_KEY_BASE64.to_string(),
             ..Default::default()
         };
 
-        let result = create_light_client(da, event_channel, &config);
+        let result = create_light_client(&config).await;
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn test_create_light_client_with_invalid_key() {
-        let da = Arc::new(InMemoryDataAvailabilityLayer::default());
-        let event_channel = EventChannel::new();
+    #[tokio::test]
+    async fn test_create_light_client_with_invalid_key() {
         let config = LightClientConfig {
             verifying_key_str: "invalid_key".to_string(),
             ..Default::default()
         };
 
-        let result = create_light_client(da, event_channel, &config);
+        let result = create_light_client(&config).await;
         assert!(result.is_err());
     }
 }

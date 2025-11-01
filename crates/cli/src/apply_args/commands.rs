@@ -16,7 +16,7 @@ impl CliOverridableConfig<LightClientPreset> for CliLightClientConfig {
     type CliArgs = LightClientCliArgs;
 
     fn apply_cli_args(&mut self, args: &Self::CliArgs) -> Result<()> {
-        apply_light_client_da_args(&mut self.da, &args.da)?;
+        apply_light_client_da_args(&mut self.light_client.da, &args.da)?;
 
         if let Some(verifying_key_str) = &args.verifying_key {
             self.light_client.verifying_key_str = verifying_key_str.clone();
@@ -30,8 +30,8 @@ impl CliOverridableConfig<FullNodePreset> for CliFullNodeConfig {
     type CliArgs = FullNodeCliArgs;
 
     fn apply_cli_args(&mut self, args: &Self::CliArgs) -> Result<()> {
-        apply_database_args(&mut self.db, &args.db)?;
-        apply_full_node_da_args(&mut self.da, &args.da)?;
+        apply_database_args(&mut self.full_node.db, &args.db)?;
+        apply_full_node_da_args(&mut self.full_node.da, &args.da)?;
         apply_webserver_args(&mut self.full_node.webserver, &args.web)?;
 
         if let Some(verifying_key_str) = &args.verifying_key {
@@ -50,8 +50,8 @@ impl CliOverridableConfig<ProverPreset> for CliProverConfig {
     type CliArgs = ProverCliArgs;
 
     fn apply_cli_args(&mut self, args: &Self::CliArgs) -> Result<()> {
-        apply_database_args(&mut self.db, &args.db)?;
-        apply_full_node_da_args(&mut self.da, &args.da)?;
+        apply_database_args(&mut self.prover.db, &args.db)?;
+        apply_full_node_da_args(&mut self.prover.da, &args.da)?;
         apply_webserver_args(&mut self.prover.webserver, &args.web)?;
 
         if let Some(signing_key) = &args.signing_key {
