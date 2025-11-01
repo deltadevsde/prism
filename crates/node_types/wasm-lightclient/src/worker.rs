@@ -140,7 +140,10 @@ async fn forward_events(mut subscriber: EventSubscriber, channel: BroadcastChann
         if let Ok(event_json) = serde_wasm_bindgen::to_value(&event) {
             match &event.event {
                 PrismEvent::LuminaEvent { .. } => {} // Do nothing for Lumina events
-                _ => console::log_2(&"📨 Forwarding event".into(), &event_json),
+                _ => console::log_2(
+                    &"📨 Forwarding event".into(),
+                    &format!("{:?}", event).into(),
+                ),
             }
             if let Err(e) = channel.post_message(&event_json) {
                 console::error_1(&format!("Failed to post message: {:?}", e).into());
