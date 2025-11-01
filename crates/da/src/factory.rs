@@ -1,4 +1,3 @@
-#[cfg(not(target_arch = "wasm32"))]
 use prism_events::EventChannel;
 use std::{sync::Arc, time::Duration};
 use tracing::info;
