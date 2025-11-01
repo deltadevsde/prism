@@ -8,11 +8,9 @@ use clap::Parser;
 use dotenvy::dotenv;
 use node_types::NodeType;
 use prism_cli::error::CliError;
-use prism_da::{create_full_node_da_layer, create_light_client_da_layer};
-use prism_events::{EventChannel, EventSubscriber};
+use prism_events::EventSubscriber;
 use prism_lightclient::create_light_client;
 use prism_prover::{create_prover_as_full_node, create_prover_as_prover};
-use prism_storage::create_storage;
 use prism_telemetry_registry::{TelemetryInstance, create_telemetry};
 use std::sync::Arc;
 use tokio::signal;
@@ -47,7 +45,7 @@ async fn run_cli() -> Result<(), CliError> {
 
     let cli = Cli::parse();
 
-    let (node, events, telemetry) = match cli.command {
+    let (node, telemetry) = match cli.command {
         CliCommands::LightClient(ref light_client_args) => {
             create_light_node(light_client_args).await?
         }
@@ -79,7 +77,7 @@ async fn run_cli() -> Result<(), CliError> {
 
 async fn create_light_node(
     light_client_args: &LightClientCliArgs,
-) -> Result<(Arc<dyn NodeType>, EventChannel, TelemetryInstance), CliError> {
+) -> Result<(Arc<dyn NodeType>, TelemetryInstance), CliError> {
     let config = CliLightClientConfig::load(light_client_args)
         .map_err(|e| CliError::ConfigFailed(format!("Error loading light client config: {}", e)))?;
 
@@ -88,20 +86,15 @@ async fn create_light_node(
         vec![("node_type".to_string(), "lightclient".to_string())],
     )?;
 
-    let events = EventChannel::new();
-    let da = create_light_client_da_layer(&config.da, events.clone()).await?;
-    let light_client = create_light_client(da, events.clone(), &config.light_client)
+    let light_client = create_light_client(&config.light_client)
+        .await
         .map_err(|e| CliError::ConfigFailed(format!("Failed to create light client: {}", e)))?;
-    Ok((
-        Arc::new(light_client) as Arc<dyn NodeType>,
-        events,
-        telemetry,
-    ))
+    Ok((Arc::new(light_client) as Arc<dyn NodeType>, telemetry))
 }
 
 async fn create_prover_node(
     prover_args: &ProverCliArgs,
-) -> Result<(Arc<dyn NodeType>, EventChannel, TelemetryInstance), CliError> {
+) -> Result<(Arc<dyn NodeType>, TelemetryInstance), CliError> {
     let config = CliProverConfig::load(prover_args)
         .map_err(|e| CliError::ConfigFailed(format!("Error loading prover config: {}", e)))?;
 
@@ -110,19 +103,16 @@ async fn create_prover_node(
         vec![("node_type".to_string(), "prover".to_string())],
     )?;
 
-    let events = EventChannel::new();
-    let db = create_storage(&config.db).await?;
-    let da = create_full_node_da_layer(&config.da, events.clone()).await?;
-
-    let prover = create_prover_as_prover(&config.prover, db.clone(), da.clone(), events.clone())
+    let prover = create_prover_as_prover(&config.prover)
+        .await
         .map_err(|e| CliError::ConfigFailed(format!("Failed to create prover: {}", e)))?;
 
-    Ok((Arc::new(prover) as Arc<dyn NodeType>, events, telemetry))
+    Ok((Arc::new(prover) as Arc<dyn NodeType>, telemetry))
 }
 
 async fn create_full_node(
     full_node_args: &FullNodeCliArgs,
-) -> Result<(Arc<dyn NodeType>, EventChannel, TelemetryInstance), CliError> {
+) -> Result<(Arc<dyn NodeType>, TelemetryInstance), CliError> {
     let config = CliFullNodeConfig::load(full_node_args)
         .map_err(|e| CliError::ConfigFailed(format!("Error loading full node config: {}", e)))?;
 
@@ -131,15 +121,11 @@ async fn create_full_node(
         vec![("node_type".to_string(), "fullnode".to_string())],
     )?;
 
-    let events = EventChannel::new();
-    let db = create_storage(&config.db).await?;
-    let da = create_full_node_da_layer(&config.da, events.clone()).await?;
+    let full_node = create_prover_as_full_node(&config.full_node)
+        .await
+        .map_err(|e| CliError::ConfigFailed(format!("Failed to create full node: {}", e)))?;
 
-    let full_node =
-        create_prover_as_full_node(&config.full_node, db.clone(), da.clone(), events.clone())
-            .map_err(|e| CliError::ConfigFailed(format!("Failed to create full node: {}", e)))?;
-
-    Ok((Arc::new(full_node) as Arc<dyn NodeType>, events, telemetry))
+    Ok((Arc::new(full_node) as Arc<dyn NodeType>, telemetry))
 }
 
 async fn shutdown_signal(mut sub: EventSubscriber) {
