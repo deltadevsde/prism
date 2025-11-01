@@ -1,7 +1,7 @@
 use core::fmt;
 use lumina_node::events::NodeEvent;
 use serde::Serialize;
-use std::time::SystemTime;
+use web_time::SystemTime;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type")]

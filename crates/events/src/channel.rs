@@ -1,5 +1,5 @@
-use std::time::SystemTime;
 use tokio::sync::broadcast;
+use web_time::SystemTime;
 
 use crate::{EventInfo, PrismEvent};
 
