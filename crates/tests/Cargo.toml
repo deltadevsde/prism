@@ -14,7 +14,6 @@ test_utils = []
 [dependencies]
 log.workspace = true
 pretty_env_logger.workspace = true
-anyhow.workspace = true
 prism-common = { workspace = true, features = ["test_utils"] }
 prism-storage.workspace = true
 prism-events = { workspace = true }

@@ -16,7 +16,6 @@ tracing = { workspace = true }
 anyhow = { workspace = true }
 prism-da = { workspace = true }
 sp1-verifier = { workspace = true }
-prism-errors = { workspace = true }
 prism-keys = { workspace = true }
 prism-events = { workspace = true }
 prism-common = { workspace = true, features = ["test_utils"] }

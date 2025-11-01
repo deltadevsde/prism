@@ -16,7 +16,6 @@ path = "./src/bin/uniffi-bindgen.rs"
 [dependencies]
 thiserror = { workspace = true }
 prism-lightclient = { path = "../lightclient", default-features = false }
-prism-da = { workspace = true }
 prism-events = { workspace = true }
 prism-presets = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }

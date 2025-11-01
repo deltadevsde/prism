@@ -7403,10 +7403,8 @@ name = "prism-events"
 version = "0.1.0"
 dependencies = [
  "lumina-node",
- "prism-cross-target",
  "serde",
  "tokio",
- "tracing",
  "web-time",
 ]
 
@@ -7443,7 +7441,6 @@ dependencies = [
  "prism-common",
  "prism-cross-target",
  "prism-da",
- "prism-errors",
  "prism-events",
  "prism-keys",
  "prism-presets",
@@ -7585,7 +7582,6 @@ dependencies = [
 name = "prism-tests"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "celestia-rpc",
  "log",
  "pretty_env_logger",
@@ -7624,7 +7620,6 @@ dependencies = [
 name = "prism-uniffi-lightclient"
 version = "0.1.0"
 dependencies = [
- "prism-da",
  "prism-events",
  "prism-lightclient",
  "prism-presets",
