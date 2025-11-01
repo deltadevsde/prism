@@ -53,16 +53,14 @@ async fn run_cli() -> Result<(), CliError> {
         CliCommands::FullNode(ref full_node_args) => create_full_node(full_node_args).await?,
     };
 
-    node.start().await.map_err(|e| {
+    let event_sub = node.start_subscribed().await.map_err(|e| {
         // Log the error with full debug information
         tracing::error!("Node encountered an error: {:?}", e);
         // Return the error
         CliError::NodeError(format!("{:?}", e))
     })?;
 
-    // Wait for shutdown signal
-    let event_sub = events.subscribe();
-    shutdown_signal(event_sub).await;
+    handle_events(event_sub).await;
 
     let stop_result = node.stop().await.map_err(|e| {
         // Log the error with full debug information
@@ -128,7 +126,7 @@ async fn create_full_node(
     Ok((Arc::new(full_node) as Arc<dyn NodeType>, telemetry))
 }
 
-async fn shutdown_signal(mut sub: EventSubscriber) {
+async fn handle_events(mut sub: EventSubscriber) {
     loop {
         tokio::select! {
             _ = signal::ctrl_c() => {
