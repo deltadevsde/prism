@@ -8,7 +8,7 @@ repository.workspace = true
 
 [features]
 default = ["telemetry"]
-telemetry = ["prism-telemetry-registry"]
+telemetry = ["dep:prism-telemetry-registry"]
 test_utils = []
 
 [dependencies]

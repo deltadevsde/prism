@@ -123,7 +123,6 @@ impl Syncer {
 
     #[cfg(feature = "telemetry")]
     async fn collect_metrics(&self, height: u64) {
-        #[cfg(feature = "telemetry")]
         if let Some(metrics) = get_metrics() {
             metrics.record_celestia_synced_height(height, vec![]);
             if let Some(latest_finalized_epoch) =
