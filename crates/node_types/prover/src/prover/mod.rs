@@ -8,7 +8,7 @@ use prism_common::{
     transaction::Transaction,
 };
 use prism_cross_target::tasks::TaskManager;
-use prism_events::{EventChannel, PrismEvent};
+use prism_events::{EventChannel, EventSubscriber, PrismEvent};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::Database;
 use std::sync::Arc;
@@ -237,9 +237,15 @@ impl Prover {
     }
 
     pub async fn start(&self) -> Result<()> {
+        let _ = self.start_subscribed().await?;
+        Ok(())
+    }
+
+    pub async fn start_subscribed(&self) -> Result<EventSubscriber> {
         if self.task_manager.is_running() {
-            info!("Prover already started");
-            return Ok(());
+            warn!("Start attempt on already running prover");
+            let event_sub = self.event_channel.subscribe();
+            return Ok(event_sub);
         }
 
         info!("Starting Prover");
@@ -291,7 +297,8 @@ impl Prover {
         }
 
         info!("Prover started successfully");
-        Ok(())
+        let event_sub = self.event_channel.subscribe();
+        Ok(event_sub)
     }
 
     pub async fn stop(&self) -> Result<()> {
