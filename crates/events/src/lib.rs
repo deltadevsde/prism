@@ -20,6 +20,8 @@ pub enum PrismEvent {
     HistoricalSyncCompleted { height: Option<u64> },
     /// Sent when the DA height is updated to the given height.
     UpdateDAHeight { height: u64 },
+    /// Sent when the connection to the DA layer is lost.
+    DAConnectionLost { error: String },
     /// Sent when the Epoch Verification was successfully verified at given height.
     EpochVerified { height: u64 },
     /// Sent when a [`FinalizedEpoch`] fails validation. Gives the height it failed at and the
@@ -66,6 +68,9 @@ impl fmt::Display for PrismEvent {
             }
             PrismEvent::UpdateDAHeight { height } => {
                 write!(f, "Updated DA height to {}", height)
+            }
+            PrismEvent::DAConnectionLost { error } => {
+                write!(f, "DA connection lost: {}", error)
             }
             PrismEvent::EpochVerified { height } => {
                 write!(f, "Verified epoch {}", height)
