@@ -150,14 +150,20 @@ async fn test_light_client_prover_talking() {
     let prover_clone = prover.clone();
     let prover_handle = spawn(async move {
         debug!("starting prover");
-        prover_clone.run().await.unwrap();
+        if let Err(e) = prover_clone.run().await {
+            error!("Prover failed: {:?}", e);
+            panic!("Prover failed: {:?}", e);
+        }
     });
 
     // Start light client
     let lc_clone = lightclient.clone();
     let lc_handle = spawn(async move {
         debug!("starting light client");
-        lc_clone.run().await.unwrap();
+        if let Err(e) = lc_clone.run().await {
+            error!("Light client failed: {:?}", e);
+            panic!("Light client failed: {:?}", e);
+        }
     });
 
     // Start Transaction generation
