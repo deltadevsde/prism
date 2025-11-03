@@ -145,7 +145,7 @@ impl CelestiaFullNodeDAConfig {
 }
 
 pub struct CelestiaConnection {
-    pub client: celestia_rpc::Client,
+    pub client: Arc<celestia_rpc::Client>,
     pub snark_namespace: Namespace,
     pub operation_namespace: Namespace,
     pub fetch_timeout: Duration,
@@ -159,10 +159,12 @@ pub struct CelestiaConnection {
 
 impl CelestiaConnection {
     pub async fn new(config: &CelestiaFullNodeDAConfig, auth_token: Option<&str>) -> Result<Self> {
-        let client = Client::new(&config.url, auth_token)
-            .await
-            .context("Failed to initialize websocket connection")
-            .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
+        let client = Arc::new(
+            Client::new(&config.url, auth_token)
+                .await
+                .context("Failed to initialize websocket connection")
+                .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?,
+        );
 
         let snark_namespace = create_namespace(&config.snark_namespace_id).context(format!(
             "Failed to create snark namespace from: '{}'",
@@ -195,7 +197,7 @@ impl CelestiaConnection {
         for attempt in 0..self.fetch_max_retries {
             match tokio::time::timeout(
                 self.fetch_timeout,
-                BlobClient::blob_get_all(&self.client, height, &[namespace]),
+                self.client.blob_get_all(height, &[namespace]),
             )
             .await
             {
@@ -242,19 +244,24 @@ impl CelestiaConnection {
 #[async_trait]
 impl LightDataAvailabilityLayer for CelestiaConnection {
     async fn start(&self) -> Result<(), DataAvailabilityError> {
-        let mut header_sub = HeaderClient::header_subscribe(&self.client).await.map_err(|e| {
-            DataAvailabilityError::InitializationError(format!(
-                "Failed to subscribe to celestia headers: {}",
-                e
-            ))
-        })?;
-
         let sync_target = self.sync_target.clone();
         let height_update_tx = self.height_update_tx.clone();
         let event_publisher = self.event_channel.publisher();
+        let client = self.client.clone();
 
         self.task_manager
             .spawn(move |cancellation_token| async move {
+                let mut header_sub = match client.header_subscribe().await {
+                    Ok(sub) => sub,
+                    Err(e) => {
+                        error!("Failed to subscribe to celestia headers: {}", e);
+                        event_publisher.send(PrismEvent::DAConnectionLost {
+                            error: e.to_string(),
+                        });
+                        return;
+                    }
+                };
+
                 loop {
                     tokio::select! {
                         _ = cancellation_token.triggered() => {
