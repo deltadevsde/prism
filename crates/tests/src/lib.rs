@@ -126,12 +126,6 @@ async fn test_light_client_prover_talking() {
     let ct = tx_shutdown.clone();
     let tx_generator = spawn(async move { generate_transactions(prover_clone, ct).await });
 
-    // Coverage Short-Circuit
-    if std::env::var("COVERAGE_TEST").is_ok() {
-        sleep(Duration::from_secs(3 * 60)).await;
-        return;
-    }
-
     // Grab the latest DA height after subscribing
     let initial_height = loop {
         let event_info = event_sub.recv().await.unwrap();
