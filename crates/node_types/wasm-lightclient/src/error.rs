@@ -1,5 +1,5 @@
 use anyhow::Error as AnyhowError;
-use prism_errors::{DataAvailabilityError, GeneralError};
+use prism_da::error::DataAvailabilityError;
 use std::result::Result;
 use thiserror::Error;
 
@@ -15,8 +15,6 @@ pub enum WasmLightClientError {
     Worker(#[from] WorkerError),
     #[error(transparent)]
     DataAvailability(#[from] DataAvailabilityError),
-    #[error(transparent)]
-    General(#[from] GeneralError),
     #[error(transparent)]
     Other(#[from] AnyhowError),
 }

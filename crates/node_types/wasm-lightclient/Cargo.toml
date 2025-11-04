@@ -25,9 +25,7 @@ web-sys = { workspace = true, features = [
 ] }
 wasm-bindgen-futures = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
-tokio-util = { workspace = true }
 thiserror = { workspace = true }
-prism-errors = { workspace = true }
 prism-lightclient = { path = "../lightclient", default-features = false }
 prism-da = { workspace = true }
 prism-common = { workspace = true }

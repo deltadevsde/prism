@@ -20,5 +20,4 @@ prism-da = { workspace = true }
 prism-events = { workspace = true }
 prism-presets = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
-tokio-util = { workspace = true }
 uniffi = { workspace = true }

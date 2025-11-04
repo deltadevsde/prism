@@ -83,7 +83,7 @@ async fn setup_da() -> (
     (lc_da_layer, bridge_da_layer)
 }
 
-async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, CancellationToken) {
+async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>) {
     let db = setup_db();
     let (lc_da, fn_da) = setup_da().await;
 
@@ -109,22 +109,11 @@ async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, CancellationToken) {
         webserver: WebServerConfig::default(),
     };
 
-    let node_shutdown_token = CancellationToken::new();
+    let prover = Arc::new(Prover::new(db.clone(), fn_da.clone(), &prover_cfg).unwrap());
 
-    let prover = Arc::new(
-        Prover::new(
-            db.clone(),
-            fn_da.clone(),
-            &prover_cfg,
-            node_shutdown_token.clone(),
-        )
-        .unwrap(),
-    );
+    let lightclient = LightClient::new(lc_da.clone(), pubkey, true);
 
-    let mut lightclient = LightClient::new(lc_da.clone(), pubkey, node_shutdown_token.clone());
-    lightclient.enable_mock_proof_verification();
-
-    (prover, Arc::new(lightclient), node_shutdown_token)
+    (prover, Arc::new(lightclient))
 }
 
 #[tokio::test]
@@ -144,21 +133,11 @@ async fn test_light_client_prover_talking() {
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
-    let (prover, lightclient, node_shutdown) = setup_nodes().await;
+    let (prover, lightclient) = setup_nodes().await;
 
-    // Start prover node
-    let prover_clone = prover.clone();
-    let prover_handle = spawn(async move {
-        debug!("starting prover");
-        prover_clone.run().await.unwrap();
-    });
-
-    // Start light client
-    let lc_clone = lightclient.clone();
-    let lc_handle = spawn(async move {
-        debug!("starting light client");
-        lc_clone.run().await.unwrap();
-    });
+    // Start nodes
+    prover.start().await.expect("Starting prover should work");
+    lightclient.start().await.expect("Starting lightclient should work");
 
     // Start Transaction generation
     let tx_shutdown = CancellationToken::new();
@@ -234,13 +213,8 @@ async fn test_light_client_prover_talking() {
     );
 
     // Gracefully shut down nodes
-    node_shutdown.cancel();
-    let graceful_shutdown = tokio::try_join!(prover_handle, lc_handle);
-    assert!(
-        graceful_shutdown.is_ok(),
-        "Nodes were not gracefully shut down: {:?}",
-        graceful_shutdown
-    );
+    assert!(prover.stop().await.is_ok());
+    assert!(lightclient.stop().await.is_ok());
 }
 
 async fn generate_transactions(prover: Arc<Prover>, ct: CancellationToken) {

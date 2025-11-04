@@ -4,7 +4,6 @@ use prism_events::{EventSubscriber, PrismEvent};
 use prism_lightclient::{LightClient, create_light_client};
 use prism_presets::{ApplyPreset, LightClientPreset};
 use std::{str::FromStr, sync::Arc};
-use tokio_util::sync::CancellationToken;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{BroadcastChannel, MessagePort, console};
 
@@ -75,9 +74,7 @@ impl LightClientWorker {
             js_channel.clone(),
         ));
 
-        let ct = CancellationToken::new();
-
-        let light_client = create_light_client(da, &config.light_client, ct.clone())
+        let light_client = create_light_client(da, &config.light_client)
             .map_err(|e| JsError::new(&format!("Failed to create light client: {}", e)))?;
 
         Ok(Self {
@@ -89,13 +86,11 @@ impl LightClientWorker {
 
     pub async fn run(&mut self) -> Result<(), JsError> {
         console::log_1(&"🌟 Starting Light Client Worker".into());
-        let light_client = Arc::clone(&self.light_client);
-        spawn_local(async move {
-            console::log_1(&"🚀 Starting light client in background".into());
-            if let Err(e) = light_client.run().await {
-                console::error_1(&format!("Light client error: {}", e).into());
-            }
-        });
+
+        self.light_client
+            .start()
+            .await
+            .map_err(|e| JsError::new(&format!("Starting light client failed: {}", e)))?;
 
         console::log_1(&"🌟 Light Client Worker started".into());
 
@@ -151,8 +146,7 @@ impl LightClientWorker {
         let config = WasmLightClientConfig::default_with_preset(&preset)
             .map_err(|e| JsError::new(&e.to_string()))?;
 
-        let ct = CancellationToken::new();
-        let light_client = create_light_client(da, &config.light_client, ct)
+        let light_client = create_light_client(da, &config.light_client)
             .map_err(|e| JsError::new(&format!("Failed to create light client: {}", e)))?;
 
         Ok(Self {

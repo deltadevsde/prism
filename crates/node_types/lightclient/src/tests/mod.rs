@@ -3,12 +3,10 @@ use std::{sync::Arc, time::Duration};
 use prism_common::digest::Digest;
 use prism_da::{
     MockLightDataAvailabilityLayer, MockVerifiableStateTransition, VerifiableStateTransition,
+    error::EpochVerificationError,
 };
-use prism_errors::EpochVerificationError;
 use prism_events::{EventChannel, EventPublisher, EventSubscriber, PrismEvent};
 use prism_keys::SigningKey;
-use tokio::spawn;
-use tokio_util::sync::CancellationToken;
 
 use crate::LightClient;
 
@@ -48,6 +46,8 @@ macro_rules! mock_da {
                 _ => Ok(vec![]),
             }
         });
+        mock_da.expect_start().returning(|| Ok(()));
+        mock_da.expect_stop().returning(|| Ok(()));
         mock_da
     }};
 
@@ -107,7 +107,7 @@ where
 
 async fn setup(
     mut mock_da: MockLightDataAvailabilityLayer,
-) -> (Arc<LightClient>, EventSubscriber, EventPublisher) {
+) -> (LightClient, EventSubscriber, EventPublisher) {
     init_logger();
 
     let chan = EventChannel::new();
@@ -118,16 +118,9 @@ async fn setup(
     let mock_da = Arc::new(mock_da);
 
     let prover_key = SigningKey::new_ed25519();
-    let lc = Arc::new(LightClient::new(
-        mock_da,
-        prover_key.verifying_key(),
-        CancellationToken::new(),
-    ));
+    let lc = LightClient::new(mock_da, prover_key.verifying_key(), false);
+    lc.start().await.unwrap();
 
-    let runner = lc.clone();
-    spawn(async move {
-        runner.run().await.unwrap();
-    });
     let mut sub = arced_chan.clone().subscribe();
     wait_for_event(&mut sub, |event| matches!(event, PrismEvent::Ready)).await;
     (lc, sub, publisher)
@@ -404,24 +397,21 @@ async fn test_graceful_shutdown() {
     let mut sub = arced_chan.clone().subscribe();
     mock_da.expect_event_channel().return_const(arced_chan.clone());
 
+    println!("Starting shutdown test");
+
     let mock_da = Arc::new(mock_da);
 
     let prover_key = SigningKey::new_ed25519();
-    let ct = CancellationToken::new();
-    let lc = Arc::new(LightClient::new(
-        mock_da,
-        prover_key.verifying_key(),
-        ct.clone(),
-    ));
+    let lc = LightClient::new(mock_da, prover_key.verifying_key(), false);
+    assert!(lc.start().await.is_ok());
 
-    let handle = spawn(async move { lc.run().await });
+    println!("Wait for event");
 
     // Wait for it to be ready syncing
     wait_for_event(&mut sub, |event| matches!(event, PrismEvent::Ready)).await;
 
-    // Trigger cancellation
-    ct.cancel();
+    println!("Wait for shutdown");
 
     // Let the light node shut down
-    assert!(handle.await.unwrap().is_ok())
+    assert!(lc.stop().await.is_ok())
 }

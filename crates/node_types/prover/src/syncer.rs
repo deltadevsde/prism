@@ -60,14 +60,15 @@ impl Syncer {
         self.da.clone()
     }
 
-    pub async fn start(&self, cancellation_token: CancellationToken) -> Result<()> {
-        self.da.start().await?;
-        self.run_main_loop(cancellation_token).await
-    }
-
-    async fn run_main_loop(&self, cancellation_token: CancellationToken) -> Result<()> {
+    pub async fn run(&self, cancellation_token: CancellationToken) -> Result<()> {
         let mut height_rx = self.da.subscribe_to_heights();
-        let historical_sync_height = height_rx.recv().await?;
+        let historical_sync_height = tokio::select! {
+            result = height_rx.recv() => result?,
+            _ = cancellation_token.cancelled() => {
+                info!("Syncer: Gracefully stopping before historical sync");
+                return Ok(());
+            }
+        };
 
         let sync_start_height = match self.db.get_last_synced_height() {
             Ok(height) => height,

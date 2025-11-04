@@ -1,4 +1,3 @@
-use crate::Prover;
 use anyhow::{Result, bail};
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use prism_common::{
@@ -49,20 +48,20 @@ impl Default for WebServerConfig {
     }
 }
 
-pub struct WebServer {
+pub struct WebServer<P: PrismApi + 'static> {
     pub cfg: WebServerConfig,
-    pub session: Arc<Prover>,
+    pub prism: Arc<P>,
 }
 
 #[derive(OpenApi)]
 struct ApiDoc;
 
-impl WebServer {
-    pub const fn new(cfg: WebServerConfig, session: Arc<Prover>) -> Self {
-        Self { cfg, session }
+impl<P: PrismApi + 'static> WebServer<P> {
+    pub const fn new(cfg: WebServerConfig, prism: Arc<P>) -> Self {
+        Self { cfg, prism }
     }
 
-    pub async fn start(&self, cancellation_token: CancellationToken) -> Result<()> {
+    pub async fn run(&self, cancellation_token: CancellationToken) -> Result<()> {
         if !self.cfg.enabled {
             bail!("Webserver is disabled")
         }
@@ -72,7 +71,7 @@ impl WebServer {
             .routes(routes!(post_transaction))
             .routes(routes!(get_commitment))
             .layer(CorsLayer::permissive())
-            .with_state(self.session.clone())
+            .with_state(self.prism.clone())
             .split_for_parts();
 
         let api = OpenApiBuilder::from(api).info(Info::new("Prism Full Node API", "0.1.0")).build();
@@ -93,10 +92,10 @@ impl WebServer {
             socket_addr.port()
         );
 
-        let cancellation_token = cancellation_token.clone();
+        let graceful_shutdown_token = cancellation_token.clone();
         server
             .with_graceful_shutdown(async move {
-                cancellation_token.cancelled().await;
+                graceful_shutdown_token.cancelled().await;
                 info!("Webserver shutting down gracefully");
             })
             .await?;
@@ -117,11 +116,11 @@ impl WebServer {
         (status = 500, description = "Internal server error")
     )
 )]
-async fn post_transaction(
-    State(session): State<Arc<Prover>>,
+async fn post_transaction<P: PrismApi>(
+    State(prism): State<Arc<P>>,
     Json(transaction): Json<Transaction>,
 ) -> impl IntoResponse {
-    match session.validate_and_queue_update(transaction).await {
+    match prism.post_transaction(transaction).await {
         Ok(_) => (
             StatusCode::OK,
             "Entry update queued for insertion into next epoch",
@@ -148,11 +147,11 @@ async fn post_transaction(
         (status = 400, description = "Bad request")
     )
 )]
-async fn get_account(
-    State(session): State<Arc<Prover>>,
+async fn get_account<P: PrismApi>(
+    State(prism): State<Arc<P>>,
     Json(request): Json<AccountRequest>,
 ) -> impl IntoResponse {
-    let get_account_result = session.get_account(&request.id).await;
+    let get_account_result = prism.get_account(&request.id).await;
     let Ok(account_response) = get_account_result else {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -176,8 +175,8 @@ async fn get_account(
         (status = 500, description = "Internal server error")
     )
 )]
-async fn get_commitment(State(session): State<Arc<Prover>>) -> impl IntoResponse {
-    match session.get_commitment().await {
+async fn get_commitment<P: PrismApi>(State(prism): State<Arc<P>>) -> impl IntoResponse {
+    match prism.get_commitment().await {
         Ok(commitment_response) => (StatusCode::OK, Json(commitment_response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }

@@ -7307,7 +7307,6 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.12",
  "tokio",
- "tokio-util",
  "toml 0.8.23",
  "tracing",
 ]
@@ -7343,6 +7342,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "prism-cross-target"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "gloo-timers 0.3.0",
+ "pin-project",
+ "send_wrapper 0.6.0",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-test",
+ "web-sys",
+ "web-time",
+]
+
+[[package]]
 name = "prism-da"
 version = "0.1.0"
 dependencies = [
@@ -7357,7 +7374,7 @@ dependencies = [
  "lumina-node",
  "mockall",
  "prism-common",
- "prism-errors",
+ "prism-cross-target",
  "prism-events",
  "prism-keys",
  "prism-presets",
@@ -7367,6 +7384,7 @@ dependencies = [
  "serde_with",
  "sp1-sdk",
  "sp1-verifier",
+ "thiserror 2.0.12",
  "tokio",
  "tracing",
 ]
@@ -7375,7 +7393,6 @@ dependencies = [
 name = "prism-errors"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "bincode",
  "thiserror 2.0.12",
 ]
@@ -7388,8 +7405,6 @@ dependencies = [
  "prism-common",
  "serde",
  "tokio",
- "tracing",
- "wasm-bindgen-futures",
  "web-time",
 ]
 
@@ -7424,6 +7439,7 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "prism-common",
+ "prism-cross-target",
  "prism-da",
  "prism-errors",
  "prism-events",
@@ -7460,6 +7476,7 @@ dependencies = [
  "paste",
  "pretty_env_logger",
  "prism-common",
+ "prism-cross-target",
  "prism-da",
  "prism-events",
  "prism-keys",
@@ -7610,7 +7627,6 @@ dependencies = [
  "prism-presets",
  "thiserror 2.0.12",
  "tokio",
- "tokio-util",
  "uniffi",
 ]
 
@@ -7623,7 +7639,6 @@ dependencies = [
  "js-sys",
  "prism-common",
  "prism-da",
- "prism-errors",
  "prism-events",
  "prism-lightclient",
  "prism-presets",
@@ -7631,7 +7646,6 @@ dependencies = [
  "serde-wasm-bindgen",
  "thiserror 2.0.12",
  "tokio",
- "tokio-util",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",

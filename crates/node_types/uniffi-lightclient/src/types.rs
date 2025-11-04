@@ -19,6 +19,11 @@ pub enum UniffiLightClientEvent {
         /// The new DA layer height
         height: u64,
     },
+    /// DA connection lost
+    DAConnectionLost {
+        /// Error message
+        error: String,
+    },
     /// Epoch was successfully verified
     EpochVerified {
         /// The epoch height that was verified
@@ -72,6 +77,9 @@ impl From<PrismEvent> for UniffiLightClientEvent {
             }
             PrismEvent::UpdateDAHeight { height } => {
                 UniffiLightClientEvent::UpdateDAHeight { height }
+            }
+            PrismEvent::DAConnectionLost { error } => {
+                UniffiLightClientEvent::DAConnectionLost { error }
             }
             PrismEvent::EpochVerified { height } => {
                 UniffiLightClientEvent::EpochVerified { height }

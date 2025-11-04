@@ -14,7 +14,6 @@ use prism_lightclient::{LightClient as CoreLightClient, create_light_client};
 use prism_presets::{ApplyPreset, LightClientPreset};
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
-use tokio_util::sync::CancellationToken;
 use types::UniffiLightClientEvent;
 use uniffi::Object;
 
@@ -55,13 +54,9 @@ impl LightClient {
 
         let event_sub = da.event_channel().subscribe();
 
-        let light_client = create_light_client(da, &config.light_client, CancellationToken::new())
-            .map_err(|e| {
-                LightClientError::initialization_error(format!(
-                    "Failed to create light client: {}",
-                    e
-                ))
-            })?;
+        let light_client = create_light_client(da, &config.light_client).map_err(|e| {
+            LightClientError::initialization_error(format!("Failed to create light client: {}", e))
+        })?;
 
         Ok(Self {
             inner: Arc::new(light_client),
@@ -72,7 +67,7 @@ impl LightClient {
     /// Starts the lightclient and begins syncing with the network.
     pub async fn start(&self) -> Result<()> {
         let inner_clone = self.inner.clone();
-        inner_clone.run().await.map_err(|e| LightClientError::general_error(e.to_string()))
+        inner_clone.start().await.map_err(|e| LightClientError::general_error(e.to_string()))
     }
 
     /// Gets the current commitment.

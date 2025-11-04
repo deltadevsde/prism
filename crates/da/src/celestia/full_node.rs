@@ -10,7 +10,6 @@ use crate::{
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use celestia_types::{Blob, nmt::Namespace};
-use prism_errors::{DataAvailabilityError, GeneralError};
 use prism_events::{EventChannel, PrismEvent};
 use prism_presets::PresetError;
 use serde::{Deserialize, Serialize};
@@ -22,14 +21,15 @@ use std::{
     },
 };
 use tokio::{sync::broadcast, time::Duration};
-use tracing::{error, trace};
 
-use crate::{DataAvailabilityLayer, celestia::CelestiaNetwork};
+use tracing::{error, info, trace};
+
+use crate::{DataAvailabilityLayer, celestia::CelestiaNetwork, error::DataAvailabilityError};
 use celestia_rpc::{BlobClient, Client, HeaderClient, TxConfig};
 use celestia_types::AppVersion;
 use prism_common::transaction::Transaction;
+use prism_cross_target::tasks::TaskManager;
 use prism_serde::binary::ToBinary;
-use tokio::task::spawn;
 use tracing::{debug, warn};
 
 use super::utils::create_namespace;
@@ -145,7 +145,7 @@ impl CelestiaFullNodeDAConfig {
 }
 
 pub struct CelestiaConnection {
-    pub client: celestia_rpc::Client,
+    pub client: Arc<celestia_rpc::Client>,
     pub snark_namespace: Namespace,
     pub operation_namespace: Namespace,
     pub fetch_timeout: Duration,
@@ -154,14 +154,17 @@ pub struct CelestiaConnection {
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
     event_channel: Arc<EventChannel>,
+    task_manager: TaskManager,
 }
 
 impl CelestiaConnection {
     pub async fn new(config: &CelestiaFullNodeDAConfig, auth_token: Option<&str>) -> Result<Self> {
-        let client = Client::new(&config.url, auth_token)
-            .await
-            .context("Failed to initialize websocket connection")
-            .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?;
+        let client = Arc::new(
+            Client::new(&config.url, auth_token)
+                .await
+                .context("Failed to initialize websocket connection")
+                .map_err(|e| DataAvailabilityError::NetworkError(e.to_string()))?,
+        );
 
         let snark_namespace = create_namespace(&config.snark_namespace_id).context(format!(
             "Failed to create snark namespace from: '{}'",
@@ -186,6 +189,7 @@ impl CelestiaConnection {
             event_channel,
             fetch_timeout: config.fetch_timeout,
             fetch_max_retries: config.fetch_max_retries,
+            task_manager: TaskManager::new(),
         })
     }
 
@@ -193,7 +197,7 @@ impl CelestiaConnection {
         for attempt in 0..self.fetch_max_retries {
             match tokio::time::timeout(
                 self.fetch_timeout,
-                BlobClient::blob_get_all(&self.client, height, &[namespace]),
+                self.client.blob_get_all(height, &[namespace]),
             )
             .await
             {
@@ -239,6 +243,68 @@ impl CelestiaConnection {
 
 #[async_trait]
 impl LightDataAvailabilityLayer for CelestiaConnection {
+    async fn start(&self) -> Result<(), DataAvailabilityError> {
+        let sync_target = self.sync_target.clone();
+        let height_update_tx = self.height_update_tx.clone();
+        let event_publisher = self.event_channel.publisher();
+        let client = self.client.clone();
+
+        self.task_manager
+            .spawn(move |cancellation_token| async move {
+                let mut header_sub = match client.header_subscribe().await {
+                    Ok(sub) => sub,
+                    Err(e) => {
+                        error!("Failed to subscribe to celestia headers: {}", e);
+                        event_publisher.send(PrismEvent::DAConnectionLost {
+                            error: e.to_string(),
+                        });
+                        return;
+                    }
+                };
+
+                loop {
+                    tokio::select! {
+                        _ = cancellation_token.triggered() => {
+                            info!("Celestia header subscription cancelled");
+                            break;
+                        }
+                        extended_header_result = header_sub.next() => {
+                            match extended_header_result {
+                                Some(Ok(extended_header)) => {
+                                    let height = extended_header.header.height.value();
+                                    sync_target.store(height, Ordering::Relaxed);
+                                    // todo: correct error handling
+                                    let _ = height_update_tx.send(height);
+                                    trace!("updated sync target for height {}", height);
+
+                                    event_publisher.send(PrismEvent::UpdateDAHeight { height });
+                                }
+                                Some(Err(e)) => {
+                                    error!("Error retrieving header from DA layer: {}", e);
+                                }
+                                None => {
+                                    info!("Header subscription stream ended");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+            .map_err(|e| DataAvailabilityError::InitializationError(e.to_string()))?;
+
+        Ok(())
+    }
+
+    async fn stop(&self) -> Result<(), DataAvailabilityError> {
+        self.task_manager
+            .stop()
+            .await
+            .map_err(|e| DataAvailabilityError::ShutdownError(e.to_string()))?;
+
+        Ok(())
+    }
+
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
         trace!("searching for epoch on da layer at height {}", height);
         let valid_epochs: Vec<VerifiableEpoch> = self
@@ -268,36 +334,6 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
-    async fn start(&self) -> Result<()> {
-        let mut header_sub = HeaderClient::header_subscribe(&self.client)
-            .await
-            .context("Failed to subscribe to headers from DA layer")?;
-
-        let sync_target = self.sync_target.clone();
-        let height_update_tx = self.height_update_tx.clone();
-        let event_publisher = self.event_channel.publisher();
-
-        spawn(async move {
-            while let Some(extended_header_result) = header_sub.next().await {
-                match extended_header_result {
-                    Ok(extended_header) => {
-                        let height = extended_header.header.height.value();
-                        sync_target.store(height, Ordering::Relaxed);
-                        // todo: correct error handling
-                        let _ = height_update_tx.send(height);
-                        trace!("updated sync target for height {}", height);
-
-                        event_publisher.send(PrismEvent::UpdateDAHeight { height });
-                    }
-                    Err(e) => {
-                        error!("Error retrieving header from DA layer: {}", e);
-                    }
-                }
-            }
-        });
-        Ok(())
-    }
-
     fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
         self.height_update_tx.subscribe()
     }
@@ -306,22 +342,12 @@ impl DataAvailabilityLayer for CelestiaConnection {
         Ok(self.sync_target.load(Ordering::Relaxed))
     }
 
-    async fn initialize_sync_target(&self) -> Result<u64> {
-        let height = HeaderClient::header_network_head(&self.client)
-            .await
-            .context("Failed to get network head from DA layer")
-            .map(|extended_header| extended_header.header.height.value())?;
-
-        self.sync_target.store(height, Ordering::Relaxed);
-        Ok(height)
-    }
-
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
         let data = epoch.encode_to_bytes().map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::ParsingError(format!(
+            DataAvailabilityError::SubmissionError(format!(
                 "serializing epoch {}: {}",
                 epoch.height, e
-            )))
+            ))
         })?;
 
         debug!(
@@ -333,7 +359,10 @@ impl DataAvailabilityLayer for CelestiaConnection {
         debug!("epoch: {:?}", epoch);
 
         let blob = Blob::new(self.snark_namespace, data, AppVersion::V3).map_err(|e| {
-            DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(e.to_string()))
+            DataAvailabilityError::SubmissionError(format!(
+                "failed to create blob for epoch {}: {}",
+                epoch.height, e
+            ))
         })?;
 
         self.client
@@ -371,25 +400,19 @@ impl DataAvailabilityLayer for CelestiaConnection {
         let blobs: Result<Vec<Blob>, _> = transactions
             .iter()
             .map(|transaction| {
-                let data = transaction
-                    .encode_to_bytes()
-                    .context(format!("Failed to serialize transaction {:?}", transaction))
-                    .map_err(|e| {
-                        DataAvailabilityError::GeneralError(GeneralError::ParsingError(
-                            e.to_string(),
-                        ))
-                    })?;
-
-                Blob::new(self.operation_namespace, data, AppVersion::V3)
-                    .context(format!(
-                        "Failed to create blob for transaction {:?}",
-                        transaction
+                let data = transaction.encode_to_bytes().map_err(|e| {
+                    DataAvailabilityError::SubmissionError(format!(
+                        "Failed to serialize transaction {}: {}",
+                        transaction.id, e
                     ))
-                    .map_err(|e| {
-                        DataAvailabilityError::GeneralError(GeneralError::BlobCreationError(
-                            e.to_string(),
-                        ))
-                    })
+                })?;
+
+                Blob::new(self.operation_namespace, data, AppVersion::V3).map_err(|e| {
+                    DataAvailabilityError::SubmissionError(format!(
+                        "Failed to create blob for transaction {}: {}",
+                        transaction.id, e
+                    ))
+                })
             })
             .collect();
 

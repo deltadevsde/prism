@@ -11,7 +11,6 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use tokio_util::sync::CancellationToken;
 use tracing::info;
 
 use crate::{
@@ -133,7 +132,6 @@ pub fn create_prover_as_full_node(
     config: &FullNodeConfig,
     db: Arc<Box<dyn Database>>,
     da: Arc<dyn DataAvailabilityLayer>,
-    cancellation_token: CancellationToken,
 ) -> Result<Prover> {
     let verifying_key = VerifyingKey::from_spki_pem_path_or_base64(&config.verifying_key_str)?;
 
@@ -154,7 +152,7 @@ pub fn create_prover_as_full_node(
         webserver: config.webserver.clone(),
     };
 
-    Prover::new(db, da, &prover_opts, cancellation_token)
+    Prover::new(db, da, &prover_opts)
 }
 
 /// Creates a prover instance configured for proof generation.
@@ -167,7 +165,6 @@ pub fn create_prover_as_prover(
     config: &ProverConfig,
     db: Arc<Box<dyn Database>>,
     da: Arc<dyn DataAvailabilityLayer>,
-    cancellation_token: CancellationToken,
 ) -> Result<Prover> {
     let signing_key = SigningKey::from_pkcs8_pem_file(&config.signing_key_path)
         .or_else(|_| {
@@ -197,7 +194,7 @@ pub fn create_prover_as_prover(
         webserver: config.webserver.clone(),
     };
 
-    Prover::new(db, da, &prover_opts, cancellation_token)
+    Prover::new(db, da, &prover_opts)
 }
 
 fn create_ed25519_key_pair_pem_files(signing_key_path: impl AsRef<Path>) -> Result<SigningKey> {
@@ -221,7 +218,6 @@ mod tests {
     use prism_storage::{Database, inmemory::InMemoryDatabase};
     use std::sync::Arc;
     use tempfile::TempDir;
-    use tokio_util::sync::CancellationToken;
 
     use crate::{
         FullNodeConfig, ProverConfig, WebServerConfig, create_prover_as_full_node,
@@ -293,9 +289,8 @@ mod tests {
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
         let da =
             Arc::new(InMemoryDataAvailabilityLayer::default()) as Arc<dyn DataAvailabilityLayer>;
-        let cancellation_token = CancellationToken::new();
 
-        let result = create_prover_as_full_node(&config, db, da, cancellation_token);
+        let result = create_prover_as_full_node(&config, db, da);
         assert!(result.is_ok());
     }
 
@@ -309,9 +304,8 @@ mod tests {
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
         let da =
             Arc::new(InMemoryDataAvailabilityLayer::default()) as Arc<dyn DataAvailabilityLayer>;
-        let cancellation_token = CancellationToken::new();
 
-        let result = create_prover_as_full_node(&config, db, da, cancellation_token);
+        let result = create_prover_as_full_node(&config, db, da);
         assert!(result.is_err());
     }
 
@@ -332,9 +326,8 @@ mod tests {
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
         let da =
             Arc::new(InMemoryDataAvailabilityLayer::default()) as Arc<dyn DataAvailabilityLayer>;
-        let cancellation_token = CancellationToken::new();
 
-        let result = create_prover_as_prover(&config, db, da, cancellation_token);
+        let result = create_prover_as_prover(&config, db, da);
         assert!(result.is_ok());
     }
 
@@ -351,9 +344,8 @@ mod tests {
         let db = Arc::new(Box::new(InMemoryDatabase::new()) as Box<dyn Database>);
         let da =
             Arc::new(InMemoryDataAvailabilityLayer::default()) as Arc<dyn DataAvailabilityLayer>;
-        let cancellation_token = CancellationToken::new();
 
-        let result = create_prover_as_prover(&config, db, da, cancellation_token);
+        let result = create_prover_as_prover(&config, db, da);
         assert!(result.is_ok());
 
         // Verify key files were created

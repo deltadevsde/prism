@@ -1,0 +1,45 @@
+[package]
+name = "prism-cross-target"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+readme.workspace = true
+
+[features]
+default = []
+tasks = ["token", "tracing", "dep:tokio-util", "dep:tokio", "tokio/rt", "dep:wasm-bindgen-futures", "dep:send_wrapper", "dep:thiserror"]
+token = ["dep:tokio-util", "time"]
+time = ["dep:gloo-timers", "dep:tokio", "tokio/time", "dep:send_wrapper", "dep:futures", "dep:pin-project", "dep:web-time"]
+tracing = ["dep:tracing", "dep:web-sys"]
+
+[dependencies]
+thiserror = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+futures = { workspace = true, optional = true }
+gloo-timers = { workspace = true, optional = true }
+pin-project = { workspace = true, optional = true }
+send_wrapper = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true, features = ["console"] }
+web-time = { workspace = true, optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tracing = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }
+web-time = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = { workspace = true }
+
+[lints]
+workspace = true

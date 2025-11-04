@@ -130,6 +130,7 @@
 //! }
 //! ```
 
+mod api;
 mod factory;
 mod prover;
 mod prover_engine;

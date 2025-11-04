@@ -1,23 +1,21 @@
-mod timer;
-
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use prism_common::{
     api::{
-        PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError,
-        types::{AccountResponse, CommitmentResponse, HashedMerkleProof},
+        PendingTransaction, PrismApi, PrismApiError,
+        types::{AccountResponse, CommitmentResponse},
     },
     transaction::Transaction,
 };
+use prism_cross_target::tasks::TaskManager;
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::Database;
-use prism_tree::AccountResponse::{Found, NotFound};
 use std::sync::Arc;
-use timer::ProverTokioTimer;
-use tokio::{sync::RwLock, task::JoinSet};
-use tokio_util::sync::CancellationToken;
+use tokio::sync::RwLock;
+use tracing::{error, info};
 
 use crate::{
+    api::ProverTokioTimer,
     prover_engine::{engine::ProverEngine, sp1_prover::SP1ProverEngine},
     sequencer::Sequencer,
     syncer::Syncer,
@@ -134,10 +132,11 @@ impl ProverOptions {
 pub struct Prover {
     pub options: ProverOptions,
     prover_engine: Arc<dyn ProverEngine>,
+    da: Arc<dyn DataAvailabilityLayer>,
     sequencer: Arc<Sequencer>,
     syncer: Arc<Syncer>,
     latest_epoch_da_height: Arc<RwLock<u64>>,
-    cancellation_token: CancellationToken,
+    task_manager: TaskManager,
 }
 
 #[allow(dead_code)]
@@ -146,10 +145,9 @@ impl Prover {
         db: Arc<Box<dyn Database>>,
         da: Arc<dyn DataAvailabilityLayer>,
         opts: &ProverOptions,
-        cancellation_token: CancellationToken,
     ) -> Result<Self> {
         let prover_engine = Arc::new(SP1ProverEngine::new(&opts.prover_engine)?);
-        Self::new_with_engine(db, da, prover_engine, opts, cancellation_token)
+        Self::new_with_engine(db, da, prover_engine, opts)
     }
 
     pub fn new_with_engine(
@@ -157,7 +155,6 @@ impl Prover {
         da: Arc<dyn DataAvailabilityLayer>,
         prover_engine: Arc<dyn ProverEngine>,
         opts: &ProverOptions,
-        cancellation_token: CancellationToken,
     ) -> Result<Self> {
         let latest_epoch_da_height = Arc::new(RwLock::new(0));
 
@@ -169,7 +166,7 @@ impl Prover {
         )?);
 
         let syncer = Arc::new(Syncer::new(
-            da,
+            da.clone(),
             db,
             &opts.syncer,
             latest_epoch_da_height.clone(),
@@ -180,10 +177,11 @@ impl Prover {
         Ok(Self {
             options: opts.clone(),
             prover_engine,
+            da,
             sequencer,
             syncer,
             latest_epoch_da_height,
-            cancellation_token,
+            task_manager: TaskManager::new(),
         })
     }
 
@@ -233,69 +231,67 @@ impl Prover {
         self.syncer.get_da()
     }
 
-    pub async fn run(self: Arc<Self>) -> Result<()> {
-        let mut futures = JoinSet::new();
+    pub async fn start(&self) -> Result<()> {
+        if self.task_manager.is_running() {
+            info!("Prover already started");
+            return Ok(());
+        }
+
+        info!("Starting Prover");
+
+        self.da.start().await.map_err(|e| anyhow!("Failed to start prover DA: {}", e))?;
 
         // Start Syncer (includes DA startup and main sync loop)
         let syncer = self.syncer.clone();
-        let cancel_token = self.cancellation_token.clone();
-        futures.spawn(async move { syncer.start(cancel_token).await });
+        self.task_manager
+            .spawn(|token| async move {
+                if let Err(e) = syncer.run(token.clone().into()).await {
+                    error!("Syncer error: {:?}", e);
+                }
+                token.trigger();
+            })
+            .map_err(|e| anyhow!("Failed to spawn syncer task: {}", e))?;
 
         // Start Sequencer (batch poster if enabled)
         let sequencer = self.sequencer.clone();
-        let cancel_token = self.cancellation_token.clone();
-        futures.spawn(async move { sequencer.start(cancel_token).await });
+        self.task_manager
+            .spawn(|token| async move {
+                if let Err(e) = sequencer.run(token.clone().into()).await {
+                    error!("Sequencer error: {:?}", e);
+                }
+                token.trigger();
+            })
+            .map_err(|e| anyhow!("Failed to spawn sequencer task: {}", e))?;
 
         // Start WebServer if enabled
         if self.options.webserver.enabled {
-            let ws = WebServer::new(self.options.webserver.clone(), self.clone());
-            let cancel_token = self.cancellation_token.clone();
-            futures.spawn(async move { ws.start(cancel_token).await });
+            let ws = WebServer::new(self.options.webserver.clone(), self.sequencer.clone());
+            self.task_manager
+                .spawn(|token| async move {
+                    if let Err(e) = ws.run(token.clone().into()).await {
+                        error!("WebServer error: {:?}", e);
+                        token.trigger();
+                    }
+                })
+                .map_err(|e| anyhow!("Failed to spawn webserver task: {}", e))?;
         }
 
-        // Wait for any service to exit
-        let exit_result = if let Some(result) = futures.join_next().await {
-            match result {
-                Ok(service_result) => match service_result {
-                    Ok(_) => {
-                        info!("Service exited gracefully, shutting down other components");
-                        self.cancellation_token.cancel();
-                        Ok(())
-                    }
-                    Err(service_error) => {
-                        error!(
-                            "Service exited with error: {:?}, shutting down other components",
-                            service_error
-                        );
-                        self.cancellation_token.cancel();
-                        Err(service_error)
-                    }
-                },
-                Err(join_error) => {
-                    error!(
-                        "Task join error: {:?}, shutting down other components",
-                        join_error
-                    );
-                    self.cancellation_token.cancel();
-                    Err(anyhow!("Task join error: {}", join_error))
-                }
-            }
-        } else {
-            error!("No futures in join set, shutting down");
-            Ok(())
-        };
+        info!("Prover started successfully");
+        Ok(())
+    }
 
-        // Wait for all other components to finish gracefully
-        while let Some(result) = futures.join_next().await {
-            match result {
-                Ok(Ok(_)) => debug!("Component shut down gracefully"),
-                Ok(Err(e)) => warn!("Component shut down with error: {:?}", e),
-                Err(e) => warn!("Component join error during shutdown: {:?}", e),
-            }
-        }
+    pub async fn stop(&self) -> Result<()> {
+        info!("Stopping Prover");
 
-        info!("Prover shutdown complete");
-        exit_result
+        self.task_manager
+            .stop()
+            .await
+            .map_err(|e| anyhow!("Failed to stop prover tasks: {}", e))?;
+
+        self.da.stop().await.map_err(|e| anyhow!("Failed to stop prover DA: {}", e))?;
+
+        info!("Prover stopped successfully");
+        Ok(())
     }
 }
 
@@ -304,42 +300,18 @@ impl PrismApi for Prover {
     type Timer = ProverTokioTimer;
 
     async fn get_account(&self, id: &str) -> Result<AccountResponse, PrismApiError> {
-        let acc_response = match self.sequencer.get_account(id).await? {
-            Found(account, inclusion_proof) => {
-                let hashed_inclusion_proof = inclusion_proof.hashed();
-                AccountResponse {
-                    account: Some(*account),
-                    proof: HashedMerkleProof {
-                        leaf: hashed_inclusion_proof.leaf,
-                        siblings: hashed_inclusion_proof.siblings,
-                    },
-                }
-            }
-            NotFound(non_inclusion_proof) => {
-                let hashed_non_inclusion = non_inclusion_proof.hashed();
-                AccountResponse {
-                    account: None,
-                    proof: HashedMerkleProof {
-                        leaf: hashed_non_inclusion.leaf,
-                        siblings: hashed_non_inclusion.siblings,
-                    },
-                }
-            }
-        };
-        Ok(acc_response)
+        PrismApi::get_account(self.sequencer.as_ref(), id).await
     }
 
     async fn get_commitment(&self) -> Result<CommitmentResponse, PrismApiError> {
-        let commitment = self.sequencer.get_commitment().await?;
-        Ok(CommitmentResponse { commitment })
+        PrismApi::get_commitment(self.sequencer.as_ref()).await
     }
 
     async fn post_transaction(
         &self,
         transaction: Transaction,
     ) -> Result<impl PendingTransaction<Timer = Self::Timer>, PrismApiError> {
-        self.sequencer.validate_and_queue_update(transaction.clone()).await?;
-        Ok(PendingTransactionImpl::new(self, transaction))
+        PrismApi::post_transaction(self.sequencer.as_ref(), transaction).await
     }
 }
 

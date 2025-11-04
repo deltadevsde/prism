@@ -1,85 +1,12 @@
-use prism_errors::DataAvailabilityError;
-use prism_presets::{ApplyPreset, LightClientPreset, PresetError};
-#[cfg(not(target_arch = "wasm32"))]
-use prism_presets::{FullNodePreset, ProverPreset};
-use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
-#[cfg(not(target_arch = "wasm32"))]
-use tracing::error;
 use tracing::info;
 
 #[cfg(not(target_arch = "wasm32"))]
+use crate::{DataAvailabilityLayer, celestia::CelestiaConnection, config::FullNodeDAConfig};
 use crate::{
-    DataAvailabilityLayer,
-    celestia::{CelestiaConnection, CelestiaFullNodeDAConfig, CelestiaLightClientDAStoreConfig},
-    consts::{DA_RETRY_COUNT, DA_RETRY_INTERVAL},
+    LightDataAvailabilityLayer, celestia::LightClientConnection, config::LightClientDAConfig,
+    error::DataAvailabilityError, memory::InMemoryDataAvailabilityLayer,
 };
-use crate::{
-    LightDataAvailabilityLayer,
-    celestia::{CelestiaLightClientDAConfig, LightClientConnection},
-    memory::InMemoryDataAvailabilityLayer,
-};
-
-/// Configuration for the Data Availability layer used by light clients.
-///
-/// Determines which DA backend to use and its connection parameters.
-/// Light client DA is used to read finalized epochs and proofs.
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum LightClientDAConfig {
-    /// Celestia DA configuration with light client support.
-    /// Provides efficient data retrieval through light client protocols
-    /// with configurable pruning and retry policies.
-    Celestia(CelestiaLightClientDAConfig),
-
-    /// In-memory DA layer for testing and development.
-    /// Data is stored locally and not persisted across restarts.
-    /// Should not be used in production environments.
-    #[default]
-    InMemory,
-}
-
-impl LightClientDAConfig {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn use_storage_path(&mut self, path: Option<String>) -> Result<(), PresetError> {
-        let Self::Celestia(celestia_config) = self else {
-            return Err(PresetError::InvalidConfiguration(
-                "No storage path outside of celestia".to_string(),
-            ));
-        };
-
-        match path {
-            Some(path) => {
-                celestia_config.store = CelestiaLightClientDAStoreConfig::Disk { path };
-            }
-            None => {
-                celestia_config.store = CelestiaLightClientDAStoreConfig::InMemory;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl ApplyPreset<LightClientPreset> for LightClientDAConfig {
-    fn apply_preset(&mut self, preset: &LightClientPreset) -> Result<(), PresetError> {
-        match preset {
-            LightClientPreset::Development => {
-                // Nothing to change for DA in development preset
-                Ok(())
-            }
-            LightClientPreset::Specter => {
-                // When applying specter preset, we need to use celestia
-                // If it is not set, apply preset on default celestia config
-                if let Self::Celestia(celestia_config) = self {
-                    celestia_config.apply_specter_preset()
-                } else {
-                    *self = Self::Celestia(CelestiaLightClientDAConfig::new_for_specter()?);
-                    Ok(())
-                }
-            }
-        }
-    }
-}
 
 #[cfg(not(target_arch = "wasm32"))]
 type LightClientDALayerResult =
@@ -111,70 +38,6 @@ pub async fn create_light_client_da_layer(
     }
 }
 
-/// Configuration for the Data Availability layer used by full nodes.
-///
-/// Determines which DA backend to use and its connection parameters.
-/// Full node DA is used to read and write finalized epochs and transactions.
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum FullNodeDAConfig {
-    /// Celestia DA configuration with full node capabilities.
-    /// Provides complete DA functionality including transaction publishing,
-    /// block retrieval, and serving light clients.
-    Celestia(CelestiaFullNodeDAConfig),
-
-    /// In-memory DA layer for testing and development.
-    /// Simulates DA operations locally without network connectivity.
-    /// Should not be used in production environments.
-    #[default]
-    InMemory,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl ApplyPreset<FullNodePreset> for FullNodeDAConfig {
-    fn apply_preset(&mut self, preset: &FullNodePreset) -> Result<(), PresetError> {
-        match preset {
-            FullNodePreset::Specter => {
-                // When applying specter preset, we need to use celestia
-                // If it is not set, apply preset on default celestia config
-                if let Self::Celestia(celestia_config) = self {
-                    celestia_config.apply_specter_preset()
-                } else {
-                    *self = Self::Celestia(CelestiaFullNodeDAConfig::new_for_specter()?);
-                    Ok(())
-                }
-            }
-            FullNodePreset::Development => {
-                *self = Self::InMemory;
-                Ok(())
-            }
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl ApplyPreset<ProverPreset> for FullNodeDAConfig {
-    fn apply_preset(&mut self, preset: &ProverPreset) -> Result<(), PresetError> {
-        match preset {
-            ProverPreset::Specter => {
-                // When applying specter preset, we need to use celestia
-                // If it is not set, apply preset on default celestia config
-                if let Self::Celestia(celestia_config) = self {
-                    celestia_config.apply_specter_preset()
-                } else {
-                    *self = Self::Celestia(CelestiaFullNodeDAConfig::new_for_specter()?);
-                    Ok(())
-                }
-            }
-            ProverPreset::Development => {
-                *self = Self::InMemory;
-                Ok(())
-            }
-        }
-    }
-}
-
 /// Creates a full node data availability layer from the given configuration.
 ///
 /// This function initializes the appropriate DA backend with retry logic for network
@@ -188,28 +51,13 @@ pub async fn create_full_node_da_layer(
     info!("Initializing full node connection...");
     match config {
         FullNodeDAConfig::Celestia(celestia_conf) => {
-            info!("Using celestia config: {:?}", celestia_conf);
-            for attempt in 1..=DA_RETRY_COUNT {
-                match CelestiaConnection::new(celestia_conf, None).await {
-                    Ok(da) => return Ok(Arc::new(da)),
-                    Err(e) => {
-                        if attempt == DA_RETRY_COUNT {
-                            return Err(DataAvailabilityError::NetworkError(format!(
-                                "failed to connect to celestia node after {} attempts: {}",
-                                DA_RETRY_COUNT, e
-                            )));
-                        }
-                        error!(
-                            "Attempt {} to connect to celestia node failed: {}. Retrying in {} seconds...",
-                            attempt,
-                            e,
-                            DA_RETRY_INTERVAL.as_secs()
-                        );
-                        tokio::time::sleep(DA_RETRY_INTERVAL).await;
-                    }
-                }
-            }
-            unreachable!() // This line should never be reached due to the return in the last iteration
+            let da = CelestiaConnection::new(celestia_conf, None).await.map_err(|e| {
+                DataAvailabilityError::InitializationError(format!(
+                    "Failed to create Celestia connection: {}",
+                    e
+                ))
+            })?;
+            Ok(Arc::new(da))
         }
         FullNodeDAConfig::InMemory => {
             let (da_layer, _height_rx, _block_rx) =
@@ -223,7 +71,12 @@ pub async fn create_full_node_da_layer(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use prism_presets::{FullNodePreset, LightClientPreset, ProverPreset};
+    use crate::celestia::{
+        CelestiaFullNodeDAConfig, CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig,
+    };
+    use prism_presets::{
+        ApplyPreset, FullNodePreset, LightClientPreset, PresetError, ProverPreset,
+    };
 
     #[test]
     fn test_light_client_da_config_default() {

@@ -11,6 +11,11 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 - Repository owner: deltadevsde
 - Repository is https://github.com/deltadevsde/prism
 
+## Important
+- ALL instructions within this document MUST BE FOLLOWED, these are not optional unless explicitly stated.
+- DO NOT edit more code than you have to.
+- DO NOT WASTE TOKENS, be succinct and concise.
+
 ## Architecture Overview
 
 ### Core Components
@@ -23,7 +28,9 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 6. **zkVM (`crates/zk/sp1`)**: Defines the zkVM script that gets compiled to a provable ELF.
 7. **Node Types (`crates/node_types`)**: Defines the node types used in Prism, including the prover and light nodes.
 8. **CLI (`crates/cli`)**: Defines the command-line interface for interacting with Prism.
-
+9. **HTTP Client (`crates/client`)**: HTTP client implementation for Prism.
+10. **Serde (`crates/serde`)**: (De)Serialization traits and implementations that can be used in other crates.
+11. **Cross Target (`crates/crosstarget`)**: Defines target agnostic components that can be used in wasm and native environments.
 
 ### Key Design Principles
 
@@ -33,8 +40,6 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 - **Type Safety**: Strong typing throughout with minimal use of dynamic dispatch
 
 ## Development Workflow
-
-### Code Style and Standards
 
 ### Build & Test Commands
 - Build: `just build`
@@ -48,10 +53,9 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 - Follow [Rust Coding Standards](https://doc.rust-lang.org/nightly/style-guide/)
 - Use rustfmt with project settings (merge_imports=true, imports_granularity="Crate", max_width=100)
 - Create separate branches for features/bug fixes
-- Write clear commit messages
 - Include tests for new functionality
-- Error handling: Use Result types with descriptive error messages
-- Naming: follow Rust conventions (snake_case for functions/variables, CamelCase for types)
+- Error handling: Use Result types with descriptive error messages and `?` operator
+- Follow Rust naming conventions (snake_case for functions/variables, CamelCase for types)
 - File organization: Group related functionality in modules
 
 ### Documentation
@@ -71,29 +75,14 @@ Prism is a high-performance key transparency solution written in Rust, creating 
 - Use conventional commits
 - Allowed types are feat, refactor, fix, build, ci, chore, docs, test, release
 - Use canonical crate names as scopes for conventional commits (e.g. lightclient, prover, keys, da, etc..)
+- Use "build" as scope for commits that update dependencies
 - Do not mention AI in the description
-- If updated, always make a separate commit "chore: update zkVM ELF and keys" for keys.json and elf files as last commit
-
-### Performance Considerations
-
-1. **Avoid Allocations in Hot Paths**: Use references and borrowing
-2. **Async/Await**: Use tokio for I/O-bound operations
-2. **Handle Errors Properly**: Use `?` operator and proper error types
-
-### What to Avoid
-
-Based on PR patterns, avoid:
-
-1. **Large, sweeping changes**: Keep PRs focused and reviewable
-2. **Mixing unrelated changes**: One logical change per PR
-3. **Ignoring CI failures**: All checks must pass
-4. **Incomplete implementations**: Finish features before submitting
+- Always make a separate commit "chore: update zkVM ELF and keys" for keys.json and elf files as last commit, if they were updated
 
 ### CI Requirements
 
 Before submitting changes, ensure:
 
 1. **Format Check**: `just check`
-2. **Tests Pass**: All unit tests
+2. **Tests Pass**: All unit tests and doc test
 3. **Documentation**: Update relevant docs and add doc comments
-4. **Commit Messages**: Follow conventional format (feat:, fix:, chore:, etc.)

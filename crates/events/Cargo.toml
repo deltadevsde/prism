@@ -9,10 +9,6 @@ repository.workspace = true
 [dependencies]
 serde = { workspace = true }
 tokio = { workspace = true }
-tracing = { workspace = true }
 web-time = { workspace = true, features = ["serde"] }
 prism-common = { workspace = true }
 lumina-node = { workspace = true }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen-futures = { workspace = true }

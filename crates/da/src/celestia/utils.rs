@@ -1,7 +1,7 @@
-use anyhow::Result;
 use celestia_types::nmt::Namespace;
-use prism_errors::DataAvailabilityError;
 use prism_serde::hex::FromHex;
+
+use crate::error::DataAvailabilityError;
 
 pub fn create_namespace(namespace_hex: &str) -> Result<Namespace, DataAvailabilityError> {
     let decoded_hex = Vec::<u8>::from_hex(namespace_hex).map_err(|e| {

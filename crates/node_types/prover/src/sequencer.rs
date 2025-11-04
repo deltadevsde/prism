@@ -1,20 +1,32 @@
 use anyhow::{Context, Result, bail};
+use async_trait::async_trait;
 use jmt::KeyHash;
 use prism_common::{
-    account::Account, digest::Digest, operation::Operation, transaction::Transaction,
+    account::Account,
+    api::{
+        PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError,
+        types::{AccountResponse as ApiAccountResponse, CommitmentResponse, HashedMerkleProof},
+    },
+    digest::Digest,
+    operation::Operation,
+    transaction::Transaction,
 };
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_keys::SigningKey;
 use prism_storage::Database;
 use prism_tree::{
-    AccountResponse::Found, hasher::TreeHasher, key_directory_tree::KeyDirectoryTree,
-    proofs::Proof, snarkable_tree::SnarkableTree,
+    AccountResponse::{Found, NotFound},
+    hasher::TreeHasher,
+    key_directory_tree::KeyDirectoryTree,
+    proofs::Proof,
+    snarkable_tree::SnarkableTree,
 };
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
+use tracing::{debug, error, info, trace, warn};
 
-use crate::prover_engine::engine::ProverEngine;
+use crate::{api::ProverTokioTimer, prover_engine::engine::ProverEngine};
 
 #[derive(Clone)]
 pub struct Sequencer {
@@ -55,7 +67,7 @@ impl Sequencer {
         })
     }
 
-    pub async fn start(&self, cancellation_token: CancellationToken) -> Result<()> {
+    pub async fn run(&self, cancellation_token: CancellationToken) -> Result<()> {
         if self.batcher_enabled {
             self.run_batch_poster(cancellation_token).await
         } else {
@@ -226,5 +238,49 @@ impl Sequencer {
     pub async fn process_transaction(&self, transaction: Transaction) -> Result<Proof> {
         let mut tree = self.tree.write().await;
         tree.process_transaction(transaction)
+    }
+}
+
+#[async_trait]
+impl PrismApi for Sequencer {
+    type Timer = ProverTokioTimer;
+
+    async fn get_account(&self, id: &str) -> Result<ApiAccountResponse, PrismApiError> {
+        let acc_response = match Self::get_account(self, id).await? {
+            Found(account, inclusion_proof) => {
+                let hashed_inclusion_proof = inclusion_proof.hashed();
+                ApiAccountResponse {
+                    account: Some(*account),
+                    proof: HashedMerkleProof {
+                        leaf: hashed_inclusion_proof.leaf,
+                        siblings: hashed_inclusion_proof.siblings,
+                    },
+                }
+            }
+            NotFound(non_inclusion_proof) => {
+                let hashed_non_inclusion = non_inclusion_proof.hashed();
+                ApiAccountResponse {
+                    account: None,
+                    proof: HashedMerkleProof {
+                        leaf: hashed_non_inclusion.leaf,
+                        siblings: hashed_non_inclusion.siblings,
+                    },
+                }
+            }
+        };
+        Ok(acc_response)
+    }
+
+    async fn get_commitment(&self) -> Result<CommitmentResponse, PrismApiError> {
+        let commitment = Self::get_commitment(self).await?;
+        Ok(CommitmentResponse { commitment })
+    }
+
+    async fn post_transaction(
+        &self,
+        transaction: Transaction,
+    ) -> Result<impl PendingTransaction<Timer = Self::Timer>, PrismApiError> {
+        self.validate_and_queue_update(transaction.clone()).await?;
+        Ok(PendingTransactionImpl::new(self, transaction))
     }
 }

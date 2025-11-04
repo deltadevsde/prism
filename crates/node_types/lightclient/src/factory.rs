@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 #[cfg(not(target_arch = "wasm32"))]
 use std::env;
 use std::{path::PathBuf, result::Result, sync::Arc};
-use tokio_util::sync::CancellationToken;
 
 use crate::LightClient;
 
@@ -77,14 +76,9 @@ pub fn create_light_client(
     #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
     #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
     config: &LightClientConfig,
-    cancellation_token: CancellationToken,
 ) -> anyhow::Result<LightClient> {
     let verifying_key = VerifyingKey::from_spki_pem_path_or_base64(&config.verifying_key_str)?;
-    let mut light_client = LightClient::new(da, verifying_key, cancellation_token);
-
-    if config.allow_mock_proofs {
-        light_client.enable_mock_proof_verification();
-    }
+    let light_client = LightClient::new(da, verifying_key, config.allow_mock_proofs);
     Ok(light_client)
 }
 
@@ -95,7 +89,6 @@ mod tests {
     use prism_da::memory::InMemoryDataAvailabilityLayer;
     use prism_presets::{LightClientPreset, PRESET_SPECTER_PUBLIC_KEY_BASE64};
     use std::sync::Arc;
-    use tokio_util::sync::CancellationToken;
 
     #[test]
     fn test_light_client_config_default() {
@@ -130,9 +123,8 @@ mod tests {
             verifying_key_str: PRESET_SPECTER_PUBLIC_KEY_BASE64.to_string(),
             ..Default::default()
         };
-        let cancellation_token = CancellationToken::new();
 
-        let result = create_light_client(da, &config, cancellation_token);
+        let result = create_light_client(da, &config);
         assert!(result.is_ok());
     }
 
@@ -143,9 +135,8 @@ mod tests {
             verifying_key_str: "invalid_key".to_string(),
             ..Default::default()
         };
-        let cancellation_token = CancellationToken::new();
 
-        let result = create_light_client(da, &config, cancellation_token);
+        let result = create_light_client(da, &config);
         assert!(result.is_err());
     }
 }

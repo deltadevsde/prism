@@ -45,7 +45,7 @@
 //!     let light_client = Arc::new(light_client);
 //!
 //!     // Start the light client (this will run until cancelled)
-//!     let lc_handle = tokio::spawn({
+//!     let lc_handle = spawn({
 //!         let light_client = light_client.clone();
 //!         async move { light_client.run().await }
 //!     });
@@ -69,11 +69,13 @@
 
 #![feature(future_join)]
 
-pub mod lightclient;
-pub use lightclient::LightClient;
 mod factory;
+pub mod lightclient;
+mod syncer;
+
+pub use factory::*;
+pub use lightclient::LightClient;
+pub use syncer::SyncState;
 
 #[cfg(test)]
 mod tests;
-
-pub use factory::*;

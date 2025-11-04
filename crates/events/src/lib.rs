@@ -1,13 +1,9 @@
-use lumina_node::events::{EventSubscriber as LuminaEventSub, NodeEvent};
+use lumina_node::events::NodeEvent;
 use prism_common::digest::Digest;
 use serde::Serialize;
-use std::{fmt, sync::Arc};
-use tokio::sync::{Mutex, broadcast};
-#[cfg(not(target_arch = "wasm32"))]
-use tracing::trace;
+use std::fmt;
+use tokio::sync::broadcast;
 use web_time::SystemTime;
-
-pub mod utils;
 
 const EVENT_CHANNEL_CAPACITY: usize = 1024;
 
@@ -24,6 +20,8 @@ pub enum PrismEvent {
     HistoricalSyncCompleted { height: Option<u64> },
     /// Sent when the DA height is updated to the given height.
     UpdateDAHeight { height: u64 },
+    /// Sent when the connection to the DA layer is lost.
+    DAConnectionLost { error: String },
     /// Sent when the Epoch Verification was successfully verified at given height.
     EpochVerified { height: u64 },
     /// Sent when a [`FinalizedEpoch`] fails validation. Gives the height it failed at and the
@@ -70,6 +68,9 @@ impl fmt::Display for PrismEvent {
             }
             PrismEvent::UpdateDAHeight { height } => {
                 write!(f, "Updated DA height to {}", height)
+            }
+            PrismEvent::DAConnectionLost { error } => {
+                write!(f, "DA connection lost: {}", error)
             }
             PrismEvent::EpochVerified { height } => {
                 write!(f, "Verified epoch {}", height)
@@ -134,42 +135,6 @@ impl EventChannel {
         EventSubscriber {
             rx: self.tx.subscribe(),
         }
-    }
-
-    pub fn start_forwarding(&self, sub: Arc<Mutex<LuminaEventSub>>) {
-        let publisher = self.publisher();
-        utils::spawn_task(async move {
-            loop {
-                let event = {
-                    let mut subscriber = sub.lock().await;
-                    subscriber.recv().await
-                };
-                match event {
-                    Ok(event) => {
-                        if let lumina_node::events::NodeEvent::AddedHeaderFromHeaderSub { height } =
-                            event.event
-                        {
-                            publisher.send(PrismEvent::UpdateDAHeight { height });
-                        } else {
-                            #[cfg(target_arch = "wasm32")]
-                            publisher.send(PrismEvent::LuminaEvent { event: event.event });
-
-                            #[cfg(not(target_arch = "wasm32"))]
-                            trace!("lumina event: {:?}", event);
-                        }
-                    }
-                    Err(_) => break,
-                }
-            }
-        });
-    }
-}
-
-impl From<Arc<Mutex<LuminaEventSub>>> for EventChannel {
-    fn from(sub: Arc<Mutex<LuminaEventSub>>) -> Self {
-        let chan = Self::new();
-        chan.start_forwarding(sub);
-        chan
     }
 }
 
