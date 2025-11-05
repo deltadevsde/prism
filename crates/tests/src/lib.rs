@@ -6,23 +6,16 @@ extern crate log;
 use celestia_rpc::{Client, P2PClient};
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
-    DataAvailabilityLayer, FullNodeDAConfig, LightClientDAConfig, LightDataAvailabilityLayer,
+    FullNodeDAConfig, LightClientDAConfig,
     celestia::{
         CelestiaFullNodeDAConfig, CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig,
         CelestiaNetwork, DEFAULT_PRUNING_WINDOW_IN_MEMORY,
     },
-    create_full_node_da_layer, create_light_client_da_layer,
 };
-use prism_events::EventChannel;
 use prism_keys::{CryptoAlgorithm, SigningKey};
-use prism_lightclient::LightClient;
-use prism_prover::{
-    Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions, WebServerConfig,
-};
-use prism_storage::{
-    Database,
-    rocksdb::{RocksDBConfig, RocksDBConnection},
-};
+use prism_lightclient::{LightClient, LightClientConfig, create_light_client};
+use prism_prover::{Prover, ProverConfig, WebServerConfig, create_prover_as_prover};
+use prism_storage::{DatabaseConfig, rocksdb::RocksDBConfig};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::sync::Arc;
 use tokio::{
@@ -34,13 +27,6 @@ use tokio_util::sync::CancellationToken;
 use tempfile::TempDir;
 
 const BRIDGE_0_ADDR: &str = "ws://localhost:26658";
-
-fn setup_db() -> Arc<Box<dyn Database>> {
-    let temp_dir = TempDir::new().unwrap();
-    let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
-    let db = RocksDBConnection::new(&cfg).unwrap();
-    Arc::new(Box::new(db) as Box<dyn Database>)
-}
 
 async fn get_bootnode(addr: &str) -> String {
     let client = Client::new(addr, None).await.unwrap();
@@ -59,75 +45,56 @@ async fn get_bootnode(addr: &str) -> String {
         .to_string()
 }
 
-async fn setup_da(
-    events: EventChannel,
-) -> (
-    Arc<dyn LightDataAvailabilityLayer + std::marker::Send + std::marker::Sync + 'static>,
-    Arc<dyn DataAvailabilityLayer>,
-) {
-    let bridge_cfg = FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
-        url: "ws://localhost:26658".to_string(),
-        ..CelestiaFullNodeDAConfig::default()
-    });
+async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>) {
+    let temp_dir = TempDir::new().expect("Creating a temporary test directory is successful");
+    let db_path = temp_dir.path().join("db");
 
-    let bootnode = get_bootnode(BRIDGE_0_ADDR).await;
+    let prover_key_path = temp_dir.path().join("prover.p8");
+    let prover_key = SigningKey::new_ed25519();
+    prover_key.to_pkcs8_pem_file(&prover_key_path).expect("Creating prover key file is successful");
 
-    let lc_cfg = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
-        celestia_network: CelestiaNetwork::Custom("private".parse().unwrap()),
-        bootnodes: vec![bootnode],
-        pruning_window: DEFAULT_PRUNING_WINDOW_IN_MEMORY,
-        store: CelestiaLightClientDAStoreConfig::InMemory,
-        ..CelestiaLightClientDAConfig::default()
-    });
+    let prover_pubkey = prover_key.verifying_key();
+    let prover_pubkey_path = temp_dir.path().join("prover.spki");
+    prover_pubkey
+        .to_spki_pem_file(&prover_pubkey_path)
+        .expect("Creating prover public key file is successful");
 
-    let bridge_da_layer = create_full_node_da_layer(&bridge_cfg, events.clone()).await.unwrap();
-    let lc_da_layer = create_light_client_da_layer(&lc_cfg, events).await.unwrap();
-
-    (lc_da_layer, bridge_da_layer)
-}
-
-async fn setup_nodes() -> (
-    (Arc<Prover>, Arc<dyn DataAvailabilityLayer>),
-    (
-        Arc<LightClient>,
-        Arc<dyn LightDataAvailabilityLayer + Send + Sync + 'static>,
-    ),
-    EventChannel,
-) {
-    // TODO: 1 event channel per node?
-    let events = EventChannel::new();
-
-    let db = setup_db();
-    let (lc_da, fn_da) = setup_da(events.clone()).await;
-
-    let prover_algorithm = CryptoAlgorithm::Ed25519;
-
-    let signing_key = SigningKey::new_with_algorithm(prover_algorithm).unwrap();
-    let pubkey = signing_key.verifying_key();
-
-    let prover_cfg = ProverOptions {
-        syncer: SyncerOptions {
-            verifying_key: pubkey.clone(),
-            start_height: 1,
-            max_epochless_gap: 300,
-            prover_enabled: true,
-        },
-        sequencer: SequencerOptions {
-            signing_key: Some(signing_key),
-            batcher_enabled: true,
-        },
-        prover_engine: ProverEngineOptions {
-            recursive_proofs: false,
-        },
+    // Create prover
+    let prover_cfg = ProverConfig {
+        db: DatabaseConfig::RocksDB(RocksDBConfig::new(db_path.to_str().unwrap())),
+        da: FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
+            url: "ws://localhost:26658".to_string(),
+            ..CelestiaFullNodeDAConfig::default()
+        }),
+        signing_key_path: prover_key_path.to_str().unwrap().to_string(),
+        start_height: 1,
+        max_epochless_gap: 300,
+        recursive_proofs: false,
         webserver: WebServerConfig::default(),
     };
 
     let prover =
-        Arc::new(Prover::new(db.clone(), fn_da.clone(), events.clone(), &prover_cfg).unwrap());
+        create_prover_as_prover(&prover_cfg).await.expect("Creating prover should be successful");
 
-    let lightclient = LightClient::new(lc_da.clone(), events.clone(), pubkey, true);
+    // Create light client
+    let bootnode = get_bootnode(BRIDGE_0_ADDR).await;
 
-    ((prover, fn_da), (Arc::new(lightclient), lc_da), events)
+    let lc_cfg = LightClientConfig {
+        da: LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+            celestia_network: CelestiaNetwork::Custom("private".parse().unwrap()),
+            bootnodes: vec![bootnode],
+            pruning_window: DEFAULT_PRUNING_WINDOW_IN_MEMORY,
+            store: CelestiaLightClientDAStoreConfig::InMemory,
+            ..CelestiaLightClientDAConfig::default()
+        }),
+        verifying_key_str: prover_pubkey_path.to_str().unwrap().to_string(),
+        allow_mock_proofs: true,
+    };
+
+    let lightclient =
+        create_light_client(&lc_cfg).await.expect("Creating light client should be successful");
+
+    (Arc::new(prover), Arc::new(lightclient))
 }
 
 #[tokio::test]
@@ -147,10 +114,10 @@ async fn test_light_client_prover_talking() {
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
-    let ((prover, _prover_da), (lightclient, _lc_da), events) = setup_nodes().await;
+    let (prover, lightclient) = setup_nodes().await;
 
     // Start nodes
-    prover.start().await.expect("Starting prover should work");
+    let mut event_sub = prover.start_subscribed().await.expect("Starting prover should work");
     lightclient.start().await.expect("Starting lightclient should work");
 
     // Start Transaction generation
@@ -166,7 +133,6 @@ async fn test_light_client_prover_talking() {
     }
 
     // Grab the latest DA height after subscribing
-    let mut event_sub = events.subscribe();
     let initial_height = loop {
         let event_info = event_sub.recv().await.unwrap();
         if let prism_events::PrismEvent::UpdateDAHeight { height } = event_info.event {
