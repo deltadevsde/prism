@@ -17,7 +17,7 @@
 //! ### Basic Setup
 //!
 //! ```rust,no_run
-//! use prism_telemetry::{create_telemetry, TelemetryInstance};
+//! use prism_telemetry_registry::{TelemetryInstance, create_telemetry};
 //! use prism_telemetry::config::TelemetryConfig;
 //!
 //! #[tokio::main]

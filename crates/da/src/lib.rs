@@ -36,12 +36,15 @@
 //!
 //! ```rust
 //! use prism_da::{LightClientDAConfig, create_light_client_da_layer};
+//! use prism_events::{EventChannel};
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
 //!     // In-memory for development
 //!     let config = LightClientDAConfig::InMemory;
-//!     let da = create_light_client_da_layer(&config).await?;
+//!     let event_channel = EventChannel::new();
+//!
+//!     let da = create_light_client_da_layer(&config, event_channel.clone()).await?;
 //!     da.start().await?;
 //!
 //!     let epochs = da.get_finalized_epochs(100).await?;
@@ -61,6 +64,7 @@
 //!     FullNodeDAConfig, create_full_node_da_layer,
 //!     celestia::{CelestiaFullNodeDAConfig, CelestiaNetwork}
 //! };
+//! use prism_events::{EventChannel, PrismEvent};
 //! use std::time::Duration;
 //!
 //! #[tokio::main]
@@ -73,7 +77,8 @@
 //!         fetch_timeout: Duration::from_secs(90),
 //!         fetch_max_retries: 3,
 //!     });
-//!     let da = create_full_node_da_layer(&config).await?;
+//!     let event_channel = EventChannel::new();
+//!     let da = create_full_node_da_layer(&config, event_channel.clone()).await?;
 //!     da.start().await?;
 //!
 //!     let transactions = vec![/* your transactions */];

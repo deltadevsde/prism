@@ -48,16 +48,10 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
-//!     // Initialize storage
-//!     let db_config = DatabaseConfig::InMemory;
-//!     let db = create_storage(&db_config).await?;
-//!
-//!     // Initialize DA layer
-//!     let da_config = FullNodeDAConfig::InMemory;
-//!     let da = create_full_node_da_layer(&da_config).await?;
-//!
 //!     // Configure the prover
 //!     let prover_config = ProverConfig {
+//!         da: FullNodeDAConfig::InMemory,
+//!         db: DatabaseConfig::InMemory,
 //!         signing_key_path: "/secure/keys/prover.p8".to_string(),
 //!         start_height: 1,
 //!         max_epochless_gap: 1000,        // Less frequent proofs
@@ -70,28 +64,14 @@
 //!     };
 //!
 //!     // Create and start the prover
-//!     let cancellation_token = CancellationToken::new();
-//!     let prover = create_prover_as_prover(
-//!         &prover_config,
-//!         db,
-//!         da,
-//!         cancellation_token.clone()
-//!     )?;
-//!
-//!     let prover = Arc::new(prover);
-//!
-//!     // Start the prover (this runs until cancelled)
-//!     let prover_handle = tokio::spawn({
-//!         let prover = prover.clone();
-//!         async move { prover.run().await }
-//!     });
+//!     let prover = create_prover_as_prover(&prover_config).await?;
+//!     prover.start().await?;
 //!
 //!     // Prover is now running and accepting transactions...
 //!     println!("Prover started on port {}", prover_config.webserver.port);
 //!
 //!     // Graceful shutdown
-//!     cancellation_token.cancel();
-//!     prover_handle.await??;
+//!     prover.stop().await?;
 //!
 //!     Ok(())
 //! }
@@ -100,32 +80,31 @@
 //! ### Running a Full Node (Non-Proving)
 //!
 //! ```rust,no_run
-//! use prism_prover::{FullNodeConfig, create_prover_as_full_node};
-//! use prism_storage::{DatabaseConfig, create_storage};
-//! use prism_da::{FullNodeDAConfig, create_full_node_da_layer};
-//! use tokio_util::sync::CancellationToken;
-//! use std::sync::Arc;
+//! use prism_prover::{FullNodeConfig, WebServerConfig, create_prover_as_full_node};
+//! use prism_storage::DatabaseConfig;
+//! use prism_da::FullNodeDAConfig;
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
-//!     let db = create_storage(&DatabaseConfig::InMemory).await?;
-//!     let da = create_full_node_da_layer(&FullNodeDAConfig::InMemory).await?;
+//!     let config = FullNodeConfig {
+//!         da: FullNodeDAConfig::InMemory,
+//!         db: DatabaseConfig::InMemory,
+//!         start_height: 1,
+//!         verifying_key_str: "der_base64_encoded_verifying_key_or_path_here".to_string(),
+//!         webserver: WebServerConfig {
+//!             enabled: true,
+//!             host: "0.0.0.0".to_string(), // Bind to all interfaces
+//!             port: 41998,
+//!         },
+//!     };
 //!
-//!     let config = FullNodeConfig::default();
-//!     let cancellation_token = CancellationToken::new();
-//!
-//!     let full_node = create_prover_as_full_node(&config, db, da, cancellation_token)?;
-//!     let full_node = Arc::new(full_node);
-//!
-//!     // Full node validates state but doesn't generate proofs
-//!     let handle = tokio::spawn({
-//!         let full_node = full_node.clone();
-//!         async move { full_node.run().await }
-//!     });
+//!     // Create and start a full node
+//!     let full_node = create_prover_as_full_node(&config).await?;
+//!     full_node.start().await?;
 //!
 //!     println!("Full node started on port {}", config.webserver.port);
 //!
-//!     handle.await??;
+//!     full_node.stop().await?;
 //!     Ok(())
 //! }
 //! ```
