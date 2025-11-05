@@ -8,6 +8,7 @@ use prism_telemetry_registry::metrics_registry::get_metrics;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
+use tracing::{debug, info, trace};
 
 use crate::{prover_engine::engine::ProverEngine, sequencer::Sequencer, tx_buffer::TxBuffer};
 
