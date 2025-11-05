@@ -314,6 +314,10 @@ impl Prover {
         info!("Prover stopped successfully");
         Ok(())
     }
+
+    pub fn event_channel(&self) -> EventChannel {
+        self.event_channel.clone()
+    }
 }
 
 #[async_trait]
