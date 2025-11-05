@@ -137,12 +137,20 @@ async fn handle_events(mut sub: EventSubscriber) {
                 info!("Process terminated, initiating graceful shutdown");
                 break;
             },
-            Ok(event_info) = sub.recv() => {
-                if event_info.is_error() {
-                    error!("Error event received: {}", event_info.event);
-                    break;
+            event_info_res = sub.recv() => {
+                match event_info_res {
+                    Ok(event_info) => {
+                        if event_info.is_error() {
+                            error!("Error event received: {}", event_info.event);
+                            break;
+                        }
+                     info!("{}", event_info.event);
+                    },
+                    Err(e) => {
+                        error!("Event receiver aborted, initiating graceful shutdown: {}", e);
+                        break;
+                    },
                 }
-                info!("{}", event_info.event);
             }
         }
     }
