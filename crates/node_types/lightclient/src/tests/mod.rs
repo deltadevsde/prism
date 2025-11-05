@@ -339,7 +339,9 @@ async fn test_incoming_epoch_during_backwards_sync() {
         tokio::time::sleep(Duration::from_millis(10)).await;
 
         publisher.send(PrismEvent::UpdateDAHeight { height: 5100 });
-        wait_for_event(&mut chan.subscribe(), |event| {
+
+        let mut wait_sub = chan.subscribe();
+        wait_for_event(&mut wait_sub, |event| {
             matches!(event, PrismEvent::HistoricalSyncStarted { height: 5100 })
         })
         .await;
