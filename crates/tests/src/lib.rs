@@ -45,7 +45,7 @@ async fn get_bootnode(addr: &str) -> String {
         .to_string()
 }
 
-async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>) {
+async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, TempDir) {
     let temp_dir = TempDir::new().expect("Creating a temporary test directory is successful");
     let db_path = temp_dir.path().join("db");
 
@@ -94,7 +94,7 @@ async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>) {
     let lightclient =
         create_light_client(&lc_cfg).await.expect("Creating light client should be successful");
 
-    (Arc::new(prover), Arc::new(lightclient))
+    (Arc::new(prover), Arc::new(lightclient), temp_dir)
 }
 
 #[tokio::test]
@@ -114,7 +114,7 @@ async fn test_light_client_prover_talking() {
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
-    let (prover, lightclient) = setup_nodes().await;
+    let (prover, lightclient, _temp_dir) = setup_nodes().await;
 
     // Start nodes
     let mut event_sub = prover.start_subscribed().await.expect("Starting prover should work");
