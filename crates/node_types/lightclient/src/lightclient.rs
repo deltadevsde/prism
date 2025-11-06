@@ -1,10 +1,9 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
-use prism_cross_target::tasks::TaskManager;
+use prism_cross_target::{error, info, tasks::TaskManager};
 use prism_da::{LightDataAvailabilityLayer, VerificationKeys};
 use prism_keys::VerifyingKey;
 use std::{self, sync::Arc};
-use tracing::{error, info};
 
 use crate::syncer::{SyncState, Syncer};
 
