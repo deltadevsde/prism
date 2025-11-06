@@ -4,7 +4,7 @@ use std::{
 };
 use thiserror::Error;
 
-use crate::{token::Token, tracing::warn};
+use crate::{token::Token, warn};
 
 /// Naive `JoinHandle` as the least common denominator for all targets.
 pub struct JoinHandle(Token);
@@ -150,7 +150,7 @@ impl TaskManager {
 
             match inner.state {
                 State::Idle => {
-                    warn("stop called, but tasks were already stopped");
+                    warn!("stop called, but tasks were already stopped");
                     return Ok(());
                 }
                 State::Running => {
