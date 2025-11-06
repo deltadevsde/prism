@@ -6,7 +6,6 @@ use lumina_node::{Node, NodeBuilder};
 use prism_events::{EventChannel, EventPublisher, PrismEvent};
 use std::{self, str::FromStr, sync::Arc, time::Duration};
 use tokio::sync::{Mutex, RwLock};
-use tracing::{trace, warn};
 
 #[cfg(target_arch = "wasm32")]
 use lumina_node::{blockstore::IndexedDbBlockstore, store::IndexedDbStore};
@@ -34,7 +33,7 @@ use crate::{
     },
     error::DataAvailabilityError,
 };
-use prism_cross_target::{tasks::TaskManager, token::Token};
+use prism_cross_target::{tasks::TaskManager, token::Token, trace, warn};
 
 #[cfg(target_arch = "wasm32")]
 pub type LuminaNode = Node<IndexedDbBlockstore, IndexedDbStore>;

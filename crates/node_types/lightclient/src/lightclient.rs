@@ -1,6 +1,6 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
-use prism_cross_target::{error, info, warn, tasks::TaskManager};
+use prism_cross_target::{error, info, tasks::TaskManager, warn};
 use prism_da::{LightDataAvailabilityLayer, VerificationKeys};
 use prism_events::{EventChannel, EventSubscriber, PrismEvent};
 use prism_keys::VerifyingKey;
