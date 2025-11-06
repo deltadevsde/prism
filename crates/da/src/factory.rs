@@ -29,7 +29,7 @@ pub async fn create_light_client_da_layer(
     match config {
         LightClientDAConfig::Celestia(celestia_config) => {
             info!("Using celestia config: {:?}", celestia_config);
-            let connection = LightClientConnection::new(celestia_config).await?;
+            let connection = LightClientConnection::new(celestia_config, event_channel).await?;
             Ok(Arc::new(connection))
         }
         LightClientDAConfig::InMemory => {
@@ -54,12 +54,13 @@ pub async fn create_full_node_da_layer(
     info!("Initializing full node connection...");
     match config {
         FullNodeDAConfig::Celestia(celestia_conf) => {
-            let da = CelestiaConnection::new(celestia_conf, None).await.map_err(|e| {
-                DataAvailabilityError::InitializationError(format!(
-                    "Failed to create Celestia connection: {}",
-                    e
-                ))
-            })?;
+            let da =
+                CelestiaConnection::new(celestia_conf, None, event_channel).await.map_err(|e| {
+                    DataAvailabilityError::InitializationError(format!(
+                        "Failed to create Celestia connection: {}",
+                        e
+                    ))
+                })?;
             Ok(Arc::new(da))
         }
         FullNodeDAConfig::InMemory => {

@@ -252,7 +252,7 @@ impl CelestiaLightClientDAConfig {
 
 pub struct LightClientConnection {
     node: Arc<RwLock<Option<LuminaNode>>>,
-    event_channel: Arc<EventChannel>,
+    event_channel: EventChannel,
     snark_namespace: Namespace,
     fetch_timeout: Duration,
     fetch_max_retries: u64,
@@ -356,10 +356,13 @@ impl LightClientConnection {
         Ok((blockstore, store))
     }
 
-    pub async fn new(config: &CelestiaLightClientDAConfig) -> Result<Self, DataAvailabilityError> {
+    pub async fn new(
+        config: &CelestiaLightClientDAConfig,
+        event_channel: EventChannel,
+    ) -> Result<Self, DataAvailabilityError> {
         Ok(Self {
             node: Arc::new(RwLock::new(None)),
-            event_channel: Arc::new(EventChannel::new()),
+            event_channel,
             snark_namespace: create_namespace(&config.snark_namespace_id)?,
             fetch_timeout: config.fetch_timeout,
             fetch_max_retries: config.fetch_max_retries,
