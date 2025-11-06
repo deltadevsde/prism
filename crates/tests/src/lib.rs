@@ -63,7 +63,7 @@ async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, TempDir) {
     let prover_cfg = ProverConfig {
         db: DatabaseConfig::RocksDB(RocksDBConfig::new(db_path.to_str().unwrap())),
         da: FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
-            url: "ws://localhost:26658".to_string(),
+            url: BRIDGE_0_ADDR.to_string(),
             ..CelestiaFullNodeDAConfig::default()
         }),
         signing_key_path: prover_key_path.to_str().unwrap().to_string(),
