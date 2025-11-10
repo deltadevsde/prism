@@ -11,9 +11,10 @@ use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::inmemory::InMemoryDatabase;
 use prism_tree::proofs::{Batch, Proof};
 use std::{self, sync::Arc, time::Duration};
-
 fn init_logger() {
     pretty_env_logger::formatted_builder()
+        .default_format()
+        .format_timestamp_millis()
         .filter_level(log::LevelFilter::Debug)
         .filter_module("tracing", log::LevelFilter::Off)
         .filter_module("sp1_stark", log::LevelFilter::Info)
@@ -597,6 +598,41 @@ macro_rules! generate_algorithm_tests {
             }
         }
     };
+}
+
+#[tokio::test]
+async fn test_event_channel_receives_operation_errors() {
+    init_logger();
+    let (prover, da_layer, events) = create_test_prover(CryptoAlgorithm::Ed25519).await;
+
+    let mut event_sub = prover.start_subscribed().await.expect("Prover should start");
+
+    event_sub
+        .wait_for_event(|e| matches!(e, PrismEvent::Ready), Duration::from_secs(2))
+        .await
+        .expect("Prover will be ready");
+
+    // Simulate error condition
+    info!("Prover ready to sync - simulating DA shutdown now");
+    da_layer.stop().await.expect("Data Availability Layer can be stopped");
+
+    let transaction = TestTransactionBuilder::new()
+        .register_service_with_random_keys(CryptoAlgorithm::Ed25519, "test_service")
+        .commit();
+
+    prover.validate_and_queue_update(transaction).await.expect("Queueing transaction should work");
+    events.publisher().send(PrismEvent::UpdateDAHeight { height: 1000 });
+
+    // Wait for operation error event
+    event_sub
+        .wait_for_event(
+            |e| matches!(e, PrismEvent::OperationError { .. }),
+            Duration::from_secs(2),
+        )
+        .await
+        .expect("Prover will be ready");
+
+    prover.stop().await.expect("Prover can be stopped");
 }
 
 generate_algorithm_tests!(test_validate_and_queue_update);
