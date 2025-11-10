@@ -13,7 +13,7 @@ use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::Database;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     api::ProverTokioTimer,
@@ -250,11 +250,15 @@ impl Prover {
 
         info!("Starting Prover");
 
+        debug!("Starting DA layer");
         self.da.start().await.map_err(|e| anyhow!("Failed to start prover DA: {}", e))?;
+
+        let event_sub = self.event_channel.subscribe();
+        let event_pub = self.event_channel.publisher();
+        event_pub.send(PrismEvent::Ready);
 
         // Start Syncer (includes DA startup and main sync loop)
         let syncer = self.syncer.clone();
-        let event_pub = self.event_channel.publisher();
         self.task_manager
             .spawn(|token| async move {
                 if let Err(e) = syncer.run(token.clone().into()).await {
@@ -297,7 +301,6 @@ impl Prover {
         }
 
         info!("Prover started successfully");
-        let event_sub = self.event_channel.subscribe();
         Ok(event_sub)
     }
 
