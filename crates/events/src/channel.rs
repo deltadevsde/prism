@@ -1,3 +1,5 @@
+#[cfg(any(test, feature = "testing"))]
+use prism_cross_target::time::Interval;
 use tokio::sync::broadcast;
 use web_time::SystemTime;
 
@@ -53,13 +55,58 @@ impl EventPublisher {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum EventSubscriberError {
+    #[error("Channel lagged: {0} messages were skipped")]
+    Lagged(u64),
+    #[error("Channel closed")]
+    Closed,
+    #[error("Operation timed out")]
+    Timeout,
+}
+
+impl From<broadcast::error::RecvError> for EventSubscriberError {
+    fn from(err: broadcast::error::RecvError) -> Self {
+        match err {
+            broadcast::error::RecvError::Lagged(n) => Self::Lagged(n),
+            broadcast::error::RecvError::Closed => Self::Closed,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct EventSubscriber {
     rx: broadcast::Receiver<EventInfo>,
 }
 
 impl EventSubscriber {
-    pub async fn recv(&mut self) -> Result<EventInfo, broadcast::error::RecvError> {
-        self.rx.recv().await
+    pub async fn recv(&mut self) -> Result<EventInfo, EventSubscriberError> {
+        Ok(self.rx.recv().await?)
+    }
+
+    #[cfg(any(test, feature = "testing"))]
+    pub async fn wait_for_event<F>(
+        &mut self,
+        predicate: F,
+        timeout: std::time::Duration,
+    ) -> Result<(), EventSubscriberError>
+    where
+        F: Fn(&PrismEvent) -> bool,
+    {
+        let mut interval = Interval::new(timeout).await;
+
+        loop {
+            tokio::select! {
+                result = self.recv() => {
+                    let event_info = result?;
+                    if predicate(&event_info.event) {
+                        return Ok(());
+                    }
+                }
+                _ = interval.tick() => {
+                    return Err(EventSubscriberError::Timeout);
+                }
+            }
+        }
     }
 }

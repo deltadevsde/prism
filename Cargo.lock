@@ -7403,7 +7403,9 @@ name = "prism-events"
 version = "0.1.0"
 dependencies = [
  "lumina-node",
+ "prism-cross-target",
  "serde",
+ "thiserror 2.0.12",
  "tokio",
  "web-time",
 ]

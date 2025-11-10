@@ -6,11 +6,16 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
+[features]
+testing = []
+
 [dependencies]
 serde = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
 web-time = { workspace = true, features = ["serde"] }
 lumina-node = { workspace = true }
+prism-cross-target = { workspace = true, features = ["time"] }
 
 [lints]
 workspace = true
