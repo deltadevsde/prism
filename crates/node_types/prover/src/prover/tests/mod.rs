@@ -3,9 +3,10 @@ use crate::prover_engine::engine::MockProverEngine;
 use super::*;
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
-    DataAvailabilityLayer, SuccinctProof, VerifiableEpoch, memory::InMemoryDataAvailabilityLayer,
+    DataAvailabilityLayer, LightDataAvailabilityLayer, SuccinctProof, VerifiableEpoch,
+    memory::InMemoryDataAvailabilityLayer,
 };
-use prism_events::PrismEvent;
+use prism_events::{EventInfo, PrismEvent};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};
 use prism_storage::inmemory::InMemoryDatabase;
 use prism_tree::proofs::{Batch, Proof};
@@ -33,8 +34,7 @@ async fn create_test_prover(
     algorithm: CryptoAlgorithm,
 ) -> (Arc<Prover>, Arc<dyn DataAvailabilityLayer>, EventChannel) {
     let events = EventChannel::new();
-    let (da_layer, _rx, _brx) =
-        InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
+    let da_layer = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
     let da_layer: Arc<dyn DataAvailabilityLayer> = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let mut opts = ProverOptions::default_with_key_algorithm(algorithm).unwrap();
@@ -292,6 +292,8 @@ async fn test_execute_block() {
 async fn test_finalize_new_epoch() {
     init_logger();
     let (prover, _da, _events) = create_test_prover(CryptoAlgorithm::Ed25519).await;
+    prover.start().await.expect("Prover starts successfully");
+
     let transactions = create_mock_transactions("test_service".to_string());
 
     let prev_commitment = prover.get_commitment().await.unwrap();
@@ -305,8 +307,7 @@ async fn test_finalize_new_epoch() {
 async fn test_restart_sync_from_scratch() {
     init_logger();
     let events = EventChannel::new();
-    let (da_layer, _rx, mut brx) =
-        InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
+    let da_layer = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
     let da_layer = Arc::new(da_layer);
     let db1: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let db2: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
@@ -321,14 +322,20 @@ async fn test_restart_sync_from_scratch() {
         &opts,
     )
     .unwrap();
-    prover.start().await.expect("Prover can be started");
+    let mut event_sub = prover.start_subscribed().await.expect("Prover can be started");
 
     let transactions = create_mock_transactions("test_service".to_string());
 
     for transaction in transactions {
         prover.validate_and_queue_update(transaction).await.unwrap();
-        while let Ok(new_block) = brx.recv().await {
-            if !new_block.epochs.is_empty() {
+        while let Ok(event_info) = event_sub.recv().await {
+            if let EventInfo {
+                event: PrismEvent::UpdateDAHeight { height },
+                ..
+            } = event_info
+                && let Ok(epochs) = da_layer.get_finalized_epochs(height).await
+                && !epochs.is_empty()
+            {
                 break;
             }
         }
@@ -373,7 +380,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     init_logger();
     // Setup shared DA layer
     let events = EventChannel::new();
-    let (da_layer, _rx, mut brx) = InMemoryDataAvailabilityLayer::new_with_epoch_delay(
+    let da_layer = InMemoryDataAvailabilityLayer::new_with_epoch_delay(
         Duration::from_millis(50),
         Duration::from_millis(250),
         events.clone(),
@@ -414,7 +421,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     .unwrap();
 
     // Start both nodes
-    prover.start().await.expect("Prover can be started");
+    let mut prover_event_sub = prover.start_subscribed().await.expect("Prover can be started");
     fullnode.start().await.expect("Fullnode can be started");
 
     // Wait for both nodes to boot up
@@ -469,8 +476,14 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
     // Wait for the prover to create and publish an epoch (this should happen with the racing
     // transactions buffered)
     let mut epoch_found = false;
-    while let Ok(new_block) = brx.recv().await {
-        if !new_block.epochs.is_empty() {
+    while let Ok(event_info) = prover_event_sub.recv().await {
+        if let EventInfo {
+            event: PrismEvent::UpdateDAHeight { height },
+            ..
+        } = event_info
+            && let Ok(epochs) = da_layer.get_finalized_epochs(height).await
+            && !epochs.is_empty()
+        {
             epoch_found = true;
             break;
         }
@@ -508,8 +521,7 @@ async fn test_prover_fullnode_commitment_sync_with_racing_transactions() {
 async fn test_load_persisted_state() {
     init_logger();
     let events = EventChannel::new();
-    let (da_layer, _rx, mut brx) =
-        InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
+    let da_layer = InMemoryDataAvailabilityLayer::new(Duration::from_millis(50), events.clone());
     let da_layer = Arc::new(da_layer);
     let db: Arc<Box<dyn Database>> = Arc::new(Box::new(InMemoryDatabase::new()));
     let engine = create_mock_engine().await;
@@ -523,14 +535,20 @@ async fn test_load_persisted_state() {
         &opts,
     )
     .unwrap();
-    prover.start().await.expect("Prover can be started");
+    let mut event_sub = prover.start_subscribed().await.expect("Prover can be started");
 
     let transactions = create_mock_transactions("test_service".to_string());
 
     for transaction in transactions {
         prover.validate_and_queue_update(transaction).await.unwrap();
-        while let Ok(new_block) = brx.recv().await {
-            if !new_block.epochs.is_empty() {
+        while let Ok(event_info) = event_sub.recv().await {
+            if let EventInfo {
+                event: PrismEvent::UpdateDAHeight { height },
+                ..
+            } = event_info
+                && let Ok(epochs) = da_layer.get_finalized_epochs(height).await
+                && !epochs.is_empty()
+            {
                 break;
             }
         }

@@ -33,7 +33,7 @@ pub async fn create_light_client_da_layer(
             Ok(Arc::new(connection))
         }
         LightClientDAConfig::InMemory => {
-            let (da_layer, _height_rx, _block_rx) =
+            let da_layer =
                 InMemoryDataAvailabilityLayer::new(Duration::from_secs(10), event_channel);
             Ok(Arc::new(da_layer))
         }
@@ -64,7 +64,7 @@ pub async fn create_full_node_da_layer(
             Ok(Arc::new(da))
         }
         FullNodeDAConfig::InMemory => {
-            let (da_layer, _height_rx, _block_rx) =
+            let da_layer =
                 InMemoryDataAvailabilityLayer::new(Duration::from_secs(10), event_channel);
             Ok(Arc::new(da_layer))
         }

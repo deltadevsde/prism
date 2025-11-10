@@ -11,7 +11,7 @@ use prism_cross_target::tasks::TaskManager;
 use prism_events::{EventChannel, PrismEvent};
 use std::sync::Arc;
 use tokio::{
-    sync::{RwLock, broadcast},
+    sync::RwLock,
     time::{Duration, interval},
 };
 use tracing::debug;
@@ -30,8 +30,6 @@ pub struct InMemoryDataAvailabilityLayer {
     pending_transactions: Arc<RwLock<Vec<Transaction>>>,
     pending_epochs: Arc<RwLock<Vec<FinalizedEpoch>>>,
     latest_height: Arc<RwLock<u64>>,
-    height_update_tx: broadcast::Sender<u64>,
-    block_update_tx: broadcast::Sender<Block>,
     block_time: Duration,
     event_channel: EventChannel,
 
@@ -45,58 +43,39 @@ pub struct InMemoryDataAvailabilityLayer {
 
 impl Default for InMemoryDataAvailabilityLayer {
     fn default() -> Self {
-        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME, EventChannel::new()).0
+        Self::new(IN_MEMORY_DEFAULT_BLOCK_TIME, EventChannel::new())
     }
 }
 
 impl InMemoryDataAvailabilityLayer {
-    pub fn new(
-        block_time: Duration,
-        event_channel: EventChannel,
-    ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
-        let (height_tx, height_rx) = broadcast::channel(100);
-        let (block_tx, block_rx) = broadcast::channel(100);
-        (
-            Self {
-                blocks: Arc::new(RwLock::new(Vec::new())),
-                pending_transactions: Arc::new(RwLock::new(Vec::new())),
-                pending_epochs: Arc::new(RwLock::new(Vec::new())),
-                latest_height: Arc::new(RwLock::new(0)),
-                height_update_tx: height_tx,
-                block_update_tx: block_tx,
-                block_time,
-                event_channel,
-                epoch_posting_delay: None,
-                task_manager: TaskManager::new(),
-            },
-            height_rx,
-            block_rx,
-        )
+    pub fn new(block_time: Duration, event_channel: EventChannel) -> Self {
+        Self {
+            blocks: Arc::new(RwLock::new(Vec::new())),
+            pending_transactions: Arc::new(RwLock::new(Vec::new())),
+            pending_epochs: Arc::new(RwLock::new(Vec::new())),
+            latest_height: Arc::new(RwLock::new(0)),
+            block_time,
+            event_channel,
+            epoch_posting_delay: None,
+            task_manager: TaskManager::new(),
+        }
     }
 
     pub fn new_with_epoch_delay(
         block_time: Duration,
         epoch_delay: Duration,
         event_channel: EventChannel,
-    ) -> (Self, broadcast::Receiver<u64>, broadcast::Receiver<Block>) {
-        let (height_tx, height_rx) = broadcast::channel(100);
-        let (block_tx, block_rx) = broadcast::channel(100);
-        (
-            Self {
-                blocks: Arc::new(RwLock::new(Vec::new())),
-                pending_transactions: Arc::new(RwLock::new(Vec::new())),
-                pending_epochs: Arc::new(RwLock::new(Vec::new())),
-                latest_height: Arc::new(RwLock::new(0)),
-                height_update_tx: height_tx,
-                block_update_tx: block_tx,
-                block_time,
-                event_channel,
-                epoch_posting_delay: Some(epoch_delay),
-                task_manager: TaskManager::new(),
-            },
-            height_rx,
-            block_rx,
-        )
+    ) -> Self {
+        Self {
+            blocks: Arc::new(RwLock::new(Vec::new())),
+            pending_transactions: Arc::new(RwLock::new(Vec::new())),
+            pending_epochs: Arc::new(RwLock::new(Vec::new())),
+            latest_height: Arc::new(RwLock::new(0)),
+            block_time,
+            event_channel,
+            epoch_posting_delay: Some(epoch_delay),
+            task_manager: TaskManager::new(),
+        }
     }
 
     fn produce_blocks(&self) -> Result<(), DataAvailabilityError> {
@@ -104,8 +83,6 @@ impl InMemoryDataAvailabilityLayer {
         let pending_transactions = self.pending_transactions.clone();
         let pending_epochs = self.pending_epochs.clone();
         let latest_height = self.latest_height.clone();
-        let height_update_tx = self.height_update_tx.clone();
-        let block_update_tx = self.block_update_tx.clone();
         let event_publisher = self.event_channel.publisher();
         let block_time = self.block_time;
 
@@ -137,10 +114,6 @@ impl InMemoryDataAvailabilityLayer {
                             );
                             blocks.push(new_block.clone());
 
-                            // Notify subscribers of the new height and block
-                            let _ = height_update_tx.send(*latest_height);
-                            let _ = block_update_tx.send(new_block);
-
                             // Publish UpdateDAHeight event
                             event_publisher.send(PrismEvent::UpdateDAHeight {
                                 height: *latest_height,
@@ -157,8 +130,12 @@ impl InMemoryDataAvailabilityLayer {
             })
     }
 
-    pub fn subscribe_blocks(&self) -> broadcast::Receiver<Block> {
-        self.block_update_tx.subscribe()
+    fn ensure_running(&self) -> Result<(), DataAvailabilityError> {
+        if self.task_manager.is_running() {
+            Ok(())
+        } else {
+            Err(DataAvailabilityError::ChannelClosed)
+        }
     }
 }
 
@@ -182,6 +159,8 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     }
 
     async fn get_finalized_epochs(&self, height: u64) -> Result<Vec<VerifiableEpoch>> {
+        self.ensure_running()?;
+
         let blocks = self.blocks.read().await;
         match blocks.get(height.saturating_sub(1) as usize) {
             Some(block) => Ok(block
@@ -199,10 +178,13 @@ impl LightDataAvailabilityLayer for InMemoryDataAvailabilityLayer {
 #[async_trait]
 impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     async fn get_latest_height(&self) -> Result<u64> {
+        self.ensure_running()?;
         Ok(*self.latest_height.read().await)
     }
 
     async fn submit_finalized_epoch(&self, epoch: FinalizedEpoch) -> Result<u64> {
+        self.ensure_running()?;
+
         // wait for epoch posting delay
         if let Some(delay) = self.epoch_posting_delay {
             tokio::time::sleep(delay).await;
@@ -215,6 +197,7 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     }
 
     async fn get_transactions(&self, height: u64) -> Result<Vec<Transaction>> {
+        self.ensure_running()?;
         let blocks = self.blocks.read().await;
         match blocks.get(height.saturating_sub(1) as usize) {
             Some(block) => Ok(block.transactions.clone()),
@@ -223,6 +206,7 @@ impl DataAvailabilityLayer for InMemoryDataAvailabilityLayer {
     }
 
     async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<u64> {
+        self.ensure_running()?;
         let mut pending_transactions = self.pending_transactions.write().await;
         pending_transactions.extend(transactions);
         let height = self.get_latest_height().await?;
