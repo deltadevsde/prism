@@ -8,6 +8,8 @@ mod tests {
         VerifiableStateTransition, error::EpochVerificationError,
     };
     use prism_events::{EventChannel, PrismEvent};
+    use prism_keys::SigningKey;
+    use prism_lightclient::LightClient;
     use std::sync::{Arc, Mutex};
     use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
     use wasm_bindgen_futures::{JsFuture, spawn_local};
@@ -17,7 +19,7 @@ mod tests {
     wasm_bindgen_test_configure!(run_in_browser);
 
     struct TestSetup {
-        event_channel: Arc<EventChannel>,
+        event_channel: EventChannel,
         client: WasmLightClient,
     }
 
@@ -45,16 +47,22 @@ mod tests {
     }
 
     async fn setup_worker_and_client(mock_da: MockLightDataAvailabilityLayer) -> TestSetup {
-        let event_channel = Arc::new(EventChannel::new());
-
-        let mut mock_da = mock_da;
-        mock_da.expect_event_channel().return_const(event_channel.clone());
-
+        let event_channel = EventChannel::new();
         let mock_da_arc = Arc::new(mock_da);
+
+        let light_client = LightClient::new(
+            mock_da_arc,
+            event_channel.clone(),
+            SigningKey::new_ed25519().verifying_key(),
+            false,
+        );
+
         let channel = create_mock_port();
 
         let mut worker =
-            LightClientWorker::new_with_da(channel.port1().into(), mock_da_arc).await.unwrap();
+            LightClientWorker::new_with_custom_light_client(channel.port1().into(), light_client)
+                .await
+                .unwrap();
 
         let client = WasmLightClient::new(channel.port2().into()).await.unwrap();
 

@@ -2,30 +2,26 @@
 //!
 //! This crate uses Mozilla's UniFFI to generate Swift and Kotlin bindings for the Prism
 //! lightclient, allowing it to be used from iOS and Android applications.
-mod config;
 mod error;
 mod types;
 
 use error::{LightClientError, Result};
-use prism_da::create_light_client_da_layer;
 
 use prism_events::EventSubscriber;
-use prism_lightclient::{LightClient as CoreLightClient, create_light_client};
+use prism_lightclient::{LightClient as CoreLightClient, LightClientConfig, create_light_client};
 use prism_presets::{ApplyPreset, LightClientPreset};
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 use tokio::sync::Mutex;
 use types::UniffiLightClientEvent;
 use uniffi::Object;
-
-use crate::config::UniffiLightClientConfig;
 
 uniffi::setup_scaffolding!();
 
 /// The Prism Lightclient manages the connection to the Celestia network and verifies epoch data.
 #[derive(Object)]
 pub struct LightClient {
-    inner: Arc<CoreLightClient>,
-    event_subscriber: Mutex<EventSubscriber>,
+    inner: CoreLightClient,
+    event_subscriber: Mutex<Option<EventSubscriber>>,
 }
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -37,7 +33,7 @@ impl LightClient {
             LightClientError::initialization_error(format!("Parsing preset failed: {}", e))
         })?;
 
-        let mut config = UniffiLightClientConfig::default_with_preset(&preset).map_err(|e| {
+        let mut config = LightClientConfig::default_with_preset(&preset).map_err(|e| {
             LightClientError::initialization_error(format!("Loading config failed: {}", e))
         })?;
 
@@ -45,29 +41,27 @@ impl LightClient {
             LightClientError::initialization_error(format!("Adjusting path failed: {}", e))
         })?;
 
-        let da = create_light_client_da_layer(&config.da).await.map_err(|e| {
-            LightClientError::initialization_error(format!(
-                "Failed to create light client DA: {}",
-                e
-            ))
-        })?;
-
-        let event_sub = da.event_channel().subscribe();
-
-        let light_client = create_light_client(da, &config.light_client).map_err(|e| {
+        let light_client = create_light_client(&config).await.map_err(|e| {
             LightClientError::initialization_error(format!("Failed to create light client: {}", e))
         })?;
 
         Ok(Self {
-            inner: Arc::new(light_client),
-            event_subscriber: Mutex::new(event_sub),
+            inner: light_client,
+            event_subscriber: Mutex::new(None),
         })
     }
 
     /// Starts the lightclient and begins syncing with the network.
     pub async fn start(&self) -> Result<()> {
-        let inner_clone = self.inner.clone();
-        inner_clone.start().await.map_err(|e| LightClientError::general_error(e.to_string()))
+        let event_sub = self
+            .inner
+            .start_subscribed()
+            .await
+            .map_err(|e| LightClientError::general_error(e.to_string()))?;
+
+        *self.event_subscriber.lock().await = Some(event_sub);
+
+        Ok(())
     }
 
     /// Gets the current commitment.
@@ -80,7 +74,10 @@ impl LightClient {
 
     /// Returns the next event from the lightclient's event channel.
     pub async fn next_event(&self) -> Result<UniffiLightClientEvent> {
-        let mut event_subscriber = self.event_subscriber.lock().await;
+        let mut event_subscriber_guard = self.event_subscriber.lock().await;
+        let event_subscriber = event_subscriber_guard
+            .as_mut()
+            .ok_or_else(|| LightClientError::event_error("Event subscriber not initialized"))?;
         let event_info = event_subscriber
             .recv()
             .await

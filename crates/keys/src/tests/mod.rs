@@ -73,6 +73,28 @@ mod key_tests {
     }
 
     #[test]
+    fn test_reparsed_verifying_keys_from_spki_base64_are_equal_to_original() {
+        let algorithms = [
+            CryptoAlgorithm::Ed25519,
+            CryptoAlgorithm::Secp256k1,
+            CryptoAlgorithm::Secp256r1,
+            // EIP-191 and Cosmos ADR-36 are using SECP256K1 keys and are omitted here
+        ];
+
+        for algorithm in algorithms {
+            let original_vk = SigningKey::new_with_algorithm(algorithm)
+                .expect("signing key should be created")
+                .verifying_key();
+            let spki_base64 =
+                original_vk.to_spki_base64().expect("base64 encoding of original VK should work");
+
+            let parsed_vk = VerifyingKey::from_spki_base64(&spki_base64)
+                .expect("base64 decoding of original VK should work");
+            assert_eq!(original_vk, parsed_vk);
+        }
+    }
+
+    #[test]
     fn test_reparsed_verifying_keys_from_spki_pem_files_are_equal_to_original() {
         let temp_dir = tempdir().unwrap();
 

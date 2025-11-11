@@ -6,22 +6,16 @@ extern crate log;
 use celestia_rpc::{Client, P2PClient};
 use prism_common::test_transaction_builder::TestTransactionBuilder;
 use prism_da::{
-    DataAvailabilityLayer, FullNodeDAConfig, LightClientDAConfig, LightDataAvailabilityLayer,
+    FullNodeDAConfig, LightClientDAConfig,
     celestia::{
         CelestiaFullNodeDAConfig, CelestiaLightClientDAConfig, CelestiaLightClientDAStoreConfig,
         CelestiaNetwork, DEFAULT_PRUNING_WINDOW_IN_MEMORY,
     },
-    create_full_node_da_layer, create_light_client_da_layer,
 };
 use prism_keys::{CryptoAlgorithm, SigningKey};
-use prism_lightclient::LightClient;
-use prism_prover::{
-    Prover, ProverEngineOptions, ProverOptions, SequencerOptions, SyncerOptions, WebServerConfig,
-};
-use prism_storage::{
-    Database,
-    rocksdb::{RocksDBConfig, RocksDBConnection},
-};
+use prism_lightclient::{LightClient, LightClientConfig, create_light_client};
+use prism_prover::{Prover, ProverConfig, WebServerConfig, create_prover_as_prover};
+use prism_storage::{DatabaseConfig, rocksdb::RocksDBConfig};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::sync::Arc;
 use tokio::{
@@ -33,13 +27,6 @@ use tokio_util::sync::CancellationToken;
 use tempfile::TempDir;
 
 const BRIDGE_0_ADDR: &str = "ws://localhost:26658";
-
-fn setup_db() -> Arc<Box<dyn Database>> {
-    let temp_dir = TempDir::new().unwrap();
-    let cfg = RocksDBConfig::new(temp_dir.path().to_str().unwrap());
-    let db = RocksDBConnection::new(&cfg).unwrap();
-    Arc::new(Box::new(db) as Box<dyn Database>)
-}
 
 async fn get_bootnode(addr: &str) -> String {
     let client = Client::new(addr, None).await.unwrap();
@@ -58,62 +45,56 @@ async fn get_bootnode(addr: &str) -> String {
         .to_string()
 }
 
-async fn setup_da() -> (
-    Arc<dyn LightDataAvailabilityLayer + std::marker::Send + std::marker::Sync + 'static>,
-    Arc<dyn DataAvailabilityLayer>,
-) {
-    let bridge_cfg = FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
-        url: "ws://localhost:26658".to_string(),
-        ..CelestiaFullNodeDAConfig::default()
-    });
+async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>, TempDir) {
+    let temp_dir = TempDir::new().expect("Creating a temporary test directory is successful");
+    let db_path = temp_dir.path().join("db");
 
-    let bootnode = get_bootnode(BRIDGE_0_ADDR).await;
+    let prover_key_path = temp_dir.path().join("prover.p8");
+    let prover_key = SigningKey::new_ed25519();
+    prover_key.to_pkcs8_pem_file(&prover_key_path).expect("Creating prover key file is successful");
 
-    let lc_cfg = LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
-        celestia_network: CelestiaNetwork::Custom("private".parse().unwrap()),
-        bootnodes: vec![bootnode],
-        pruning_window: DEFAULT_PRUNING_WINDOW_IN_MEMORY,
-        store: CelestiaLightClientDAStoreConfig::InMemory,
-        ..CelestiaLightClientDAConfig::default()
-    });
+    let prover_pubkey = prover_key.verifying_key();
+    let prover_pubkey_path = temp_dir.path().join("prover.spki");
+    prover_pubkey
+        .to_spki_pem_file(&prover_pubkey_path)
+        .expect("Creating prover public key file is successful");
 
-    let bridge_da_layer = create_full_node_da_layer(&bridge_cfg).await.unwrap();
-    let lc_da_layer = create_light_client_da_layer(&lc_cfg).await.unwrap();
-
-    (lc_da_layer, bridge_da_layer)
-}
-
-async fn setup_nodes() -> (Arc<Prover>, Arc<LightClient>) {
-    let db = setup_db();
-    let (lc_da, fn_da) = setup_da().await;
-
-    let prover_algorithm = CryptoAlgorithm::Ed25519;
-
-    let signing_key = SigningKey::new_with_algorithm(prover_algorithm).unwrap();
-    let pubkey = signing_key.verifying_key();
-
-    let prover_cfg = ProverOptions {
-        syncer: SyncerOptions {
-            verifying_key: pubkey.clone(),
-            start_height: 1,
-            max_epochless_gap: 300,
-            prover_enabled: true,
-        },
-        sequencer: SequencerOptions {
-            signing_key: Some(signing_key),
-            batcher_enabled: true,
-        },
-        prover_engine: ProverEngineOptions {
-            recursive_proofs: false,
-        },
+    // Create prover
+    let prover_cfg = ProverConfig {
+        db: DatabaseConfig::RocksDB(RocksDBConfig::new(db_path.to_str().unwrap())),
+        da: FullNodeDAConfig::Celestia(CelestiaFullNodeDAConfig {
+            url: BRIDGE_0_ADDR.to_string(),
+            ..CelestiaFullNodeDAConfig::default()
+        }),
+        signing_key_path: prover_key_path.to_str().unwrap().to_string(),
+        start_height: 1,
+        max_epochless_gap: 300,
+        recursive_proofs: false,
         webserver: WebServerConfig::default(),
     };
 
-    let prover = Arc::new(Prover::new(db.clone(), fn_da.clone(), &prover_cfg).unwrap());
+    let prover =
+        create_prover_as_prover(&prover_cfg).await.expect("Creating prover should be successful");
 
-    let lightclient = LightClient::new(lc_da.clone(), pubkey, true);
+    // Create light client
+    let bootnode = get_bootnode(BRIDGE_0_ADDR).await;
 
-    (prover, Arc::new(lightclient))
+    let lc_cfg = LightClientConfig {
+        da: LightClientDAConfig::Celestia(CelestiaLightClientDAConfig {
+            celestia_network: CelestiaNetwork::Custom("private".parse().unwrap()),
+            bootnodes: vec![bootnode],
+            pruning_window: DEFAULT_PRUNING_WINDOW_IN_MEMORY,
+            store: CelestiaLightClientDAStoreConfig::InMemory,
+            ..CelestiaLightClientDAConfig::default()
+        }),
+        verifying_key_str: prover_pubkey_path.to_str().unwrap().to_string(),
+        allow_mock_proofs: true,
+    };
+
+    let lightclient =
+        create_light_client(&lc_cfg).await.expect("Creating light client should be successful");
+
+    (Arc::new(prover), Arc::new(lightclient), temp_dir)
 }
 
 #[tokio::test]
@@ -133,10 +114,10 @@ async fn test_light_client_prover_talking() {
         .filter_module("sp1_recursion_compiler", log::LevelFilter::Off)
         .filter_module("sp1_core_machine", log::LevelFilter::Off)
         .init();
-    let (prover, lightclient) = setup_nodes().await;
+    let (prover, lightclient, _temp_dir) = setup_nodes().await;
 
     // Start nodes
-    prover.start().await.expect("Starting prover should work");
+    let mut event_sub = prover.start_subscribed().await.expect("Starting prover should work");
     lightclient.start().await.expect("Starting lightclient should work");
 
     // Start Transaction generation
@@ -152,27 +133,33 @@ async fn test_light_client_prover_talking() {
     }
 
     // Grab the latest DA height after subscribing
-    let prover_clone = Arc::clone(&prover);
-    let mut rx = prover_clone.get_da().subscribe_to_heights();
-    let initial_height = rx.recv().await.unwrap();
+    let initial_height = loop {
+        let event_info = event_sub.recv().await.unwrap();
+        if let prism_events::PrismEvent::UpdateDAHeight { height } = event_info.event {
+            break height;
+        }
+    };
     debug!("Initial height: {}", initial_height);
 
     // Listen for 50 heights
     let target_height = initial_height + 50;
-    while let Ok(height) = rx.recv().await {
-        debug!("Received height {}", height);
+    loop {
+        let event_info = event_sub.recv().await.unwrap();
+        if let prism_events::PrismEvent::UpdateDAHeight { height } = event_info.event {
+            debug!("Received height {}", height);
 
-        if height >= target_height {
-            info!("Reached target height {}.", target_height);
-            // Shutdown transaction generator
-            tx_shutdown.cancel();
-            let res = tx_generator.await;
-            assert!(
-                res.is_ok(),
-                "Transaction generator exited with error {:?}",
-                res
-            );
-            break;
+            if height >= target_height {
+                info!("Reached target height {}.", target_height);
+                // Shutdown transaction generator
+                tx_shutdown.cancel();
+                let res = tx_generator.await;
+                assert!(
+                    res.is_ok(),
+                    "Transaction generator exited with error {:?}",
+                    res
+                );
+                break;
+            }
         }
     }
 

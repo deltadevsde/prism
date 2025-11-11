@@ -153,12 +153,16 @@ pub struct CelestiaConnection {
 
     height_update_tx: broadcast::Sender<u64>,
     sync_target: Arc<AtomicU64>,
-    event_channel: Arc<EventChannel>,
+    event_channel: EventChannel,
     task_manager: TaskManager,
 }
 
 impl CelestiaConnection {
-    pub async fn new(config: &CelestiaFullNodeDAConfig, auth_token: Option<&str>) -> Result<Self> {
+    pub async fn new(
+        config: &CelestiaFullNodeDAConfig,
+        auth_token: Option<&str>,
+        event_channel: EventChannel,
+    ) -> Result<Self> {
         let client = Arc::new(
             Client::new(&config.url, auth_token)
                 .await
@@ -178,7 +182,6 @@ impl CelestiaConnection {
             ))?;
 
         let (height_update_tx, _) = broadcast::channel(100);
-        let event_channel = Arc::new(EventChannel::new());
 
         Ok(Self {
             client,
@@ -326,18 +329,10 @@ impl LightDataAvailabilityLayer for CelestiaConnection {
             .collect();
         Ok(valid_epochs)
     }
-
-    fn event_channel(&self) -> Arc<EventChannel> {
-        self.event_channel.clone()
-    }
 }
 
 #[async_trait]
 impl DataAvailabilityLayer for CelestiaConnection {
-    fn subscribe_to_heights(&self) -> broadcast::Receiver<u64> {
-        self.height_update_tx.subscribe()
-    }
-
     async fn get_latest_height(&self) -> Result<u64> {
         Ok(self.sync_target.load(Ordering::Relaxed))
     }

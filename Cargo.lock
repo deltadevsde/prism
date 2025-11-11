@@ -7297,6 +7297,7 @@ dependencies = [
  "dotenvy",
  "prism-da",
  "prism-errors",
+ "prism-events",
  "prism-lightclient",
  "prism-presets",
  "prism-prover",
@@ -7402,8 +7403,9 @@ name = "prism-events"
 version = "0.1.0"
 dependencies = [
  "lumina-node",
- "prism-common",
+ "prism-cross-target",
  "serde",
+ "thiserror 2.0.12",
  "tokio",
  "web-time",
 ]
@@ -7441,7 +7443,6 @@ dependencies = [
  "prism-common",
  "prism-cross-target",
  "prism-da",
- "prism-errors",
  "prism-events",
  "prism-keys",
  "prism-presets",
@@ -7583,12 +7584,12 @@ dependencies = [
 name = "prism-tests"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "celestia-rpc",
  "log",
  "pretty_env_logger",
  "prism-common",
  "prism-da",
+ "prism-events",
  "prism-keys",
  "prism-lightclient",
  "prism-prover",
@@ -7621,7 +7622,6 @@ dependencies = [
 name = "prism-uniffi-lightclient"
 version = "0.1.0"
 dependencies = [
- "prism-da",
  "prism-events",
  "prism-lightclient",
  "prism-presets",
@@ -7640,6 +7640,7 @@ dependencies = [
  "prism-common",
  "prism-da",
  "prism-events",
+ "prism-keys",
  "prism-lightclient",
  "prism-presets",
  "serde",

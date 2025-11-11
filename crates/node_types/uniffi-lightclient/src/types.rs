@@ -14,6 +14,10 @@ pub enum UniffiLightClientEvent {
         /// The height at which sync completed
         height: Option<u64>,
     },
+    SyncFailed {
+        /// Error message
+        error: String,
+    },
     /// DA layer height has been updated
     UpdateDAHeight {
         /// The new DA layer height
@@ -43,11 +47,6 @@ pub enum UniffiLightClientEvent {
     },
     /// Height channel was closed
     HeightChannelClosed,
-    /// Current commitment retrieved
-    GetCurrentCommitment {
-        /// The current commitment
-        commitment: String,
-    },
     /// Recursive verification started
     RecursiveVerificationStarted {
         /// The height at which recursive verification started
@@ -63,6 +62,11 @@ pub enum UniffiLightClientEvent {
         /// The original event string
         event: String,
     },
+    /// Sent when an unspecific error occurs during operation.
+    OperationError {
+        /// The original error string
+        error: String,
+    },
 }
 
 impl From<PrismEvent> for UniffiLightClientEvent {
@@ -75,6 +79,7 @@ impl From<PrismEvent> for UniffiLightClientEvent {
             PrismEvent::HistoricalSyncCompleted { height } => {
                 UniffiLightClientEvent::SyncCompleted { height }
             }
+            PrismEvent::SyncFailed { error } => UniffiLightClientEvent::SyncFailed { error },
             PrismEvent::UpdateDAHeight { height } => {
                 UniffiLightClientEvent::UpdateDAHeight { height }
             }
@@ -89,11 +94,6 @@ impl From<PrismEvent> for UniffiLightClientEvent {
             }
             PrismEvent::NoEpochFound { height } => UniffiLightClientEvent::NoEpochFound { height },
             PrismEvent::HeightChannelClosed => UniffiLightClientEvent::HeightChannelClosed,
-            PrismEvent::GetCurrentCommitment { commitment } => {
-                UniffiLightClientEvent::GetCurrentCommitment {
-                    commitment: commitment.to_string(),
-                }
-            }
             PrismEvent::RecursiveVerificationStarted { height } => {
                 UniffiLightClientEvent::RecursiveVerificationStarted { height }
             }
@@ -103,6 +103,9 @@ impl From<PrismEvent> for UniffiLightClientEvent {
             PrismEvent::LuminaEvent { event } => UniffiLightClientEvent::LuminaEvent {
                 event: event.to_string(),
             },
+            PrismEvent::OperationError { error } => {
+                UniffiLightClientEvent::OperationError { error }
+            }
         }
     }
 }

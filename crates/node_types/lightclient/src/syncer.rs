@@ -67,8 +67,8 @@ pub struct Syncer {
     da: Arc<dyn LightDataAvailabilityLayer>,
     pub prover_pubkey: VerifyingKey,
     sp1_vkeys: VerificationKeys,
-    event_chan: Arc<EventChannel>,
-    event_pub: Arc<EventPublisher>,
+    event_channel: EventChannel,
+    event_pub: EventPublisher,
     sync_state: Arc<RwLock<SyncState>>,
     latest_commitment: Arc<RwLock<Option<Digest>>>,
     mock_proof_verification: bool,
@@ -78,12 +78,12 @@ impl Syncer {
     pub fn new(
         #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
+        event_channel: EventChannel,
         prover_pubkey: VerifyingKey,
         sp1_vkeys: VerificationKeys,
         mock_proof_verification: bool,
     ) -> Self {
-        let event_chan = da.event_channel();
-        let event_pub = Arc::new(event_chan.publisher());
+        let event_pub = event_channel.publisher();
         let sync_state = Arc::new(RwLock::new(SyncState::default()));
         let latest_commitment = Arc::new(RwLock::new(None));
 
@@ -91,7 +91,7 @@ impl Syncer {
             da,
             prover_pubkey,
             sp1_vkeys,
-            event_chan,
+            event_channel,
             event_pub,
             sync_state,
             latest_commitment,
@@ -108,9 +108,8 @@ impl Syncer {
     }
 
     pub async fn sync_incoming_heights(&self, cancellation_token: CancellationToken) -> Result<()> {
-        let mut event_sub = self.event_chan.subscribe();
+        let mut event_sub = self.event_channel.subscribe();
         self.event_pub.send(PrismEvent::Ready);
-
         loop {
             await_event!(cancellation_token, event_sub, |event| {
                 trace!("Event: {:?}", event);
@@ -124,7 +123,6 @@ impl Syncer {
 
     #[cfg(feature = "telemetry")]
     async fn collect_metrics(&self, height: u64) {
-        #[cfg(feature = "telemetry")]
         if let Some(metrics) = get_metrics() {
             metrics.record_celestia_synced_height(height, vec![]);
             if let Some(latest_finalized_epoch) =
@@ -221,7 +219,7 @@ impl Syncer {
     pub async fn sync_backwards(&self, cancellation_token: CancellationToken) -> Result<()> {
         info!("starting backwards sync");
 
-        let mut event_sub = self.event_chan.subscribe();
+        let mut event_sub = self.event_channel.subscribe();
         let network_height = loop {
             await_event!(cancellation_token, event_sub, |event| {
                 if let PrismEvent::UpdateDAHeight { height } = event {

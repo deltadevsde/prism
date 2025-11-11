@@ -3,14 +3,10 @@ use prism_da::error::DataAvailabilityError;
 use std::result::Result;
 use thiserror::Error;
 
-use crate::config::WasmLightClientConfigError;
-
 // TODO: use the error types and improve them (use prism errors)
 
 #[derive(Error, Debug)]
 pub enum WasmLightClientError {
-    #[error(transparent)]
-    Config(#[from] WasmLightClientConfigError),
     #[error(transparent)]
     Worker(#[from] WorkerError),
     #[error(transparent)]

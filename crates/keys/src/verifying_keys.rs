@@ -215,6 +215,10 @@ impl VerifyingKey {
         Ok(self.to_spki_der_doc()?.as_bytes().to_vec())
     }
 
+    pub fn to_spki_base64(&self) -> Result<String> {
+        Ok(self.to_spki_der_doc()?.as_bytes().to_base64())
+    }
+
     pub fn to_spki_pem_file(&self, filename: impl AsRef<Path>) -> Result<()> {
         self.to_spki_der_doc()?
             .write_pem_file(filename, SubjectPublicKeyInfoRef::PEM_LABEL, LineEnding::LF)

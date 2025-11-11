@@ -39,6 +39,7 @@ dirs = { workspace = true }
 [dev-dependencies]
 paste = { workspace = true }
 pretty_env_logger = { workspace = true }
+prism-events = { workspace = true, features = ["testing"] }
 log = { workspace = true }
 tempfile = { workspace = true }
 

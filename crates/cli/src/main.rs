@@ -8,14 +8,13 @@ use clap::Parser;
 use dotenvy::dotenv;
 use node_types::NodeType;
 use prism_cli::error::CliError;
-use prism_da::{create_full_node_da_layer, create_light_client_da_layer};
+use prism_events::EventSubscriber;
 use prism_lightclient::create_light_client;
 use prism_prover::{create_prover_as_full_node, create_prover_as_prover};
-use prism_storage::create_storage;
 use prism_telemetry_registry::{TelemetryInstance, create_telemetry};
 use std::sync::Arc;
 use tokio::signal;
-use tracing::info;
+use tracing::{error, info};
 
 use crate::{
     apply_args::CliOverridableConfig,
@@ -54,15 +53,14 @@ async fn run_cli() -> Result<(), CliError> {
         CliCommands::FullNode(ref full_node_args) => create_full_node(full_node_args).await?,
     };
 
-    node.start().await.map_err(|e| {
+    let event_sub = node.start_subscribed().await.map_err(|e| {
         // Log the error with full debug information
         tracing::error!("Node encountered an error: {:?}", e);
         // Return the error
         CliError::NodeError(format!("{:?}", e))
     })?;
 
-    // Wait for shutdown signal
-    shutdown_signal().await;
+    handle_events(event_sub).await;
 
     let stop_result = node.stop().await.map_err(|e| {
         // Log the error with full debug information
@@ -86,9 +84,8 @@ async fn create_light_node(
         vec![("node_type".to_string(), "lightclient".to_string())],
     )?;
 
-    let da = create_light_client_da_layer(&config.da).await?;
-
-    let light_client = create_light_client(da, &config.light_client)
+    let light_client = create_light_client(&config.light_client)
+        .await
         .map_err(|e| CliError::ConfigFailed(format!("Failed to create light client: {}", e)))?;
     Ok((Arc::new(light_client) as Arc<dyn NodeType>, telemetry))
 }
@@ -104,10 +101,8 @@ async fn create_prover_node(
         vec![("node_type".to_string(), "prover".to_string())],
     )?;
 
-    let db = create_storage(&config.db).await?;
-    let da = create_full_node_da_layer(&config.da).await?;
-
-    let prover = create_prover_as_prover(&config.prover, db.clone(), da.clone())
+    let prover = create_prover_as_prover(&config.prover)
+        .await
         .map_err(|e| CliError::ConfigFailed(format!("Failed to create prover: {}", e)))?;
 
     Ok((Arc::new(prover) as Arc<dyn NodeType>, telemetry))
@@ -119,41 +114,55 @@ async fn create_full_node(
     let config = CliFullNodeConfig::load(full_node_args)
         .map_err(|e| CliError::ConfigFailed(format!("Error loading full node config: {}", e)))?;
 
-    let db = create_storage(&config.db).await?;
-    let da = create_full_node_da_layer(&config.da).await?;
     let telemetry = create_telemetry(
         &config.telemetry,
         vec![("node_type".to_string(), "fullnode".to_string())],
     )?;
 
-    let full_node = create_prover_as_full_node(&config.full_node, db.clone(), da.clone())
+    let full_node = create_prover_as_full_node(&config.full_node)
+        .await
         .map_err(|e| CliError::ConfigFailed(format!("Failed to create full node: {}", e)))?;
 
     Ok((Arc::new(full_node) as Arc<dyn NodeType>, telemetry))
 }
 
-async fn shutdown_signal() {
-    let ctrl_c = async {
-        signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        _ = ctrl_c => {
-            info!("Process interrupted, initiating graceful shutdown");
-        },
-        _ = terminate => {
-            info!("Process terminated, initiating graceful shutdown")
-        },
+async fn handle_events(mut sub: EventSubscriber) {
+    loop {
+        tokio::select! {
+            _ = signal::ctrl_c() => {
+                info!("Process interrupted, initiating graceful shutdown");
+                break;
+            },
+            _ = terminate_signal() => {
+                info!("Process terminated, initiating graceful shutdown");
+                break;
+            },
+            event_info_res = sub.recv() => {
+                match event_info_res {
+                    Ok(event_info) => {
+                        if event_info.is_error() {
+                            error!("Error event received: {}", event_info.event);
+                            break;
+                        }
+                     info!("{}", event_info.event);
+                    },
+                    Err(e) => {
+                        error!("Event receiver aborted, initiating graceful shutdown: {}", e);
+                        break;
+                    },
+                }
+            }
+        }
     }
+}
+
+#[cfg(unix)]
+async fn terminate_signal() -> std::io::Result<()> {
+    signal::unix::signal(signal::unix::SignalKind::terminate())?.recv().await;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+async fn terminate_signal() -> std::io::Result<()> {
+    std::future::pending().await
 }

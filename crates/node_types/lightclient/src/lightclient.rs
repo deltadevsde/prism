@@ -1,7 +1,8 @@
 use anyhow::Result;
 use prism_common::digest::Digest;
-use prism_cross_target::{error, info, tasks::TaskManager};
+use prism_cross_target::{error, info, tasks::TaskManager, warn};
 use prism_da::{LightDataAvailabilityLayer, VerificationKeys};
+use prism_events::{EventChannel, EventSubscriber, PrismEvent};
 use prism_keys::VerifyingKey;
 use std::{self, sync::Arc};
 
@@ -37,6 +38,8 @@ pub struct LightClient {
 
     syncer: Arc<Syncer>,
 
+    event_channel: EventChannel,
+
     /// Task manager for background tasks
     task_manager: TaskManager,
 }
@@ -57,6 +60,7 @@ impl LightClient {
     pub fn new(
         #[cfg(not(target_arch = "wasm32"))] da: Arc<dyn LightDataAvailabilityLayer + Send + Sync>,
         #[cfg(target_arch = "wasm32")] da: Arc<dyn LightDataAvailabilityLayer>,
+        event_channel: EventChannel,
         prover_pubkey: VerifyingKey,
         mock_proof_verification: bool,
     ) -> Self {
@@ -67,7 +71,8 @@ impl LightClient {
         }
 
         let syncer = Syncer::new(
-            Arc::clone(&da),
+            da.clone(),
+            event_channel.clone(),
             prover_pubkey,
             sp1_vkeys,
             mock_proof_verification,
@@ -75,6 +80,7 @@ impl LightClient {
 
         Self {
             da,
+            event_channel,
             syncer: Arc::new(syncer),
             task_manager: TaskManager::new(),
         }
@@ -85,10 +91,16 @@ impl LightClient {
     }
 
     pub async fn start(&self) -> Result<()> {
+        let _ = self.start_subscribed().await?;
+        Ok(())
+    }
+
+    pub async fn start_subscribed(&self) -> Result<EventSubscriber> {
         // Check if already started
         if self.task_manager.is_running() {
-            info!("Light client already started");
-            return Ok(());
+            warn!("Start attempt on already started light client");
+            let event_sub = self.event_channel.subscribe();
+            return Ok(event_sub)
         }
 
         info!("Starting light client");
@@ -97,27 +109,35 @@ impl LightClient {
 
         // Start sync_incoming_heights task
         let syncer_clone = Arc::clone(&self.syncer);
+        let event_pub = self.event_channel.publisher();
+
         self.task_manager
             .spawn(|token| async move {
                 if let Err(e) = syncer_clone.sync_incoming_heights(token.clone().into()).await {
-                    error!("Syncing heights failed: {}", e);
-                    token.trigger();
+                    let event = PrismEvent::OperationError {
+                        error: e.to_string(),
+                    };
+                    event_pub.send(event);
                 }
             })
             .map_err(|e| anyhow::anyhow!("Failed to spawn sync heights task: {}", e))?;
 
         // Start sync_backwards task
         let syncer_clone = Arc::clone(&self.syncer);
+        let event_pub = self.event_channel.publisher();
         self.task_manager
             .spawn(|token| async move {
                 if let Err(e) = syncer_clone.sync_backwards(token.clone().into()).await {
-                    error!("Backwards sync failed: {}", e);
-                    token.trigger();
+                    let event = PrismEvent::OperationError {
+                        error: e.to_string(),
+                    };
+                    event_pub.send(event);
                 }
             })
             .map_err(|e| anyhow::anyhow!("Failed to spawn sync backwards task: {}", e))?;
 
-        Ok(())
+        let event_sub = self.event_channel.subscribe();
+        Ok(event_sub)
     }
 
     pub async fn stop(&self) -> Result<()> {
@@ -133,5 +153,9 @@ impl LightClient {
 
     pub async fn get_latest_commitment(&self) -> Option<Digest> {
         self.syncer.get_latest_commitment().await
+    }
+
+    pub fn event_channel(&self) -> EventChannel {
+        self.event_channel.clone()
     }
 }

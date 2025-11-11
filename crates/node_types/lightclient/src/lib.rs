@@ -30,25 +30,16 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
-//!     // Provide a DA layer instance that can be used by the light client
-//!     let da_config = LightClientDAConfig::InMemory;
-//!     let da = create_light_client_da_layer(&da_config).await?;
-//!
 //!     // Set light client configuration parameters
 //!     let lc_config = LightClientConfig {
-//!         verifying_key_str: "der_base64_encoded_verifying_key_here".to_string(),
+//!         da: LightClientDAConfig::InMemory,
+//!         verifying_key_str: "der_base64_encoded_verifying_key_or_path_here".to_string(),
+//!         allow_mock_proofs: true,
 //!     };
-//!     let cancellation_token = CancellationToken::new();
 //!
 //!     // Create and run the light client
-//!     let light_client = create_light_client(da.clone(), &lc_config, cancellation_token.clone())?;
-//!     let light_client = Arc::new(light_client);
-//!
-//!     // Start the light client (this will run until cancelled)
-//!     let lc_handle = spawn({
-//!         let light_client = light_client.clone();
-//!         async move { light_client.run().await }
-//!     });
+//!     let light_client = create_light_client(&lc_config).await?;
+//!     light_client.start().await?;
 //!
 //!     // Query the latest commitment
 //!     if let Some(commitment) = light_client.get_latest_commitment().await {
@@ -60,8 +51,7 @@
 //!     println!("Current DA height: {}", sync_state.current_height);
 //!
 //!     // Shutdown gracefully
-//!     cancellation_token.cancel();
-//!     lc_handle.await??;
+//!     light_client.stop().await?;
 //!
 //!     Ok(())
 //! }

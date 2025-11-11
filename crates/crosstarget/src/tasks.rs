@@ -1,6 +1,6 @@
 use std::{
     fmt::{self, Debug},
-    sync::{Mutex, PoisonError},
+    sync::{PoisonError, RwLock},
 };
 use thiserror::Error;
 
@@ -54,7 +54,7 @@ where
 }
 
 pub struct TaskManager {
-    inner: Mutex<Inner>,
+    inner: RwLock<Inner>,
 }
 
 struct Inner {
@@ -88,7 +88,7 @@ impl<T> From<PoisonError<T>> for TaskManagerError {
 impl TaskManager {
     pub const fn new() -> Self {
         Self {
-            inner: Mutex::new(Inner {
+            inner: RwLock::new(Inner {
                 state: State::Idle,
                 token: None,
                 handles: Vec::new(),
@@ -102,7 +102,7 @@ impl TaskManager {
         F: FnOnce(Token) -> Fut,
         Fut: Future<Output = ()> + Send + 'static,
     {
-        let mut inner = self.inner.lock()?;
+        let mut inner = self.inner.write()?;
 
         let token = match inner.state {
             State::Idle => {
@@ -126,7 +126,7 @@ impl TaskManager {
         F: FnOnce(Token) -> Fut,
         Fut: Future<Output = ()> + 'static,
     {
-        let mut inner = self.inner.lock()?;
+        let mut inner = self.inner.write()?;
 
         let token = match inner.state {
             State::Idle => {
@@ -146,7 +146,7 @@ impl TaskManager {
 
     pub async fn stop(&self) -> Result<(), TaskManagerError> {
         let (handles, token) = {
-            let mut inner = self.inner.lock()?;
+            let mut inner = self.inner.write()?;
 
             match inner.state {
                 State::Idle => {
@@ -169,12 +169,12 @@ impl TaskManager {
             handle.join().await;
         }
 
-        self.inner.lock()?.state = State::Idle;
+        self.inner.write()?.state = State::Idle;
         Ok(())
     }
 
     pub fn is_running(&self) -> bool {
-        self.inner.lock().map(|inner| matches!(inner.state, State::Running)).unwrap_or(false)
+        self.inner.read().map(|inner| matches!(inner.state, State::Running)).unwrap_or(false)
     }
 }
 
