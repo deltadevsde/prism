@@ -256,7 +256,7 @@ pub fn new(
         }
 ```
 
-We also need to implemented a find_and_verify_latest_checkpoint method to scan backwards from the current height to find and verify the latest checkpoint SNARK.
+We also need to implement a find_and_verify_latest_checkpoint method to scan backwards from the current height to find and verify the latest checkpoint SNARK.
 
 ```rust
 async fn find_and_verify_latest_checkpoint(&mut self, start: u64, end: u64) -> Result<()> {
