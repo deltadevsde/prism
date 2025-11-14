@@ -192,10 +192,10 @@
 </ol>
 <p>This approach allows for flexibility while maintaining control over account creation.</p>
 <h2 id="other-considerations"><a class="header" href="#other-considerations">Other Considerations</a></h2>
-<p>If all labels were stored in plaintext, services would be vulnerable to enumeration attacks. A simple protection against this is to hash identifiers, meaning users must know the ID plaintext before resolving the user's hashchain. However, this is not a strong attack prevention, as hash functions are publically known.</p>
+<p>If all labels were stored in plaintext, services would be vulnerable to enumeration attacks. A simple protection against this is to hash identifiers, meaning users must know the ID plaintext before resolving the user's hashchain. However, this is not a strong attack prevention, as hash functions are publicly known.</p>
 <p>For this reason, we distinguish between the notion of public  and private services.</p>
 <ol>
-<li>Private services would have labels run through a VRF -- completely preventing enumeration attacks, but requiring centralized (albeit publically verifiable) identity resolution.</li>
+<li>Private services would have labels run through a VRF -- completely preventing enumeration attacks, but requiring centralized (albeit publicly verifiable) identity resolution.</li>
 <li>Public services simply hash their labels pre-insertion.</li>
 </ol>
 <h2 id="future-developments"><a class="header" href="#future-developments">Future Developments</a></h2>

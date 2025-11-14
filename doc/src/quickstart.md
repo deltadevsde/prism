@@ -35,7 +35,7 @@ Traditional solutions often put the burden on users to manually verify credentia
 
 From a high level, Prism is simply a trust-minimized service that manages data - more precisely, a label-value-map - that produces evidence that it has acted correctly and honestly. Correct and honest here refer to application-specific policies by which it purports to act.
 
-Prism originiated as a toy implementation of a paper from [Tzialla et al.](https://eprint.iacr.org/2021/1263.pdf), from which it has significantly diverged. In this documentation, _"Keypal"_ is described as a concrete application example, which serves as a POC of an application that could run on Prism.
+Prism originated as a toy implementation of a paper from [Tzialla et al.](https://eprint.iacr.org/2021/1263.pdf), from which it has significantly diverged. In this documentation, _"Keypal"_ is described as a concrete application example, which serves as a POC of an application that could run on Prism.
 
 # What is Celestia?
 Celestia is a modular
