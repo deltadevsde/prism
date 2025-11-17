@@ -380,3 +380,10 @@ where
         self.transaction
     }
 }
+
+/// Creates a new request builder with the default NoopPrismApi implementation.
+/// This is useful for local testing and validation without a real API connection.
+#[cfg(test)]
+pub fn build_request<'a>() -> RequestBuilder<'a, NoopPrismApi> {
+    RequestBuilder::new()
+}
