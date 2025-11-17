@@ -1,9 +1,15 @@
+pub mod account_ext;
+pub mod builder;
 #[cfg(feature = "mockall")]
 pub mod mock;
 pub mod noop;
 pub mod types;
 
+#[cfg(test)]
+mod tests;
+
 use async_trait::async_trait;
+use prism_common::{account::Account, operation::SignatureBundle, transaction::Transaction};
 use prism_errors::TransactionError;
 use prism_keys::{SigningKey, VerifyingKey};
 use std::{
@@ -14,10 +20,11 @@ use std::{
     time::Duration,
 };
 
-use crate::{
-    account::Account, builder::RequestBuilder, operation::SignatureBundle, transaction::Transaction,
-};
+pub use builder::RequestBuilder;
 use types::{AccountResponse, CommitmentResponse};
+
+#[cfg(test)]
+use crate::noop::NoopPrismApi;
 
 #[derive(Clone, Debug)]
 pub enum PrismApiError {
@@ -232,4 +239,11 @@ where
             Self::Timer::sleep(interval).await;
         }
     }
+}
+
+/// Creates a new request builder with the default NoopPrismApi implementation.
+/// This is useful for local testing and validation without a real API connection.
+#[cfg(test)]
+pub fn builder<'a>() -> RequestBuilder<'a, NoopPrismApi> {
+    RequestBuilder::new()
 }

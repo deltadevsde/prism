@@ -1,11 +1,10 @@
 use async_trait::async_trait;
 use mockall::mock;
+use prism_common::{account::Account, transaction::Transaction};
 use std::time::Duration;
 
-use crate::{account::Account, api::PendingTransaction, transaction::Transaction};
-
 use super::{
-    PrismApi, PrismApiError, PrismApiTimer,
+    PendingTransaction, PrismApi, PrismApiError, PrismApiTimer,
     types::{AccountResponse, CommitmentResponse},
 };
 

@@ -1,13 +1,13 @@
-use prism_errors::TransactionError;
-use prism_keys::{SigningKey, VerifyingKey};
-
-use crate::{
+use prism_common::{
     account::Account,
-    api::{PendingTransaction, PrismApi, PrismApiError, noop::NoopPrismApi},
     digest::Digest,
     operation::{Operation, ServiceChallenge, ServiceChallengeInput, SignatureBundle},
     transaction::{Transaction, UnsignedTransaction},
 };
+use prism_errors::TransactionError;
+use prism_keys::{SigningKey, VerifyingKey};
+
+use crate::{PendingTransaction, PrismApi, PrismApiError, noop::NoopPrismApi};
 
 pub struct RequestBuilder<'a, P = NoopPrismApi> {
     prism: Option<&'a P>,

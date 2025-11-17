@@ -1,11 +1,11 @@
 use async_trait::async_trait;
+use prism_common::{account::Account, transaction::Transaction};
 use std::time::Duration;
 
 use super::{
     PendingTransaction, PrismApi, PrismApiError, PrismApiTimer,
     types::{AccountResponse, CommitmentResponse},
 };
-use crate::{account::Account, transaction::Transaction};
 
 pub struct NoopTimer;
 

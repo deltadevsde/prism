@@ -16,6 +16,7 @@ readme = "README.md"
 
 [workspace]
 default-members = [
+  "crates/api",
   "crates/cli",
   "crates/client",
   "crates/common",
@@ -38,6 +39,7 @@ default-members = [
 ]
 
 members = [
+  "crates/api",
   "crates/cli",
   "crates/client",
   "crates/common",
@@ -148,6 +150,7 @@ paste = "1.0.15"
 plotters = "0.3.7"
 
 # prism
+prism-api = { path = "crates/api" }
 prism-common = { path = "crates/common" }
 prism-cross-target = { path = "crates/crosstarget" }
 prism-storage = { path = "crates/storage" }
