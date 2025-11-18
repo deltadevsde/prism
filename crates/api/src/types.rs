@@ -18,7 +18,7 @@ pub struct AccountResponse {
     pub proof: HashedMerkleProof,
 }
 
-#[derive(Default, Debug, Serialize, Deserialize, PartialEq, ToSchema)]
+#[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 /// Response representing a cryptographic commitment towards the current state of prism
 pub struct CommitmentResponse {
     /// Commitment as root hash of Merkle tree
@@ -43,7 +43,7 @@ pub struct HashedMerkleProof {
 }
 
 impl HashedMerkleProof {
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self {
             leaf: None,
             siblings: vec![],

@@ -39,12 +39,12 @@ impl Error for PrismApiError {}
 
 impl From<TransactionError> for PrismApiError {
     fn from(err: TransactionError) -> Self {
-        PrismApiError::Transaction(err)
+        Self::Transaction(err)
     }
 }
 
 impl From<anyhow::Error> for PrismApiError {
     fn from(err: anyhow::Error) -> Self {
-        PrismApiError::Any(Arc::new(err))
+        Self::Any(Arc::new(err))
     }
 }

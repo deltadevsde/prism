@@ -17,19 +17,19 @@ impl<'a, P> RequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { prism: None }
     }
 
-    pub fn new_with_prism(prism: &'a P) -> Self {
+    pub const fn new_with_prism(prism: &'a P) -> Self {
         Self { prism: Some(prism) }
     }
 
-    pub fn create_account(self) -> CreateAccountRequestBuilder<'a, P> {
+    pub const fn create_account(self) -> CreateAccountRequestBuilder<'a, P> {
         CreateAccountRequestBuilder::new(self.prism)
     }
 
-    pub fn register_service(self) -> RegisterServiceRequestBuilder<'a, P> {
+    pub const fn register_service(self) -> RegisterServiceRequestBuilder<'a, P> {
         RegisterServiceRequestBuilder::new(self.prism)
     }
 
@@ -37,7 +37,7 @@ where
         ModifyAccountRequestBuilder::new(self.prism, account)
     }
 
-    pub fn continue_transaction(
+    pub const fn continue_transaction(
         self,
         unsigned_transaction: UnsignedTransaction,
     ) -> SigningTransactionRequestBuilder<'a, P> {
@@ -68,7 +68,7 @@ impl<'a, P> CreateAccountRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: Option<&'a P>) -> Self {
+    pub const fn new(prism: Option<&'a P>) -> Self {
         Self {
             prism,
             id: String::new(),
@@ -82,7 +82,7 @@ where
         self
     }
 
-    pub fn with_key(mut self, key: VerifyingKey) -> Self {
+    pub const fn with_key(mut self, key: VerifyingKey) -> Self {
         self.key = Some(key);
         self
     }
@@ -112,7 +112,7 @@ where
         let operation = Operation::CreateAccount {
             id: self.id.clone(),
             service_id: self.service_id,
-            challenge: ServiceChallengeInput::Signed(signature.clone()),
+            challenge: ServiceChallengeInput::Signed(signature),
             key,
         };
 
@@ -143,7 +143,7 @@ impl<'a, P> RegisterServiceRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: Option<&'a P>) -> Self {
+    pub const fn new(prism: Option<&'a P>) -> Self {
         Self {
             prism,
             id: String::new(),
@@ -156,7 +156,7 @@ where
         self
     }
 
-    pub fn with_key(mut self, key: VerifyingKey) -> Self {
+    pub const fn with_key(mut self, key: VerifyingKey) -> Self {
         self.key = Some(key);
         self
     }
@@ -317,7 +317,7 @@ impl<'a, P> SigningTransactionRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: Option<&'a P>, unsigned_transaction: UnsignedTransaction) -> Self {
+    pub const fn new(prism: Option<&'a P>, unsigned_transaction: UnsignedTransaction) -> Self {
         Self {
             prism,
             unsigned_transaction,
@@ -362,7 +362,7 @@ impl<'a, P> SendingTransactionRequestBuilder<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: Option<&'a P>, transaction: Transaction) -> Self {
+    pub const fn new(prism: Option<&'a P>, transaction: Transaction) -> Self {
         Self { prism, transaction }
     }
 
@@ -381,9 +381,9 @@ where
     }
 }
 
-/// Creates a new request builder with the default NoopPrismApi implementation.
+/// Creates a new request builder with the default `NoopPrismApi` implementation.
 /// This is useful for local testing and validation without a real API connection.
 #[cfg(test)]
-pub fn build_request<'a>() -> RequestBuilder<'a, NoopPrismApi> {
+pub const fn build_request<'a>() -> RequestBuilder<'a, NoopPrismApi> {
     RequestBuilder::new()
 }

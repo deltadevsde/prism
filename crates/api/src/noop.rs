@@ -16,7 +16,7 @@ impl PrismApiTimer for NoopTimer {
 pub struct NoopPendingTransaction;
 
 #[async_trait]
-impl PendingTransaction<'_> for NoopPendingTransaction {
+impl<'a> PendingTransaction<'a> for NoopPendingTransaction {
     type Timer = NoopTimer;
 
     async fn wait_with_interval(&self, _: Duration) -> Result<Account, PrismApiError> {

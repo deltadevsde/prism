@@ -6,6 +6,10 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
+[features]
+default = []
+mockall = ["dep:mockall"]
+
 [dependencies]
 # prism
 prism-common.workspace = true
@@ -27,9 +31,5 @@ anyhow.workspace = true
 # testing
 mockall = { workspace = true, optional = true }
 
-[dev-dependencies]
-prism-keys.workspace = true
-
-[features]
-default = []
-mockall = ["dep:mockall"]
+[lints]
+workspace = true

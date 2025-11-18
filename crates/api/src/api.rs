@@ -154,7 +154,7 @@ impl<'a, P> PendingTransactionImpl<'a, P>
 where
     P: PrismApi,
 {
-    pub fn new(prism: &'a P, transaction: Transaction) -> Self {
+    pub const fn new(prism: &'a P, transaction: Transaction) -> Self {
         Self { prism, transaction }
     }
 }
