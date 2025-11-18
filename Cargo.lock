@@ -7346,7 +7346,6 @@ name = "prism-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "celestia-types",
  "prism-errors",
  "prism-keys",
