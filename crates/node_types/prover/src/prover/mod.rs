@@ -1,12 +1,10 @@
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
-use prism_common::{
-    api::{
-        PendingTransaction, PrismApi, PrismApiError,
-        types::{AccountResponse, CommitmentResponse},
-    },
-    transaction::Transaction,
+use prism_api::{
+    PendingTransaction, PrismApi, PrismApiError,
+    types::{AccountResponse, CommitmentResponse},
 };
+use prism_common::transaction::Transaction;
 use prism_cross_target::tasks::TaskManager;
 use prism_events::{EventChannel, EventSubscriber, PrismEvent};
 use prism_keys::{CryptoAlgorithm, SigningKey, VerifyingKey};

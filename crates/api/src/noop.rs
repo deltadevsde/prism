@@ -1,11 +1,11 @@
 use async_trait::async_trait;
+use prism_common::{account::Account, transaction::Transaction};
 use std::time::Duration;
 
 use super::{
     PendingTransaction, PrismApi, PrismApiError, PrismApiTimer,
     types::{AccountResponse, CommitmentResponse},
 };
-use crate::{account::Account, transaction::Transaction};
 
 pub struct NoopTimer;
 
@@ -16,7 +16,7 @@ impl PrismApiTimer for NoopTimer {
 pub struct NoopPendingTransaction;
 
 #[async_trait]
-impl PendingTransaction<'_> for NoopPendingTransaction {
+impl<'a> PendingTransaction<'a> for NoopPendingTransaction {
     type Timer = NoopTimer;
 
     async fn wait_with_interval(&self, _: Duration) -> Result<Account, PrismApiError> {

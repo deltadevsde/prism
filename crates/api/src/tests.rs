@@ -1,6 +1,7 @@
+use prism_common::{account::Account, operation::Operation};
 use prism_keys::SigningKey;
 
-use crate::{account::Account, operation::Operation};
+use crate::builder::build_request;
 
 #[test]
 fn test_process_register_service_transactions() {
@@ -8,7 +9,7 @@ fn test_process_register_service_transactions() {
     let challenge_key = SigningKey::new_ed25519();
 
     // happy path - should succeed
-    let create_tx = Account::builder()
+    let create_tx = build_request()
         .register_service()
         .with_id("Service".to_string())
         .with_key(service_key.verifying_key())
@@ -21,7 +22,7 @@ fn test_process_register_service_transactions() {
     assert!(Account::default().process_transaction(&create_tx).is_ok());
 
     // should fail with invalid nonce
-    let mut unsigned_invalid_tx = Account::builder()
+    let mut unsigned_invalid_tx = build_request()
         .register_service()
         .with_id("Service".to_string())
         .with_key(service_key.verifying_key())
@@ -35,7 +36,7 @@ fn test_process_register_service_transactions() {
     assert!(Account::default().process_transaction(&invalid_tx).is_err());
 
     // should fail when operation id and transaction id are not equal
-    let mut unsigned_invalid_tx = Account::builder()
+    let mut unsigned_invalid_tx = build_request()
         .register_service()
         .with_id("Service".to_string())
         .with_key(service_key.verifying_key())
@@ -54,7 +55,7 @@ fn test_process_register_service_transactions() {
 
     // should fail when transaction is signed with an invalid key
     let invalid_key = SigningKey::new_ed25519();
-    let invalid_tx = Account::builder()
+    let invalid_tx = build_request()
         .register_service()
         .with_id("Service".to_string())
         .with_key(service_key.verifying_key())
@@ -73,7 +74,7 @@ fn test_process_create_account_transactions() {
     let acc_key = SigningKey::new_ed25519();
 
     // happy path - should succeed
-    let create_tx = Account::builder()
+    let create_tx = build_request()
         .create_account()
         .with_id("Acc".to_string())
         .for_service_with_id("Service".to_string())
@@ -87,7 +88,7 @@ fn test_process_create_account_transactions() {
     assert!(Account::default().process_transaction(&create_tx).is_ok());
 
     // should fail with invalid nonce
-    let mut unsigned_invalid_tx = Account::builder()
+    let mut unsigned_invalid_tx = build_request()
         .create_account()
         .with_id("Acc".to_string())
         .for_service_with_id("Service".to_string())
@@ -102,7 +103,7 @@ fn test_process_create_account_transactions() {
     assert!(Account::default().process_transaction(&invalid_tx).is_err());
 
     // should fail when operation id and transaction id are not equal
-    let mut unsigned_invalid_tx = Account::builder()
+    let mut unsigned_invalid_tx = build_request()
         .create_account()
         .with_id("Acc".to_string())
         .for_service_with_id("Service".to_string())
@@ -122,7 +123,7 @@ fn test_process_create_account_transactions() {
 
     // should fail when transaction is signed with an invalid key
     let invalid_key = SigningKey::new_ed25519();
-    let invalid_tx = Account::builder()
+    let invalid_tx = build_request()
         .create_account()
         .with_id("Acc".to_string())
         .for_service_with_id("Service".to_string())

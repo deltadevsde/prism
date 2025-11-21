@@ -1,29 +1,35 @@
 [package]
-name = "prism-client"
+name = "prism-api"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
+[features]
+default = []
+mockall = ["dep:mockall"]
+
 [dependencies]
 # prism
-prism-api.workspace = true
 prism-common.workspace = true
+prism-errors.workspace = true
 prism-keys.workspace = true
-prism-serde.workspace = true
-
-# webclient
-reqwest.workspace = true
-url.workspace = true
 
 # async
 async-trait.workspace = true
-tokio.workspace = true
 
 # serde
 serde.workspace = true
 
-[features]
-default = []
-mockall = ["prism-api/mockall"]
+# OAS spec
+utoipa.workspace = true
+
+# misc
+anyhow.workspace = true
+
+# testing
+mockall = { workspace = true, optional = true }
+
+[lints]
+workspace = true

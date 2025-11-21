@@ -1,15 +1,12 @@
 use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use jmt::KeyHash;
+use prism_api::{
+    PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError,
+    types::{AccountResponse as ApiAccountResponse, CommitmentResponse, HashedMerkleProof},
+};
 use prism_common::{
-    account::Account,
-    api::{
-        PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError,
-        types::{AccountResponse as ApiAccountResponse, CommitmentResponse, HashedMerkleProof},
-    },
-    digest::Digest,
-    operation::Operation,
-    transaction::Transaction,
+    account::Account, digest::Digest, operation::Operation, transaction::Transaction,
 };
 use prism_da::{DataAvailabilityLayer, FinalizedEpoch};
 use prism_events::{EventChannel, PrismEvent};

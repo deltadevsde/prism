@@ -7286,6 +7286,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "prism-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "mockall",
+ "prism-common",
+ "prism-errors",
+ "prism-keys",
+ "serde",
+ "utoipa",
+]
+
+[[package]]
 name = "prism-cli"
 version = "0.1.0"
 dependencies = [
@@ -7317,6 +7331,7 @@ name = "prism-client"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "prism-api",
  "prism-common",
  "prism-keys",
  "prism-serde",
@@ -7331,9 +7346,7 @@ name = "prism-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "celestia-types",
- "mockall",
  "prism-errors",
  "prism-keys",
  "prism-serde",
@@ -7476,6 +7489,7 @@ dependencies = [
  "mockall",
  "paste",
  "pretty_env_logger",
+ "prism-api",
  "prism-common",
  "prism-cross-target",
  "prism-da",

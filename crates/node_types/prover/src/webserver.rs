@@ -1,12 +1,10 @@
 use anyhow::{Result, bail};
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
-use prism_common::{
-    api::{
-        PrismApi,
-        types::{AccountRequest, AccountResponse, CommitmentResponse},
-    },
-    transaction::Transaction,
+use prism_api::{
+    PrismApi,
+    types::{AccountRequest, AccountResponse, CommitmentResponse},
 };
+use prism_common::transaction::Transaction;
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;

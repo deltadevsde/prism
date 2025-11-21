@@ -1,13 +1,11 @@
 use std::{future::Future, time::Duration};
 
 use async_trait::async_trait;
-use prism_common::{
-    api::{
-        PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError, PrismApiTimer,
-        types::{AccountRequest, AccountResponse, CommitmentResponse},
-    },
-    transaction::Transaction,
+use prism_api::{
+    PendingTransaction, PendingTransactionImpl, PrismApi, PrismApiError, PrismApiTimer,
+    types::{AccountRequest, AccountResponse, CommitmentResponse},
 };
+use prism_common::transaction::Transaction;
 
 use crate::{PrismHttpClient, PrismHttpClientError};
 

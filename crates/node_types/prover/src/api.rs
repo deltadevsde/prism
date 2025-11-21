@@ -1,6 +1,6 @@
 use std::{future::Future, time::Duration};
 
-use prism_common::api::PrismApiTimer;
+use prism_api::PrismApiTimer;
 
 pub struct ProverTokioTimer;
 
