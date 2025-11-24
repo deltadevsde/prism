@@ -1,2 +1,5 @@
 [dependencies-replacements]
 "zip:2.5.0" = { version = "=2.3.0" }
+
+[target.'cfg(all())']
+rustflags = ["-Zhigher-ranked-assumptions"]
