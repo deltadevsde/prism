@@ -221,7 +221,7 @@
 <p>Traditional solutions often put the burden on users to manually verify credentials (like comparing key fingerprints or scanning QR codes). Research shows this is impractical—only a small percentage of users successfully complete these verifications, and even fewer understand their purpose.</p>
 <h2 id="what-is-prism-1"><a class="header" href="#what-is-prism-1">What is Prism?</a></h2>
 <p>From a high level, Prism is simply a trust-minimized service that manages data - more precisely, a label-value-map - that produces evidence that it has acted correctly and honestly. Correct and honest here refer to application-specific policies by which it purports to act.</p>
-<p>Prism originiated as a toy implementation of a paper from <a href="https://eprint.iacr.org/2021/1263.pdf">Tzialla et al.</a>, from which it has significantly diverged. In this documentation, <em>"Keypal"</em> is described as a concrete application example, which serves as a POC of an application that could run on Prism.</p>
+<p>Prism originated as a toy implementation of a paper from <a href="https://eprint.iacr.org/2021/1263.pdf">Tzialla et al.</a>, from which it has significantly diverged. In this documentation, <em>"Keypal"</em> is described as a concrete application example, which serves as a POC of an application that could run on Prism.</p>
 <h2 id="prism-as-a-sovereign-rollup-on-celestia"><a class="header" href="#prism-as-a-sovereign-rollup-on-celestia">Prism as a Sovereign Rollup on Celestia</a></h2>
 <p>Prism operates as a sovereign-based rollup on the Celestia blockchain. A rollup is a scaling solution for blockchain networks, particularly designed to increase transaction throughput and reduce fees while maintaining the security guarantees of the underlying Layer 1 (L1) blockchain. Unlike traditional rollups, Prism does not rely on Celestia's L1 to validate its blocks - the nodes of the rollup network are responsible for validating them, allowing Prism to take charge of its own settlement.</p>
 <h3 id="block-sequencing-in-prism"><a class="header" href="#block-sequencing-in-prism">Block Sequencing in Prism</a></h3>
@@ -341,10 +341,10 @@ pub struct Account {
 </ol>
 <p>This approach allows for flexibility while maintaining control over account creation.</p>
 <h2 id="other-considerations"><a class="header" href="#other-considerations">Other Considerations</a></h2>
-<p>If all labels were stored in plaintext, services would be vulnerable to enumeration attacks. A simple protection against this is to hash identifiers, meaning users must know the ID plaintext before resolving the user's hashchain. However, this is not a strong attack prevention, as hash functions are publically known.</p>
+<p>If all labels were stored in plaintext, services would be vulnerable to enumeration attacks. A simple protection against this is to hash identifiers, meaning users must know the ID plaintext before resolving the user's hashchain. However, this is not a strong attack prevention, as hash functions are publicly known.</p>
 <p>For this reason, we distinguish between the notion of public  and private services.</p>
 <ol>
-<li>Private services would have labels run through a VRF -- completely preventing enumeration attacks, but requiring centralized (albeit publically verifiable) identity resolution.</li>
+<li>Private services would have labels run through a VRF -- completely preventing enumeration attacks, but requiring centralized (albeit publicly verifiable) identity resolution.</li>
 <li>Public services simply hash their labels pre-insertion.</li>
 </ol>
 <h2 id="future-developments"><a class="header" href="#future-developments">Future Developments</a></h2>
